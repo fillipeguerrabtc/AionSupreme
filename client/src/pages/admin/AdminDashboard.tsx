@@ -25,21 +25,24 @@ export default function AdminDashboard() {
   const { data: policy, error, isLoading } = useQuery({
     queryKey: ["/api/admin/policies", tenantId],
     queryFn: async () => {
-      console.log("[AdminDashboard] Fetching policy for tenant:", tenantId);
       const res = await apiRequest(`/api/admin/policies/${tenantId}`);
       const data = await res.json();
-      console.log("[AdminDashboard] Policy data:", data);
       return data;
     },
   });
 
-  console.log("[AdminDashboard] Query state:", { policy, error, isLoading });
-
   const updatePolicy = useMutation({
     mutationFn: async (updates: any) => {
+      // Merge policy with updates, but exclude timestamp fields (backend manages these)
+      const { createdAt, updatedAt, id, tenantId: _tenantId, ...policyFields } = policy || {};
+      const payload = { ...policyFields, ...updates };
+      
       const res = await apiRequest(`/api/admin/policies/${tenantId}`, {
         method: "POST",
-        body: JSON.stringify({ ...policy, ...updates }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
       return res.json();
     },
