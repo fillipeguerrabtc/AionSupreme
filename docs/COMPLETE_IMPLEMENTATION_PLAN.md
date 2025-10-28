@@ -664,26 +664,36 @@ app.get('/api/chat/stream/:conversationId', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   
-  const conversation = await db.query.conversations.findFirst({
-    where: eq(conversations.id, conversationId),
-    with: {messages: true}
-  });
-  
-  const tenant = await getTenant(conversation.tenantId);
-  const context = await hybridSearch(conversation.messages[conversation.messages.length - 1].content, tenant.id);
-  
-  const stream = await answerRouter.routeStream(
-    conversation.messages[conversation.messages.length - 1].content,
-    context,
-    tenant
-  );
-  
-  for await (const chunk of stream) {
-    res.write(`data: ${JSON.stringify({content: chunk})}\n\n`);
+  try {
+    const conversation = await db.query.conversations.findFirst({
+      where: eq(conversations.id, conversationId),
+      with: {messages: true}
+    });
+    
+    if (!conversation) {
+      res.status(404).json({error: 'Conversation not found'});
+      return;
+    }
+    
+    const tenant = await getTenant(conversation.tenantId);
+    const lastMessage = conversation.messages[conversation.messages.length - 1];
+    const context = await hybridSearch(lastMessage.content, tenant.id);
+    
+    // Iterate over async generator directly (DO NOT await it)
+    for await (const chunk of answerRouter.routeStream(lastMessage.content, context, tenant)) {
+      res.write(`data: ${JSON.stringify({content: chunk})}\n\n`);
+      
+      // Flush immediately for real-time streaming
+      if (res.flush) res.flush();
+    }
+    
+    res.write('data: [DONE]\n\n');
+    res.end();
+  } catch (error) {
+    console.error('Streaming error:', error);
+    res.write(`data: ${JSON.stringify({error: 'Streaming failed'})}\n\n`);
+    res.end();
   }
-  
-  res.write('data: [DONE]\n\n');
-  res.end();
 });
 ```
 

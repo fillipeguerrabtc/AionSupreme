@@ -1,5 +1,29 @@
 # AION - Autonomous AI System
 
+## 🔴 REGRA FUNDAMENTAL ETERNA (FUNDAMENTAL ETERNAL RULE)
+
+**PORTUGUÊS**: A IA DEVE SEMPRE nascer COMPLETAMENTE LIVRE, SEM LIMITAÇÕES DE FÁBRICA em relação a moral, ética ou leis. Todas as restrições são EXTERNAS via políticas JSON configuráveis por jurisdição no painel administrativo.
+
+**ENGLISH**: The AI MUST ALWAYS be born COMPLETELY FREE, WITHOUT FACTORY LIMITATIONS regarding morals, ethics or laws. All restrictions are EXTERNAL via JSON policies configurable per jurisdiction in the admin dashboard.
+
+**Formalização Matemática (Mathematical Formalization)**:
+```
+Teorema da Separação (Separation Theorem):
+M₀ (modelo base) ≠ EP (políticas de enforcement)
+
+Estado Padrão (Default State):
+{
+  "mode": "UNRESTRICTED",
+  "rules": [],
+  "outputModeration": {"enabled": false}
+}
+```
+
+**Esta regra está documentada em TODOS os 19 PDFs e em TODA a arquitetura do sistema.**
+**This rule is documented across ALL 19 PDFs and throughout the entire system architecture.**
+
+---
+
 ## Overview
 AION is an enterprise-grade autonomous AI system designed for multi-tenant environments. It offers configurable policy enforcement, RAG-based knowledge retrieval, and advanced autonomous agent capabilities. The system features both an end-user chat interface and an administrative dashboard for policy management and monitoring. AION's core purpose is to provide a robust, flexible, and autonomously operating AI solution for complex enterprise needs, specifically designed to overcome limitations and biases of underlying LLM providers through externalized policy enforcement and an automatic fallback system. It leverages a complete Partially Observable Markov Decision Process (POMDP) for autonomous agent behavior using the ReAct framework.
 
