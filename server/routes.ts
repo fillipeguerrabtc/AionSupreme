@@ -31,22 +31,23 @@ export function registerRoutes(app: Express): Server {
   // POST /api/v1/chat/completions
   app.post("/api/v1/chat/completions", async (req, res) => {
     const startTime = Date.now();
+    const tenantId = req.body.tenant_id || 1;
+    
     try {
-      const { messages, tenant_id, tools, stream } = req.body;
+      const { messages, tools, stream } = req.body;
       
       // Record request metrics
-      const tenantId = tenant_id || 1;
       metricsCollector.recordRequest(tenantId);
       
-      const policy = await storage.getPolicyByTenant(tenant_id || 1);
-      if (!policy) throw new Error("No policy found");
+      // Get policy or use DEFAULT UNRESTRICTED (all rules = false)
+      const policy = await enforcementPipeline.getOrCreateDefaultPolicy(tenantId);
       
       const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...messages];
       
       const result = await llmClient.chatCompletion({
         messages: fullMessages,
-        tenantId: tenant_id || 1,
+        tenantId,
         temperature: policy.temperature,
         topP: policy.topP,
         tools,
@@ -94,15 +95,17 @@ export function registerRoutes(app: Express): Server {
   // POST /api/v1/chat/multimodal (Chat with file attachments)
   app.post("/api/v1/chat/multimodal", upload.array("files", 5), async (req, res) => {
     const startTime = Date.now();
+    const parsedData = JSON.parse(req.body.data || "{}");
+    const tenantId = parsedData.tenant_id || 1;
+    
     try {
-      const { messages, tenant_id } = JSON.parse(req.body.data || "{}");
+      const { messages } = parsedData;
       const files = req.files as Express.Multer.File[];
       
-      const tenantId = tenant_id || 1;
       metricsCollector.recordRequest(tenantId);
       
-      const policy = await storage.getPolicyByTenant(tenantId);
-      if (!policy) throw new Error("No policy found");
+      // Get policy or use DEFAULT UNRESTRICTED (all rules = false)
+      const policy = await enforcementPipeline.getOrCreateDefaultPolicy(tenantId);
       
       // Process all uploaded files
       let attachmentsContext = "";
@@ -147,7 +150,6 @@ export function registerRoutes(app: Express): Server {
         usage: result.usage,
       });
     } catch (error: any) {
-      const tenantId = parseInt(JSON.parse(req.body.data || "{}").tenant_id || "1");
       metricsCollector.recordError(tenantId);
       res.status(500).json({ error: error.message });
     }

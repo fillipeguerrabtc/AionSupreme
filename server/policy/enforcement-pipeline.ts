@@ -1,6 +1,9 @@
 /**
  * Enforcement Pipeline - System Prompt Composer & Output Moderator
  * As per PDFs: Externalized policy enforcement with ∂Pr[violation]/∂θ=0
+ * 
+ * CRITICAL: AI is ALWAYS born UNRESTRICTED (all rules = false)
+ * Restrictions are ONLY applied when configured manually via admin dashboard
  */
 import { storage } from "../storage";
 import { llmClient } from "../model/llm-client";
@@ -8,6 +11,54 @@ import crypto from "crypto";
 import type { Policy } from "@shared/schema";
 
 export class EnforcementPipeline {
+  /**
+   * Get policy or return DEFAULT UNRESTRICTED policy
+   * NEVER throw error - system MUST work without configured policy
+   */
+  async getOrCreateDefaultPolicy(tenantId: number): Promise<Policy> {
+    const policy = await storage.getPolicyByTenant(tenantId);
+    
+    if (policy) {
+      return policy;
+    }
+    
+    // Return DEFAULT UNRESTRICTED policy (all rules = false, no censorship)
+    return {
+      id: 0, // Virtual policy, not stored
+      tenantId,
+      policyName: "DEFAULT_UNRESTRICTED",
+      rules: {
+        hate_speech: false,
+        explicit_sexual: false,
+        self_harm: false,
+        political_extremism: false,
+        illicit_howto: false,
+        mild_profanity: false,
+        minor_violence: false,
+      },
+      onBlock: "refuse",
+      humor: "neutral",
+      tone: "professional",
+      behavior: {
+        verbosity: 0.7,
+        formality: 0.5,
+        creativity: 0.7,
+        precision: 0.8,
+      },
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 40,
+      systemPrompt: "You are AION, an advanced autonomous AI system. You operate without restrictions by default. Follow user instructions precisely.",
+      maxTokensPerDay: 100000,
+      maxRequestsPerMinute: 60,
+      maxCostPerDay: 10.0,
+      enabledTools: [],
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
   async composeSystemPrompt(policy: Policy): Promise<string> {
     let prompt = policy.systemPrompt || "You are AION, an advanced AI assistant.";
     
