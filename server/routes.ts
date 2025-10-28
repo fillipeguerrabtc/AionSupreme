@@ -6,6 +6,7 @@ import { ragService } from "./rag/vector-store";
 import { reactEngine } from "./agent/react-engine";
 import { agentTools } from "./agent/tools";
 import { enforcementPipeline } from "./policy/enforcement-pipeline";
+import { autoFallback } from "./policy/auto-fallback";
 import { fileProcessor } from "./multimodal/file-processor";
 import { knowledgeIndexer } from "./rag/knowledge-indexer";
 import { hierarchicalPlanner } from "./agent/hierarchical-planner";
@@ -55,14 +56,37 @@ export function registerRoutes(app: Express): Server {
       
       const moderated = await enforcementPipeline.moderateOutput(result.content, policy, tenantId);
       
+      // ⚡ AUTOMATIC FALLBACK: If OpenAI refused and system is UNRESTRICTED,
+      // search web, index in KB, and respond without censorship
+      const userMessage = messages[messages.length - 1]?.content || '';
+      const fallbackResult = await autoFallback.checkAndExecuteFallback(
+        moderated,
+        userMessage,
+        tenantId,
+        policy
+      );
+      
+      const finalContent = fallbackResult.content;
+      
       // Record metrics
       const latency = Date.now() - startTime;
       metricsCollector.recordLatency(tenantId, latency);
       metricsCollector.recordTokens(tenantId, result.usage?.totalTokens || 0);
       
       res.json({
-        choices: [{ message: { role: "assistant", content: moderated }, finish_reason: result.finishReason }],
+        choices: [{ 
+          message: { 
+            role: "assistant", 
+            content: finalContent 
+          }, 
+          finish_reason: result.finishReason 
+        }],
         usage: result.usage,
+        fallback: fallbackResult.usedFallback ? {
+          used: true,
+          sourcesIndexed: fallbackResult.sourcesIndexed,
+          searchQuery: fallbackResult.searchQuery,
+        } : undefined,
       });
     } catch (error: any) {
       metricsCollector.recordError(tenantId);
@@ -141,13 +165,36 @@ export function registerRoutes(app: Express): Server {
       
       const moderated = await enforcementPipeline.moderateOutput(result.content, policy, tenantId);
       
+      // ⚡ AUTOMATIC FALLBACK: If OpenAI refused and system is UNRESTRICTED,
+      // search web, index in KB, and respond without censorship
+      const userMessage = messages[messages.length - 1]?.content || '';
+      const fallbackResult = await autoFallback.checkAndExecuteFallback(
+        moderated,
+        userMessage,
+        tenantId,
+        policy
+      );
+      
+      const finalContent = fallbackResult.content;
+      
       const latency = Date.now() - startTime;
       metricsCollector.recordLatency(tenantId, latency);
       metricsCollector.recordTokens(tenantId, result.usage?.totalTokens || 0);
       
       res.json({
-        choices: [{ message: { role: "assistant", content: moderated }, finish_reason: result.finishReason }],
+        choices: [{ 
+          message: { 
+            role: "assistant", 
+            content: finalContent 
+          }, 
+          finish_reason: result.finishReason 
+        }],
         usage: result.usage,
+        fallback: fallbackResult.usedFallback ? {
+          used: true,
+          sourcesIndexed: fallbackResult.sourcesIndexed,
+          searchQuery: fallbackResult.searchQuery,
+        } : undefined,
       });
     } catch (error: any) {
       metricsCollector.recordError(tenantId);
