@@ -19,6 +19,9 @@ import { parseStringPromise } from "xml2js";
 import fs from "fs/promises";
 import path from "path";
 import { llmClient } from "../model/llm-client";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
 
 export interface ProcessedFile {
   filename: string;
@@ -105,16 +108,23 @@ export class FileProcessor {
    */
   private async processPDF(filePath: string): Promise<{ text: string; metadata: Record<string, any> }> {
     try {
-      // Dynamic import for CommonJS module
-      const pdfParse = (await import("pdf-parse")).default;
+      const { PDFParse } = require("pdf-parse");
       const dataBuffer = await fs.readFile(filePath);
-      const data = await pdfParse(dataBuffer);
+      const uint8Array = new Uint8Array(dataBuffer);
+      
+      const parser = new PDFParse(uint8Array);
+      await parser.load();
+      
+      const info = await parser.getInfo();
+      const textResult = await parser.getText();
+      
+      const fullText = textResult.pages.map((page: any) => page.text).join('\n\n');
       
       return {
-        text: data.text,
+        text: fullText,
         metadata: {
-          pages: data.numpages,
-          info: data.info,
+          pages: info.total,
+          info: info.info,
         },
       };
     } catch (error: any) {

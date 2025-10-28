@@ -12,6 +12,7 @@
 
 import { storage } from "../storage";
 import { ragService } from "./vector-store";
+import { FileProcessor } from "../multimodal/file-processor";
 import fs from "fs/promises";
 import path from "path";
 
@@ -61,17 +62,18 @@ const TECHNICAL_PDFS: PDFMetadata[] = [
 ];
 
 export class KnowledgeIndexer {
+  private fileProcessor = new FileProcessor();
+
   /**
    * Extract text from PDF preserving structure
    */
   private async extractPDFText(filePath: string): Promise<string> {
     try {
-      // Dynamic import for CommonJS module
-      const pdfParse = (await import("pdf-parse")).default;
-      const dataBuffer = await fs.readFile(filePath);
-      const data = await pdfParse(dataBuffer);
-      
-      return data.text;
+      const result = await this.fileProcessor.processFile(filePath, "application/pdf");
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      return result.extractedText;
     } catch (error: any) {
       console.error(`[KnowledgeIndexer] Error extracting PDF ${filePath}:`, error);
       throw new Error(`Failed to extract PDF: ${error.message}`);
