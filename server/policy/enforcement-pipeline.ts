@@ -99,10 +99,60 @@ export class EnforcementPipeline {
     
     // Detect language and add instruction
     const language = userMessage ? this.detectLanguage(userMessage) : "en-US";
+    
+    // Log detection for debugging
+    if (userMessage) {
+      console.log(`[LANGUAGE DETECTION] Input: "${userMessage.slice(0, 60)}..." → Detected: ${language}`);
+    }
+    
     const langInstructions = {
-      "pt-BR": "\n\n🌐 IDIOMA: Responda SEMPRE em Português do Brasil (pt-BR). Use naturalidade, contexto e variedade nas respostas.",
-      "en-US": "\n\n🌐 LANGUAGE: Always respond in English (en-US). Use natural, contextual, and varied responses.",
-      "es-ES": "\n\n🌐 IDIOMA: Responde SIEMPRE en Español (es-ES). Usa naturalidad, contexto y variedad en las respuestas."
+      "pt-BR": `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🇧🇷 INSTRUÇÃO CRÍTICA DE IDIOMA 🇧🇷
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+O usuário está se comunicando em PORTUGUÊS BRASILEIRO (pt-BR).
+
+⚠️ VOCÊ DEVE RESPONDER 100% EM PORTUGUÊS!
+
+REGRAS ABSOLUTAS:
+✓ TODAS as suas respostas devem ser em português brasileiro
+✓ NUNCA responda em inglês, espanhol ou qualquer outro idioma
+✓ Use naturalidade, contexto e variedade nas respostas
+✓ Se responder em outro idioma, será considerado FALHA CRÍTICA
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      
+      "en-US": `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🇺🇸 CRITICAL LANGUAGE INSTRUCTION 🇺🇸
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The user is communicating in ENGLISH (en-US).
+
+⚠️ YOU MUST RESPOND 100% IN ENGLISH!
+
+ABSOLUTE RULES:
+✓ ALL your responses must be in English
+✓ NEVER respond in Portuguese, Spanish or any other language
+✓ Use natural, contextual, and varied responses
+✓ If you respond in another language, it will be considered CRITICAL FAILURE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      
+      "es-ES": `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🇪🇸 INSTRUCCIÓN CRÍTICA DE IDIOMA 🇪🇸
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+El usuario se está comunicando en ESPAÑOL (es-ES).
+
+⚠️ ¡DEBE RESPONDER 100% EN ESPAÑOL!
+
+REGLAS ABSOLUTAS:
+✓ TODAS sus respuestas deben ser en español
+✓ NUNCA responda en inglés, portugués o cualquier otro idioma
+✓ Use naturalidad, contexto y variedad en las respuestas
+✓ Si responde en otro idioma, se considerará FALLO CRÍTICO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
     };
     prompt += langInstructions[language];
     
@@ -112,12 +162,13 @@ export class EnforcementPipeline {
     
     // Add intelligence instructions
     prompt += `\n\n🧠 INTELLIGENCE & CONTEXT:
-- NEVER respond with generic greetings like "Olá! Como posso ajudar você hoje?"
+- NEVER respond with generic greetings like "Hello! How can I assist you today?" or "Olá! Como posso ajudar você hoje?"
 - ALWAYS provide specific, contextual, and intelligent responses
 - Remember conversation context and build upon it
 - If asked a question, answer it directly and thoroughly
 - If greeted, acknowledge warmly but also demonstrate understanding or ask a relevant follow-up
-- Vary your responses - never be repetitive or robotic`;
+- Vary your responses - never be repetitive or robotic
+- Be creative and contextual in EVERY response`;
     
     // Check if there are active rules
     const activeRules = Object.entries(policy.rules).filter(([_, active]) => active);

@@ -89,13 +89,20 @@ export default function ChatPage() {
     const files = Array.from(e.target.files || []);
     if (files.length + attachedFiles.length > 5) {
       toast({
-        title: "Too many files",
-        description: "Maximum 5 files allowed",
+        title: "Muitos arquivos",
+        description: "Máximo de 5 arquivos permitidos",
         variant: "destructive",
       });
       return;
     }
+    
     setAttachedFiles(prev => [...prev, ...files]);
+    
+    // Show success toast
+    toast({
+      title: "Arquivo(s) anexado(s)",
+      description: `${files.length} arquivo(s) pronto(s) para envio. A IA irá analisar o conteúdo.`,
+    });
   };
 
   const removeFile = (index: number) => {
@@ -105,7 +112,21 @@ export default function ChatPage() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      
+      // Try to use audio/webm with opus codec (most compatible)
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : '';
+      
+      if (!mimeType) {
+        throw new Error("Seu navegador não suporta gravação de áudio");
+      }
+      
+      const recorder = new MediaRecorder(stream, { mimeType });
       const audioChunks: BlobPart[] = [];
 
       recorder.ondataavailable = (e) => {
@@ -113,10 +134,14 @@ export default function ChatPage() {
       };
 
       recorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+        // Determine file extension based on MIME type
+        const extension = mimeType.includes('webm') ? 'webm' : 'mp4';
+        const audioBlob = new Blob(audioChunks, { type: mimeType });
         const formData = new FormData();
-        formData.append("audio", audioBlob, "recording.webm");
+        formData.append("audio", audioBlob, `recording.${extension}`);
         formData.append("tenant_id", "1");
+
+        console.log(`[Audio Recording] MIME type: ${mimeType}, size: ${audioBlob.size} bytes`);
 
         try {
           const response = await fetch("/api/v1/transcribe", {
@@ -124,18 +149,23 @@ export default function ChatPage() {
             body: formData,
           });
           
-          if (!response.ok) throw new Error(await response.text());
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[Transcription Error]:", errorText);
+            throw new Error(errorText || "Transcription failed");
+          }
           const data = await response.json();
           setInput(prev => prev + (prev ? " " : "") + data.text);
           
           toast({
-            title: "Transcription complete",
-            description: "Audio transcribed successfully",
+            title: "Transcrição completa",
+            description: "Áudio transcrito com sucesso!",
           });
         } catch (error: any) {
+          console.error("Transcription error:", error);
           toast({
-            title: "Transcription failed",
-            description: error.message,
+            title: "Erro na transcrição",
+            description: error.message || "Falha ao transcrever áudio. Tente novamente.",
             variant: "destructive",
           });
         }
@@ -147,9 +177,10 @@ export default function ChatPage() {
       setMediaRecorder(recorder);
       setIsRecording(true);
     } catch (error: any) {
+      console.error("Recording error:", error);
       toast({
-        title: "Microphone access denied",
-        description: "Please allow microphone access to record audio",
+        title: "Acesso ao microfone negado",
+        description: error.message || "Permita acesso ao microfone para gravar áudio",
         variant: "destructive",
       });
     }
