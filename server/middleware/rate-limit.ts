@@ -25,9 +25,9 @@ interface RateLimitEntry {
 class RateLimiter {
   private limits: Map<string, RateLimitEntry> = new Map();
   private config: RateLimitConfig = {
-    requestsPerMinute: 60,
-    requestsPerHour: 1000,
-    requestsPerDay: 10000,
+    requestsPerMinute: 300, // Increased from 60 to 300 for development
+    requestsPerHour: 5000,
+    requestsPerDay: 50000,
     tokensPerDay: 1000000,
   };
 

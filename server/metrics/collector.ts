@@ -204,6 +204,8 @@ class MetricsCollector {
         tenantId,
         metricType: "performance",
         value: snapshot.latency.mean,
+        unit: "ms",
+        operation: "aggregate",
         metadata: snapshot,
       });
     } catch (error) {

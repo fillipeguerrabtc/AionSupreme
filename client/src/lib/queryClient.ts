@@ -7,11 +7,32 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Overloaded apiRequest to support both signatures
+export async function apiRequest(url: string, options?: RequestInit): Promise<Response>;
+export async function apiRequest(method: string, url: string, data?: unknown): Promise<Response>;
 export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
+  methodOrUrl: string,
+  urlOrOptions?: string | RequestInit,
+  data?: unknown,
 ): Promise<Response> {
+  // If second param is an object (RequestInit), use simple signature: apiRequest(url, options)
+  if (typeof urlOrOptions === "object" || urlOrOptions === undefined) {
+    const url = methodOrUrl;
+    const options = (urlOrOptions || {}) as RequestInit;
+    
+    const res = await fetch(url, {
+      ...options,
+      credentials: "include",
+    });
+    
+    await throwIfResNotOk(res);
+    return res;
+  }
+  
+  // Otherwise use old signature: apiRequest(method, url, data)
+  const method = methodOrUrl;
+  const url = urlOrOptions as string;
+  
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},

@@ -19,9 +19,11 @@ import multer from "multer";
 const upload = multer({ dest: "/tmp/uploads/" });
 
 export function registerRoutes(app: Express): Server {
-  // Apply global middleware
-  app.use(rateLimitMiddleware);
+  // Apply audit middleware globally (lightweight)
   app.use(auditMiddleware);
+  
+  // Apply rate limiting ONLY to API routes (not static assets)
+  app.use("/api", rateLimitMiddleware);
   
   // Seed database on startup
   seedDatabase().catch(console.error);

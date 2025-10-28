@@ -14,13 +14,18 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [tenantId] = useState(1);
 
-  const { data: policy } = useQuery({
+  const { data: policy, error, isLoading } = useQuery({
     queryKey: ["/api/admin/policies", tenantId],
     queryFn: async () => {
-      const res = await apiRequest(`/admin/policies/${tenantId}`);
-      return res.json();
+      console.log("[AdminDashboard] Fetching policy for tenant:", tenantId);
+      const res = await apiRequest(`/api/admin/policies/${tenantId}`);
+      const data = await res.json();
+      console.log("[AdminDashboard] Policy data:", data);
+      return data;
     },
   });
+
+  console.log("[AdminDashboard] Query state:", { policy, error, isLoading });
 
   const updatePolicy = useMutation({
     mutationFn: async (updates: any) => {
