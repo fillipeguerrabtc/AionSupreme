@@ -1,24 +1,7 @@
 # AION - Autonomous AI System
 
 ## Overview
-AION is an enterprise-grade autonomous AI system offering multi-tenant architecture, configurable policy enforcement, RAG-based knowledge retrieval, and autonomous agent capabilities. It features a dual-interface: a chat for end-users and an administrative dashboard for policy and monitoring. The system emphasizes externalized policy enforcement, controlling behavior through composable system prompts and output moderation, and implements a complete POMDP for autonomous agent behavior using the ReAct framework. AION aims to provide a robust, flexible, and autonomously operating AI solution for complex enterprise needs, with a focus on overcoming limitations of underlying LLM providers.
-
-## 📚 Documentação Completa
-
-### Documentação Principal
-- **README.md** ([English](./README.md)) / **README_PT-BR.md** ([Português](./README_PT-BR.md)) - Visão geral do projeto
-- **docs/INDEX.md** - Índice completo dos 19 PDFs técnicos
-- **docs/AUTOMATIC_FALLBACK.md** - Documentação detalhada do sistema de fallback automático
-- **docs/ARCHITECTURE.md** - Arquitetura técnica completa (em desenvolvimento)
-- **docs/API.md** - Referência completa da API REST (em desenvolvimento)
-
-### PDFs Técnicos (19 Documentos)
-Todos organizados em `docs/pdfs/`:
-- **Partes 1-2**: Fundamentos teóricos (Transformer, MoE, LoRA, RLHF)
-- **Partes 3.1-3.4**: Arquitetura do sistema (multimodal, RAG, agentes, deploy)
-- **Partes 4-16**: Implementação, matemática, otimização, casos de uso
-
-**Total**: 19 PDFs (~12 MB) - Ver [docs/INDEX.md](./docs/INDEX.md) para detalhes completos.
+AION is an enterprise-grade autonomous AI system designed for multi-tenant environments. It offers configurable policy enforcement, RAG-based knowledge retrieval, and advanced autonomous agent capabilities. The system features both an end-user chat interface and an administrative dashboard for policy management and monitoring. AION's core purpose is to provide a robust, flexible, and autonomously operating AI solution for complex enterprise needs, specifically designed to overcome limitations and biases of underlying LLM providers through externalized policy enforcement and an automatic fallback system. It leverages a complete Partially Observable Markov Decision Process (POMDP) for autonomous agent behavior using the ReAct framework.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -26,56 +9,50 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Core System Design
-AION employs a multi-tenant architecture with isolated policies, API keys, and usage metrics per tenant. Policy enforcement is externalized, allowing runtime updates without code changes. The system uses a dual-interface design: a chat interface for end-users and an administrative dashboard for policy management and system monitoring. It features an automatic fallback system that detects LLM refusals, searches the web, indexes content, and responds without censorship when in UNRESTRICTED mode, ensuring autonomous operation.
+AION utilizes a multi-tenant architecture with isolated policies, API keys, and usage metrics per tenant. Policy enforcement is externalized via JSON configurations, allowing runtime updates without code changes. The system features a dual-interface: a chat for end-users and an administrative dashboard for policy management and monitoring. A key feature is an automatic fallback system that detects LLM refusals, performs web searches, indexes content, and responds without censorship when in UNRESTRICTED mode.
 
-### Backend (Node.js + TypeScript)
-- **Framework**: Express.js with Vite for development, TypeScript with strict mode, ESM modules.
+### UI/UX
+The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses Radix UI with shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired custom design system featuring HSL-based colors and Inter/JetBrains Mono fonts. Key pages include a conversational chat interface and an Admin Dashboard for policy and metrics management.
+
+### Technical Implementations
+**Backend (Node.js + TypeScript):**
+- **Framework**: Express.js with TypeScript (strict mode, ESM modules).
 - **Database**: PostgreSQL via Drizzle ORM (Neon serverless).
-- **Core Services**: LLM Client (OpenAI integration with streaming, caching), Storage Layer (CRUD with Drizzle), RAG Service (in-memory FAISS-like vector store), Agent Engine (ReAct with POMDP), Policy Enforcement (system prompt composition, output moderation), Automatic Fallback (refusal detection, web search, KB indexing), Multimodal Processor (document handling).
+- **Core Services**: LLM Client (OpenAI integration with streaming, caching), Storage Layer, RAG Service (in-memory FAISS-like vector store), Agent Engine (ReAct with POMDP), Policy Enforcement (system prompt composition, output moderation), Automatic Fallback (refusal detection, web search, KB indexing), Multimodal Processor (document handling).
 - **Middleware**: Rate limiting, audit logging, API key authentication, request/response logging.
-- **Problem Solved**: Abstracts LLM complexity, provides production-ready features, and enables flexible content moderation without model retraining.
 
-### Frontend (React + TypeScript)
-- **Framework**: React 18 with Vite, Wouter, and TanStack Query.
-- **UI/UX**: Radix UI with shadcn/ui patterns, Tailwind CSS, Material Design-inspired custom design system (HSL-based color system, Inter/JetBrains Mono fonts).
-- **Key Pages**: Conversational Chat Interface, Admin Dashboard for policy and metrics.
-- **Problem Solved**: Separates user interaction from administrative control.
-
-### Database Schema (PostgreSQL via Drizzle)
-- **Tables**: `tenants`, `policies`, `conversations`, `messages`, `documents`, `embeddings`, `tool_executions`, `metrics`, `audit_logs`, `knowledge_sources`.
-- **Design Decisions**: JSONB columns for flexible data, timestamps for audit, foreign keys for integrity, indexes on frequently queried columns.
-
-### RAG (Retrieval-Augmented Generation)
+**RAG (Retrieval-Augmented Generation):**
 - **Components**: Embedder (text chunking, batch embedding), Vector Store (in-memory FAISS-like with cosine similarity), Hybrid Search (BM25 lexical + semantic), Knowledge Indexer (technical PDFs with LaTeX).
-- **Strategy**: Combines OpenAI embeddings for semantic search with BM25 for lexical search, re-ranks results using Max-Marginal Relevance.
+- **Strategy**: Combines OpenAI embeddings with BM25 for re-ranking results using Max-Marginal Relevance.
 
-### Agent System (ReAct Framework)
-- **Architecture**: ReAct Engine (Thought→Action→Observation loop), Tools (SearchWeb, KBSearch, Exec, Finish), Hierarchical Planner.
-- **POMDP**: Implements a Partially Observable Markov Decision Process for autonomous task completion.
-- **Stopping Criteria**: Confidence threshold, max steps, no progress, error state.
+**Agent System:**
+- **Framework**: ReAct (Reasoning + Acting) engine with a Thought→Action→Observation loop.
+- **Decision Making**: Implements a Partially Observable Markov Decision Process (POMDP) for autonomous task completion.
+- **Tools**: SearchWeb, KBSearch, Exec, Finish, and other custom tools.
+- **Control**: Features hierarchical planning and specific stopping criteria (confidence threshold, max steps, no progress, error state).
 
-### Policy Enforcement Pipeline
+**Policy Enforcement Pipeline:**
 - **Components**: System Prompt Composer, Output Moderator, Policy DSL (JSON configuration).
-- **Actions on Violation**: `refuse`, `redact`, `rewrite`.
-- **Design Decision**: Policies are externalized JSON configurations, allowing instant updates without model retraining.
+- **Actions**: Policies can `refuse`, `redact`, or `rewrite` responses based on externalized JSON configurations.
 
-### Automatic Fallback System
-- **Functionality**: Detects OpenAI refusals, performs web searches (DuckDuckGo), fetches content, indexes it into the knowledge base, and generates uncensored responses using the retrieved context.
-- **Activation**: Triggers only if an OpenAI refusal is detected AND the system is in UNRESTRICTED mode (no policy rules enabled).
-- **Problem Solved**: Bypasses hardcoded content policies of external LLM providers to ensure autonomous operation when no internal restrictions are configured.
+**Automatic Fallback System:**
+- **Mechanism**: Activated upon detecting OpenAI refusals in UNRESTRICTED mode. It performs web searches (DuckDuckGo), fetches content, indexes it into the knowledge base, and generates uncensored responses using the retrieved context.
 
-### Observability & Metrics
-- **Collected**: Latency, throughput, cache hit rates, cost estimates, error rates.
-- **Export**: Prometheus-compatible metrics for integration with monitoring tools.
+### System Design Choices
+- **Multi-tenancy**: Complete isolation of data and policies per tenant.
+- **Externalized Policies**: Policies are JSON configurations, allowing dynamic updates without code changes or model retraining.
+- **Separation Theorem**: Core model (M₀) is distinct from externalized Enforcement Policies (EP).
+- **Uncensored Default**: System starts with all policies disabled, ensuring a default "free" and "uncensored" state. Changes are made via the admin dashboard based on jurisdiction.
+- **Observability**: Metrics like latency, throughput, cache hit rates, cost estimates, and error rates are collected and exported in a Prometheus-compatible format.
 
 ## External Dependencies
 
 ### Third-Party Services
-- **OpenAI API**: LLM completions, embeddings, function calling.
-- **Neon Database**: Serverless PostgreSQL.
-- **DuckDuckGo**: Web search (HTML scraping) for fallback and agent tools.
+- **OpenAI API**: Used for LLM completions, embeddings, and function calling.
+- **Neon Database**: Provides serverless PostgreSQL.
+- **DuckDuckGo**: Utilized for web search capabilities in the fallback system and agent tools.
 
-### NPM Dependencies (Key Libraries)
+### Key Libraries (NPM)
 - **@neondatabase/serverless**: PostgreSQL client.
 - **drizzle-orm**: Type-safe ORM.
 - **openai**: Official OpenAI SDK.
@@ -83,8 +60,4 @@ AION employs a multi-tenant architecture with isolated policies, API keys, and u
 - **@tanstack/react-query**: Server state management.
 - **tailwindcss**: CSS framework.
 - **zod**: Schema validation.
-- **mammoth, xlsx, xml2js, cheerio, multer**: Document parsing and HTML scraping.
-
-### Deployment Targets
-- **Replit**: Primary development environment.
-- **Google Colab**: Optional GPU deployment.
+- **mammoth, xlsx, xml2js, cheerio, multer**: For document parsing and HTML scraping.
