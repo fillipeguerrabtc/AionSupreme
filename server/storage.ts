@@ -130,13 +130,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPolicy(policy: InsertPolicy): Promise<Policy> {
-    const [created] = await db.insert(policies).values(policy).returning();
+    const [created] = await db.insert(policies).values([policy] as any).returning();
     return created;
   }
 
   async updatePolicy(id: number, data: Partial<InsertPolicy>): Promise<Policy> {
     const [updated] = await db.update(policies)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...data, updatedAt: new Date() } as any)
       .where(eq(policies.id, id))
       .returning();
     return updated;
@@ -194,13 +194,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
-    const [created] = await db.insert(messages).values(message).returning();
+    const [created] = await db.insert(messages).values([message] as any).returning();
     return created;
   }
 
   async updateMessage(id: number, data: Partial<InsertMessage>): Promise<Message> {
     const [updated] = await db.update(messages)
-      .set(data)
+      .set(data as any)
       .where(eq(messages.id, id))
       .returning();
     return updated;
@@ -222,13 +222,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDocument(document: InsertDocument): Promise<Document> {
-    const [created] = await db.insert(documents).values(document).returning();
+    const [created] = await db.insert(documents).values([document] as any).returning();
     return created;
   }
 
   async updateDocument(id: number, data: Partial<InsertDocument>): Promise<Document> {
     const [updated] = await db.update(documents)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...data, updatedAt: new Date() } as any)
       .where(eq(documents.id, id))
       .returning();
     return updated;
@@ -259,13 +259,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEmbedding(embedding: InsertEmbedding): Promise<Embedding> {
-    const [created] = await db.insert(embeddings).values(embedding).returning();
+    const [created] = await db.insert(embeddings).values([embedding] as any).returning();
     return created;
   }
 
   async createEmbeddingsBatch(embeddingList: InsertEmbedding[]): Promise<Embedding[]> {
     if (embeddingList.length === 0) return [];
-    return db.insert(embeddings).values(embeddingList).returning();
+    return db.insert(embeddings).values(embeddingList as any).returning();
   }
 
   async deleteEmbeddingsByDocument(documentId: number): Promise<void> {
@@ -287,7 +287,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createToolExecution(execution: InsertToolExecution): Promise<ToolExecution> {
-    const [created] = await db.insert(toolExecutions).values(execution).returning();
+    const [created] = await db.insert(toolExecutions).values([execution]).returning();
     return created;
   }
 
@@ -321,13 +321,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMetric(metric: InsertMetric): Promise<Metric> {
-    const [created] = await db.insert(metrics).values(metric).returning();
+    const [created] = await db.insert(metrics).values([metric] as any).returning();
     return created;
   }
 
   async createMetricsBatch(metricList: InsertMetric[]): Promise<Metric[]> {
     if (metricList.length === 0) return [];
-    return db.insert(metrics).values(metricList).returning();
+    return db.insert(metrics).values(metricList as any).returning();
   }
 
   // --------------------------------------------------------------------------
@@ -346,7 +346,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAuditLog(log: InsertAuditLog): Promise<AuditLog> {
-    const [created] = await db.insert(auditLogs).values(log).returning();
+    const [created] = await db.insert(auditLogs).values([log] as any).returning();
     return created;
   }
 
@@ -370,13 +370,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createKnowledgeSource(source: InsertKnowledgeSource): Promise<KnowledgeSource> {
-    const [created] = await db.insert(knowledgeSources).values(source).returning();
+    const [created] = await db.insert(knowledgeSources).values([source] as any).returning();
     return created;
   }
 
   async updateKnowledgeSource(id: number, data: Partial<InsertKnowledgeSource>): Promise<KnowledgeSource> {
     const [updated] = await db.update(knowledgeSources)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...data, updatedAt: new Date() } as any)
       .where(eq(knowledgeSources.id, id))
       .returning();
     return updated;
