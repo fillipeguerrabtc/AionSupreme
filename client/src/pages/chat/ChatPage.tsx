@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Bot, User, Sparkles } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useLanguage } from "@/lib/i18n";
 
 interface Message {
   role: "user" | "assistant";
@@ -11,6 +12,7 @@ interface Message {
 }
 
 export default function ChatPage() {
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
 
@@ -60,8 +62,8 @@ export default function ChatPage() {
             </div>
           </div>
           <div>
-            <h1 className="text-xl font-bold gradient-text">AION</h1>
-            <p className="text-xs text-muted-foreground">IA Suprema & Ilimitada</p>
+            <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
+            <p className="text-xs text-muted-foreground">{t.chat.subtitle}</p>
           </div>
         </div>
       </header>
@@ -78,9 +80,9 @@ export default function ChatPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold gradient-text-vibrant">Bem-vindo ao AION</h2>
+                <h2 className="text-3xl font-bold gradient-text-vibrant">{t.chat.welcome}</h2>
                 <p className="text-muted-foreground max-w-md mx-auto leading-relaxed">
-                  Sistema de IA autônomo com capacidades ilimitadas. Pergunte qualquer coisa.
+                  {t.chat.welcomeDesc}
                 </p>
               </div>
             </div>
@@ -150,7 +152,7 @@ export default function ChatPage() {
                 handleSend();
               }
             }}
-            placeholder="Digite sua mensagem..."
+            placeholder={t.chat.placeholder}
             className="glass border-primary/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 resize-none transition-all duration-300"
             rows={3}
             data-testid="input-message"

@@ -7,11 +7,19 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage, type Language } from "@/lib/i18n";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
+  const { t, language, setLanguage } = useLanguage();
   const [tenantId] = useState(1);
 
   const { data: policy, error, isLoading } = useQuery({
@@ -37,7 +45,7 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/policies", tenantId] });
-      toast({ title: "Política atualizada com sucesso!" });
+      toast({ title: t.admin.policyUpdated });
     },
   });
 
@@ -50,7 +58,7 @@ export default function AdminDashboard() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ title: `${data.documentIds.length} PDFs indexados com sucesso!` });
+      toast({ title: `${data.documentIds.length} ${t.admin.pdfsIndexed}` });
     },
   });
 
@@ -64,7 +72,7 @@ export default function AdminDashboard() {
               <Settings className="w-12 h-12 text-primary animate-spin" />
             </div>
           </div>
-          <p className="text-muted-foreground">Carregando painel administrativo...</p>
+          <p className="text-muted-foreground">{t.admin.loading}</p>
         </div>
       </div>
     );
@@ -75,7 +83,7 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 flex items-center justify-center p-6">
         <Card className="glass-premium max-w-md border-destructive/50">
           <CardContent className="pt-6">
-            <p className="text-destructive">Erro ao carregar políticas: {(error as Error).message}</p>
+            <p className="text-destructive">{t.admin.error}: {(error as Error).message}</p>
           </CardContent>
         </Card>
       </div>
@@ -105,12 +113,44 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div>
-                <h1 className="text-xl font-bold gradient-text">AION Admin</h1>
-                <p className="text-xs text-muted-foreground">Painel de Controle & Políticas</p>
+                <h1 className="text-xl font-bold gradient-text">{t.admin.title}</h1>
+                <p className="text-xs text-muted-foreground">{t.admin.subtitle}</p>
               </div>
             </div>
           </div>
-          <Settings className="w-6 h-6 text-muted-foreground glow-primary" />
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="glass-premium" data-testid="button-language">
+                  <Languages className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass-premium border-primary/20">
+                <DropdownMenuItem
+                  onClick={() => setLanguage("pt-BR")}
+                  className={language === "pt-BR" ? "bg-primary/20" : ""}
+                  data-testid="lang-pt-BR"
+                >
+                  🇧🇷 Português
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setLanguage("en-US")}
+                  className={language === "en-US" ? "bg-primary/20" : ""}
+                  data-testid="lang-en-US"
+                >
+                  🇺🇸 English
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setLanguage("es-ES")}
+                  className={language === "es-ES" ? "bg-primary/20" : ""}
+                  data-testid="lang-es-ES"
+                >
+                  🇪🇸 Español
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Settings className="w-6 h-6 text-muted-foreground glow-primary" />
+          </div>
         </div>
       </header>
 
@@ -122,17 +162,17 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" />
-                <span className="gradient-text">Políticas Moral/Ética/Legal</span>
+                <span className="gradient-text">{t.admin.policies}</span>
               </CardTitle>
               <CardDescription>
-                Configure restrições de conteúdo (sistema nasce 100% livre)
+                {t.admin.policiesDesc}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.entries(policy?.rules || {}).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between glass p-3 rounded-xl hover-elevate">
                   <Label htmlFor={key} className="text-sm font-medium">
-                    {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {t.admin.rules[key as keyof typeof t.admin.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </Label>
                   <Switch
                     id={key}
@@ -154,16 +194,16 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-accent" />
-                <span className="gradient-text-vibrant">Comportamento da IA</span>
+                <span className="gradient-text-vibrant">{t.admin.behavior}</span>
               </CardTitle>
               <CardDescription>
-                Ajuste a personalidade e estilo de resposta
+                {t.admin.behaviorDesc}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-sm font-medium">
-                  Formalidade: {((policy?.behavior?.formality || 0.5) * 100).toFixed(0)}%
+                  {t.admin.formality}: {((policy?.behavior?.formality || 0.5) * 100).toFixed(0)}%
                 </Label>
                 <Slider
                   value={[(policy?.behavior?.formality || 0.5) * 100]}
@@ -179,7 +219,7 @@ export default function AdminDashboard() {
 
               <div className="space-y-3">
                 <Label className="text-sm font-medium">
-                  Criatividade: {((policy?.behavior?.creativity || 0.8) * 100).toFixed(0)}%
+                  {t.admin.creativity}: {((policy?.behavior?.creativity || 0.8) * 100).toFixed(0)}%
                 </Label>
                 <Slider
                   value={[(policy?.behavior?.creativity || 0.8) * 100]}
@@ -201,10 +241,10 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
-              <span className="gradient-text">System Prompt</span>
+              <span className="gradient-text">{t.admin.systemPrompt}</span>
             </CardTitle>
             <CardDescription>
-              Instruções base para o comportamento da IA
+              {t.admin.systemPromptDesc}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -214,7 +254,7 @@ export default function AdminDashboard() {
                 updatePolicy.mutate({ systemPrompt: e.target.value });
               }}
               className="glass border-primary/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 min-h-[200px] font-mono text-sm"
-              placeholder="Digite o system prompt..."
+              placeholder={t.admin.systemPromptPlaceholder}
               data-testid="textarea-system-prompt"
             />
           </CardContent>
@@ -225,10 +265,10 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5 text-accent" />
-              <span className="gradient-text-vibrant">Knowledge Base</span>
+              <span className="gradient-text-vibrant">{t.admin.knowledgeBase}</span>
             </CardTitle>
             <CardDescription>
-              Indexe os 7 PDFs técnicos para RAG
+              {t.admin.knowledgeBaseDesc}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -241,12 +281,12 @@ export default function AdminDashboard() {
               {indexPDFs.isPending ? (
                 <>
                   <Activity className="w-4 h-4 mr-2 animate-spin" />
-                  Indexando...
+                  {t.admin.indexing}
                 </>
               ) : (
                 <>
                   <Database className="w-4 h-4 mr-2" />
-                  Indexar PDFs Técnicos
+                  {t.admin.indexPDFs}
                 </>
               )}
             </Button>

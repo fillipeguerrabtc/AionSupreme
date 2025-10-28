@@ -69,6 +69,90 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // POST /api/v1/transcribe (Whisper audio transcription)
+  app.post("/api/v1/transcribe", upload.single("audio"), async (req, res) => {
+    const startTime = Date.now();
+    try {
+      if (!req.file) throw new Error("No audio file uploaded");
+      
+      const tenantId = parseInt(req.body.tenant_id || "1");
+      metricsCollector.recordRequest(tenantId);
+      
+      // Call OpenAI Whisper API
+      const transcription = await llmClient.transcribeAudio(req.file.path);
+      
+      const latency = Date.now() - startTime;
+      metricsCollector.recordLatency(tenantId, latency);
+      
+      res.json({ text: transcription });
+    } catch (error: any) {
+      metricsCollector.recordError(parseInt(req.body.tenant_id || "1"));
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/v1/chat/multimodal (Chat with file attachments)
+  app.post("/api/v1/chat/multimodal", upload.array("files", 5), async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const { messages, tenant_id } = JSON.parse(req.body.data || "{}");
+      const files = req.files as Express.Multer.File[];
+      
+      const tenantId = tenant_id || 1;
+      metricsCollector.recordRequest(tenantId);
+      
+      const policy = await storage.getPolicyByTenant(tenantId);
+      if (!policy) throw new Error("No policy found");
+      
+      // Process all uploaded files
+      let attachmentsContext = "";
+      if (files && files.length > 0) {
+        const processedFiles = await Promise.all(
+          files.map(async (file) => {
+            const mimeType = fileProcessor.detectMimeType(file.originalname);
+            const processed = await fileProcessor.processFile(file.path, mimeType);
+            return `[${file.originalname}]: ${processed.extractedText}`;
+          })
+        );
+        attachmentsContext = "\n\nAttached files:\n" + processedFiles.join("\n\n");
+      }
+      
+      // Append file context to last user message
+      const enrichedMessages = [...messages];
+      if (enrichedMessages.length > 0 && attachmentsContext) {
+        const lastMsg = enrichedMessages[enrichedMessages.length - 1];
+        if (lastMsg.role === "user") {
+          lastMsg.content += attachmentsContext;
+        }
+      }
+      
+      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy);
+      const fullMessages = [{ role: "system", content: systemPrompt }, ...enrichedMessages];
+      
+      const result = await llmClient.chatCompletion({
+        messages: fullMessages,
+        tenantId,
+        temperature: policy.temperature,
+        topP: policy.topP,
+      });
+      
+      const moderated = await enforcementPipeline.moderateOutput(result.content, policy, tenantId);
+      
+      const latency = Date.now() - startTime;
+      metricsCollector.recordLatency(tenantId, latency);
+      metricsCollector.recordTokens(tenantId, result.usage?.totalTokens || 0);
+      
+      res.json({
+        choices: [{ message: { role: "assistant", content: moderated }, finish_reason: result.finishReason }],
+        usage: result.usage,
+      });
+    } catch (error: any) {
+      const tenantId = parseInt(JSON.parse(req.body.data || "{}").tenant_id || "1");
+      metricsCollector.recordError(tenantId);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // POST /api/kb/ingest
   app.post("/api/kb/ingest", upload.single("file"), async (req, res) => {
     try {

@@ -288,6 +288,29 @@ export class LLMClient {
   }
 
   /**
+   * Transcribe audio using Whisper API
+   */
+  async transcribeAudio(audioFilePath: string): Promise<string> {
+    const startTime = Date.now();
+    
+    try {
+      const fs = await import("fs");
+      const transcription = await this.openai.audio.transcriptions.create({
+        file: fs.createReadStream(audioFilePath),
+        model: "whisper-1",
+      });
+      
+      const latencyMs = Date.now() - startTime;
+      console.log(`[LLM] Audio transcribed in ${latencyMs}ms`);
+      
+      return transcription.text;
+    } catch (error: any) {
+      console.error("[LLM] Transcription error:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Generate embeddings for RAG
    * As per PDFs: E:X→R^d with normalized vectors
    */
