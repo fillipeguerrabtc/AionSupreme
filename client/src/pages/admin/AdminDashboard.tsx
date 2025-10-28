@@ -77,8 +77,8 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {Object.entries(policy.rules || {}).map(([rule, enabled]) => (
-                <div key={rule} className="flex items-center justify-between space-x-2">
-                  <Label htmlFor={rule} className="text-sm">
+                <div key={rule} className="flex items-center justify-between space-x-2" data-testid={`rule-${rule}`}>
+                  <Label htmlFor={rule} className="text-sm" data-testid={`label-${rule}`}>
                     {rule.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
                   </Label>
                   <Switch

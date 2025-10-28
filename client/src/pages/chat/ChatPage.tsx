@@ -69,12 +69,12 @@ export default function ChatPage() {
           )}
           
           {messages.map((msg, idx) => (
-            <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              {msg.role === "assistant" && <Bot className="w-6 h-6 mt-1 text-primary" />}
-              <Card className={`p-4 max-w-2xl ${msg.role === "user" ? "bg-primary text-primary-foreground" : ""}`}>
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+            <div key={idx} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`} data-testid={`message-${msg.role}-${idx}`}>
+              {msg.role === "assistant" && <Bot className="w-6 h-6 mt-1 text-primary" data-testid="icon-bot" />}
+              <Card className={`p-4 max-w-2xl ${msg.role === "user" ? "bg-primary text-primary-foreground" : ""}`} data-testid={`card-message-${idx}`}>
+                <p className="whitespace-pre-wrap" data-testid={`text-message-${idx}`}>{msg.content}</p>
               </Card>
-              {msg.role === "user" && <User className="w-6 h-6 mt-1" />}
+              {msg.role === "user" && <User className="w-6 h-6 mt-1" data-testid="icon-user" />}
             </div>
           ))}
           

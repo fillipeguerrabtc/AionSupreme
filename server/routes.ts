@@ -28,8 +28,13 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/v1/chat/completions
   app.post("/api/v1/chat/completions", async (req, res) => {
+    const startTime = Date.now();
     try {
       const { messages, tenant_id, tools, stream } = req.body;
+      
+      // Record request metrics
+      const tenantId = tenant_id || 1;
+      metricsCollector.recordRequest(tenantId);
       
       const policy = await storage.getPolicyByTenant(tenant_id || 1);
       if (!policy) throw new Error("No policy found");
@@ -45,13 +50,19 @@ export function registerRoutes(app: Express): Server {
         tools,
       });
       
-      const moderated = await enforcementPipeline.moderateOutput(result.content, policy, tenant_id || 1);
+      const moderated = await enforcementPipeline.moderateOutput(result.content, policy, tenantId);
+      
+      // Record metrics
+      const latency = Date.now() - startTime;
+      metricsCollector.recordLatency(tenantId, latency);
+      metricsCollector.recordTokens(tenantId, result.usage?.totalTokens || 0);
       
       res.json({
         choices: [{ message: { role: "assistant", content: moderated }, finish_reason: result.finishReason }],
         usage: result.usage,
       });
     } catch (error: any) {
+      metricsCollector.recordError(tenant_id || 1);
       res.status(500).json({ error: error.message });
     }
   });
