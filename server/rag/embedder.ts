@@ -95,13 +95,13 @@ export class Embedder {
    */
   private splitIntoSentences(text: string): string[] {
     // Preserve LaTeX formulas and code blocks
-    const protected = text
+    const protectedText = text
       .replace(/\$\$[\s\S]*?\$\$/g, (match) => `__LATEX_${Buffer.from(match).toString('base64')}__`)
       .replace(/\$[^$]+\$/g, (match) => `__LATEX_${Buffer.from(match).toString('base64')}__`)
       .replace(/```[\s\S]*?```/g, (match) => `__CODE_${Buffer.from(match).toString('base64')}__`);
 
     // Split on sentence boundaries
-    const sentences = protected
+    const sentences = protectedText
       .split(/(?<=[.!?])\s+(?=[A-Z])/)
       .map(s => s.trim())
       .filter(s => s.length > 0);

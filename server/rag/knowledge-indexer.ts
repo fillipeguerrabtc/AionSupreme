@@ -12,7 +12,6 @@
 
 import { storage } from "../storage";
 import { ragService } from "./vector-store";
-import pdf from "pdf-parse";
 import fs from "fs/promises";
 import path from "path";
 
@@ -67,8 +66,10 @@ export class KnowledgeIndexer {
    */
   private async extractPDFText(filePath: string): Promise<string> {
     try {
+      // Dynamic import for CommonJS module
+      const pdfParse = (await import("pdf-parse")).default;
       const dataBuffer = await fs.readFile(filePath);
-      const data = await pdf(dataBuffer);
+      const data = await pdfParse(dataBuffer);
       
       return data.text;
     } catch (error: any) {

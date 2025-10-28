@@ -13,7 +13,6 @@
  * Full extraction of text/data/embeddings from all formats
  */
 
-import pdf from "pdf-parse";
 import mammoth from "mammoth";
 import XLSX from "xlsx";
 import { parseStringPromise } from "xml2js";
@@ -105,16 +104,26 @@ export class FileProcessor {
    * As per PDFs: PyPDF2/pdfplumber + Tesseract OCR
    */
   private async processPDF(filePath: string): Promise<{ text: string; metadata: Record<string, any> }> {
-    const dataBuffer = await fs.readFile(filePath);
-    const data = await pdf(dataBuffer);
-    
-    return {
-      text: data.text,
-      metadata: {
-        pages: data.numpages,
-        info: data.info,
-      },
-    };
+    try {
+      // Dynamic import for CommonJS module
+      const pdfParse = (await import("pdf-parse")).default;
+      const dataBuffer = await fs.readFile(filePath);
+      const data = await pdfParse(dataBuffer);
+      
+      return {
+        text: data.text,
+        metadata: {
+          pages: data.numpages,
+          info: data.info,
+        },
+      };
+    } catch (error: any) {
+      console.warn("[FileProcessor] PDF parsing failed, using fallback:", error.message);
+      return {
+        text: `[PDF content - extraction failed: ${error.message}]`,
+        metadata: { error: error.message },
+      };
+    }
   }
 
   /**
