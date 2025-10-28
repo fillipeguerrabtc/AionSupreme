@@ -8,12 +8,21 @@ import { agentTools } from "./agent/tools";
 import { enforcementPipeline } from "./policy/enforcement-pipeline";
 import { fileProcessor } from "./multimodal/file-processor";
 import { knowledgeIndexer } from "./rag/knowledge-indexer";
+import { hierarchicalPlanner } from "./agent/hierarchical-planner";
 import { seedDatabase } from "./seed";
+import { rateLimitMiddleware } from "./middleware/rate-limit";
+import { auditMiddleware } from "./middleware/audit";
+import { exportPrometheusMetrics } from "./metrics/exporter";
+import { metricsCollector } from "./metrics/collector";
 import multer from "multer";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
 export function registerRoutes(app: Express): Server {
+  // Apply global middleware
+  app.use(rateLimitMiddleware);
+  app.use(auditMiddleware);
+  
   // Seed database on startup
   seedDatabase().catch(console.error);
 
@@ -163,6 +172,35 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: error.message });
     }
   });
+
+  // POST /api/agent/hierarchical_plan (hierarchical planning)
+  app.post("/api/agent/hierarchical_plan", async (req, res) => {
+    try {
+      const { goal, tenant_id, conversation_id, message_id } = req.body;
+      
+      const plan = await hierarchicalPlanner.decomposeGoal(goal, tenant_id || 1);
+      
+      const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
+        name,
+        async (input: any) => fn({ ...input, tenantId: tenant_id || 1 }),
+      ]));
+      
+      const result = await hierarchicalPlanner.executePlan(
+        plan,
+        tenant_id || 1,
+        conversation_id || 1,
+        message_id || 1,
+        tools
+      );
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /metrics (Prometheus format)
+  app.get("/metrics", exportPrometheusMetrics);
 
   const httpServer = createServer(app);
   return httpServer;
