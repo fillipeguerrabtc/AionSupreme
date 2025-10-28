@@ -43,7 +43,9 @@ export function registerRoutes(app: Express): Server {
       // Get policy or use DEFAULT UNRESTRICTED (all rules = false)
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy(tenantId);
       
-      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy);
+      // Get last user message for language detection
+      const lastUserMessage = messages[messages.length - 1]?.content || '';
+      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...messages];
       
       const result = await llmClient.chatCompletion({
@@ -153,7 +155,9 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy);
+      // Get last user message for language detection
+      const lastUserMessage = messages[messages.length - 1]?.content || '';
+      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...enrichedMessages];
       
       const result = await llmClient.chatCompletion({

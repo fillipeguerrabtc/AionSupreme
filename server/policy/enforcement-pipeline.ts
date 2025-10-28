@@ -59,12 +59,65 @@ export class EnforcementPipeline {
     };
   }
 
-  async composeSystemPrompt(policy: Policy): Promise<string> {
+  /**
+   * Detect language from user message
+   * Improved to handle short messages correctly
+   */
+  private detectLanguage(userMessage: string): "pt-BR" | "en-US" | "es-ES" {
+    const msg = userMessage.toLowerCase();
+    
+    // Portuguese strong indicators (including accents and common words)
+    const ptStrongIndicators = /(olá|você|está|não|sim|obrigad|português|tchau|tudo bem|bom dia|boa tarde|boa noite)/i;
+    const ptIndicators = /\b(é|muito|como|que|para|com|por|seu|sua|ele|ela|fazer|ter|ser|quando|onde|porque|qual|quem|algum|nenhum)\b/gi;
+    
+    // Spanish strong indicators
+    const esStrongIndicators = /(hola|usted|está|sí|gracias|español|adiós|buenos días|buenas tardes|buenas noches)/i;
+    const esIndicators = /\b(es|muy|cómo|qué|para|con|por|su|él|ella|hacer|tener|ser|cuando|donde|porque|cual|quien|algún|ningún)\b/gi;
+    
+    // English strong indicators
+    const enStrongIndicators = /(hello|hi|hey|thanks|thank you|good morning|good afternoon|good evening)/i;
+    
+    // Check strong indicators first (for short messages)
+    if (ptStrongIndicators.test(msg)) return "pt-BR";
+    if (esStrongIndicators.test(msg)) return "es-ES";
+    if (enStrongIndicators.test(msg)) return "en-US";
+    
+    // Count regular indicators for longer messages
+    const ptMatches = (msg.match(ptIndicators) || []).length;
+    const esMatches = (msg.match(esIndicators) || []).length;
+    
+    // If we have ANY Portuguese match and more than Spanish, it's Portuguese
+    if (ptMatches > 0 && ptMatches > esMatches) return "pt-BR";
+    if (esMatches > 0) return "es-ES";
+    
+    // Default to English
+    return "en-US";
+  }
+
+  async composeSystemPrompt(policy: Policy, userMessage?: string): Promise<string> {
     let prompt = policy.systemPrompt || "You are AION, an advanced AI assistant.";
+    
+    // Detect language and add instruction
+    const language = userMessage ? this.detectLanguage(userMessage) : "en-US";
+    const langInstructions = {
+      "pt-BR": "\n\n🌐 IDIOMA: Responda SEMPRE em Português do Brasil (pt-BR). Use naturalidade, contexto e variedade nas respostas.",
+      "en-US": "\n\n🌐 LANGUAGE: Always respond in English (en-US). Use natural, contextual, and varied responses.",
+      "es-ES": "\n\n🌐 IDIOMA: Responde SIEMPRE en Español (es-ES). Usa naturalidad, contexto y variedad en las respuestas."
+    };
+    prompt += langInstructions[language];
     
     // Add personality traits
     prompt += `\n\nPersonality:\n- Humor: ${policy.humor}\n- Tone: ${policy.tone}`;
     prompt += `\n- Verbosity: ${policy.behavior.verbosity}\n- Creativity: ${policy.behavior.creativity}`;
+    
+    // Add intelligence instructions
+    prompt += `\n\n🧠 INTELLIGENCE & CONTEXT:
+- NEVER respond with generic greetings like "Olá! Como posso ajudar você hoje?"
+- ALWAYS provide specific, contextual, and intelligent responses
+- Remember conversation context and build upon it
+- If asked a question, answer it directly and thoroughly
+- If greeted, acknowledge warmly but also demonstrate understanding or ask a relevant follow-up
+- Vary your responses - never be repetitive or robotic`;
     
     // Check if there are active rules
     const activeRules = Object.entries(policy.rules).filter(([_, active]) => active);
