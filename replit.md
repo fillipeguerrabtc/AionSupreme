@@ -3,6 +3,23 @@
 ## Overview
 AION is an enterprise-grade autonomous AI system offering multi-tenant architecture, configurable policy enforcement, RAG-based knowledge retrieval, and autonomous agent capabilities. It features a dual-interface: a chat for end-users and an administrative dashboard for policy and monitoring. The system emphasizes externalized policy enforcement, controlling behavior through composable system prompts and output moderation, and implements a complete POMDP for autonomous agent behavior using the ReAct framework. AION aims to provide a robust, flexible, and autonomously operating AI solution for complex enterprise needs, with a focus on overcoming limitations of underlying LLM providers.
 
+## 📚 Documentação Completa
+
+### Documentação Principal
+- **README.md** ([English](./README.md)) / **README_PT-BR.md** ([Português](./README_PT-BR.md)) - Visão geral do projeto
+- **docs/INDEX.md** - Índice completo dos 19 PDFs técnicos
+- **docs/AUTOMATIC_FALLBACK.md** - Documentação detalhada do sistema de fallback automático
+- **docs/ARCHITECTURE.md** - Arquitetura técnica completa (em desenvolvimento)
+- **docs/API.md** - Referência completa da API REST (em desenvolvimento)
+
+### PDFs Técnicos (19 Documentos)
+Todos organizados em `docs/pdfs/`:
+- **Partes 1-2**: Fundamentos teóricos (Transformer, MoE, LoRA, RLHF)
+- **Partes 3.1-3.4**: Arquitetura do sistema (multimodal, RAG, agentes, deploy)
+- **Partes 4-16**: Implementação, matemática, otimização, casos de uso
+
+**Total**: 19 PDFs (~12 MB) - Ver [docs/INDEX.md](./docs/INDEX.md) para detalhes completos.
+
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
