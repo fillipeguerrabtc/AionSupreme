@@ -113,10 +113,12 @@ export class LLMClient {
 
   constructor() {
     // Initialize OpenAI client
-    // API key should be in environment (via Replit AI Integration)
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY || "",
-    });
+    // Uses OPENAI_API_KEY from Replit Secrets
+    const apiKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "";
+    if (!apiKey) {
+      console.warn("[LLM] No OpenAI API key found in environment");
+    }
+    this.openai = new OpenAI({ apiKey });
   }
 
   /**
