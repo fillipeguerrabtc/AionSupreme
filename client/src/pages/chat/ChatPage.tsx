@@ -17,12 +17,14 @@ export default function ChatPage() {
 
   const sendMutation = useMutation({
     mutationFn: async (userMessage: string) => {
-      const newMessages = [...messages, { role: "user" as const, content: userMessage }];
+      // Mensagens já incluem a do usuário (adicionada em handleSend)
+      const currentMessages = [...messages, { role: "user" as const, content: userMessage }];
       
-      const response = await apiRequest("/v1/chat/completions", {
+      const response = await apiRequest("/api/v1/chat/completions", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: newMessages,
+          messages: currentMessages,
           tenant_id: 1,
         }),
       });
@@ -32,14 +34,27 @@ export default function ChatPage() {
     },
     onSuccess: (assistantMessage) => {
       setMessages(prev => [...prev, { role: "assistant", content: assistantMessage }]);
-      setInput("");
+    },
+    onError: (error) => {
+      console.error("Erro ao enviar mensagem:", error);
+      // Remove última mensagem do usuário em caso de erro
+      setMessages(prev => prev.slice(0, -1));
     },
   });
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    setMessages(prev => [...prev, { role: "user", content: input }]);
-    sendMutation.mutate(input);
+    if (!input.trim() || sendMutation.isPending) return;
+    
+    const userMessage = input.trim();
+    
+    // Adiciona mensagem do usuário IMEDIATAMENTE
+    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    
+    // Limpa input IMEDIATAMENTE (não espera resposta)
+    setInput("");
+    
+    // Envia para API
+    sendMutation.mutate(userMessage);
   };
 
   return (
