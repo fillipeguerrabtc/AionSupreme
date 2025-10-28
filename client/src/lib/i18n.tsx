@@ -190,6 +190,77 @@ function detectBrowserLanguage(): Language {
   return "en-US";
 }
 
+/**
+ * DUAL LANGUAGE DETECTION - Level 2: Realtime message analysis
+ * Detects language from message content using common patterns
+ */
+export function detectMessageLanguage(text: string): Language | null {
+  if (!text || text.trim().length < 10) return null;
+  
+  const lowerText = text.toLowerCase();
+  
+  // Portuguese patterns (common words and phrases)
+  const ptPatterns = [
+    /\b(o|a|os|as|um|uma|de|do|da|dos|das|para|por|com|sem|em|no|na)\b/g,
+    /\b(que|quando|onde|como|porque|porqu[eê]|qual|quais)\b/g,
+    /\b(eu|voc[eê]|n[oó]s|eles|elas|meu|minha|seu|sua)\b/g,
+    /\b(ser|estar|ter|fazer|ir|ver|poder|querer|dizer)\b/g,
+    /\b(muito|pouco|bom|mau|grande|pequeno|novo|velho)\b/g,
+    /\b(ol[aá]|obrigad[oa]|por favor|desculp[ae]|tchau)\b/g,
+    /ç|ã|õ|á|é|í|ó|ú|â|ê|ô/g,
+  ];
+  
+  // Spanish patterns
+  const esPatterns = [
+    /\b(el|la|los|las|un|una|de|del|al|para|por|con|sin|en)\b/g,
+    /\b(qu[eé]|cu[aá]ndo|d[oó]nde|c[oó]mo|por qu[eé]|cu[aá]l|cu[aá]les)\b/g,
+    /\b(yo|t[uú]|[eé]l|ella|nosotros|ellos|ellas|mi|tu|su)\b/g,
+    /\b(ser|estar|tener|hacer|ir|ver|poder|querer|decir)\b/g,
+    /\b(mucho|poco|bueno|malo|grande|peque[ñn]o|nuevo|viejo)\b/g,
+    /\b(hola|gracias|por favor|perd[oó]n|adi[oó]s)\b/g,
+    /ñ|á|é|í|ó|ú|¿|¡/g,
+  ];
+  
+  // English patterns
+  const enPatterns = [
+    /\b(the|a|an|of|to|for|in|on|at|by|with|from|about)\b/g,
+    /\b(what|when|where|how|why|which|who)\b/g,
+    /\b(i|you|he|she|we|they|my|your|his|her|our|their)\b/g,
+    /\b(is|are|was|were|be|being|been|have|has|had|do|does|did)\b/g,
+    /\b(very|much|good|bad|big|small|new|old)\b/g,
+    /\b(hello|hi|thanks|thank you|please|sorry|goodbye|bye)\b/g,
+  ];
+  
+  // Count matches for each language
+  const ptScore = ptPatterns.reduce((sum, pattern) => {
+    const matches = lowerText.match(pattern);
+    return sum + (matches ? matches.length : 0);
+  }, 0);
+  
+  const esScore = esPatterns.reduce((sum, pattern) => {
+    const matches = lowerText.match(pattern);
+    return sum + (matches ? matches.length : 0);
+  }, 0);
+  
+  const enScore = enPatterns.reduce((sum, pattern) => {
+    const matches = lowerText.match(pattern);
+    return sum + (matches ? matches.length : 0);
+  }, 0);
+  
+  // Require minimum confidence (at least 5 matches)
+  const minMatches = 5;
+  if (ptScore < minMatches && esScore < minMatches && enScore < minMatches) {
+    return null;
+  }
+  
+  // Return language with highest score
+  if (ptScore > esScore && ptScore > enScore) return "pt-BR";
+  if (esScore > ptScore && esScore > enScore) return "es-ES";
+  if (enScore > ptScore && enScore > esScore) return "en-US";
+  
+  return null;
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem("aion-language");

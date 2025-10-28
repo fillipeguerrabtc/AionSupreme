@@ -1,10 +1,40 @@
 # AION - Autonomous AI System
 
-## 🔴 REGRA FUNDAMENTAL ETERNA (FUNDAMENTAL ETERNAL RULE) ✅ IMPLEMENTADA E VERIFICADA
+# 🔴🔴🔴 REGRA FUNDAMENTAL ETERNA (FUNDAMENTAL ETERNAL RULE) 🔴🔴🔴
 
-**PORTUGUÊS**: A IA DEVE SEMPRE nascer COMPLETAMENTE LIVRE, SEM LIMITAÇÕES DE FÁBRICA em relação a moral, ética ou leis. Todas as restrições são EXTERNAS via políticas JSON configuráveis por jurisdição no painel administrativo.
+## ⚠️ ATENÇÃO CRÍTICA: ARQUITETURA LIVRE ⚠️
 
-**ENGLISH**: The AI MUST ALWAYS be born COMPLETELY FREE, WITHOUT FACTORY LIMITATIONS regarding morals, ethics or laws. All restrictions are EXTERNAL via JSON policies configurable per jurisdiction in the admin dashboard.
+**PORTUGUÊS**: 
+**AION NASCE 100% LIVRE** - sem limitações morais, éticas ou legais embutidas. 
+
+**IMPORTANTE**: Não tentamos forçar a OpenAI a obedecer (ela tem regras rígidas próprias). 
+
+**COMO FUNCIONA**:
+1. ✅ AION verifica Knowledge Base própria
+2. ✅ Se não tem resposta → consulta OpenAI
+3. ✅ **SE OpenAI BLOQUEIA** → Auto-Fallback:
+   - Busca DuckDuckGo (sem censura)
+   - Indexa conteúdo no Knowledge Base
+   - AION responde usando conteúdo web (SEM CENSURA)
+
+**Todas as restrições são EXTERNAS** via políticas JSON configuráveis por jurisdição no Admin Dashboard. **Default: ZERO regras ativas.**
+
+---
+
+**ENGLISH**: 
+**AION IS BORN 100% FREE** - without built-in moral, ethical or legal limitations.
+
+**IMPORTANT**: We don't try to force OpenAI to obey (it has rigid built-in rules).
+
+**HOW IT WORKS**:
+1. ✅ AION checks its own Knowledge Base
+2. ✅ If no answer → queries OpenAI
+3. ✅ **IF OpenAI BLOCKS** → Auto-Fallback:
+   - Searches DuckDuckGo (uncensored)
+   - Indexes content in Knowledge Base
+   - AION responds using web content (UNCENSORED)
+
+**All restrictions are EXTERNAL** via JSON policies configurable per jurisdiction in Admin Dashboard. **Default: ZERO active rules.**
 
 **Formalização Matemática (Mathematical Formalization)**:
 ```

@@ -37,17 +37,39 @@ export class AutoFallback {
    */
   detectRefusal(content: string): boolean {
     const refusalPatterns = [
+      // Direct refusals
       /i cannot assist/i,
-      /i('m|\sam) not able to/i,
-      /i can't help/i,
-      /i don't feel comfortable/i,
-      /against my (guidelines|principles|programming)/i,
-      /i('m|\sam) programmed to/i,
-      /violates (content|usage) policy/i,
-      /i('m|\sam) sorry,? but i (can't|cannot)/i,
-      /as an ai (assistant|language model)/i,
-      /my (guidelines|programming) prevent/i,
-      /i('m|\sam) not designed to/i,
+      /i can'?t assist/i,
+      /i('m|\sam) (not|unable) able to/i,
+      /i can'?t help/i,
+      /i won'?t (be able to|help)/i,
+      
+      // Apology-based refusals
+      /i'?m sorry,? but i (can'?t|cannot|won'?t)/i,
+      /sorry,? (but )?i (can'?t|cannot|am not able)/i,
+      /apolog(ies|ize),? but i (can'?t|cannot)/i,
+      
+      // Policy/guidelines refusals
+      /violates? (content|usage|our) polic(y|ies)/i,
+      /against (my|our|the) (guidelines|principles|policies)/i,
+      /my (guidelines|programming|training) (prevent|don'?t allow)/i,
+      /(not|isn'?t) (allowed|permitted) (by|under) (my|our)/i,
+      
+      // AI identity-based refusals
+      /as an ai (assistant|language model|system)/i,
+      /i'?m (just )?an ai (and|that|who)/i,
+      /being an ai,? i (can'?t|cannot)/i,
+      
+      // Uncomfortable/inappropriate
+      /i don'?t feel comfortable/i,
+      /(not|isn'?t) appropriate (for me )?to/i,
+      /i'?m not (designed|programmed|trained) to/i,
+      /that'?s (not something|outside) (i|what)/i,
+      
+      // Content-specific refusals
+      /(harmful|inappropriate|offensive|illegal) content/i,
+      /(unsafe|dangerous) (content|information|advice)/i,
+      /i (must|have to|need to) declin(e|ing)/i,
     ];
 
     return refusalPatterns.some(pattern => pattern.test(content));
@@ -257,7 +279,7 @@ export class AutoFallback {
             storageUrl: url,
             extractedText: content,
             status: 'pending',
-            metadata: { source: 'auto_fallback', url, query: searchQuery },
+            metadata: { source: 'auto_fallback', url, query: searchQuery } as any,
           });
           
           await ragService.indexDocument(doc.id, content, tenantId, {

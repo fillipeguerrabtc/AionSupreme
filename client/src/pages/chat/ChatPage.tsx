@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Bot, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage, detectMessageLanguage } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
@@ -13,7 +13,7 @@ interface Message {
 }
 
 export default function ChatPage() {
-  const { t } = useLanguage();
+  const { t, setLanguage, language } = useLanguage();
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -80,6 +80,21 @@ export default function ChatPage() {
     if ((!input.trim() && attachedFiles.length === 0) || sendMutation.isPending) return;
     
     const userMessage = input.trim() || `[${attachedFiles.length} file(s) attached]`;
+    
+    // 🌐 DUAL LANGUAGE DETECTION - Level 2: Realtime message analysis
+    // Automatically detect and switch language based on message content
+    if (userMessage && userMessage.length > 10) {
+      const detectedLang = detectMessageLanguage(userMessage);
+      if (detectedLang && detectedLang !== language) {
+        console.log(`[Language Detection] Realtime: ${language} → ${detectedLang}`);
+        setLanguage(detectedLang);
+        toast({
+          title: "Language detected",
+          description: `Switched to ${detectedLang === "pt-BR" ? "Português" : detectedLang === "es-ES" ? "Español" : "English"}`,
+        });
+      }
+    }
+    
     setMessages(prev => [...prev, { role: "user", content: userMessage }]);
     setInput("");
     sendMutation.mutate({ userMessage, files: attachedFiles });
