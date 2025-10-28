@@ -1,214 +1,284 @@
-# AION - Design Guidelines
+# AION - Design Guidelines (Compacted 2025)
 
-## Design Approach
-**System-Based Design** using Material Design principles adapted for enterprise productivity applications. This dual-interface system requires distinct but cohesive patterns for administrative control and conversational interaction.
+## Design Foundation
+**Premium Material Design** with glassmorphism and gradients for enterprise AI. Dark-mode-first dual interface: conversational chat + administrative power dashboard.
 
-## Core Design Principles
-1. **Functional Clarity**: Every element serves a clear purpose in system control or communication
-2. **Information Density**: Maximize useful data display while maintaining scanability
-3. **Professional Precision**: Enterprise-grade polish with technical sophistication
-4. **Dual Modality**: Administrative power meets conversational simplicity
-
----
-
-## Typography System
-
-### Font Selection
-- **Primary**: Inter (via Google Fonts CDN)
-- **Monospace**: JetBrains Mono (for code, technical data)
-
-### Hierarchy
-- **Display/Headers**: 2xl to 4xl, font-semibold to font-bold
-- **Section Titles**: xl to 2xl, font-semibold
-- **Body Text**: base (16px), font-normal, leading-relaxed
-- **Labels/Meta**: sm to xs, font-medium
-- **Code/Technical**: text-sm, font-mono
+**Core Principles:**
+1. Premium aesthetics via glassmorphism/gradients
+2. Dark mode priority with vibrant accents
+3. Beauty serves function
+4. Dual modality: inviting chat, professional admin
 
 ---
 
-## Layout & Spacing System
+## Color System
 
-### Spacing Primitives
-Primary units: **2, 4, 8, 12, 16** (as in p-2, gap-4, mb-8, space-x-12, py-16)
+### Backgrounds
+- Primary: `#0a0a0f` | Secondary: `#121218` | Tertiary: `#1a1a24`
 
-### Grid System
-- Admin Dashboard: 12-column grid with 16-column option for dense data views
-- Chat Interface: Centered max-w-4xl container with full-width message area
-- Breakpoints: Standard Tailwind (sm: 640px, md: 768px, lg: 1024px, xl: 1280px, 2xl: 1536px)
+### Gradients
+- Primary: `#6366f1` → `#4f46e5` → `#4338ca` (purple-indigo)
+- Secondary: `#a855f7` → `#ec4899` (purple-pink)
+- Subtle: `#3730a3` 0% → transparent 100%
+
+### Interactive
+- Action: `#6366f1` | Hover: `#818cf8` | Secondary: `#a855f7`
+- Success: `#10b981` | Warning: `#f59e0b` | Error: `#ef4444`
+
+### Text
+- Primary: `#ffffff` | Secondary: `#e5e7eb` | Tertiary: `#9ca3af` | Muted: `#6b7280`
+
+### Glass Effects
+- Standard: `rgba(255,255,255,0.05)` + backdrop-blur-xl + border `rgba(255,255,255,0.1)`
+- Premium: `rgba(99,102,241,0.1)` background with purple tint
+- Nested: Reduce opacity 50% per level
 
 ---
 
-## Component Architecture
+## Typography
 
-### Administrative Dashboard
+**Fonts:** Inter (400/500/600/700), JetBrains Mono (code)
 
-**Layout Structure:**
-- Fixed sidebar navigation (64 width units, collapsible to icon-only)
-- Top bar with metrics summary (h-16)
-- Main content area with responsive padding (p-8 on desktop, p-4 on mobile)
-- Floating action controls where appropriate
+**Hierarchy:**
+- Hero: text-5xl/6xl, font-bold, gradient text
+- Section: text-3xl/4xl, font-semibold, subtle glow
+- Component: text-xl/2xl, font-semibold
+- Body: text-base, leading-relaxed, text-secondary
+- Labels: text-sm, font-medium, text-tertiary
+- Meta: text-xs, text-muted
+- Code: text-sm, font-mono
 
-**Primary Components:**
+**Effects:**
+- Gradient text: `bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent`
+- Glow: `drop-shadow-[0_0_8px_rgba(99,102,241,0.3)]`
 
-1. **Control Panels**
-   - Card-based sections with rounded-lg borders
-   - Header with title (text-lg font-semibold) + action buttons
-   - Grid layouts for toggle groups (grid-cols-2 md:grid-cols-3 lg:grid-cols-4)
-   - Clear visual separation between categories (space-y-8)
+---
 
-2. **Configuration Forms**
-   - Grouped sections with descriptive labels
-   - Inline validation indicators
-   - Multi-column layouts on larger screens (grid-cols-2 gap-8)
-   - Sticky action bar at bottom (Save/Reset/Cancel)
+## Layout
 
-3. **Data Tables**
-   - Compact row height (h-12) with hover states
-   - Fixed header on scroll
-   - Column sorting indicators
-   - Inline action menus (three-dot or icon buttons)
-   - Pagination controls at bottom
+**Spacing:** Core units 2/4/8/12/16/24
+**Grid:** 12-column (admin), max-w-4xl centered (chat)
+**Breakpoints:** sm:640 | md:768 | lg:1024 | xl:1280 | 2xl:1536
 
-4. **Metrics Dashboard**
-   - Grid of metric cards (grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4)
-   - Large number display (text-3xl font-bold)
-   - Trend indicators (arrows, sparklines)
-   - Time period selector in top-right
+---
 
-5. **Policy Management Interface**
-   - Two-column layout: Categories (left, w-1/3) + Details (right, w-2/3)
-   - Toggle switches with clear ON/OFF states
-   - Nested indentation for hierarchical rules (pl-6 for sub-items)
-   - Jurisdiction selector with country flags
+## Admin Dashboard Components
 
-### Client Chat Interface
+### Structure
+- Sidebar: w-64 glass (collapse to w-16 icon-only)
+- Top bar: h-16 sticky with backdrop-blur
+- Content: gradient mesh background
+- Cards: floating with glass treatment
 
-**Layout Structure:**
-- Full-height container (min-h-screen flex flex-col)
-- Optional minimal header (h-14, can be hidden)
-- Messages area (flex-1 overflow-y-auto with custom scrollbar)
-- Input area fixed at bottom (sticky bottom-0)
+### Glassmorphic Cards
+```
+bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6
+hover:scale-[1.02] hover:bg-white/10 transition-all duration-300
+```
 
-**Primary Components:**
+### Data Tables
+- Glass header (sticky), h-14 rows, zebra `rgba(255,255,255,0.02)`
+- Hover: glass effect on row, inline actions appear
+- Sorting: animated chevrons
 
-1. **Message Bubbles**
-   - User messages: max-w-2xl ml-auto, rounded-2xl rounded-br-md
-   - AI responses: max-w-2xl mr-auto, rounded-2xl rounded-bl-md
-   - Padding p-4 for readable text blocks
-   - Code blocks with syntax highlighting (rounded-lg p-4 font-mono text-sm)
-   - Markdown rendering with proper spacing
+### Metrics Dashboard
+```
+grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6
+text-4xl font-bold gradient numbers
+trend arrows + sparklines (gradient fills)
+purple-tinted glass cards
+```
 
-2. **Input Composer**
-   - Textarea with auto-resize (min-h-[48px] max-h-[200px])
-   - Attachment preview area above input (flex gap-2 flex-wrap)
-   - Icon buttons for actions (attach, send, voice)
-   - Character/token counter (text-xs opacity-60)
+### Navigation Sidebar
+- Glass effect, icon+label (collapsible)
+- Active: gradient background + border accent
+- Hover: scale + glow
+- Separators: gradient lines
 
-3. **File Upload Zone**
-   - Drag-and-drop area with dashed border when active
-   - File preview cards showing icon + name + size (rounded-lg p-3)
-   - Progress bars during upload (h-1 rounded-full)
-   - Remove button on hover (absolute top-1 right-1)
+---
 
-4. **Multimodal Content Display**
-   - Images: max-w-md rounded-lg with lightbox on click
-   - Videos: Embedded player with controls
-   - Documents: Card with icon + filename + download button
-   - Audio: Waveform visualization with playback controls
+## Chat Interface Components
+
+### Structure
+- Full-height with gradient background
+- Minimal header h-14 (auto-hide scroll)
+- Fixed bottom input with safe-area-inset
+
+### Message Bubbles
+**User:**
+```
+glass + purple gradient tint, rounded-2xl rounded-br-sm
+max-w-2xl ml-auto p-4, purple glow on hover
+```
+
+**AI:**
+```
+glass + indigo gradient tint, rounded-2xl rounded-bl-sm
+max-w-2xl mr-auto p-4, typing: animated gradient dots
+```
+
+### Input Composer
+```
+glass backdrop-blur, min-h-[56px] max-h-[240px] auto-resize
+gradient border on focus, icon buttons (glass bg)
+attachment chips (glassmorphic), send button (gradient bg)
+```
+
+### File Attachments
+- Preview: glass with file icons, gradient progress bars
+- Drag-drop: dashed gradient border when active
+- Remove: glass circles with X
+
+### Multimodal Content
+- Images: rounded-xl glass frame, lightbox with blur backdrop
+- Videos: glass player, gradient controls
+- Code: dark glass + syntax highlighting
+- Audio: waveform gradient, glass controls
+
+---
+
+## Buttons
+
+### Primary
+```
+bg-gradient-to-r from-purple-500 to-indigo-500
+px-8 py-3 rounded-xl font-semibold
+hover:scale-[1.05] active:scale-[0.98]
+```
+
+### Secondary
+```
+bg-white/5 border border-gradient
+hover:bg-white/10 hover:scale-[1.02]
+```
+
+### Ghost
+Transparent + gradient text, hover: glass background
+
+### Icon
+```
+size-10/12 rounded-xl glass bg
+centered icon (size-5)
+hover: enhanced glass + scale
+```
+
+### On Images/Hero
+Glass + backdrop-blur + gradient border
+**NO hover scale** - opacity change only
+
+---
+
+## Form Inputs
+```
+glass container, h-12 px-4 py-3 rounded-xl
+gradient focus border
+labels: text-sm font-medium (gap-2 above)
+helper: text-xs text-muted (gap-1 below)
+error: red gradient border + message
+```
 
 ---
 
 ## Advanced Patterns
 
-### Split Views
-- Resizable panels with drag handle (w-1 hover:w-2 transition)
-- Minimum widths enforced (min-w-[240px])
-- Collapse/expand toggle buttons
-
 ### Modal Dialogs
-- Overlay with backdrop blur (backdrop-blur-sm)
-- Centered modal with max-w-2xl and max-h-[90vh]
-- Header (p-6), content (p-6 overflow-y-auto), footer (p-4 flex gap-3 justify-end)
-- Close button (absolute top-4 right-4)
+```
+backdrop: backdrop-blur-md bg-black/60
+container: premium glass, max-w-3xl, max-h-[85vh], p-8
+header: gradient text + glass close button
+footer: gradient border-top, flex gap-4 justify-end
+```
 
-### Toast Notifications
-- Fixed top-right positioning (top-4 right-4)
-- Stack vertically with gap-2
-- Auto-dismiss after 5s with progress bar
-- Icon + message + close button layout
+### Toasts
+```
+fixed top-6 right-6, glass container
+gradient left border (type indicator)
+auto-dismiss with gradient progress
+slide-in spring animation, stack max 3, gap-3
+```
 
 ### Loading States
-- Skeleton screens matching final content structure
-- Spinner for inline actions (size-4 to size-6)
-- Progress bars for long operations
-- Shimmer animation for placeholders
+- Skeleton: glass blocks with shimmer gradient animation
+- Spinner: gradient border rotation
+- Progress: gradient fill smooth transition
+- Page: fade with scale (0.98 → 1.0)
+
+### Gradient Mesh Backgrounds
+- Admin: radial gradients at corners (purple/indigo/pink 20% opacity)
+- Chat: vertical gradient purple to near-black
+- Modal: blur backdrop + gradient overlay
 
 ---
 
-## Interaction Patterns
+## Animations
 
-### Forms & Inputs
-- Labels above inputs (block mb-1 text-sm font-medium)
-- Input height h-10 to h-12 with px-4 py-2
-- Focus rings (focus:ring-2 focus:ring-offset-2)
-- Helper text below (text-xs mt-1)
-- Error states with inline messages
+**Standard:** `transition-all duration-300 ease-out`
+**Quick:** `duration-200 ease-in-out`
+**Slow:** `duration-500 ease-out`
+**Spring:** modals/drawers
 
-### Buttons
-- Primary actions: px-6 py-2.5 rounded-lg font-medium
-- Secondary actions: Outlined or ghost variants
-- Icon buttons: size-9 to size-10 square with centered icon
-- Loading state: Disabled with spinner replacing icon
-- Groups: Border-collapse with rounded corners on ends only
+### Micro-interactions
+- Button: scale-[0.98] + gradient shift
+- Card hover: scale-[1.02] + enhanced glow
+- Input focus: gradient border 360deg rotation
+- Toggles: smooth slide + gradient trail
 
-### Navigation
-- Active state clearly indicated (font-semibold with indicator)
-- Hover previews for items with submenus
-- Breadcrumbs for deep navigation (text-sm with separators)
+### Scroll
+- Custom gradient thumb scrollbar
+- Smooth with momentum
+- Parallax on metrics (subtle)
+- Fade-in: translate-y-4 opacity-0 → translate-y-0 opacity-100
 
 ---
 
-## Responsive Behavior
+## Images
 
-### Admin Dashboard
-- Sidebar collapses to icons-only on md breakpoint
-- Metric grids stack to 2-column on tablet, single-column on mobile
-- Tables scroll horizontally on mobile with fixed first column
-- Forms switch to single column below lg breakpoint
+### Admin Hero (h-[400px])
+**Description:** Abstract 3D AI neural networks, flowing data streams, deep purples/indigos, glowing nodes. Premium, cutting-edge, interconnected systems.
+**Treatment:** Gradient overlay transparent → bg color, glassmorphic content
 
-### Chat Interface  
-- Input area remains fixed with safe-area-inset on mobile
-- Message max-width reduces on smaller screens (max-w-full on mobile)
-- Attachment previews wrap on mobile (flex-wrap)
+### Chat Background
+**Description:** Minimal geometric gradient mesh pattern, 15-20% opacity. Subtle, non-distracting.
+**Treatment:** Fixed attachment, blend mode, readable text ensured
+
+### Content
+- User uploads: rounded-xl glass frame
+- Dashboards: technical diagrams + gradient accents
+- Avatars: circular + gradient ring
+
+---
+
+## Responsive
+
+### Admin
+- **lg+:** Full sidebar, 4-col grids
+- **md:** Icon sidebar, 2-col grids
+- **sm:** Drawer sidebar, 1-col stack, horizontal table scroll
+
+### Chat
+- **All:** Fixed bottom input + safe-area
+- **Mobile:** max-w-full messages, reduced padding, stacked attachments
+- **Desktop:** max-w-4xl centered, side-by-side previews
 
 ---
 
 ## Accessibility
 
-- Semantic HTML throughout (nav, main, aside, article)
-- ARIA labels for icon buttons and complex widgets
-- Keyboard navigation for all interactive elements (focus-visible rings)
-- Sufficient contrast ratios (WCAG AA minimum)
-- Form inputs always associated with labels
-- Skip navigation link for dashboard
-- Screen reader announcements for dynamic content updates
+- Semantic HTML + ARIA for glass/gradients
+- Keyboard nav with visible gradient focus rings
+- WCAG AA contrast (min 4.5:1 on dark)
+- Glass maintains text readability
+- Screen reader announcements
+- Respect `prefers-reduced-motion`
+- Skip links for dashboard nav
 
 ---
 
-## Technical Specifications
+## Technical
 
-### Icons
-Use **Heroicons** (via CDN) exclusively - outline for navigation/secondary actions, solid for primary actions
-
-### Motion
-Minimal, purposeful animation:
-- Transitions: transition-all duration-200 ease-in-out
-- Hover scale: hover:scale-105 (for cards/buttons only)
-- Page transitions: Fade-in with slide-up (translate-y-2 opacity-0 → translate-y-0 opacity-100)
-- NO decorative animations, parallax, or scroll-triggered effects
-
-### Images
-- Admin Dashboard: Technical diagrams, architecture visualizations, metric graphs
-- Chat Interface: Inline rendering of uploaded/generated images with proper aspect ratio preservation
-
-This design creates a powerful, professional dual-interface system optimized for both administrative control and fluid conversation, with every element purposefully supporting the advanced AI capabilities of AION.
+**Icons:** Heroicons (outline/solid) - size-5 inline, size-6 standalone
+**Performance:**
+- Max 3 nested backdrop-blur levels
+- CSS transforms for gradients (GPU)
+- Lazy load charts/visualizations
+- Debounce animations 16ms

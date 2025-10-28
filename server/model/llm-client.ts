@@ -166,14 +166,14 @@ export class LLMClient {
 
   /**
    * Calculate cost in USD based on model and token usage
-   * OpenAI GPT-4 pricing (as of 2024):
-   * - gpt-4-turbo: $0.01/1K prompt, $0.03/1K completion
+   * OpenAI GPT-4 pricing (as of 2025):
+   * - gpt-4o: $0.0025/1K prompt, $0.01/1K completion (recommended)
    * - gpt-3.5-turbo: $0.0005/1K prompt, $0.0015/1K completion
    */
   private calculateCost(model: string, promptTokens: number, completionTokens: number): number {
     const pricing: Record<string, { prompt: number; completion: number }> = {
-      "gpt-4-turbo": { prompt: 0.01 / 1000, completion: 0.03 / 1000 },
-      "gpt-4": { prompt: 0.03 / 1000, completion: 0.06 / 1000 },
+      "gpt-4o": { prompt: 0.0025 / 1000, completion: 0.01 / 1000 },
+      "gpt-4o-mini": { prompt: 0.00015 / 1000, completion: 0.0006 / 1000 },
       "gpt-3.5-turbo": { prompt: 0.0005 / 1000, completion: 0.0015 / 1000 },
     };
     
@@ -200,7 +200,7 @@ export class LLMClient {
     await rateLimiter.acquire();
 
     // Default model and parameters
-    const model = options.model || "gpt-4-turbo";
+    const model = options.model || "gpt-4o";
     const temperature = options.temperature ?? 0.7;
     const topP = options.topP ?? 0.9;
     const maxTokens = options.maxTokens ?? 2048;
@@ -264,7 +264,7 @@ export class LLMClient {
    * Streaming chat completion
    */
   async *chatCompletionStream(options: ChatCompletionOptions): AsyncIterable<string> {
-    const model = options.model || "gpt-4-turbo";
+    const model = options.model || "gpt-4o";
     const temperature = options.temperature ?? 0.7;
     const topP = options.topP ?? 0.9;
     const maxTokens = options.maxTokens ?? 2048;

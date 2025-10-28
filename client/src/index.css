@@ -4,83 +4,74 @@
 
 @layer base {
   :root {
-    /* Primary - Blue for AI/Tech theme */
-    --primary: 217 91% 60%;
+    /* Modern 2025 Purple/Indigo Theme - LIGHT MODE (fallback) */
+    --primary: 239 68% 68%;  /* Indigo-400 */
     --primary-foreground: 0 0% 100%;
     
-    /* Background - Clean white */
     --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --foreground: 224 71% 4%;
     
-    /* Card - Subtle elevation */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 224 71% 4%;
     
-    /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 224 71% 4%;
     
-    /* Secondary - Muted blue-gray */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 9% 46%;
     
-    /* Muted - For secondary text */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
     
-    /* Accent - Vibrant highlight */
-    --accent: 217 91% 60%;
+    --accent: 239 68% 68%;
     --accent-foreground: 0 0% 100%;
     
-    /* Destructive - Error red */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    /* Border - Subtle gray */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 239 68% 68%;
     
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .dark {
-    /* Primary - Brighter blue for dark mode */
-    --primary: 217 91% 70%;
-    --primary-foreground: 222 47% 11%;
+    /* Modern 2025 Purple/Indigo Theme - DARK MODE (primary) */
+    --primary: 239 84% 67%;  /* Indigo-400 vibrant */
+    --primary-foreground: 224 71% 4%;
     
-    /* Background - Deep dark */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    /* Ultra-dark backgrounds */
+    --background: 240 10% 4%;   /* #0a0a0f */
+    --foreground: 0 0% 98%;
     
-    /* Card - Slightly elevated */
-    --card: 222 47% 15%;
-    --card-foreground: 210 40% 98%;
+    /* Glass elevated surfaces */
+    --card: 240 6% 10%;         /* #18181b with purple tint */
+    --card-foreground: 0 0% 98%;
     
-    /* Popover */
-    --popover: 222 47% 15%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 8% 8%;
+    --popover-foreground: 0 0% 98%;
     
-    /* Secondary */
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary surfaces */
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 0 0% 90%;
     
-    /* Muted */
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    /* Muted text */
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 64%;
     
-    /* Accent */
-    --accent: 217 91% 70%;
-    --accent-foreground: 222 47% 11%;
+    /* Accent purple */
+    --accent: 271 91% 65%;      /* Purple-400 */
+    --accent-foreground: 0 0% 100%;
     
     /* Destructive */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
     
-    /* Border */
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 70%;
+    /* Borders with purple tint */
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 239 84% 67%;
   }
 }
 
@@ -88,42 +79,122 @@
   * {
     @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Custom scrollbar with gradient */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gradient-to-b from-primary/50 to-accent/50 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply from-primary/70 to-accent/70;
   }
 }
 
 @layer utilities {
+  /* Glassmorphism utilities */
+  .glass {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+  
+  .glass-premium {
+    @apply bg-gradient-to-br from-primary/10 to-accent/5 backdrop-blur-xl border border-primary/20;
+  }
+  
+  /* Gradient text utilities */
+  .gradient-text {
+    @apply bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent;
+  }
+  
+  .gradient-text-vibrant {
+    @apply bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-transparent;
+  }
+  
+  /* Glow effects */
+  .glow-primary {
+    filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.3));
+  }
+  
+  .glow-accent {
+    filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.4));
+  }
+  
   /* Hover elevation utility - works with any background */
   .hover-elevate {
-    @apply transition-colors duration-200;
+    @apply transition-all duration-300;
   }
   
   .hover-elevate:hover {
-    @apply brightness-95 dark:brightness-110;
+    @apply brightness-110 scale-[1.01];
   }
   
   /* Active elevation utility - more dramatic for press-down */
+  .active-elevate-2 {
+    @apply transition-all duration-200;
+  }
+  
   .active-elevate-2:active {
-    @apply brightness-90 dark:brightness-125;
+    @apply brightness-125 scale-[0.98];
   }
   
   /* Toggle elevation utilities */
   .toggle-elevate {
-    @apply transition-colors duration-200;
+    @apply transition-all duration-200;
   }
   
   .toggle-elevate.toggle-elevated {
-    @apply brightness-90 dark:brightness-115;
+    @apply brightness-115 bg-primary/10;
   }
   
   /* Disable default elevations */
   .no-default-hover-elevate:hover {
-    @apply brightness-100;
+    @apply brightness-100 scale-100;
   }
   
   .no-default-active-elevate:active {
-    @apply brightness-100;
+    @apply brightness-100 scale-100;
+  }
+  
+  /* Smooth animations */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      transform: translateY(1rem);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 }

@@ -214,7 +214,7 @@ Now, what is your next step?`;
     const response = await llmClient.chatCompletion({
       messages: [{ role: "user", content: prompt }],
       tenantId,
-      model: "gpt-4-turbo",
+      model: "gpt-4o",
       temperature: 0.7,
     });
     

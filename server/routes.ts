@@ -64,7 +64,7 @@ export function registerRoutes(app: Express): Server {
         usage: result.usage,
       });
     } catch (error: any) {
-      metricsCollector.recordError(tenant_id || 1);
+      metricsCollector.recordError(tenantId);
       res.status(500).json({ error: error.message });
     }
   });

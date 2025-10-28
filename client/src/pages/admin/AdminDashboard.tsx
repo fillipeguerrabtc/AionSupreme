@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, ArrowLeft } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminDashboard() {
@@ -29,7 +29,7 @@ export default function AdminDashboard() {
 
   const updatePolicy = useMutation({
     mutationFn: async (updates: any) => {
-      const res = await apiRequest(`/admin/policies/${tenantId}`, {
+      const res = await apiRequest(`/api/admin/policies/${tenantId}`, {
         method: "POST",
         body: JSON.stringify({ ...policy, ...updates }),
       });
@@ -43,7 +43,7 @@ export default function AdminDashboard() {
 
   const indexPDFs = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("/admin/index-pdfs", {
+      const res = await apiRequest("/api/admin/index-pdfs", {
         method: "POST",
         body: JSON.stringify({ tenant_id: tenantId }),
       });
@@ -54,127 +54,202 @@ export default function AdminDashboard() {
     },
   });
 
-  if (!policy) {
-    return <div className="p-8">Carregando...</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 flex items-center justify-center">
+        <div className="glass-premium p-8 rounded-3xl space-y-4 text-center">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-xl opacity-50 animate-pulse" />
+            <div className="relative glass p-6 rounded-full">
+              <Settings className="w-12 h-12 text-primary animate-spin" />
+            </div>
+          </div>
+          <p className="text-muted-foreground">Carregando painel administrativo...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 flex items-center justify-center p-6">
+        <Card className="glass-premium max-w-md border-destructive/50">
+          <CardContent className="pt-6">
+            <p className="text-destructive">Erro ao carregar políticas: {(error as Error).message}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
+      {/* Modern Header with Glassmorphism */}
+      <header className="glass sticky top-0 z-50 border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => window.location.href = "/"}>
-              <ArrowLeft className="w-4 h-4" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => window.location.href = "/chat"}
+              className="glass-premium"
+              data-testid="button-back-to-chat"
+            >
+              <MessageSquare className="w-5 h-5" />
             </Button>
-            <h1 className="text-2xl font-bold">AION - Painel Administrativo</h1>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-lg opacity-50" />
+                <div className="relative glass-premium p-2 rounded-full">
+                  <Shield className="w-6 h-6 text-primary" />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold gradient-text">AION Admin</h1>
+                <p className="text-xs text-muted-foreground">Painel de Controle & Políticas</p>
+              </div>
+            </div>
           </div>
-          <Settings className="w-6 h-6 text-muted-foreground" />
+          <Settings className="w-6 h-6 text-muted-foreground glow-primary" />
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-8 space-y-8">
-        {/* Moral/Ética/Legal Controls */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Políticas Moral/Ética/Legal</CardTitle>
-            <CardDescription>Configure restrições de conteúdo (sistema nasce 100% livre)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {Object.entries(policy.rules || {}).map(([rule, enabled]) => (
-                <div key={rule} className="flex items-center justify-between space-x-2" data-testid={`rule-${rule}`}>
-                  <Label htmlFor={rule} className="text-sm" data-testid={`label-${rule}`}>
-                    {rule.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Policy Controls Grid */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Moral/Ética/Legal */}
+          <Card className="glass-premium border-primary/20 hover-elevate animate-slide-up">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary" />
+                <span className="gradient-text">Políticas Moral/Ética/Legal</span>
+              </CardTitle>
+              <CardDescription>
+                Configure restrições de conteúdo (sistema nasce 100% livre)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Object.entries(policy?.rules || {}).map(([key, value]) => (
+                <div key={key} className="flex items-center justify-between glass p-3 rounded-xl hover-elevate">
+                  <Label htmlFor={key} className="text-sm font-medium">
+                    {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </Label>
                   <Switch
-                    id={rule}
-                    checked={enabled as boolean}
+                    id={key}
+                    checked={value as boolean}
                     onCheckedChange={(checked) => {
-                      updatePolicy.mutate({ rules: { ...policy.rules, [rule]: checked } });
+                      updatePolicy.mutate({
+                        rules: { ...policy.rules, [key]: checked }
+                      });
                     }}
-                    data-testid={`switch-${rule}`}
+                    data-testid={`switch-${key}`}
                   />
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* LLM Parameters */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Parâmetros do Modelo</CardTitle>
-            <CardDescription>Controle temperatura, top_p, top_k</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>Temperature: {policy.temperature}</Label>
-              <Slider
-                value={[policy.temperature * 100]}
-                onValueChange={([val]) => updatePolicy.mutate({ temperature: val / 100 })}
-                max={100}
-                step={1}
-                data-testid="slider-temperature"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Top P: {policy.topP}</Label>
-              <Slider
-                value={[policy.topP * 100]}
-                onValueChange={([val]) => updatePolicy.mutate({ topP: val / 100 })}
-                max={100}
-                step={1}
-                data-testid="slider-topp"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Top K: {policy.topK}</Label>
-              <Slider
-                value={[policy.topK]}
-                onValueChange={([val]) => updatePolicy.mutate({ topK: val })}
-                max={100}
-                step={1}
-                data-testid="slider-topk"
-              />
-            </div>
-          </CardContent>
-        </Card>
+          {/* Comportamento da IA */}
+          <Card className="glass-premium border-accent/20 hover-elevate animate-slide-up" style={{ animationDelay: "100ms" }}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-accent" />
+                <span className="gradient-text-vibrant">Comportamento da IA</span>
+              </CardTitle>
+              <CardDescription>
+                Ajuste a personalidade e estilo de resposta
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">
+                  Formalidade: {((policy?.behavior?.formality || 0.5) * 100).toFixed(0)}%
+                </Label>
+                <Slider
+                  value={[(policy?.behavior?.formality || 0.5) * 100]}
+                  onValueChange={([value]) => {
+                    updatePolicy.mutate({
+                      behavior: { ...policy.behavior, formality: value / 100 }
+                    });
+                  }}
+                  className="glass p-2 rounded-xl"
+                  data-testid="slider-formality"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">
+                  Criatividade: {((policy?.behavior?.creativity || 0.8) * 100).toFixed(0)}%
+                </Label>
+                <Slider
+                  value={[(policy?.behavior?.creativity || 0.8) * 100]}
+                  onValueChange={([value]) => {
+                    updatePolicy.mutate({
+                      behavior: { ...policy.behavior, creativity: value / 100 }
+                    });
+                  }}
+                  className="glass p-2 rounded-xl"
+                  data-testid="slider-creativity"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* System Prompt */}
-        <Card>
+        <Card className="glass-premium border-primary/20 hover-elevate animate-slide-up" style={{ animationDelay: "200ms" }}>
           <CardHeader>
-            <CardTitle>System Prompt</CardTitle>
-            <CardDescription>Defina a personalidade e instruções do sistema</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              <span className="gradient-text">System Prompt</span>
+            </CardTitle>
+            <CardDescription>
+              Instruções base para o comportamento da IA
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Textarea
-              value={policy.systemPrompt || ""}
-              onChange={(e) => updatePolicy.mutate({ systemPrompt: e.target.value })}
-              rows={5}
-              placeholder="You are AION..."
-              data-testid="textarea-systemprompt"
+              value={policy?.systemPrompt || ""}
+              onChange={(e) => {
+                updatePolicy.mutate({ systemPrompt: e.target.value });
+              }}
+              className="glass border-primary/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 min-h-[200px] font-mono text-sm"
+              placeholder="Digite o system prompt..."
+              data-testid="textarea-system-prompt"
             />
           </CardContent>
         </Card>
 
         {/* Knowledge Base */}
-        <Card>
+        <Card className="glass-premium border-accent/20 hover-elevate animate-slide-up" style={{ animationDelay: "300ms" }}>
           <CardHeader>
-            <CardTitle>Knowledge Base</CardTitle>
-            <CardDescription>Indexar os 7 PDFs técnicos do sistema</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5 text-accent" />
+              <span className="gradient-text-vibrant">Knowledge Base</span>
+            </CardTitle>
+            <CardDescription>
+              Indexe os 7 PDFs técnicos para RAG
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <Button
               onClick={() => indexPDFs.mutate()}
               disabled={indexPDFs.isPending}
+              className="bg-gradient-to-r from-accent to-primary hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg shadow-accent/25"
               data-testid="button-index-pdfs"
             >
-              <Database className="w-4 h-4 mr-2" />
-              {indexPDFs.isPending ? "Indexando..." : "Indexar PDFs Técnicos (7 documentos)"}
+              {indexPDFs.isPending ? (
+                <>
+                  <Activity className="w-4 h-4 mr-2 animate-spin" />
+                  Indexando...
+                </>
+              ) : (
+                <>
+                  <Database className="w-4 h-4 mr-2" />
+                  Indexar PDFs Técnicos
+                </>
+              )}
             </Button>
-            <p className="text-sm text-muted-foreground">
-              Indexa todos os whitepapers: Parte I, II, III-A/B/C/D, Apêndices A/B/C/D
-            </p>
           </CardContent>
         </Card>
       </div>
