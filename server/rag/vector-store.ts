@@ -85,7 +85,7 @@ export class VectorStore {
     const results: Array<{ id: number; score: number }> = [];
     
     // Calculate similarity with all vectors
-    for (const [id, vector] of this.vectors.entries()) {
+    for (const [id, vector] of Array.from(this.vectors.entries())) {
       // Apply filters
       const meta = this.metadata.get(id);
       if (filter?.documentId && meta?.documentId !== filter.documentId) {
@@ -122,7 +122,7 @@ export class VectorStore {
   async removeDocument(documentId: number): Promise<void> {
     const toRemove: number[] = [];
     
-    for (const [id, meta] of this.metadata.entries()) {
+    for (const [id, meta] of Array.from(this.metadata.entries())) {
       if (meta.documentId === documentId) {
         toRemove.push(id);
       }
@@ -273,7 +273,7 @@ export class RAGService {
     for (const doc of documents) {
       if (doc.status === "indexed" && doc.extractedText) {
         try {
-          await this.indexDocument(doc.id, doc.extractedText, tenantId, doc.metadata);
+          await this.indexDocument(doc.id, doc.extractedText, tenantId, doc.metadata || undefined);
           indexed++;
         } catch (error) {
           console.error(`[RAG] Failed to re-index document ${doc.id}:`, error);
