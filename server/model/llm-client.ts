@@ -123,11 +123,22 @@ export class LLMClient {
 
   /**
    * Generate cache key for request deduplication
+   * IMPORTANT: Includes FULL message history to avoid returning stale responses
    */
   private getCacheKey(options: ChatCompletionOptions): string {
-    const { messages, model, temperature, topP } = options;
-    const keyData = JSON.stringify({ messages, model, temperature, topP });
-    return Buffer.from(keyData).toString("base64").slice(0, 64);
+    const { messages, model, temperature, topP, tenantId } = options;
+    // Include tenant ID and FULL message array to ensure uniqueness
+    const keyData = JSON.stringify({ 
+      tenantId,
+      messages, 
+      model, 
+      temperature, 
+      topP,
+      // Add timestamp component to ensure fresh responses in conversations
+      messageCount: messages.length 
+    });
+    // Use full hash instead of sliced version for better uniqueness
+    return Buffer.from(keyData).toString("base64");
   }
 
   /**
@@ -224,11 +235,17 @@ export class LLMClient {
 
       const result: ChatCompletionResult = {
         content: choice.message.content || "",
-        toolCalls: choice.message.tool_calls?.map(tc => ({
-          id: tc.id,
-          name: tc.function.name,
-          arguments: JSON.parse(tc.function.arguments),
-        })),
+        toolCalls: choice.message.tool_calls?.map(tc => {
+          // Type guard for function tool calls
+          if (tc.type === 'function' && 'function' in tc) {
+            return {
+              id: tc.id,
+              name: tc.function.name,
+              arguments: JSON.parse(tc.function.arguments),
+            };
+          }
+          return null;
+        }).filter(Boolean) as any,
         usage: {
           promptTokens: usage.prompt_tokens,
           completionTokens: usage.completion_tokens,
