@@ -49,22 +49,26 @@ drive.mount('/content/drive')
 
 ### APIs de Inferência com GPU (Gratuitas)
 
-#### Hugging Face Inference API
-- **Modelos**: Milhares de modelos open-source
+#### Hugging Face Inference API (ATUALIZADO 2025)
+- **Modelos**: 200,000+ modelos open-source
 - **GPU**: Nos servidores da HF (grátis para baixo volume)
 - **Uso**: Chamadas REST sem hospedar localmente
+- **Chat API**: OpenAI-compatible endpoint (`chatCompletion`)
+- **Modelo FREE**: `meta-llama/Meta-Llama-3-8B-Instruct` (~720 req/dia, conversational)
 
-#### OpenRouter
-- **Agregador**: 50+ modelos (Claude, Llama, Mistral)
+#### OpenRouter (ATUALIZADO 2025)
+- **Agregador**: 400+ modelos (Claude, Llama, Mistral, Gemini)
 - **Créditos**: Grátis no cadastro
-- **Modelos gratuitos**: Disponíveis para teste
+- **Modelos gratuitos**: Meta Llama 4 Scout:free (50 req/dia), Llama 4 Maverick:free
 - **API**: Unificada (trocar modelo mudando parâmetro)
+- **Modelo FREE**: `meta-llama/llama-4-scout:free` (geral purpose, estável)
 
-#### Groq API
-- **Modelos**: Llama 3, Mistral (open-source)
+#### Groq API (ATUALIZADO 2025)
+- **Modelos**: Llama 3.3 70B Versatile, Mistral (open-source)
 - **Hardware**: Especializado (ultrarrápido)
 - **Limite gratuito**: ~14,400 requisições/dia
 - **Uso**: Inferência em tempo real
+- **Modelo FREE**: `llama-3.3-70b-versatile` (substitui llama-3.1-70b-versatile DEPRECIADO)
 
 ---
 
@@ -274,15 +278,16 @@ setInterval(checkGPUHealth, 60000); // A cada 1 min
 
 ### Google AI Studio (Gemini)
 
-**Limites Generosos**:
-- **6 milhões** de tokens/dia
-- **180 milhões** de tokens/mês
+**Limites Generosos (ATUALIZADO 2025)**:
+- **250 RPD** (requests per day) - Gemini 2.0 Flash Exp
+- **10 RPM** (requests per minute)
 
 **Integração**:
 ```python
 from google.generativeai import GenerativeModel
 
-model = GenerativeModel('gemini-1.5-flash')
+# ATUALIZADO (Out 2025): gemini-1.5-flash DESCONTINUADO
+model = GenerativeModel('gemini-2.0-flash-exp')
 response = model.generate_content(prompt)
 ```
 
@@ -591,21 +596,24 @@ Onde:
 
 ---
 
-## 📊 Resumo de Limites Gratuitos
+## 📊 Resumo de Limites Gratuitos (ATUALIZADO 2025)
 
-| Recurso | Limite | Uso Mensal |
-|---------|--------|------------|
-| **Colab** | 12h/dia | ~360h GPU |
-| **Kaggle** | 30h/semana | ~120h GPU |
-| **Modal** | $30 créditos | ~20-30h GPU |
-| **Groq** | 14.4k req/dia | ~432k req |
-| **Gemini** | 1.5k req/dia | ~45k req |
-| **HF Inference** | ~720 req/dia | ~21.6k req |
-| **GCP VM** | e2-micro | 24/7 CPU |
-| **Replit** | Ilimitado* | 24/7 CPU |
-| **Supabase** | 512MB DB | Ilimitado |
+| Recurso | Limite | Uso Mensal | Modelo |
+|---------|--------|------------|---------|
+| **Colab** | 12h/dia | ~360h GPU | - |
+| **Kaggle** | 30h/semana | ~120h GPU | - |
+| **Modal** | $30 créditos | ~20-30h GPU | - |
+| **OpenRouter** | 50 req/dia | ~1.5k req | `llama-4-scout:free` |
+| **Groq** | 14.4k req/dia | ~432k req | `llama-3.3-70b-versatile` |
+| **Gemini** | 250 req/dia | ~7.5k req | `gemini-2.0-flash-exp` |
+| **HF Inference** | ~720 req/dia | ~21.6k req | `Meta-Llama-3-8B-Instruct` |
+| **GCP VM** | e2-micro | 24/7 CPU | - |
+| **Replit** | Ilimitado* | 24/7 CPU | - |
+| **Supabase** | 512MB DB | Ilimitado | - |
 
-**Total**: ~500h GPU/mês + ~500k req LLM/mês = **$0**
+**Total FREE APIs**: ~16.7k req/dia = **~500k req/mês** 🎉  
+**Total GPU**: ~500h/mês  
+**Custo**: **$0**
 
 ---
 
