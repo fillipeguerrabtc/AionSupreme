@@ -37,7 +37,7 @@ export async function torSearch(input: {
     
     // Check if Tor proxy is available
     const torProxyAvailable = await checkTorProxy();
-    const useTor = input.useTorProxy && torProxyAvailable;
+    const useTor = !!(input.useTorProxy && torProxyAvailable);
     
     if (input.useTorProxy && !torProxyAvailable) {
       console.log('[TorSearch] Tor proxy not available, using clearnet mirrors');
