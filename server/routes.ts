@@ -452,6 +452,169 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // ============================================================================
+  // KNOWLEDGE BASE MANAGEMENT
+  // ============================================================================
+
+  // GET /api/admin/documents/:tenant_id - List all documents for a tenant
+  app.get("/api/admin/documents/:tenant_id", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.params.tenant_id);
+      const documents = await storage.getDocumentsByTenant(tenantId, 1000);
+      res.json(documents);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/admin/documents - Add new document (manual text)
+  app.post("/api/admin/documents", async (req, res) => {
+    try {
+      const { tenant_id, title, content, source } = req.body;
+      
+      if (!title || !content) {
+        return res.status(400).json({ error: "Title and content are required" });
+      }
+
+      const doc = await storage.createDocument({
+        tenantId: tenant_id || 1,
+        title,
+        content,
+        source: source || "manual",
+        status: "indexed",
+      });
+
+      // Index document for RAG
+      await knowledgeIndexer.indexDocument(doc.id, doc.content, tenant_id || 1);
+
+      res.json(doc);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // PATCH /api/admin/documents/:id - Update document
+  app.patch("/api/admin/documents/:id", async (req, res) => {
+    try {
+      const docId = parseInt(req.params.id);
+      const { title, content } = req.body;
+
+      const updated = await storage.updateDocument(docId, { title, content });
+      
+      // Re-index document
+      if (content) {
+        await knowledgeIndexer.reIndexDocument(docId, content, updated.tenantId);
+      }
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // DELETE /api/admin/documents/:id - Delete document
+  app.delete("/api/admin/documents/:id", async (req, res) => {
+    try {
+      const docId = parseInt(req.params.id);
+      await storage.deleteDocument(docId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/admin/learn-from-url - Learn from a URL
+  app.post("/api/admin/learn-from-url", async (req, res) => {
+    try {
+      const { tenant_id, url } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      // Fetch content from URL
+      const response = await axios.get(url, { timeout: 30000 });
+      const cheerio = await import("cheerio");
+      const $ = cheerio.load(response.data);
+
+      // Extract text content
+      $("script, style, nav, footer, header").remove();
+      const title = $("title").text() || $("h1").first().text() || url;
+      const content = $("body").text().replace(/\s+/g, " ").trim();
+
+      if (!content) {
+        return res.status(400).json({ error: "No content found at URL" });
+      }
+
+      // Create document
+      const doc = await storage.createDocument({
+        tenantId: tenant_id || 1,
+        title,
+        content,
+        source: "url",
+        status: "indexed",
+        metadata: { url },
+      });
+
+      // Index for RAG
+      await knowledgeIndexer.indexDocument(doc.id, content, tenant_id || 1);
+
+      res.json(doc);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/admin/web-search-learn - Search web and learn
+  app.post("/api/admin/web-search-learn", async (req, res) => {
+    try {
+      const { tenant_id, query } = req.body;
+
+      if (!query) {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+
+      // Use SearchWeb tool to find results
+      const searchObservation = await agentTools.SearchWeb({ query });
+      
+      // Parse results (SearchWeb returns AgentObservation with observation field)
+      const results = JSON.parse(searchObservation.observation);
+      const documentsIndexed = [];
+
+      // Fetch and index top 5 results
+      for (const result of results.results.slice(0, 5)) {
+        try {
+          const response = await axios.get(result.url, { timeout: 10000 });
+          const cheerio = await import("cheerio");
+          const $ = cheerio.load(response.data);
+
+          $("script, style, nav, footer, header").remove();
+          const content = $("body").text().replace(/\s+/g, " ").trim();
+
+          if (content.length > 100) {
+            const doc = await storage.createDocument({
+              tenantId: tenant_id || 1,
+              title: result.title,
+              content: content.substring(0, 10000), // Limit to 10k chars
+              source: "web-search",
+              status: "indexed",
+              metadata: { url: result.url, query },
+            });
+
+            await knowledgeIndexer.indexDocument(doc.id, doc.content, tenant_id || 1);
+            documentsIndexed.push(doc);
+          }
+        } catch (err) {
+          console.error(`Failed to fetch ${result.url}:`, err);
+        }
+      }
+
+      res.json({ documentsIndexed: documentsIndexed.length, documents: documentsIndexed });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /api/documents (list documents)
   app.get("/api/documents", async (req, res) => {
     try {

@@ -200,19 +200,21 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.entries(pendingRules || policy?.rules || {}).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-card/50 border border-border/50 hover-elevate active-elevate-2">
-                  <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
+                <div key={key} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card/50 border border-border/50 hover-elevate active-elevate-2">
+                  <Label htmlFor={key} className="text-sm font-medium cursor-pointer flex-1">
                     {t.admin.rules[key as keyof typeof t.admin.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </Label>
-                  <Switch
-                    id={key}
-                    checked={value as boolean}
-                    onCheckedChange={(checked) => {
-                      setPendingRules({ ...pendingRules, [key]: checked });
-                      setHasUnsavedChanges(true);
-                    }}
-                    data-testid={`switch-${key}`}
-                  />
+                  <div className="flex-shrink-0">
+                    <Switch
+                      id={key}
+                      checked={value as boolean}
+                      onCheckedChange={(checked) => {
+                        setPendingRules({ ...pendingRules, [key]: checked });
+                        setHasUnsavedChanges(true);
+                      }}
+                      data-testid={`switch-${key}`}
+                    />
+                  </div>
                 </div>
               ))}
             </CardContent>
@@ -328,11 +330,20 @@ export default function AdminDashboard() {
               {t.admin.knowledgeBaseDesc}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            <Button
+              onClick={() => window.location.href = "/admin/knowledge-base"}
+              className="w-full bg-gradient-to-r from-accent to-primary hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg shadow-accent/25"
+              data-testid="button-manage-kb"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Gerenciar Knowledge Base
+            </Button>
             <Button
               onClick={() => indexPDFs.mutate()}
               disabled={indexPDFs.isPending}
-              className="bg-gradient-to-r from-accent to-primary hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg shadow-accent/25"
+              variant="secondary"
+              className="w-full hover:scale-105 active:scale-95 transition-all duration-300"
               data-testid="button-index-pdfs"
             >
               {indexPDFs.isPending ? (
@@ -343,7 +354,7 @@ export default function AdminDashboard() {
               ) : (
                 <>
                   <Database className="w-4 h-4 mr-2" />
-                  {t.admin.indexPDFs}
+                  {t.admin.indexPDFs} (7 PDFs Técnicos)
                 </>
               )}
             </Button>

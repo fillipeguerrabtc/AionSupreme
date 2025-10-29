@@ -1,10 +1,22 @@
 # AION - Autonomous AI System
 
 ## Overview
-AION is an enterprise-grade autonomous AI system designed for multi-tenant environments. Its core purpose is to provide a robust, flexible, and autonomously operating AI solution for complex enterprise needs, overcoming limitations and biases of underlying LLM providers through externalized policy enforcement and an automatic fallback system. It features configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agent capabilities utilizing a Partially Observable Markov Decision Process (POMDP) with the ReAct framework, and supports professional video generation via an async GPU job system and LoRA fine-tuning. The system includes both an end-user chat interface and an an administrative dashboard for policy management and monitoring.
+AION is an enterprise-grade autonomous AI system designed for multi-tenant environments. Its core purpose is to provide a robust, flexible, and autonomously operating AI solution for complex enterprise needs, overcoming limitations and biases of underlying LLM providers through externalized policy enforcement and an automatic fallback system. It features configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agent capabilities utilizing a Partially Observable Markov Decision Process (POMDP) with the ReAct framework, and supports professional video generation via an async GPU job system and LoRA fine-tuning. The system includes both an end-user chat interface and an administrative dashboard for policy management, monitoring, and comprehensive Knowledge Base management.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
+
+## Recent Updates (Oct 29, 2025)
+- **Admin Dashboard Auto-Save Fix**: Replaced automatic save with explicit "Save Changes" button for policies and AI behavior settings. Users can now modify multiple settings before saving.
+- **Switch Visibility Fix**: Fixed bug where policy switches would disappear on hover by wrapping in flex-shrink-0 div.
+- **Knowledge Base Management System**: New comprehensive KB management page (/admin/knowledge-base) with:
+  - Manual text addition (title + content)
+  - Learn from URL (web scraping with cheerio)
+  - Web search & auto-indexing (DuckDuckGo search → fetch → index top 5 results)
+  - Full CRUD operations (view, edit, delete documents)
+  - Automatic RAG indexing on add/update
+  - File upload UI (backend pending implementation)
+- **Schema Updates**: Enhanced documents table with `title`, `content`, `source` fields for unified KB storage (manual/upload/url/web-search sources).
 
 ## System Architecture
 

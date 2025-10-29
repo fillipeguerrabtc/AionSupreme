@@ -219,32 +219,41 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 
 // ============================================================================
-// DOCUMENTS - Knowledge base documents (PDFs, Word, Excel, etc)
+// DOCUMENTS - Knowledge base documents (PDFs, Word, Excel, etc + manual text)
 // ============================================================================
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),
   tenantId: integer("tenant_id").notNull().references(() => tenants.id),
-  filename: text("filename").notNull(),
-  mimeType: text("mime_type").notNull(),
-  size: integer("size").notNull(), // bytes
   
-  // Storage location
-  storageUrl: text("storage_url").notNull(),
+  // Universal fields for all document types
+  title: text("title").notNull().default("Untitled"), // Title/filename
+  content: text("content").notNull().default(""), // Full text content
+  source: text("source").notNull().default("upload"), // "manual" | "upload" | "url" | "web-search"
   
-  // Extracted content
+  // File-specific fields (optional for manual text)
+  filename: text("filename"),
+  mimeType: text("mime_type"),
+  size: integer("size"), // bytes
+  storageUrl: text("storage_url"),
+  
+  // Extracted content (for files)
   extractedText: text("extracted_text"),
   
   // Processing status
-  status: text("status").notNull().default("pending"), // "pending" | "processing" | "indexed" | "failed"
+  status: text("status").notNull().default("indexed"), // "pending" | "processing" | "indexed" | "failed"
   errorMessage: text("error_message"),
   
   // Metadata from file
   metadata: jsonb("metadata").$type<{
     author?: string;
-    title?: string;
     subject?: string;
     pages?: number;
     wordCount?: number;
+    url?: string; // Original URL for web-scraped content
+    query?: string; // Search query for web-search documents
+    part?: string; // Part for technical PDFs
+    description?: string; // Description for technical PDFs
+    title?: string; // Title from file
   }>(),
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -252,6 +261,7 @@ export const documents = pgTable("documents", {
 }, (table) => ({
   tenantIdx: index("documents_tenant_idx").on(table.tenantId),
   statusIdx: index("documents_status_idx").on(table.status),
+  sourceIdx: index("documents_source_idx").on(table.source),
 }));
 
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true, updatedAt: true });

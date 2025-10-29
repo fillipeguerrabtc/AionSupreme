@@ -227,6 +227,30 @@ export class KnowledgeIndexer {
   getAvailableParts(): PDFMetadata[] {
     return TECHNICAL_PDFS;
   }
+
+  /**
+   * Index a single document by ID and content
+   */
+  async indexDocument(documentId: number, content: string, tenantId: number): Promise<void> {
+    console.log(`[KnowledgeIndexer] Indexing document ${documentId}...`);
+    await ragService.indexDocument(documentId, content, tenantId, {});
+    console.log(`[KnowledgeIndexer] ✅ Document ${documentId} indexed`);
+  }
+
+  /**
+   * Re-index a document (delete old embeddings and create new ones)
+   */
+  async reIndexDocument(documentId: number, content: string, tenantId: number): Promise<void> {
+    console.log(`[KnowledgeIndexer] Re-indexing document ${documentId}...`);
+    
+    // Delete existing embeddings for this document
+    await storage.deleteEmbeddingsByDocument(documentId);
+    
+    // Re-index with new content
+    await ragService.indexDocument(documentId, content, tenantId, {});
+    
+    console.log(`[KnowledgeIndexer] ✅ Document ${documentId} re-indexed`);
+  }
 }
 
 // Singleton instance
