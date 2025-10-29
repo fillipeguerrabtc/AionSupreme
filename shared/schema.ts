@@ -612,3 +612,96 @@ export const videoAssets = pgTable("video_assets", {
 export const insertVideoAssetSchema = createInsertSchema(videoAssets).omit({ id: true, createdAt: true });
 export type InsertVideoAsset = z.infer<typeof insertVideoAssetSchema>;
 export type VideoAsset = typeof videoAssets.$inferSelect;
+
+// ============================================================================
+// TOKEN_USAGE - Token consumption tracking for all APIs
+// ============================================================================
+export const tokenUsage = pgTable("token_usage", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  
+  // API Provider
+  provider: text("provider").notNull(), // "groq" | "gemini" | "huggingface" | "openrouter" | "openai"
+  model: text("model").notNull(),
+  
+  // Usage metrics
+  promptTokens: integer("prompt_tokens").notNull().default(0),
+  completionTokens: integer("completion_tokens").notNull().default(0),
+  totalTokens: integer("total_tokens").notNull().default(0),
+  
+  // Cost (for paid APIs like OpenAI)
+  cost: real("cost").default(0.0), // USD
+  
+  // Request info
+  requestType: text("request_type").notNull(), // "chat" | "embedding" | "transcription" | "image"
+  success: boolean("success").notNull().default(true),
+  
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("token_usage_tenant_idx").on(table.tenantId),
+  providerIdx: index("token_usage_provider_idx").on(table.provider),
+  timestampIdx: index("token_usage_timestamp_idx").on(table.timestamp),
+}));
+
+export const insertTokenUsageSchema = createInsertSchema(tokenUsage).omit({ id: true, timestamp: true });
+export type InsertTokenUsage = z.infer<typeof insertTokenUsageSchema>;
+export type TokenUsage = typeof tokenUsage.$inferSelect;
+
+// ============================================================================
+// TOKEN_LIMITS - Configurable limits per tenant/provider
+// ============================================================================
+export const tokenLimits = pgTable("token_limits", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  
+  // Provider
+  provider: text("provider").notNull(), // "groq" | "gemini" | "huggingface" | "openrouter" | "openai" | "all"
+  
+  // Limits
+  dailyTokenLimit: integer("daily_token_limit"), // null = unlimited
+  monthlyTokenLimit: integer("monthly_token_limit"), // null = unlimited
+  dailyCostLimit: real("daily_cost_limit"), // USD, null = unlimited
+  monthlyCostLimit: real("monthly_cost_limit"), // USD, null = unlimited
+  
+  // Alerts
+  alertThreshold: real("alert_threshold").notNull().default(0.8), // 0-1, alert at 80% by default
+  alertEmail: text("alert_email"),
+  alertsEnabled: boolean("alerts_enabled").notNull().default(false),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantProviderIdx: index("token_limits_tenant_provider_idx").on(table.tenantId, table.provider),
+}));
+
+export const insertTokenLimitSchema = createInsertSchema(tokenLimits).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertTokenLimit = z.infer<typeof insertTokenLimitSchema>;
+export type TokenLimit = typeof tokenLimits.$inferSelect;
+
+// ============================================================================
+// TOKEN_ALERTS - Alert history for token usage
+// ============================================================================
+export const tokenAlerts = pgTable("token_alerts", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  
+  provider: text("provider").notNull(),
+  alertType: text("alert_type").notNull(), // "threshold_reached" | "limit_exceeded" | "daily_reset"
+  message: text("message").notNull(),
+  
+  currentUsage: integer("current_usage").notNull(),
+  limit: integer("limit").notNull(),
+  percentage: real("percentage").notNull(), // 0-1
+  
+  acknowledged: boolean("acknowledged").notNull().default(false),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("token_alerts_tenant_idx").on(table.tenantId),
+  acknowledgedIdx: index("token_alerts_acknowledged_idx").on(table.acknowledged),
+}));
+
+export const insertTokenAlertSchema = createInsertSchema(tokenAlerts).omit({ id: true, createdAt: true });
+export type InsertTokenAlert = z.infer<typeof insertTokenAlertSchema>;
+export type TokenAlert = typeof tokenAlerts.$inferSelect;

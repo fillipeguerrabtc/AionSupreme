@@ -16,6 +16,7 @@ import { db } from '../db';
 import { documents } from '@shared/schema';
 import { sql } from 'drizzle-orm';
 import OpenAI from 'openai';
+import { trackTokenUsage } from '../monitoring/token-tracker';
 
 // ============================================================================
 // TYPES
@@ -87,6 +88,19 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       console.log('   ✅ KB provided high-confidence answer!');
       console.log('='.repeat(80) + '\n');
       
+      // Track KB usage (no tokens, just request count)
+      await trackTokenUsage({
+        tenantId: req.tenantId,
+        provider: 'kb',
+        model: 'rag-mmr',
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+        cost: 0,
+        requestType: 'chat',
+        success: true
+      });
+      
       return {
         content: kbResponse,
         source: 'kb',
@@ -133,6 +147,19 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       // No refusal - return direct response
       console.log('   ✅ Free API provided direct answer (no refusal)!');
       console.log('='.repeat(80) + '\n');
+      
+      // Track free API usage
+      await trackTokenUsage({
+        tenantId: req.tenantId,
+        provider: freeResponse.provider as any,
+        model: freeResponse.model,
+        promptTokens: 0,
+        completionTokens: freeResponse.tokensUsed || 0,
+        totalTokens: freeResponse.tokensUsed || 0,
+        cost: 0,
+        requestType: 'chat',
+        success: true
+      });
       
       return {
         content: freeResponse.text,
@@ -223,6 +250,18 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   if (!openaiRefusalCheck.isRefusal) {
     console.log('   ✅ OpenAI provided direct answer (no refusal)!');
     console.log('='.repeat(80) + '\n');
+    
+    // Track OpenAI usage
+    await trackTokenUsage({
+      tenantId: req.tenantId,
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      promptTokens: openaiResponse.usage?.prompt_tokens || 0,
+      completionTokens: openaiResponse.usage?.completion_tokens || 0,
+      totalTokens: openaiResponse.usage?.total_tokens || 0,
+      requestType: 'chat',
+      success: true
+    });
     
     return {
       content: openaiText,

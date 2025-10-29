@@ -14,6 +14,7 @@ import { fileProcessor } from "./multimodal/file-processor";
 import { knowledgeIndexer } from "./rag/knowledge-indexer";
 import { generateWithPriority } from "./llm/priority-orchestrator";
 import { hierarchicalPlanner } from "./agent/hierarchical-planner";
+import * as tokenTracker from "./monitoring/token-tracker";
 import { seedDatabase } from "./seed";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { auditMiddleware } from "./middleware/audit";
@@ -1613,6 +1614,79 @@ export function registerRoutes(app: Express): Server {
       
       const metrics = calculateAllMetrics(results, k || 10);
       res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================================================
+  // TOKEN MONITORING - AION Supreme
+  // ========================================================================
+
+  // GET /api/tokens/summary - Get token usage summary for all providers
+  app.get("/api/tokens/summary", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.query.tenant_id as string) || 1;
+      const summary = await tokenTracker.getUsageSummary(tenantId);
+      res.json(summary);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/tokens/quotas - Get free API quotas and remaining capacity
+  app.get("/api/tokens/quotas", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.query.tenant_id as string) || 1;
+      const quotas = await tokenTracker.getProviderQuotas(tenantId);
+      res.json(quotas);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/tokens/trends - Get historical token usage trends
+  app.get("/api/tokens/trends", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.query.tenant_id as string) || 1;
+      const provider = req.query.provider as string | null;
+      const days = parseInt(req.query.days as string) || 30;
+      
+      const trends = await tokenTracker.getTokenTrends(tenantId, provider, days);
+      res.json(trends);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/tokens/limits - Set token limits for a provider
+  app.post("/api/tokens/limits", async (req, res) => {
+    try {
+      const { tenantId, provider, limits } = req.body;
+      await tokenTracker.setTokenLimit(tenantId || 1, provider, limits);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/tokens/alerts - Get unacknowledged alerts
+  app.get("/api/tokens/alerts", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.query.tenant_id as string) || 1;
+      const alerts = await tokenTracker.getUnacknowledgedAlerts(tenantId);
+      res.json(alerts);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/tokens/alerts/:id/acknowledge - Acknowledge an alert
+  app.post("/api/tokens/alerts/:id/acknowledge", async (req, res) => {
+    try {
+      const alertId = parseInt(req.params.id);
+      await tokenTracker.acknowledgeAlert(alertId);
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
