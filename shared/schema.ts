@@ -111,18 +111,57 @@ export type InsertPolicy = z.infer<typeof insertPolicySchema>;
 export type Policy = typeof policies.$inferSelect;
 
 // ============================================================================
+// PROJECTS - ChatGPT-style project organization
+// ============================================================================
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  userIdx: index("projects_user_idx").on(table.userId),
+}));
+
+export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type Project = typeof projects.$inferSelect;
+
+// ============================================================================
+// PROJECT_FILES - Files attached to projects for context
+// ============================================================================
+export const projectFiles = pgTable("project_files", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  filename: text("filename").notNull(),
+  content: text("content").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(),
+  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
+}, (table) => ({
+  projectIdx: index("project_files_project_idx").on(table.projectId),
+}));
+
+export const insertProjectFileSchema = createInsertSchema(projectFiles).omit({ id: true, uploadedAt: true });
+export type InsertProjectFile = z.infer<typeof insertProjectFileSchema>;
+export type ProjectFile = typeof projectFiles.$inferSelect;
+
+// ============================================================================
 // CONVERSATIONS - Chat sessions with complete history
 // ============================================================================
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   tenantId: integer("tenant_id").notNull().references(() => tenants.id),
   userId: varchar("user_id").references(() => users.id), // Optional: null for anonymous sessions
+  projectId: integer("project_id").references(() => projects.id), // Optional: link to project
   title: text("title").notNull().default("New Conversation"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   tenantIdx: index("conversations_tenant_idx").on(table.tenantId),
   userIdx: index("conversations_user_idx").on(table.userId),
+  projectIdx: index("conversations_project_idx").on(table.projectId),
 }));
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true, updatedAt: true });
