@@ -194,11 +194,11 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.entries(pendingRules || policy?.rules || {}).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card/50 border border-border/50 hover-elevate active-elevate-2">
+                <div key={key} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card/50 border border-border/50">
                   <Label htmlFor={key} className="text-sm font-medium cursor-pointer flex-1">
                     {t.admin.rules[key as keyof typeof t.admin.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </Label>
-                  <div className="flex-shrink-0">
+                  <div className="flex-shrink-0 w-11">
                     <Switch
                       id={key}
                       checked={value as boolean}
@@ -297,7 +297,7 @@ export default function AdminDashboard() {
             <Textarea
               value={systemPromptValue}
               onChange={(e) => setSystemPromptValue(e.target.value)}
-              className="glass border-primary/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 min-h-[200px] font-mono text-sm"
+              className="glass border-primary/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 min-h-[200px] max-h-[600px] font-mono text-sm resize-y"
               placeholder={t.admin.systemPromptPlaceholder}
               data-testid="textarea-system-prompt"
             />

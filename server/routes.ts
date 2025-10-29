@@ -537,8 +537,8 @@ export function registerRoutes(app: Express): Server {
       const cheerio = await import("cheerio");
       const $ = cheerio.load(response.data);
 
-      // Extract text content
-      $("script, style, nav, footer, header").remove();
+      // Extract text content (more aggressive extraction)
+      $("script, style, nav, footer, header, aside, .advertisement, .ad, .sidebar").remove();
       const title = $("title").text() || $("h1").first().text() || url;
       const content = $("body").text().replace(/\s+/g, " ").trim();
 
@@ -546,20 +546,110 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "No content found at URL" });
       }
 
+      // Allow up to 1 million characters for deep learning
+      const finalContent = content.length > 1000000 ? content.substring(0, 1000000) : content;
+
       // Create document
       const doc = await storage.createDocument({
         tenantId: tenant_id || 1,
         title,
-        content,
+        content: finalContent,
         source: "url",
         status: "indexed",
-        metadata: { url },
+        metadata: { 
+          url,
+          originalLength: content.length,
+          truncated: content.length > 1000000,
+        },
       });
 
       // Index for RAG
       await knowledgeIndexer.indexDocument(doc.id, content, tenant_id || 1);
 
       res.json(doc);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/admin/upload-files - Upload and process multiple files
+  app.post("/api/admin/upload-files", upload.array("files", 20), async (req, res) => {
+    try {
+      const { tenant_id } = req.body;
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No files uploaded" });
+      }
+
+      const processedDocs = [];
+      const errors = [];
+
+      for (const file of files) {
+        try {
+          // Determine MIME type from original filename
+          const ext = path.extname(file.originalname).toLowerCase();
+          const mimeTypes: Record<string, string> = {
+            '.pdf': 'application/pdf',
+            '.txt': 'text/plain',
+            '.md': 'text/markdown',
+            '.doc': 'application/msword',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.xls': 'application/vnd.ms-excel',
+            '.xml': 'application/xml',
+            '.csv': 'text/csv',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp',
+          };
+
+          const mimeType = mimeTypes[ext] || file.mimetype;
+
+          // Process file
+          const processed = await fileProcessor.processFile(file.path, mimeType);
+
+          if (processed.error) {
+            errors.push({ filename: file.originalname, error: processed.error });
+            continue;
+          }
+
+          // Create document in database
+          const doc = await storage.createDocument({
+            tenantId: tenant_id || 1,
+            title: file.originalname,
+            content: processed.extractedText,
+            source: "upload",
+            status: "indexed",
+            metadata: {
+              filename: file.originalname,
+              mimeType,
+              size: processed.size,
+              ...processed.metadata,
+            },
+          });
+
+          // Index for RAG
+          await knowledgeIndexer.indexDocument(doc.id, processed.extractedText, tenant_id || 1);
+
+          processedDocs.push(doc);
+
+          // Clean up temp file
+          await fs.unlink(file.path).catch(() => {});
+        } catch (error: any) {
+          console.error(`Error processing ${file.originalname}:`, error);
+          errors.push({ filename: file.originalname, error: error.message });
+        }
+      }
+
+      res.json({
+        success: true,
+        processed: processedDocs.length,
+        documents: processedDocs,
+        errors: errors.length > 0 ? errors : undefined,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -581,19 +671,20 @@ export function registerRoutes(app: Express): Server {
       const results = JSON.parse(searchObservation.observation);
       const documentsIndexed = [];
 
-      // Fetch and index top 5 results
-      for (const result of results.results.slice(0, 5)) {
+      // Fetch and index top 10 results for comprehensive learning
+      for (const result of results.results.slice(0, 10)) {
         try {
-          const response = await axios.get(result.url, { timeout: 10000 });
+          const response = await axios.get(result.url, { timeout: 15000 });
           const cheerio = await import("cheerio");
           const $ = cheerio.load(response.data);
 
-          $("script, style, nav, footer, header").remove();
+          // More aggressive content extraction
+          $("script, style, nav, footer, header, aside, .advertisement, .ad, .sidebar").remove();
           const content = $("body").text().replace(/\s+/g, " ").trim();
 
           if (content.length > 100) {
-            // Limit to 50k chars to avoid overwhelming the system while getting more content
-            const finalContent = content.length > 50000 ? content.substring(0, 50000) : content;
+            // Allow up to 1 million characters for deep vertical learning
+            const finalContent = content.length > 1000000 ? content.substring(0, 1000000) : content;
             
             const doc = await storage.createDocument({
               tenantId: tenant_id || 1,
@@ -605,7 +696,7 @@ export function registerRoutes(app: Express): Server {
                 url: result.url, 
                 query,
                 originalLength: content.length,
-                truncated: content.length > 50000,
+                truncated: content.length > 1000000,
               },
             });
 

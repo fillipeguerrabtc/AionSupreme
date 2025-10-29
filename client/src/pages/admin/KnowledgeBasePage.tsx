@@ -209,14 +209,53 @@ export default function KnowledgeBasePage() {
             accept=".pdf,.txt,.doc,.docx,.md,.xlsx,.xls,.png,.jpg,.jpeg,.gif,.webp"
             multiple
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const files = e.target.files;
-              if (files && files.length > 0) {
-                toast({ 
-                  title: "Em desenvolvimento",
-                  description: `${files.length} arquivo(s) selecionado(s). Upload será implementado em breve!`,
+              if (!files || files.length === 0) return;
+
+              const formData = new FormData();
+              formData.append("tenant_id", "1");
+              
+              Array.from(files).forEach(file => {
+                formData.append("files", file);
+              });
+
+              toast({
+                title: "Fazendo upload...",
+                description: `Processando ${files.length} arquivo(s)...`,
+              });
+
+              try {
+                const response = await fetch("/api/admin/upload-files", {
+                  method: "POST",
+                  body: formData,
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                  toast({
+                    title: "Upload concluído!",
+                    description: `${result.processed} arquivo(s) processado(s) e indexado(s)`,
+                  });
+                  queryClient.invalidateQueries({ queryKey: ["/api/admin/documents/1"] });
+                } else {
+                  toast({
+                    title: "Erro no upload",
+                    description: result.error || "Falha ao processar arquivos",
+                    variant: "destructive",
+                  });
+                }
+              } catch (error: any) {
+                toast({
+                  title: "Erro",
+                  description: error.message,
+                  variant: "destructive",
                 });
               }
+
+              // Reset input
+              e.target.value = "";
             }}
           />
         </div>
