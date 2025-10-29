@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap, Server } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap, Server, Cpu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
@@ -18,6 +18,7 @@ import KnowledgeBaseTab from "./KnowledgeBaseTab";
 import TokenHistoryTab from "./TokenHistoryTab";
 import CostHistoryTab from "./CostHistoryTab";
 import GPUManagementTab from "./GPUManagementTab";
+import FederatedTrainingTab from "./FederatedTrainingTab";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -277,6 +278,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="gpu" data-testid="tab-dashboard-gpu">
               <Server className="w-4 h-4 mr-2" />
               GPU Management
+            </TabsTrigger>
+            <TabsTrigger value="federated" data-testid="tab-dashboard-federated">
+              <Cpu className="w-4 h-4 mr-2" />
+              Federated Training
             </TabsTrigger>
           </TabsList>
 
@@ -626,6 +631,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="gpu" className="space-y-6">
             <GPUManagementTab />
+          </TabsContent>
+
+          <TabsContent value="federated" className="space-y-6">
+            <FederatedTrainingTab />
           </TabsContent>
         </Tabs>
       </div>
