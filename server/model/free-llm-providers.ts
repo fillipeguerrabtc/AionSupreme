@@ -175,17 +175,18 @@ export class FreeLLMProviders {
   }
 
   /**
-   * OpenRouter Chat Completion (DeepSeek R1:free ou outro modelo grátis)
+   * OpenRouter Chat Completion (Llama 4 Scout:free - ATUALIZADO 2025)
    */
   private async openrouterChat(messages: ChatMessage[]): Promise<ChatCompletionResult> {
     if (!this.openrouter) throw new Error("OpenRouter not initialized");
     
     const startTime = Date.now();
     
-    // Usar modelo GRATUITO do OpenRouter (DeepSeek R1 é um dos melhores free)
+    // ATUALIZADO (Out 2025): Llama 4 Scout é mais estável que DeepSeek R1
+    // Alternativas free: meta-llama/llama-4-maverick:free, google/gemini-2.0-flash-exp:free
     // Lista completa: https://openrouter.ai/models?q=free
     const completion = await this.openrouter.chat.completions.create({
-      model: "deepseek/deepseek-r1:free", // Modelo grátis, MIT licensed, excelente para coding
+      model: "meta-llama/llama-4-scout:free", // Modelo grátis Meta, geral purpose, 50 req/dia
       messages: messages.map(m => ({
         role: m.role as "system" | "user" | "assistant",
         content: m.content,
@@ -213,15 +214,17 @@ export class FreeLLMProviders {
   }
 
   /**
-   * Groq Chat Completion (Llama 3.1 70B)
+   * Groq Chat Completion (Llama 3.3 70B - ATUALIZADO 2025)
    */
   private async groqChat(messages: ChatMessage[]): Promise<ChatCompletionResult> {
     if (!this.groq) throw new Error("Groq not initialized");
     
     const startTime = Date.now();
     
+    // ATUALIZADO (Out 2025): llama-3.1-70b-versatile DEPRECIADO em Jan 2025
+    // llama-3.3-70b-versatile: mesmo preço, MELHOR performance (iguala Llama 405B)
     const completion = await this.groq.chat.completions.create({
-      model: "llama-3.1-70b-versatile",
+      model: "llama-3.3-70b-versatile",
       messages: messages.map(m => ({
         role: m.role as "system" | "user" | "assistant",
         content: m.content,
@@ -249,14 +252,16 @@ export class FreeLLMProviders {
   }
 
   /**
-   * Gemini Chat Completion (Gemini 1.5 Flash)
+   * Gemini Chat Completion (Gemini 2.0 Flash Exp - ATUALIZADO 2025)
    */
   private async geminiChat(messages: ChatMessage[]): Promise<ChatCompletionResult> {
     if (!this.gemini) throw new Error("Gemini not initialized");
     
     const startTime = Date.now();
     
-    const model = this.gemini.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // ATUALIZADO (Out 2025): Gemini 1.5 Flash DESCONTINUADO
+    // gemini-2.0-flash-exp: novo modelo 2.0, experimental, FREE TIER (10 RPM, 250 RPD)
+    const model = this.gemini.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     
     // Converter mensagens para formato Gemini
     const lastMessage = messages[messages.length - 1];
@@ -285,42 +290,38 @@ export class FreeLLMProviders {
   }
 
   /**
-   * HuggingFace Chat Completion (Mistral 7B Instruct)
+   * HuggingFace Chat Completion (Llama 3 8B Instruct - ATUALIZADO 2025)
    */
   private async hfChat(messages: ChatMessage[]): Promise<ChatCompletionResult> {
     if (!this.hf) throw new Error("HuggingFace not initialized");
     
     const startTime = Date.now();
     
-    // Formatar mensagens como prompt único
-    const prompt = messages.map(m => {
-      if (m.role === "system") return `<s>[INST] ${m.content} [/INST]`;
-      if (m.role === "user") return `<s>[INST] ${m.content} [/INST]`;
-      if (m.role === "assistant") return m.content;
-      return "";
-    }).join("\n");
-
-    const response = await this.hf.textGeneration({
-      model: "mistralai/Mistral-7B-Instruct-v0.2",
-      inputs: prompt,
-      parameters: {
-        max_new_tokens: 2048,
-        temperature: 0.7,
-        top_p: 0.9,
-        return_full_text: false,
-      },
+    // ATUALIZADO (Out 2025): Usar chatCompletion API (OpenAI-compatible)
+    // meta-llama/Meta-Llama-3-8B-Instruct suporta conversational
+    // Alternativa: deepseek-ai/DeepSeek-V3-0324 (state-of-the-art free)
+    const response = await this.hf.chatCompletion({
+      model: "meta-llama/Meta-Llama-3-8B-Instruct",
+      messages: messages.map(m => ({
+        role: m.role as "system" | "user" | "assistant",
+        content: m.content,
+      })),
+      max_tokens: 2048,
+      temperature: 0.7,
     });
 
     this.incrementUsage('hf');
 
+    const choice = response.choices[0];
+    
     return {
-      content: response.generated_text,
+      content: choice.message.content || "",
       usage: {
-        promptTokens: 0,
-        completionTokens: 0,
-        totalTokens: 0,
+        promptTokens: response.usage?.prompt_tokens || 0,
+        completionTokens: response.usage?.completion_tokens || 0,
+        totalTokens: response.usage?.total_tokens || 0,
       },
-      finishReason: "stop",
+      finishReason: choice.finish_reason || "stop",
       latencyMs: Date.now() - startTime,
       costUsd: 0, // GRÁTIS! 🎉
     };
@@ -329,21 +330,23 @@ export class FreeLLMProviders {
   /**
    * Chat Completion com Fallback Automático
    * 
-   * Ordem de tentativa:
-   * 1. OpenRouter (400+ modelos, DeepSeek R1:free, 50/dia)
-   * 2. Groq (mais rápido, Llama 3.1 70B, 14.4k/dia)
-   * 3. Gemini (Google, Gemini 1.5 Flash, 1.5k/dia)
-   * 4. HuggingFace (backup, Mistral 7B, 720/dia)
+   * 🆕 MODELOS ATUALIZADOS (Out 2025) - TODOS 100% GRATUITOS:
+   * 1. OpenRouter (Llama 4 Scout:free, 50/dia)
+   * 2. Groq (Llama 3.3 70B Versatile, 14.4k/dia)
+   * 3. Gemini (Gemini 2.0 Flash Exp, 1.5k/dia)
+   * 4. HuggingFace (Llama 3 8B Instruct, 720/dia)
+   * 
+   * TOTAL: ~16.7k requisições/dia GRÁTIS! 🎉
    */
   async chatCompletion(messages: ChatMessage[]): Promise<ChatCompletionResult> {
     this.resetDailyUsageIfNeeded();
 
     const errors: string[] = [];
 
-    // 1. Tentar OpenRouter primeiro (400+ modelos, muito versátil)
+    // 1. Tentar OpenRouter primeiro (Meta Llama 4 Scout)
     if (this.openrouter && this.hasCredits('openrouter')) {
       try {
-        console.log("[Free LLM] → Usando OpenRouter (DeepSeek R1:free)");
+        console.log("[Free LLM] → Usando OpenRouter (Llama 4 Scout:free)");
         return await this.openrouterChat(messages);
       } catch (error: any) {
         errors.push(`OpenRouter: ${error.message}`);
@@ -351,10 +354,10 @@ export class FreeLLMProviders {
       }
     }
 
-    // 2. Fallback para Groq (mais rápido e maior limite)
+    // 2. Fallback para Groq (Llama 3.3 70B - maior e mais rápido)
     if (this.groq && this.hasCredits('groq')) {
       try {
-        console.log("[Free LLM] → Fallback para Groq (Llama 3.1 70B)");
+        console.log("[Free LLM] → Fallback para Groq (Llama 3.3 70B Versatile)");
         return await this.groqChat(messages);
       } catch (error: any) {
         errors.push(`Groq: ${error.message}`);
@@ -362,10 +365,10 @@ export class FreeLLMProviders {
       }
     }
 
-    // 3. Fallback para Gemini
+    // 3. Fallback para Gemini (Google 2.0 Flash Experimental)
     if (this.gemini && this.hasCredits('gemini')) {
       try {
-        console.log("[Free LLM] → Fallback para Gemini (1.5 Flash)");
+        console.log("[Free LLM] → Fallback para Gemini (2.0 Flash Exp)");
         return await this.geminiChat(messages);
       } catch (error: any) {
         errors.push(`Gemini: ${error.message}`);
@@ -373,10 +376,10 @@ export class FreeLLMProviders {
       }
     }
 
-    // 4. Fallback para HuggingFace
+    // 4. Último recurso: HuggingFace (Llama 3 8B)
     if (this.hf && this.hasCredits('hf')) {
       try {
-        console.log("[Free LLM] → Fallback para HuggingFace (Mistral 7B)");
+        console.log("[Free LLM] → Fallback para HuggingFace (Llama 3 8B Instruct)");
         return await this.hfChat(messages);
       } catch (error: any) {
         errors.push(`HuggingFace: ${error.message}`);
