@@ -1,19 +1,22 @@
 import type { AgentObservation } from "../react-engine";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { SocksProxyAgent } from 'socks-proxy-agent';
 
 /**
  * TorSearch - Search deepweb/darknet using Tor network
  * 
- * This tool searches for content in the deep/dark web through Tor proxies
- * when content is censored or unavailable on regular internet.
+ * This tool searches for content in the deep/dark web through multiple search engines:
+ * - Ahmia.fi (clearnet + Tor)
+ * - DarkSearch.io (20K+ onion sites indexed)
+ * - Torch (400K+ pages)
  * 
- * NOTE: In production, this requires:
+ * NOTE: In production with Tor:
  * 1. Tor service running (apt-get install tor)
  * 2. SOCKS proxy configured (default: localhost:9050)
  * 3. Onion search engines accessible
  * 
- * For development: Uses clearnet onion search engine mirrors as fallback
+ * For development/Replit: Uses clearnet mirrors that don't require Tor
  */
 
 interface TorSearchResult {
@@ -21,6 +24,7 @@ interface TorSearchResult {
   url: string;
   snippet: string;
   isTorSite: boolean;
+  source: string;
 }
 
 export async function torSearch(input: { 
@@ -29,64 +33,35 @@ export async function torSearch(input: {
   useTorProxy?: boolean; // If false, uses clearnet mirror
 }): Promise<AgentObservation> {
   try {
-    const maxResults = input.maxResults || 5;
+    const maxResults = input.maxResults || 10;
     
     // Check if Tor proxy is available
     const torProxyAvailable = await checkTorProxy();
     const useTor = input.useTorProxy && torProxyAvailable;
     
     if (input.useTorProxy && !torProxyAvailable) {
-      console.log('[TorSearch] Tor proxy not available, falling back to clearnet mirror');
+      console.log('[TorSearch] Tor proxy not available, using clearnet mirrors');
     }
-    
-    // Onion search engines (clearnet mirrors for development)
-    const searchEngines = [
-      // Ahmia - popular onion search engine with clearnet mirror
-      `https://ahmia.fi/search/?q=${encodeURIComponent(input.query)}`,
-      // Torch - another popular onion search (note: may not always be accessible)
-      // We'll use Ahmia as primary for reliability
-    ];
     
     const results: TorSearchResult[] = [];
     
-    for (const searchUrl of searchEngines) {
-      if (results.length >= maxResults) break;
-      
+    // Try DarkSearch.io first (most reliable, 20K+ onion sites)
+    try {
+      console.log('[TorSearch] Searching DarkSearch.io...');
+      const darkSearchResults = await searchDarkSearch(input.query, maxResults, useTor);
+      results.push(...darkSearchResults);
+    } catch (error: any) {
+      console.error('[TorSearch] DarkSearch failed:', error.message);
+    }
+    
+    // If not enough results, try Ahmia
+    if (results.length < maxResults) {
       try {
-        const response = await axios.get(searchUrl, {
-          headers: { 
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0",
-          },
-          timeout: 20000,
-          // If Tor proxy available, use SOCKS proxy
-          ...(useTor && {
-            proxy: false,
-            httpsAgent: new (require('https-proxy-agent'))('socks5h://127.0.0.1:9050')
-          })
-        });
-        
-        const $ = cheerio.load(response.data);
-        
-        // Parse Ahmia results
-        $('.result').each((i, elem) => {
-          if (results.length >= maxResults) return false;
-          
-          const titleElem = $(elem).find('h4 a');
-          const snippetElem = $(elem).find('p');
-          const url = titleElem.attr('href');
-          
-          if (url) {
-            results.push({
-              title: titleElem.text().trim(),
-              url: url,
-              snippet: snippetElem.text().trim(),
-              isTorSite: url.endsWith('.onion'),
-            });
-          }
-        });
+        console.log('[TorSearch] Searching Ahmia.fi...');
+        const ahmiaResults = await searchAhmia(input.query, maxResults - results.length, useTor);
+        results.push(...ahmiaResults);
       } catch (error: any) {
-        console.error(`[TorSearch] Failed to search ${searchUrl}:`, error.message);
-        continue;
+        console.error('[TorSearch] Ahmia failed:', error.message);
       }
     }
     
