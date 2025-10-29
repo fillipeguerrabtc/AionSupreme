@@ -18,7 +18,7 @@ export const sessions = pgTable(
 );
 
 // ============================================================================
-// USERS - User accounts (required for Replit Auth)
+// USERS - User accounts (Replit Auth + Local Auth)
 // blueprint:javascript_log_in_with_replit
 // ============================================================================
 export const users = pgTable("users", {
@@ -27,6 +27,14 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  
+  // Local authentication fields
+  password: varchar("password"), // bcrypt hash, null for OAuth users
+  emailVerified: boolean("email_verified").default(false),
+  authProvider: varchar("auth_provider").default("replit"), // "replit" | "local" | "google" | "github" etc
+  verificationToken: varchar("verification_token"), // Email verification token
+  verificationTokenExpires: timestamp("verification_token_expires"), // Token expiration (24h)
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
