@@ -2,10 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 import { Send, Bot, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage, detectMessageLanguage } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Message {
   id?: number;
@@ -17,6 +20,7 @@ interface Message {
 export default function ChatPage() {
   const { t, setLanguage, language } = useLanguage();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -30,48 +34,117 @@ export default function ChatPage() {
   useEffect(() => {
     const initConversation = async () => {
       try {
-        // Check if there's a conversation ID in localStorage
-        const savedConvId = localStorage.getItem('currentConversationId');
+        // Only use localStorage for authenticated users
+        if (isAuthenticated) {
+          const savedConvId = localStorage.getItem('currentConversationId');
+          
+          if (savedConvId) {
+            // Load existing conversation
+            const convResponse = await apiRequest(`/api/conversations/${savedConvId}`);
+            const msgsResponse = await apiRequest(`/api/conversations/${savedConvId}/messages`);
+            
+            const conv = await convResponse.json();
+            const msgs = await msgsResponse.json();
+            
+            setConversationId(Number(savedConvId));
+            setMessages(msgs.map((m: any) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              conversationId: m.conversationId,
+            })));
+            return;
+          }
+        }
         
-        if (savedConvId) {
-          // Load existing conversation
-          const convResponse = await apiRequest(`/api/conversations/${savedConvId}`);
-          const msgsResponse = await apiRequest(`/api/conversations/${savedConvId}/messages`);
-          
-          const conv = await convResponse.json();
-          const msgs = await msgsResponse.json();
-          
-          setConversationId(Number(savedConvId));
-          setMessages(msgs.map((m: any) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content,
-            conversationId: m.conversationId,
-          })));
-        } else {
-          // Create new conversation
-          const response = await apiRequest("/api/conversations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ tenant_id: 1, title: "New Chat" }),
-          });
-          const newConv = await response.json();
-          
-          setConversationId(newConv.id);
+        // Create new conversation (for both authenticated and anonymous users)
+        const response = await apiRequest("/api/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tenant_id: 1, title: "New Chat" }),
+        });
+        const newConv = await response.json();
+        
+        setConversationId(newConv.id);
+        if (isAuthenticated) {
           localStorage.setItem('currentConversationId', newConv.id.toString());
         }
       } catch (error) {
         console.error("Failed to initialize conversation:", error);
         // Clear stale localStorage key to avoid repeated errors
         localStorage.removeItem('currentConversationId');
-        // Create conversation without persistence if database fails
-        const tempId = Date.now();
-        setConversationId(tempId);
+        // Show error to user
+        toast({
+          title: "Error",
+          description: "Failed to initialize conversation. Please refresh the page.",
+          variant: "destructive",
+        });
       }
     };
     
     initConversation();
-  }, []);
+  }, [isAuthenticated]);
+  
+  // Handler for selecting a conversation from sidebar
+  const handleSelectConversation = async (selectedConvId: number) => {
+    try {
+      const convResponse = await apiRequest(`/api/conversations/${selectedConvId}`);
+      const msgsResponse = await apiRequest(`/api/conversations/${selectedConvId}/messages`);
+      
+      const conv = await convResponse.json();
+      const msgs = await msgsResponse.json();
+      
+      setConversationId(selectedConvId);
+      setMessages(msgs.map((m: any) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        conversationId: m.conversationId,
+      })));
+      
+      if (isAuthenticated) {
+        localStorage.setItem('currentConversationId', selectedConvId.toString());
+      }
+    } catch (error) {
+      console.error("Failed to load conversation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load conversation",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Handler for creating a new conversation
+  const handleNewConversation = async () => {
+    try {
+      const response = await apiRequest("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tenant_id: 1, title: "New Chat" }),
+      });
+      const newConv = await response.json();
+      
+      setConversationId(newConv.id);
+      setMessages([]);
+      setInput("");
+      setAttachedFiles([]);
+      
+      if (isAuthenticated) {
+        localStorage.setItem('currentConversationId', newConv.id.toString());
+      }
+      
+      // Invalidate conversations list to refresh sidebar
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+    } catch (error) {
+      console.error("Failed to create new conversation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create new conversation",
+        variant: "destructive",
+      });
+    }
+  };
 
   const sendMutation = useMutation({
     mutationFn: async ({ userMessage, files }: { userMessage: string; files?: File[] }) => {
@@ -317,23 +390,38 @@ export default function ChatPage() {
     }
   };
 
+  // Custom sidebar width for chat application
+  const sidebarStyle = {
+    "--sidebar-width": "20rem",       // 320px for better content
+    "--sidebar-width-icon": "4rem",   // default icon width
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-background via-background to-primary/5">
-      {/* Modern Minimal Header */}
-      <header className="glass sticky top-0 z-50 border-b border-white/10">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-3">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-lg opacity-50" />
-            <div className="relative glass-premium p-2 rounded-full">
-              <Sparkles className="w-6 h-6 text-primary" />
+    <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+      <div className="flex h-screen w-full">
+        <AppSidebar
+          currentConversationId={conversationId}
+          onSelectConversation={handleSelectConversation}
+          onNewConversation={handleNewConversation}
+        />
+        
+        <div className="flex flex-col flex-1 bg-gradient-to-b from-background via-background to-primary/5">
+          {/* Modern Minimal Header */}
+          <header className="glass sticky top-0 z-50 border-b border-white/10">
+            <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-3">
+              <SidebarTrigger data-testid="button-sidebar-toggle" className="mr-2" />
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-lg opacity-50" />
+                <div className="relative glass-premium p-2 rounded-full">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
+                <p className="text-xs text-muted-foreground">{t.chat.subtitle}</p>
+              </div>
             </div>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
-            <p className="text-xs text-muted-foreground">{t.chat.subtitle}</p>
-          </div>
-        </div>
-      </header>
+          </header>
 
       {/* Messages Area with Gradient Background */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
@@ -509,6 +597,8 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
-    </div>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }

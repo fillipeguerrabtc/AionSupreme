@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { fileCleanup } from "./cleanup/file-cleanup";
+import { setupAuth } from "./replitAuth";
 
 const app = express();
 
@@ -48,6 +49,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Setup Replit Auth before routes
+  await setupAuth(app);
+  
   const server = await registerRoutes(app);
 
   // Start file cleanup service (runs every hour to delete expired files)

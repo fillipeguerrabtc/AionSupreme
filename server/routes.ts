@@ -24,6 +24,7 @@ import multer from "multer";
 import axios from "axios";
 import fs from "fs/promises";
 import path from "path";
+import { optionalAuth } from "./replitAuth";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
@@ -844,17 +845,60 @@ export function registerRoutes(app: Express): Server {
   });
 
   // ============================================================================
-  // CONVERSATIONS & MESSAGES - Chat persistence
+  // CONVERSATIONS & MESSAGES - Chat persistence with Replit Auth
   // ============================================================================
   
+  // GET /api/auth/user - Get current user info or null
+  app.get("/api/auth/user", optionalAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!req.isAuthenticated() || !user?.claims) {
+        return res.json(null);
+      }
+      
+      const userId = user.claims.sub;
+      const userData = await storage.getUser(userId);
+      
+      res.json(userData || null);
+    } catch (error: any) {
+      res.json(null);
+    }
+  });
+  
+  // GET /api/conversations - List conversations (user's if logged in, empty for anonymous)
+  app.get("/api/conversations", optionalAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      // Only authenticated users can list conversations
+      if (!req.isAuthenticated() || !user?.claims?.sub) {
+        // Anonymous users don't have persistent conversations
+        return res.json([]);
+      }
+      
+      const userId = user.claims.sub;
+      const conversations = await storage.getConversationsByUser(userId, 50);
+      
+      res.json(conversations);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   // POST /api/conversations - Create new conversation
-  app.post("/api/conversations", async (req, res) => {
+  app.post("/api/conversations", optionalAuth, async (req, res) => {
     try {
       const { tenant_id, title } = req.body;
       const tenantId = tenant_id || 1;
+      const user = req.user as any;
+      
+      // Get userId if authenticated
+      const userId = req.isAuthenticated() && user?.claims?.sub ? user.claims.sub : null;
       
       const conversation = await storage.createConversation({
         tenantId,
+        userId: userId || undefined,
         title: title || "New Conversation",
       });
       
@@ -864,8 +908,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
   
-  // GET /api/conversations/:id - Get conversation
-  app.get("/api/conversations/:id", async (req, res) => {
+  // GET /api/conversations/:id - Get conversation (with strict ownership check)
+  app.get("/api/conversations/:id", optionalAuth, async (req, res) => {
     try {
       const conversationId = parseInt(req.params.id);
       const conversation = await storage.getConversation(conversationId);
@@ -874,16 +918,50 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Conversation not found" });
       }
       
+      // Verify ownership
+      const user = req.user as any;
+      const userId = req.isAuthenticated() && user?.claims?.sub ? user.claims.sub : null;
+      
+      // Anonymous conversations (userId null) are not accessible - no way to verify ownership
+      if (!conversation.userId) {
+        return res.status(403).json({ error: "Forbidden: Anonymous conversations not accessible" });
+      }
+      
+      // Only the owner can access their conversation
+      if (conversation.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden: You don't own this conversation" });
+      }
+      
       res.json(conversation);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
   
-  // GET /api/conversations/:id/messages - Get messages
-  app.get("/api/conversations/:id/messages", async (req, res) => {
+  // GET /api/conversations/:id/messages - Get messages (with strict ownership check)
+  app.get("/api/conversations/:id/messages", optionalAuth, async (req, res) => {
     try {
       const conversationId = parseInt(req.params.id);
+      
+      // Verify ownership first
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      
+      const user = req.user as any;
+      const userId = req.isAuthenticated() && user?.claims?.sub ? user.claims.sub : null;
+      
+      // Anonymous conversations (userId null) are not accessible - no way to verify ownership
+      if (!conversation.userId) {
+        return res.status(403).json({ error: "Forbidden: Anonymous conversations not accessible" });
+      }
+      
+      // Only the owner can access their conversation's messages
+      if (conversation.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden: You don't own this conversation" });
+      }
+      
       const messages = await storage.getMessagesByConversation(conversationId);
       
       res.json(messages);
@@ -908,6 +986,37 @@ export function registerRoutes(app: Express): Server {
       });
       
       res.json(message);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // DELETE /api/conversations/:id - Delete conversation (with strict ownership check)
+  app.delete("/api/conversations/:id", optionalAuth, async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const conversation = await storage.getConversation(conversationId);
+      
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      
+      // Verify ownership
+      const user = req.user as any;
+      const userId = req.isAuthenticated() && user?.claims?.sub ? user.claims.sub : null;
+      
+      // If conversation has userId, only that user can delete it
+      if (conversation.userId) {
+        if (!userId || conversation.userId !== userId) {
+          return res.status(403).json({ error: "Forbidden: You don't own this conversation" });
+        }
+      } else {
+        // Anonymous conversations cannot be deleted (no way to verify ownership)
+        return res.status(403).json({ error: "Forbidden: Cannot delete anonymous conversations" });
+      }
+      
+      await storage.deleteConversation(conversationId);
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
