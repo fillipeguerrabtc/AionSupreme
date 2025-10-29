@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap, Server } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
@@ -17,6 +17,7 @@ import TokenMonitoring from "./TokenMonitoring";
 import KnowledgeBaseTab from "./KnowledgeBaseTab";
 import TokenHistoryTab from "./TokenHistoryTab";
 import CostHistoryTab from "./CostHistoryTab";
+import GPUManagementTab from "./GPUManagementTab";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -272,6 +273,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="knowledge" data-testid="tab-dashboard-knowledge">
               <Database className="w-4 h-4 mr-2" />
               Knowledge Base
+            </TabsTrigger>
+            <TabsTrigger value="gpu" data-testid="tab-dashboard-gpu">
+              <Server className="w-4 h-4 mr-2" />
+              GPU Management
             </TabsTrigger>
           </TabsList>
 
@@ -617,6 +622,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="knowledge" className="space-y-6">
             <KnowledgeBaseTab />
+          </TabsContent>
+
+          <TabsContent value="gpu" className="space-y-6">
+            <GPUManagementTab />
           </TabsContent>
         </Tabs>
       </div>
