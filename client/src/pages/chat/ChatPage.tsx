@@ -175,8 +175,15 @@ export default function ChatPage() {
         return data.choices[0].message.content;
       }
       
-      // Otherwise use regular chat endpoint
-      const response = await apiRequest("/api/v1/chat/completions", {
+      // 🔍 Detect if user needs agent (SearchVideos, SearchWeb, etc)
+      const needsAgent = /\b(v[ií]deo|video|buscar?|procur[ae]|find|search|imagem|image|foto|photo|web|internet|deepweb|dark.?web|tor|mostr[ae]|show|exib[ae])/i.test(userMessage);
+      
+      // Use agent endpoint if needed, otherwise regular chat
+      const endpoint = needsAgent ? "/api/agent/chat" : "/api/v1/chat/completions";
+      
+      console.log(`[Chat] Using ${needsAgent ? 'AGENT' : 'DIRECT'} endpoint for: "${userMessage.slice(0, 50)}..."`);
+      
+      const response = await apiRequest(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -1022,6 +1022,199 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // ============================================================================
+  // PROJECT ROUTES - ChatGPT-style project organization
+  // ============================================================================
+  
+  // GET /api/projects - List user's projects
+  app.get("/api/projects", optionalAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!req.isAuthenticated() || !user?.claims?.sub) {
+        return res.json([]);
+      }
+      
+      const userId = user.claims.sub;
+      const projects = await storage.getProjectsByUser(userId);
+      
+      res.json(projects);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // POST /api/projects - Create new project
+  app.post("/api/projects", optionalAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!req.isAuthenticated() || !user?.claims?.sub) {
+        return res.status(401).json({ error: "Authentication required to create projects" });
+      }
+      
+      const userId = user.claims.sub;
+      const { name, description } = req.body;
+      
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Project name is required" });
+      }
+      
+      const project = await storage.createProject({
+        userId,
+        name: name.trim(),
+        description: description?.trim() || undefined,
+      });
+      
+      res.json(project);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // PATCH /api/projects/:id - Update project
+  app.patch("/api/projects/:id", optionalAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!req.isAuthenticated() || !user?.claims?.sub) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      
+      const userId = user.claims.sub;
+      if (project.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden: You don't own this project" });
+      }
+      
+      const { name, description } = req.body;
+      const updated = await storage.updateProject(projectId, {
+        name: name?.trim(),
+        description: description?.trim(),
+      });
+      
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // DELETE /api/projects/:id - Delete project
+  app.delete("/api/projects/:id", optionalAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!req.isAuthenticated() || !user?.claims?.sub) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      
+      const userId = user.claims.sub;
+      if (project.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden: You don't own this project" });
+      }
+      
+      await storage.deleteProject(projectId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // AGENT CHAT ENDPOINT - Automatic tool usage (SearchVideos, SearchWeb, etc)
+  // ============================================================================
+  
+  // POST /api/agent/chat - Agent-powered chat with automatic tool usage
+  app.post("/api/agent/chat", async (req, res) => {
+    const startTime = Date.now();
+    const tenantId = req.body.tenant_id || 1;
+    
+    try {
+      const { messages, maxIterations } = req.body;
+      
+      if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: "messages array is required" });
+      }
+      
+      console.log(`[Agent Chat] Starting ReAct cycle with ${messages.length} messages`);
+      
+      // Get policy
+      const policy = await enforcementPipeline.getOrCreateDefaultPolicy(tenantId);
+      
+      // Get last user message
+      const lastUserMessage = messages[messages.length - 1]?.content || '';
+      
+      // Create tools Map
+      const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
+        name,
+        async (input: any) => fn({ ...input, tenantId }),
+      ]));
+      
+      // Configure max iterations
+      reactEngine.configure({ maxSteps: maxIterations || 5 });
+      
+      // Run ReAct agent (needs conversationId and messageId for tracking)
+      const result = await reactEngine.execute(
+        lastUserMessage,
+        tenantId,
+        1, // conversationId (temporary, can be enhanced later)
+        1, // messageId (temporary)
+        tools
+      );
+      
+      // Check fallback
+      const fallbackResult = await autoFallback.checkAndExecuteFallback(
+        result.finalAnswer || "",
+        lastUserMessage,
+        tenantId,
+        policy
+      );
+      
+      const finalContent = fallbackResult.content;
+      const latency = Date.now() - startTime;
+      
+      metricsCollector.recordLatency(tenantId, latency);
+      
+      res.json({
+        choices: [{ 
+          message: { 
+            role: "assistant", 
+            content: finalContent 
+          }, 
+          finish_reason: "stop" 
+        }],
+        agent: {
+          used: true,
+          totalSteps: result.totalSteps,
+          success: result.success,
+          stopReason: result.stopReason,
+        },
+        fallback: fallbackResult.usedFallback ? {
+          used: true,
+          sourcesIndexed: fallbackResult.sourcesIndexed,
+          searchQuery: fallbackResult.searchQuery,
+        } : undefined,
+      });
+    } catch (error: any) {
+      metricsCollector.recordError(tenantId);
+      console.error('[Agent Chat] Error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /metrics (Prometheus format)
   app.get("/metrics", exportPrometheusMetrics);
 

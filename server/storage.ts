@@ -4,6 +4,8 @@ import {
   users, type User, type UpsertUser,
   tenants, type Tenant, type InsertTenant,
   policies, type Policy, type InsertPolicy,
+  projects, type Project, type InsertProject,
+  projectFiles, type ProjectFile, type InsertProjectFile,
   conversations, type Conversation, type InsertConversation,
   messages, type Message, type InsertMessage,
   documents, type Document, type InsertDocument,
@@ -113,6 +115,19 @@ export interface IStorage {
   createVideoAsset(asset: InsertVideoAsset): Promise<VideoAsset>;
   markVideoAssetAsDeleted(id: number): Promise<void>;
   getExpiredVideoAssets(): Promise<VideoAsset[]>;
+  
+  // Projects
+  getProject(id: number): Promise<Project | undefined>;
+  getProjectsByUser(userId: string): Promise<Project[]>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: number, data: Partial<InsertProject>): Promise<Project>;
+  deleteProject(id: number): Promise<void>;
+  
+  // Project Files
+  getProjectFile(id: number): Promise<ProjectFile | undefined>;
+  getProjectFilesByProject(projectId: number): Promise<ProjectFile[]>;
+  createProjectFile(file: InsertProjectFile): Promise<ProjectFile>;
+  deleteProjectFile(id: number): Promise<void>;
 }
 
 // ============================================================================
@@ -551,6 +566,60 @@ export class DatabaseStorage implements IStorage {
         lte(videoAssets.expiresAt, new Date()),
         eq(videoAssets.isDeleted, false)
       ));
+  }
+
+  // --------------------------------------------------------------------------
+  // PROJECTS
+  // --------------------------------------------------------------------------
+  async getProject(id: number): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project;
+  }
+
+  async getProjectsByUser(userId: string): Promise<Project[]> {
+    return db.select().from(projects)
+      .where(eq(projects.userId, userId))
+      .orderBy(desc(projects.updatedAt));
+  }
+
+  async createProject(project: InsertProject): Promise<Project> {
+    const [created] = await db.insert(projects).values(project).returning();
+    return created;
+  }
+
+  async updateProject(id: number, data: Partial<InsertProject>): Promise<Project> {
+    const [updated] = await db.update(projects)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(projects.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await db.delete(projects).where(eq(projects.id, id));
+  }
+
+  // --------------------------------------------------------------------------
+  // PROJECT FILES
+  // --------------------------------------------------------------------------
+  async getProjectFile(id: number): Promise<ProjectFile | undefined> {
+    const [file] = await db.select().from(projectFiles).where(eq(projectFiles.id, id));
+    return file;
+  }
+
+  async getProjectFilesByProject(projectId: number): Promise<ProjectFile[]> {
+    return db.select().from(projectFiles)
+      .where(eq(projectFiles.projectId, projectId))
+      .orderBy(desc(projectFiles.uploadedAt));
+  }
+
+  async createProjectFile(file: InsertProjectFile): Promise<ProjectFile> {
+    const [created] = await db.insert(projectFiles).values(file).returning();
+    return created;
+  }
+
+  async deleteProjectFile(id: number): Promise<void> {
+    await db.delete(projectFiles).where(eq(projectFiles.id, id));
   }
 }
 
