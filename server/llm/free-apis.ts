@@ -48,7 +48,7 @@ const FREE_APIS: APIProvider[] = [
     name: 'groq',
     dailyLimit: 14400,  // 14.4k requests/day
     priority: 1,        // HIGHEST priority (ultra-fast, no censorship)
-    models: ['llama-3.1-70b-versatile', 'mixtral-8x7b-32768'],
+    models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],  // Updated Oct 2025
     enabled: !!process.env.GROQ_API_KEY
   },
   {
@@ -96,7 +96,7 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
   });
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.1-70b-versatile',  // Best free model
+    model: 'llama-3.3-70b-versatile',  // Updated Oct 2025 - replaces deprecated llama-3.1-70b-versatile
     messages: req.messages,
     max_tokens: req.maxTokens || 1024,
     temperature: req.temperature || 0.7,
@@ -108,7 +108,7 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
   return {
     text: response.choices[0].message.content || '',
     provider: 'groq',
-    model: 'llama-3.1-70b-versatile',
+    model: 'llama-3.3-70b-versatile',
     tokensUsed: response.usage?.total_tokens
   };
 }
@@ -324,14 +324,24 @@ export async function generateWithFreeAPIs(
 ): Promise<LLMResponse> {
   const startTime = Date.now();
   const errors: string[] = [];
+  const failedProviders = new Set<string>();  // Track failed providers
 
-  // Try free APIs in priority order
-  for (let attempt = 0; attempt < FREE_APIS.length; attempt++) {
-    const provider = getNextAvailableProvider();
+  resetDailyCountsIfNeeded();
+  
+  // Get all enabled providers sorted by priority
+  const sortedProviders = FREE_APIS
+    .filter(p => p.enabled)
+    .sort((a, b) => a.priority - b.priority);
+
+  // Try each provider ONCE in priority order
+  for (const provider of sortedProviders) {
+    // Skip if already failed or over limit
+    if (failedProviders.has(provider.name)) continue;
     
-    if (!provider) {
-      console.log('[FREE-APIs] All free APIs exhausted');
-      break;
+    const stats = usageStats[provider.name as keyof typeof usageStats];
+    if (stats.today >= provider.dailyLimit * 0.8) {
+      console.log(`[FREE-APIs] ${provider.name} over limit (${stats.today}/${provider.dailyLimit})`);
+      continue;
     }
 
     try {
@@ -366,7 +376,8 @@ export async function generateWithFreeAPIs(
       errors.push(errorMsg);
       console.error(`[FREE-APIs] ✗ ${errorMsg}`);
       
-      // Mark provider temporarily unavailable and try next
+      // Mark this provider as failed and try next one
+      failedProviders.add(provider.name);
       continue;
     }
   }
