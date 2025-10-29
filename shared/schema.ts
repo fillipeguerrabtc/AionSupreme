@@ -1,6 +1,38 @@
 import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { sql } from 'drizzle-orm';
+
+// ============================================================================
+// SESSIONS - Session storage (required for Replit Auth)
+// blueprint:javascript_log_in_with_replit
+// ============================================================================
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// ============================================================================
+// USERS - User accounts (required for Replit Auth)
+// blueprint:javascript_log_in_with_replit
+// ============================================================================
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
 
 // ============================================================================
 // TENANTS - Multi-tenant isolation with jurisdiction-specific policies
@@ -84,11 +116,13 @@ export type Policy = typeof policies.$inferSelect;
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  userId: varchar("user_id").references(() => users.id), // Optional: null for anonymous sessions
   title: text("title").notNull().default("New Conversation"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   tenantIdx: index("conversations_tenant_idx").on(table.tenantId),
+  userIdx: index("conversations_user_idx").on(table.userId),
 }));
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true, updatedAt: true });

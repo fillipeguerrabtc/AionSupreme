@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
 import {
+  users, type User, type UpsertUser,
   tenants, type Tenant, type InsertTenant,
   policies, type Policy, type InsertPolicy,
   conversations, type Conversation, type InsertConversation,
@@ -20,6 +21,10 @@ import {
 // STORAGE INTERFACE - Complete CRUD operations for all entities
 // ============================================================================
 export interface IStorage {
+  // Users (required for Replit Auth) - blueprint:javascript_log_in_with_replit
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
   // Tenants
   getTenant(id: number): Promise<Tenant | undefined>;
   getTenantByApiKey(apiKey: string): Promise<Tenant | undefined>;
@@ -36,6 +41,7 @@ export interface IStorage {
   // Conversations
   getConversation(id: number): Promise<Conversation | undefined>;
   getConversationsByTenant(tenantId: number, limit?: number): Promise<Conversation[]>;
+  getConversationsByUser(userId: string, limit?: number): Promise<Conversation[]>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   updateConversation(id: number, data: Partial<InsertConversation>): Promise<Conversation>;
   deleteConversation(id: number): Promise<void>;
@@ -114,6 +120,29 @@ export interface IStorage {
 // ============================================================================
 export class DatabaseStorage implements IStorage {
   // --------------------------------------------------------------------------
+  // USERS (required for Replit Auth) - blueprint:javascript_log_in_with_replit
+  // --------------------------------------------------------------------------
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  // --------------------------------------------------------------------------
   // TENANTS
   // --------------------------------------------------------------------------
   async getTenant(id: number): Promise<Tenant | undefined> {
@@ -182,6 +211,13 @@ export class DatabaseStorage implements IStorage {
   async getConversationsByTenant(tenantId: number, limit: number = 50): Promise<Conversation[]> {
     return db.select().from(conversations)
       .where(eq(conversations.tenantId, tenantId))
+      .orderBy(desc(conversations.updatedAt))
+      .limit(limit);
+  }
+
+  async getConversationsByUser(userId: string, limit: number = 50): Promise<Conversation[]> {
+    return db.select().from(conversations)
+      .where(eq(conversations.userId, userId))
       .orderBy(desc(conversations.updatedAt))
       .limit(limit);
   }
