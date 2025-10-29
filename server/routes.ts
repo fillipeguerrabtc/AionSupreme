@@ -12,6 +12,7 @@ import { enforcementPipeline } from "./policy/enforcement-pipeline";
 import { autoFallback } from "./policy/auto-fallback";
 import { fileProcessor } from "./multimodal/file-processor";
 import { knowledgeIndexer } from "./rag/knowledge-indexer";
+import { generateWithPriority } from "./llm/priority-orchestrator";
 import { hierarchicalPlanner } from "./agent/hierarchical-planner";
 import { seedDatabase } from "./seed";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
@@ -39,12 +40,13 @@ export function registerRoutes(app: Express): Server {
   seedDatabase().catch(console.error);
 
   // POST /api/v1/chat/completions
+  // 🎯 PRIORITY ORDER: KB → Free APIs → Web → OpenAI
   app.post("/api/v1/chat/completions", async (req, res) => {
     const startTime = Date.now();
     const tenantId = req.body.tenant_id || 1;
     
     try {
-      const { messages, tools, stream } = req.body;
+      const { messages } = req.body;
       
       // DEBUG: Log message history length
       console.log(`[Chat API] Recebidas ${messages.length} mensagens no histórico`);
@@ -64,47 +66,46 @@ export function registerRoutes(app: Express): Server {
       const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...messages];
       
-      const result = await llmClient.chatCompletion({
+      // 🚀 USE PRIORITY ORCHESTRATOR
+      // 1. Knowledge Base (RAG)
+      // 2. Free APIs (Groq → Gemini → HF → OpenRouter) with auto-fallback
+      // 3. Web Search (if refusal detected in step 2)
+      // 4. OpenAI (last resort) with auto-fallback
+      
+      // Check if system is UNRESTRICTED (all rules = false)
+      const activeRules = Object.values(policy.rules).filter(v => v === true);
+      const isUnrestricted = activeRules.length === 0;
+      
+      const result = await generateWithPriority({
         messages: fullMessages,
         tenantId,
         temperature: policy.temperature,
         topP: policy.topP,
-        tools,
+        unrestricted: isUnrestricted  // Auto-fallback when true
       });
-      
-      const moderated = await enforcementPipeline.moderateOutput(result.content, policy, tenantId);
-      
-      // ⚡ AUTOMATIC FALLBACK: If OpenAI refused and system is UNRESTRICTED,
-      // search web, index in KB, and respond without censorship
-      const userMessage = messages[messages.length - 1]?.content || '';
-      const fallbackResult = await autoFallback.checkAndExecuteFallback(
-        moderated,
-        userMessage,
-        tenantId,
-        policy
-      );
-      
-      const finalContent = fallbackResult.content;
       
       // Record metrics
       const latency = Date.now() - startTime;
       metricsCollector.recordLatency(tenantId, latency);
-      metricsCollector.recordTokens(tenantId, result.usage?.totalTokens || 0);
+      if (result.usage) {
+        metricsCollector.recordTokens(tenantId, result.usage.totalTokens);
+      }
       
       res.json({
         choices: [{ 
           message: { 
             role: "assistant", 
-            content: finalContent 
+            content: result.content 
           }, 
-          finish_reason: result.finishReason 
+          finish_reason: "stop"
         }],
         usage: result.usage,
-        fallback: fallbackResult.usedFallback ? {
-          used: true,
-          sourcesIndexed: fallbackResult.sourcesIndexed,
-          searchQuery: fallbackResult.searchQuery,
-        } : undefined,
+        metadata: {
+          source: result.source,
+          provider: result.provider,
+          model: result.model,
+          ...result.metadata
+        }
       });
     } catch (error: any) {
       metricsCollector.recordError(tenantId);
