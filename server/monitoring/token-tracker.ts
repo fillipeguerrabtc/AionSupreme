@@ -777,3 +777,82 @@ export async function getFreeAPIsHistory(
     timestamp: r.timestamp
   }));
 }
+
+// ============================================================================
+// COMPLETE HISTORY - All APIs combined
+// ============================================================================
+
+export async function getCompleteTokenHistory(
+  tenantId: number,
+  limit: number = 500
+): Promise<any[]> {
+  const records = await db
+    .select({
+      id: tokenUsage.id,
+      provider: tokenUsage.provider,
+      model: tokenUsage.model,
+      promptTokens: tokenUsage.promptTokens,
+      completionTokens: tokenUsage.completionTokens,
+      totalTokens: tokenUsage.totalTokens,
+      cost: tokenUsage.cost,
+      requestType: tokenUsage.requestType,
+      success: tokenUsage.success,
+      timestamp: tokenUsage.timestamp,
+      metadata: tokenUsage.metadata
+    })
+    .from(tokenUsage)
+    .where(eq(tokenUsage.tenantId, tenantId))
+    .orderBy(desc(tokenUsage.timestamp))
+    .limit(limit);
+  
+  return records;
+}
+
+export async function getCostHistory(
+  tenantId: number,
+  limit: number = 500
+): Promise<any> {
+  // Get all records with costs
+  const records = await db
+    .select({
+      id: tokenUsage.id,
+      provider: tokenUsage.provider,
+      model: tokenUsage.model,
+      promptTokens: tokenUsage.promptTokens,
+      completionTokens: tokenUsage.completionTokens,
+      totalTokens: tokenUsage.totalTokens,
+      cost: tokenUsage.cost,
+      timestamp: tokenUsage.timestamp
+    })
+    .from(tokenUsage)
+    .where(
+      and(
+        eq(tokenUsage.tenantId, tenantId),
+        sql`${tokenUsage.cost} > 0`
+      )
+    )
+    .orderBy(desc(tokenUsage.timestamp))
+    .limit(limit);
+  
+  // Calculate total costs by provider
+  const providerTotals = await db
+    .select({
+      provider: tokenUsage.provider,
+      totalCost: sql<number>`COALESCE(SUM(${tokenUsage.cost}), 0)`,
+      totalRequests: sql<number>`COUNT(*)`
+    })
+    .from(tokenUsage)
+    .where(
+      and(
+        eq(tokenUsage.tenantId, tenantId),
+        sql`${tokenUsage.cost} > 0`
+      )
+    )
+    .groupBy(tokenUsage.provider);
+  
+  return {
+    records,
+    totals: providerTotals,
+    overallTotal: providerTotals.reduce((sum, p) => sum + Number(p.totalCost), 0)
+  };
+}

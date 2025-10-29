@@ -9,12 +9,14 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3 } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
 import TokenMonitoring from "./TokenMonitoring";
 import KnowledgeBaseTab from "./KnowledgeBaseTab";
+import TokenHistoryTab from "./TokenHistoryTab";
+import CostHistoryTab from "./CostHistoryTab";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +30,7 @@ export default function AdminDashboard() {
   const [, navigate] = useLocation();
   const [tenantId] = useState(1);
   const [systemPromptValue, setSystemPromptValue] = useState("");
+  const [activeTab, setActiveTab] = useState("overview");
   
   // Local state for pending changes (not yet saved)
   const [pendingRules, setPendingRules] = useState<any>(null);
@@ -195,8 +198,8 @@ export default function AdminDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto p-6">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="glass-premium border-primary/20 w-full justify-start">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="glass-premium border-primary/20 w-full justify-start overflow-x-auto flex-wrap">
             <TabsTrigger value="overview" data-testid="tab-dashboard-overview">
               <Shield className="w-4 h-4 mr-2" />
               Overview
@@ -205,6 +208,14 @@ export default function AdminDashboard() {
               <BarChart3 className="w-4 h-4 mr-2" />
               Token Monitoring
             </TabsTrigger>
+            <TabsTrigger value="history" data-testid="tab-dashboard-history">
+              <Activity className="w-4 h-4 mr-2" />
+              History
+            </TabsTrigger>
+            <TabsTrigger value="cost" data-testid="tab-dashboard-cost">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Cost History
+            </TabsTrigger>
             <TabsTrigger value="knowledge" data-testid="tab-dashboard-knowledge">
               <Database className="w-4 h-4 mr-2" />
               Knowledge Base
@@ -212,6 +223,86 @@ export default function AdminDashboard() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+        {/* Metrics Cards - Clickable */}
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("history")}
+            data-testid="card-total-tokens"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Total Tokens
+              </CardTitle>
+              <div className="text-3xl font-bold gradient-text-vibrant">
+                {/* Will be populated from query */}
+                <span className="animate-pulse">...</span>
+              </div>
+              <CardDescription className="text-xs">
+                Click to view history
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("cost")}
+            data-testid="card-total-cost"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Total Cost
+              </CardTitle>
+              <div className="text-3xl font-bold gradient-text-vibrant">
+                <span className="animate-pulse">...</span>
+              </div>
+              <CardDescription className="text-xs">
+                Click to view cost history
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("tokens")}
+            data-testid="card-free-apis"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Free APIs
+              </CardTitle>
+              <div className="text-3xl font-bold gradient-text-vibrant">
+                <span className="animate-pulse">...</span>
+              </div>
+              <CardDescription className="text-xs">
+                Click to view details
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("knowledge")}
+            data-testid="card-kb-searches"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                KB Documents
+              </CardTitle>
+              <div className="text-3xl font-bold gradient-text-vibrant">
+                {Array.isArray(documentsData) ? documentsData.length : 0}
+              </div>
+              <CardDescription className="text-xs">
+                Click to manage
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+
         {/* Policy Controls Grid */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Moral/Ética/Legal */}
@@ -350,6 +441,14 @@ export default function AdminDashboard() {
 
           <TabsContent value="tokens" className="space-y-6">
             <TokenMonitoring />
+          </TabsContent>
+
+          <TabsContent value="history" className="space-y-6">
+            <TokenHistoryTab />
+          </TabsContent>
+
+          <TabsContent value="cost" className="space-y-6">
+            <CostHistoryTab />
           </TabsContent>
 
           <TabsContent value="knowledge" className="space-y-6">

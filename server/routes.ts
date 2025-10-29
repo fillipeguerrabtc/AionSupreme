@@ -1499,11 +1499,14 @@ export function registerRoutes(app: Express): Server {
       'search the web', 'search google', 'look up online'
     ];
     
-    // DeepWeb keywords
+    // DeepWeb keywords (Portuguese + English + variations)
     const deepwebKeywords = [
-      'consulte na deepweb', 'pesquise na deepweb', 'busque na deepweb',
-      'consulte na deep web', 'pesquise na deep web',
-      'consulte no tor', 'pesquise no tor', 'search deepweb', 'search deep web'
+      'consulte na deepweb', 'pesquise na deepweb', 'busque na deepweb', 'procure na deepweb',
+      'consulte na deep web', 'pesquise na deep web', 'busque na deep web', 'procure na deep web',
+      'consulte no tor', 'pesquise no tor', 'busque no tor', 'procure no tor',
+      'consulte na darkweb', 'pesquise na darkweb', 'dark web', 'darknet',
+      'search deepweb', 'search deep web', 'search tor', 'search dark web',
+      'look up deepweb', 'find on tor', 'onion search'
     ];
     
     // Knowledge Base keywords
@@ -1919,6 +1922,32 @@ export function registerRoutes(app: Express): Server {
       
       const history = await tokenTracker.getKBSearchHistory(tenantId, limit);
       res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/tokens/complete-history - Get complete token usage history (all providers)
+  app.get("/api/tokens/complete-history", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.query.tenant_id as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 500; // Default to last 500 records
+      
+      const history = await tokenTracker.getCompleteTokenHistory(tenantId, limit);
+      res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GET /api/tokens/cost-history - Get complete cost history with breakdown
+  app.get("/api/tokens/cost-history", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.query.tenant_id as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 500;
+      
+      const costHistory = await tokenTracker.getCostHistory(tenantId, limit);
+      res.json(costHistory);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

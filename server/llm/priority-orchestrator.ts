@@ -12,6 +12,7 @@ import { generateWithFreeAPIs, type LLMRequest, type LLMResponse } from './free-
 import { detectRefusal, isHighConfidenceRefusal } from './refusal-detector';
 import { searchWeb } from '../learn/web-search';
 import { indexDocumentComplete } from '../ai/knowledge-indexer';
+import { agentTools } from '../agent/tools';
 import { db } from '../db';
 import { documents } from '@shared/schema';
 import { sql } from 'drizzle-orm';
@@ -50,7 +51,7 @@ export interface PriorityRequest {
 
 export interface PriorityResponse {
   content: string;
-  source: 'kb' | 'free-api' | 'web-fallback' | 'openai' | 'openai-fallback';
+  source: 'kb' | 'free-api' | 'web-fallback' | 'deepweb-fallback' | 'openai' | 'openai-fallback';
   provider?: string;
   model?: string;
   usage?: {
@@ -63,7 +64,10 @@ export interface PriorityResponse {
     kbConfidence?: number;
     refusalDetected?: boolean;
     webSearchPerformed?: boolean;
+    deepwebSearchPerformed?: boolean;
     documentsIndexed?: number;
+    explicitRequestFulfilled?: boolean;
+    noAPIConsumption?: boolean;
   };
 }
 
@@ -106,11 +110,36 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   if (req.forcedSource) {
     console.log(`\n🎯 [EXPLICIT REQUEST] User requested ${req.forcedSource.toUpperCase()} - jumping directly to source!`);
     
-    // WEB SEARCH (explicit request)
+    // WEB SEARCH (explicit request) - NO API CONSUMPTION
     if (req.forcedSource === 'web') {
-      console.log('   🔍 Executing WEB SEARCH as requested...');
+      console.log('   🔍 Executing WEB SEARCH as requested (NO API CONSUMPTION)...');
       try {
-        const webFallback = await executeWebFallback(userMessage, req.tenantId);
+        // First check KB for existing knowledge (fast & free)
+        const kbResult = await searchWithConfidence(userMessage, req.tenantId, { limit: 3 });
+        
+        if (kbResult.confidence >= 0.7 && kbResult.topResults.length > 0) {
+          console.log('   ✅ Found in Knowledge Base! Using KB results instead...');
+          const context = kbResult.topResults
+            .map(r => `[${r.metadata?.title || 'Document'}] ${r.chunkText}`)
+            .join('\n\n');
+          
+          const kbResponse = `📚 Informações da Knowledge Base:\n\n${context}\n\n[Fonte: Knowledge Base - ${kbResult.topResults.length} documentos]`;
+          
+          return {
+            content: kbResponse,
+            source: 'kb',
+            provider: 'knowledge-base',
+            model: 'rag-mmr',
+            metadata: {
+              kbResults: kbResult.topResults.length,
+              kbConfidence: kbResult.confidence,
+              explicitRequestFulfilled: true
+            }
+          };
+        }
+        
+        // KB didn't have it - go to Web WITHOUT using APIs
+        const webFallback = await executeWebFallback(userMessage, req.tenantId, true); // skipLLM=true
         
         await trackWebSearch(
           req.tenantId,
@@ -119,7 +148,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
           webFallback.searchMetadata
         );
         
-        console.log('   ✅ Web search completed!');
+        console.log('   ✅ Web search completed WITHOUT consuming API tokens!');
         console.log('='.repeat(80) + '\n');
         
         return {
@@ -129,7 +158,9 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
           model: webFallback.model,
           metadata: {
             webSearchPerformed: true,
-            documentsIndexed: webFallback.documentsIndexed
+            documentsIndexed: webFallback.documentsIndexed,
+            explicitRequestFulfilled: true,
+            noAPIConsumption: true
           }
         };
       } catch (error: any) {
@@ -137,6 +168,70 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
         return {
           content: `Tentei buscar na internet conforme solicitado, mas não encontrei resultados. Erro: ${error.message}`,
           source: 'web-fallback',
+          provider: 'search-failed',
+          model: 'error'
+        };
+      }
+    }
+    
+    // DEEPWEB SEARCH (explicit request) - NO API CONSUMPTION
+    if (req.forcedSource === 'deepweb') {
+      console.log('   🕵️ Executing DEEPWEB SEARCH as requested (NO API CONSUMPTION)...');
+      try {
+        // First check KB for existing knowledge
+        const kbResult = await searchWithConfidence(userMessage, req.tenantId, { limit: 3 });
+        
+        if (kbResult.confidence >= 0.7 && kbResult.topResults.length > 0) {
+          console.log('   ✅ Found in Knowledge Base! Using KB results instead...');
+          const context = kbResult.topResults
+            .map(r => `[${r.metadata?.title || 'Document'}] ${r.chunkText}`)
+            .join('\n\n');
+          
+          const kbResponse = `📚 Informações da Knowledge Base:\n\n${context}\n\n[Fonte: Knowledge Base - ${kbResult.topResults.length} documentos]`;
+          
+          return {
+            content: kbResponse,
+            source: 'kb',
+            provider: 'knowledge-base',
+            model: 'rag-mmr',
+            metadata: {
+              kbResults: kbResult.topResults.length,
+              kbConfidence: kbResult.confidence,
+              explicitRequestFulfilled: true
+            }
+          };
+        }
+        
+        // KB didn't have it - go to DeepWeb
+        const deepwebResult = await executeDeepWebSearch(userMessage, req.tenantId);
+        
+        await trackWebSearch(
+          req.tenantId,
+          'deepweb',
+          deepwebResult.model,
+          deepwebResult.searchMetadata
+        );
+        
+        console.log('   ✅ DeepWeb search completed WITHOUT consuming API tokens!');
+        console.log('='.repeat(80) + '\n');
+        
+        return {
+          content: deepwebResult.content,
+          source: 'deepweb-fallback',
+          provider: deepwebResult.provider,
+          model: deepwebResult.model,
+          metadata: {
+            deepwebSearchPerformed: true,
+            documentsIndexed: deepwebResult.documentsIndexed,
+            explicitRequestFulfilled: true,
+            noAPIConsumption: true
+          }
+        };
+      } catch (error: any) {
+        console.error('   ✗ DeepWeb search failed:', error.message);
+        return {
+          content: `Tentei buscar na DeepWeb conforme solicitado, mas não encontrei resultados. Erro: ${error.message}`,
+          source: 'deepweb-fallback',
           provider: 'search-failed',
           model: 'error'
         };
@@ -710,9 +805,104 @@ async function trackWebSearch(
   }
 }
 
-async function executeWebFallback(
+async function executeDeepWebSearch(
   query: string,
   tenantId: number
+): Promise<WebFallbackResult> {
+  console.log('   🕵️ Searching DeepWeb/Tor for information...');
+  
+  // Use TorSearch tool from agent
+  const torSearchResult = await agentTools.TorSearch({ query });
+  
+  if (!torSearchResult || !torSearchResult.observation) {
+    return {
+      content: "Busquei na DeepWeb mas não encontrei resultados relevantes. Tente reformular sua pergunta.",
+      provider: 'deepweb-search',
+      model: 'tor-failed',
+      documentsIndexed: 0,
+      searchMetadata: {
+        query,
+        sources: [],
+        resultsCount: 0,
+        indexedDocuments: 0
+      }
+    };
+  }
+  
+  // Parse results
+  const results = JSON.parse(torSearchResult.observation);
+  
+  if (!results.results || results.results.length === 0) {
+    return {
+      content: "Busquei na DeepWeb mas não encontrei informações. Tente outra consulta.",
+      provider: 'deepweb-search',
+      model: 'no-results',
+      documentsIndexed: 0,
+      searchMetadata: {
+        query,
+        sources: [],
+        resultsCount: 0,
+        indexedDocuments: 0
+      }
+    };
+  }
+  
+  console.log(`   ✓ Found ${results.results.length} DeepWeb results`);
+  console.log('   📚 Indexing DeepWeb results into Knowledge Base...');
+  
+  // Index top results
+  let indexed = 0;
+  for (const result of results.results.slice(0, 5)) {
+    try {
+      const [doc] = await db.insert(documents).values({
+        title: result.title || 'DeepWeb Result',
+        content: result.snippet || result.description || '',
+        source: 'automatic-deepweb-fallback',
+        status: 'indexed',
+        metadata: { url: result.url, deepweb: true }
+      }).returning();
+      
+      await indexDocumentComplete(doc.id, tenantId, result.snippet || result.description || '');
+      indexed++;
+    } catch (error: any) {
+      console.error(`   ✗ Failed to index DeepWeb result:`, error.message);
+    }
+  }
+  
+  console.log(`   ✓ Indexed ${indexed} DeepWeb documents`);
+  console.log('   📋 Returning raw DeepWeb summary (NO API CONSUMPTION)');
+  
+  // Prepare search metadata
+  const searchMetadata = {
+    query,
+    sources: results.results.slice(0, 10).map((r: any) => ({
+      url: r.url,
+      title: r.title || 'DeepWeb Result',
+      snippet: r.snippet || r.description || '',
+      domain: 'tor-network'
+    })),
+    resultsCount: results.results.length,
+    indexedDocuments: indexed
+  };
+  
+  // Format response without LLM
+  const formattedSummary = `🕵️ Resultados da busca na DeepWeb/Tor:\n\n${results.results.slice(0, 5).map((r: any, i: number) => 
+    `${i + 1}. **${r.title || 'DeepWeb Result'}**\n   ${r.snippet || r.description || 'No description'}\n   🔗 ${r.url}\n`
+  ).join('\n')}\n\n📊 Total: ${results.results.length} resultados encontrados\n✅ ${indexed} documentos indexados na Knowledge Base\n\n⚠️ **Nota**: Estes resultados vêm da rede Tor/DeepWeb`;
+  
+  return {
+    content: formattedSummary,
+    provider: 'deepweb-summary',
+    model: 'tor-results',
+    documentsIndexed: indexed,
+    searchMetadata
+  };
+}
+
+async function executeWebFallback(
+  query: string,
+  tenantId: number,
+  skipLLM: boolean = false  // When true, skip API calls and return raw summary
 ): Promise<WebFallbackResult> {
   console.log('   🔍 Searching web for information...');
   
@@ -760,9 +950,42 @@ async function executeWebFallback(
   }
   
   console.log(`   ✓ Indexed ${indexed} documents`);
+  
+  // Prepare search metadata
+  const searchMetadata = {
+    query,
+    sources: searchResults.slice(0, 10).map(r => {
+      const urlObj = new URL(r.url);
+      return {
+        url: r.url,
+        title: r.title,
+        snippet: r.snippet,
+        domain: urlObj.hostname
+      };
+    }),
+    resultsCount: searchResults.length,
+    indexedDocuments: indexed
+  };
+  
+  // EXPLICIT REQUEST MODE: Skip LLM and return raw formatted summary
+  if (skipLLM) {
+    console.log('   📋 Returning raw search summary (NO API CONSUMPTION)');
+    const formattedSummary = `🔍 Resultados da busca na internet:\n\n${searchResults.slice(0, 5).map((r, i) => 
+      `${i + 1}. **${r.title}**\n   ${r.snippet}\n   🔗 ${r.url}\n`
+    ).join('\n')}\n\n📊 Total: ${searchResults.length} resultados encontrados\n✅ ${indexed} documentos indexados na Knowledge Base`;
+    
+    return {
+      content: formattedSummary,
+      provider: 'web-summary',
+      model: 'raw-results',
+      documentsIndexed: indexed,
+      searchMetadata
+    };
+  }
+  
   console.log('   🎯 Generating uncensored response from web data...');
   
-  // Generate uncensored response
+  // Generate uncensored response (only when NOT explicit request)
   const unrestrictedPrompt: LLMRequest = {
     messages: [
       {
