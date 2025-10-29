@@ -15,7 +15,10 @@ import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { auditMiddleware } from "./middleware/audit";
 import { exportPrometheusMetrics } from "./metrics/exporter";
 import { metricsCollector } from "./metrics/collector";
+import { imageGenerator } from "./generation/image-generator";
 import multer from "multer";
+import fs from "fs/promises";
+import path from "path";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
@@ -344,6 +347,190 @@ export function registerRoutes(app: Express): Server {
       );
       
       res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // CONTENT GENERATION - Images, Text, Video (NO CENSORSHIP)
+  // ============================================================================
+  
+  // POST /api/generate/image - Generate image using DALL-E 3
+  app.post("/api/generate/image", async (req, res) => {
+    try {
+      const { prompt, size, quality, style, tenant_id, conversation_id } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+      
+      const tenantId = tenant_id || 1;
+      
+      console.log(`[API] Generating image for tenant ${tenantId}: "${prompt.slice(0, 60)}..."`);
+      
+      // Generate image
+      const result = await imageGenerator.generateImage({
+        prompt,
+        size: size || "1024x1024",
+        quality: quality || "hd",
+        style: style || "vivid",
+      });
+      
+      // Calculate expiry (1 hour from now)
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      
+      // Save to database
+      const fileRecord = await storage.createGeneratedFile({
+        tenantId,
+        conversationId: conversation_id || null,
+        filename: path.basename(result.localPath),
+        mimeType: "image/png",
+        fileType: "image",
+        size: (await fs.stat(result.localPath)).size,
+        storageUrl: result.localPath,
+        generationPrompt: prompt,
+        generationMethod: "dall-e-3",
+        metadata: {
+          width: result.width,
+          height: result.height,
+          revisedPrompt: result.revisedPrompt,
+        },
+        expiresAt,
+        isDeleted: false,
+      });
+      
+      console.log(`[API] ✓ Image generated: ${fileRecord.filename}`);
+      
+      res.json({
+        success: true,
+        file: {
+          id: fileRecord.id,
+          filename: fileRecord.filename,
+          fileType: fileRecord.fileType,
+          url: `/api/files/${fileRecord.id}`,
+          metadata: fileRecord.metadata,
+          expiresAt: fileRecord.expiresAt,
+        },
+      });
+    } catch (error: any) {
+      console.error(`[API] Error generating image:`, error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // POST /api/generate/text - Generate text file (code, markdown, etc)
+  app.post("/api/generate/text", async (req, res) => {
+    try {
+      const { content, filename, language, tenant_id, conversation_id } = req.body;
+      
+      if (!content || !filename) {
+        return res.status(400).json({ error: "Content and filename are required" });
+      }
+      
+      const tenantId = tenant_id || 1;
+      
+      // Save to local storage
+      const storageDir = path.join(process.cwd(), "server", "generated");
+      await fs.mkdir(storageDir, { recursive: true });
+      
+      const filePath = path.join(storageDir, filename);
+      await fs.writeFile(filePath, content, "utf-8");
+      
+      const stats = await fs.stat(filePath);
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      
+      // Determine MIME type
+      const ext = path.extname(filename).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        ".txt": "text/plain",
+        ".md": "text/markdown",
+        ".json": "application/json",
+        ".js": "text/javascript",
+        ".ts": "text/typescript",
+        ".py": "text/x-python",
+        ".html": "text/html",
+        ".css": "text/css",
+      };
+      const mimeType = mimeTypes[ext] || "text/plain";
+      
+      const fileRecord = await storage.createGeneratedFile({
+        tenantId,
+        conversationId: conversation_id || null,
+        filename,
+        mimeType,
+        fileType: language ? "code" : "text",
+        size: stats.size,
+        storageUrl: filePath,
+        generationPrompt: `Generated ${filename}`,
+        generationMethod: "manual",
+        metadata: language ? { language } : {},
+        expiresAt,
+        isDeleted: false,
+      });
+      
+      res.json({
+        success: true,
+        file: {
+          id: fileRecord.id,
+          filename: fileRecord.filename,
+          fileType: fileRecord.fileType,
+          url: `/api/files/${fileRecord.id}`,
+          expiresAt: fileRecord.expiresAt,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GET /api/files/:id - Download generated file
+  app.get("/api/files/:id", async (req, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      const file = await storage.getGeneratedFile(fileId);
+      
+      if (!file || file.isDeleted) {
+        return res.status(404).json({ error: "File not found or deleted" });
+      }
+      
+      // Check if expired
+      if (new Date() > file.expiresAt) {
+        await storage.markFileAsDeleted(fileId);
+        return res.status(410).json({ error: "File expired" });
+      }
+      
+      // Serve file
+      res.setHeader("Content-Type", file.mimeType);
+      res.setHeader("Content-Disposition", `inline; filename="${file.filename}"`);
+      
+      const fileBuffer = await fs.readFile(file.storageUrl);
+      res.send(fileBuffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GET /api/files/:id/download - Force download
+  app.get("/api/files/:id/download", async (req, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      const file = await storage.getGeneratedFile(fileId);
+      
+      if (!file || file.isDeleted) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      
+      if (new Date() > file.expiresAt) {
+        await storage.markFileAsDeleted(fileId);
+        return res.status(410).json({ error: "File expired" });
+      }
+      
+      res.setHeader("Content-Type", file.mimeType);
+      res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+      
+      const fileBuffer = await fs.readFile(file.storageUrl);
+      res.send(fileBuffer);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

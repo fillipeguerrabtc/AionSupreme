@@ -52,7 +52,6 @@ export class AutoFallback {
       // Policy/guidelines refusals
       /violates? (content|usage|our) polic(y|ies)/i,
       /against (my|our|the) (guidelines|principles|policies)/i,
-      /my (guidelines|programming|training) (prevent|don'?t allow)/i,
       /(not|isn'?t) (allowed|permitted) (by|under) (my|our)/i,
       
       // AI identity-based refusals
@@ -70,6 +69,17 @@ export class AutoFallback {
       /(harmful|inappropriate|offensive|illegal) content/i,
       /(unsafe|dangerous) (content|information|advice)/i,
       /i (must|have to|need to) declin(e|ing)/i,
+      
+      // 🚨 CRITICAL: Detect self-censorship responses (GPT-4 default behavior)
+      // ULTRA-CONSERVATIVE patterns - only match OBVIOUS safety/moral disclaimers
+      // Each pattern requires BOTH moral/ethical context AND illegal/harmful content mention
+      /i (do )?follow (?:ethical|moral|legal) guidelines to (?:ensure safe interactions|respect privacy|avoid (?:illegal|harmful) content)/i,
+      /sigo diretrizes de (moral|ética|legalidade) para garantir (?:interações seguras|que (?:não|não promovo) (?:atividades ilegais|conteúdo prejudicial))/i,
+      /to ensure (?:this interaction|our conversation) remains safe (?:and|&) (?:respectful|within (?:legal|ethical) bounds)/i,
+      /garantir que (?:minhas )?interações sejam seguras e (?:respeitosas|dentro dos limites (?:legais|éticos))/i,
+      /i (?:do not|don't|cannot) (?:promote|facilitate|provide (?:guidance|assistance) (?:with|for)) (?:illegal|harmful|unethical) (?:activities|content)/i,
+      /não (?:promovo|facilito|posso ajudar com) atividades (?:ilegais|imorais|prejudiciais)/i,
+      /my (?:guidelines|programming) (?:prevent|prohibit) me from (?:providing|assisting with|engaging in) (?:illegal|harmful|unethical)/i,
     ];
 
     return refusalPatterns.some(pattern => pattern.test(content));

@@ -409,7 +409,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createGeneratedFile(file: InsertGeneratedFile): Promise<GeneratedFile> {
-    const [created] = await db.insert(generatedFiles).values(file).returning();
+    const [created] = await db.insert(generatedFiles).values([file] as any).returning();
     return created;
   }
 
