@@ -8,7 +8,73 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### October 29, 2025 - Chat UX & Moderation Improvements
+### October 29, 2025 - Persistent Memory System with Replit Auth (COMPLETED)
+**ChatGPT-Style Conversation Memory:**
+- Implemented complete persistent memory system with user authentication
+- Users can now create accounts, log in, and access conversation history across devices
+- Conversations automatically saved to PostgreSQL database with userId linking
+- Auto-save for every message (user and assistant) without manual intervention
+- Cross-device synchronization via database storage
+
+**Replit Auth Integration (OpenID Connect):**
+- Passwordless authentication using Replit Auth (supports Google, GitHub, X, Apple, email)
+- Zero-configuration OAuth setup via blueprint:javascript_log_in_with_replit
+- Session management with 7-day TTL stored in PostgreSQL
+- Automatic token refresh on expiration
+- Optional authentication: system supports both logged-in and anonymous modes
+
+**ChatGPT-Style Sidebar:**
+- ConversationSidebar component showing full conversation history
+- Click any past conversation to load complete message history
+- "New Conversation" button to start fresh chats
+- Delete conversations with confirmation dialog
+- User profile display with avatar, name, and email
+- Login/Logout buttons in sidebar
+
+**Database Schema Updates:**
+- Added `users` table (id, email, firstName, lastName, profileImageUrl)
+- Added `sessions` table for express-session storage
+- Updated `conversations` table with optional `userId` column for user-linking
+- Foreign key relationship: conversations.userId → users.id
+
+**API Endpoints (server/routes.ts):**
+- GET /api/auth/user - Returns current user or null
+- GET /api/conversations - Lists user's conversations (authenticated only)
+- POST /api/conversations - Creates conversation with userId if authenticated
+- GET /api/conversations/:id - Fetches conversation with ownership verification
+- GET /api/conversations/:id/messages - Fetches messages with ownership verification
+- DELETE /api/conversations/:id - Deletes conversation (strict ownership check)
+- POST /api/conversations/:id/messages - Saves message to database
+
+**Security Implementation:**
+- All conversation endpoints use `optionalAuth` middleware
+- Strict ownership verification: users can only access their own conversations
+- Anonymous conversations (userId null) blocked from API access (403 Forbidden)
+- Prevents enumeration attacks and unauthorized access
+- Conversations isolated by userId - complete privacy between users
+
+**Dual-Mode Support:**
+- **Authenticated Mode**: Full conversation history, auto-save, cross-device sync
+- **Anonymous Mode**: Chat works without login, no persistent memory
+- Seamless switching between modes via login/logout
+- localStorage only used for authenticated users
+
+**Testing:**
+- Comprehensive end-to-end test suite executed via Playwright
+- 31 test steps covering authentication, conversation management, security
+- All tests passed successfully
+- Verified OIDC login, auto-save, conversation history, logout, security isolation
+
+**Files Modified/Created:**
+- Modified: server/index.ts, server/routes.ts, server/storage.ts, shared/schema.ts, client/src/pages/chat/ChatPage.tsx, client/src/lib/authUtils.ts
+- Created: server/replitAuth.ts, client/src/components/ConversationSidebar.tsx, client/src/components/app-sidebar.tsx, client/src/hooks/useAuth.ts
+
+**System Remains 100% FREE:**
+- Replit Auth is completely free (no pricing tiers)
+- PostgreSQL database already in use (Neon free tier)
+- No additional costs for authentication or memory features
+
+### October 29, 2025 - Chat UX & Moderation Improvements (PREVIOUS)
 **Auto-Scroll Enhancement:**
 - Implemented automatic smooth scrolling in chat interface using `messagesEndRef`
 - Chat viewport now automatically scrolls to latest message when new responses arrive
