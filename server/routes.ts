@@ -616,6 +616,15 @@ export function registerRoutes(app: Express): Server {
             continue;
           }
 
+          // Log extraction stats
+          const charCount = processed.extractedText.length;
+          const wordCount = processed.extractedText.split(/\s+/).length;
+          console.log(`[Upload] ${file.originalname}:`);
+          console.log(`  - File size: ${(processed.size / 1024).toFixed(2)} KB`);
+          console.log(`  - Extracted: ${charCount.toLocaleString()} characters`);
+          console.log(`  - Estimated: ${wordCount.toLocaleString()} words`);
+          console.log(`  - Pages: ${processed.metadata?.pages || 'N/A'}`);
+
           // Create document in database
           const doc = await storage.createDocument({
             tenantId: tenant_id || 1,
@@ -627,6 +636,8 @@ export function registerRoutes(app: Express): Server {
               filename: file.originalname,
               mimeType,
               size: processed.size,
+              charCount,
+              wordCount,
               ...processed.metadata,
             },
           });
