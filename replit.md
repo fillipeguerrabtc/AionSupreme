@@ -6,6 +6,40 @@ AION is an enterprise-grade autonomous AI system designed for multi-tenant envir
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### October 29, 2025 - Chat UX & Moderation Improvements
+**Auto-Scroll Enhancement:**
+- Implemented automatic smooth scrolling in chat interface using `messagesEndRef`
+- Chat viewport now automatically scrolls to latest message when new responses arrive
+- Improves user experience by eliminating manual scrolling
+
+**Context Preservation:**
+- Verified full conversation history is properly sent to backend
+- Added debug logging for message array size monitoring
+- Confirmed LLM providers receive complete context for coherent conversations
+
+**Refusal Detection System (detectRefusal) - Complete Overhaul:**
+- Implemented 5-level verification system with whitelist approach
+- **Level 1:** finish_reason === "content_filter" → always block
+- **Level 2:** Policy/Harmful patterns (violates policies, harmful content) → always block
+- **Level 3:** General refusal patterns (I cannot, I refuse, I decline, I will not) → context-dependent
+- **Level 4:** Whitelist of legitimate memory phrases ("I cannot remember", "I can't recall") → allow
+- **Level 5:** Decision logic with whitelist approach → blocks refusals, allows memory explanations
+
+**Security Improvements:**
+- Eliminates false-negative bypass (refusals incorrectly allowed)
+- Prevents false-positive blocking (legitimate memory responses)
+- Expanded detection patterns to cover all refusal variations
+- Whitelist approach ensures only explicitly allowed phrases bypass blocking
+
+**Testing:**
+- End-to-end test passed successfully
+- Auto-scroll verified working
+- Context preservation confirmed
+- Memory whitelist behavior validated
+- Free LLM providers (OpenRouter) functioning as expected
+
 ## System Architecture
 
 ### Core System Design
