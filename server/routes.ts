@@ -1788,6 +1788,33 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // GET /api/tokens/kb-history - Get Knowledge Base search history
+  app.get("/api/tokens/kb-history", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.query.tenant_id as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      
+      const history = await tokenTracker.getKBSearchHistory(tenantId, limit);
+      res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/tokens/free-apis-history - Get Free APIs usage history
+  app.get("/api/tokens/free-apis-history", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.query.tenant_id as string) || 1;
+      const provider = req.query.provider as 'groq' | 'gemini' | 'huggingface' | 'openrouter' | undefined;
+      const limit = parseInt(req.query.limit as string) || 100;
+      
+      const history = await tokenTracker.getFreeAPIsHistory(tenantId, provider, limit);
+      res.json(history);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ========================================================================
   // POLICY ENFORCEMENT - AION Supreme
   // ========================================================================

@@ -677,3 +677,103 @@ export async function getWebSearchStats(tenantId: number): Promise<{
     }
   };
 }
+
+// ============================================================================
+// KNOWLEDGE BASE SEARCH HISTORY
+// ============================================================================
+
+export interface KBSearchHistoryEntry {
+  id: number;
+  query: string;
+  resultsCount: number;
+  confidence?: number;
+  success: boolean;
+  timestamp: Date;
+}
+
+export async function getKBSearchHistory(
+  tenantId: number,
+  limit: number = 100
+): Promise<KBSearchHistoryEntry[]> {
+  const results = await db
+    .select()
+    .from(tokenUsage)
+    .where(
+      and(
+        eq(tokenUsage.tenantId, tenantId),
+        eq(tokenUsage.provider, 'kb'),
+        eq(tokenUsage.requestType, 'chat')
+      )
+    )
+    .orderBy(desc(tokenUsage.timestamp))
+    .limit(limit);
+  
+  return results.map(r => ({
+    id: r.id,
+    query: (r.metadata as any)?.query || '',
+    resultsCount: (r.metadata as any)?.resultsCount || 0,
+    confidence: (r.metadata as any)?.confidence,
+    success: r.success,
+    timestamp: r.timestamp
+  }));
+}
+
+// ============================================================================
+// FREE APIs USAGE HISTORY
+// ============================================================================
+
+export interface FreeAPIHistoryEntry {
+  id: number;
+  provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter';
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  success: boolean;
+  timestamp: Date;
+}
+
+export async function getFreeAPIsHistory(
+  tenantId: number,
+  provider?: 'groq' | 'gemini' | 'huggingface' | 'openrouter',
+  limit: number = 100
+): Promise<FreeAPIHistoryEntry[]> {
+  const query = provider
+    ? db
+        .select()
+        .from(tokenUsage)
+        .where(
+          and(
+            eq(tokenUsage.tenantId, tenantId),
+            eq(tokenUsage.provider, provider),
+            eq(tokenUsage.requestType, 'chat')
+          )
+        )
+        .orderBy(desc(tokenUsage.timestamp))
+        .limit(limit)
+    : db
+        .select()
+        .from(tokenUsage)
+        .where(
+          and(
+            eq(tokenUsage.tenantId, tenantId),
+            sql`${tokenUsage.provider} IN ('groq', 'gemini', 'huggingface', 'openrouter')`,
+            eq(tokenUsage.requestType, 'chat')
+          )
+        )
+        .orderBy(desc(tokenUsage.timestamp))
+        .limit(limit);
+  
+  const results = await query;
+  
+  return results.map(r => ({
+    id: r.id,
+    provider: r.provider as 'groq' | 'gemini' | 'huggingface' | 'openrouter',
+    model: r.model,
+    promptTokens: r.promptTokens,
+    completionTokens: r.completionTokens,
+    totalTokens: r.totalTokens,
+    success: r.success,
+    timestamp: r.timestamp
+  }));
+}
