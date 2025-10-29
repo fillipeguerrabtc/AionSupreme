@@ -911,19 +911,19 @@ export default function TokenMonitoring() {
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Total Searches</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {webStats?.webSearches || 0}
+                  {webStats?.web?.totalSearches || 0}
                 </p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Total Results</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {webStats?.totalResults || 0}
+                  {webStats?.web?.totalSources || 0}
                 </p>
               </div>
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Documents Indexed</p>
+                <p className="text-sm text-muted-foreground">Unique Domains</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {webStats?.totalIndexed || 0}
+                  {webStats?.web?.uniqueDomains || 0}
                 </p>
               </div>
             </div>
@@ -944,14 +944,14 @@ export default function TokenMonitoring() {
                           </CardDescription>
                         </div>
                         <Badge variant="outline" className="bg-cyan-500/10">
-                          {search.resultsCount} results
+                          {search.metadata?.results_count || search.resultsCount || 0} results
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
                         <p className="text-sm font-semibold">Sources Found:</p>
-                        {search.sources?.slice(0, 5).map((source: any, sidx: number) => (
+                        {(search.metadata?.sources || search.sources || []).slice(0, 5).map((source: any, sidx: number) => (
                           <div key={sidx} className="flex items-start gap-2 p-3 rounded-lg bg-background/50 border border-border/50">
                             <ExternalLink className="w-4 h-4 mt-0.5 text-cyan-500 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
@@ -969,9 +969,9 @@ export default function TokenMonitoring() {
                             </div>
                           </div>
                         ))}
-                        {search.sources?.length > 5 && (
+                        {((search.metadata?.sources || search.sources || []).length > 5) && (
                           <p className="text-xs text-muted-foreground text-center">
-                            +{search.sources.length - 5} more sources
+                            +{(search.metadata?.sources || search.sources || []).length - 5} more sources
                           </p>
                         )}
                       </div>
@@ -1005,19 +1005,19 @@ export default function TokenMonitoring() {
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Total Searches</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {webStats?.deepwebSearches || 0}
+                  {webStats?.deepweb?.totalSearches || 0}
                 </p>
               </div>
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Avg Results/Search</p>
+                <p className="text-sm text-muted-foreground">Total Results</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {webStats?.avgResultsPerSearch || 0}
+                  {webStats?.deepweb?.totalSources || 0}
                 </p>
               </div>
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Documents Indexed</p>
+                <p className="text-sm text-muted-foreground">Unique Domains</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {webStats?.totalIndexed || 0}
+                  {webStats?.deepweb?.uniqueDomains || 0}
                 </p>
               </div>
             </div>
@@ -1038,14 +1038,14 @@ export default function TokenMonitoring() {
                           </CardDescription>
                         </div>
                         <Badge variant="outline" className="bg-indigo-500/10">
-                          {search.resultsCount} results
+                          {search.metadata?.results_count || search.resultsCount || 0} results
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
                         <p className="text-sm font-semibold">Sources Found:</p>
-                        {search.sources?.slice(0, 5).map((source: any, sidx: number) => (
+                        {(search.metadata?.sources || search.sources || []).slice(0, 5).map((source: any, sidx: number) => (
                           <div key={sidx} className="flex items-start gap-2 p-3 rounded-lg bg-background/50 border border-border/50">
                             <Search className="w-4 h-4 mt-0.5 text-indigo-500 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
@@ -1056,9 +1056,9 @@ export default function TokenMonitoring() {
                             </div>
                           </div>
                         ))}
-                        {search.sources?.length > 5 && (
+                        {((search.metadata?.sources || search.sources || []).length > 5) && (
                           <p className="text-xs text-muted-foreground text-center">
-                            +{search.sources.length - 5} more sources
+                            +{(search.metadata?.sources || search.sources || []).length - 5} more sources
                           </p>
                         )}
                       </div>
@@ -1178,7 +1178,7 @@ export default function TokenMonitoring() {
                         <div>
                           <p className="font-medium">{alert.message}</p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(alert.createdAt).toLocaleString()}
+                            {new Date(alert.created_at || alert.createdAt).toLocaleString()}
                           </p>
                         </div>
                         <Button

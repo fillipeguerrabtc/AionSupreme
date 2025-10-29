@@ -92,6 +92,41 @@ function isTimeSensitiveQuery(query: string): boolean {
 }
 
 // ============================================================================
+// HELPER: Answer Trivial Questions (Date, Time)
+// ============================================================================
+
+function answerTrivialQuestion(query: string): string | null {
+  const lowercaseQuery = query.toLowerCase();
+  
+  // Date/Time patterns (PT + EN)
+  const dateTimePatterns = [
+    /que (dia|data).*hoje/i,
+    /qual.*dia.*hoje/i,
+    /que.*hora/i,
+    /what (day|date).*today/i,
+    /what.*time/i,
+    /current (date|time)/i
+  ];
+  
+  for (const pattern of dateTimePatterns) {
+    if (pattern.test(query)) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('pt-BR', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      const timeStr = now.toLocaleTimeString('pt-BR');
+      
+      return `**Data e Hora Atual:**\n\n**Data:** ${dateStr}\n**Hora:** ${timeStr}\n\n*Resposta direta do sistema (sem consumo de APIs)*`;
+    }
+  }
+  
+  return null;
+}
+
+// ============================================================================
 // PRIORITY ORCHESTRATION LOGIC
 // ============================================================================
 
@@ -102,6 +137,29 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   
   const userMessage = req.messages[req.messages.length - 1]?.content || '';
   const isTimeSensitive = isTimeSensitiveQuery(userMessage);
+  
+  // ============================================================================
+  // STEP 0: Check for trivial questions (date, time, simple math)
+  // ============================================================================
+  
+  const trivialAnswer = answerTrivialQuestion(userMessage);
+  if (trivialAnswer) {
+    console.log('   ⚡ Trivial question detected - answering directly (ZERO API consumption)');
+    return {
+      content: trivialAnswer,
+      source: 'kb',
+      provider: 'system-direct',
+      model: 'trivial-answer',
+      usage: {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0
+      },
+      metadata: {
+        noAPIConsumption: true
+      }
+    };
+  }
   
   // ============================================================================
   // EXPLICIT SOURCE REQUEST: Jump directly to requested source
@@ -855,6 +913,7 @@ async function executeDeepWebSearch(
   for (const result of results.results.slice(0, 5)) {
     try {
       const [doc] = await db.insert(documents).values({
+        tenantId,
         title: result.title || 'DeepWeb Result',
         content: result.snippet || result.description || '',
         source: 'automatic-deepweb-fallback',

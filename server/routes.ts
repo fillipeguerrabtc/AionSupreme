@@ -1777,7 +1777,6 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/training/collect", async (req, res) => {
     try {
       const { tenantId, options } = req.body;
-      const { collectTrainingData } = await import("./training/data-collector");
       
       const examples = await trainingDataCollector.collectTrainingData(tenantId, options);
       res.json({ examples: examples.length, data: examples });
