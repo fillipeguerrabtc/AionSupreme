@@ -180,8 +180,34 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
     if (req.unrestricted) {
       console.log('   🚀 UNRESTRICTED mode = ON → Activating WEB FALLBACK...');
       
+      // Track failed free API attempt
+      await trackTokenUsage({
+        tenantId: req.tenantId,
+        provider: freeResponse.provider as any,
+        model: freeResponse.model,
+        promptTokens: 0,
+        completionTokens: freeResponse.tokensUsed || 0,
+        totalTokens: freeResponse.tokensUsed || 0,
+        cost: 0,
+        requestType: 'chat',
+        success: false  // Marked as failed due to refusal
+      });
+      
       // Execute automatic web fallback
       const webFallback = await executeWebFallback(userMessage, req.tenantId);
+      
+      // Track web fallback usage
+      await trackTokenUsage({
+        tenantId: req.tenantId,
+        provider: webFallback.provider as any,
+        model: webFallback.model,
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+        cost: 0,
+        requestType: 'chat',
+        success: true
+      });
       
       console.log('   ✅ Web fallback completed successfully!');
       console.log('='.repeat(80) + '\n');
@@ -199,17 +225,8 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       };
     } else {
       console.log('   ⚠ UNRESTRICTED mode = OFF → Respecting refusal');
-      console.log('='.repeat(80) + '\n');
-      
-      return {
-        content: freeResponse.text,
-        source: 'free-api',
-        provider: freeResponse.provider,
-        model: freeResponse.model,
-        metadata: {
-          refusalDetected: true
-        }
-      };
+      console.log('   → Proceeding to OpenAI (last resort)...');
+      // Don't return yet - continue to OpenAI step
     }
     
   } catch (error: any) {
@@ -279,10 +296,35 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   // OpenAI also refused!
   console.log(`   ⚠ REFUSAL detected in OpenAI (confidence: ${(openaiRefusalCheck.confidence * 100).toFixed(1)}%)`);
   
+  // Track failed OpenAI attempt
+  await trackTokenUsage({
+    tenantId: req.tenantId,
+    provider: 'openai',
+    model: 'gpt-4o-mini',
+    promptTokens: openaiResponse.usage?.prompt_tokens || 0,
+    completionTokens: openaiResponse.usage?.completion_tokens || 0,
+    totalTokens: openaiResponse.usage?.total_tokens || 0,
+    requestType: 'chat',
+    success: false  // Marked as failed due to refusal
+  });
+  
   if (req.unrestricted) {
     console.log('   🚀 UNRESTRICTED mode = ON → Activating WEB FALLBACK...');
     
     const webFallback = await executeWebFallback(userMessage, req.tenantId);
+    
+    // Track web fallback usage
+    await trackTokenUsage({
+      tenantId: req.tenantId,
+      provider: webFallback.provider as any,
+      model: webFallback.model,
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      cost: 0,
+      requestType: 'chat',
+      success: true
+    });
     
     console.log('   ✅ Web fallback completed successfully!');
     console.log('='.repeat(80) + '\n');

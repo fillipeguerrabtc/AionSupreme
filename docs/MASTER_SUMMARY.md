@@ -52,6 +52,24 @@
 
 ## 🎯 IMPLEMENTAÇÕES CONCLUÍDAS
 
+### 0. Priority Orchestrator - ORDEM OBRIGATÓRIA ✅ **NOVO!**
+**Arquivo:** `server/llm/priority-orchestrator.ts`
+
+```typescript
+// ✅ ORDEM OBRIGATÓRIA IMPLEMENTADA (VERIFICADA):
+1. Knowledge Base (RAG Search) - τ = 0.6 confidence threshold
+2. Free APIs (Groq → Gemini → HF → OpenRouter) - auto-fallback se recusa
+3. Web/DeepWeb Search - se recusa detectada em step 2
+4. OpenAI (último recurso, pago) - auto-fallback se recusa
+
+// ✅ FALLBACK AUTOMÁTICO em passos 2 e 4:
+// Se IA externa recusa → busca web → indexa KB → responde SEM censura
+
+// Tracking automático de uso integrado
+```
+
+**Status:** ✅ 100% Funcional e Testado
+
 ### 1. Sistema de Rotação de APIs Gratuitas ✅
 **Arquivo:** `server/llm/free-apis.ts`
 
@@ -69,6 +87,32 @@
 ```
 
 **Capacidade Total:** 27,170 requests/dia gratuitos
+
+### 11. Token Usage Tracking System ✅ **NOVO!**
+**Arquivo:** `server/monitoring/token-tracker.ts`
+
+```typescript
+// Monitoramento em tempo real:
+- Token consumption por provider
+- Cost tracking (OpenAI pricing automático)
+- Limites configuráveis (diário/mensal)
+- Alertas automáticos (threshold 80% default)
+- Histórico e tendências (30 dias)
+- Quotas free APIs
+
+// 3 Novas Tabelas:
+- token_usage: registro de consumo
+- token_limits: limites configuráveis
+- token_alerts: histórico de alertas
+
+// 6 Novos Endpoints:
+- GET /api/tokens/summary
+- GET /api/tokens/quotas
+- GET /api/tokens/trends
+- POST /api/tokens/limits
+- GET /api/tokens/alerts
+- POST /api/tokens/alerts/:id/acknowledge
+```
 
 ### 2. Detector de Recusa 5-Níveis ✅
 **Arquivo:** `server/llm/refusal-detector.ts`

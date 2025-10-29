@@ -15,7 +15,14 @@ Preferred communication style: Simple, everyday language.
 - **Admin Dashboard**: Explicit save controls, switch visibility fixes
 - **Knowledge Base**: Manual text, URL learning, web search & auto-indexing
 
-### Phase 2: Autonomous Learning Systems (NEW - Today)
+### Phase 2: Autonomous Learning Systems (Oct 29, 2025)
+
+**CRITICAL: PRIORITY ORDER VERIFIED & IMPLEMENTED** ✅
+- All requests STRICTLY follow: **KB → Free APIs → Web → OpenAI**
+- Automatic fallback activates at steps 2 & 4 when external AIs refuse
+- Token tracking integrated at ALL decision points
+
+### Phase 3: Token Monitoring System (NEW - Oct 29, 2025)
 - **Free API Rotation System** (`server/llm/free-apis.ts`):
   - Implemented complete rotation: Groq → Gemini → HuggingFace → OpenRouter → OpenAI
   - All 4 free API clients fully functional (14.4k + 6M tokens + 720 + 50 requests/day)
@@ -68,6 +75,21 @@ Preferred communication style: Simple, everyday language.
   - Quota tracking and provider selection
   - Google Drive persistence integration
 
+- **Priority Orchestrator** (`server/llm/priority-orchestrator.ts`):
+  - STRICT order: KB → Free APIs → Web → OpenAI
+  - Automatic fallback when LLMs refuse (steps 2 & 4)
+  - Integrated token tracking at all points
+  - Success/failure tracking for refusals
+
+- **Token Monitoring System** (`server/monitoring/token-tracker.ts`):
+  - Real-time token usage tracking (all providers)
+  - OpenAI cost calculation (auto-pricing)
+  - Configurable limits (daily/monthly, tokens/cost)
+  - Smart alerts (80% threshold default)
+  - Historical trends (30 days)
+  - Free API quota tracking
+  - 3 new tables: `token_usage`, `token_limits`, `token_alerts`
+
 - **Advanced Metrics System** (`server/ai/metrics.ts`):
   - nDCG (Normalized Discounted Cumulative Gain)
   - MRR (Mean Reciprocal Rank)
@@ -84,7 +106,17 @@ Preferred communication style: Simple, everyday language.
   - Dynamic system prompt composition
   - 7 policy categories (hate_speech, explicit_sexual, self_harm, etc.)
 
-### New API Endpoints
+### New API Endpoints (Total: 16)
+
+**Token Monitoring (6 endpoints):**
+- `GET /api/tokens/summary` - Usage summary all providers
+- `GET /api/tokens/quotas` - Free API quotas & remaining
+- `GET /api/tokens/trends` - Historical usage (30d)
+- `POST /api/tokens/limits` - Configure limits
+- `GET /api/tokens/alerts` - Unacknowledged alerts
+- `POST /api/tokens/alerts/:id/acknowledge` - Dismiss alert
+
+**RAG & Agent (10 endpoints):**
 - `GET /api/free-apis/status` - Free API provider status and usage
 - `GET /api/gpu/status` - GPU provider availability
 - `POST /api/gpu/generate-notebook` - Generate Colab/Kaggle training notebooks
