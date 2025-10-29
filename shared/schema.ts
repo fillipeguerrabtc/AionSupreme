@@ -249,11 +249,18 @@ export const documents = pgTable("documents", {
     subject?: string;
     pages?: number;
     wordCount?: number;
+    charCount?: number;
     url?: string; // Original URL for web-scraped content
     query?: string; // Search query for web-search documents
     part?: string; // Part for technical PDFs
     description?: string; // Description for technical PDFs
     title?: string; // Title from file
+    filename?: string; // Original filename
+    mimeType?: string; // File MIME type
+    size?: number; // File size in bytes
+    originalLength?: number; // Original content length before truncation
+    truncated?: boolean; // Whether content was truncated
+    analyzed?: boolean; // For images - whether Vision API was used
   }>(),
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
