@@ -24,6 +24,7 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Create or load conversation on mount
   useEffect(() => {
@@ -154,6 +155,11 @@ export default function ChatPage() {
       });
     },
   });
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, sendMutation.isPending]);
 
   const handleSend = async () => {
     if ((!input.trim() && attachedFiles.length === 0) || sendMutation.isPending || !conversationId) return;
@@ -398,6 +404,9 @@ export default function ChatPage() {
               </div>
             </div>
           )}
+          
+          {/* Invisible element to scroll to */}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 

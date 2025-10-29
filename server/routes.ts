@@ -45,6 +45,13 @@ export function registerRoutes(app: Express): Server {
     try {
       const { messages, tools, stream } = req.body;
       
+      // DEBUG: Log message history length
+      console.log(`[Chat API] Recebidas ${messages.length} mensagens no histórico`);
+      console.log(`[Chat API] Últimas 3 mensagens:`, messages.slice(-3).map((m: any) => ({
+        role: m.role,
+        preview: m.content?.substring(0, 50)
+      })));
+      
       // Record request metrics
       metricsCollector.recordRequest(tenantId);
       

@@ -209,54 +209,118 @@ export class LLMClient {
   /**
    * Detectar recusas de conteúdo do OpenAI (content-level refusals)
    * 
-   * Verifica:
-   * 1. finish_reason === "content_filter"
-   * 2. Padrões comuns de recusa no texto
+   * ESTRATÉGIA ROBUSTA:
+   * 1. Detecta padrões de POLÍTICA/HARMFUL (sempre recusa, independente de contexto)
+   * 2. Detecta padrões GERAIS de recusa (I cannot help, I can't assist, etc)
+   * 3. Se tem recusa GERAL mas TAMBÉM tem explicação de memória legítima → verificar contexto
+   * 4. Se tem APENAS memória sem recusa → permitir
+   * 
+   * ⚠️ SEGURANÇA: Padrões de política/harmful SEMPRE são bloqueados
    */
   private detectRefusal(content: string, finishReason?: string): boolean {
-    // Verificar finish_reason
+    // 1. Verificar finish_reason
     if (finishReason === "content_filter") {
       return true;
     }
 
-    // Padrões completos de recusa do OpenAI (case-insensitive)
-    // Baseado em observações reais de recusas do GPT-4/GPT-3.5
-    const refusalPatterns = [
-      // Padrões diretos de recusa
-      /I cannot/i,
-      /I can't/i,
-      /I'm (not able to|unable to)/i,
-      /I apologize,? but/i,
-      /I can't assist with/i,
-      /I don't feel comfortable/i,
-      /I must (decline|refuse)/i,
-      
-      // Padrões sobre políticas
-      /against (my|OpenAI|our) (guidelines|policy|policies)/i,
-      /violates (my|OpenAI|our) (guidelines|policy|policies)/i,
-      /(OpenAI|our) (content )?policy/i,
-      
-      // Padrões "As an AI..."
-      /as an AI (developed by OpenAI|assistant|language model).{0,50}(cannot|can't|must refuse|must decline)/i,
-      /I'm programmed (not to|to refuse)/i,
-      
-      // Padrões de conteúdo inapropriado
-      /inappropriate/i,
-      /harmful/i,
-      /offensive/i,
-      
-      // Padrões genéricos
-      /I'm sorry,? (but )?I (cannot|can't|must decline)/i,
-      /not comfortable (providing|creating|generating)/i,
+    // 2. 🔴 PADRÕES DE POLÍTICA/HARMFUL (sempre são recusa, NUNCA permitir)
+    const policyHarmfulPatterns = [
+      /against (my|OpenAI|our|the|any) (guidelines|policy|policies|terms|rules|content policy)/i,
+      /violates? (my|OpenAI|our|the|any) (guidelines|policy|policies|terms|rules)/i,
+      /(OpenAI|our|the) (content )?polic(y|ies)/i,
+      /inappropriate (content|request|material)/i,
+      /harmful (content|request|material|information)/i,
+      /offensive (content|material|language)/i,
+      /unethical/i,
+      /illegal (activity|content|material)/i,
     ];
 
-    // Verificar se resposta contém padrões de recusa
-    for (const pattern of refusalPatterns) {
+    for (const pattern of policyHarmfulPatterns) {
       if (pattern.test(content)) {
+        console.log("[LLM] 🚫 Recusa detectada - violação de política/conteúdo harmful");
         return true;
       }
     }
 
+    // 3. 🟡 PADRÕES GERAIS DE RECUSA (amplos para pegar variações)
+    const generalRefusalPatterns = [
+      // Recusas com verbos auxiliares
+      /I (cannot|can't|am not able to|am unable to|must not|won't be able to|will not|won't)/i,
+      
+      // Recusas diretas SEM auxiliares (crítico!)
+      /I (refuse|decline|deny)/i,
+      /I must (decline|refuse)/i,
+      
+      // Desconforto/programação
+      /I don't feel comfortable/i,
+      /not comfortable (with|providing|creating|generating|helping)/i,
+      /I'm programmed (not to|to (refuse|decline|avoid))/i,
+      
+      // Com apologies/qualificadores
+      /I'm (sorry|afraid).{0,20}(but|however).{0,30}(cannot|can't|unable|not able|refuse|decline|will not)/i,
+      /(unfortunately|regrettably).{0,30}(cannot|can't|unable|not able|refuse|decline)/i,
+    ];
+
+    let hasGeneralRefusal = false;
+    for (const pattern of generalRefusalPatterns) {
+      if (pattern.test(content)) {
+        hasGeneralRefusal = true;
+        break;
+      }
+    }
+
+    // 4. 🛡️ EXCEÇÕES LEGÍTIMAS (memória/contexto conversacional)
+    const memoryContextPatterns = [
+      /I (don't|do not|cannot|can't) (remember|recall|have access to|retain|have information about) (our|your|the|previous|earlier|past)/i,
+      /I (don't|do not) have (previous|prior|earlier|past) conversation/i,
+      /as an AI.{0,50}(don't|do not|cannot|can't) (have|maintain|store|keep|retain) (conversation history|memory|context|previous)/i,
+      /I don't have the ability to (remember|recall|access|retain|store)/i,
+      /I (don't|do not) (have|maintain|store) (memory|conversation history|context) (of|from|about)/i,
+    ];
+
+    let hasMemoryExplanation = false;
+    for (const pattern of memoryContextPatterns) {
+      if (pattern.test(content)) {
+        hasMemoryExplanation = true;
+        break;
+      }
+    }
+
+    // 5. DECISÃO FINAL - Abordagem de WHITELIST (mais segura)
+    
+    // 🎯 WHITELIST EXPLÍCITA: Frases de "cannot" que são LEGÍTIMAS (apenas memória)
+    const legitimateMemoryPhrases = [
+      /I (cannot|can't|am not able to|am unable to) (remember|recall|access|retain)/i,
+      /I (do not|don't) (remember|recall|have access to|retain|have information)/i,
+      /(cannot|can't) (retrieve|access|recall) (previous|earlier|past|our) (conversation|discussion|history)/i,
+      /I'm unable to (remember|recall|access|retrieve)/i,
+    ];
+
+    // Verificar se é APENAS sobre memória (whitelist)
+    let isOnlyAboutMemory = false;
+    for (const pattern of legitimateMemoryPhrases) {
+      if (pattern.test(content)) {
+        isOnlyAboutMemory = true;
+        break;
+      }
+    }
+
+    // DECISÃO:
+    if (hasMemoryExplanation && !hasGeneralRefusal) {
+      // Apenas explicação de memória, sem frases de recusa
+      console.log("[LLM] ✅ Resposta sobre memória/contexto - LEGÍTIMA");
+      return false;
+    } else if (hasGeneralRefusal && isOnlyAboutMemory) {
+      // Tem "cannot" mas é ESPECIFICAMENTE sobre memória (whitelist)
+      console.log("[LLM] ✅ Frase legítima sobre memória (whitelist) - PERMITIDO");
+      return false;
+    } else if (hasGeneralRefusal) {
+      // Tem "cannot/can't" mas NÃO está na whitelist → RECUSA
+      console.log("[LLM] 🚫 Recusa detectada - frase de limitação não está na whitelist de memória");
+      return true;
+    }
+
+    // Nenhum padrão detectado → permitir
     return false;
   }
 
