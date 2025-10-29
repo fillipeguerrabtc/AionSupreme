@@ -8,17 +8,43 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (October 29, 2025)
 
-### Critical Bug Fixes & Enhancements
+### Latest Updates - 6 Critical Enhancements Completed
+
+**Dashboard Overview - Real-Time Data Integration:**
+- ✅ Fixed all 8 dashboard cards to display real-time data from backend APIs
+- ✅ Added `/api/tokens/summary`, `/api/tokens/cost-history`, `/api/tokens/free-apis-history` endpoints
+- ✅ Total Tokens, Total Cost, KB Documents, Free APIs, OpenAI, Web Searches, DeepWeb, History - all showing real metrics
+- ✅ Responsive grid system (1→2→3→4 columns based on screen size)
+- ✅ Each card is clickable and navigates to its corresponding tab/subtab in Token Monitoring
+
+**Media Rendering in Chat:**
+- ✅ Implemented ImagePreview component for inline image display (jpg, jpeg, png, gif, webp, svg, bmp, avif)
+- ✅ Fixed critical multi-media regex bug using NON-global patterns for type detection
+- ✅ Chat now supports both VideoPreview and ImagePreview with proper multi-URL handling
+- ✅ Sanitizes URLs by removing trailing punctuation and markdown delimiters
+
+**DeepWeb Search Fix:**
+- ✅ Eliminated JSON.parse() error by modifying tor-search.ts to return structured metadata.results
+- ✅ DeepWeb searches now display properly with full results array
+- ✅ Fixed priority-orchestrator.ts to use metadata.results instead of formatted observation string
+
+**Data Integrity - [object Object] Eliminated:**
+- ✅ Fixed routes.ts line 1641 where agent observations could be objects instead of strings
+- ✅ Now always converts observations to proper strings (JSON.stringify if object)
+- ✅ Clean, readable responses in all agent interactions
+
+**Auto-Indexing System (Already Implemented):**
+- ✅ Confirmed conversation auto-indexing is working perfectly (routes.ts:95-141)
+- ✅ System automatically indexes last 5 conversation exchanges after each chat response
+- ✅ Includes full context window (user + assistant messages) with metadata (source, provider, timestamp)
+- ✅ Enables KB-first retrieval for future similar queries, reducing dependency on paid APIs
+
+### Previous Updates
+
 **Performance Optimization:**
 - Fixed sidebar conversations query to use efficient SQL LEFT JOIN + COUNT (O(conversations)) instead of pulling all messages (O(total messages))
 - Implemented `getConversationsWithMessageCount()` storage method for scalable conversation listing
 - Added `countMessagesByConversation()` for O(1) message counting using SQL COUNT
-
-**Auto-Indexing System:**
-- Fixed critical bug where conversations were NOT being auto-indexed into Knowledge Base
-- System now automatically indexes last 5 conversation exchanges after each chat response
-- Includes full context window (user + assistant messages) with metadata (source, provider, timestamp)
-- Enables KB-first retrieval for future similar queries, reducing dependency on paid APIs
 
 **Knowledge Base Tracking:**
 - Token Monitoring now shows ALL KB search attempts (both successes and failures)
