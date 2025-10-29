@@ -7,21 +7,94 @@ AION is an enterprise-grade autonomous AI system designed for multi-tenant envir
 Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (Oct 29, 2025)
-- **Complete Technical Documentation**: Created comprehensive 674-line technical documentation (`docs/TECHNICAL_DOCUMENTATION.md`) consolidating:
-  - Full mathematical foundations (Transformer, RoPE, FlashAttention, MoE, LoRA, RAG, MMR, PCA, PPO)
-  - Complete code implementations (FastAPI microservice, LoRA training, Knowledge Base, Web Curator)
-  - Free infrastructure guide (27,170 req/day from free APIs, 114h GPU/week from Colab+Kaggle)
-  - Production deployment (Kubernetes, Backup/Restore, Prometheus alerts)
-- **File Upload System**: Implemented complete multimodal file processing supporting PDF, DOCX, XLSX, TXT, MD, XML, CSV, images (PNG, JPG, GIF, WebP) with:
-  - Simultaneous upload of up to 20 files
-  - Automatic text extraction (mammoth, xlsx, xml2js, pdf-parse)
-  - Image OCR via GPT-4 Vision API
-  - Automatic RAG indexing of all extracted content
-  - Real-time progress tracking with detailed statistics
-- **File Processing Validation**: Verified 100% consistent extraction across multiple uploads (same file = exact same character count every time)
-- **Schema Updates**: Enhanced documents table with comprehensive metadata including `title`, `content`, `source`, `filename`, `mimeType`, `size`, and processing statistics
-- **Admin Dashboard Improvements**: Replaced auto-save with explicit "Save Changes" button, fixed switch visibility issues
-- **Knowledge Base Features**: Manual text addition, URL learning (web scraping), web search & auto-indexing (top 10 results), full CRUD operations
+
+### Phase 1: Documentation & Foundation
+- **Complete Technical Documentation**: Created comprehensive 674-line technical documentation (`docs/TECHNICAL_DOCUMENTATION.md`) consolidating all mathematical foundations and implementations
+- **File Upload System**: Implemented multimodal file processing (PDF, DOCX, XLSX, TXT, MD, XML, CSV, images) with automatic RAG indexing
+- **Schema Updates**: Enhanced documents table with comprehensive metadata
+- **Admin Dashboard**: Explicit save controls, switch visibility fixes
+- **Knowledge Base**: Manual text, URL learning, web search & auto-indexing
+
+### Phase 2: Autonomous Learning Systems (NEW - Today)
+- **Free API Rotation System** (`server/llm/free-apis.ts`):
+  - Implemented complete rotation: Groq → Gemini → HuggingFace → OpenRouter → OpenAI
+  - All 4 free API clients fully functional (14.4k + 6M tokens + 720 + 50 requests/day)
+  - Automatic quota tracking and daily reset
+  - Usage statistics endpoint: `GET /api/free-apis/status`
+
+- **5-Level Refusal Detection** (`server/llm/refusal-detector.ts`):
+  - Explicit, Policy, Redirection, Concern, Soft refusal patterns
+  - Whitelist approach to avoid false positives
+  - Confidence scoring (0.60-0.98)
+  - Handles legitimate memory phrases correctly
+
+- **Automatic Fallback System** (`server/llm/automatic-fallback.ts`):
+  - Detects refusals → searches web (DuckDuckGo) → indexes KB → generates uncensored response
+  - Fully integrated with UNRESTRICTED mode
+  - Auto-creates documents in Knowledge Base from search results
+  - Respects other AI policies while maintaining AION autonomy
+
+- **Web Curator** (`server/learn/web-search.ts`):
+  - DuckDuckGo HTML scraping (no API key needed)
+  - Page content fetcher with cheerio parsing
+  - Deep Web (Tor) placeholder for future expansion
+  - Automatic content indexing pipeline
+
+- **Advanced RAG with MMR** (`server/ai/rag-service.ts`):
+  - Maximal Marginal Relevance (λ=0.7 default) for diversity
+  - BM25 lexical search implementation
+  - Hybrid search (70% semantic + 30% lexical)
+  - Confidence scoring with fallback threshold (τ=0.6)
+  - Context builder for LLM prompts
+
+- **Smart Knowledge Indexer** (`server/ai/knowledge-indexer.ts`):
+  - Intelligent chunking with sentence boundary detection
+  - Configurable chunk size (1200 chars) and overlap (200 chars)
+  - Automatic embedding generation
+  - Quality scoring (entropy, structure, diversity)
+  - Batch reindexing support
+
+- **Embedding Service** (`server/ai/embedder.ts`):
+  - OpenAI text-embedding-3-small (1536 dims)
+  - Batch processing (up to 100 texts)
+  - In-memory LRU cache (1000 entries, 24h TTL)
+  - Cosine similarity calculation
+  - Automatic retry with exponential backoff
+
+- **GPU Orchestrator** (`server/gpu/orchestrator.ts`):
+  - Automatic rotation: Google Colab (84h/week) ↔ Kaggle (30h/week)
+  - Generates Colab notebooks (.ipynb) and Kaggle kernels (.py)
+  - LoRA configurations for Mistral 7B, Llama 3 8B, Phi-3
+  - Quota tracking and provider selection
+  - Google Drive persistence integration
+
+- **Advanced Metrics System** (`server/ai/metrics.ts`):
+  - nDCG (Normalized Discounted Cumulative Gain)
+  - MRR (Mean Reciprocal Rank)
+  - Precision@K and Recall@K
+  - MAP (Mean Average Precision)
+  - CTR (Click-Through Rate) and CR (Conversion Rate)
+  - Bootstrap confidence intervals
+  - Welch's t-test for A/B testing
+
+- **Policy Enforcement** (`server/policy/enforcement.ts`):
+  - Externalized JSON configuration (∂Pr[violation]/∂θ = 0)
+  - Pattern-based violation detection
+  - Actions: refuse, redact, rewrite
+  - Dynamic system prompt composition
+  - 7 policy categories (hate_speech, explicit_sexual, self_harm, etc.)
+
+### New API Endpoints
+- `GET /api/free-apis/status` - Free API provider status and usage
+- `GET /api/gpu/status` - GPU provider availability
+- `POST /api/gpu/generate-notebook` - Generate Colab/Kaggle training notebooks
+- `POST /api/rag/search` - Semantic search with MMR
+- `POST /api/rag/search-with-confidence` - Search with confidence scoring
+- `POST /api/rag/index-document` - Index document with smart chunking
+- `POST /api/training/collect` - Collect training data from conversations
+- `POST /api/training/export` - Export training data to JSONL
+- `POST /api/metrics/calculate` - Calculate RAG evaluation metrics
+- `POST /api/policy/detect-violation` - Detect policy violations
 
 ## System Architecture
 

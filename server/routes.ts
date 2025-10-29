@@ -1488,6 +1488,152 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // ========================================================================
+  // FREE APIs & GPU ORCHESTRATION - AION Supreme
+  // ========================================================================
+
+  // GET /api/free-apis/status - Get status of all free API providers
+  app.get("/api/free-apis/status", async (req, res) => {
+    try {
+      const { getUsageStats } = await import("./llm/free-apis");
+      const stats = getUsageStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/gpu/status - Get GPU provider status
+  app.get("/api/gpu/status", async (req, res) => {
+    try {
+      const { getProviderStatus } = await import("./gpu/orchestrator");
+      const status = getProviderStatus();
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/gpu/generate-notebook - Generate Colab/Kaggle notebook
+  app.post("/api/gpu/generate-notebook", async (req, res) => {
+    try {
+      const { provider, job, config } = req.body;
+      const { generateColabNotebook, generateKaggleKernel, DEFAULT_LORA_CONFIGS } = await import("./gpu/orchestrator");
+      
+      const loraConfig = config || DEFAULT_LORA_CONFIGS[job.model] || DEFAULT_LORA_CONFIGS['mistral-7b'];
+      
+      const notebook = provider === 'kaggle' 
+        ? generateKaggleKernel(job, loraConfig)
+        : generateColabNotebook(job, loraConfig);
+      
+      res.json({ notebook, format: provider === 'kaggle' ? 'python' : 'ipynb' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================================================
+  // RAG SYSTEM WITH MMR - AION Supreme  
+  // ========================================================================
+
+  // POST /api/rag/search - Semantic search with MMR
+  app.post("/api/rag/search", async (req, res) => {
+    try {
+      const { query, tenantId, options } = req.body;
+      const { mmrSearch } = await import("./ai/rag-service");
+      
+      const results = await mmrSearch(query, tenantId || 1, options);
+      res.json({ results });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/rag/search-with-confidence - Search with confidence scoring
+  app.post("/api/rag/search-with-confidence", async (req, res) => {
+    try {
+      const { query, tenantId, options } = req.body;
+      const { searchWithConfidence } = await import("./ai/rag-service");
+      
+      const result = await searchWithConfidence(query, tenantId || 1, options);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/rag/index-document - Index document with smart chunking
+  app.post("/api/rag/index-document", async (req, res) => {
+    try {
+      const { documentId, tenantId, content, options } = req.body;
+      const { indexDocumentComplete } = await import("./ai/knowledge-indexer");
+      
+      const chunks = await indexDocumentComplete(documentId, tenantId, content, options);
+      res.json({ success: true, chunks });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================================================
+  // TRAINING & METRICS - AION Supreme
+  // ========================================================================
+
+  // POST /api/training/collect - Collect training data from conversations
+  app.post("/api/training/collect", async (req, res) => {
+    try {
+      const { tenantId, options } = req.body;
+      const { collectTrainingData } = await import("./training/data-collector");
+      
+      const examples = await trainingDataCollector.collectTrainingData(tenantId, options);
+      res.json({ examples: examples.length, data: examples });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/training/export - Export training data to JSONL
+  app.post("/api/training/export", async (req, res) => {
+    try {
+      const { tenantId, options } = req.body;
+      
+      const result = await trainingDataCollector.prepareDataset(tenantId, options);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/metrics/calculate - Calculate RAG metrics (nDCG, MRR, etc.)
+  app.post("/api/metrics/calculate", async (req, res) => {
+    try {
+      const { results, k } = req.body;
+      const { calculateAllMetrics } = await import("./ai/metrics");
+      
+      const metrics = calculateAllMetrics(results, k || 10);
+      res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================================================
+  // POLICY ENFORCEMENT - AION Supreme
+  // ========================================================================
+
+  // POST /api/policy/detect-violation - Detect policy violations
+  app.post("/api/policy/detect-violation", async (req, res) => {
+    try {
+      const { text, tenantId } = req.body;
+      const { enforcePolicy } = await import("./policy/enforcement");
+      
+      const result = await enforcePolicy(text, tenantId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /metrics (Prometheus format)
   app.get("/metrics", exportPrometheusMetrics);
 
