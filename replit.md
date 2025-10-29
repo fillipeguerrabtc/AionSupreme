@@ -82,13 +82,19 @@ Preferred communication style: Simple, everyday language.
   - Success/failure tracking for refusals
 
 - **Token Monitoring System** (`server/monitoring/token-tracker.ts`):
-  - Real-time token usage tracking (all providers)
+  - Real-time token usage tracking (all providers: Groq, Gemini, HF, OpenRouter, OpenAI, KB, Web, DeepWeb)
   - OpenAI cost calculation (auto-pricing)
   - Configurable limits (daily/monthly, tokens/cost)
   - Smart alerts (80% threshold default)
   - Historical trends (30 days)
   - Free API quota tracking
-  - 3 new tables: `token_usage`, `token_limits`, `token_alerts`
+  - **Web/DeepWeb search tracking** with full metadata:
+    - Query tracking (what was searched)
+    - Source tracking (URLs, titles, snippets, domains)
+    - Results count and indexed documents
+    - Separate counters for Web vs DeepWeb
+    - Complete search history with timestamps
+  - 3 new tables: `token_usage` (with JSONB metadata), `token_limits`, `token_alerts`
 
 - **Advanced Metrics System** (`server/ai/metrics.ts`):
   - nDCG (Normalized Discounted Cumulative Gain)
@@ -106,15 +112,17 @@ Preferred communication style: Simple, everyday language.
   - Dynamic system prompt composition
   - 7 policy categories (hate_speech, explicit_sexual, self_harm, etc.)
 
-### New API Endpoints (Total: 16)
+### New API Endpoints (Total: 18)
 
-**Token Monitoring (6 endpoints):**
-- `GET /api/tokens/summary` - Usage summary all providers
+**Token Monitoring (8 endpoints):**
+- `GET /api/tokens/summary` - Usage summary all providers (including web/deepweb)
 - `GET /api/tokens/quotas` - Free API quotas & remaining
 - `GET /api/tokens/trends` - Historical usage (30d)
 - `POST /api/tokens/limits` - Configure limits
 - `GET /api/tokens/alerts` - Unacknowledged alerts
 - `POST /api/tokens/alerts/:id/acknowledge` - Dismiss alert
+- `GET /api/tokens/web-search-history` - Web/DeepWeb search history with sources ✨ **NOVO!**
+- `GET /api/tokens/web-search-stats` - Web/DeepWeb search statistics ✨ **NOVO!**
 
 **RAG & Agent (10 endpoints):**
 - `GET /api/free-apis/status` - Free API provider status and usage
