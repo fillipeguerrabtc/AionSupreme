@@ -455,7 +455,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       };
     }
     
-    console.log('   ⚠ KB confidence too low, proceeding to Free APIs...');
+    console.log('   ⚠ KB confidence too low, proceeding to GPU Pool...');
     
     // Track KB search attempt (failed due to low confidence)
     await trackTokenUsage({
@@ -507,7 +507,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
         };
       } catch (webError: any) {
         console.error('   ✗ Web search failed:', webError.message);
-        console.log('   → Proceeding to Free APIs...');
+        console.log('   → Proceeding to GPU Pool...');
       }
     }
     
@@ -570,7 +570,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
         // Track GPU usage (FREE, no cost)
         await trackTokenUsage({
           tenantId: req.tenantId,
-          provider: 'gpu-pool',
+          provider: 'gpu-pool' as any,
           model: 'custom-lora',
           promptTokens: 0,
           completionTokens: 0,
@@ -581,7 +581,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
           metadata: {
             workerId: gpuResult.workerId,
             latencyMs: gpuResult.latencyMs
-          }
+          } as any
         });
         
         return {
@@ -592,7 +592,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
           metadata: {
             latencyMs: gpuResult.latencyMs,
             workerId: gpuResult.workerId
-          }
+          } as any
         };
       }
       
@@ -605,7 +605,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
         // Track failed GPU attempt
         await trackTokenUsage({
           tenantId: req.tenantId,
-          provider: 'gpu-pool',
+          provider: 'gpu-pool' as any,
           model: 'custom-lora',
           promptTokens: 0,
           completionTokens: 0,

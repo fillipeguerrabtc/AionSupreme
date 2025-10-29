@@ -48,8 +48,8 @@ export default function GPUManagementTab() {
     refetchInterval: 10000, // Refresh every 10s
   });
 
-  const workers: GpuWorker[] = gpuData?.workers || [];
-  const stats: PoolStats = gpuData?.stats || {
+  const workers: GpuWorker[] = (gpuData as any)?.workers || [];
+  const stats: PoolStats = (gpuData as any)?.stats || {
     total: 0,
     healthy: 0,
     unhealthy: 0,

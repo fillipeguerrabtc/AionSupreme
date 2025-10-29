@@ -283,34 +283,80 @@ print("="*80)
 
 # %% [code]
 # ==============================================================================
-# SEÇÃO 7: Registrar no AION (Automático)
+# SEÇÃO 7: Registrar no AION (Automático com Metadados Completos)
 # ==============================================================================
 
 import requests
+import getpass
 
 # URL do AION no Replit
 AION_URL = "https://sua-url-replit.repl.co"  # ⚠️ SUBSTITUA!
 
+# Coletar informações da GPU
+gpu_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "none"
+vram_gb = torch.cuda.get_device_properties(0).total_memory / 1e9 if torch.cuda.is_available() else 0
+
+# Account ID (email da conta Google Colab)
 try:
-    # Registrar GPU no orquestrador
+    # Tenta pegar o email do usuário do Colab
+    account_id = getpass.getuser() + "@gmail.com"  # Placeholder
+except:
+    account_id = "colab-user"
+
+print("\n" + "="*80)
+print("📡 REGISTRANDO GPU NO AION")
+print("="*80)
+
+try:
+    # Registrar GPU com metadados completos
+    registration_payload = {
+        "provider": "colab",
+        "accountId": account_id,
+        "ngrokUrl": str(public_url),
+        "capabilities": {
+            "tor_enabled": False,  # Tor não disponível no Colab por padrão
+            "model": "llama-3-8b-lora",
+            "gpu": gpu_name,
+            "vram_gb": round(vram_gb, 1),
+            "max_concurrent": 2  # T4 pode processar 2 requisições simultâneas
+        }
+    }
+    
+    print(f"\n📦 Enviando metadados:")
+    print(f"   - Provider: colab")
+    print(f"   - Account: {account_id}")
+    print(f"   - GPU: {gpu_name} ({vram_gb:.1f} GB VRAM)")
+    print(f"   - Model: llama-3-8b-lora")
+    print(f"   - Ngrok URL: {public_url}")
+    
     response = requests.post(
         f"{AION_URL}/api/gpu/register",
-        json={
-            "provider": "colab",
-            "ngrok_url": str(public_url),
-        }
+        json=registration_payload,
+        timeout=10
     )
     
     if response.status_code == 200:
-        print("\n✅ GPU registrada no AION com sucesso!")
-        print(f"   O AION agora pode usar esta GPU automaticamente.")
+        result = response.json()
+        print("\n✅ GPU REGISTRADA COM SUCESSO!")
+        print(f"   Worker ID: {result.get('worker', {}).get('id', 'N/A')}")
+        print(f"   Status: {result.get('worker', {}).get('status', 'pending')}")
+        print(f"\n🎉 O AION agora pode usar esta GPU automaticamente via load balancing!")
+        print(f"   Health checks serão executados a cada 30 segundos.")
     else:
-        print(f"\n⚠️  Erro ao registrar GPU: {response.text}")
-        print(f"   Registre manualmente via curl acima.")
+        print(f"\n⚠️  ERRO ao registrar GPU (HTTP {response.status_code}):")
+        print(f"   {response.text}")
+        print(f"\n📋 Registre manualmente com:")
+        print(f"\n   curl -X POST {AION_URL}/api/gpu/register \\")
+        print(f"     -H 'Content-Type: application/json' \\")
+        print(f"     -d '{json.dumps(registration_payload, indent=2)}'")
         
 except Exception as e:
-    print(f"\n⚠️  Não foi possível registrar automaticamente: {e}")
-    print(f"   Registre manualmente via curl acima.")
+    print(f"\n⚠️  EXCEÇÃO ao registrar automaticamente:")
+    print(f"   {type(e).__name__}: {e}")
+    print(f"\n📋 Registre manualmente quando o AION estiver online.")
+    print(f"   A GPU ainda funcionará localmente para testes.")
+
+print("="*80 + "\n")
 
 # %% [code]
 # ==============================================================================
