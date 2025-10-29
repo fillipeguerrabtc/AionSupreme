@@ -141,3 +141,86 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **tailwindcss**: CSS framework.
 - **zod**: Schema validation.
 - **mammoth, xlsx, xml2js, cheerio, multer**: For document parsing and HTML scraping.
+
+---
+
+## 🚀 Free Infrastructure Strategy (100% Grátis)
+
+**Documentação Completa**: Ver `docs/FREE_GPU_API_STRATEGY.md` (208 linhas de estratégia detalhada)
+
+### Resumo de Recursos Gratuitos:
+
+**GPUs Gratuitas para Fine-Tuning (LoRA)**:
+- **Google Colab**: 12h/dia GPU T4 (~360h/mês)
+- **Kaggle**: 30h/semana GPU (~120h/mês)
+- **Modal**: $30 créditos (~20-30h/mês GPU)
+- **TOTAL**: ~500h GPU/mês GRÁTIS
+
+**APIs de LLM Gratuitas**:
+- **Groq**: 14,400 req/dia (~432k req/mês)
+- **Gemini**: 1,500 req/dia (~45k req/mês)
+- **HuggingFace**: ~720 req/dia (~21.6k req/mês)
+- **TOTAL**: ~500k requisições/mês GRÁTIS
+
+**Always-On Hosting**:
+- **Replit**: Frontend + Orquestrador (CPU, ilimitado com ping)
+- **GCP e2-micro**: VM always-free (CPU permanente)
+- **Supabase**: PostgreSQL 512MB grátis
+
+### Estratégia de Fine-Tuning (LoRA):
+
+**Modelo Base**: Llama-3-8B (Meta AI)  
+**Técnica**: Low-Rank Adaptation (LoRA) - treina apenas 0.4% dos parâmetros  
+**GPU Necessária**: T4 16GB (Colab/Kaggle) com quantização 4-bit  
+**Tempo de Treino**: 8-12h por sessão  
+**Resultado**: Adaptadores de ~200MB (modelo próprio customizado!)
+
+### Arquitetura Híbrida:
+
+```
+┌──────────────────────────────────────┐
+│ REPLIT (Always-On)                   │
+│ • Frontend React                      │
+│ • Backend Node.js                     │
+│ • Orquestrador de GPUs               │
+│ • Knowledge Base (Neon)              │
+└──────────────────────────────────────┘
+              ↓
+┌──────────────────────────────────────┐
+│ CAMADA DE INFERÊNCIA (Rotação)      │
+│                                       │
+│ ┌────────────┐  ┌────────────┐      │
+│ │ APIs Grátis│  │ Modelo LoRA│      │
+│ │ (Fallback) │  │ (GPU)      │      │
+│ │ • Groq     │  │ Seg-Qua:   │      │
+│ │ • Gemini   │  │ Kaggle     │      │
+│ │ • HF       │  │ Qui-Sex:   │      │
+│ │            │  │ Colab      │      │
+│ │            │  │ Sab-Dom:   │      │
+│ │            │  │ Modal      │      │
+│ └────────────┘  └────────────┘      │
+└──────────────────────────────────────┘
+```
+
+**Matemática do LoRA** (docs/MATHEMATICAL_FOUNDATIONS.md):
+```
+W' = W₀ + B·A
+
+Onde:
+- W₀: Pesos originais (congelados)
+- B: Matriz d×r (aprendível)
+- A: Matriz r×k (aprendível)
+- r=16: Rank (apenas 0.4% dos parâmetros!)
+
+Exemplo:
+- Llama-3-8B: 8 bilhões de parâmetros
+- LoRA adaptadores: ~65 milhões de parâmetros
+- Tamanho: ~200MB (vs 16GB modelo completo)
+```
+
+**Custo Total**: **$0/mês** 🎉
+
+Ver documentação completa em:
+- `docs/FREE_GPU_API_STRATEGY.md` - Estratégia completa de infraestrutura gratuita
+- `docs/MATHEMATICAL_FOUNDATIONS.md` - Matemática de LoRA, RLHF, PPO, POMDP
+- `docs/pdfs/` - 19 PDFs técnicos completos (Parte01-Parte16)
