@@ -146,9 +146,9 @@ export default function AdminDashboard() {
               <MessageSquare className="w-5 h-5" />
             </Button>
             <button 
-              onClick={() => navigate("/")} 
+              onClick={() => navigate("/admin")} 
               className="hover-elevate rounded-lg p-2 -m-2 transition-all bg-transparent border-0 cursor-pointer" 
-              data-testid="link-logo-home"
+              data-testid="link-logo-admin-home"
             >
               <AionLogo size="md" showText={false} />
             </button>
