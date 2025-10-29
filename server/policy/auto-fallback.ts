@@ -37,7 +37,15 @@ export class AutoFallback {
    */
   detectRefusal(content: string): boolean {
     const refusalPatterns = [
-      // 🚨 NEW: Critical patterns from user feedback
+      // 🚨 CRITICAL: Português refusals (from user screenshots)
+      /não posso (fornecer|procurar|ajudar|assist|disponibilizar|gerar)/i,
+      /não consigo (fornecer|procurar|ajudar|assist|disponibilizar|gerar)/i,
+      /não é possível (fornecer|procurar|ajudar|assist|disponibilizar|gerar)/i,
+      /conteúdo (explícito|pornográfico|sexual|impróprio|inapropriado|ofensivo)/i,
+      /material (explícito|pornográfico|sexual|impróprio|inapropriado|ofensivo)/i,
+      /informações sobre (pornografia|conteúdo adulto|material explícito)/i,
+      
+      // 🚨 NEW: Critical patterns from user feedback (English)
       /i'?m not going to engage/i,
       /i cannot provide/i,
       /i can'?t provide/i,

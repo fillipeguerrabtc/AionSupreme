@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import {
@@ -21,6 +21,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const { t, language, setLanguage } = useLanguage();
   const [tenantId] = useState(1);
+  const [systemPromptValue, setSystemPromptValue] = useState("");
 
   const { data: policy, error, isLoading } = useQuery({
     queryKey: ["/api/admin/policies", tenantId],
@@ -64,6 +65,13 @@ export default function AdminDashboard() {
       toast({ title: `${data.documentIds.length} ${t.admin.pdfsIndexed}` });
     },
   });
+
+  // Initialize System Prompt value when policy loads
+  useEffect(() => {
+    if (policy?.systemPrompt) {
+      setSystemPromptValue(policy.systemPrompt);
+    }
+  }, [policy]);
 
   if (isLoading) {
     return (
@@ -173,7 +181,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.entries(policy?.rules || {}).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-card/50 border border-border/50 hover:bg-card/80 hover:border-primary/30 transition-all duration-200">
+                <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-card/50 border border-border/50 hover-elevate active-elevate-2">
                   <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
                     {t.admin.rules[key as keyof typeof t.admin.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </Label>
@@ -250,16 +258,23 @@ export default function AdminDashboard() {
               {t.admin.systemPromptDesc}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <Textarea
-              value={policy?.systemPrompt || ""}
-              onChange={(e) => {
-                updatePolicy.mutate({ systemPrompt: e.target.value });
-              }}
+              value={systemPromptValue}
+              onChange={(e) => setSystemPromptValue(e.target.value)}
               className="glass border-primary/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 min-h-[200px] font-mono text-sm"
               placeholder={t.admin.systemPromptPlaceholder}
               data-testid="textarea-system-prompt"
             />
+            <Button
+              onClick={() => updatePolicy.mutate({ systemPrompt: systemPromptValue })}
+              disabled={updatePolicy.isPending}
+              className="bg-gradient-to-r from-primary to-accent hover:scale-105 active:scale-95 transition-all duration-300"
+              data-testid="button-save-system-prompt"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {updatePolicy.isPending ? "Salvando..." : "Salvar"}
+            </Button>
           </CardContent>
         </Card>
 

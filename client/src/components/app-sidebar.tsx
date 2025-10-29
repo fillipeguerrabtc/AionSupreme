@@ -99,7 +99,7 @@ export function AppSidebar({
             data-testid="button-login"
           >
             <LogIn className="w-4 h-4 mr-2" />
-            Login with Replit
+            Login
           </Button>
         )}
       </SidebarFooter>
