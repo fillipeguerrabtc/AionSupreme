@@ -2,6 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { llmClient } from "./model/llm-client";
+import { freeLLMProviders } from "./model/free-llm-providers";
+import { gpuOrchestrator } from "./model/gpu-orchestrator";
+import { trainingDataCollector } from "./training/data-collector";
 import { ragService } from "./rag/vector-store";
 import { reactEngine } from "./agent/react-engine";
 import { agentTools } from "./agent/tools";
@@ -301,6 +304,130 @@ export function registerRoutes(app: Express): Server {
       const tenantId = parseInt(req.query.tenant_id as string || "1");
       const metrics = await storage.getMetricsByTenant(tenantId, undefined, 100);
       res.json({ metrics });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/llm/status - Status das APIs gratuitas (Groq, Gemini, HF)
+  app.get("/api/llm/status", async (req, res) => {
+    try {
+      const status = freeLLMProviders.getStatus();
+      
+      // Calcular total disponível
+      const totalRemaining = status.groq.remaining + status.gemini.remaining + status.hf.remaining;
+      const totalLimit = status.groq.limit + status.gemini.limit + status.hf.limit;
+      const totalUsed = status.groq.used + status.gemini.used + status.hf.used;
+      
+      res.json({
+        providers: status,
+        summary: {
+          totalRemaining,
+          totalLimit,
+          totalUsed,
+          percentageUsed: Math.round((totalUsed / totalLimit) * 100),
+        },
+        message: totalRemaining > 0 
+          ? `✓ ${totalRemaining.toLocaleString()} requisições gratuitas disponíveis hoje`
+          : "⚠️ Limite diário atingido - aguardar reset em 24h",
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/gpu/status - Status do orquestrador de GPUs
+  app.get("/api/gpu/status", async (req, res) => {
+    try {
+      const status = gpuOrchestrator.getStatus();
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/gpu/register - Registrar GPU (Colab/Kaggle/Modal via Ngrok)
+  app.post("/api/gpu/register", async (req, res) => {
+    try {
+      const { provider, ngrok_url } = req.body;
+      
+      if (!provider || !ngrok_url) {
+        return res.status(400).json({ error: "provider e ngrok_url são obrigatórios" });
+      }
+
+      if (!["colab", "kaggle", "modal"].includes(provider)) {
+        return res.status(400).json({ error: "provider deve ser colab, kaggle ou modal" });
+      }
+
+      await gpuOrchestrator.registerGPU(provider, ngrok_url);
+      
+      res.json({ 
+        success: true, 
+        message: `GPU ${provider} registrada com sucesso`,
+        url: ngrok_url,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/gpu/unregister - Desregistrar GPU
+  app.post("/api/gpu/unregister", async (req, res) => {
+    try {
+      const { provider } = req.body;
+      
+      if (!provider || !["colab", "kaggle", "modal"].includes(provider)) {
+        return res.status(400).json({ error: "provider inválido" });
+      }
+
+      gpuOrchestrator.unregisterGPU(provider);
+      
+      res.json({ 
+        success: true, 
+        message: `GPU ${provider} desregistrada`,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/training/prepare - Preparar dataset de treino
+  app.post("/api/training/prepare", async (req, res) => {
+    try {
+      const { tenant_id, criteria } = req.body;
+      const tenantId = tenant_id || 1;
+
+      const result = await trainingDataCollector.prepareDataset(tenantId, criteria);
+      
+      res.json({
+        success: true,
+        filepath: result.filepath,
+        stats: result.stats,
+        validation: result.validation,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/training/stats - Estatísticas de dados disponíveis
+  app.get("/api/training/stats", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.query.tenant_id as string || "1");
+      
+      // Coletar dados sem exportar
+      const examples = await trainingDataCollector.collectTrainingData(tenantId);
+      const stats = await trainingDataCollector.generateStats(examples);
+      const validation = await trainingDataCollector.validateDataset(examples);
+
+      res.json({
+        stats,
+        validation,
+        ready: validation.valid,
+        message: validation.valid 
+          ? `✓ ${stats.totalExamples} exemplos prontos para treino`
+          : `⚠️ Dataset necessita correções: ${validation.errors.join(", ")}`,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

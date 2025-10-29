@@ -65,13 +65,16 @@ AION is an enterprise-grade autonomous AI system designed for multi-tenant envir
 
 **Current Status: ✅ FULLY FUNCTIONAL** (as of October 29, 2025)
 - Server running on port 5000
-- All 20 API endpoints operational
+- All 26 API endpoints operational (including GPU + Training endpoints)
 - Frontend (Chat + Admin) fully functional
 - Auto-fallback patterns updated to detect all OpenAI refusals
 - Chat persistence implemented (messages saved to database)
 - Input border visibility improved (border-2 border-primary/60)
 - **Professional Video Generation** - GPU-backed async job system with Open-Sora/AnimateDiff support (requires external GPU worker)
 - **Web Content Search & Display** - Search and display videos/images/documents from web/deepweb in interactive lists
+- **✨ FREE GPU & API INTEGRATION COMPLETE** - Groq/Gemini/HF APIs + Colab/Kaggle/Modal GPU rotation (~500h GPU + 500k LLM req/month FREE)
+- **✨ LoRA FINE-TUNING SYSTEM** - Complete training pipeline with data collection, JSONL export, and ready-to-use Colab notebooks
+- **✨ GPU ORCHESTRATOR** - Automatic rotation between Colab (Mon-Wed), Kaggle (Thu-Fri), Modal (Sat-Sun) with health checks
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -88,7 +91,7 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 **Backend (Node.js + TypeScript):**
 - **Framework**: Express.js with TypeScript (strict mode, ESM modules).
 - **Database**: PostgreSQL via Drizzle ORM (Neon serverless).
-- **Core Services**: LLM Client (OpenAI integration with streaming, caching), Storage Layer, RAG Service (in-memory FAISS-like vector store), Agent Engine (ReAct with POMDP), Policy Enforcement (system prompt composition, output moderation), Automatic Fallback (refusal detection, web search, KB indexing), Multimodal Processor (document handling), Web Content Discovery (SearchVideos, SearchImages, SearchWeb, TorSearch).
+- **Core Services**: LLM Client (OpenAI integration with streaming, caching), Storage Layer, RAG Service (in-memory FAISS-like vector store), Agent Engine (ReAct with POMDP), Policy Enforcement (system prompt composition, output moderation), Automatic Fallback (refusal detection, web search, KB indexing), Multimodal Processor (document handling), Web Content Discovery (SearchVideos, SearchImages, SearchWeb, TorSearch), Free LLM Providers (Groq/Gemini/HF rotation), GPU Orchestrator (Colab/Kaggle/Modal scheduling), Training Data Collector (conversation→JSONL pipeline).
 - **Middleware**: Rate limiting, audit logging, API key authentication, request/response logging.
 
 **RAG (Retrieval-Augmented Generation):**
@@ -117,6 +120,15 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **Storage**: video_jobs and video_assets tables with 1-hour expiry
 - **Documentation**: Complete deployment guide in GPU_WORKER_SETUP.md (RunPod/Modal/Self-hosted)
 - **API Endpoints**: POST /api/videos/generate, GET /api/videos/jobs/:id, GET /api/videos/:id, POST /api/videos/webhook
+
+**Free LLM & GPU Infrastructure System:**
+- **Free APIs**: Groq (14.4k req/day), Gemini (1.5k req/day), HuggingFace (720 req/day) with automatic fallback and usage tracking
+- **GPU Orchestrator**: Automatic rotation between Colab (Mon-Wed), Kaggle (Thu-Fri), Modal (Sat-Sun) with health checks and failover
+- **Training Pipeline**: Automatic conversation collection → JSONL export → LoRA fine-tuning on Llama-3-8B
+- **Colab Notebooks**: Ready-to-use templates for fine-tuning (8-12h on T4) and FastAPI inference server with Ngrok
+- **Total Resources**: ~500h GPU/month + ~500k LLM requests/month = **$0 cost**
+- **API Endpoints**: GET /api/llm/status, GET /api/gpu/status, POST /api/gpu/register, POST /api/training/prepare, GET /api/training/stats
+- **Documentation**: Complete setup guide in docs/SETUP_GUIDE.md with step-by-step instructions
 
 ### System Design Choices
 - **Multi-tenancy**: Complete isolation of data and policies per tenant.
