@@ -17,10 +17,26 @@ import { documents } from '@shared/schema';
 import { sql } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { trackTokenUsage } from '../monitoring/token-tracker';
+import { z } from 'zod';
 
 // ============================================================================
-// TYPES
+// TYPES & VALIDATION
 // ============================================================================
+
+// Zod schema for web search metadata validation
+const WebSearchMetadataSchema = z.object({
+  query: z.string(),
+  sources: z.array(z.object({
+    url: z.string().url(),
+    title: z.string(),
+    snippet: z.string(),
+    domain: z.string()
+  })),
+  resultsCount: z.number().int().min(0),
+  indexedDocuments: z.number().int().min(0)
+});
+
+export type WebSearchMetadata = z.infer<typeof WebSearchMetadataSchema>;
 
 export interface PriorityRequest {
   messages: Array<{ role: string; content: string }>;
@@ -196,19 +212,13 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       // Execute automatic web fallback
       const webFallback = await executeWebFallback(userMessage, req.tenantId);
       
-      // Track web fallback usage with metadata
-      await trackTokenUsage({
-        tenantId: req.tenantId,
-        provider: 'web' as any,
-        model: webFallback.model,
-        promptTokens: 0,
-        completionTokens: 0,
-        totalTokens: 0,
-        cost: 0,
-        requestType: 'search',
-        success: true,
-        metadata: webFallback.searchMetadata
-      });
+      // Track web fallback usage with validated metadata
+      await trackWebSearch(
+        req.tenantId,
+        'web',
+        webFallback.model,
+        webFallback.searchMetadata
+      );
       
       console.log('   ✅ Web fallback completed successfully!');
       console.log('='.repeat(80) + '\n');
@@ -314,19 +324,13 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
     
     const webFallback = await executeWebFallback(userMessage, req.tenantId);
     
-    // Track web fallback usage with metadata
-    await trackTokenUsage({
-      tenantId: req.tenantId,
-      provider: 'web' as any,
-      model: webFallback.model,
-      promptTokens: 0,
-      completionTokens: 0,
-      totalTokens: 0,
-      cost: 0,
-      requestType: 'search',
-      success: true,
-      metadata: webFallback.searchMetadata
-    });
+    // Track web fallback usage with validated metadata
+    await trackWebSearch(
+      req.tenantId,
+      'web',
+      webFallback.model,
+      webFallback.searchMetadata
+    );
     
     console.log('   ✅ Web fallback completed successfully!');
     console.log('='.repeat(80) + '\n');
@@ -417,17 +421,48 @@ interface WebFallbackResult {
   provider: string;
   model: string;
   documentsIndexed: number;
-  searchMetadata?: {
-    query: string;
-    sources: Array<{
-      url: string;
-      title: string;
-      snippet?: string;
-      domain?: string;
-    }>;
-    resultsCount: number;
-    indexedDocuments?: number;
-  };
+  searchMetadata: WebSearchMetadata; // Always required for proper tracking
+}
+
+// Helper function to validate and track web searches safely
+async function trackWebSearch(
+  tenantId: number,
+  provider: 'web' | 'deepweb',
+  model: string,
+  metadata: unknown
+): Promise<void> {
+  try {
+    // Validate metadata structure
+    const validatedMetadata = WebSearchMetadataSchema.parse(metadata);
+    
+    // Track with validated metadata
+    await trackTokenUsage({
+      tenantId,
+      provider,
+      model,
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      cost: 0,
+      requestType: 'search',
+      success: true,
+      metadata: validatedMetadata
+    });
+  } catch (error) {
+    console.error('[Priority Orchestrator] Failed to validate/track web search metadata:', error);
+    // Fallback: track without metadata to avoid losing the search count
+    await trackTokenUsage({
+      tenantId,
+      provider,
+      model,
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      cost: 0,
+      requestType: 'search',
+      success: false
+    });
+  }
 }
 
 async function executeWebFallback(
