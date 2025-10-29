@@ -2,11 +2,12 @@
  * Free LLM Providers - 100% Grátis!
  * 
  * Implementa fallback automático entre APIs gratuitas:
- * 1. Groq (14,400 req/dia = ~432k req/mês)
- * 2. Gemini (1,500 req/dia = ~45k req/mês)
- * 3. HuggingFace (~720 req/dia = ~21.6k req/mês)
+ * 1. OpenRouter (50-1000 req/dia, DeepSeek R1, Llama 4, Gemini, etc.)
+ * 2. Groq (14,400 req/dia = ~432k req/mês, Llama 3.1 70B)
+ * 3. Gemini (1,500 req/dia = ~45k req/mês, Gemini 1.5 Flash)
+ * 4. HuggingFace (~720 req/dia = ~21.6k req/mês, Mistral 7B)
  * 
- * TOTAL: ~500k requisições/mês GRÁTIS!
+ * TOTAL: ~500k+ requisições/mês GRÁTIS!
  * 
  * Documentação: docs/FREE_GPU_API_STRATEGY.md
  */
@@ -14,6 +15,7 @@
 import Groq from "groq-sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { HfInference } from "@huggingface/inference";
+import OpenAI from "openai";
 import type { ChatMessage, ChatCompletionResult } from "./llm-client";
 
 interface ProviderUsage {
@@ -23,12 +25,14 @@ interface ProviderUsage {
 }
 
 export class FreeLLMProviders {
+  private openrouter: OpenAI | null = null;
   private groq: Groq | null = null;
   private gemini: GoogleGenerativeAI | null = null;
   private hf: HfInference | null = null;
 
   // Limites diários gratuitos
   private usage = {
+    openrouter: { daily: 0, limit: 50, lastReset: new Date() } as ProviderUsage, // 50 req/dia grátis (1000 com $10+ créditos)
     groq: { daily: 0, limit: 14400, lastReset: new Date() } as ProviderUsage,
     gemini: { daily: 0, limit: 1500, lastReset: new Date() } as ProviderUsage,
     hf: { daily: 0, limit: 720, lastReset: new Date() } as ProviderUsage,
@@ -39,6 +43,22 @@ export class FreeLLMProviders {
   }
 
   private initializeProviders(): void {
+    // OpenRouter API (400+ modelos via único endpoint)
+    const openrouterKey = process.env.OPEN_ROUTER_API_KEY;
+    if (openrouterKey) {
+      this.openrouter = new OpenAI({
+        baseURL: "https://openrouter.ai/api/v1",
+        apiKey: openrouterKey,
+        defaultHeaders: {
+          "HTTP-Referer": "https://aion.replit.dev", // Seu app URL
+          "X-Title": "AION - AI Suprema",
+        },
+      });
+      console.log("[Free LLM] ✓ OpenRouter API inicializada (50 req/dia grátis, 400+ modelos)");
+    } else {
+      console.warn("[Free LLM] ⚠️  OPEN_ROUTER_API_KEY não encontrada");
+    }
+
     // Groq API
     const groqKey = process.env.GROQ_API_KEY;
     if (groqKey) {
@@ -106,6 +126,12 @@ export class FreeLLMProviders {
     this.resetDailyUsageIfNeeded();
     
     return {
+      openrouter: {
+        available: this.openrouter !== null && this.hasCredits('openrouter'),
+        used: this.usage.openrouter.daily,
+        limit: this.usage.openrouter.limit,
+        remaining: this.usage.openrouter.limit - this.usage.openrouter.daily,
+      },
       groq: {
         available: this.groq !== null && this.hasCredits('groq'),
         used: this.usage.groq.daily,
@@ -124,6 +150,44 @@ export class FreeLLMProviders {
         limit: this.usage.hf.limit,
         remaining: this.usage.hf.limit - this.usage.hf.daily,
       },
+    };
+  }
+
+  /**
+   * OpenRouter Chat Completion (DeepSeek R1:free ou outro modelo grátis)
+   */
+  private async openrouterChat(messages: ChatMessage[]): Promise<ChatCompletionResult> {
+    if (!this.openrouter) throw new Error("OpenRouter not initialized");
+    
+    const startTime = Date.now();
+    
+    // Usar modelo GRATUITO do OpenRouter (DeepSeek R1 é um dos melhores free)
+    // Lista completa: https://openrouter.ai/models?q=free
+    const completion = await this.openrouter.chat.completions.create({
+      model: "deepseek/deepseek-r1:free", // Modelo grátis, MIT licensed, excelente para coding
+      messages: messages.map(m => ({
+        role: m.role as "system" | "user" | "assistant",
+        content: m.content,
+      })),
+      temperature: 0.7,
+      max_tokens: 2048,
+    });
+
+    this.incrementUsage('openrouter');
+
+    const choice = completion.choices[0];
+    const usage = completion.usage!;
+
+    return {
+      content: choice.message.content || "",
+      usage: {
+        promptTokens: usage.prompt_tokens,
+        completionTokens: usage.completion_tokens,
+        totalTokens: usage.total_tokens,
+      },
+      finishReason: choice.finish_reason as string,
+      latencyMs: Date.now() - startTime,
+      costUsd: 0, // GRÁTIS! 🎉
     };
   }
 
@@ -245,19 +309,31 @@ export class FreeLLMProviders {
    * Chat Completion com Fallback Automático
    * 
    * Ordem de tentativa:
-   * 1. Groq (mais rápido, 14.4k/dia)
-   * 2. Gemini (bom, 1.5k/dia)
-   * 3. HuggingFace (backup, 720/dia)
+   * 1. OpenRouter (400+ modelos, DeepSeek R1:free, 50/dia)
+   * 2. Groq (mais rápido, Llama 3.1 70B, 14.4k/dia)
+   * 3. Gemini (Google, Gemini 1.5 Flash, 1.5k/dia)
+   * 4. HuggingFace (backup, Mistral 7B, 720/dia)
    */
   async chatCompletion(messages: ChatMessage[]): Promise<ChatCompletionResult> {
     this.resetDailyUsageIfNeeded();
 
     const errors: string[] = [];
 
-    // 1. Tentar Groq primeiro (mais rápido e maior limite)
+    // 1. Tentar OpenRouter primeiro (400+ modelos, muito versátil)
+    if (this.openrouter && this.hasCredits('openrouter')) {
+      try {
+        console.log("[Free LLM] → Usando OpenRouter (DeepSeek R1:free)");
+        return await this.openrouterChat(messages);
+      } catch (error: any) {
+        errors.push(`OpenRouter: ${error.message}`);
+        console.warn("[Free LLM] ⚠️  OpenRouter falhou:", error.message);
+      }
+    }
+
+    // 2. Fallback para Groq (mais rápido e maior limite)
     if (this.groq && this.hasCredits('groq')) {
       try {
-        console.log("[Free LLM] → Usando Groq (Llama 3.1 70B)");
+        console.log("[Free LLM] → Fallback para Groq (Llama 3.1 70B)");
         return await this.groqChat(messages);
       } catch (error: any) {
         errors.push(`Groq: ${error.message}`);
@@ -265,7 +341,7 @@ export class FreeLLMProviders {
       }
     }
 
-    // 2. Fallback para Gemini
+    // 3. Fallback para Gemini
     if (this.gemini && this.hasCredits('gemini')) {
       try {
         console.log("[Free LLM] → Fallback para Gemini (1.5 Flash)");
@@ -276,7 +352,7 @@ export class FreeLLMProviders {
       }
     }
 
-    // 3. Fallback para HuggingFace
+    // 4. Fallback para HuggingFace
     if (this.hf && this.hasCredits('hf')) {
       try {
         console.log("[Free LLM] → Fallback para HuggingFace (Mistral 7B)");
@@ -292,6 +368,7 @@ export class FreeLLMProviders {
     throw new Error(
       `Todas as APIs gratuitas falharam ou sem créditos.\n` +
       `Status:\n` +
+      `- OpenRouter: ${status.openrouter.remaining}/${status.openrouter.limit} restantes\n` +
       `- Groq: ${status.groq.remaining}/${status.groq.limit} restantes\n` +
       `- Gemini: ${status.gemini.remaining}/${status.gemini.limit} restantes\n` +
       `- HF: ${status.hf.remaining}/${status.hf.limit} restantes\n` +
