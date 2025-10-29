@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
+import { AionLogo } from "@/components/AionLogo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -135,17 +136,10 @@ export default function AdminDashboard() {
             >
               <MessageSquare className="w-5 h-5" />
             </Button>
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-lg opacity-50" />
-                <div className="relative glass-premium p-2 rounded-full">
-                  <Shield className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold gradient-text">{t.admin.title}</h1>
-                <p className="text-xs text-muted-foreground">{t.admin.subtitle}</p>
-              </div>
+            <AionLogo size="md" showText={false} />
+            <div>
+              <h1 className="text-xl font-bold gradient-text">{t.admin.title}</h1>
+              <p className="text-xs text-muted-foreground">{t.admin.subtitle}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

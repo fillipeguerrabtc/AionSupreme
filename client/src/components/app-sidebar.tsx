@@ -12,9 +12,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { login, logout } from "@/lib/authUtils";
-import { LogIn, LogOut, Bot } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
 import { ProjectsSidebar } from "@/components/ProjectsSidebar";
+import { AionLogo } from "@/components/AionLogo";
 
 interface AppSidebarProps {
   currentConversationId: number | null;
@@ -44,17 +45,7 @@ export function AppSidebar({
   return (
     <Sidebar data-testid="app-sidebar">
       <SidebarHeader className="p-4 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-500">
-            <Bot className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-              AION
-            </h2>
-            <p className="text-xs text-muted">AI Assistant</p>
-          </div>
-        </div>
+        <AionLogo size="md" showText={true} />
       </SidebarHeader>
 
       <SidebarContent>

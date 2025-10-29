@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
-  Database, 
   Upload, 
   FileText, 
   Trash2, 
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Document } from "@shared/schema";
+import { AionLogo } from "@/components/AionLogo";
 
 export default function KnowledgeBasePage() {
   const { toast } = useToast();
@@ -153,17 +153,10 @@ export default function KnowledgeBasePage() {
             >
               <MessageSquare className="w-5 h-5" />
             </Button>
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-lg opacity-50" />
-                <div className="relative glass-premium p-2 rounded-full">
-                  <Database className="w-6 h-6 text-primary" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold gradient-text">Knowledge Base</h1>
-                <p className="text-xs text-muted-foreground">Gerenciar conhecimentos do AION</p>
-              </div>
+            <AionLogo size="md" showText={false} />
+            <div>
+              <h1 className="text-xl font-bold gradient-text">Knowledge Base</h1>
+              <p className="text-xs text-muted-foreground">Gerenciar conhecimentos do AION</p>
             </div>
           </div>
         </div>
@@ -208,19 +201,20 @@ export default function KnowledgeBasePage() {
             data-testid="button-upload-file"
           >
             <Upload className="w-4 h-4 mr-2" />
-            Upload Arquivo
+            Upload Arquivo(s)
           </Button>
           <input
             id="file-upload"
             type="file"
             accept=".pdf,.txt,.doc,.docx,.md"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
+              const files = e.target.files;
+              if (files && files.length > 0) {
                 toast({ 
                   title: "Em desenvolvimento",
-                  description: "Upload de arquivos será implementado em breve!",
+                  description: `${files.length} arquivo(s) selecionado(s). Upload será implementado em breve!`,
                 });
               }
             }}
