@@ -718,3 +718,54 @@ export const tokenAlerts = pgTable("token_alerts", {
 export const insertTokenAlertSchema = createInsertSchema(tokenAlerts).omit({ id: true, createdAt: true });
 export type InsertTokenAlert = z.infer<typeof insertTokenAlertSchema>;
 export type TokenAlert = typeof tokenAlerts.$inferSelect;
+
+// ============================================================================
+// GPU WORKERS - Multi-GPU pool management for load balancing and fallback
+// ============================================================================
+export const gpuWorkers = pgTable("gpu_workers", {
+  id: serial("id").primaryKey(),
+  
+  // Provider and identification
+  provider: text("provider").notNull(), // "colab" | "kaggle" | "modal" | "paperspace" | "lightning"
+  accountId: text("account_id"), // Google account email or unique identifier
+  ngrokUrl: text("ngrok_url").notNull().unique(),
+  
+  // Capabilities and configuration
+  capabilities: jsonb("capabilities").notNull().$type<{
+    tor_enabled: boolean;
+    model: string; // "llama-3-8b-lora" | "llama-3-8b" | "mistral-7b" etc
+    gpu: string; // "Tesla T4" | "A100" etc
+    vram_gb?: number;
+    max_concurrent?: number; // Max concurrent requests this GPU can handle
+  }>(),
+  
+  // Health and status
+  status: text("status").notNull().default("pending"), // "healthy" | "unhealthy" | "offline" | "pending"
+  lastHealthCheck: timestamp("last_health_check"),
+  lastHealthCheckError: text("last_health_check_error"), // Error message if unhealthy
+  
+  // Performance metrics
+  requestCount: integer("request_count").notNull().default(0),
+  totalLatencyMs: integer("total_latency_ms").notNull().default(0), // Sum for averaging
+  averageLatencyMs: real("average_latency_ms").notNull().default(0),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  lastUsedAt: timestamp("last_used_at"), // When last served a request
+}, (table) => ({
+  providerIdx: index("gpu_workers_provider_idx").on(table.provider),
+  statusIdx: index("gpu_workers_status_idx").on(table.status),
+  accountIdIdx: index("gpu_workers_account_id_idx").on(table.accountId),
+}));
+
+export const insertGpuWorkerSchema = createInsertSchema(gpuWorkers).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  requestCount: true,
+  totalLatencyMs: true,
+  averageLatencyMs: true,
+});
+export type InsertGpuWorker = z.infer<typeof insertGpuWorkerSchema>;
+export type GpuWorker = typeof gpuWorkers.$inferSelect;
