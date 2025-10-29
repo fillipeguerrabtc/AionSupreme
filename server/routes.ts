@@ -592,13 +592,21 @@ export function registerRoutes(app: Express): Server {
           const content = $("body").text().replace(/\s+/g, " ").trim();
 
           if (content.length > 100) {
+            // Limit to 50k chars to avoid overwhelming the system while getting more content
+            const finalContent = content.length > 50000 ? content.substring(0, 50000) : content;
+            
             const doc = await storage.createDocument({
               tenantId: tenant_id || 1,
               title: result.title,
-              content: content.substring(0, 10000), // Limit to 10k chars
+              content: finalContent,
               source: "web-search",
               status: "indexed",
-              metadata: { url: result.url, query },
+              metadata: { 
+                url: result.url, 
+                query,
+                originalLength: content.length,
+                truncated: content.length > 50000,
+              },
             });
 
             await knowledgeIndexer.indexDocument(doc.id, doc.content, tenant_id || 1);

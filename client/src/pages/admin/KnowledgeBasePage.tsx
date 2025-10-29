@@ -206,7 +206,7 @@ export default function KnowledgeBasePage() {
           <input
             id="file-upload"
             type="file"
-            accept=".pdf,.txt,.doc,.docx,.md"
+            accept=".pdf,.txt,.doc,.docx,.md,.xlsx,.xls,.png,.jpg,.jpeg,.gif,.webp"
             multiple
             className="hidden"
             onChange={(e) => {
