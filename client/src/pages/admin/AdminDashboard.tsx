@@ -38,6 +38,11 @@ export default function AdminDashboard() {
     },
   });
 
+  // Fetch documents count for Knowledge Base stats
+  const { data: documentsData } = useQuery({
+    queryKey: ["/api/admin/documents/1"],
+  });
+
   const updatePolicy = useMutation({
     mutationFn: async (updates: any) => {
       // Merge policy with updates, but exclude timestamp fields (backend manages these)
@@ -333,25 +338,23 @@ export default function AdminDashboard() {
               <FileText className="w-4 h-4 mr-2" />
               Gerenciar Knowledge Base
             </Button>
-            <Button
-              onClick={() => indexPDFs.mutate()}
-              disabled={indexPDFs.isPending}
-              variant="secondary"
-              className="w-full hover:scale-105 active:scale-95 transition-all duration-300"
-              data-testid="button-index-pdfs"
-            >
-              {indexPDFs.isPending ? (
-                <>
-                  <Activity className="w-4 h-4 mr-2 animate-spin" />
-                  {t.admin.indexing}
-                </>
-              ) : (
-                <>
-                  <Database className="w-4 h-4 mr-2" />
-                  {t.admin.indexPDFs} (7 PDFs Técnicos)
-                </>
-              )}
-            </Button>
+            <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-accent/20">
+                  <FileText className="w-5 h-5 text-accent" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Total de Documentos</p>
+                  <p className="text-2xl font-bold gradient-text-vibrant">
+                    {Array.isArray(documentsData) ? documentsData.length : 0}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Knowledge Base</p>
+                <p className="text-sm font-medium text-accent">Indexados</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
