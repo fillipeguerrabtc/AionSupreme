@@ -43,14 +43,18 @@ export class FreeLLMProviders {
   }
 
   private initializeProviders(): void {
+    console.log("[Free LLM] 🔍 Verificando API Keys disponíveis...");
+    console.log("[Free LLM] DEBUG - process.env keys:", Object.keys(process.env).filter(k => k.includes('API_KEY') || k.includes('KEY')));
+    
     // OpenRouter API (400+ modelos via único endpoint)
     const openrouterKey = process.env.OPEN_ROUTER_API_KEY;
+    console.log(`[Free LLM] DEBUG - OPEN_ROUTER_API_KEY: ${openrouterKey ? `[PRESENTE - ${openrouterKey.substring(0, 10)}...]` : '[NÃO ENCONTRADA]'}`);
     if (openrouterKey) {
       this.openrouter = new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
         apiKey: openrouterKey,
         defaultHeaders: {
-          "HTTP-Referer": "https://aion.replit.dev", // Seu app URL
+          "HTTP-Referer": "https://aion.replit.dev",
           "X-Title": "AION - AI Suprema",
         },
       });
@@ -61,6 +65,7 @@ export class FreeLLMProviders {
 
     // Groq API
     const groqKey = process.env.GROQ_API_KEY;
+    console.log(`[Free LLM] DEBUG - GROQ_API_KEY: ${groqKey ? `[PRESENTE - ${groqKey.substring(0, 10)}...]` : '[NÃO ENCONTRADA]'}`);
     if (groqKey) {
       this.groq = new Groq({ apiKey: groqKey });
       console.log("[Free LLM] ✓ Groq API inicializada (14.4k req/dia)");
@@ -70,6 +75,7 @@ export class FreeLLMProviders {
 
     // Gemini API
     const geminiKey = process.env.GEMINI_API_KEY;
+    console.log(`[Free LLM] DEBUG - GEMINI_API_KEY: ${geminiKey ? `[PRESENTE - ${geminiKey.substring(0, 10)}...]` : '[NÃO ENCONTRADA]'}`);
     if (geminiKey) {
       this.gemini = new GoogleGenerativeAI(geminiKey);
       console.log("[Free LLM] ✓ Gemini API inicializada (1.5k req/dia)");
@@ -79,11 +85,26 @@ export class FreeLLMProviders {
 
     // HuggingFace API
     const hfKey = process.env.HUGGINGFACE_API_KEY;
+    console.log(`[Free LLM] DEBUG - HUGGINGFACE_API_KEY: ${hfKey ? `[PRESENTE - ${hfKey.substring(0, 10)}...]` : '[NÃO ENCONTRADA]'}`);
     if (hfKey) {
       this.hf = new HfInference(hfKey);
       console.log("[Free LLM] ✓ HuggingFace API inicializada (~720 req/dia)");
     } else {
       console.warn("[Free LLM] ⚠️  HUGGINGFACE_API_KEY não encontrada");
+    }
+    
+    // Resumo final
+    const initialized = [
+      this.openrouter ? 'OpenRouter' : null,
+      this.groq ? 'Groq' : null,
+      this.gemini ? 'Gemini' : null,
+      this.hf ? 'HuggingFace' : null,
+    ].filter(Boolean);
+    
+    if (initialized.length > 0) {
+      console.log(`[Free LLM] ✅ ${initialized.length} APIs inicializadas: ${initialized.join(', ')}`);
+    } else {
+      console.error("[Free LLM] ❌ NENHUMA API gratuita foi inicializada! Adicione as keys nos Secrets do Replit.");
     }
   }
 
