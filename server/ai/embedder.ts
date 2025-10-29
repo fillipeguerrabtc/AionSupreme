@@ -173,7 +173,7 @@ const CACHE_SIZE = 1000;
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 export async function embedTextCached(text: string): Promise<number[]> {
-  const cacheKey = text.substring(0, 500); // Use first 500 chars as key
+  const cacheKey = (text || '').substring(0, 500); // Use first 500 chars as key
 
   // Check cache
   const cached = embeddingCache.get(cacheKey);
