@@ -131,6 +131,26 @@ interface WebSearchStats {
   deepweb: WebSearchProviderStats;
 }
 
+interface KBSearchHistoryEntry {
+  id: number;
+  query: string;
+  resultsCount: number;
+  confidence?: number;
+  success: boolean;
+  timestamp: string;
+}
+
+interface FreeAPIHistoryEntry {
+  id: number;
+  provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter';
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  success: boolean;
+  timestamp: string;
+}
+
 // Color palette for charts
 const COLORS = {
   groq: '#f55036',
@@ -185,6 +205,24 @@ export default function TokenMonitoring() {
   // Fetch web search stats
   const { data: webStats, isLoading: webStatsLoading } = useQuery<WebSearchStats>({
     queryKey: ['/api/tokens/web-search-stats']
+  });
+
+  // Fetch KB search history
+  const { data: kbHistory } = useQuery<KBSearchHistoryEntry[]>({
+    queryKey: ['/api/tokens/kb-history'],
+    queryFn: async () => {
+      const res = await apiRequest('/api/tokens/kb-history?limit=100');
+      return res.json();
+    }
+  });
+
+  // Fetch Free APIs history
+  const { data: freeAPIsHistory } = useQuery<FreeAPIHistoryEntry[]>({
+    queryKey: ['/api/tokens/free-apis-history'],
+    queryFn: async () => {
+      const res = await apiRequest('/api/tokens/free-apis-history?limit=100');
+      return res.json();
+    }
   });
 
   // Type-safe helper functions
@@ -273,6 +311,10 @@ export default function TokenMonitoring() {
         <TabsTrigger value="overview" data-testid="tab-overview">
           <BarChart3 className="w-4 h-4 mr-2" />
           Overview
+        </TabsTrigger>
+        <TabsTrigger value="kb" data-testid="tab-kb">
+          <Database className="w-4 h-4 mr-2" />
+          KB Searches
         </TabsTrigger>
         <TabsTrigger value="free-apis" data-testid="tab-free-apis">
           <Zap className="w-4 h-4 mr-2" />
@@ -625,7 +667,7 @@ export default function TokenMonitoring() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-accent" />
-              Free APIs Usage History
+              Free APIs Usage Trends
             </CardTitle>
             <CardDescription>Daily consumption per provider</CardDescription>
           </CardHeader>
@@ -643,6 +685,144 @@ export default function TokenMonitoring() {
                 <Line type="monotone" dataKey="openrouter" stroke={COLORS.openrouter} name="OpenRouter" />
               </LineChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Free APIs Detailed History */}
+        <Card className="glass-premium border-accent/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-accent" />
+              Detailed Usage History
+            </CardTitle>
+            <CardDescription>
+              Recent Free API requests with token consumption
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {freeAPIsHistory && freeAPIsHistory.length > 0 ? (
+              <ScrollArea className="h-[600px] pr-4">
+                <div className="space-y-4">
+                  {freeAPIsHistory.map((entry) => (
+                    <Card key={entry.id} className="glass border-primary/10 hover-elevate">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-sm font-medium">
+                              {entry.provider.charAt(0).toUpperCase() + entry.provider.slice(1)}
+                            </CardTitle>
+                            <CardDescription className="text-xs mt-1">
+                              {new Date(entry.timestamp).toLocaleString()} • {entry.model}
+                            </CardDescription>
+                          </div>
+                          <Badge 
+                            variant={entry.success ? "default" : "destructive"} 
+                            className="shrink-0"
+                            style={entry.success ? { backgroundColor: COLORS[entry.provider as keyof typeof COLORS] } : undefined}
+                          >
+                            {entry.success ? 'Success' : 'Failed'}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Prompt:</span>
+                            <span className="ml-2 font-medium">{entry.promptTokens}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Completion:</span>
+                            <span className="ml-2 font-medium">{entry.completionTokens}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Total:</span>
+                            <span className="ml-2 font-medium">{entry.totalTokens}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Zap className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No Free API usage recorded yet</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* KB SEARCHES TAB */}
+      <TabsContent value="kb" className="space-y-6">
+        <Card className="glass-premium border-accent/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="w-5 h-5" style={{ color: COLORS.kb }} />
+              Knowledge Base Search History
+            </CardTitle>
+            <CardDescription>
+              All KB search attempts (successes and failures)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {kbHistory && kbHistory.length > 0 ? (
+              <ScrollArea className="h-[600px] pr-4">
+                <div className="space-y-4">
+                  {kbHistory.map((entry) => (
+                    <Card key={entry.id} className="glass border-primary/10 hover-elevate">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-sm font-medium truncate">
+                              {entry.query || 'No query text'}
+                            </CardTitle>
+                            <CardDescription className="text-xs mt-1">
+                              {new Date(entry.timestamp).toLocaleString()}
+                            </CardDescription>
+                          </div>
+                          <Badge variant={entry.success ? "default" : "secondary"} className="shrink-0">
+                            {entry.success ? (
+                              <span className="flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Hit
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3" />
+                                Miss
+                              </span>
+                            )}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Results Found:</span>
+                            <span className="ml-2 font-medium">{entry.resultsCount}</span>
+                          </div>
+                          {entry.confidence !== undefined && (
+                            <div>
+                              <span className="text-muted-foreground">Confidence:</span>
+                              <span className="ml-2 font-medium">
+                                {(entry.confidence * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No KB searches recorded yet</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </TabsContent>
