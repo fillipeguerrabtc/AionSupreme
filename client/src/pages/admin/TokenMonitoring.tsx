@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -48,6 +47,90 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
+// TypeScript interfaces for API responses - Matching backend implementations
+
+interface UsageMetrics {
+  tokens: number;
+  requests: number;
+  cost: number;
+  errors?: number;
+}
+
+interface UsageSummary {
+  provider: string;
+  today: UsageMetrics;
+  month: UsageMetrics;
+  limits?: {
+    dailyTokenLimit?: number | null;
+    monthlyTokenLimit?: number | null;
+    dailyCostLimit?: number | null;
+    monthlyCostLimit?: number | null;
+  };
+  status: 'ok' | 'warning' | 'critical';
+  percentage: number;
+}
+
+interface ProviderQuota {
+  provider: string;
+  dailyLimit: number;
+  used: number;
+  remaining: number;
+  percentage: number;
+  resetTime: Date | string;
+}
+
+interface TrendDataPoint {
+  date: string;
+  [provider: string]: number | string; // Dynamic provider names
+}
+
+interface TokenTrends {
+  daily: TrendDataPoint[];
+  period_days?: number;
+}
+
+interface TokenAlert {
+  id: number;
+  type: 'daily_tokens' | 'daily_cost' | 'monthly_tokens' | 'monthly_cost';
+  threshold: number;
+  current_value: number;
+  message: string;
+  acknowledged: boolean;
+  created_at: string;
+}
+
+interface WebSearchSource {
+  url: string;
+  title: string;
+  snippet: string;
+  domain: string;
+}
+
+interface WebSearchRecord {
+  id: number;
+  query: string;
+  provider: 'web' | 'deepweb';
+  timestamp: string;
+  metadata?: {
+    query?: string;
+    results_count?: number;
+    indexed_count?: number;
+    sources?: WebSearchSource[];
+  };
+}
+
+interface WebSearchProviderStats {
+  totalSearches: number;
+  successfulSearches: number;
+  totalSources: number;
+  uniqueDomains: number;
+}
+
+interface WebSearchStats {
+  web: WebSearchProviderStats;
+  deepweb: WebSearchProviderStats;
+}
+
 // Color palette for charts
 const COLORS = {
   groq: '#f55036',
@@ -64,20 +147,20 @@ export default function TokenMonitoring() {
   const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState(30);
 
-  // Fetch token summary
-  const { data: summary, isLoading: summaryLoading } = useQuery({
+  // Fetch token summary - returns array of UsageSummary
+  const { data: summary, isLoading: summaryLoading } = useQuery<UsageSummary[]>({
     queryKey: ['/api/tokens/summary'],
     refetchInterval: 30000 // Refresh every 30s
   });
 
-  // Fetch quotas
-  const { data: quotas, isLoading: quotasLoading } = useQuery({
+  // Fetch quotas - returns array of ProviderQuota
+  const { data: quotas, isLoading: quotasLoading } = useQuery<ProviderQuota[]>({
     queryKey: ['/api/tokens/quotas'],
     refetchInterval: 60000 // Refresh every minute
   });
 
   // Fetch trends
-  const { data: trends, isLoading: trendsLoading } = useQuery({
+  const { data: trends, isLoading: trendsLoading } = useQuery<TokenTrends>({
     queryKey: ['/api/tokens/trends', selectedPeriod],
     queryFn: async () => {
       const res = await apiRequest(`/api/tokens/trends?days=${selectedPeriod}`);
@@ -86,12 +169,12 @@ export default function TokenMonitoring() {
   });
 
   // Fetch alerts
-  const { data: alerts, isLoading: alertsLoading } = useQuery({
+  const { data: alerts, isLoading: alertsLoading } = useQuery<TokenAlert[]>({
     queryKey: ['/api/tokens/alerts']
   });
 
   // Fetch web search history
-  const { data: webHistory, isLoading: webHistoryLoading } = useQuery({
+  const { data: webHistory, isLoading: webHistoryLoading } = useQuery<WebSearchRecord[]>({
     queryKey: ['/api/tokens/web-search-history', selectedPeriod],
     queryFn: async () => {
       const res = await apiRequest(`/api/tokens/web-search-history?days=${selectedPeriod}`);
@@ -100,9 +183,36 @@ export default function TokenMonitoring() {
   });
 
   // Fetch web search stats
-  const { data: webStats, isLoading: webStatsLoading } = useQuery({
+  const { data: webStats, isLoading: webStatsLoading } = useQuery<WebSearchStats>({
     queryKey: ['/api/tokens/web-search-stats']
   });
+
+  // Type-safe helper functions
+  const getTotalTokens = () => summary?.reduce((acc, s) => acc + s.today.tokens, 0) ?? 0;
+  const getTotalCost = () => summary?.reduce((acc, s) => acc + s.today.cost, 0) ?? 0;
+  const getTotalRequests = () => summary?.reduce((acc, s) => acc + s.today.requests, 0) ?? 0;
+  
+  const getProviderSummary = (provider: string) => summary?.find(s => s.provider === provider);
+  const getProviderQuota = (provider: string) => quotas?.find(q => q.provider === provider);
+  
+  const getWebSearchCount = () => webStats?.web?.totalSearches ?? 0;
+  const getWebResultsCount = () => webStats?.web?.totalSources ?? 0;
+  const getDeepWebSearchCount = () => webStats?.deepweb?.totalSearches ?? 0;
+  
+  const getWebSearchHistory = () => webHistory?.filter(w => w.provider === 'web') ?? [];
+  const getDeepWebSearchHistory = () => webHistory?.filter(w => w.provider === 'deepweb') ?? [];
+  
+  // Prepare chart data - convert summary array to chart-friendly format
+  const getProviderChartData = () => {
+    if (!summary) return [];
+    return summary
+      .filter(s => s.today.tokens > 0) // Only show providers with usage
+      .map(s => ({
+        provider: s.provider,
+        totalTokens: s.today.tokens,
+        name: s.provider.charAt(0).toUpperCase() + s.provider.slice(1)
+      }));
+  };
 
   // Acknowledge alert mutation
   const acknowledgeAlert = useMutation({
@@ -189,16 +299,16 @@ export default function TokenMonitoring() {
       {/* OVERVIEW TAB */}
       <TabsContent value="overview" className="space-y-6">
         {/* Active Alerts */}
-        {Array.isArray(alerts) && ((alerts as any) || []).length > 0 && (
+        {alerts && alerts.length > 0 && (
           <Alert className="border-yellow-500/50 bg-yellow-500/10">
             <AlertCircle className="h-4 w-4 text-yellow-500" />
             <AlertDescription>
               <div className="flex items-center justify-between">
-                <span className="font-medium">{((alerts as any) || []).length} active alert(s)</span>
+                <span className="font-medium">{alerts.length} active alert(s)</span>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => alerts.forEach((a: any) => acknowledgeAlert.mutate(a.id))}
+                  onClick={() => alerts.forEach((a) => acknowledgeAlert.mutate(a.id))}
                 >
                   Dismiss All
                 </Button>
@@ -217,7 +327,7 @@ export default function TokenMonitoring() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold gradient-text">
-                {((summary as any)?.totalTokens || 0).toLocaleString()}
+                {getTotalTokens().toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">All providers</p>
             </CardContent>
@@ -231,7 +341,7 @@ export default function TokenMonitoring() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold gradient-text">
-                ${((summary as any)?.totalCost || 0).toFixed(4)}
+                ${getTotalCost().toFixed(4)}
               </div>
               <p className="text-xs text-muted-foreground">OpenAI only</p>
             </CardContent>
@@ -245,10 +355,10 @@ export default function TokenMonitoring() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold gradient-text">
-                {(webStats as any)?.webSearches || 0}
+                {getWebSearchCount()}
               </div>
               <p className="text-xs text-muted-foreground">
-                {(webStats as any)?.totalResults || 0} results indexed
+                {getWebResultsCount()} results indexed
               </p>
             </CardContent>
           </Card>
@@ -261,7 +371,7 @@ export default function TokenMonitoring() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold gradient-text">
-                {(webStats as any)?.deepwebSearches || 0}
+                {getDeepWebSearchCount()}
               </div>
               <p className="text-xs text-muted-foreground">Tor network queries</p>
             </CardContent>
@@ -281,7 +391,7 @@ export default function TokenMonitoring() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={((summary as any)?.byProvider || []) || []}
+                  data={getProviderChartData()}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -290,7 +400,7 @@ export default function TokenMonitoring() {
                   fill="#8884d8"
                   dataKey="totalTokens"
                 >
-                  {(((summary as any)?.byProvider || []) || []).map((entry: any, index: number) => (
+                  {getProviderChartData().map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[entry.provider as keyof typeof COLORS] || '#888888'} />
                   ))}
                 </Pie>
@@ -333,7 +443,7 @@ export default function TokenMonitoring() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={((trends as any)?.daily || []) || []}>
+              <AreaChart data={trends?.daily ?? []}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                 <XAxis dataKey="date" />
                 <YAxis />
@@ -350,7 +460,7 @@ export default function TokenMonitoring() {
       <TabsContent value="free-apis" className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2">
           {/* Groq */}
-          {((quotas as any)?.providers || {})?.groq && (
+          {getProviderQuota('groq') && (
             <Card className="glass-premium border-accent/20">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -358,7 +468,7 @@ export default function TokenMonitoring() {
                     <Zap className="w-5 h-5" style={{ color: COLORS.groq }} />
                     Groq
                   </span>
-                  <Badge variant="outline">{(quotas as any)?.providers || {}.groq.remaining.toLocaleString()} remaining</Badge>
+                  <Badge variant="outline">{getProviderQuota('groq')?.remaining.toLocaleString()} remaining</Badge>
                 </CardTitle>
                 <CardDescription>Ultra-fast inference (14,400 req/day)</CardDescription>
               </CardHeader>
@@ -367,22 +477,22 @@ export default function TokenMonitoring() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Daily Usage</span>
                     <span className="text-sm font-medium">
-                      {(quotas as any)?.providers || {}.groq.used.toLocaleString()} / {(quotas as any)?.providers || {}.groq.limit.toLocaleString()}
+                      {getProviderQuota('groq')?.used.toLocaleString()} / {getProviderQuota('groq')?.dailyLimit.toLocaleString()}
                     </span>
                   </div>
                   <Progress 
-                    value={((quotas as any)?.providers || {}.groq.used / (quotas as any)?.providers || {}.groq.limit) * 100} 
+                    value={getProviderQuota('groq')?.percentage ?? 0} 
                     className="h-2"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div>
                     <p className="text-xs text-muted-foreground">Total Requests</p>
-                    <p className="text-lg font-bold">{((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'groq')?.totalRequests || 0}</p>
+                    <p className="text-lg font-bold">{getProviderSummary('groq')?.today.requests ?? 0}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Total Tokens</p>
-                    <p className="text-lg font-bold">{(((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'groq')?.totalTokens || 0).toLocaleString()}</p>
+                    <p className="text-lg font-bold">{(getProviderSummary('groq')?.today.tokens ?? 0).toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -390,7 +500,7 @@ export default function TokenMonitoring() {
           )}
 
           {/* Gemini */}
-          {((quotas as any)?.providers || {})?.gemini && (
+          {getProviderQuota('gemini') && (
             <Card className="glass-premium border-accent/20">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -398,7 +508,7 @@ export default function TokenMonitoring() {
                     <Database className="w-5 h-5" style={{ color: COLORS.gemini }} />
                     Gemini
                   </span>
-                  <Badge variant="outline">{(quotas as any)?.providers || {}.gemini.remaining.toLocaleString()} remaining</Badge>
+                  <Badge variant="outline">{getProviderQuota('gemini')?.remaining.toLocaleString()} remaining</Badge>
                 </CardTitle>
                 <CardDescription>Google's AI (1,500 req/day)</CardDescription>
               </CardHeader>
@@ -407,22 +517,22 @@ export default function TokenMonitoring() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Daily Usage</span>
                     <span className="text-sm font-medium">
-                      {(quotas as any)?.providers || {}.gemini.used.toLocaleString()} / {(quotas as any)?.providers || {}.gemini.limit.toLocaleString()}
+                      {getProviderQuota('gemini')?.used.toLocaleString()} / {getProviderQuota('gemini')?.dailyLimit.toLocaleString()}
                     </span>
                   </div>
                   <Progress 
-                    value={((quotas as any)?.providers || {}.gemini.used / (quotas as any)?.providers || {}.gemini.limit) * 100} 
+                    value={getProviderQuota('gemini')?.percentage ?? 0} 
                     className="h-2"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div>
                     <p className="text-xs text-muted-foreground">Total Requests</p>
-                    <p className="text-lg font-bold">{((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'gemini')?.totalRequests || 0}</p>
+                    <p className="text-lg font-bold">{getProviderSummary('gemini')?.today.requests ?? 0}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Total Tokens</p>
-                    <p className="text-lg font-bold">{(((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'gemini')?.totalTokens || 0).toLocaleString()}</p>
+                    <p className="text-lg font-bold">{(getProviderSummary('gemini')?.today.tokens ?? 0).toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -430,7 +540,7 @@ export default function TokenMonitoring() {
           )}
 
           {/* HuggingFace */}
-          {((quotas as any)?.providers || {})?.huggingface && (
+          {getProviderQuota('huggingface') && (
             <Card className="glass-premium border-accent/20">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -438,7 +548,7 @@ export default function TokenMonitoring() {
                     <Activity className="w-5 h-5" style={{ color: COLORS.huggingface }} />
                     HuggingFace
                   </span>
-                  <Badge variant="outline">{(quotas as any)?.providers || {}.huggingface.remaining.toLocaleString()} remaining</Badge>
+                  <Badge variant="outline">{getProviderQuota('huggingface')?.remaining.toLocaleString()} remaining</Badge>
                 </CardTitle>
                 <CardDescription>Open-source models (720 req/day)</CardDescription>
               </CardHeader>
@@ -447,22 +557,22 @@ export default function TokenMonitoring() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Daily Usage</span>
                     <span className="text-sm font-medium">
-                      {(quotas as any)?.providers || {}.huggingface.used.toLocaleString()} / {(quotas as any)?.providers || {}.huggingface.limit.toLocaleString()}
+                      {getProviderQuota('huggingface')?.used.toLocaleString()} / {getProviderQuota('huggingface')?.dailyLimit.toLocaleString()}
                     </span>
                   </div>
                   <Progress 
-                    value={((quotas as any)?.providers || {}.huggingface.used / (quotas as any)?.providers || {}.huggingface.limit) * 100} 
+                    value={getProviderQuota('huggingface')?.percentage ?? 0} 
                     className="h-2"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div>
                     <p className="text-xs text-muted-foreground">Total Requests</p>
-                    <p className="text-lg font-bold">{((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'huggingface')?.totalRequests || 0}</p>
+                    <p className="text-lg font-bold">{getProviderSummary('huggingface')?.today.requests ?? 0}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Total Tokens</p>
-                    <p className="text-lg font-bold">{(((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'huggingface')?.totalTokens || 0).toLocaleString()}</p>
+                    <p className="text-lg font-bold">{(getProviderSummary('huggingface')?.today.tokens ?? 0).toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -470,7 +580,7 @@ export default function TokenMonitoring() {
           )}
 
           {/* OpenRouter */}
-          {((quotas as any)?.providers || {})?.openrouter && (
+          {getProviderQuota('openrouter') && (
             <Card className="glass-premium border-accent/20">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -478,7 +588,7 @@ export default function TokenMonitoring() {
                     <Zap className="w-5 h-5" style={{ color: COLORS.openrouter }} />
                     OpenRouter
                   </span>
-                  <Badge variant="outline">{(quotas as any)?.providers || {}.openrouter.remaining.toLocaleString()} remaining</Badge>
+                  <Badge variant="outline">{getProviderQuota('openrouter')?.remaining.toLocaleString()} remaining</Badge>
                 </CardTitle>
                 <CardDescription>400+ models (50 req/day free)</CardDescription>
               </CardHeader>
@@ -487,22 +597,22 @@ export default function TokenMonitoring() {
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-muted-foreground">Daily Usage</span>
                     <span className="text-sm font-medium">
-                      {(quotas as any)?.providers || {}.openrouter.used.toLocaleString()} / {(quotas as any)?.providers || {}.openrouter.limit.toLocaleString()}
+                      {getProviderQuota('openrouter')?.used.toLocaleString()} / {getProviderQuota('openrouter')?.dailyLimit.toLocaleString()}
                     </span>
                   </div>
                   <Progress 
-                    value={((quotas as any)?.providers || {}.openrouter.used / (quotas as any)?.providers || {}.openrouter.limit) * 100} 
+                    value={getProviderQuota('openrouter')?.percentage ?? 0} 
                     className="h-2"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div>
                     <p className="text-xs text-muted-foreground">Total Requests</p>
-                    <p className="text-lg font-bold">{((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'openrouter')?.totalRequests || 0}</p>
+                    <p className="text-lg font-bold">{getProviderSummary('openrouter')?.today.requests ?? 0}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Total Tokens</p>
-                    <p className="text-lg font-bold">{(((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'openrouter')?.totalTokens || 0).toLocaleString()}</p>
+                    <p className="text-lg font-bold">{(getProviderSummary('openrouter')?.today.tokens ?? 0).toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -521,7 +631,7 @@ export default function TokenMonitoring() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={((trends as any)?.daily || []) || []}>
+              <LineChart data={trends?.daily ?? []}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                 <XAxis dataKey="date" />
                 <YAxis />
@@ -552,19 +662,19 @@ export default function TokenMonitoring() {
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Total Requests</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'openai')?.totalRequests || 0}
+                  {getProviderSummary('openai')?.today.requests ?? 0}
                 </p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Total Tokens</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {(((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'openai')?.totalTokens || 0).toLocaleString()}
+                  {(getProviderSummary('openai')?.today.tokens ?? 0).toLocaleString()}
                 </p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Total Cost</p>
                 <p className="text-3xl font-bold text-green-500">
-                  ${(((summary as any)?.byProvider || [])?.find((p: any) => p.provider === 'openai')?.totalCost || 0).toFixed(4)}
+                  ${(getProviderSummary('openai')?.today.cost ?? 0).toFixed(4)}
                 </p>
               </div>
             </div>
@@ -575,7 +685,7 @@ export default function TokenMonitoring() {
             <div>
               <h3 className="font-semibold mb-4">Cost Breakdown by Model</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={((trends as any)?.byModel || []) || []}>
+                <BarChart data={[]}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                   <XAxis dataKey="model" />
                   <YAxis />
@@ -592,7 +702,7 @@ export default function TokenMonitoring() {
             <div>
               <h3 className="font-semibold mb-4">Daily Cost History</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={((trends as any)?.daily || []) || []}>
+                <AreaChart data={trends?.daily ?? []}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                   <XAxis dataKey="date" />
                   <YAxis />
@@ -642,7 +752,7 @@ export default function TokenMonitoring() {
 
             <ScrollArea className="h-[600px] pr-4">
               <div className="space-y-4">
-                {(( webHistory as any)?.searches || [])?.filter((s: any) => s.provider === 'web').map((search: any, idx: number) => (
+                {getWebSearchHistory().map((search, idx) => (
                   <Card key={idx} className="glass border-cyan-500/20 hover-elevate">
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -688,7 +798,7 @@ export default function TokenMonitoring() {
                     </CardContent>
                   </Card>
                 ))}
-                {(!(( webHistory as any)?.searches || []) || webHistory.searches.filter((s: any) => s.provider === 'web').length === 0) && (
+                {getWebSearchHistory().length === 0 && (
                   <div className="text-center py-12 text-muted-foreground">
                     <Globe className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No web searches recorded yet</p>
@@ -736,7 +846,7 @@ export default function TokenMonitoring() {
 
             <ScrollArea className="h-[600px] pr-4">
               <div className="space-y-4">
-                {(( webHistory as any)?.searches || [])?.filter((s: any) => s.provider === 'deepweb').map((search: any, idx: number) => (
+                {getDeepWebSearchHistory().map((search, idx) => (
                   <Card key={idx} className="glass border-indigo-500/20 hover-elevate">
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -775,7 +885,7 @@ export default function TokenMonitoring() {
                     </CardContent>
                   </Card>
                 ))}
-                {(!(( webHistory as any)?.searches || []) || webHistory.searches.filter((s: any) => s.provider === 'deepweb').length === 0) && (
+                {getDeepWebSearchHistory().length === 0 && (
                   <div className="text-center py-12 text-muted-foreground">
                     <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>No DeepWeb searches recorded yet</p>
@@ -880,7 +990,7 @@ export default function TokenMonitoring() {
           <CardContent>
             <ScrollArea className="h-[400px]">
               <div className="space-y-3">
-                {((alerts as any) || []).map((alert: any) => (
+                {alerts?.map((alert) => (
                   <Alert key={alert.id} className="border-yellow-500/50 bg-yellow-500/10">
                     <AlertCircle className="h-4 w-4 text-yellow-500" />
                     <AlertDescription>
@@ -903,7 +1013,7 @@ export default function TokenMonitoring() {
                     </AlertDescription>
                   </Alert>
                 ))}
-                {(!alerts || ((alerts as any) || []).length === 0) && (
+                {(!alerts || alerts.length === 0) && (
                   <div className="text-center py-12 text-muted-foreground">
                     <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-50" />
                     <p>No active alerts</p>
