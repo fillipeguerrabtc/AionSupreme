@@ -1842,7 +1842,12 @@ export function registerRoutes(app: Express): Server {
       const days = parseInt(req.query.days as string) || 30;
       
       const trends = await tokenTracker.getTokenTrends(tenantId, provider, days);
-      res.json(trends);
+      
+      // Transform to expected format: { daily: [...] }
+      res.json({
+        daily: trends,
+        period_days: days
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
