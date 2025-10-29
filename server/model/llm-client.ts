@@ -263,8 +263,11 @@ export class LLMClient {
   /**
    * Main chat completion method with all features
    * 
-   * 🚀 NOVO: Fallback automático para APIs gratuitas!
-   * Ordem: OpenAI → Groq → Gemini → HuggingFace
+   * 🚀 ORDEM INVERTIDA (Conforme solicitado):
+   * 1º: APIs GRATUITAS (OpenRouter → Groq → Gemini → HuggingFace)
+   * 2º: OpenAI (ÚLTIMA opção, apenas se todas as gratuitas falharem)
+   * 
+   * OpenAI é PAGA - usar apenas como último recurso!
    */
   async chatCompletion(options: ChatCompletionOptions): Promise<ChatCompletionResult> {
     const startTime = Date.now();
@@ -287,6 +290,31 @@ export class LLMClient {
     const topP = options.topP ?? 0.9;
     const maxTokens = options.maxTokens ?? 2048;
 
+    // ===================================================================
+    // 1º PRIORIDADE: TENTAR APIs GRATUITAS PRIMEIRO!
+    // ===================================================================
+    console.log("[LLM] 🆓 Tentando APIs gratuitas primeiro (OpenRouter/Groq/Gemini/HF)...");
+    
+    try {
+      const freeResult = await freeLLMProviders.chatCompletion(options.messages);
+      
+      // Save to cache
+      this.saveToCache(cacheKey, freeResult);
+      
+      // Record metrics (marca como free_api)
+      await this.recordMetrics(options.tenantId, "free_api", freeResult);
+      
+      console.log("[LLM] ✅ Resposta obtida via APIs GRATUITAS - OpenAI NÃO foi consultada! 🎉");
+      
+      return freeResult;
+    } catch (freeApiError: any) {
+      console.warn("[LLM] ⚠️  APIs gratuitas falharam:", freeApiError.message);
+      console.log("[LLM] 💰 Fallback para OpenAI (API PAGA - última opção)...");
+    }
+
+    // ===================================================================
+    // 2º PRIORIDADE (ÚLTIMA OPÇÃO): OpenAI (PAGA!)
+    // ===================================================================
     try {
       // Call OpenAI API
       const completion = await this.openai.chat.completions.create({
@@ -306,34 +334,17 @@ export class LLMClient {
 
       const content = choice.message.content || "";
       
-      // 🚀 NOVO: Detectar recusas de conteúdo (content-level refusals)
+      // 🚀 Detectar recusas de conteúdo (content-level refusals)
       const isRefusal = this.detectRefusal(content, choice.finish_reason);
       
       if (isRefusal) {
-        console.log("[LLM] 🚫 OpenAI recusou a requisição (content filter). Tentando APIs gratuitas...");
+        console.error("[LLM] 🚫 OpenAI recusou requisição (content filter) e APIs gratuitas já falharam.");
         
-        try {
-          const freeResult = await freeLLMProviders.chatCompletion(options.messages);
-          
-          // Save to cache
-          this.saveToCache(cacheKey, freeResult);
-          
-          // Record metrics (marca como free_api)
-          await this.recordMetrics(options.tenantId, "free_api", freeResult);
-          
-          console.log("[LLM] ✅ Resposta obtida via APIs gratuitas (sem censura)");
-          
-          return freeResult;
-        } catch (freeApiError: any) {
-          console.log("[LLM] ❌ APIs gratuitas também falharam após recusa OpenAI.");
-          
-          // Lançar ContentRefusalError para prevenir fallback redundante
-          // e garantir que censura não seja retornada silenciosamente
-          throw new ContentRefusalError(
-            `OpenAI recusou requisição (content filter: "${content.substring(0, 100)}...") ` +
-            `e todas as APIs alternativas falharam: ${freeApiError.message}`
-          );
-        }
+        // Lançar ContentRefusalError para propagar para web-search fallback
+        throw new ContentRefusalError(
+          `TODAS as APIs falharam. OpenAI recusou (content filter: "${content.substring(0, 100)}..."). ` +
+          `APIs gratuitas já falharam anteriormente.`
+        );
       }
 
       const result: ChatCompletionResult = {
@@ -365,42 +376,29 @@ export class LLMClient {
       // Record metrics
       await this.recordMetrics(options.tenantId, model, result);
 
+      console.log(`[LLM] ✅ Resposta obtida via OpenAI (custo: $${costUsd.toFixed(4)})`);
+
       return result;
     } catch (error: any) {
       // Se erro é ContentRefusalError, re-lançar imediatamente
-      // (fallback já foi tentado, não tentar de novo)
       if (error instanceof ContentRefusalError) {
         console.error("[LLM] ⛔ Content refusal error - propagando para web-search fallback");
         throw error;
       }
       
-      console.error(`[LLM] OpenAI error for tenant ${options.tenantId}:`, error);
+      console.error(`[LLM] ❌ OpenAI também falhou:`, error.message);
       
-      // 🚀 NOVO: Fallback automático para APIs gratuitas!
-      console.log("[LLM] 🔄 Ativando fallback para APIs gratuitas...");
-      
-      try {
-        const result = await freeLLMProviders.chatCompletion(options.messages);
-        
-        // Save to cache
-        this.saveToCache(cacheKey, result);
-        
-        // Record metrics (marca como free_api)
-        await this.recordMetrics(options.tenantId, "free_api", result);
-        
-        return result;
-      } catch (freeApiError: any) {
-        console.error("[LLM] ❌ Todas as APIs (OpenAI + gratuitas) falharam:", freeApiError);
-        
-        // Retry logic com exponential backoff apenas para OpenAI
-        if (error.status === 429 || error.status >= 500) {
-          console.log(`[LLM] Retrying OpenAI after error ${error.status}...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          return this.chatCompletion(options);
-        }
-        
-        throw new Error(`Todas as APIs falharam. OpenAI: ${error.message}. Free APIs: ${freeApiError.message}`);
+      // Retry logic com exponential backoff apenas para erros temporários
+      if (error.status === 429 || error.status >= 500) {
+        console.log(`[LLM] Retrying after error ${error.status}...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return this.chatCompletion(options);
       }
+      
+      throw new Error(
+        `TODAS as APIs falharam (Free + OpenAI). ` +
+        `OpenAI error: ${error.message}`
+      );
     }
   }
 
