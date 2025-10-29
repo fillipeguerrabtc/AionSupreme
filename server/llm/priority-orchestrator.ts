@@ -2,9 +2,10 @@
  * AION Supreme - Priority Orchestrator
  * ORDEM OBRIGATÓRIA:
  * 1. Knowledge Base (RAG Search)
- * 2. Free APIs (Groq → Gemini → HF → OpenRouter) com auto-fallback
- * 3. Web/DeepWeb Search (se recusa detectada)
- * 4. OpenAI (último recurso, pago) com auto-fallback
+ * 2. GPU Pool (Multi-GPU Load Balancing with Custom LoRA LLMs)
+ * 3. Free APIs (Groq → Gemini → HF → OpenRouter) com auto-fallback
+ * 4. Web/DeepWeb Search (se recusa detectada)
+ * 5. OpenAI (último recurso, pago) com auto-fallback
  */
 
 import { semanticSearch, searchWithConfidence, type SearchResult } from '../ai/rag-service';
@@ -406,7 +407,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   // STEP 1: KNOWLEDGE BASE (RAG) - HIGHEST PRIORITY
   // ============================================================================
   
-  console.log('\n📚 [STEP 1/4] Searching KNOWLEDGE BASE (RAG)...');
+  console.log('\n📚 [STEP 1/5] Searching KNOWLEDGE BASE (RAG)...');
   
   try {
     const kbResult = await searchWithConfidence(userMessage, req.tenantId, {
@@ -512,7 +513,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
     
   } catch (error: any) {
     console.error('   ✗ KB search failed:', error.message);
-    console.log('   → Proceeding to Free APIs...');
+    console.log('   → Proceeding to GPU Pool...');
     
     // Track KB search failure
     await trackTokenUsage({
@@ -535,10 +536,127 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   }
   
   // ============================================================================
-  // STEP 2: FREE APIs (Groq → Gemini → HF → OpenRouter) with AUTO-FALLBACK
+  // STEP 2: GPU POOL (Custom LoRA-trained LLMs with Load Balancing)
   // ============================================================================
   
-  console.log('\n💸 [STEP 2/4] Trying FREE APIs (27,170 req/day)...');
+  console.log('\n🎮 [STEP 2/5] Trying GPU POOL (Multi-GPU Load Balancing)...');
+  
+  try {
+    const { gpuLoadBalancer } = await import('../gpu/load-balancer');
+    
+    const gpuResult = await gpuLoadBalancer.executeLLMRequest(
+      req.messages.map(m => ({
+        role: m.role,
+        content: m.content
+      })),
+      {
+        max_tokens: req.maxTokens || 2048,
+        temperature: req.temperature || 0.7,
+        top_p: req.topP || 0.9,
+        stream: false
+      }
+    );
+    
+    if (gpuResult.success && gpuResult.response) {
+      console.log(`   ✓ GPU worker responded (ID: ${gpuResult.workerId}, latency: ${gpuResult.latencyMs}ms)`);
+      
+      // Check for refusal
+      const refusalCheck = detectRefusal(gpuResult.response);
+      
+      if (!refusalCheck.isRefusal) {
+        console.log('   ✅ GPU Pool provided direct answer (no refusal)!');
+        console.log('='.repeat(80) + '\n');
+        
+        // Track GPU usage (FREE, no cost)
+        await trackTokenUsage({
+          tenantId: req.tenantId,
+          provider: 'gpu-pool',
+          model: 'custom-lora',
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0,
+          cost: 0,
+          requestType: 'chat',
+          success: true,
+          metadata: {
+            workerId: gpuResult.workerId,
+            latencyMs: gpuResult.latencyMs
+          }
+        });
+        
+        return {
+          content: gpuResult.response,
+          source: 'free-api', // Treated as free API (no cost)
+          provider: 'gpu-pool',
+          model: 'custom-lora',
+          metadata: {
+            latencyMs: gpuResult.latencyMs,
+            workerId: gpuResult.workerId
+          }
+        };
+      }
+      
+      // Refusal detected in GPU!
+      console.log(`   ⚠ REFUSAL detected in GPU response (confidence: ${(refusalCheck.confidence * 100).toFixed(1)}%)`);
+      
+      if (req.unrestricted) {
+        console.log('   🚀 UNRESTRICTED mode = ON → Activating WEB FALLBACK...');
+        
+        // Track failed GPU attempt
+        await trackTokenUsage({
+          tenantId: req.tenantId,
+          provider: 'gpu-pool',
+          model: 'custom-lora',
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0,
+          cost: 0,
+          requestType: 'chat',
+          success: false
+        });
+        
+        // Execute automatic web fallback
+        const webFallback = await executeWebFallback(userMessage, req.tenantId);
+        
+        // Track web fallback usage
+        await trackWebSearch(
+          req.tenantId,
+          'web',
+          webFallback.model,
+          webFallback.searchMetadata
+        );
+        
+        console.log('   ✅ Web fallback completed successfully!');
+        console.log('='.repeat(80) + '\n');
+        
+        return {
+          content: webFallback.content,
+          source: 'web-fallback',
+          provider: webFallback.provider,
+          model: webFallback.model,
+          metadata: {
+            refusalDetected: true,
+            webSearchPerformed: true,
+            documentsIndexed: webFallback.documentsIndexed
+          }
+        };
+      } else {
+        console.log('   ⚠ UNRESTRICTED mode = OFF → Respecting refusal, proceeding to Free APIs');
+      }
+    } else {
+      console.log(`   ⚠ GPU Pool unavailable or failed: ${gpuResult.error || 'Unknown error'}`);
+      console.log('   → Proceeding to Free APIs...');
+    }
+  } catch (error: any) {
+    console.error('   ✗ GPU Pool failed:', error.message);
+    console.log('   → Proceeding to Free APIs...');
+  }
+  
+  // ============================================================================
+  // STEP 3: FREE APIs (Groq → Gemini → HF → OpenRouter) with AUTO-FALLBACK
+  // ============================================================================
+  
+  console.log('\n💸 [STEP 3/5] Trying FREE APIs (27,170 req/day)...');
   
   try {
     const freeApiRequest: LLMRequest = {
@@ -644,10 +762,10 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   }
   
   // ============================================================================
-  // STEP 4: OPENAI (Last Resort, PAID) with AUTO-FALLBACK
+  // STEP 5: OPENAI (Last Resort, PAID) with AUTO-FALLBACK
   // ============================================================================
   
-  console.log('\n💰 [STEP 4/4] Using OpenAI (LAST RESORT, PAID)...');
+  console.log('\n💰 [STEP 5/5] Using OpenAI (LAST RESORT, PAID)...');
   
   const openaiKey = process.env.OPENAI_API_KEY;
   if (!openaiKey) {
