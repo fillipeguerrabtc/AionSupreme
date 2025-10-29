@@ -6,11 +6,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
+import TokenMonitoring from "./TokenMonitoring";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -135,7 +137,7 @@ export default function AdminDashboard() {
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => window.location.href = "/chat"}
+              onClick={() => window.location.href = "/"}
               className="glass-premium"
               data-testid="button-back-to-chat"
             >
@@ -183,7 +185,24 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="max-w-7xl mx-auto p-6">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="glass-premium border-primary/20 w-full justify-start">
+            <TabsTrigger value="overview" data-testid="tab-dashboard-overview">
+              <Shield className="w-4 h-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="tokens" data-testid="tab-dashboard-tokens">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Token Monitoring
+            </TabsTrigger>
+            <TabsTrigger value="knowledge" data-testid="tab-dashboard-knowledge">
+              <Database className="w-4 h-4 mr-2" />
+              Knowledge Base
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
         {/* Policy Controls Grid */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Moral/Ética/Legal */}
@@ -318,45 +337,53 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Knowledge Base */}
-        <Card className="glass-premium border-accent/20 hover-elevate animate-slide-up" style={{ animationDelay: "300ms" }}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-accent" />
-              <span className="gradient-text-vibrant">{t.admin.knowledgeBase}</span>
-            </CardTitle>
-            <CardDescription>
-              {t.admin.knowledgeBaseDesc}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button
-              onClick={() => window.location.href = "/admin/knowledge-base"}
-              className="w-full bg-gradient-to-r from-accent to-primary hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg shadow-accent/25"
-              data-testid="button-manage-kb"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Gerenciar Knowledge Base
-            </Button>
-            <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-accent/20">
-                  <FileText className="w-5 h-5 text-accent" />
+          </TabsContent>
+
+          <TabsContent value="tokens" className="space-y-6">
+            <TokenMonitoring />
+          </TabsContent>
+
+          <TabsContent value="knowledge" className="space-y-6">
+            <Card className="glass-premium border-accent/20 hover-elevate">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5 text-accent" />
+                  <span className="gradient-text-vibrant">{t.admin.knowledgeBase}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t.admin.knowledgeBaseDesc}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  onClick={() => window.location.href = "/admin/knowledge-base"}
+                  className="w-full bg-gradient-to-r from-accent to-primary hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg shadow-accent/25"
+                  data-testid="button-manage-kb"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Gerenciar Knowledge Base
+                </Button>
+                <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-accent/20">
+                      <FileText className="w-5 h-5 text-accent" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total de Documentos</p>
+                      <p className="text-2xl font-bold gradient-text-vibrant">
+                        {Array.isArray(documentsData) ? documentsData.length : 0}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Knowledge Base</p>
+                    <p className="text-sm font-medium text-accent">Indexados</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total de Documentos</p>
-                  <p className="text-2xl font-bold gradient-text-vibrant">
-                    {Array.isArray(documentsData) ? documentsData.length : 0}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Knowledge Base</p>
-                <p className="text-sm font-medium text-accent">Indexados</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
