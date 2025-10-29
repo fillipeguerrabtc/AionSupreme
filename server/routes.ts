@@ -1708,12 +1708,128 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/gpu/status - Get GPU provider status
+  // ========================================================================
+  // GPU POOL MANAGEMENT - Multi-GPU Load Balancing
+  // ========================================================================
+
+  // GET /api/gpu/status - Get status of all GPU workers
   app.get("/api/gpu/status", async (req, res) => {
     try {
-      const { getProviderStatus } = await import("./gpu/orchestrator");
-      const status = getProviderStatus();
-      res.json(status);
+      const { gpuPoolManager } = await import("./gpu/pool-manager");
+      const workers = await gpuPoolManager.getAllWorkers();
+      const stats = await gpuPoolManager.getPoolStats();
+      
+      res.json({
+        workers,
+        stats,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/gpu/register - Register new GPU worker
+  app.post("/api/gpu/register", async (req, res) => {
+    try {
+      const { gpuPoolManager } = await import("./gpu/pool-manager");
+      const { provider, accountId, ngrokUrl, capabilities } = req.body;
+      
+      if (!provider || !ngrokUrl || !capabilities) {
+        return res.status(400).json({ 
+          error: "Missing required fields: provider, ngrokUrl, capabilities" 
+        });
+      }
+      
+      const worker = await gpuPoolManager.registerWorker({
+        provider,
+        accountId,
+        ngrokUrl,
+        capabilities,
+      });
+      
+      console.log(`[API] GPU worker registered: ${provider} (${ngrokUrl})`);
+      
+      res.json({
+        success: true,
+        worker,
+      });
+    } catch (error: any) {
+      console.error("[API] Error registering GPU worker:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/gpu/:id - Get specific GPU worker
+  app.get("/api/gpu/:id", async (req, res) => {
+    try {
+      const { gpuPoolManager } = await import("./gpu/pool-manager");
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid GPU ID" });
+      }
+      
+      const worker = await gpuPoolManager.getWorker(id);
+      
+      if (!worker) {
+        return res.status(404).json({ error: "GPU worker not found" });
+      }
+      
+      res.json(worker);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // DELETE /api/gpu/:id - Remove GPU worker
+  app.delete("/api/gpu/:id", async (req, res) => {
+    try {
+      const { gpuPoolManager } = await import("./gpu/pool-manager");
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid GPU ID" });
+      }
+      
+      const success = await gpuPoolManager.removeWorker(id);
+      
+      if (!success) {
+        return res.status(404).json({ error: "GPU worker not found" });
+      }
+      
+      console.log(`[API] GPU worker removed: ID ${id}`);
+      
+      res.json({
+        success: true,
+        message: `GPU worker ${id} removed`,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/gpu/stats - Get pool statistics
+  app.get("/api/gpu/stats", async (req, res) => {
+    try {
+      const { gpuPoolManager } = await import("./gpu/pool-manager");
+      const stats = await gpuPoolManager.getPoolStats();
+      
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/gpu/healthy - Get only healthy workers
+  app.get("/api/gpu/healthy", async (req, res) => {
+    try {
+      const { gpuPoolManager } = await import("./gpu/pool-manager");
+      const workers = await gpuPoolManager.getHealthyWorkers();
+      
+      res.json({
+        count: workers.length,
+        workers,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

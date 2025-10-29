@@ -48,7 +48,7 @@ export class GpuPoolManager {
           .set({
             provider: data.provider,
             accountId: data.accountId,
-            capabilities: data.capabilities,
+            capabilities: data.capabilities as any,
             status: "pending", // Will be verified in health check
             updatedAt: new Date(),
           })
@@ -67,7 +67,10 @@ export class GpuPoolManager {
       const [worker] = await db
         .insert(gpuWorkers)
         .values({
-          ...data,
+          provider: data.provider,
+          accountId: data.accountId,
+          ngrokUrl: data.ngrokUrl,
+          capabilities: data.capabilities as any,
           status: "pending",
         })
         .returning();
