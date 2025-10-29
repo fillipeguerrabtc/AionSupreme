@@ -88,15 +88,15 @@ export async function torSearch(input: {
     const formatted = results.map((r, i) => 
       `[${i+1}] ${r.title}\n` +
       `Source: ${r.source}\n` +
-      `URL: ${r.url}${r.isTorSite ? ' (⚠️ .onion - Tor required)' : ''}\n` +
+      `URL: ${r.url}${r.isTorSite ? ' (.onion - Tor required)' : ''}\n` +
       `Snippet: ${r.snippet}`
     ).join('\n\n');
     
     return {
-      observation: `🕵️ Found ${results.length} results on Deep Web:\n\n${formatted}\n\n` +
+      observation: `Found ${results.length} results on Deep Web:\n\n${formatted}\n\n` +
         (results.some(r => r.isTorSite) 
-          ? "⚠️ Some .onion results require Tor browser to access." 
-          : "ℹ️ All results accessible via regular browsers."),
+          ? "Note: Some .onion results require Tor browser to access." 
+          : "All results accessible via regular browsers."),
       success: true,
       metadata: { 
         resultsCount: results.length, 
