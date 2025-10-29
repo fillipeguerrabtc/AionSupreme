@@ -173,8 +173,8 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.entries(policy?.rules || {}).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between glass p-3 rounded-xl hover-elevate">
-                  <Label htmlFor={key} className="text-sm font-medium">
+                <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-card/50 border border-border/50 hover:bg-card/80 hover:border-primary/30 transition-all duration-200">
+                  <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
                     {t.admin.rules[key as keyof typeof t.admin.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </Label>
                   <Switch
