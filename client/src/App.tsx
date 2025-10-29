@@ -7,7 +7,6 @@ import { LanguageProvider } from "./lib/i18n";
 import { usePageTitle } from "./hooks/usePageTitle";
 import ChatPage from "@/pages/chat/ChatPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
-import KnowledgeBasePage from "@/pages/admin/KnowledgeBasePage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,7 +16,6 @@ function Router() {
     <Switch>
       <Route path="/" component={ChatPage} />
       <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/knowledge-base" component={KnowledgeBasePage} />
       <Route path="/admin/:section" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>

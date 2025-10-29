@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
 import TokenMonitoring from "./TokenMonitoring";
+import KnowledgeBaseTab from "./KnowledgeBaseTab";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -352,44 +353,7 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="knowledge" className="space-y-6">
-            <Card className="glass-premium border-accent/20 hover-elevate">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="w-5 h-5 text-accent" />
-                  <span className="gradient-text-vibrant">{t.admin.knowledgeBase}</span>
-                </CardTitle>
-                <CardDescription>
-                  {t.admin.knowledgeBaseDesc}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  onClick={() => window.location.href = "/admin/knowledge-base"}
-                  className="w-full bg-gradient-to-r from-accent to-primary hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg shadow-accent/25"
-                  data-testid="button-manage-kb"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Gerenciar Knowledge Base
-                </Button>
-                <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-accent/10 to-primary/10 border border-accent/20">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-accent/20">
-                      <FileText className="w-5 h-5 text-accent" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total de Documentos</p>
-                      <p className="text-2xl font-bold gradient-text-vibrant">
-                        {Array.isArray(documentsData) ? documentsData.length : 0}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Knowledge Base</p>
-                    <p className="text-sm font-medium text-accent">Indexados</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <KnowledgeBaseTab />
           </TabsContent>
         </Tabs>
       </div>
