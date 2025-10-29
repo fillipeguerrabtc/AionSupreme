@@ -405,3 +405,112 @@ export const knowledgeSources = pgTable("knowledge_sources", {
 export const insertKnowledgeSourceSchema = createInsertSchema(knowledgeSources).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertKnowledgeSource = z.infer<typeof insertKnowledgeSourceSchema>;
 export type KnowledgeSource = typeof knowledgeSources.$inferSelect;
+
+// ============================================================================
+// VIDEO_JOBS - Async video generation job queue
+// As per Architect plan: GPU worker orchestration with job polling
+// ============================================================================
+export const videoJobs = pgTable("video_jobs", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  conversationId: integer("conversation_id").references(() => conversations.id),
+  
+  // Job specification
+  prompt: text("prompt").notNull(),
+  parameters: jsonb("parameters").notNull().$type<{
+    duration?: number; // seconds (e.g., 30, 60, 120)
+    fps?: number; // frames per second
+    resolution?: string; // "720p" | "1080p" | "4k"
+    style?: string; // "realistic" | "animated" | "cinematic" | "documentary"
+    scenes?: number; // number of scenes to generate
+    audio?: boolean; // include narration/music
+    voiceId?: string; // TTS voice selection
+    model?: "open-sora" | "animatediff" | "modelscope"; // preferred model
+  }>(),
+  
+  // Job lifecycle
+  status: text("status").notNull().default("pending"), // "pending" | "processing" | "completed" | "failed"
+  progress: real("progress").notNull().default(0), // 0-100
+  currentStep: text("current_step"), // "planning" | "generating" | "stitching" | "upscaling" | "audio_sync"
+  
+  // Worker assignment
+  workerId: text("worker_id"), // GPU worker that picked up the job
+  workerUrl: text("worker_url"), // Worker callback URL
+  
+  // Results (video asset linked via videoAssets.jobId)
+  errorMessage: text("error_message"),
+  
+  // Logs
+  generationLogs: jsonb("generation_logs").$type<Array<{
+    timestamp: string;
+    step: string;
+    message: string;
+    progress: number;
+  }>>().default([]),
+  
+  // Timing
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  estimatedCompletionAt: timestamp("estimated_completion_at"),
+}, (table) => ({
+  tenantIdx: index("video_jobs_tenant_idx").on(table.tenantId),
+  statusIdx: index("video_jobs_status_idx").on(table.status),
+}));
+
+export const insertVideoJobSchema = createInsertSchema(videoJobs).omit({ id: true, createdAt: true });
+export type InsertVideoJob = z.infer<typeof insertVideoJobSchema>;
+export type VideoJob = typeof videoJobs.$inferSelect;
+
+// ============================================================================
+// VIDEO_ASSETS - Generated video files with metadata
+// ============================================================================
+export const videoAssets = pgTable("video_assets", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  jobId: integer("job_id").references(() => videoJobs.id),
+  
+  // File information
+  filename: text("filename").notNull(),
+  mimeType: text("mime_type").notNull().default("video/mp4"),
+  size: integer("size").notNull(), // bytes
+  storageUrl: text("storage_url").notNull(), // local path or cloud URL
+  
+  // Video metadata
+  duration: real("duration").notNull(), // seconds
+  resolution: text("resolution").notNull(), // "1920x1080"
+  fps: integer("fps").notNull(),
+  codec: text("codec").default("h264"),
+  bitrate: integer("bitrate"), // kbps
+  
+  // Generation info
+  generationMethod: text("generation_method").notNull(), // "open-sora" | "animatediff" | "modelscope"
+  prompt: text("prompt").notNull(),
+  revisedPrompt: text("revised_prompt"),
+  
+  // Additional assets
+  thumbnailUrl: text("thumbnail_url"), // Preview thumbnail
+  subtitlesUrl: text("subtitles_url"), // SRT file if generated
+  
+  // Quality metrics
+  qualityScore: real("quality_score"), // 0-100
+  metadata: jsonb("metadata").$type<{
+    scenes?: number;
+    transitions?: string[];
+    audioTracks?: number;
+    hasNarration?: boolean;
+    hasMusic?: boolean;
+  }>(),
+  
+  // Lifecycle
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(), // Auto-delete after time
+  isDeleted: boolean("is_deleted").notNull().default(false),
+}, (table) => ({
+  tenantIdx: index("video_assets_tenant_idx").on(table.tenantId),
+  expiresIdx: index("video_assets_expires_idx").on(table.expiresAt),
+}));
+
+export const insertVideoAssetSchema = createInsertSchema(videoAssets).omit({ id: true, createdAt: true });
+export type InsertVideoAsset = z.infer<typeof insertVideoAssetSchema>;
+export type VideoAsset = typeof videoAssets.$inferSelect;

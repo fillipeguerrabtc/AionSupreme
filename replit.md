@@ -65,11 +65,12 @@ AION is an enterprise-grade autonomous AI system designed for multi-tenant envir
 
 **Current Status: ✅ FULLY FUNCTIONAL** (as of October 29, 2025)
 - Server running on port 5000
-- All 16 API endpoints operational (added conversation persistence)
+- All 20 API endpoints operational (added professional video generation system)
 - Frontend (Chat + Admin) fully functional
 - Auto-fallback patterns updated to detect all OpenAI refusals
 - Chat persistence implemented (messages saved to database)
 - Input border visibility improved (border-2 border-primary/60)
+- **Professional Video Generation** - GPU-backed async job system with Open-Sora/AnimateDiff support
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -105,6 +106,16 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 
 **Automatic Fallback System:**
 - **Mechanism**: Activated upon detecting OpenAI refusals in UNRESTRICTED mode. It performs web searches (DuckDuckGo), fetches content, indexes it into the knowledge base, and generates uncensored responses using the retrieved context.
+
+**Professional Video Generation System (100% Open-Source):**
+- **Architecture**: Async job queue → GPU worker → Webhook callback
+- **Models**: Open-Sora 1.2 (primary), AnimateDiff + Stable Video Diffusion (secondary), ModelScope (tertiary)
+- **Deployment**: RunPod/Modal GPU workers or self-hosted (REQUIRED - no proprietary fallback)
+- **Features**: Long-form videos (30-120s+), multi-shot stitching, TTS audio sync, temporal upscaling, frame interpolation
+- **Open-Source Compliance**: System requires GPU worker with open-source models - fails gracefully if not configured
+- **Storage**: video_jobs and video_assets tables with 1-hour expiry
+- **Documentation**: Complete deployment guide in GPU_WORKER_SETUP.md (RunPod/Modal/Self-hosted)
+- **API Endpoints**: POST /api/videos/generate, GET /api/videos/jobs/:id, GET /api/videos/:id, POST /api/videos/webhook
 
 ### System Design Choices
 - **Multi-tenancy**: Complete isolation of data and policies per tenant.

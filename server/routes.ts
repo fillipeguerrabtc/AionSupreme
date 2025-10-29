@@ -16,7 +16,9 @@ import { auditMiddleware } from "./middleware/audit";
 import { exportPrometheusMetrics } from "./metrics/exporter";
 import { metricsCollector } from "./metrics/collector";
 import { imageGenerator } from "./generation/image-generator";
+import { videoGenerator } from "./generation/video-generator";
 import multer from "multer";
+import axios from "axios";
 import fs from "fs/promises";
 import path from "path";
 
@@ -532,6 +534,177 @@ export function registerRoutes(app: Express): Server {
       const fileBuffer = await fs.readFile(file.storageUrl);
       res.send(fileBuffer);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // ============================================================================
+  // VIDEO GENERATION ROUTES - Professional GPU-backed video generation
+  // ============================================================================
+  
+  // POST /api/videos/generate - Submit video generation job
+  app.post("/api/videos/generate", async (req, res) => {
+    try {
+      const {
+        prompt,
+        duration,
+        fps,
+        resolution,
+        style,
+        scenes,
+        audio,
+        voiceId,
+        model,
+        tenant_id,
+        conversation_id,
+      } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+      
+      const tenantId = tenant_id || 1;
+      
+      const result = await videoGenerator.submitVideoJob({
+        prompt,
+        duration,
+        fps,
+        resolution,
+        style,
+        scenes,
+        audio,
+        voiceId,
+        model,
+        tenantId,
+        conversationId: conversation_id,
+      });
+      
+      res.json({
+        success: true,
+        job: result,
+      });
+    } catch (error: any) {
+      console.error("[API] Video generation failed:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GET /api/videos/jobs/:id - Get video job status
+  app.get("/api/videos/jobs/:id", async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const status = await videoGenerator.getJobStatus(jobId);
+      res.json(status);
+    } catch (error: any) {
+      res.status(404).json({ error: error.message });
+    }
+  });
+  
+  // GET /api/videos/:id - Download video asset
+  app.get("/api/videos/:id", async (req, res) => {
+    try {
+      const assetId = parseInt(req.params.id);
+      const asset = await storage.getVideoAsset(assetId);
+      
+      if (!asset || asset.isDeleted) {
+        return res.status(404).json({ error: "Video not found or deleted" });
+      }
+      
+      if (new Date() > asset.expiresAt) {
+        await storage.markVideoAssetAsDeleted(assetId);
+        return res.status(410).json({ error: "Video expired" });
+      }
+      
+      // Serve video
+      res.setHeader("Content-Type", asset.mimeType);
+      res.setHeader("Content-Disposition", `inline; filename="${asset.filename}"`);
+      
+      const videoBuffer = await fs.readFile(asset.storageUrl);
+      res.send(videoBuffer);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // POST /api/videos/webhook - Webhook for GPU workers
+  app.post("/api/videos/webhook", async (req, res) => {
+    try {
+      const {
+        job_id,
+        status,
+        video_url,
+        thumbnail_url,
+        duration,
+        resolution,
+        fps,
+        size_bytes,
+        error,
+        metadata,
+      } = req.body;
+      
+      const job = await storage.getVideoJob(job_id);
+      if (!job) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
+      if (status === "completed" && video_url) {
+        // Download video from worker storage
+        const videoResponse = await axios.get(video_url, { responseType: "arraybuffer" });
+        const videoBuffer = Buffer.from(videoResponse.data);
+        
+        // Save to local storage
+        const filename = `video_${job_id}_${Date.now()}.mp4`;
+        const storageDir = path.join(process.cwd(), "server", "generated", "videos");
+        await fs.mkdir(storageDir, { recursive: true });
+        const filepath = path.join(storageDir, filename);
+        await fs.writeFile(filepath, videoBuffer);
+        
+        // Create video asset
+        const asset = await storage.createVideoAsset({
+          tenantId: job.tenantId,
+          jobId: job.id,
+          filename,
+          mimeType: "video/mp4",
+          size: size_bytes || videoBuffer.length,
+          storageUrl: filepath,
+          duration: duration || 30,
+          resolution: resolution || "1920x1080",
+          fps: fps || 24,
+          codec: "h264",
+          bitrate: null,
+          generationMethod: (job.parameters as any).model || "open-sora",
+          prompt: job.prompt,
+          revisedPrompt: null,
+          thumbnailUrl: thumbnail_url || null,
+          subtitlesUrl: null,
+          qualityScore: metadata?.quality_score || null,
+          metadata: metadata || {},
+          expiresAt: new Date(Date.now() + 3600000), // 1 hour
+          isDeleted: false,
+        });
+        
+        // Update job
+        await storage.updateVideoJob(job_id, {
+          status: "completed",
+          progress: 100,
+          currentStep: "completed",
+          completedAt: new Date(),
+        });
+        
+        console.log(`[VideoGen] Job #${job_id} completed via webhook`);
+      } else if (status === "failed") {
+        await storage.updateVideoJob(job_id, {
+          status: "failed",
+          errorMessage: error || "Worker reported failure",
+          currentStep: "failed",
+        });
+        
+        console.error(`[VideoGen] Job #${job_id} failed:`, error);
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[API] Webhook processing failed:", error.message);
       res.status(500).json({ error: error.message });
     }
   });

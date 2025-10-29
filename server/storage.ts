@@ -12,6 +12,8 @@ import {
   auditLogs, type AuditLog, type InsertAuditLog,
   knowledgeSources, type KnowledgeSource, type InsertKnowledgeSource,
   generatedFiles, type GeneratedFile, type InsertGeneratedFile,
+  videoJobs, type VideoJob, type InsertVideoJob,
+  videoAssets, type VideoAsset, type InsertVideoAsset,
 } from "@shared/schema";
 
 // ============================================================================
@@ -90,6 +92,21 @@ export interface IStorage {
   createGeneratedFile(file: InsertGeneratedFile): Promise<GeneratedFile>;
   markFileAsDeleted(id: number): Promise<void>;
   getExpiredFiles(): Promise<GeneratedFile[]>;
+  
+  // Video Jobs
+  getVideoJob(id: number): Promise<VideoJob | undefined>;
+  getVideoJobsByTenant(tenantId: number, limit?: number): Promise<VideoJob[]>;
+  getPendingVideoJobs(): Promise<VideoJob[]>;
+  createVideoJob(job: InsertVideoJob): Promise<VideoJob>;
+  updateVideoJob(id: number, data: Partial<InsertVideoJob>): Promise<VideoJob>;
+  
+  // Video Assets
+  getVideoAsset(id: number): Promise<VideoAsset | undefined>;
+  getVideoAssetByJobId(jobId: number): Promise<VideoAsset | undefined>;
+  getVideoAssetsByTenant(tenantId: number, limit?: number): Promise<VideoAsset[]>;
+  createVideoAsset(asset: InsertVideoAsset): Promise<VideoAsset>;
+  markVideoAssetAsDeleted(id: number): Promise<void>;
+  getExpiredVideoAssets(): Promise<VideoAsset[]>;
 }
 
 // ============================================================================
@@ -424,6 +441,79 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         lte(generatedFiles.expiresAt, new Date()),
         eq(generatedFiles.isDeleted, false)
+      ));
+  }
+
+  // --------------------------------------------------------------------------
+  // VIDEO JOBS
+  // --------------------------------------------------------------------------
+  async getVideoJob(id: number): Promise<VideoJob | undefined> {
+    const [job] = await db.select().from(videoJobs).where(eq(videoJobs.id, id));
+    return job;
+  }
+
+  async getVideoJobsByTenant(tenantId: number, limit: number = 50): Promise<VideoJob[]> {
+    return db.select().from(videoJobs)
+      .where(eq(videoJobs.tenantId, tenantId))
+      .orderBy(desc(videoJobs.createdAt))
+      .limit(limit);
+  }
+
+  async getPendingVideoJobs(): Promise<VideoJob[]> {
+    return db.select().from(videoJobs)
+      .where(eq(videoJobs.status, 'pending'))
+      .orderBy(videoJobs.createdAt);
+  }
+
+  async createVideoJob(job: InsertVideoJob): Promise<VideoJob> {
+    const [created] = await db.insert(videoJobs).values([job] as any).returning();
+    return created;
+  }
+
+  async updateVideoJob(id: number, data: Partial<InsertVideoJob>): Promise<VideoJob> {
+    const [updated] = await db.update(videoJobs)
+      .set(data as any)
+      .where(eq(videoJobs.id, id))
+      .returning();
+    return updated;
+  }
+
+  // --------------------------------------------------------------------------
+  // VIDEO ASSETS
+  // --------------------------------------------------------------------------
+  async getVideoAsset(id: number): Promise<VideoAsset | undefined> {
+    const [asset] = await db.select().from(videoAssets).where(eq(videoAssets.id, id));
+    return asset;
+  }
+
+  async getVideoAssetByJobId(jobId: number): Promise<VideoAsset | undefined> {
+    const [asset] = await db.select().from(videoAssets).where(eq(videoAssets.jobId, jobId));
+    return asset;
+  }
+
+  async getVideoAssetsByTenant(tenantId: number, limit: number = 50): Promise<VideoAsset[]> {
+    return db.select().from(videoAssets)
+      .where(and(eq(videoAssets.tenantId, tenantId), eq(videoAssets.isDeleted, false)))
+      .orderBy(desc(videoAssets.createdAt))
+      .limit(limit);
+  }
+
+  async createVideoAsset(asset: InsertVideoAsset): Promise<VideoAsset> {
+    const [created] = await db.insert(videoAssets).values([asset] as any).returning();
+    return created;
+  }
+
+  async markVideoAssetAsDeleted(id: number): Promise<void> {
+    await db.update(videoAssets)
+      .set({ isDeleted: true })
+      .where(eq(videoAssets.id, id));
+  }
+
+  async getExpiredVideoAssets(): Promise<VideoAsset[]> {
+    return db.select().from(videoAssets)
+      .where(and(
+        lte(videoAssets.expiresAt, new Date()),
+        eq(videoAssets.isDeleted, false)
       ));
   }
 }
