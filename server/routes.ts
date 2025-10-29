@@ -1635,7 +1635,18 @@ export function registerRoutes(app: Express): Server {
       if (!agentResponse && result.stopReason === 'max_steps') {
         // Generate summary from agent steps
         const lastSteps = result.steps.slice(-2); // Last 2 steps
-        const observations = lastSteps.map(s => s.observation).filter(Boolean).join('\n');
+        const observations = lastSteps
+          .map(s => {
+            // Ensure observation is always a string, not an object
+            if (typeof s.observation === 'string') {
+              return s.observation;
+            } else if (s.observation && typeof s.observation === 'object') {
+              return JSON.stringify(s.observation, null, 2);
+            }
+            return '';
+          })
+          .filter(Boolean)
+          .join('\n');
         
         agentResponse = observations 
           ? `Consegui obter algumas informações:\n\n${observations}\n\nPreciso de mais passos para uma resposta completa. Você pode reformular a pergunta ou pedir informações mais específicas?`

@@ -11,6 +11,7 @@ import { useLanguage, detectMessageLanguage } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { VideoPreview } from "@/components/VideoPreview";
+import { ImagePreview } from "@/components/ImagePreview";
 
 interface Message {
   id?: number;
@@ -400,18 +401,22 @@ export default function ChatPage() {
     }
   };
 
-  // Detect and render video links in message content
+  // Detect and render video and image links in message content
   const renderMessageContent = (content: string) => {
-    // Regex to match video URLs (YouTube, Vimeo, Dailymotion, direct video files)
-    const videoUrlRegex = /(https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/(?:video\/)?|dailymotion\.com\/video\/)[^\s]+|https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov))/gi;
-    
     const parts: (string | JSX.Element)[] = [];
     let lastIndex = 0;
-    let match;
     let keyCounter = 0;
 
-    while ((match = videoUrlRegex.exec(content)) !== null) {
-      // Add text before the video URL
+    // Combined regex for both videos and images (global flag for exec loop)
+    const mediaRegex = /(https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/(?:video\/)?|dailymotion\.com\/video\/)[^\s]+|https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov)|https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|avif)(?:\?[^\s]*)?)/gi;
+    
+    // NON-global regexes for type detection (avoid lastIndex state issues)
+    const videoPattern = /^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/(?:video\/)?|dailymotion\.com\/video\/)[^\s]+|^https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov)$/;
+    const imagePattern = /^https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|svg|bmp|avif)(?:\?[^\s]*)?$/i;
+
+    let match;
+    while ((match = mediaRegex.exec(content)) !== null) {
+      // Add text before the media URL
       if (match.index > lastIndex) {
         const textBefore = content.slice(lastIndex, match.index);
         if (textBefore.trim()) {
@@ -426,13 +431,17 @@ export default function ChatPage() {
       // Sanitize URL: remove trailing punctuation and markdown delimiters
       let sanitizedUrl = match[0].replace(/[.,;:)\]}>]+$/, '');
       
-      // Add video preview
-      parts.push(<VideoPreview key={`video-${keyCounter++}`} url={sanitizedUrl} />);
+      // Check if it's a video or image using NON-global patterns
+      if (videoPattern.test(sanitizedUrl)) {
+        parts.push(<VideoPreview key={`video-${keyCounter++}`} url={sanitizedUrl} />);
+      } else if (imagePattern.test(sanitizedUrl)) {
+        parts.push(<ImagePreview key={`image-${keyCounter++}`} url={sanitizedUrl} />);
+      }
       
       lastIndex = match.index + match[0].length;
     }
 
-    // Add remaining text after last video URL
+    // Add remaining text after last media URL
     if (lastIndex < content.length) {
       const textAfter = content.slice(lastIndex);
       if (textAfter.trim()) {
@@ -444,7 +453,7 @@ export default function ChatPage() {
       }
     }
 
-    // If no videos found, return original content
+    // If no media found, return original content
     if (parts.length === 0) {
       return (
         <p className="whitespace-pre-wrap leading-relaxed">

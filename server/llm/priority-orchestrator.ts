@@ -887,12 +887,13 @@ async function executeDeepWebSearch(
     };
   }
   
-  // Parse results
-  const results = JSON.parse(torSearchResult.observation);
+  // Extract results from metadata (NOT from observation string!)
+  const metadata = torSearchResult.metadata as any;
+  const results = metadata?.results || [];
   
-  if (!results.results || results.results.length === 0) {
+  if (!torSearchResult.success || results.length === 0) {
     return {
-      content: "Busquei na DeepWeb mas não encontrei informações. Tente outra consulta.",
+      content: torSearchResult.observation, // Use the formatted message from tor-search
       provider: 'deepweb-search',
       model: 'no-results',
       documentsIndexed: 0,
@@ -905,23 +906,23 @@ async function executeDeepWebSearch(
     };
   }
   
-  console.log(`   ✓ Found ${results.results.length} DeepWeb results`);
+  console.log(`   ✓ Found ${results.length} DeepWeb results`);
   console.log('   📚 Indexing DeepWeb results into Knowledge Base...');
   
   // Index top results
   let indexed = 0;
-  for (const result of results.results.slice(0, 5)) {
+  for (const result of results.slice(0, 5)) {
     try {
       const [doc] = await db.insert(documents).values({
-        tenantId,
         title: result.title || 'DeepWeb Result',
-        content: result.snippet || result.description || '',
+        content: result.snippet || '',
         source: 'automatic-deepweb-fallback',
         status: 'indexed',
-        metadata: { url: result.url, deepweb: true }
+        tenantId,
+        metadata: { url: result.url, deepweb: true, isTorSite: result.isTorSite }
       }).returning();
       
-      await indexDocumentComplete(doc.id, tenantId, result.snippet || result.description || '');
+      await indexDocumentComplete(doc.id, tenantId, result.snippet || '');
       indexed++;
     } catch (error: any) {
       console.error(`   ✗ Failed to index DeepWeb result:`, error.message);
@@ -934,20 +935,20 @@ async function executeDeepWebSearch(
   // Prepare search metadata
   const searchMetadata = {
     query,
-    sources: results.results.slice(0, 10).map((r: any) => ({
+    sources: results.slice(0, 10).map((r: any) => ({
       url: r.url,
       title: r.title || 'DeepWeb Result',
-      snippet: r.snippet || r.description || '',
-      domain: 'tor-network'
+      snippet: r.snippet || '',
+      domain: r.isTorSite ? 'tor-network' : 'clearnet'
     })),
-    resultsCount: results.results.length,
+    resultsCount: results.length,
     indexedDocuments: indexed
   };
   
   // Format response without LLM
-  const formattedSummary = `🕵️ Resultados da busca na DeepWeb/Tor:\n\n${results.results.slice(0, 5).map((r: any, i: number) => 
-    `${i + 1}. **${r.title || 'DeepWeb Result'}**\n   ${r.snippet || r.description || 'No description'}\n   🔗 ${r.url}\n`
-  ).join('\n')}\n\n📊 Total: ${results.results.length} resultados encontrados\n✅ ${indexed} documentos indexados na Knowledge Base\n\n⚠️ **Nota**: Estes resultados vêm da rede Tor/DeepWeb`;
+  const formattedSummary = `🕵️ Resultados da busca na DeepWeb/Tor:\n\n${results.slice(0, 5).map((r: any, i: number) => 
+    `${i + 1}. **${r.title || 'DeepWeb Result'}**\n   ${r.snippet || 'No description'}\n   🔗 ${r.url}${r.isTorSite ? ' (⚠️ Requer Tor)' : ''}\n`
+  ).join('\n')}\n\n📊 Total: ${results.length} resultados encontrados\n✅ ${indexed} documentos indexados na Knowledge Base\n\n⚠️ **Nota**: Estes resultados vêm da rede Tor/DeepWeb`;
   
   return {
     content: formattedSummary,

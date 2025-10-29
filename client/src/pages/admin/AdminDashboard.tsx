@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
@@ -50,6 +50,54 @@ export default function AdminDashboard() {
   const { data: documentsData } = useQuery({
     queryKey: ["/api/admin/documents/1"],
   });
+
+  // Fetch token statistics for Dashboard cards
+  const { data: tokenSummary } = useQuery({
+    queryKey: ["/api/tokens/summary"],
+    queryFn: async () => {
+      const res = await fetch(`/api/tokens/summary?tenant_id=${tenantId}`);
+      return res.json();
+    },
+  });
+
+  // Fetch cost history for total cost card
+  const { data: costHistory } = useQuery({
+    queryKey: ["/api/tokens/cost-history"],
+    queryFn: async () => {
+      const res = await fetch(`/api/tokens/cost-history?tenant_id=${tenantId}&limit=1000`);
+      return res.json();
+    },
+  });
+
+  // Fetch free APIs stats
+  const { data: freeAPIsHistory } = useQuery({
+    queryKey: ["/api/tokens/free-apis-history"],
+    queryFn: async () => {
+      const res = await fetch(`/api/tokens/free-apis-history?tenant_id=${tenantId}&limit=1000`);
+      return res.json();
+    },
+  });
+
+  // Fetch KB search history
+  const { data: kbHistory } = useQuery({
+    queryKey: ["/api/tokens/kb-history"],
+    queryFn: async () => {
+      const res = await fetch('/api/tokens/kb-history?limit=100');
+      return res.json();
+    },
+  });
+
+  // Fetch web search stats
+  const { data: webStats } = useQuery({
+    queryKey: ["/api/tokens/web-search-stats"],
+    queryFn: async () => {
+      const res = await fetch('/api/tokens/web-search-stats');
+      return res.json();
+    },
+  });
+
+  // Fetch OpenAI specific stats from tokenSummary
+  const openaiStats = tokenSummary?.providers?.find((p: any) => p.provider === 'openai');
 
   const updatePolicy = useMutation({
     mutationFn: async (updates: any) => {
@@ -223,8 +271,9 @@ export default function AdminDashboard() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-        {/* Metrics Cards - Clickable */}
-        <div className="grid gap-4 md:grid-cols-4">
+        {/* Metrics Cards - Clickable - ONE CARD PER TAB/SUBTAB */}
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {/* Card 1: Total Tokens → History Tab */}
           <Card 
             className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
             onClick={() => setActiveTab("history")}
@@ -235,16 +284,20 @@ export default function AdminDashboard() {
                 <Activity className="w-4 h-4" />
                 Total Tokens
               </CardTitle>
-              <div className="text-3xl font-bold gradient-text-vibrant">
-                {/* Will be populated from query */}
-                <span className="animate-pulse">...</span>
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
+                {tokenSummary ? (
+                  (tokenSummary.totalTokens || 0).toLocaleString()
+                ) : (
+                  <span className="animate-pulse">...</span>
+                )}
               </div>
               <CardDescription className="text-xs">
-                Click to view history
+                All providers
               </CardDescription>
             </CardHeader>
           </Card>
 
+          {/* Card 2: Total Cost → Cost History Tab */}
           <Card 
             className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
             onClick={() => setActiveTab("cost")}
@@ -255,15 +308,44 @@ export default function AdminDashboard() {
                 <DollarSign className="w-4 h-4" />
                 Total Cost
               </CardTitle>
-              <div className="text-3xl font-bold gradient-text-vibrant">
-                <span className="animate-pulse">...</span>
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
+                {costHistory ? (
+                  `$${(costHistory.totalCost || 0).toFixed(4)}`
+                ) : (
+                  <span className="animate-pulse">...</span>
+                )}
               </div>
               <CardDescription className="text-xs">
-                Click to view cost history
+                OpenAI only
               </CardDescription>
             </CardHeader>
           </Card>
 
+          {/* Card 3: KB Searches → Token Monitoring (KB Searches subtab) */}
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("tokens")}
+            data-testid="card-kb-searches"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Search className="w-4 h-4" />
+                KB Searches
+              </CardTitle>
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
+                {kbHistory ? (
+                  Array.isArray(kbHistory) ? kbHistory.length : 0
+                ) : (
+                  <span className="animate-pulse">...</span>
+                )}
+              </div>
+              <CardDescription className="text-xs">
+                Knowledge Base queries
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          {/* Card 4: Free APIs → Token Monitoring (Free APIs subtab) */}
           <Card 
             className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
             onClick={() => setActiveTab("tokens")}
@@ -271,33 +353,110 @@ export default function AdminDashboard() {
           >
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
+                <Zap className="w-4 h-4" />
                 Free APIs
               </CardTitle>
-              <div className="text-3xl font-bold gradient-text-vibrant">
-                <span className="animate-pulse">...</span>
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
+                {freeAPIsHistory ? (
+                  (freeAPIsHistory.totalRequests || 0).toLocaleString()
+                ) : (
+                  <span className="animate-pulse">...</span>
+                )}
               </div>
               <CardDescription className="text-xs">
-                Click to view details
+                Groq, Gemini, HF, OpenRouter
               </CardDescription>
             </CardHeader>
           </Card>
 
+          {/* Card 5: OpenAI → Token Monitoring (OpenAI subtab) */}
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("tokens")}
+            data-testid="card-openai"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                OpenAI
+              </CardTitle>
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
+                {openaiStats ? (
+                  (openaiStats.today?.requests || 0).toLocaleString()
+                ) : (
+                  <span className="animate-pulse">...</span>
+                )}
+              </div>
+              <CardDescription className="text-xs">
+                Paid API requests
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          {/* Card 6: Web Searches → Token Monitoring (Web Searches subtab) */}
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("tokens")}
+            data-testid="card-web-searches"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                Web Searches
+              </CardTitle>
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
+                {webStats?.web ? (
+                  (webStats.web.totalSearches || 0).toLocaleString()
+                ) : (
+                  <span className="animate-pulse">...</span>
+                )}
+              </div>
+              <CardDescription className="text-xs">
+                {webStats?.web ? `${webStats.web.uniqueDomains || 0} domains` : 'DuckDuckGo'}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          {/* Card 7: DeepWeb Searches → Token Monitoring (DeepWeb subtab) */}
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("tokens")}
+            data-testid="card-deepweb-searches"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                DeepWeb
+              </CardTitle>
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
+                {webStats?.deepweb ? (
+                  (webStats.deepweb.totalSearches || 0).toLocaleString()
+                ) : (
+                  <span className="animate-pulse">...</span>
+                )}
+              </div>
+              <CardDescription className="text-xs">
+                Tor network queries
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          {/* Card 8: KB Documents → Knowledge Base Tab */}
           <Card 
             className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
             onClick={() => setActiveTab("knowledge")}
-            data-testid="card-kb-searches"
+            data-testid="card-kb-documents"
           >
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Database className="w-4 h-4" />
                 KB Documents
               </CardTitle>
-              <div className="text-3xl font-bold gradient-text-vibrant">
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {Array.isArray(documentsData) ? documentsData.length : 0}
               </div>
               <CardDescription className="text-xs">
-                Click to manage
+                Indexed knowledge
               </CardDescription>
             </CardHeader>
           </Card>

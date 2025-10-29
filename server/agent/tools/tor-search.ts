@@ -121,6 +121,7 @@ export async function torSearch(input: {
         torProxyAvailable,
         fallbackUsed: !useTor,
         searchMethod: useTor ? "Tor SOCKS5 proxy" : "Ahmia clearnet mirror",
+        results: results, // Include actual results for processing
       },
     };
   } catch (error: any) {
