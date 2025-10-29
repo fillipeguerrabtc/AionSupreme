@@ -1,20 +1,23 @@
-import { useState, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useRef, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Bot, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage, detectMessageLanguage } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 
 interface Message {
+  id?: number;
   role: "user" | "assistant";
   content: string;
+  conversationId?: number;
 }
 
 export default function ChatPage() {
   const { t, setLanguage, language } = useLanguage();
   const { toast } = useToast();
+  const [conversationId, setConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -22,8 +25,57 @@ export default function ChatPage() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Create or load conversation on mount
+  useEffect(() => {
+    const initConversation = async () => {
+      try {
+        // Check if there's a conversation ID in localStorage
+        const savedConvId = localStorage.getItem('currentConversationId');
+        
+        if (savedConvId) {
+          // Load existing conversation
+          const convResponse = await apiRequest(`/api/conversations/${savedConvId}`);
+          const msgsResponse = await apiRequest(`/api/conversations/${savedConvId}/messages`);
+          
+          const conv = await convResponse.json();
+          const msgs = await msgsResponse.json();
+          
+          setConversationId(Number(savedConvId));
+          setMessages(msgs.map((m: any) => ({
+            id: m.id,
+            role: m.role,
+            content: m.content,
+            conversationId: m.conversationId,
+          })));
+        } else {
+          // Create new conversation
+          const response = await apiRequest("/api/conversations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tenant_id: 1, title: "New Chat" }),
+          });
+          const newConv = await response.json();
+          
+          setConversationId(newConv.id);
+          localStorage.setItem('currentConversationId', newConv.id.toString());
+        }
+      } catch (error) {
+        console.error("Failed to initialize conversation:", error);
+        // Clear stale localStorage key to avoid repeated errors
+        localStorage.removeItem('currentConversationId');
+        // Create conversation without persistence if database fails
+        const tempId = Date.now();
+        setConversationId(tempId);
+      }
+    };
+    
+    initConversation();
+  }, []);
+
   const sendMutation = useMutation({
     mutationFn: async ({ userMessage, files }: { userMessage: string; files?: File[] }) => {
+      if (!conversationId) throw new Error("No conversation active");
+      
       const currentMessages = [...messages, { role: "user" as const, content: userMessage }];
       
       // If files attached, use multimodal endpoint
@@ -61,8 +113,35 @@ export default function ChatPage() {
       const data = await response.json();
       return data.choices[0].message.content;
     },
-    onSuccess: (assistantMessage) => {
-      setMessages(prev => [...prev, { role: "assistant", content: assistantMessage }]);
+    onSuccess: async (assistantMessage) => {
+      // Save assistant message to database
+      if (conversationId) {
+        try {
+          const response = await apiRequest(`/api/conversations/${conversationId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              role: "assistant",
+              content: assistantMessage,
+            }),
+          });
+          const savedMsg = await response.json();
+          
+          setMessages(prev => [...prev, {
+            id: savedMsg.id,
+            role: "assistant",
+            content: assistantMessage,
+            conversationId: savedMsg.conversationId,
+          }]);
+        } catch (error) {
+          console.error("Failed to save assistant message:", error);
+          // Still show message even if save fails
+          setMessages(prev => [...prev, { role: "assistant", content: assistantMessage }]);
+        }
+      } else {
+        setMessages(prev => [...prev, { role: "assistant", content: assistantMessage }]);
+      }
+      
       setAttachedFiles([]);
     },
     onError: (error) => {
@@ -76,8 +155,8 @@ export default function ChatPage() {
     },
   });
 
-  const handleSend = () => {
-    if ((!input.trim() && attachedFiles.length === 0) || sendMutation.isPending) return;
+  const handleSend = async () => {
+    if ((!input.trim() && attachedFiles.length === 0) || sendMutation.isPending || !conversationId) return;
     
     const userMessage = input.trim() || `[${attachedFiles.length} file(s) attached]`;
     
@@ -95,7 +174,30 @@ export default function ChatPage() {
       }
     }
     
-    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    // Save user message to database first
+    try {
+      const response = await apiRequest(`/api/conversations/${conversationId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "user",
+          content: userMessage,
+        }),
+      });
+      const savedMsg = await response.json();
+      
+      setMessages(prev => [...prev, {
+        id: savedMsg.id,
+        role: "user",
+        content: userMessage,
+        conversationId: savedMsg.conversationId,
+      }]);
+    } catch (error) {
+      console.error("Failed to save user message:", error);
+      // Still show message even if save fails
+      setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    }
+    
     setInput("");
     sendMutation.mutate({ userMessage, files: attachedFiles });
   };
@@ -380,7 +482,7 @@ export default function ChatPage() {
                 }
               }}
               placeholder={t.chat.placeholder}
-              className="glass border-primary/20 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 resize-none transition-all duration-300"
+              className="glass border-2 border-primary/60 focus:border-primary focus:ring-2 focus:ring-primary/30 resize-none transition-all duration-300"
               rows={3}
               data-testid="input-message"
             />

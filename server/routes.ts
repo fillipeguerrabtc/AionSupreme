@@ -536,6 +536,76 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // ============================================================================
+  // CONVERSATIONS & MESSAGES - Chat persistence
+  // ============================================================================
+  
+  // POST /api/conversations - Create new conversation
+  app.post("/api/conversations", async (req, res) => {
+    try {
+      const { tenant_id, title } = req.body;
+      const tenantId = tenant_id || 1;
+      
+      const conversation = await storage.createConversation({
+        tenantId,
+        title: title || "New Conversation",
+      });
+      
+      res.json(conversation);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GET /api/conversations/:id - Get conversation
+  app.get("/api/conversations/:id", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const conversation = await storage.getConversation(conversationId);
+      
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+      
+      res.json(conversation);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // GET /api/conversations/:id/messages - Get messages
+  app.get("/api/conversations/:id/messages", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const messages = await storage.getMessagesByConversation(conversationId);
+      
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // POST /api/conversations/:id/messages - Save message
+  app.post("/api/conversations/:id/messages", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.id);
+      const { role, content, attachments, tool_calls, metadata } = req.body;
+      
+      const message = await storage.createMessage({
+        conversationId,
+        role,
+        content,
+        attachments: attachments || undefined,
+        toolCalls: tool_calls || undefined,
+        metadata: metadata || undefined,
+      });
+      
+      res.json(message);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /metrics (Prometheus format)
   app.get("/metrics", exportPrometheusMetrics);
 
