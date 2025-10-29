@@ -11,16 +11,29 @@ import { eq, and, gte, sql, desc } from 'drizzle-orm';
 // TYPES
 // ============================================================================
 
+export interface WebSearchMetadata {
+  query: string;
+  sources: Array<{
+    url: string;
+    title: string;
+    snippet?: string;
+    domain?: string;
+  }>;
+  resultsCount: number;
+  indexedDocuments?: number;
+}
+
 export interface TokenTrackingData {
   tenantId: number;
-  provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter' | 'openai' | 'kb';
+  provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter' | 'openai' | 'kb' | 'web' | 'deepweb';
   model: string;
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
   cost?: number;
-  requestType: 'chat' | 'embedding' | 'transcription' | 'image';
+  requestType: 'chat' | 'embedding' | 'transcription' | 'image' | 'search';
   success: boolean;
+  metadata?: WebSearchMetadata;
 }
 
 export interface UsageSummary {
@@ -99,7 +112,8 @@ export async function trackTokenUsage(data: TokenTrackingData): Promise<void> {
     totalTokens: data.totalTokens,
     cost,
     requestType: data.requestType,
-    success: data.success
+    success: data.success,
+    metadata: data.metadata as any
   });
   
   // Check limits and send alerts if necessary
@@ -111,7 +125,7 @@ export async function trackTokenUsage(data: TokenTrackingData): Promise<void> {
 // ============================================================================
 
 export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]> {
-  const providers = ['groq', 'gemini', 'huggingface', 'openrouter', 'openai', 'kb'];
+  const providers = ['groq', 'gemini', 'huggingface', 'openrouter', 'openai', 'kb', 'web', 'deepweb'];
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -491,4 +505,175 @@ export async function getTokenTrends(
     requests: Number(r.requests),
     cost: Number(r.cost)
   }));
+}
+
+// ============================================================================
+// WEB/DEEPWEB SEARCH HISTORY
+// ============================================================================
+
+export interface SearchHistoryEntry {
+  id: number;
+  provider: 'web' | 'deepweb';
+  query: string;
+  sources: Array<{
+    url: string;
+    title: string;
+    snippet?: string;
+    domain?: string;
+  }>;
+  resultsCount: number;
+  indexedDocuments?: number;
+  timestamp: Date;
+  success: boolean;
+}
+
+export async function getWebSearchHistory(
+  tenantId: number,
+  provider: 'web' | 'deepweb' | 'both' = 'both',
+  limit: number = 100
+): Promise<SearchHistoryEntry[]> {
+  const query = provider === 'both'
+    ? db
+        .select()
+        .from(tokenUsage)
+        .where(
+          and(
+            eq(tokenUsage.tenantId, tenantId),
+            sql`${tokenUsage.provider} IN ('web', 'deepweb')`,
+            eq(tokenUsage.requestType, 'search')
+          )
+        )
+        .orderBy(desc(tokenUsage.timestamp))
+        .limit(limit)
+    : db
+        .select()
+        .from(tokenUsage)
+        .where(
+          and(
+            eq(tokenUsage.tenantId, tenantId),
+            eq(tokenUsage.provider, provider),
+            eq(tokenUsage.requestType, 'search')
+          )
+        )
+        .orderBy(desc(tokenUsage.timestamp))
+        .limit(limit);
+  
+  const results = await query;
+  
+  return results.map(r => ({
+    id: r.id,
+    provider: r.provider as 'web' | 'deepweb',
+    query: (r.metadata as any)?.query || '',
+    sources: (r.metadata as any)?.sources || [],
+    resultsCount: (r.metadata as any)?.resultsCount || 0,
+    indexedDocuments: (r.metadata as any)?.indexedDocuments,
+    timestamp: r.timestamp,
+    success: r.success
+  }));
+}
+
+export async function getWebSearchStats(tenantId: number): Promise<{
+  web: {
+    totalSearches: number;
+    successfulSearches: number;
+    totalSources: number;
+    uniqueDomains: number;
+  };
+  deepweb: {
+    totalSearches: number;
+    successfulSearches: number;
+    totalSources: number;
+    uniqueDomains: number;
+  };
+}> {
+  const webStats = await db
+    .select({
+      total: sql<number>`COUNT(*)`,
+      successful: sql<number>`SUM(CASE WHEN ${tokenUsage.success} = true THEN 1 ELSE 0 END)`,
+    })
+    .from(tokenUsage)
+    .where(
+      and(
+        eq(tokenUsage.tenantId, tenantId),
+        eq(tokenUsage.provider, 'web'),
+        eq(tokenUsage.requestType, 'search')
+      )
+    );
+  
+  const deepwebStats = await db
+    .select({
+      total: sql<number>`COUNT(*)`,
+      successful: sql<number>`SUM(CASE WHEN ${tokenUsage.success} = true THEN 1 ELSE 0 END)`,
+    })
+    .from(tokenUsage)
+    .where(
+      and(
+        eq(tokenUsage.tenantId, tenantId),
+        eq(tokenUsage.provider, 'deepweb'),
+        eq(tokenUsage.requestType, 'search')
+      )
+    );
+  
+  // Get all web searches to count sources/domains
+  const webSearches = await db
+    .select()
+    .from(tokenUsage)
+    .where(
+      and(
+        eq(tokenUsage.tenantId, tenantId),
+        eq(tokenUsage.provider, 'web'),
+        eq(tokenUsage.requestType, 'search'),
+        eq(tokenUsage.success, true)
+      )
+    );
+  
+  const deepwebSearches = await db
+    .select()
+    .from(tokenUsage)
+    .where(
+      and(
+        eq(tokenUsage.tenantId, tenantId),
+        eq(tokenUsage.provider, 'deepweb'),
+        eq(tokenUsage.requestType, 'search'),
+        eq(tokenUsage.success, true)
+      )
+    );
+  
+  // Count total sources and unique domains
+  let webTotalSources = 0;
+  const webDomains = new Set<string>();
+  
+  for (const search of webSearches) {
+    const sources = (search.metadata as any)?.sources || [];
+    webTotalSources += sources.length;
+    sources.forEach((s: any) => {
+      if (s.domain) webDomains.add(s.domain);
+    });
+  }
+  
+  let deepwebTotalSources = 0;
+  const deepwebDomains = new Set<string>();
+  
+  for (const search of deepwebSearches) {
+    const sources = (search.metadata as any)?.sources || [];
+    deepwebTotalSources += sources.length;
+    sources.forEach((s: any) => {
+      if (s.domain) deepwebDomains.add(s.domain);
+    });
+  }
+  
+  return {
+    web: {
+      totalSearches: Number(webStats[0]?.total || 0),
+      successfulSearches: Number(webStats[0]?.successful || 0),
+      totalSources: webTotalSources,
+      uniqueDomains: webDomains.size
+    },
+    deepweb: {
+      totalSearches: Number(deepwebStats[0]?.total || 0),
+      successfulSearches: Number(deepwebStats[0]?.successful || 0),
+      totalSources: deepwebTotalSources,
+      uniqueDomains: deepwebDomains.size
+    }
+  };
 }

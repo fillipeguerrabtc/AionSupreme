@@ -621,7 +621,7 @@ export const tokenUsage = pgTable("token_usage", {
   tenantId: integer("tenant_id").notNull().references(() => tenants.id),
   
   // API Provider
-  provider: text("provider").notNull(), // "groq" | "gemini" | "huggingface" | "openrouter" | "openai"
+  provider: text("provider").notNull(), // "groq" | "gemini" | "huggingface" | "openrouter" | "openai" | "kb" | "web" | "deepweb"
   model: text("model").notNull(),
   
   // Usage metrics
@@ -633,8 +633,21 @@ export const tokenUsage = pgTable("token_usage", {
   cost: real("cost").default(0.0), // USD
   
   // Request info
-  requestType: text("request_type").notNull(), // "chat" | "embedding" | "transcription" | "image"
+  requestType: text("request_type").notNull(), // "chat" | "embedding" | "transcription" | "image" | "search"
   success: boolean("success").notNull().default(true),
+  
+  // Metadata for web/deepweb searches (URLs, titles, sources)
+  metadata: jsonb("metadata").$type<{
+    query?: string;
+    sources?: Array<{
+      url: string;
+      title: string;
+      snippet?: string;
+      domain?: string;
+    }>;
+    resultsCount?: number;
+    indexedDocuments?: number;
+  }>(),
   
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 }, (table) => ({
