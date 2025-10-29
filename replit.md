@@ -6,6 +6,31 @@ AION is an enterprise-grade autonomous AI system designed for multi-tenant envir
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (October 29, 2025)
+
+### Critical Bug Fixes & Enhancements
+**Performance Optimization:**
+- Fixed sidebar conversations query to use efficient SQL LEFT JOIN + COUNT (O(conversations)) instead of pulling all messages (O(total messages))
+- Implemented `getConversationsWithMessageCount()` storage method for scalable conversation listing
+- Added `countMessagesByConversation()` for O(1) message counting using SQL COUNT
+
+**Auto-Indexing System:**
+- Fixed critical bug where conversations were NOT being auto-indexed into Knowledge Base
+- System now automatically indexes last 5 conversation exchanges after each chat response
+- Includes full context window (user + assistant messages) with metadata (source, provider, timestamp)
+- Enables KB-first retrieval for future similar queries, reducing dependency on paid APIs
+
+**Knowledge Base Tracking:**
+- Token Monitoring now shows ALL KB search attempts (both successes and failures)
+- Tracks low-confidence skips, high-confidence hits, and KB errors with full metadata
+- Provides complete visibility into KB → Free APIs → Web → OpenAI priority flow
+
+**Conversation Management:**
+- Empty chat filter: sidebar only displays conversations with messages (messagesCount > 0)
+- Auto-generated titles: first user message (up to 50 chars) becomes conversation title
+- Clickable logo and back button navigation using wouter's useLocation()
+- Improved UX with semantic navigation (keyboard + mouse support)
+
 ## System Architecture
 
 ### Core System Design
