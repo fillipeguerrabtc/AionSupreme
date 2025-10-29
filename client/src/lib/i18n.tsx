@@ -183,11 +183,14 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 function detectBrowserLanguage(): Language {
-  const browserLang = navigator.language || navigator.languages?.[0] || "en-US";
+  const browserLang = navigator.language || navigator.languages?.[0] || "pt-BR";
   
   if (browserLang.startsWith("pt")) return "pt-BR";
   if (browserLang.startsWith("es")) return "es-ES";
-  return "en-US";
+  if (browserLang.startsWith("en")) return "en-US";
+  
+  // Default to Portuguese (Brazil)
+  return "pt-BR";
 }
 
 /**

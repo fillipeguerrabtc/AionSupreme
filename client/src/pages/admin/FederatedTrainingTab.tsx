@@ -1,11 +1,40 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Cpu, TrendingDown, Users, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Cpu, TrendingDown, Users, CheckCircle2, AlertCircle, Upload } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function FederatedTrainingTab() {
+  const { toast } = useToast();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [jobName, setJobName] = useState("");
+  const [modelType, setModelType] = useState("mistral-7b");
+  const [totalChunks, setTotalChunks] = useState(6);
+  const [learningRate, setLearningRate] = useState(2e-5);
+  const [epochs, setEpochs] = useState(3);
+
   const { data: jobsData } = useQuery({
     queryKey: ["/api/training/jobs"],
     queryFn: async () => {
@@ -15,6 +44,61 @@ export default function FederatedTrainingTab() {
     refetchInterval: 5000,
   });
 
+  const createJob = useMutation({
+    mutationFn: async (jobData: any) => {
+      const res = await apiRequest("/api/training/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jobData),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training/jobs"] });
+      setCreateDialogOpen(false);
+      toast({
+        title: "✅ Training job criado!",
+        description: "Abra os notebooks Colab/Kaggle para começar o treinamento.",
+      });
+      setJobName("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "❌ Erro ao criar job",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateJob = () => {
+    if (!jobName.trim()) {
+      toast({
+        title: "⚠️ Nome obrigatório",
+        description: "Insira um nome para o training job",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createJob.mutate({
+      tenantId: 1,
+      name: jobName,
+      modelType,
+      totalChunks,
+      totalSteps: 1000,
+      currentStep: 0,
+      status: "pending",
+      hyperparameters: {
+        learning_rate: learningRate,
+        epochs,
+        batch_size: 4,
+        gradient_accumulation_steps: 4,
+        sync_interval: 100,
+      },
+    });
+  };
+
   const jobs = jobsData?.jobs || [];
 
   return (
@@ -22,15 +106,123 @@ export default function FederatedTrainingTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Federated Training</h2>
+          <h2 className="text-2xl font-bold">Treinamento Federado</h2>
           <p className="text-muted-foreground">
-            Train LLMs 3-4x faster using distributed multi-GPU training
+            Treine LLMs 3-4x mais rápido usando GPUs distribuídas
           </p>
         </div>
-        <Button data-testid="button-create-job">
-          Create Training Job
+        <Button 
+          onClick={() => setCreateDialogOpen(true)}
+          data-testid="button-create-job"
+        >
+          Criar Training Job
         </Button>
       </div>
+
+      {/* Create Job Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Criar Federated Training Job</DialogTitle>
+            <DialogDescription>
+              Configure os parâmetros para treinar seu modelo customizado em múltiplas GPUs
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="job-name">Nome do Job</Label>
+              <Input
+                id="job-name"
+                placeholder="Ex: Llama-3-Finetuned-Portuguese"
+                value={jobName}
+                onChange={(e) => setJobName(e.target.value)}
+                data-testid="input-job-name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="model-type">Modelo Base</Label>
+              <Select value={modelType} onValueChange={setModelType}>
+                <SelectTrigger data-testid="select-model-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mistral-7b">Mistral 7B</SelectItem>
+                  <SelectItem value="llama-3-8b">Llama 3 8B</SelectItem>
+                  <SelectItem value="phi-3">Phi-3 Mini</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="total-chunks">Número de GPUs (Chunks)</Label>
+                <Input
+                  id="total-chunks"
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={totalChunks}
+                  onChange={(e) => setTotalChunks(parseInt(e.target.value))}
+                  data-testid="input-total-chunks"
+                />
+                <p className="text-xs text-muted-foreground">
+                  3-6 GPUs recomendado (Colab + Kaggle)
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="learning-rate">Learning Rate</Label>
+                <Input
+                  id="learning-rate"
+                  type="number"
+                  step="0.00001"
+                  value={learningRate}
+                  onChange={(e) => setLearningRate(parseFloat(e.target.value))}
+                  data-testid="input-learning-rate"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="epochs">Epochs</Label>
+              <Input
+                id="epochs"
+                type="number"
+                min={1}
+                max={10}
+                value={epochs}
+                onChange={(e) => setEpochs(parseInt(e.target.value))}
+                data-testid="input-epochs"
+              />
+            </div>
+
+            <div className="rounded-lg bg-muted p-4 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Upload className="w-4 h-4" />
+                Dataset (Coming Soon)
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Por enquanto, o script Python usará dados de exemplo. Upload de dataset customizado será implementado em breve.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleCreateJob}
+              disabled={createJob.isPending}
+              data-testid="button-confirm-create-job"
+            >
+              {createJob.isPending ? "Criando..." : "Criar Job"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
