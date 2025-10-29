@@ -259,20 +259,34 @@ export class FreeLLMProviders {
     
     const startTime = Date.now();
     
+    // Edge case defensivo: conversa vazia (não deveria acontecer na prática)
+    if (messages.length === 0) {
+      console.warn("[Free LLM] ⚠️ Gemini recebeu conversa vazia - usando mensagem default");
+      messages = [{ role: "user", content: "Hello" }];
+    }
+    
     // ATUALIZADO (Out 2025): Gemini 1.5 Flash DESCONTINUADO
     // gemini-2.0-flash-exp: novo modelo 2.0, experimental, FREE TIER (10 RPM, 250 RPD)
     const model = this.gemini.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
     
-    // Converter mensagens para formato Gemini
-    const lastMessage = messages[messages.length - 1];
-    const history = messages.slice(0, -1).map(m => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
+    let response;
+    
+    // Se há apenas 1 mensagem, usar generateContent diretamente (sem histórico)
+    if (messages.length === 1) {
+      const result = await model.generateContent(messages[0].content);
+      response = result.response;
+    } else {
+      // Converter mensagens para formato Gemini (com histórico)
+      const lastMessage = messages[messages.length - 1];
+      const history = messages.slice(0, -1).map(m => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      }));
 
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(lastMessage.content);
-    const response = result.response;
+      const chat = model.startChat({ history });
+      const result = await chat.sendMessage(lastMessage.content);
+      response = result.response;
+    }
 
     this.incrementUsage('gemini');
 
