@@ -232,7 +232,8 @@ export class FileProcessor {
       const base64Image = imageBuffer.toString("base64");
       const dataUrl = `data:${mimeType};base64,${base64Image}`;
       
-      // Use OpenAI Vision to analyze image
+      // Use GPT-4o Vision to analyze image (gpt-4-vision-preview depreciado)
+      // GPT-4o suporta visão nativamente
       const response = await llmClient.chatCompletion({
         messages: [
           {
@@ -241,7 +242,7 @@ export class FileProcessor {
           },
         ],
         tenantId: 1, // Default tenant for processing
-        model: "gpt-4-vision-preview",
+        model: "gpt-4o", // GPT-4o tem suporte nativo a visão
         maxTokens: 500,
       });
       
