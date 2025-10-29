@@ -9,6 +9,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage, detectMessageLanguage } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { VideoPreview } from "@/components/VideoPreview";
 
 interface Message {
   id?: number;
@@ -390,6 +391,62 @@ export default function ChatPage() {
     }
   };
 
+  // Detect and render video links in message content
+  const renderMessageContent = (content: string) => {
+    // Regex to match video URLs (YouTube, Vimeo, Dailymotion, direct video files)
+    const videoUrlRegex = /(https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|vimeo\.com\/(?:video\/)?|dailymotion\.com\/video\/)[^\s]+|https?:\/\/[^\s]+\.(?:mp4|webm|ogg|mov))/gi;
+    
+    const parts: (string | JSX.Element)[] = [];
+    let lastIndex = 0;
+    let match;
+    let keyCounter = 0;
+
+    while ((match = videoUrlRegex.exec(content)) !== null) {
+      // Add text before the video URL
+      if (match.index > lastIndex) {
+        const textBefore = content.slice(lastIndex, match.index);
+        if (textBefore.trim()) {
+          parts.push(
+            <p key={`text-${keyCounter++}`} className="whitespace-pre-wrap leading-relaxed">
+              {textBefore}
+            </p>
+          );
+        }
+      }
+
+      // Sanitize URL: remove trailing punctuation and markdown delimiters
+      let sanitizedUrl = match[0].replace(/[.,;:)\]}>]+$/, '');
+      
+      // Add video preview
+      parts.push(<VideoPreview key={`video-${keyCounter++}`} url={sanitizedUrl} />);
+      
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text after last video URL
+    if (lastIndex < content.length) {
+      const textAfter = content.slice(lastIndex);
+      if (textAfter.trim()) {
+        parts.push(
+          <p key={`text-${keyCounter++}`} className="whitespace-pre-wrap leading-relaxed">
+            {textAfter}
+          </p>
+        );
+      }
+    }
+
+    // If no videos found, return original content
+    if (parts.length === 0) {
+      return (
+        <p className="whitespace-pre-wrap leading-relaxed">
+          {content}
+        </p>
+      );
+    }
+
+    return <div className="space-y-2">{parts}</div>;
+  };
+
   // Custom sidebar width for chat application
   const sidebarStyle = {
     "--sidebar-width": "20rem",       // 320px for better content
@@ -465,9 +522,9 @@ export default function ChatPage() {
                 `}
                 data-testid={`card-message-${idx}`}
               >
-                <p className="whitespace-pre-wrap leading-relaxed" data-testid={`text-message-${idx}`}>
-                  {msg.content}
-                </p>
+                <div data-testid={`text-message-${idx}`}>
+                  {renderMessageContent(msg.content)}
+                </div>
               </div>
               
               {msg.role === "user" && (
