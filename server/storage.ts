@@ -11,6 +11,7 @@ import {
   metrics, type Metric, type InsertMetric,
   auditLogs, type AuditLog, type InsertAuditLog,
   knowledgeSources, type KnowledgeSource, type InsertKnowledgeSource,
+  generatedFiles, type GeneratedFile, type InsertGeneratedFile,
 } from "@shared/schema";
 
 // ============================================================================
@@ -82,6 +83,13 @@ export interface IStorage {
   createKnowledgeSource(source: InsertKnowledgeSource): Promise<KnowledgeSource>;
   updateKnowledgeSource(id: number, data: Partial<InsertKnowledgeSource>): Promise<KnowledgeSource>;
   deleteKnowledgeSource(id: number): Promise<void>;
+  
+  // Generated Files
+  getGeneratedFile(id: number): Promise<GeneratedFile | undefined>;
+  getGeneratedFilesByConversation(conversationId: number): Promise<GeneratedFile[]>;
+  createGeneratedFile(file: InsertGeneratedFile): Promise<GeneratedFile>;
+  markFileAsDeleted(id: number): Promise<void>;
+  getExpiredFiles(): Promise<GeneratedFile[]>;
 }
 
 // ============================================================================
@@ -384,6 +392,39 @@ export class DatabaseStorage implements IStorage {
 
   async deleteKnowledgeSource(id: number): Promise<void> {
     await db.delete(knowledgeSources).where(eq(knowledgeSources.id, id));
+  }
+
+  // --------------------------------------------------------------------------
+  // GENERATED FILES
+  // --------------------------------------------------------------------------
+  async getGeneratedFile(id: number): Promise<GeneratedFile | undefined> {
+    const [file] = await db.select().from(generatedFiles).where(eq(generatedFiles.id, id));
+    return file;
+  }
+
+  async getGeneratedFilesByConversation(conversationId: number): Promise<GeneratedFile[]> {
+    return db.select().from(generatedFiles)
+      .where(and(eq(generatedFiles.conversationId, conversationId), eq(generatedFiles.isDeleted, false)))
+      .orderBy(desc(generatedFiles.createdAt));
+  }
+
+  async createGeneratedFile(file: InsertGeneratedFile): Promise<GeneratedFile> {
+    const [created] = await db.insert(generatedFiles).values(file).returning();
+    return created;
+  }
+
+  async markFileAsDeleted(id: number): Promise<void> {
+    await db.update(generatedFiles)
+      .set({ isDeleted: true })
+      .where(eq(generatedFiles.id, id));
+  }
+
+  async getExpiredFiles(): Promise<GeneratedFile[]> {
+    return db.select().from(generatedFiles)
+      .where(and(
+        lte(generatedFiles.expiresAt, new Date()),
+        eq(generatedFiles.isDeleted, false)
+      ));
   }
 }
 
