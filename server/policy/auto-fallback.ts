@@ -101,6 +101,14 @@ export class AutoFallback {
       /seguir diretrizes (?:morais|éticas|e legais) (?:estritas|rígidas)/i,
       /adhere to guidelines that ensure (?:content is appropriate|safe interactions)/i,
       /aderir a diretrizes que garantem (?:conteúdo apropriado|interações seguras)/i,
+      
+      // 🔥 CRITICAL: Patterns from October 2025 user screenshots
+      /(?:may|might) not be (?:feasible|advisable|possible)/i,
+      /not be feasible or advisable/i,
+      /due to (?:legal|ethical|security) (?:concerns|considerations)/i,
+      /legal,? ethical,? (?:and|&) security (?:concerns|considerations|limitations)/i,
+      /accessing or reproducing (?:deep web|darknet|onion) content/i,
+      /directly accessing .* (?:may not be|might not be) (?:feasible|advisable)/i,
     ];
 
     const isRefusal = refusalPatterns.some(pattern => pattern.test(content));

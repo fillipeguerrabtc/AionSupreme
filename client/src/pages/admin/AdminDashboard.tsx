@@ -96,8 +96,13 @@ export default function AdminDashboard() {
     },
   });
 
+  // Calculate total tokens from all providers
+  const totalTokens = tokenSummary?.reduce((sum: number, provider: any) => {
+    return sum + (provider.today?.tokens || 0);
+  }, 0) || 0;
+
   // Fetch OpenAI specific stats from tokenSummary
-  const openaiStats = tokenSummary?.providers?.find((p: any) => p.provider === 'openai');
+  const openaiStats = tokenSummary?.find((p: any) => p.provider === 'openai');
 
   const updatePolicy = useMutation({
     mutationFn: async (updates: any) => {
@@ -286,7 +291,7 @@ export default function AdminDashboard() {
               </CardTitle>
               <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {tokenSummary ? (
-                  (tokenSummary.totalTokens || 0).toLocaleString()
+                  totalTokens.toLocaleString()
                 ) : (
                   <span className="animate-pulse">...</span>
                 )}
