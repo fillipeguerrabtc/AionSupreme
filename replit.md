@@ -41,8 +41,14 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **Models**: Open-Sora 1.2, AnimateDiff, Stable Video Diffusion, ModelScope.
 - **Deployment**: RunPod/Modal GPU workers or self-hosted.
 
-**Free LLM & GPU Infrastructure System:**
+**Free LLM & GPU Infrastructure System (UPDATED 2025):**
 - **Free APIs (PRIORITY ORDER)**: OpenRouter, Groq, Gemini, HuggingFace. OpenAI is a last resort.
+- **2025 Free Models**:
+  - **OpenRouter**: Meta Llama 4 Scout:free (50 req/dia, geral purpose)
+  - **Groq**: Llama 3.3 70B Versatile (14.4k req/dia, maior performance que Llama 405B)
+  - **Gemini**: Gemini 2.0 Flash Exp (1.5k req/dia, experimental free tier)
+  - **HuggingFace**: Meta Llama 3 8B Instruct (720 req/dia, conversational API)
+- **Total Capacity**: ~16.7k requisições/dia 100% GRATUITAS antes de usar OpenAI
 - **GPU Orchestrator**: Automatic rotation between Colab, Kaggle, Modal for fine-tuning.
 - **Training Pipeline**: Automatic conversation collection → JSONL export → LoRA fine-tuning on Llama-3-8B.
 
