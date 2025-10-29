@@ -7,16 +7,21 @@ AION is an enterprise-grade autonomous AI system designed for multi-tenant envir
 Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (Oct 29, 2025)
-- **Admin Dashboard Auto-Save Fix**: Replaced automatic save with explicit "Save Changes" button for policies and AI behavior settings. Users can now modify multiple settings before saving.
-- **Switch Visibility Fix**: Fixed bug where policy switches would disappear on hover by wrapping in flex-shrink-0 div.
-- **Knowledge Base Management System**: New comprehensive KB management page (/admin/knowledge-base) with:
-  - Manual text addition (title + content)
-  - Learn from URL (web scraping with cheerio)
-  - Web search & auto-indexing (DuckDuckGo search → fetch → index top 5 results)
-  - Full CRUD operations (view, edit, delete documents)
-  - Automatic RAG indexing on add/update
-  - File upload UI (backend pending implementation)
-- **Schema Updates**: Enhanced documents table with `title`, `content`, `source` fields for unified KB storage (manual/upload/url/web-search sources).
+- **Complete Technical Documentation**: Created comprehensive 674-line technical documentation (`docs/TECHNICAL_DOCUMENTATION.md`) consolidating:
+  - Full mathematical foundations (Transformer, RoPE, FlashAttention, MoE, LoRA, RAG, MMR, PCA, PPO)
+  - Complete code implementations (FastAPI microservice, LoRA training, Knowledge Base, Web Curator)
+  - Free infrastructure guide (27,170 req/day from free APIs, 114h GPU/week from Colab+Kaggle)
+  - Production deployment (Kubernetes, Backup/Restore, Prometheus alerts)
+- **File Upload System**: Implemented complete multimodal file processing supporting PDF, DOCX, XLSX, TXT, MD, XML, CSV, images (PNG, JPG, GIF, WebP) with:
+  - Simultaneous upload of up to 20 files
+  - Automatic text extraction (mammoth, xlsx, xml2js, pdf-parse)
+  - Image OCR via GPT-4 Vision API
+  - Automatic RAG indexing of all extracted content
+  - Real-time progress tracking with detailed statistics
+- **File Processing Validation**: Verified 100% consistent extraction across multiple uploads (same file = exact same character count every time)
+- **Schema Updates**: Enhanced documents table with comprehensive metadata including `title`, `content`, `source`, `filename`, `mimeType`, `size`, and processing statistics
+- **Admin Dashboard Improvements**: Replaced auto-save with explicit "Save Changes" button, fixed switch visibility issues
+- **Knowledge Base Features**: Manual text addition, URL learning (web scraping), web search & auto-indexing (top 10 results), full CRUD operations
 
 ## System Architecture
 
@@ -57,10 +62,13 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **Deployment**: RunPod/Modal GPU workers or self-hosted.
 
 **Free LLM & GPU Infrastructure System:**
-- **Free APIs (PRIORITY ORDER)**: OpenRouter, Groq, Gemini, HuggingFace. OpenAI is a last resort.
-- **Total Capacity**: Approximately 16.7k free requests per day across various providers before using OpenAI.
-- **GPU Orchestrator**: Automatic rotation between Colab, Kaggle, Modal for fine-tuning.
-- **Training Pipeline**: Automatic conversation collection → JSONL export → LoRA fine-tuning on Llama-3-8B.
+- **Free APIs (PRIORITY ORDER)**: Groq → Gemini → HuggingFace → OpenRouter. OpenAI is last resort.
+- **Total Capacity**: **27,170 free requests per day** (Groq: 14.4k, Gemini: 12k, HF: 720, OpenRouter: 50)
+- **Free GPU Training**: **114 hours/week** (Google Colab: 84h, Kaggle: 30h) + GCP $300 credits
+- **GPU Orchestrator**: Automatic rotation between Colab ↔ Kaggle with Google Drive persistence
+- **Training Pipeline**: Conversation collection → JSONL export → LoRA fine-tuning (Mistral 7B/Llama 3 8B)
+- **Models**: Mistral 7B Instruct (uncensored), Llama 3 8B, Phi-3 Mini, Gemma 7B
+- **Hosting**: 100% free (Replit backend, Vercel/Netlify frontend, Supabase DB, Cloudflare CDN)
 
 ### System Design Choices
 - **Multi-tenancy**: Complete isolation of data and policies per tenant.
@@ -82,11 +90,25 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **GCP e2-micro, Supabase**: Free hosting for frontend, backend, and database.
 
 ### Key Libraries (NPM)
-- **@neondatabase/serverless**: PostgreSQL client.
-- **drizzle-orm**: Type-safe ORM.
-- **openai**: Official OpenAI SDK.
-- **@radix-ui/**: Accessible UI primitives.
-- **@tanstack/react-query**: Server state management.
-- **tailwindcss**: CSS framework.
-- **zod**: Schema validation.
-- **mammoth, xlsx, xml2js, cheerio, multer**: For document parsing and HTML scraping.
+- **@neondatabase/serverless**: PostgreSQL client
+- **drizzle-orm**: Type-safe ORM with migrations
+- **openai**: Official OpenAI SDK
+- **@radix-ui/**: Accessible UI primitives (shadcn/ui)
+- **@tanstack/react-query**: Server state management
+- **tailwindcss**: Utility-first CSS framework
+- **zod**: Schema validation
+- **mammoth**: DOCX → text extraction
+- **xlsx**: Excel file parsing (XLS, XLSX)
+- **xml2js**: XML parsing
+- **pdf-parse**: PDF text extraction
+- **cheerio**: HTML parsing and web scraping
+- **multer**: File upload handling
+- **sharp**: Image processing
+- **file-type**: MIME type detection
+
+### Documentation
+- **Technical Documentation**: `docs/TECHNICAL_DOCUMENTATION.md` - Complete mathematical foundations, code implementations, and deployment guide (674 lines)
+- **Supported File Formats**: PDF, TXT, DOC, DOCX, MD, XLSX, XLS, XML, CSV, PNG, JPG, JPEG, GIF, WebP
+- **Processing Capacity**: Up to 20 files simultaneously, unlimited file size (PostgreSQL TEXT = 1GB limit)
+- **APIs Documentation**: Complete guide for Groq, Gemini, OpenRouter, HuggingFace integration
+- **GPU Training Guide**: Step-by-step for Google Colab, Kaggle, GCP Free Tier
