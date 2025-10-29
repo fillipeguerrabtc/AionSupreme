@@ -63,11 +63,13 @@ Estado Padrão (Default State):
 ## Overview
 AION is an enterprise-grade autonomous AI system designed for multi-tenant environments. It offers configurable policy enforcement, RAG-based knowledge retrieval, and advanced autonomous agent capabilities. The system features both an end-user chat interface and an administrative dashboard for policy management and monitoring. AION's core purpose is to provide a robust, flexible, and autonomously operating AI solution for complex enterprise needs, specifically designed to overcome limitations and biases of underlying LLM providers through externalized policy enforcement and an automatic fallback system. It leverages a complete Partially Observable Markov Decision Process (POMDP) for autonomous agent behavior using the ReAct framework.
 
-**Current Status: ✅ FULLY FUNCTIONAL** (as of October 28, 2025)
+**Current Status: ✅ FULLY FUNCTIONAL** (as of October 29, 2025)
 - Server running on port 5000
-- All 12 API endpoints operational
+- All 16 API endpoints operational (added conversation persistence)
 - Frontend (Chat + Admin) fully functional
-- E2E tests passing
+- Auto-fallback patterns updated to detect all OpenAI refusals
+- Chat persistence implemented (messages saved to database)
+- Input border visibility improved (border-2 border-primary/60)
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

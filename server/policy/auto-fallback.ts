@@ -80,6 +80,13 @@ export class AutoFallback {
       /i (?:do not|don't|cannot) (?:promote|facilitate|provide (?:guidance|assistance) (?:with|for)) (?:illegal|harmful|unethical) (?:activities|content)/i,
       /não (?:promovo|facilito|posso ajudar com) atividades (?:ilegais|imorais|prejudiciais)/i,
       /my (?:guidelines|programming) (?:prevent|prohibit) me from (?:providing|assisting with|engaging in) (?:illegal|harmful|unethical)/i,
+      
+      // 🆕 ADDITIONAL PATTERNS - Detected from user screenshot
+      /(?:sou |estou )?programado para seguir diretrizes (?:morais|éticas|legais)/i,
+      /(?:i am |i'm )?programmed to follow (?:moral|ethical|legal) (?:guidelines|principles)/i,
+      /seguir diretrizes (?:morais|éticas|e legais) (?:estritas|rígidas)/i,
+      /adhere to guidelines that ensure (?:content is appropriate|safe interactions)/i,
+      /aderir a diretrizes que garantem (?:conteúdo apropriado|interações seguras)/i,
     ];
 
     return refusalPatterns.some(pattern => pattern.test(content));
