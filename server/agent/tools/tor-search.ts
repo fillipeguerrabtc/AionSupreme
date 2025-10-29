@@ -97,8 +97,9 @@ export async function torSearch(input: {
           "2. Tor proxy is not configured (for .onion sites)\n" +
           "3. Search query needs to be more specific\n\n" +
           "Recommendation: Try regular web search or adjust query.",
-        success: true,
-        metadata: { resultsCount: 0, torProxyAvailable },
+        success: false,
+        metadata: { resultsCount: 0, torProxyAvailable, fallbackUsed: !useTor },
+        errorMessage: "No deep web results found",
       };
     }
     
@@ -118,6 +119,8 @@ export async function torSearch(input: {
         resultsCount: results.length, 
         torSitesCount: results.filter(r => r.isTorSite).length,
         torProxyAvailable,
+        fallbackUsed: !useTor,
+        searchMethod: useTor ? "Tor SOCKS5 proxy" : "Ahmia clearnet mirror",
       },
     };
   } catch (error: any) {
