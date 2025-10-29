@@ -45,6 +45,7 @@ export interface PriorityRequest {
   topP?: number;
   maxTokens?: number;
   unrestricted?: boolean;  // UNRESTRICTED mode = bypasses all filters
+  forcedSource?: 'web' | 'deepweb' | 'kb' | 'free-apis';  // Force specific source when user explicitly requests it
 }
 
 export interface PriorityResponse {
@@ -97,6 +98,156 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   
   const userMessage = req.messages[req.messages.length - 1]?.content || '';
   const isTimeSensitive = isTimeSensitiveQuery(userMessage);
+  
+  // ============================================================================
+  // EXPLICIT SOURCE REQUEST: Jump directly to requested source
+  // ============================================================================
+  
+  if (req.forcedSource) {
+    console.log(`\n🎯 [EXPLICIT REQUEST] User requested ${req.forcedSource.toUpperCase()} - jumping directly to source!`);
+    
+    // WEB SEARCH (explicit request)
+    if (req.forcedSource === 'web') {
+      console.log('   🔍 Executing WEB SEARCH as requested...');
+      try {
+        const webFallback = await executeWebFallback(userMessage, req.tenantId);
+        
+        await trackWebSearch(
+          req.tenantId,
+          'web',
+          webFallback.model,
+          webFallback.searchMetadata
+        );
+        
+        console.log('   ✅ Web search completed!');
+        console.log('='.repeat(80) + '\n');
+        
+        return {
+          content: webFallback.content,
+          source: 'web-fallback',
+          provider: webFallback.provider,
+          model: webFallback.model,
+          metadata: {
+            webSearchPerformed: true,
+            documentsIndexed: webFallback.documentsIndexed
+          }
+        };
+      } catch (error: any) {
+        console.error('   ✗ Web search failed:', error.message);
+        return {
+          content: `Tentei buscar na internet conforme solicitado, mas não encontrei resultados. Erro: ${error.message}`,
+          source: 'web-fallback',
+          provider: 'search-failed',
+          model: 'error'
+        };
+      }
+    }
+    
+    // KB SEARCH (explicit request)
+    if (req.forcedSource === 'kb') {
+      console.log('   📚 Searching KNOWLEDGE BASE as requested...');
+      try {
+        const kbResult = await searchWithConfidence(userMessage, req.tenantId, { limit: 5 });
+        
+        await trackTokenUsage({
+          tenantId: req.tenantId,
+          provider: 'kb',
+          model: 'rag-mmr',
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0,
+          cost: 0,
+          requestType: 'chat',
+          success: kbResult.topResults.length > 0,
+          metadata: {
+            query: userMessage.substring(0, 200),
+            sources: [],
+            resultsCount: kbResult.topResults.length,
+            indexedDocuments: 0
+          }
+        });
+        
+        if (kbResult.topResults.length === 0) {
+          return {
+            content: 'Consultei a Knowledge Base conforme solicitado, mas não encontrei informações relevantes sobre sua pergunta.',
+            source: 'kb',
+            provider: 'knowledge-base',
+            model: 'rag-mmr',
+            metadata: { kbResults: 0, kbConfidence: 0 }
+          };
+        }
+        
+        const context = kbResult.topResults
+          .map(r => `[${r.metadata?.title || 'Document'}] ${r.chunkText}`)
+          .join('\n\n');
+        
+        const kbResponse = await generateFromContext(context, userMessage, req);
+        
+        console.log('   ✅ KB search completed!');
+        console.log('='.repeat(80) + '\n');
+        
+        return {
+          content: kbResponse,
+          source: 'kb',
+          provider: 'knowledge-base',
+          model: 'rag-mmr',
+          metadata: {
+            kbResults: kbResult.topResults.length,
+            kbConfidence: kbResult.confidence
+          }
+        };
+      } catch (error: any) {
+        console.error('   ✗ KB search failed:', error.message);
+        return {
+          content: `Tentei consultar a Knowledge Base conforme solicitado, mas ocorreu um erro: ${error.message}`,
+          source: 'kb',
+          provider: 'knowledge-base',
+          model: 'error'
+        };
+      }
+    }
+    
+    // FREE APIS (explicit request)
+    if (req.forcedSource === 'free-apis') {
+      console.log('   💸 Using FREE APIs as requested...');
+      try {
+        const freeApiRequest: LLMRequest = {
+          messages: req.messages.map(m => ({
+            role: m.role as 'system' | 'user' | 'assistant',
+            content: m.content
+          })),
+          temperature: req.temperature,
+          topP: req.topP,
+          maxTokens: req.maxTokens
+        };
+        
+        const freeResponse = await generateWithFreeAPIs(freeApiRequest);
+        
+        console.log('   ✅ Free API response received!');
+        console.log('='.repeat(80) + '\n');
+        
+        return {
+          content: freeResponse.text,
+          source: 'free-api',
+          provider: freeResponse.provider,
+          model: freeResponse.model || 'unknown',
+          usage: {
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: freeResponse.tokensUsed || 0
+          }
+        };
+      } catch (error: any) {
+        console.error('   ✗ Free API failed:', error.message);
+        return {
+          content: `Tentei usar APIs gratuitas conforme solicitado, mas ocorreu um erro: ${error.message}`,
+          source: 'free-api',
+          provider: 'error',
+          model: 'error'
+        };
+      }
+    }
+  }
   
   // ============================================================================
   // STEP 1: KNOWLEDGE BASE (RAG) - HIGHEST PRIORITY

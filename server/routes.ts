@@ -1483,6 +1483,70 @@ export function registerRoutes(app: Express): Server {
   // AGENT CHAT ENDPOINT - Automatic tool usage (SearchVideos, SearchWeb, etc)
   // ============================================================================
   
+  // Helper: Detect explicit source request keywords
+  function detectExplicitSourceRequest(message: string): {
+    source: 'web' | 'deepweb' | 'kb' | 'free-apis' | null;
+    cleanQuery: string;
+  } {
+    const normalized = message.toLowerCase();
+    
+    // Web/Internet keywords (Portuguese + English)
+    const webKeywords = [
+      'consulte na internet', 'pesquise na internet', 'busque na internet',
+      'consulte na web', 'pesquise na web', 'busque na web',
+      'consulte no google', 'pesquise no google', 'busque no google',
+      'procure na internet', 'procure na web', 'search the internet',
+      'search the web', 'search google', 'look up online'
+    ];
+    
+    // DeepWeb keywords
+    const deepwebKeywords = [
+      'consulte na deepweb', 'pesquise na deepweb', 'busque na deepweb',
+      'consulte na deep web', 'pesquise na deep web',
+      'consulte no tor', 'pesquise no tor', 'search deepweb', 'search deep web'
+    ];
+    
+    // Knowledge Base keywords
+    const kbKeywords = [
+      'consulte na knowledge base', 'pesquise na knowledge base',
+      'consulte na kb', 'pesquise na kb',
+      'consulte na base de conhecimento', 'pesquise na base de conhecimento',
+      'search knowledge base', 'search kb'
+    ];
+    
+    // Check DeepWeb first (more specific)
+    for (const keyword of deepwebKeywords) {
+      if (normalized.includes(keyword)) {
+        return { 
+          source: 'deepweb', 
+          cleanQuery: message.replace(new RegExp(keyword, 'gi'), '').trim() 
+        };
+      }
+    }
+    
+    // Check KB
+    for (const keyword of kbKeywords) {
+      if (normalized.includes(keyword)) {
+        return { 
+          source: 'kb', 
+          cleanQuery: message.replace(new RegExp(keyword, 'gi'), '').trim() 
+        };
+      }
+    }
+    
+    // Check Web
+    for (const keyword of webKeywords) {
+      if (normalized.includes(keyword)) {
+        return { 
+          source: 'web', 
+          cleanQuery: message.replace(new RegExp(keyword, 'gi'), '').trim() 
+        };
+      }
+    }
+    
+    return { source: null, cleanQuery: message };
+  }
+  
   // POST /api/agent/chat - Agent-powered chat with automatic tool usage
   app.post("/api/agent/chat", async (req, res) => {
     const startTime = Date.now();
@@ -1502,6 +1566,47 @@ export function registerRoutes(app: Express): Server {
       
       // Get last user message
       const lastUserMessage = messages[messages.length - 1]?.content || '';
+      
+      // 🎯 EXPLICIT SOURCE DETECTION: Check if user explicitly requested a specific source
+      const explicitRequest = detectExplicitSourceRequest(lastUserMessage);
+      
+      if (explicitRequest.source) {
+        console.log(`[Explicit Request] User requested ${explicitRequest.source.toUpperCase()} search`);
+        console.log(`[Explicit Request] Clean query: "${explicitRequest.cleanQuery}"`);
+        
+        // Call priority orchestrator with forced source
+        const orchestratorRequest = {
+          messages: messages.map((m: any) => ({
+            role: m.role,
+            content: m.content
+          })),
+          tenantId,
+          temperature: 0.7,
+          topP: 0.9,
+          maxTokens: 4000,
+          unrestricted: true,  // Always allow when user explicitly requests a source
+          forcedSource: explicitRequest.source  // Force specific source
+        };
+        
+        const orchestratorResult = await generateWithPriority(orchestratorRequest);
+        
+        const latency = Date.now() - startTime;
+        metricsCollector.recordLatency(tenantId, latency);
+        
+        return res.json({
+          choices: [{ 
+            message: { 
+              role: "assistant", 
+              content: orchestratorResult.content 
+            }, 
+            finish_reason: "stop" 
+          }],
+          agent: {
+            used: false,
+            explicitSource: explicitRequest.source
+          }
+        });
+      }
       
       // Create tools Map
       const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
