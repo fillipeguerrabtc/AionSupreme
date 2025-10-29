@@ -1,6 +1,7 @@
 import type { AgentObservation } from "../react-engine";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { trackTokenUsage } from "../../monitoring/token-tracker";
 
 interface SearchResult {
   title: string;
@@ -12,7 +13,10 @@ export async function searchWeb(input: {
   query: string; 
   maxResults?: number;
   fetchContent?: boolean; // NEW: fetch full page content
+  tenantId?: number; // For tracking
 }): Promise<AgentObservation> {
+  const tenantId = input.tenantId || 1; // Default tenant
+  
   try {
     const maxResults = input.maxResults || 5;
     
@@ -55,6 +59,25 @@ export async function searchWeb(input: {
     });
     
     if (results.length === 0) {
+      // Track failed search
+      await trackTokenUsage({
+        tenantId,
+        provider: 'web',
+        model: 'duckduckgo-search',
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+        cost: 0,
+        requestType: 'search',
+        success: false,
+        metadata: {
+          query: input.query.substring(0, 200),
+          sources: [],
+          resultsCount: 0,
+          indexedDocuments: 0
+        }
+      });
+      
       return {
         observation: "No results found",
         success: true,
@@ -118,12 +141,55 @@ export async function searchWeb(input: {
       `[${i+1}] ${r.title}\nURL: ${r.url}\nSnippet: ${r.snippet}`
     ).join('\n\n');
     
+    // Track successful search
+    await trackTokenUsage({
+      tenantId,
+      provider: 'web',
+      model: 'duckduckgo-search',
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      cost: 0,
+      requestType: 'search',
+      success: true,
+      metadata: {
+        query: input.query.substring(0, 200),
+        sources: results.map(r => ({
+          url: r.url,
+          title: r.title,
+          snippet: r.snippet,
+          domain: new URL(r.url).hostname
+        })),
+        resultsCount: results.length,
+        indexedDocuments: 0
+      }
+    });
+    
     return {
       observation: `Found ${results.length} results:\n\n${formatted}`,
       success: true,
       metadata: { resultsCount: results.length, urls: results.map(r => r.url) },
     };
   } catch (error: any) {
+    // Track error
+    await trackTokenUsage({
+      tenantId,
+      provider: 'web',
+      model: 'duckduckgo-search',
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      cost: 0,
+      requestType: 'search',
+      success: false,
+      metadata: {
+        query: input.query.substring(0, 200),
+        sources: [],
+        resultsCount: 0,
+        indexedDocuments: 0
+      }
+    });
+    
     return {
       observation: `Search failed: ${error.message}`,
       success: false,

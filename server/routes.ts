@@ -1626,9 +1626,22 @@ export function registerRoutes(app: Express): Server {
         tools
       );
       
+      // Handle max steps reached (no finalAnswer)
+      let agentResponse = result.finalAnswer || '';
+      
+      if (!agentResponse && result.stopReason === 'max_steps') {
+        // Generate summary from agent steps
+        const lastSteps = result.steps.slice(-2); // Last 2 steps
+        const observations = lastSteps.map(s => s.observation).filter(Boolean).join('\n');
+        
+        agentResponse = observations 
+          ? `Consegui obter algumas informações:\n\n${observations}\n\nPreciso de mais passos para uma resposta completa. Você pode reformular a pergunta ou pedir informações mais específicas?`
+          : 'Tentei processar sua solicitação mas atingi o limite de etapas. Por favor, reformule sua pergunta de forma mais específica.';
+      }
+      
       // Check fallback
       const fallbackResult = await autoFallback.checkAndExecuteFallback(
-        result.finalAnswer || "",
+        agentResponse,
         lastUserMessage,
         tenantId,
         policy
