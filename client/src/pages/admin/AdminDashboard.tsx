@@ -22,6 +22,11 @@ export default function AdminDashboard() {
   const { t, language, setLanguage } = useLanguage();
   const [tenantId] = useState(1);
   const [systemPromptValue, setSystemPromptValue] = useState("");
+  
+  // Local state for pending changes (not yet saved)
+  const [pendingRules, setPendingRules] = useState<any>(null);
+  const [pendingBehavior, setPendingBehavior] = useState<any>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const { data: policy, error, isLoading } = useQuery({
     queryKey: ["/api/admin/policies", tenantId],
@@ -49,6 +54,9 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/policies", tenantId] });
+      setPendingRules(null);
+      setPendingBehavior(null);
+      setHasUnsavedChanges(false);
       toast({ title: t.admin.policyUpdated });
     },
   });
@@ -66,12 +74,23 @@ export default function AdminDashboard() {
     },
   });
 
-  // Initialize System Prompt value when policy loads
+  // Initialize local state when policy loads
   useEffect(() => {
-    if (policy?.systemPrompt) {
-      setSystemPromptValue(policy.systemPrompt);
+    if (policy) {
+      setSystemPromptValue(policy.systemPrompt || "");
+      setPendingRules(policy.rules);
+      setPendingBehavior(policy.behavior);
+      setHasUnsavedChanges(false);
     }
   }, [policy]);
+
+  // Handler to save all pending changes
+  const handleSaveChanges = () => {
+    const updates: any = {};
+    if (pendingRules) updates.rules = pendingRules;
+    if (pendingBehavior) updates.behavior = pendingBehavior;
+    updatePolicy.mutate(updates);
+  };
 
   if (isLoading) {
     return (
@@ -180,7 +199,7 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {Object.entries(policy?.rules || {}).map(([key, value]) => (
+              {Object.entries(pendingRules || policy?.rules || {}).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-card/50 border border-border/50 hover-elevate active-elevate-2">
                   <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
                     {t.admin.rules[key as keyof typeof t.admin.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -189,9 +208,8 @@ export default function AdminDashboard() {
                     id={key}
                     checked={value as boolean}
                     onCheckedChange={(checked) => {
-                      updatePolicy.mutate({
-                        rules: { ...policy.rules, [key]: checked }
-                      });
+                      setPendingRules({ ...pendingRules, [key]: checked });
+                      setHasUnsavedChanges(true);
                     }}
                     data-testid={`switch-${key}`}
                   />
@@ -214,14 +232,13 @@ export default function AdminDashboard() {
             <CardContent className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-sm font-medium">
-                  {t.admin.formality}: {((policy?.behavior?.formality || 0.5) * 100).toFixed(0)}%
+                  {t.admin.formality}: {(((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100).toFixed(0)}%
                 </Label>
                 <Slider
-                  value={[(policy?.behavior?.formality || 0.5) * 100]}
+                  value={[((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100]}
                   onValueChange={([value]) => {
-                    updatePolicy.mutate({
-                      behavior: { ...policy.behavior, formality: value / 100 }
-                    });
+                    setPendingBehavior({ ...pendingBehavior, formality: value / 100 });
+                    setHasUnsavedChanges(true);
                   }}
                   className="glass p-2 rounded-xl"
                   data-testid="slider-formality"
@@ -230,14 +247,13 @@ export default function AdminDashboard() {
 
               <div className="space-y-3">
                 <Label className="text-sm font-medium">
-                  {t.admin.creativity}: {((policy?.behavior?.creativity || 0.8) * 100).toFixed(0)}%
+                  {t.admin.creativity}: {(((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100).toFixed(0)}%
                 </Label>
                 <Slider
-                  value={[(policy?.behavior?.creativity || 0.8) * 100]}
+                  value={[((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100]}
                   onValueChange={([value]) => {
-                    updatePolicy.mutate({
-                      behavior: { ...policy.behavior, creativity: value / 100 }
-                    });
+                    setPendingBehavior({ ...pendingBehavior, creativity: value / 100 });
+                    setHasUnsavedChanges(true);
                   }}
                   className="glass p-2 rounded-xl"
                   data-testid="slider-creativity"
@@ -246,6 +262,29 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Save Button */}
+        {hasUnsavedChanges && (
+          <Card className="glass-premium border-accent/30 bg-accent/5 hover-elevate animate-slide-up">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-accent animate-pulse" />
+                  Você tem alterações não salvas
+                </p>
+                <Button
+                  onClick={handleSaveChanges}
+                  disabled={updatePolicy.isPending}
+                  className="bg-gradient-to-r from-accent to-primary hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg shadow-accent/25"
+                  data-testid="button-save-changes"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {updatePolicy.isPending ? "Salvando..." : "Salvar Alterações"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* System Prompt */}
         <Card className="glass-premium border-primary/20 hover-elevate animate-slide-up" style={{ animationDelay: "200ms" }}>
