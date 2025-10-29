@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +24,7 @@ import {
 export default function AdminDashboard() {
   const { toast } = useToast();
   const { t, language, setLanguage } = useLanguage();
+  const [, navigate] = useLocation();
   const [tenantId] = useState(1);
   const [systemPromptValue, setSystemPromptValue] = useState("");
   
@@ -137,13 +139,19 @@ export default function AdminDashboard() {
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => window.location.href = "/"}
+              onClick={() => navigate("/")}
               className="glass-premium"
               data-testid="button-back-to-chat"
             >
               <MessageSquare className="w-5 h-5" />
             </Button>
-            <AionLogo size="md" showText={false} />
+            <button 
+              onClick={() => navigate("/")} 
+              className="hover-elevate rounded-lg p-2 -m-2 transition-all bg-transparent border-0 cursor-pointer" 
+              data-testid="link-logo-home"
+            >
+              <AionLogo size="md" showText={false} />
+            </button>
             <div>
               <h1 className="text-xl font-bold gradient-text">{t.admin.title}</h1>
               <p className="text-xs text-muted-foreground">{t.admin.subtitle}</p>

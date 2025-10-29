@@ -1308,6 +1308,29 @@ export function registerRoutes(app: Express): Server {
         metadata: metadata || undefined,
       });
       
+      // Auto-generate conversation title from first user message
+      if (role === "user" && content) {
+        const messagesCount = await storage.countMessagesByConversation(conversationId);
+        
+        // If this is the first message, generate title
+        if (messagesCount === 1) {
+          const conversation = await storage.getConversation(conversationId);
+          
+          // Only update if title is still default and content is not empty
+          const trimmedContent = content.trim();
+          if (conversation && 
+              (conversation.title === "New Conversation" || conversation.title === "New Chat") &&
+              trimmedContent.length > 0) {
+            // Use first 50 characters as title
+            const autoTitle = trimmedContent.substring(0, 50) + (trimmedContent.length > 50 ? "..." : "");
+            
+            await storage.updateConversation(conversationId, {
+              title: autoTitle
+            });
+          }
+        }
+      }
+      
       res.json(message);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

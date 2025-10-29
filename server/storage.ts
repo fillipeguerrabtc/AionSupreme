@@ -56,6 +56,7 @@ export interface IStorage {
   // Messages
   getMessage(id: number): Promise<Message | undefined>;
   getMessagesByConversation(conversationId: number, limit?: number): Promise<Message[]>;
+  countMessagesByConversation(conversationId: number): Promise<number>;
   createMessage(message: InsertMessage): Promise<Message>;
   updateMessage(id: number, data: Partial<InsertMessage>): Promise<Message>;
   
@@ -312,6 +313,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(messages.conversationId, conversationId))
       .orderBy(messages.createdAt)
       .limit(limit);
+  }
+
+  async countMessagesByConversation(conversationId: number): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId));
+    return result[0]?.count || 0;
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {

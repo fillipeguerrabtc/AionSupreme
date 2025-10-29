@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -22,6 +23,7 @@ export default function ChatPage() {
   const { t, setLanguage, language } = useLanguage();
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -474,16 +476,22 @@ export default function ChatPage() {
           <header className="glass sticky top-0 z-50 border-b border-white/10">
             <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-3">
               <SidebarTrigger data-testid="button-sidebar-toggle" className="mr-2" />
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-lg opacity-50" />
-                <div className="relative glass-premium p-2 rounded-full">
-                  <Sparkles className="w-6 h-6 text-primary" />
+              <button 
+                onClick={() => navigate("/")} 
+                className="flex items-center gap-3 hover-elevate rounded-lg px-2 py-1 -mx-2 transition-all bg-transparent border-0 cursor-pointer" 
+                data-testid="link-logo-home"
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-lg opacity-50" />
+                  <div className="relative glass-premium p-2 rounded-full">
+                    <Sparkles className="w-6 h-6 text-primary" />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
-                <p className="text-xs text-muted-foreground">{t.chat.subtitle}</p>
-              </div>
+                <div>
+                  <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
+                  <p className="text-xs text-muted-foreground">{t.chat.subtitle}</p>
+                </div>
+              </button>
             </div>
           </header>
 
