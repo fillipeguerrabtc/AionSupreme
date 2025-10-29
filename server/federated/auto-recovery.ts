@@ -106,6 +106,15 @@ export class AutoRecovery {
       
       console.log(`[Auto-Recovery] Job ${jobId}: Reassigning chunk ${failedWorker.assignedChunk} from worker ${failedWorker.workerId} to GPU ${newGpu.id}`);
       
+      // Mark old worker as failed
+      await db
+        .update(trainingWorkers)
+        .set({
+          status: 'failed',
+          errorMessage: 'GPU failed, chunk reassigned to another worker',
+        })
+        .where(eq(trainingWorkers.id, failedWorker.id));
+      
       // Create new worker assignment
       await db.insert(trainingWorkers).values({
         jobId,
@@ -114,19 +123,28 @@ export class AutoRecovery {
         chunkStartIdx: failedWorker.chunkStartIdx,
         chunkEndIdx: failedWorker.chunkEndIdx,
         status: 'assigned',
+        currentStep: 0,
+        localLoss: null,
+        stepsPerSecond: null,
+        errorMessage: null,
       });
       
-      // Mark old worker as recovered
-      await db
-        .update(trainingWorkers)
-        .set({
-          status: 'failed',
-          errorMessage: 'Reassigned to another worker due to failure',
-        })
-        .where(eq(trainingWorkers.id, failedWorker.id));
+      console.log(`[Auto-Recovery] ✅ Chunk ${failedWorker.assignedChunk} reassigned to GPU ${newGpu.id}`);
     }
     
-    console.log(`[Auto-Recovery] Job ${jobId}: Recovery complete`);
+    // Update job active workers count
+    const activeCount = workers.filter(w => 
+      w.status === 'running' || w.status === 'assigned'
+    ).length;
+    
+    await db
+      .update(trainingJobs)
+      .set({
+        activeWorkers: activeCount,
+      })
+      .where(eq(trainingJobs.id, jobId));
+    
+    console.log(`[Auto-Recovery] Job ${jobId}: Recovery complete (${activeCount} active workers)`);
   }
 }
 

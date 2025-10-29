@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { fileCleanup } from "./cleanup/file-cleanup";
 import { setupAuth } from "./replitAuth";
+import { autoRecovery } from "./federated/auto-recovery";
 
 const app = express();
 
@@ -56,6 +57,9 @@ app.use((req, res, next) => {
 
   // Start file cleanup service (runs every hour to delete expired files)
   fileCleanup.start();
+  
+  // Start federated learning auto-recovery system
+  autoRecovery.start();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

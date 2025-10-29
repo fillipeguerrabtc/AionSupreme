@@ -2072,6 +2072,80 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // POST /api/training/jobs/:id/claim-chunk - Claim an available chunk for training
+  app.post("/api/training/jobs/:id/claim-chunk", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { trainingJobs, trainingWorkers } = await import("../shared/schema");
+      const { eq, and, or } = await import("drizzle-orm");
+      
+      const jobId = parseInt(req.params.id);
+      const { workerId } = req.body;
+      
+      if (isNaN(jobId) || !workerId) {
+        return res.status(400).json({ error: "Invalid job ID or worker ID" });
+      }
+      
+      // Get job
+      const job = await db.query.trainingJobs.findFirst({
+        where: eq(trainingJobs.id, jobId),
+      });
+      
+      if (!job) {
+        return res.status(404).json({ error: "Training job not found" });
+      }
+      
+      // Find available chunks (not assigned or failed assignments)
+      const existingWorkers = await db.query.trainingWorkers.findMany({
+        where: and(
+          eq(trainingWorkers.jobId, jobId),
+          or(
+            eq(trainingWorkers.status, 'assigned'),
+            eq(trainingWorkers.status, 'running')
+          )
+        ),
+      });
+      
+      const assignedChunks = new Set(existingWorkers.map(w => w.assignedChunk));
+      
+      // Find first available chunk
+      let availableChunk = -1;
+      for (let i = 0; i < job.totalChunks; i++) {
+        if (!assignedChunks.has(i)) {
+          availableChunk = i;
+          break;
+        }
+      }
+      
+      if (availableChunk === -1) {
+        return res.status(404).json({ error: "No available chunks" });
+      }
+      
+      // Assign chunk to worker
+      const { datasetSplitter } = await import("./federated/dataset-splitter");
+      const chunkPath = datasetSplitter.getChunkPath(jobId, availableChunk);
+      
+      const [worker] = await db.insert(trainingWorkers).values({
+        jobId,
+        workerId,
+        assignedChunk: availableChunk,
+        chunkStartIdx: 0, // Will be set by dataset splitter
+        chunkEndIdx: 0,   // Will be set by dataset splitter
+        status: 'assigned',
+      }).returning();
+      
+      console.log(`[Federated] GPU ${workerId} claimed chunk ${availableChunk} for job ${jobId}`);
+      
+      res.json({
+        worker,
+        chunkIndex: availableChunk,
+        chunkPath,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /api/training/jobs/:id/progress - Get real-time training progress
   app.get("/api/training/jobs/:id/progress", async (req, res) => {
     try {
