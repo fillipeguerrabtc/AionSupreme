@@ -182,7 +182,7 @@ export default function AdminDashboard() {
         {/* Policy Controls Grid */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Moral/Ética/Legal */}
-          <Card className="glass-premium border-primary/20 hover-elevate animate-slide-up">
+          <Card className="glass-premium border-primary/20 animate-slide-up overflow-visible">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" />
@@ -192,13 +192,13 @@ export default function AdminDashboard() {
                 {t.admin.policiesDesc}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 overflow-visible">
               {Object.entries(pendingRules || policy?.rules || {}).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card/50 border border-border/50">
                   <Label htmlFor={key} className="text-sm font-medium cursor-pointer flex-1">
                     {t.admin.rules[key as keyof typeof t.admin.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </Label>
-                  <div className="flex-shrink-0 w-11">
+                  <div className="flex-shrink-0 w-11 relative z-10">
                     <Switch
                       id={key}
                       checked={value as boolean}
