@@ -1854,6 +1854,294 @@ export function registerRoutes(app: Express): Server {
   });
 
   // ========================================================================
+  // FEDERATED LEARNING SYSTEM - Distributed Training with Multi-GPU
+  // ========================================================================
+
+  // POST /api/training/jobs - Create new federated training job
+  app.post("/api/training/jobs", async (req, res) => {
+    try {
+      const { trainingJobs, insertTrainingJobSchema } = await import("../shared/schema");
+      const { db } = await import("./db");
+      
+      const jobData = insertTrainingJobSchema.parse(req.body);
+      
+      const [job] = await db.insert(trainingJobs).values(jobData).returning();
+      
+      console.log(`[Federated] Created training job: ${job.name} (ID ${job.id})`);
+      
+      res.json({ job });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/training/jobs - List all training jobs
+  app.get("/api/training/jobs", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { trainingJobs } = await import("../shared/schema");
+      const { desc } = await import("drizzle-orm");
+      
+      const tenantId = parseInt(req.query.tenantId as string) || 1;
+      const { eq } = await import("drizzle-orm");
+      
+      const jobs = await db.query.trainingJobs.findMany({
+        where: eq(trainingJobs.tenantId, tenantId),
+        orderBy: [desc(trainingJobs.createdAt)],
+      });
+      
+      res.json({ jobs });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/training/jobs/:id - Get training job details
+  app.get("/api/training/jobs/:id", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { trainingJobs, trainingWorkers } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      
+      const jobId = parseInt(req.params.id);
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ error: "Invalid job ID" });
+      }
+      
+      const job = await db.query.trainingJobs.findFirst({
+        where: eq(trainingJobs.id, jobId),
+      });
+      
+      if (!job) {
+        return res.status(404).json({ error: "Training job not found" });
+      }
+      
+      // Get workers for this job
+      const workers = await db.query.trainingWorkers.findMany({
+        where: eq(trainingWorkers.jobId, jobId),
+        with: {
+          worker: true,
+        },
+      });
+      
+      res.json({ job, workers });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/training/jobs/:id/start - Start training job
+  app.post("/api/training/jobs/:id/start", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { trainingJobs } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      
+      const jobId = parseInt(req.params.id);
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ error: "Invalid job ID" });
+      }
+      
+      const [job] = await db
+        .update(trainingJobs)
+        .set({
+          status: 'running',
+          startedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(trainingJobs.id, jobId))
+        .returning();
+      
+      if (!job) {
+        return res.status(404).json({ error: "Training job not found" });
+      }
+      
+      console.log(`[Federated] Started training job: ${job.name} (ID ${jobId})`);
+      
+      res.json({ job });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/training/jobs/:id/pause - Pause training job
+  app.post("/api/training/jobs/:id/pause", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { trainingJobs } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      
+      const jobId = parseInt(req.params.id);
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ error: "Invalid job ID" });
+      }
+      
+      const [job] = await db
+        .update(trainingJobs)
+        .set({
+          status: 'paused',
+          updatedAt: new Date(),
+        })
+        .where(eq(trainingJobs.id, jobId))
+        .returning();
+      
+      if (!job) {
+        return res.status(404).json({ error: "Training job not found" });
+      }
+      
+      console.log(`[Federated] Paused training job: ${job.name} (ID ${jobId})`);
+      
+      res.json({ job });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/training/gradients - Submit gradient update from worker
+  app.post("/api/training/gradients", async (req, res) => {
+    try {
+      const { gradientAggregator } = await import("./federated/gradient-aggregator");
+      const { jobId, workerId, step, localStep, localLoss, gradients, numExamples } = req.body;
+      
+      if (!jobId || !workerId || step === undefined || !gradients || !numExamples) {
+        return res.status(400).json({ 
+          error: "Missing required fields: jobId, workerId, step, gradients, numExamples" 
+        });
+      }
+      
+      // Submit gradient
+      await gradientAggregator.submitGradient(jobId, {
+        workerId,
+        step,
+        localStep: localStep || step,
+        localLoss: localLoss || 0,
+        gradients,
+        numExamples,
+      });
+      
+      // Check if aggregation should happen
+      const shouldAggregate = await gradientAggregator.shouldAggregate(jobId, step);
+      
+      if (shouldAggregate) {
+        console.log(`[Federated] Triggering aggregation for job ${jobId}, step ${step}`);
+        
+        // Aggregate in background (non-blocking)
+        gradientAggregator.aggregate(jobId, step).catch(console.error);
+      }
+      
+      // Get latest checkpoint
+      const checkpointPath = await gradientAggregator.getLatestCheckpoint(jobId);
+      
+      res.json({
+        success: true,
+        message: "Gradient received",
+        shouldAggregate,
+        checkpointPath,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/training/checkpoints/:jobId - Get latest checkpoint
+  app.get("/api/training/checkpoints/:jobId", async (req, res) => {
+    try {
+      const { gradientAggregator } = await import("./federated/gradient-aggregator");
+      const jobId = parseInt(req.params.jobId);
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ error: "Invalid job ID" });
+      }
+      
+      const checkpointPath = await gradientAggregator.getLatestCheckpoint(jobId);
+      
+      if (!checkpointPath) {
+        return res.status(404).json({ error: "No checkpoint found for this job" });
+      }
+      
+      // Read checkpoint file
+      const checkpointData = await fs.readFile(checkpointPath, 'utf-8');
+      const checkpoint = JSON.parse(checkpointData);
+      
+      res.json({ checkpoint, path: checkpointPath });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/training/jobs/:id/progress - Get real-time training progress
+  app.get("/api/training/jobs/:id/progress", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { trainingJobs, trainingWorkers, gradientUpdates } = await import("../shared/schema");
+      const { eq, and, sql } = await import("drizzle-orm");
+      
+      const jobId = parseInt(req.params.id);
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ error: "Invalid job ID" });
+      }
+      
+      // Get job
+      const job = await db.query.trainingJobs.findFirst({
+        where: eq(trainingJobs.id, jobId),
+      });
+      
+      if (!job) {
+        return res.status(404).json({ error: "Training job not found" });
+      }
+      
+      // Get worker progress
+      const workers = await db.query.trainingWorkers.findMany({
+        where: eq(trainingWorkers.jobId, jobId),
+        with: {
+          worker: true,
+        },
+      });
+      
+      // Count gradient updates
+      const [gradientsCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(gradientUpdates)
+        .where(eq(gradientUpdates.jobId, jobId));
+      
+      const progress = {
+        job: {
+          id: job.id,
+          name: job.name,
+          status: job.status,
+          currentStep: job.currentStep,
+          totalSteps: job.totalSteps,
+          globalLoss: job.globalLoss,
+          bestLoss: job.bestLoss,
+          progressPercent: ((job.currentStep / job.totalSteps) * 100).toFixed(2),
+        },
+        workers: workers.map(w => ({
+          id: w.id,
+          workerId: w.workerId,
+          assignedChunk: w.assignedChunk,
+          status: w.status,
+          currentStep: w.currentStep,
+          localLoss: w.localLoss,
+          stepsPerSecond: w.stepsPerSecond,
+        })),
+        stats: {
+          activeWorkers: job.activeWorkers,
+          totalGradientUpdates: Number(gradientsCount.count),
+          completedChunks: job.completedChunks,
+        },
+      };
+      
+      res.json(progress);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================================================
   // RAG SYSTEM WITH MMR - AION Supreme  
   // ========================================================================
 

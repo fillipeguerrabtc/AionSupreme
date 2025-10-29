@@ -769,3 +769,204 @@ export const insertGpuWorkerSchema = createInsertSchema(gpuWorkers).omit({
 });
 export type InsertGpuWorker = z.infer<typeof insertGpuWorkerSchema>;
 export type GpuWorker = typeof gpuWorkers.$inferSelect;
+
+// ============================================================================
+// FEDERATED LEARNING SYSTEM - Distributed Training with Multi-GPU
+// ============================================================================
+
+// Training Jobs - Coordina treinamento distribuído entre múltiplas GPUs
+export const trainingJobs = pgTable("training_jobs", {
+  id: serial("id").primaryKey(),
+  
+  // Job identification
+  name: text("name").notNull(),
+  description: text("description"),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  
+  // Model configuration
+  modelType: text("model_type").notNull(), // "llama-3-8b" | "mistral-7b" | "phi-3"
+  baseCheckpoint: text("base_checkpoint"), // URL or path to starting checkpoint
+  
+  // Dataset configuration
+  datasetPath: text("dataset_path").notNull(), // Path to full dataset
+  datasetSize: integer("dataset_size").notNull(), // Total examples
+  chunkSize: integer("chunk_size").notNull(), // Examples per GPU chunk
+  totalChunks: integer("total_chunks").notNull(), // Total number of chunks
+  
+  // Training hyperparameters
+  hyperparameters: jsonb("hyperparameters").notNull().$type<{
+    learning_rate: number;
+    batch_size: number;
+    epochs: number;
+    max_steps?: number;
+    warmup_steps?: number;
+    weight_decay?: number;
+    gradient_accumulation_steps?: number;
+  }>(),
+  
+  // Federated Learning settings
+  fedConfig: jsonb("fed_config").notNull().$type<{
+    aggregation_algorithm: "fedavg" | "fedprox" | "fedadam"; // FedAvg is default
+    sync_interval: number; // Steps between gradient syncs
+    min_workers: number; // Minimum workers to start
+    max_workers: number; // Maximum workers allowed
+  }>(),
+  
+  // Progress tracking
+  status: text("status").notNull().default("pending"), // "pending" | "running" | "paused" | "completed" | "failed"
+  currentStep: integer("current_step").notNull().default(0),
+  totalSteps: integer("total_steps").notNull(),
+  globalLoss: real("global_loss"), // Aggregated loss from all workers
+  bestLoss: real("best_loss"), // Best loss achieved
+  
+  // Worker management
+  activeWorkers: integer("active_workers").notNull().default(0),
+  completedChunks: integer("completed_chunks").notNull().default(0),
+  
+  // Checkpoints
+  latestCheckpoint: text("latest_checkpoint"), // Path/URL to latest model checkpoint
+  checkpointInterval: integer("checkpoint_interval").notNull().default(100), // Save every N steps
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+}, (table) => ({
+  tenantIdx: index("training_jobs_tenant_idx").on(table.tenantId),
+  statusIdx: index("training_jobs_status_idx").on(table.status),
+}));
+
+export const insertTrainingJobSchema = createInsertSchema(trainingJobs).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  currentStep: true,
+  activeWorkers: true,
+  completedChunks: true,
+});
+export type InsertTrainingJob = z.infer<typeof insertTrainingJobSchema>;
+export type TrainingJob = typeof trainingJobs.$inferSelect;
+
+// Training Workers - Alocação de GPU workers para jobs de treinamento
+export const trainingWorkers = pgTable("training_workers", {
+  id: serial("id").primaryKey(),
+  
+  // Relationships
+  jobId: integer("job_id").notNull().references(() => trainingJobs.id),
+  workerId: integer("worker_id").notNull().references(() => gpuWorkers.id),
+  
+  // Chunk assignment
+  assignedChunk: integer("assigned_chunk").notNull(), // Which chunk (0-indexed)
+  chunkStartIdx: integer("chunk_start_idx").notNull(), // Dataset start index
+  chunkEndIdx: integer("chunk_end_idx").notNull(), // Dataset end index
+  
+  // Progress tracking
+  status: text("status").notNull().default("assigned"), // "assigned" | "training" | "syncing" | "completed" | "failed"
+  currentStep: integer("current_step").notNull().default(0),
+  localLoss: real("local_loss"), // Current loss on this worker
+  
+  // Performance metrics
+  stepsPerSecond: real("steps_per_second"),
+  lastSyncAt: timestamp("last_sync_at"),
+  totalSyncs: integer("total_syncs").notNull().default(0),
+  
+  // Error handling
+  errorMessage: text("error_message"),
+  retryCount: integer("retry_count").notNull().default(0),
+  maxRetries: integer("max_retries").notNull().default(3),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+}, (table) => ({
+  jobIdx: index("training_workers_job_idx").on(table.jobId),
+  workerIdx: index("training_workers_worker_idx").on(table.workerId),
+  statusIdx: index("training_workers_status_idx").on(table.status),
+}));
+
+export const insertTrainingWorkerSchema = createInsertSchema(trainingWorkers).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  currentStep: true,
+  totalSyncs: true,
+  retryCount: true,
+});
+export type InsertTrainingWorker = z.infer<typeof insertTrainingWorkerSchema>;
+export type TrainingWorker = typeof trainingWorkers.$inferSelect;
+
+// Model Checkpoints - Armazena checkpoints do modelo global
+export const modelCheckpoints = pgTable("model_checkpoints", {
+  id: serial("id").primaryKey(),
+  
+  // Relationships
+  jobId: integer("job_id").notNull().references(() => trainingJobs.id),
+  
+  // Checkpoint metadata
+  step: integer("step").notNull(), // Global step
+  globalLoss: real("global_loss").notNull(),
+  checkpointType: text("checkpoint_type").notNull(), // "scheduled" | "best" | "final"
+  
+  // Storage
+  storagePath: text("storage_path").notNull(), // S3/local path to checkpoint file
+  modelSize: integer("model_size"), // File size in bytes
+  
+  // Aggregation info
+  contributingWorkers: integer("contributing_workers").notNull(), // How many workers contributed
+  aggregationMethod: text("aggregation_method").notNull().default("fedavg"),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  jobIdx: index("model_checkpoints_job_idx").on(table.jobId),
+  stepIdx: index("model_checkpoints_step_idx").on(table.step),
+}));
+
+export const insertModelCheckpointSchema = createInsertSchema(modelCheckpoints).omit({ 
+  id: true, 
+  createdAt: true,
+});
+export type InsertModelCheckpoint = z.infer<typeof insertModelCheckpointSchema>;
+export type ModelCheckpoint = typeof modelCheckpoints.$inferSelect;
+
+// Gradient Updates - Rastreia updates de gradientes das GPUs
+export const gradientUpdates = pgTable("gradient_updates", {
+  id: serial("id").primaryKey(),
+  
+  // Relationships
+  jobId: integer("job_id").notNull().references(() => trainingJobs.id),
+  workerId: integer("worker_id").notNull().references(() => gpuWorkers.id),
+  
+  // Update metadata
+  step: integer("step").notNull(), // Global step
+  localStep: integer("local_step").notNull(), // Worker's local step
+  localLoss: real("local_loss").notNull(),
+  
+  // Gradient data
+  gradientStoragePath: text("gradient_storage_path"), // Path to serialized gradients
+  gradientNorm: real("gradient_norm"), // L2 norm of gradients
+  numExamples: integer("num_examples").notNull(), // Examples used in this update
+  
+  // Status
+  status: text("status").notNull().default("pending"), // "pending" | "aggregated" | "applied"
+  aggregatedInStep: integer("aggregated_in_step"), // Which global step used this update
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  aggregatedAt: timestamp("aggregated_at"),
+}, (table) => ({
+  jobIdx: index("gradient_updates_job_idx").on(table.jobId),
+  workerIdx: index("gradient_updates_worker_idx").on(table.workerId),
+  stepIdx: index("gradient_updates_step_idx").on(table.step),
+  statusIdx: index("gradient_updates_status_idx").on(table.status),
+}));
+
+export const insertGradientUpdateSchema = createInsertSchema(gradientUpdates).omit({ 
+  id: true, 
+  createdAt: true,
+});
+export type InsertGradientUpdate = z.infer<typeof insertGradientUpdateSchema>;
+export type GradientUpdate = typeof gradientUpdates.$inferSelect;
