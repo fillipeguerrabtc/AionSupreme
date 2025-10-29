@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { login, logout } from "@/lib/authUtils";
 import { LogIn, LogOut, Bot } from "lucide-react";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
+import { ProjectsSidebar } from "@/components/ProjectsSidebar";
 
 interface AppSidebarProps {
   currentConversationId: number | null;
@@ -26,6 +28,7 @@ export function AppSidebar({
   onNewConversation,
 }: AppSidebarProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
 
   const getUserInitials = () => {
     if (!user) return "?";
@@ -55,8 +58,13 @@ export function AppSidebar({
       </SidebarHeader>
 
       <SidebarContent>
+        <ProjectsSidebar
+          currentProjectId={selectedProjectId}
+          onSelectProject={setSelectedProjectId}
+        />
         <ConversationSidebar
           currentConversationId={currentConversationId}
+          currentProjectId={selectedProjectId}
           onSelectConversation={onSelectConversation}
           onNewConversation={onNewConversation}
         />

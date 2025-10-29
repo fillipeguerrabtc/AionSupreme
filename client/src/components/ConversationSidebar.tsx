@@ -9,21 +9,29 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ConversationSidebarProps {
   currentConversationId: number | null;
+  currentProjectId: number | null;
   onSelectConversation: (conversationId: number) => void;
   onNewConversation: () => void;
 }
 
 export function ConversationSidebar({
   currentConversationId,
+  currentProjectId,
   onSelectConversation,
   onNewConversation,
 }: ConversationSidebarProps) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
-  const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
+  const { data: allConversations = [], isLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
     enabled: isAuthenticated,
+  });
+
+  // Filter conversations by selected project
+  const conversations = allConversations.filter(conv => {
+    if (currentProjectId === null) return true; // Show all
+    return conv.projectId === currentProjectId;
   });
 
   const deleteMutation = useMutation({
