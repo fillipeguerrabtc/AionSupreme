@@ -92,6 +92,54 @@ export function registerRoutes(app: Express): Server {
         metricsCollector.recordTokens(tenantId, result.usage.totalTokens);
       }
       
+      // 🧠 AUTO-INDEX CONVERSATION TO KNOWLEDGE BASE
+      // This enables AION to learn from conversations and use KB first next time
+      try {
+        const userMessage = messages[messages.length - 1]?.content || '';
+        const aiResponse = result.content;
+        
+        // Build conversation context from last N exchanges (up to 5)
+        const contextWindow = 5;
+        const recentMessages = messages.slice(-contextWindow * 2); // User + Assistant pairs
+        
+        let conversationContext = '';
+        for (const msg of recentMessages) {
+          const role = msg.role === 'user' ? 'User' : msg.role === 'assistant' ? 'AION' : 'System';
+          if (msg.role !== 'system') { // Skip system prompts
+            conversationContext += `${role}: ${msg.content}\n\n`;
+          }
+        }
+        
+        // Add current exchange
+        conversationContext += `AION: ${aiResponse}\n\n`;
+        
+        // Add metadata about the exchange
+        conversationContext += `[Source: ${result.source}, Provider: ${result.provider}]`;
+        
+        const conversationTitle = `Chat: ${userMessage.substring(0, 60)}...`;
+        
+        // Create document in database
+        const doc = await storage.createDocument({
+          tenantId,
+          title: conversationTitle,
+          content: conversationContext,
+          source: 'conversation',
+          metadata: {
+            query: userMessage.substring(0, 200),
+            description: `Auto-indexed from ${result.source} (${result.provider}), ${recentMessages.length + 1} messages`
+          }
+        });
+        
+        // Index into Knowledge Base (async, don't wait)
+        knowledgeIndexer.indexDocument(doc.id, conversationContext, tenantId)
+          .then(() => console.log(`   ✅ Conversation indexed into KB (doc ${doc.id}, ${recentMessages.length + 1} messages)`))
+          .catch(err => console.error(`   ✗ Failed to index conversation:`, err.message));
+        
+      } catch (indexError: any) {
+        // Don't fail the request if indexing fails
+        console.error('[Auto-Index] Failed to index conversation:', indexError.message);
+      }
+      
       res.json({
         choices: [{ 
           message: { 
@@ -1153,9 +1201,9 @@ export function registerRoutes(app: Express): Server {
       }
       
       const userId = user.claims.sub;
-      const conversations = await storage.getConversationsByUser(userId, 50);
+      const conversationsWithCount = await storage.getConversationsWithMessageCount(userId, 50);
       
-      res.json(conversations);
+      res.json(conversationsWithCount);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

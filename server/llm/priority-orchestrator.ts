@@ -152,6 +152,25 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
     
     console.log('   ⚠ KB confidence too low, proceeding to Free APIs...');
     
+    // Track KB search attempt (failed due to low confidence)
+    await trackTokenUsage({
+      tenantId: req.tenantId,
+      provider: 'kb',
+      model: 'rag-mmr',
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      cost: 0,
+      requestType: 'chat',
+      success: false,
+      metadata: {
+        query: userMessage.substring(0, 200),
+        sources: [],
+        resultsCount: kbResult.topResults.length,
+        indexedDocuments: 0
+      }
+    });
+    
     // ⚡ AUTO WEB SEARCH: If KB failed + time-sensitive query → search web immediately
     if (isTimeSensitive && req.unrestricted) {
       console.log('   🔍 Time-sensitive query detected → Triggering WEB SEARCH...');
@@ -190,6 +209,25 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   } catch (error: any) {
     console.error('   ✗ KB search failed:', error.message);
     console.log('   → Proceeding to Free APIs...');
+    
+    // Track KB search failure
+    await trackTokenUsage({
+      tenantId: req.tenantId,
+      provider: 'kb',
+      model: 'rag-mmr',
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      cost: 0,
+      requestType: 'chat',
+      success: false,
+      metadata: {
+        query: userMessage.substring(0, 200),
+        sources: [],
+        resultsCount: 0,
+        indexedDocuments: 0
+      }
+    });
   }
   
   // ============================================================================

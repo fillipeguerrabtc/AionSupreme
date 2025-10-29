@@ -48,6 +48,7 @@ export interface IStorage {
   getConversation(id: number): Promise<Conversation | undefined>;
   getConversationsByTenant(tenantId: number, limit?: number): Promise<Conversation[]>;
   getConversationsByUser(userId: string, limit?: number): Promise<Conversation[]>;
+  getConversationsWithMessageCount(userId: string, limit?: number): Promise<Array<Conversation & { messagesCount: number }>>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   updateConversation(id: number, data: Partial<InsertConversation>): Promise<Conversation>;
   deleteConversation(id: number): Promise<void>;
@@ -262,6 +263,23 @@ export class DatabaseStorage implements IStorage {
       .where(eq(conversations.userId, userId))
       .orderBy(desc(conversations.updatedAt))
       .limit(limit);
+  }
+
+  async getConversationsWithMessageCount(userId: string, limit: number = 50): Promise<Array<Conversation & { messagesCount: number }>> {
+    // Efficient SQL query with LEFT JOIN and COUNT
+    const results = await db
+      .select({
+        ...conversations,
+        messagesCount: sql<number>`COUNT(${messages.id})::int`
+      })
+      .from(conversations)
+      .leftJoin(messages, eq(conversations.id, messages.conversationId))
+      .where(eq(conversations.userId, userId))
+      .groupBy(conversations.id)
+      .orderBy(desc(conversations.updatedAt))
+      .limit(limit);
+    
+    return results as Array<Conversation & { messagesCount: number }>;
   }
 
   async createConversation(conversation: InsertConversation): Promise<Conversation> {

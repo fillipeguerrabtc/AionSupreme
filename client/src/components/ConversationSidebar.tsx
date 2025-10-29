@@ -28,8 +28,12 @@ export function ConversationSidebar({
     enabled: isAuthenticated,
   });
 
-  // Filter conversations by selected project
+  // Filter conversations by selected project AND only show conversations with messages
   const conversations = allConversations.filter(conv => {
+    // Skip empty conversations (no messages)
+    if ((conv as any).messagesCount === 0) {
+      return false;
+    }
     if (currentProjectId === null) return true; // Show all
     return conv.projectId === currentProjectId;
   });
