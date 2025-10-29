@@ -67,6 +67,26 @@ export interface PriorityResponse {
 }
 
 // ============================================================================
+// HELPER: Detect Time-Sensitive Queries
+// ============================================================================
+
+function isTimeSensitiveQuery(query: string): boolean {
+  const lowercaseQuery = query.toLowerCase();
+  const timeSensitiveKeywords = [
+    'price', 'preço', 'valor', 'cost', 'custo',
+    'today', 'hoje', 'now', 'agora', 'current', 'atual',
+    'latest', 'recente', 'recent', 'último',
+    'weather', 'tempo', 'clima',
+    'news', 'notícias', 'noticia',
+    'bitcoin', 'btc', 'crypto', 'stock', 'ação', 'ações',
+    'score', 'placar', 'result', 'resultado',
+    'exchange', 'câmbio', 'dólar', 'dollar', 'euro'
+  ];
+  
+  return timeSensitiveKeywords.some(keyword => lowercaseQuery.includes(keyword));
+}
+
+// ============================================================================
 // PRIORITY ORCHESTRATION LOGIC
 // ============================================================================
 
@@ -76,6 +96,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   console.log('='.repeat(80));
   
   const userMessage = req.messages[req.messages.length - 1]?.content || '';
+  const isTimeSensitive = isTimeSensitiveQuery(userMessage);
   
   // ============================================================================
   // STEP 1: KNOWLEDGE BASE (RAG) - HIGHEST PRIORITY
@@ -130,6 +151,41 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
     }
     
     console.log('   ⚠ KB confidence too low, proceeding to Free APIs...');
+    
+    // ⚡ AUTO WEB SEARCH: If KB failed + time-sensitive query → search web immediately
+    if (isTimeSensitive && req.unrestricted) {
+      console.log('   🔍 Time-sensitive query detected → Triggering WEB SEARCH...');
+      
+      try {
+        const webFallback = await executeWebFallback(userMessage, req.tenantId);
+        
+        await trackWebSearch(
+          req.tenantId,
+          'web',
+          webFallback.model,
+          webFallback.searchMetadata
+        );
+        
+        console.log('   ✅ Web search completed successfully!');
+        console.log('='.repeat(80) + '\n');
+        
+        return {
+          content: webFallback.content,
+          source: 'web-fallback',
+          provider: webFallback.provider,
+          model: webFallback.model,
+          metadata: {
+            refusalDetected: false,
+            webSearchPerformed: true,
+            documentsIndexed: webFallback.documentsIndexed,
+            kbConfidence: kbResult.confidence
+          }
+        };
+      } catch (webError: any) {
+        console.error('   ✗ Web search failed:', webError.message);
+        console.log('   → Proceeding to Free APIs...');
+      }
+    }
     
   } catch (error: any) {
     console.error('   ✗ KB search failed:', error.message);

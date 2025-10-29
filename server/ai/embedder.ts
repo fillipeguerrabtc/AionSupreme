@@ -188,7 +188,9 @@ export async function embedTextCached(text: string): Promise<number[]> {
   if (embeddingCache.size >= CACHE_SIZE) {
     // Remove oldest entry
     const firstKey = embeddingCache.keys().next().value;
-    embeddingCache.delete(firstKey);
+    if (firstKey !== undefined) {
+      embeddingCache.delete(firstKey);
+    }
   }
 
   embeddingCache.set(cacheKey, {
