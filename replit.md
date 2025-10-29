@@ -65,12 +65,13 @@ AION is an enterprise-grade autonomous AI system designed for multi-tenant envir
 
 **Current Status: ✅ FULLY FUNCTIONAL** (as of October 29, 2025)
 - Server running on port 5000
-- All 20 API endpoints operational (added professional video generation system)
+- All 20 API endpoints operational
 - Frontend (Chat + Admin) fully functional
 - Auto-fallback patterns updated to detect all OpenAI refusals
 - Chat persistence implemented (messages saved to database)
 - Input border visibility improved (border-2 border-primary/60)
-- **Professional Video Generation** - GPU-backed async job system with Open-Sora/AnimateDiff support
+- **Professional Video Generation** - GPU-backed async job system with Open-Sora/AnimateDiff support (requires external GPU worker)
+- **Web Content Search & Display** - Search and display videos/images/documents from web/deepweb in interactive lists
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -87,7 +88,7 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 **Backend (Node.js + TypeScript):**
 - **Framework**: Express.js with TypeScript (strict mode, ESM modules).
 - **Database**: PostgreSQL via Drizzle ORM (Neon serverless).
-- **Core Services**: LLM Client (OpenAI integration with streaming, caching), Storage Layer, RAG Service (in-memory FAISS-like vector store), Agent Engine (ReAct with POMDP), Policy Enforcement (system prompt composition, output moderation), Automatic Fallback (refusal detection, web search, KB indexing), Multimodal Processor (document handling).
+- **Core Services**: LLM Client (OpenAI integration with streaming, caching), Storage Layer, RAG Service (in-memory FAISS-like vector store), Agent Engine (ReAct with POMDP), Policy Enforcement (system prompt composition, output moderation), Automatic Fallback (refusal detection, web search, KB indexing), Multimodal Processor (document handling), Web Content Discovery (SearchVideos, SearchImages, SearchWeb, TorSearch).
 - **Middleware**: Rate limiting, audit logging, API key authentication, request/response logging.
 
 **RAG (Retrieval-Augmented Generation):**
@@ -97,7 +98,7 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 **Agent System:**
 - **Framework**: ReAct (Reasoning + Acting) engine with a Thought→Action→Observation loop.
 - **Decision Making**: Implements a Partially Observable Markov Decision Process (POMDP) for autonomous task completion.
-- **Tools**: SearchWeb, KBSearch, Exec, Finish, and other custom tools.
+- **Tools**: SearchWeb, SearchVideos, SearchImages, TorSearch, KBSearch, Exec, Finish.
 - **Control**: Features hierarchical planning and specific stopping criteria (confidence threshold, max steps, no progress, error state).
 
 **Policy Enforcement Pipeline:**
