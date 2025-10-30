@@ -168,6 +168,9 @@ export default function TokenMonitoring() {
   const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState(30);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [customMode, setCustomMode] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Fetch token summary - returns array of UsageSummary
   const { data: summary, isLoading: summaryLoading} = useQuery<UsageSummary[]>({
@@ -181,11 +184,15 @@ export default function TokenMonitoring() {
     refetchInterval: 60000 // Refresh every minute
   });
 
-  // Fetch trends with breakdown support
+  // Fetch trends with breakdown support and custom date range
   const { data: trends, isLoading: trendsLoading } = useQuery<TokenTrends>({
-    queryKey: ['/api/tokens/trends', selectedPeriod, showBreakdown],
+    queryKey: ['/api/tokens/trends', selectedPeriod, showBreakdown, customMode, startDate, endDate],
     queryFn: async () => {
-      const res = await apiRequest(`/api/tokens/trends?days=${selectedPeriod}&breakdown=${showBreakdown}`);
+      let url = `/api/tokens/trends?days=${selectedPeriod}&breakdown=${showBreakdown}`;
+      if (customMode && startDate && endDate) {
+        url += `&start_date=${startDate}&end_date=${endDate}`;
+      }
+      const res = await apiRequest(url);
       return res.json();
     }
   });
@@ -226,6 +233,77 @@ export default function TokenMonitoring() {
       return res.json();
     }
   });
+
+  // Professional date formatting
+  const formatDate = (dateStr: string, period: number) => {
+    const date = new Date(dateStr);
+    if (period === 1) {
+      // For 1 day, show hour (but we only have daily data)
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else if (period <= 30) {
+      // For up to 30 days, show MMM DD
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else if (period <= 365) {
+      // For up to 1 year, show MMM DD, YYYY
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+    } else {
+      // For long periods, show MMM YYYY
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+  };
+
+  // Custom tooltip formatter
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || !payload.length) return null;
+
+    const date = new Date(label);
+    const formattedDate = date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    return (
+      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+        <p className="text-sm font-semibold text-foreground mb-2">{formattedDate}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={index} className="flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-sm" 
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-muted-foreground">{entry.name}:</span>
+            </div>
+            <span className="font-semibold text-foreground">
+              {entry.value.toLocaleString()} tokens
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Handle custom date range application
+  const applyCustomRange = () => {
+    if (!startDate || !endDate) {
+      toast({ title: "Please select both start and end dates", variant: "destructive" });
+      return;
+    }
+    if (new Date(startDate) > new Date(endDate)) {
+      toast({ title: "Start date must be before end date", variant: "destructive" });
+      return;
+    }
+    setCustomMode(true);
+    toast({ title: "Custom date range applied" });
+  };
+
+  const resetToPreset = () => {
+    setCustomMode(false);
+    setStartDate('');
+    setEndDate('');
+  };
 
   // Export functions
   const exportToCSV = () => {
@@ -535,17 +613,21 @@ export default function TokenMonitoring() {
           </CardContent>
         </Card>
 
-        {/* Trends Chart */}
+        {/* Trends Chart - Enterprise Grade */}
         <Card className="glass-premium border-accent/20" data-chart="usage-trends">
           <CardHeader>
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-accent" />
-                    Usage Trends
+                    Token Usage Analytics
                   </CardTitle>
-                  <CardDescription>Token consumption over time</CardDescription>
+                  <CardDescription>
+                    {customMode 
+                      ? `Custom: ${startDate} to ${endDate}`
+                      : `${selectedPeriod === 1 ? 'Today' : `Last ${selectedPeriod} days`}`}
+                  </CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -566,110 +648,200 @@ export default function TokenMonitoring() {
                   </Button>
                 </div>
               </div>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex gap-2">
-                  <Button
-                    variant={selectedPeriod === 1 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedPeriod(1)}
-                    data-testid="period-1d"
-                  >
-                    1D
-                  </Button>
-                  <Button
-                    variant={selectedPeriod === 7 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedPeriod(7)}
-                    data-testid="period-7d"
-                  >
-                    7D
-                  </Button>
-                  <Button
-                    variant={selectedPeriod === 30 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedPeriod(30)}
-                    data-testid="period-30d"
-                  >
-                    30D
-                  </Button>
-                  <Button
-                    variant={selectedPeriod === 90 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedPeriod(90)}
-                    data-testid="period-90d"
-                  >
-                    90D
-                  </Button>
-                  <Button
-                    variant={selectedPeriod === 1825 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedPeriod(1825)}
-                    data-testid="period-5y"
-                  >
-                    5Y
-                  </Button>
+
+              {/* Period Selection & Custom Range */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex gap-2">
+                    <Button
+                      variant={!customMode && selectedPeriod === 1 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => { setSelectedPeriod(1); resetToPreset(); }}
+                      data-testid="period-1d"
+                    >
+                      1D
+                    </Button>
+                    <Button
+                      variant={!customMode && selectedPeriod === 7 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => { setSelectedPeriod(7); resetToPreset(); }}
+                      data-testid="period-7d"
+                    >
+                      7D
+                    </Button>
+                    <Button
+                      variant={!customMode && selectedPeriod === 30 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => { setSelectedPeriod(30); resetToPreset(); }}
+                      data-testid="period-30d"
+                    >
+                      30D
+                    </Button>
+                    <Button
+                      variant={!customMode && selectedPeriod === 90 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => { setSelectedPeriod(90); resetToPreset(); }}
+                      data-testid="period-90d"
+                    >
+                      90D
+                    </Button>
+                    <Button
+                      variant={!customMode && selectedPeriod === 365 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => { setSelectedPeriod(365); resetToPreset(); }}
+                      data-testid="period-1y"
+                    >
+                      1Y
+                    </Button>
+                    <Button
+                      variant={!customMode && selectedPeriod === 1825 ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => { setSelectedPeriod(1825); resetToPreset(); }}
+                      data-testid="period-5y"
+                    >
+                      5Y
+                    </Button>
+                  </div>
+                  <Separator orientation="vertical" className="h-6" />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportToCSV}
+                      data-testid="export-csv"
+                    >
+                      CSV
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportToPNG}
+                      data-testid="export-png"
+                    >
+                      PNG
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
+
+                {/* Custom Date Range */}
+                <div className="flex items-center gap-2 flex-wrap bg-muted/30 p-3 rounded-lg">
+                  <Label className="text-xs font-semibold">Custom Range:</Label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="h-8 w-36"
+                    data-testid="input-start-date"
+                  />
+                  <span className="text-muted-foreground">to</span>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="h-8 w-36"
+                    data-testid="input-end-date"
+                  />
                   <Button
-                    variant="outline"
                     size="sm"
-                    onClick={exportToCSV}
-                    data-testid="export-csv"
+                    onClick={applyCustomRange}
+                    disabled={!startDate || !endDate}
+                    data-testid="button-apply-custom"
                   >
-                    CSV
+                    Apply
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={exportToPNG}
-                    data-testid="export-png"
-                  >
-                    PNG
-                  </Button>
+                  {customMode && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={resetToPreset}
+                      data-testid="button-reset-preset"
+                    >
+                      Reset
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             {trendsLoading ? (
-              <div className="flex items-center justify-center h-[300px]">
-                <Activity className="w-8 h-8 animate-pulse text-primary" />
+              <div className="flex items-center justify-center h-[400px]">
+                <div className="flex flex-col items-center gap-3">
+                  <Activity className="w-8 h-8 animate-pulse text-primary" />
+                  <p className="text-sm text-muted-foreground">Loading analytics...</p>
+                </div>
               </div>
             ) : trends?.daily && trends.daily.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={trends.daily}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+              <ResponsiveContainer width="100%" height={400}>
+                <AreaChart 
+                  data={trends.daily}
+                  margin={{ top: 10, right: 10, left: 0, bottom: customMode || selectedPeriod > 90 ? 40 : 0 }}
+                >
+                  <defs>
+                    {showBreakdown ? (
+                      <>
+                        <linearGradient id="groq" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={COLORS.groq} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={COLORS.groq} stopOpacity={0.1}/>
+                        </linearGradient>
+                        <linearGradient id="gemini" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={COLORS.gemini} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={COLORS.gemini} stopOpacity={0.1}/>
+                        </linearGradient>
+                        <linearGradient id="openai" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={COLORS.openai} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={COLORS.openai} stopOpacity={0.1}/>
+                        </linearGradient>
+                      </>
+                    ) : (
+                      <linearGradient id="total" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={COLORS.openai} stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor={COLORS.openai} stopOpacity={0.1}/>
+                      </linearGradient>
+                    )}
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} stroke="currentColor" className="text-border" />
                   <XAxis 
-                    dataKey="date" 
-                    tick={{ fontSize: 12 }}
-                    angle={selectedPeriod > 90 ? -45 : 0}
-                    textAnchor={selectedPeriod > 90 ? "end" : "middle"}
-                    height={selectedPeriod > 90 ? 60 : 30}
+                    dataKey="date"
+                    tickFormatter={(date) => formatDate(date, customMode ? 365 : selectedPeriod)}
+                    tick={{ fontSize: 11, fill: 'currentColor' }}
+                    className="text-muted-foreground"
+                    angle={customMode || selectedPeriod > 90 ? -35 : 0}
+                    textAnchor={customMode || selectedPeriod > 90 ? "end" : "middle"}
+                    height={customMode || selectedPeriod > 90 ? 60 : 30}
+                    interval={selectedPeriod <= 7 ? 0 : selectedPeriod <= 30 ? 2 : selectedPeriod <= 90 ? 5 : selectedPeriod <= 365 ? 30 : 60}
                   />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
+                  <YAxis 
+                    tick={{ fontSize: 11, fill: 'currentColor' }}
+                    className="text-muted-foreground"
+                    tickFormatter={(value) => value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: '20px' }}
+                    iconType="square"
+                  />
                   {showBreakdown ? (
                     <>
-                      <Area type="monotone" dataKey="groq" stackId="1" stroke={COLORS.groq} fill={COLORS.groq} fillOpacity={0.6} name="Groq" />
-                      <Area type="monotone" dataKey="gemini" stackId="1" stroke={COLORS.gemini} fill={COLORS.gemini} fillOpacity={0.6} name="Gemini" />
+                      <Area type="monotone" dataKey="groq" stackId="1" stroke={COLORS.groq} fill="url(#groq)" name="Groq" />
+                      <Area type="monotone" dataKey="gemini" stackId="1" stroke={COLORS.gemini} fill="url(#gemini)" name="Gemini" />
                       <Area type="monotone" dataKey="huggingface" stackId="1" stroke={COLORS.huggingface} fill={COLORS.huggingface} fillOpacity={0.6} name="HuggingFace" />
                       <Area type="monotone" dataKey="openrouter" stackId="1" stroke={COLORS.openrouter} fill={COLORS.openrouter} fillOpacity={0.6} name="OpenRouter" />
-                      <Area type="monotone" dataKey="openai" stackId="1" stroke={COLORS.openai} fill={COLORS.openai} fillOpacity={0.6} name="OpenAI" />
+                      <Area type="monotone" dataKey="openai" stackId="1" stroke={COLORS.openai} fill="url(#openai)" name="OpenAI" />
                       <Area type="monotone" dataKey="kb" stackId="1" stroke={COLORS.kb} fill={COLORS.kb} fillOpacity={0.6} name="KB" />
                       <Area type="monotone" dataKey="web" stackId="1" stroke={COLORS.web} fill={COLORS.web} fillOpacity={0.6} name="Web" />
                       <Area type="monotone" dataKey="deepweb" stackId="1" stroke={COLORS.deepweb} fill={COLORS.deepweb} fillOpacity={0.6} name="DeepWeb" />
                     </>
                   ) : (
-                    <Area type="monotone" dataKey="tokens" stackId="1" stroke={COLORS.openai} fill={COLORS.openai} fillOpacity={0.6} name="Total Tokens" />
+                    <Area type="monotone" dataKey="tokens" stackId="1" stroke={COLORS.openai} fill="url(#total)" name="Total Tokens" />
                   )}
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
-                <BarChart3 className="w-12 h-12 mb-2 opacity-50" />
-                <p className="text-sm">No usage data available for the selected period</p>
-                <p className="text-xs mt-1">Start using AION to see token consumption trends</p>
+              <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
+                <BarChart3 className="w-16 h-16 mb-3 opacity-30" />
+                <p className="text-base font-medium">No usage data available</p>
+                <p className="text-sm mt-1">Select a different period or start using AION to see analytics</p>
               </div>
             )}
           </CardContent>
@@ -1122,14 +1294,14 @@ export default function TokenMonitoring() {
                           </CardDescription>
                         </div>
                         <Badge variant="outline" className="bg-cyan-500/10">
-                          {search.metadata?.results_count || search.resultsCount || 0} results
+                          {search.metadata?.results_count || 0} results
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
                         <p className="text-sm font-semibold">Sources Found:</p>
-                        {(search.metadata?.sources || search.sources || []).slice(0, 5).map((source: any, sidx: number) => (
+                        {(search.metadata?.sources || []).slice(0, 5).map((source: any, sidx: number) => (
                           <div key={sidx} className="flex items-start gap-2 p-3 rounded-lg bg-background/50 border border-border/50">
                             <ExternalLink className="w-4 h-4 mt-0.5 text-cyan-500 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
@@ -1147,9 +1319,9 @@ export default function TokenMonitoring() {
                             </div>
                           </div>
                         ))}
-                        {((search.metadata?.sources || search.sources || []).length > 5) && (
+                        {((search.metadata?.sources || []).length > 5) && (
                           <p className="text-xs text-muted-foreground text-center">
-                            +{(search.metadata?.sources || search.sources || []).length - 5} more sources
+                            +{(search.metadata?.sources || []).length - 5} more sources
                           </p>
                         )}
                       </div>
@@ -1216,14 +1388,14 @@ export default function TokenMonitoring() {
                           </CardDescription>
                         </div>
                         <Badge variant="outline" className="bg-indigo-500/10">
-                          {search.metadata?.results_count || search.resultsCount || 0} results
+                          {search.metadata?.results_count || 0} results
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
                         <p className="text-sm font-semibold">Sources Found:</p>
-                        {(search.metadata?.sources || search.sources || []).slice(0, 5).map((source: any, sidx: number) => (
+                        {(search.metadata?.sources || []).slice(0, 5).map((source: any, sidx: number) => (
                           <div key={sidx} className="flex items-start gap-2 p-3 rounded-lg bg-background/50 border border-border/50">
                             <Search className="w-4 h-4 mt-0.5 text-indigo-500 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
@@ -1234,9 +1406,9 @@ export default function TokenMonitoring() {
                             </div>
                           </div>
                         ))}
-                        {((search.metadata?.sources || search.sources || []).length > 5) && (
+                        {((search.metadata?.sources || []).length > 5) && (
                           <p className="text-xs text-muted-foreground text-center">
-                            +{(search.metadata?.sources || search.sources || []).length - 5} more sources
+                            +{(search.metadata?.sources || []).length - 5} more sources
                           </p>
                         )}
                       </div>
@@ -1356,7 +1528,7 @@ export default function TokenMonitoring() {
                         <div>
                           <p className="font-medium">{alert.message}</p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(alert.created_at || alert.createdAt).toLocaleString()}
+                            {new Date(alert.created_at).toLocaleString()}
                           </p>
                         </div>
                         <Button

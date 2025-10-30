@@ -489,10 +489,12 @@ export interface TokenTrend {
 export async function getTokenTrends(
   tenantId: number,
   provider: string | null,
-  days: number = 30
+  days: number = 30,
+  startDateOverride?: Date,
+  endDateOverride?: Date
 ): Promise<TokenTrend[]> {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
+  const endDate = endDateOverride || new Date();
+  const startDate = startDateOverride || new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
   
   const query = provider
     ? db
@@ -507,7 +509,8 @@ export async function getTokenTrends(
           and(
             eq(tokenUsage.tenantId, tenantId),
             eq(tokenUsage.provider, provider),
-            gte(tokenUsage.timestamp, startDate)
+            gte(tokenUsage.timestamp, startDate),
+            sql`DATE(${tokenUsage.timestamp}) <= DATE(${endDate.toISOString()})`
           )
         )
         .groupBy(sql`DATE(${tokenUsage.timestamp})`)
@@ -523,7 +526,8 @@ export async function getTokenTrends(
         .where(
           and(
             eq(tokenUsage.tenantId, tenantId),
-            gte(tokenUsage.timestamp, startDate)
+            gte(tokenUsage.timestamp, startDate),
+            sql`DATE(${tokenUsage.timestamp}) <= DATE(${endDate.toISOString()})`
           )
         )
         .groupBy(sql`DATE(${tokenUsage.timestamp})`)
@@ -531,12 +535,28 @@ export async function getTokenTrends(
   
   const results = await query;
   
-  return results.map(r => ({
-    date: r.date,
-    tokens: Number(r.tokens),
-    requests: Number(r.requests),
-    cost: Number(r.cost)
-  }));
+  // Fill missing dates with zero values for complete timeline
+  const filledResults: TokenTrend[] = [];
+  const resultMap = new Map(results.map(r => [r.date, r]));
+  
+  const currentDate = new Date(startDate);
+  const finalDate = new Date(endDate);
+  
+  while (currentDate <= finalDate) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const existing = resultMap.get(dateStr);
+    
+    filledResults.push({
+      date: dateStr,
+      tokens: existing ? Number(existing.tokens) : 0,
+      requests: existing ? Number(existing.requests) : 0,
+      cost: existing ? Number(existing.cost) : 0
+    });
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return filledResults;
 }
 
 // Get token trends with breakdown by provider (including KB, Web, DeepWeb)
@@ -556,10 +576,12 @@ export interface TokenTrendByProvider {
 
 export async function getTokenTrendsWithProviders(
   tenantId: number,
-  days: number = 30
+  days: number = 30,
+  startDateOverride?: Date,
+  endDateOverride?: Date
 ): Promise<TokenTrendByProvider[]> {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
+  const endDate = endDateOverride || new Date();
+  const startDate = startDateOverride || new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
   
   // Get all token usage grouped by date and provider
   const results = await db
@@ -573,7 +595,8 @@ export async function getTokenTrendsWithProviders(
     .where(
       and(
         eq(tokenUsage.tenantId, tenantId),
-        gte(tokenUsage.timestamp, startDate)
+        gte(tokenUsage.timestamp, startDate),
+        sql`DATE(${tokenUsage.timestamp}) <= DATE(${endDate.toISOString()})`
       )
     )
     .groupBy(sql`DATE(${tokenUsage.timestamp})`, tokenUsage.provider)
@@ -587,7 +610,15 @@ export async function getTokenTrendsWithProviders(
     if (!grouped.has(dateStr)) {
       grouped.set(dateStr, {
         date: dateStr,
-        totalTokens: 0
+        totalTokens: 0,
+        groq: 0,
+        gemini: 0,
+        huggingface: 0,
+        openrouter: 0,
+        openai: 0,
+        kb: 0,
+        web: 0,
+        deepweb: 0
       });
     }
     
@@ -597,8 +628,32 @@ export async function getTokenTrendsWithProviders(
     entry.totalTokens += Number(r.tokens);
   });
   
-  // Convert to array and sort by date
-  return Array.from(grouped.values()).sort((a, b) => a.date.localeCompare(b.date));
+  // Fill missing dates with zero values for complete timeline
+  const filledResults: TokenTrendByProvider[] = [];
+  const currentDate = new Date(startDate);
+  const finalDate = new Date(endDate);
+  
+  while (currentDate <= finalDate) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const existing = grouped.get(dateStr);
+    
+    filledResults.push(existing || {
+      date: dateStr,
+      totalTokens: 0,
+      groq: 0,
+      gemini: 0,
+      huggingface: 0,
+      openrouter: 0,
+      openai: 0,
+      kb: 0,
+      web: 0,
+      deepweb: 0
+    });
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return filledResults;
 }
 
 // ============================================================================

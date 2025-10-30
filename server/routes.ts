@@ -3131,21 +3131,29 @@ export function registerRoutes(app: Express): Server {
       const days = parseInt(req.query.days as string) || 30;
       const breakdown = req.query.breakdown === 'true';
       
+      // Support custom date range
+      const startDate = req.query.start_date ? new Date(req.query.start_date as string) : undefined;
+      const endDate = req.query.end_date ? new Date(req.query.end_date as string) : undefined;
+      
       if (breakdown) {
         // Return data with provider breakdown
-        const trends = await tokenTracker.getTokenTrendsWithProviders(tenantId, days);
+        const trends = await tokenTracker.getTokenTrendsWithProviders(tenantId, days, startDate, endDate);
         res.json({
           daily: trends,
           period_days: days,
-          breakdown: true
+          breakdown: true,
+          start_date: startDate?.toISOString().split('T')[0],
+          end_date: endDate?.toISOString().split('T')[0]
         });
       } else {
         // Return aggregated data
-        const trends = await tokenTracker.getTokenTrends(tenantId, provider, days);
+        const trends = await tokenTracker.getTokenTrends(tenantId, provider, days, startDate, endDate);
         res.json({
           daily: trends,
           period_days: days,
-          breakdown: false
+          breakdown: false,
+          start_date: startDate?.toISOString().split('T')[0],
+          end_date: endDate?.toISOString().split('T')[0]
         });
       }
     } catch (error: any) {
