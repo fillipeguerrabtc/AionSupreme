@@ -162,6 +162,20 @@ export function registerRoutes(app: Express): Server {
   app.get("/health/live", (req, res) => {
     res.status(200).json({ alive: true });
   });
+  
+  // GET /health/multi-cloud - Multi-cloud status (for monitoring)
+  app.get("/health/multi-cloud", (req, res) => {
+    try {
+      const { multiCloudSync } = require("../deployment/multi-cloud-sync");
+      const status = multiCloudSync.getStatus();
+      res.status(200).json(status);
+    } catch (error: any) {
+      res.status(503).json({
+        error: "Multi-cloud sync not enabled",
+        message: error.message,
+      });
+    }
+  });
 
   // POST /api/v1/chat/completions
   // 🎯 PRIORITY ORDER: KB → Free APIs → Web → OpenAI

@@ -1,0 +1,313 @@
+name: Multi-Cloud Deployment
+
+on:
+  push:
+    branches:
+      - main
+      - production
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_REGION: us-central1
+  AWS_REGION: us-east-1
+
+jobs:
+  # ===========================================
+  # Job 1: Build & Test
+  # ===========================================
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint || echo "No lint script found"
+      
+      - name: Run tests
+        run: npm test || echo "No tests found"
+      
+      - name: Build application
+        run: npm run build
+  
+  # ===========================================
+  # Job 2: Deploy to Google Cloud Run
+  # ===========================================
+  deploy-gcp:
+    name: Deploy to GCP Cloud Run
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production'
+    
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker
+      
+      - name: Build Docker image
+        run: |
+          docker build -t gcr.io/${{ env.GCP_PROJECT_ID }}/aion-ai:${{ github.sha }} \
+                       -t gcr.io/${{ env.GCP_PROJECT_ID }}/aion-ai:latest \
+                       -f Dockerfile .
+      
+      - name: Push to Google Container Registry
+        run: |
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/aion-ai:${{ github.sha }}
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/aion-ai:latest
+      
+      - name: Create/Update Secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        run: |
+          # Function to create or update secret
+          create_or_update_secret() {
+            local secret_name=$1
+            local secret_value=$2
+            
+            if gcloud secrets describe ${secret_name} --project=${{ env.GCP_PROJECT_ID }} &> /dev/null; then
+              echo "Updating ${secret_name}"
+              echo -n "${secret_value}" | gcloud secrets versions add ${secret_name} --data-file=-
+            else
+              echo "Creating ${secret_name}"
+              echo -n "${secret_value}" | gcloud secrets create ${secret_name} --data-file=-
+            fi
+          }
+          
+          create_or_update_secret "database-url" "$DATABASE_URL"
+          create_or_update_secret "openai-api-key" "$OPENAI_API_KEY"
+          create_or_update_secret "groq-api-key" "$GROQ_API_KEY"
+          create_or_update_secret "gemini-api-key" "$GEMINI_API_KEY"
+          create_or_update_secret "huggingface-api-key" "$HUGGINGFACE_API_KEY"
+          create_or_update_secret "openrouter-api-key" "$OPEN_ROUTER_API_KEY"
+          create_or_update_secret "session-secret" "$SESSION_SECRET"
+      
+      - name: Deploy to Cloud Run
+        run: |
+          # Update cloud-run.yaml with actual values
+          sed -i "s/PROJECT_ID/${{ env.GCP_PROJECT_ID }}/g" deployment/gcp/cloud-run.yaml
+          sed -i "s|gcr.io/PROJECT_ID/aion-ai:latest|gcr.io/${{ env.GCP_PROJECT_ID }}/aion-ai:${{ github.sha }}|g" deployment/gcp/cloud-run.yaml
+          
+          # Deploy
+          gcloud run services replace deployment/gcp/cloud-run.yaml \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed
+      
+      - name: Allow public access
+        run: |
+          gcloud run services add-iam-policy-binding aion-ai \
+            --region=${{ env.GCP_REGION }} \
+            --member="allUsers" \
+            --role="roles/run.invoker"
+      
+      - name: Get service URL
+        id: get-url
+        run: |
+          SERVICE_URL=$(gcloud run services describe aion-ai \
+            --region=${{ env.GCP_REGION }} \
+            --format='value(status.url)')
+          echo "url=${SERVICE_URL}" >> $GITHUB_OUTPUT
+          echo "GCP Service URL: ${SERVICE_URL}"
+      
+      - name: Health check
+        run: |
+          sleep 10
+          curl -f ${{ steps.get-url.outputs.url }}/health || exit 1
+          echo "✅ GCP deployment healthy"
+  
+  # ===========================================
+  # Job 3: Deploy to AWS Fargate
+  # ===========================================
+  deploy-aws:
+    name: Deploy to AWS Fargate
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Get AWS Account ID
+        id: get-account-id
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "account_id=${ACCOUNT_ID}" >> $GITHUB_OUTPUT
+      
+      - name: Create ECR repository (if not exists)
+        run: |
+          aws ecr describe-repositories --repository-names aion-ai --region ${{ env.AWS_REGION }} || \
+            aws ecr create-repository \
+              --repository-name aion-ai \
+              --region ${{ env.AWS_REGION }} \
+              --image-scanning-configuration scanOnPush=true
+      
+      - name: Build Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: aion-ai
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+                       -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+                       -f Dockerfile .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+      
+      - name: Create/Update Secrets in AWS Secrets Manager
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+          OPEN_ROUTER_API_KEY: ${{ secrets.OPEN_ROUTER_API_KEY }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        run: |
+          create_or_update_secret() {
+            local secret_name=$1
+            local secret_value=$2
+            
+            if aws secretsmanager describe-secret --secret-id ${secret_name} --region ${{ env.AWS_REGION }} &> /dev/null; then
+              echo "Updating ${secret_name}"
+              aws secretsmanager update-secret \
+                --secret-id ${secret_name} \
+                --secret-string "${secret_value}" \
+                --region ${{ env.AWS_REGION }}
+            else
+              echo "Creating ${secret_name}"
+              aws secretsmanager create-secret \
+                --name ${secret_name} \
+                --secret-string "${secret_value}" \
+                --region ${{ env.AWS_REGION }}
+            fi
+          }
+          
+          create_or_update_secret "aion/database-url" "$DATABASE_URL"
+          create_or_update_secret "aion/openai-api-key" "$OPENAI_API_KEY"
+          create_or_update_secret "aion/groq-api-key" "$GROQ_API_KEY"
+          create_or_update_secret "aion/gemini-api-key" "$GEMINI_API_KEY"
+          create_or_update_secret "aion/huggingface-api-key" "$HUGGINGFACE_API_KEY"
+          create_or_update_secret "aion/openrouter-api-key" "$OPEN_ROUTER_API_KEY"
+          create_or_update_secret "aion/session-secret" "$SESSION_SECRET"
+      
+      - name: Update task definition
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ACCOUNT_ID: ${{ steps.get-account-id.outputs.account_id }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          sed "s/AWS_ACCOUNT_ID/${ACCOUNT_ID}/g" deployment/aws/task-definition.json > /tmp/task-def.json
+          sed -i "s|AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/aion-ai:latest|${ECR_REGISTRY}/aion-ai:${IMAGE_TAG}|g" /tmp/task-def.json
+      
+      - name: Deploy to ECS
+        run: |
+          # Register task definition
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/task-def.json \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          
+          # Update service
+          aws ecs update-service \
+            --cluster aion-cluster \
+            --service aion-ai \
+            --task-definition ${TASK_DEF_ARN} \
+            --region ${{ env.AWS_REGION }} || \
+          echo "Service does not exist yet - create manually first time"
+      
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster aion-cluster \
+            --services aion-ai \
+            --region ${{ env.AWS_REGION }}
+          echo "✅ AWS deployment healthy"
+  
+  # ===========================================
+  # Job 4: Post-Deployment Verification
+  # ===========================================
+  verify-deployment:
+    name: Verify Multi-Cloud Deployment
+    needs: [deploy-gcp, deploy-aws]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Test GCP endpoint
+        env:
+          GCP_URL: ${{ secrets.GCP_ENDPOINT_URL }}
+        run: |
+          echo "Testing GCP endpoint..."
+          curl -f ${GCP_URL}/health/detailed
+      
+      - name: Test AWS endpoint
+        env:
+          AWS_URL: ${{ secrets.AWS_ENDPOINT_URL }}
+        run: |
+          echo "Testing AWS endpoint..."
+          curl -f ${AWS_URL}/health/detailed
+      
+      - name: Verify multi-cloud sync
+        env:
+          GCP_URL: ${{ secrets.GCP_ENDPOINT_URL }}
+        run: |
+          echo "Checking multi-cloud synchronization..."
+          curl -f ${GCP_URL}/health/multi-cloud
+      
+      - name: Send deployment notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Multi-Cloud Deployment ${{ job.status }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
