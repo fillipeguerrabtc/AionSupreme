@@ -147,9 +147,10 @@ export function NamespaceSelector({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0">
-          <Command>
+          <Command shouldFilter={true}>
             <CommandInput placeholder="Buscar namespaces..." data-testid="input-search-namespaces" />
-            <CommandList className="max-h-[300px] overflow-y-auto">
+            <CommandList className="max-h-[300px]">
+              <div className="overflow-y-auto max-h-[300px] overscroll-contain">
               <CommandEmpty>
                 <div className="p-4 text-center text-sm text-muted-foreground">
                   Nenhum namespace encontrado.
@@ -280,6 +281,7 @@ export function NamespaceSelector({
                   </CommandGroup>
                 );
               })}
+              </div>
             </CommandList>
           </Command>
         </PopoverContent>
