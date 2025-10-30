@@ -15,6 +15,14 @@ AION operates in single-tenant mode with **multi-agent architecture** utilizing 
 
 **Friendly Namespace System**: Namespaces use human-friendly categories (e.g., `financas/investimentos`, `tech/software`, `turismo/lisboa`) allowing multiple agents per category. Admins can create custom namespaces for new themes or companies (e.g., `empresa-x/vendas`, `startup-y/marketing`) directly through the UI. The NamespaceSelector component supports multi-selection and dynamic namespace creation in format `categoria/subcategoria`.
 
+**Namespace Management System (Oct 30, 2025)**: PRODUCTION-READY comprehensive namespace management with:
+- **Database Schema**: Full `namespaces` table in shared/schema.ts with id, tenantId, name, displayName, description, relatedNamespaces, icon, category, enabled fields
+- **Backend API**: Complete CRUD routes in server/routes/namespaces.ts (GET, POST, PATCH, DELETE) + POST /api/namespaces/:id/ingest endpoint for content ingestion
+- **Frontend UI**: NamespacesPage component (client/src/pages/admin/NamespacesPage.tsx) with table view, create/edit dialogs, content upload fields
+- **Content Ingestion Pipeline**: When creating/editing namespaces, users can add text content that is automatically indexed into Knowledge Base via knowledgeIndexer with namespace tags
+- **Integration**: Registered in AdminDashboard (/admin/namespaces route) and AdminSidebar (Curation section with FolderTree icon)
+- **NamespaceSelector Scroll Fix**: Removed duplicate overflow container to enable mouse wheel scrolling anywhere in dropdown (CommandList now directly has overflow-y-auto)
+
 **Knowledge Curation System (HITL - Human-in-the-Loop)**: Production-ready curation workflow with 2 specialized Curator agents:
 - **Curador de Conhecimento (AI Curator)**: Analyzes content, extracts metadata, scores quality, and queues items for human review. Has access to all namespaces (*) for centralized governance.
 - **Curador Executivo (Executive Curator)**: Human-augmented curator requiring mandatory human approval for all actions, ensuring quality control.
