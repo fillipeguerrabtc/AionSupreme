@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Send, Bot, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video } from "lucide-react";
+import { AionLogo } from "@/components/AionLogo";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage, detectMessageLanguage } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
@@ -490,13 +491,11 @@ export default function ChatPage() {
                 className="flex items-center gap-3 hover-elevate rounded-lg px-2 py-1 -mx-2 transition-all bg-transparent border-0 cursor-pointer" 
                 data-testid="link-logo-home"
               >
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-full blur-lg opacity-50" />
-                  <div className="relative glass-premium p-2 rounded-full">
-                    <Sparkles className="w-6 h-6 text-primary" />
-                  </div>
+                <AionLogo showText={false} size="md" />
+                <div>
+                  <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
+                  <p className="text-xs text-muted-foreground">Chat</p>
                 </div>
-                <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
               </button>
             </div>
           </header>

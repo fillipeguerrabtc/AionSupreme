@@ -5,7 +5,7 @@ export function usePageTitle() {
   const [location] = useLocation();
 
   useEffect(() => {
-    let title = 'AION - IA Suprema & Ilimitada';
+    let title = 'AION Chat';
     
     if (location.startsWith('/admin')) {
       title = 'AION Admin - Painel de Controle';
