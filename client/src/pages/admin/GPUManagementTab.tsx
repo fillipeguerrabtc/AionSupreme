@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Server, Activity, Trash2, Plus, RefreshCw, Circle } from "lucide-react";
+import { formatDateTimeInTimezone } from "@/lib/datetime";
 
 interface GpuWorker {
   id: number;
@@ -41,6 +42,17 @@ interface PoolStats {
 
 export default function GPUManagementTab() {
   const { toast } = useToast();
+  const [tenantId] = useState(1);
+
+  // Fetch tenant timezone for dynamic date formatting
+  const { data: tenantTimezone } = useQuery<{ timezone: string }>({
+    queryKey: ["/api/admin/settings/timezone", tenantId],
+    queryFn: async () => {
+      const res = await apiRequest(`/api/admin/settings/timezone/${tenantId}`);
+      return res.json();
+    },
+  });
+  const timezone = tenantTimezone?.timezone || "America/Sao_Paulo";
 
   // Fetch GPU workers
   const { data: gpuData, isLoading } = useQuery({
@@ -127,7 +139,7 @@ export default function GPUManagementTab() {
     if (seconds < 60) return `${seconds}s ago`;
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
-    return date.toLocaleDateString();
+    return formatDateTimeInTimezone(dateStr, timezone, { format: 'short' });
   };
 
   return (

@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Brain, TrendingUp, Zap, CheckCircle, Database, Target } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useLanguage } from "@/lib/i18n";
+import { formatDateTimeInTimezone } from "@/lib/datetime";
+import { apiRequest } from "@/lib/queryClient";
 
 interface AutoEvolutionStats {
   overview: {
@@ -28,6 +31,18 @@ interface AutoEvolutionStats {
 
 export default function AutoEvolutionTab() {
   const { t } = useLanguage();
+  const [tenantId] = useState(1);
+
+  // Fetch tenant timezone for dynamic date formatting
+  const { data: tenantTimezone } = useQuery<{ timezone: string }>({
+    queryKey: ["/api/admin/settings/timezone", tenantId],
+    queryFn: async () => {
+      const res = await apiRequest(`/api/admin/settings/timezone/${tenantId}`);
+      return res.json();
+    },
+  });
+  const timezone = tenantTimezone?.timezone || "America/Sao_Paulo";
+
   const { data, isLoading } = useQuery<AutoEvolutionStats>({
     queryKey: ["/api/training/auto-evolution/stats"],
   });
@@ -203,8 +218,11 @@ export default function AutoEvolutionTab() {
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return `${date.getMonth() + 1}/${date.getDate()}`;
+                    // Format using tenant timezone
+                    const formatted = formatDateTimeInTimezone(value, timezone, { format: 'short' });
+                    // Extract just the date portion (MM/DD)
+                    const parts = formatted.split(',')[0].split('/');
+                    return `${parts[0]}/${parts[1]}`;
                   }}
                 />
                 <YAxis
@@ -220,8 +238,7 @@ export default function AutoEvolutionTab() {
                     borderRadius: "var(--radius)",
                   }}
                   labelFormatter={(value) => {
-                    const date = new Date(value as string);
-                    return date.toLocaleDateString();
+                    return formatDateTimeInTimezone(value as string, timezone, { format: 'short' });
                   }}
                   formatter={(value: number, name: string) => {
                     if (name === 'count') return [value, t.admin.autoEvolution.timeline.conversationsLabel];

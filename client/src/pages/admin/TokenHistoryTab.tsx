@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Clock, CheckCircle2, XCircle, Activity } from "lucide-react";
-import { format } from "date-fns";
 import { useLanguage } from "@/lib/i18n";
+import { formatDateTimeInTimezone } from "@/lib/datetime";
+import { apiRequest } from "@/lib/queryClient";
 
 interface TokenHistoryRecord {
   id: number;
@@ -33,6 +35,18 @@ const providerColors: Record<string, string> = {
 
 export default function TokenHistoryTab() {
   const { t } = useLanguage();
+  const [tenantId] = useState(1);
+
+  // Fetch tenant timezone for dynamic date formatting
+  const { data: tenantTimezone } = useQuery<{ timezone: string }>({
+    queryKey: ["/api/admin/settings/timezone", tenantId],
+    queryFn: async () => {
+      const res = await apiRequest(`/api/admin/settings/timezone/${tenantId}`);
+      return res.json();
+    },
+  });
+  const timezone = tenantTimezone?.timezone || "America/Sao_Paulo";
+
   const { data: history, isLoading } = useQuery<TokenHistoryRecord[]>({
     queryKey: ["/api/tokens/complete-history"],
     queryFn: async () => {
@@ -107,7 +121,7 @@ export default function TokenHistoryTab() {
                     <div className="flex-1">
                       <div className="font-medium text-sm">{record.model}</div>
                       <div className="text-xs text-muted-foreground">
-                        {format(new Date(record.timestamp), "MMM d, yyyy HH:mm:ss")}
+                        {formatDateTimeInTimezone(record.timestamp, timezone, { includeSeconds: true })}
                       </div>
                     </div>
                     

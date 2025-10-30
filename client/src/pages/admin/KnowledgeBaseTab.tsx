@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/i18n";
+import { formatDateTimeInTimezone } from "@/lib/datetime";
 import type { Document } from "@shared/schema";
 
 export default function KnowledgeBaseTab() {
@@ -36,6 +37,16 @@ export default function KnowledgeBaseTab() {
   const [editingDoc, setEditingDoc] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+
+  // Fetch tenant timezone for dynamic date formatting
+  const { data: tenantTimezone } = useQuery<{ timezone: string }>({
+    queryKey: ["/api/admin/settings/timezone", tenantId],
+    queryFn: async () => {
+      const res = await apiRequest(`/api/admin/settings/timezone/${tenantId}`);
+      return res.json();
+    },
+  });
+  const timezone = tenantTimezone?.timezone || "America/Sao_Paulo";
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
     queryKey: ["/api/admin/documents", tenantId],
@@ -430,7 +441,7 @@ export default function KnowledgeBaseTab() {
                           <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
                             <span>{t.admin.knowledgeBase.documents.source} {doc.source || "manual"}</span>
                             <span>•</span>
-                            <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                            <span>{formatDateTimeInTimezone(doc.createdAt, timezone, { format: 'short' })}</span>
                           </div>
                         </div>
                         <div className="flex gap-1">
