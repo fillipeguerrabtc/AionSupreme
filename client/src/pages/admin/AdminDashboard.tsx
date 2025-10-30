@@ -126,7 +126,7 @@ export default function AdminDashboard() {
       setPendingRules(null);
       setPendingBehavior(null);
       setHasUnsavedChanges(false);
-      toast({ title: t.admin.policyUpdated });
+      toast({ title: t.admin.messages.policyUpdated });
     },
   });
 
@@ -139,7 +139,7 @@ export default function AdminDashboard() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ title: `${data.documentIds.length} ${t.admin.pdfsIndexed}` });
+      toast({ title: `${data.documentIds.length} ${t.admin.messages.pdfsIndexed}` });
     },
   });
 
@@ -171,7 +171,7 @@ export default function AdminDashboard() {
               <Settings className="w-12 h-12 text-primary animate-spin" />
             </div>
           </div>
-          <p className="text-muted-foreground">{t.admin.loading}</p>
+          <p className="text-muted-foreground">{t.admin.messages.loading}</p>
         </div>
       </div>
     );
@@ -182,7 +182,7 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 flex items-center justify-center p-6">
         <Card className="glass-premium max-w-md border-destructive/50">
           <CardContent className="pt-6">
-            <p className="text-destructive">{t.admin.error}: {(error as Error).message}</p>
+            <p className="text-destructive">{t.admin.messages.error}: {(error as Error).message}</p>
           </CardContent>
         </Card>
       </div>
@@ -484,17 +484,17 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" />
-                <span className="gradient-text">{t.admin.policies}</span>
+                <span className="gradient-text">{t.admin.policies.title}</span>
               </CardTitle>
               <CardDescription>
-                {t.admin.policiesDesc}
+                {t.admin.policies.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 overflow-visible">
               {Object.entries(pendingRules || policy?.rules || {}).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card/50 border border-border/50">
                   <Label htmlFor={key} className="text-sm font-medium cursor-pointer flex-1">
-                    {t.admin.rules[key as keyof typeof t.admin.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {t.admin.policies.rules[key as keyof typeof t.admin.policies.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </Label>
                   <div className="flex-shrink-0 w-11 relative z-10">
                     <Switch
@@ -517,16 +517,16 @@ export default function AdminDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-accent" />
-                <span className="gradient-text-vibrant">{t.admin.behavior}</span>
+                <span className="gradient-text-vibrant">{t.admin.behavior.title}</span>
               </CardTitle>
               <CardDescription>
-                {t.admin.behaviorDesc}
+                {t.admin.behavior.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-sm font-medium">
-                  {t.admin.formality}: {(((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100).toFixed(0)}%
+                  {t.admin.behavior.formality}: {(((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100).toFixed(0)}%
                 </Label>
                 <Slider
                   value={[((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100]}
@@ -541,7 +541,7 @@ export default function AdminDashboard() {
 
               <div className="space-y-3">
                 <Label className="text-sm font-medium">
-                  {t.admin.creativity}: {(((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100).toFixed(0)}%
+                  {t.admin.behavior.creativity}: {(((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100).toFixed(0)}%
                 </Label>
                 <Slider
                   value={[((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100]}
@@ -585,10 +585,10 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
-              <span className="gradient-text">{t.admin.systemPrompt}</span>
+              <span className="gradient-text">{t.admin.behavior.systemPrompt}</span>
             </CardTitle>
             <CardDescription>
-              {t.admin.systemPromptDesc}
+              {t.admin.behavior.systemPromptDesc}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -596,7 +596,7 @@ export default function AdminDashboard() {
               value={systemPromptValue}
               onChange={(e) => setSystemPromptValue(e.target.value)}
               className="glass border-primary/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 min-h-[200px] max-h-[600px] font-mono text-sm resize-y"
-              placeholder={t.admin.systemPromptPlaceholder}
+              placeholder={t.admin.behavior.systemPromptPlaceholder}
               data-testid="textarea-system-prompt"
             />
             <Button

@@ -25,8 +25,10 @@ import {
 import { Cpu, TrendingDown, Users, CheckCircle2, AlertCircle, Upload } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/lib/i18n";
 
 export default function FederatedTrainingTab() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [jobName, setJobName] = useState("");
@@ -57,14 +59,14 @@ export default function FederatedTrainingTab() {
       queryClient.invalidateQueries({ queryKey: ["/api/training/jobs"] });
       setCreateDialogOpen(false);
       toast({
-        title: "✅ Training job criado!",
-        description: "Abra os notebooks Colab/Kaggle para começar o treinamento.",
+        title: `✅ ${t.admin.messages.jobCreated}`,
+        description: t.admin.messages.jobCreatedDesc,
       });
       setJobName("");
     },
     onError: (error: any) => {
       toast({
-        title: "❌ Erro ao criar job",
+        title: `❌ ${t.admin.messages.jobCreateError}`,
         description: error.message,
         variant: "destructive",
       });
@@ -74,8 +76,8 @@ export default function FederatedTrainingTab() {
   const handleCreateJob = () => {
     if (!jobName.trim()) {
       toast({
-        title: "⚠️ Nome obrigatório",
-        description: "Insira um nome para o training job",
+        title: `⚠️ ${t.admin.messages.nameRequired}`,
+        description: t.admin.messages.nameRequiredDesc,
         variant: "destructive",
       });
       return;
@@ -106,16 +108,16 @@ export default function FederatedTrainingTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Treinamento Federado</h2>
+          <h2 className="text-2xl font-bold">{t.admin.federatedTraining.title}</h2>
           <p className="text-muted-foreground">
-            Treine LLMs 3-4x mais rápido usando GPUs distribuídas
+            {t.admin.federatedTraining.subtitle}
           </p>
         </div>
         <Button 
           onClick={() => setCreateDialogOpen(true)}
           data-testid="button-create-job"
         >
-          Criar Training Job
+          {t.admin.federatedTraining.createJob}
         </Button>
       </div>
 
@@ -123,18 +125,18 @@ export default function FederatedTrainingTab() {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Criar Federated Training Job</DialogTitle>
+            <DialogTitle>{t.admin.federatedTraining.createDialog.title}</DialogTitle>
             <DialogDescription>
-              Configure os parâmetros para treinar seu modelo customizado em múltiplas GPUs
+              {t.admin.federatedTraining.createDialog.description}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="job-name">Nome do Job</Label>
+              <Label htmlFor="job-name">{t.admin.federatedTraining.createDialog.jobName}</Label>
               <Input
                 id="job-name"
-                placeholder="Ex: Llama-3-Finetuned-Portuguese"
+                placeholder={t.admin.federatedTraining.createDialog.jobNamePlaceholder}
                 value={jobName}
                 onChange={(e) => setJobName(e.target.value)}
                 data-testid="input-job-name"
@@ -142,7 +144,7 @@ export default function FederatedTrainingTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="model-type">Modelo Base</Label>
+              <Label htmlFor="model-type">{t.admin.federatedTraining.createDialog.modelBase}</Label>
               <Select value={modelType} onValueChange={setModelType}>
                 <SelectTrigger data-testid="select-model-type">
                   <SelectValue />
@@ -157,7 +159,7 @@ export default function FederatedTrainingTab() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="total-chunks">Número de GPUs (Chunks)</Label>
+                <Label htmlFor="total-chunks">{t.admin.federatedTraining.createDialog.numGpus}</Label>
                 <Input
                   id="total-chunks"
                   type="number"
@@ -168,12 +170,12 @@ export default function FederatedTrainingTab() {
                   data-testid="input-total-chunks"
                 />
                 <p className="text-xs text-muted-foreground">
-                  3-6 GPUs recomendado (Colab + Kaggle)
+                  {t.admin.federatedTraining.createDialog.gpuRecommendation}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="learning-rate">Learning Rate</Label>
+                <Label htmlFor="learning-rate">{t.admin.federatedTraining.createDialog.learningRate}</Label>
                 <Input
                   id="learning-rate"
                   type="number"
@@ -186,7 +188,7 @@ export default function FederatedTrainingTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="epochs">Epochs</Label>
+              <Label htmlFor="epochs">{t.admin.federatedTraining.createDialog.epochs}</Label>
               <Input
                 id="epochs"
                 type="number"
@@ -201,24 +203,24 @@ export default function FederatedTrainingTab() {
             <div className="rounded-lg bg-muted p-4 space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Upload className="w-4 h-4" />
-                Dataset (Coming Soon)
+                {t.admin.federatedTraining.createDialog.datasetComingSoon}
               </div>
               <p className="text-xs text-muted-foreground">
-                Por enquanto, o script Python usará dados de exemplo. Upload de dataset customizado será implementado em breve.
+                {t.admin.federatedTraining.createDialog.datasetDesc}
               </p>
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-              Cancelar
+              {t.admin.federatedTraining.createDialog.cancel}
             </Button>
             <Button 
               onClick={handleCreateJob}
               disabled={createJob.isPending}
               data-testid="button-confirm-create-job"
             >
-              {createJob.isPending ? "Criando..." : "Criar Job"}
+              {createJob.isPending ? t.admin.federatedTraining.createDialog.creating : t.admin.federatedTraining.createDialog.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -228,48 +230,51 @@ export default function FederatedTrainingTab() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.admin.federatedTraining.activeJobs}</CardTitle>
             <Cpu className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {jobs.filter((j: any) => j.status === 'running').length}
             </div>
+            <p className="text-xs text-muted-foreground">{t.admin.federatedTraining.jobsRunning}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Workers</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.admin.federatedTraining.totalWorkers}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {jobs.reduce((sum: number, j: any) => sum + (j.activeWorkers || 0), 0)}
             </div>
+            <p className="text-xs text-muted-foreground">{t.admin.federatedTraining.gpusActive}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Jobs</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.admin.federatedTraining.completedJobs}</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {jobs.filter((j: any) => j.status === 'completed').length}
             </div>
+            <p className="text-xs text-muted-foreground">{t.admin.federatedTraining.jobsFinished}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Speed</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.admin.federatedTraining.avgSpeed}</CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">3.6x</div>
-            <p className="text-xs text-muted-foreground">vs single GPU</p>
+            <p className="text-xs text-muted-foreground">{t.admin.federatedTraining.speedupVsSingleGpu}</p>
           </CardContent>
         </Card>
       </div>
@@ -277,14 +282,14 @@ export default function FederatedTrainingTab() {
       {/* Training Jobs List */}
       <Card>
         <CardHeader>
-          <CardTitle>Training Jobs</CardTitle>
+          <CardTitle>{t.admin.federatedTraining.trainingJobs}</CardTitle>
         </CardHeader>
         <CardContent>
           {jobs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <AlertCircle className="mx-auto h-8 w-8 mb-2" />
-              <p>No training jobs yet</p>
-              <p className="text-sm">Create your first federated training job to get started</p>
+              <p>{t.admin.federatedTraining.noJobsYet}</p>
+              <p className="text-sm">{t.admin.federatedTraining.createFirstJob}</p>
             </div>
           ) : (
             <div className="space-y-4">
