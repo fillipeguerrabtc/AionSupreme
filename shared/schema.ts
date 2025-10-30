@@ -1206,6 +1206,40 @@ export type InsertNamespace = z.infer<typeof insertNamespaceSchema>;
 export type Namespace = typeof namespaces.$inferSelect;
 
 /**
+ * Curation Queue - HITL (Human-in-the-Loop) content curation workflow
+ * Stores pending content for human review before indexing into Knowledge Base
+ */
+export const curationQueue = pgTable("curation_queue", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  suggestedNamespaces: jsonb("suggested_namespaces").$type<string[]>().notNull().default([]),
+  tags: jsonb("tags").$type<string[]>().notNull().default([]),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // "pending" | "approved" | "rejected"
+  submittedBy: varchar("submitted_by", { length: 255 }),
+  submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+  reviewedBy: varchar("reviewed_by", { length: 255 }),
+  reviewedAt: timestamp("reviewed_at"),
+  note: text("note"), // Admin notes (reason for rejection, etc.)
+  publishedId: varchar("published_id", { length: 50 }), // Document ID after approval
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("curation_queue_tenant_idx").on(table.tenantId),
+  statusIdx: index("curation_queue_status_idx").on(table.status),
+  submittedAtIdx: index("curation_queue_submitted_at_idx").on(table.submittedAt),
+}));
+
+export const insertCurationQueueSchema = createInsertSchema(curationQueue).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertCurationQueue = z.infer<typeof insertCurationQueueSchema>;
+export type CurationQueue = typeof curationQueue.$inferSelect;
+
+/**
  * Traces - Multi-agent execution traces for observability
  * Records router decisions, agents called, costs, and latencies
  */

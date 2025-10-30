@@ -1,29 +1,12 @@
 // server/curation/store.ts
-// Store de curadoria com HITL (Human-in-the-Loop)
+// Store de curadoria com HITL (Human-in-the-Loop) - DB-backed
 import { knowledgeIndexer } from "../rag/knowledge-indexer";
 import { db } from "../db";
-import { documents } from "@shared/schema";
-import { sql } from "drizzle-orm";
+import { documents, curationQueue as curationQueueTable, CurationQueue, InsertDocument } from "@shared/schema";
+import { sql, eq, and, desc } from "drizzle-orm";
 
-export interface CurationItem {
-  id: string;
-  tenantId: number;
-  title: string;
-  content: string;
-  suggestedNamespaces: string[];
-  tags: string[];
-  status: "pending" | "approved" | "rejected";
-  submittedBy?: string;
-  submittedAt: string;
-  reviewedBy?: string;
-  reviewedAt?: string;
-  note?: string;
-  publishedId?: string;
-}
-
-// In-memory store (substituir por DB real em produção)
-const curationQueue: CurationItem[] = [];
-let nextId = 1;
+// Type alias for compatibility with existing code
+export type CurationItem = CurationQueue;
 
 export const curationStore = {
   /**
@@ -39,8 +22,7 @@ export const curationStore = {
       submittedBy?: string;
     }
   ): Promise<CurationItem> {
-    const item: CurationItem = {
-      id: `curation_${nextId++}`,
+    const [item] = await db.insert(curationQueueTable).values({
       tenantId,
       title: data.title,
       content: data.content,
@@ -48,10 +30,8 @@ export const curationStore = {
       tags: data.tags || [],
       status: "pending",
       submittedBy: data.submittedBy,
-      submittedAt: new Date().toISOString(),
-    };
+    }).returning();
 
-    curationQueue.push(item);
     return item;
   },
 
@@ -59,9 +39,16 @@ export const curationStore = {
    * Lista itens pendentes de curadoria
    */
   async listPending(tenantId: number): Promise<CurationItem[]> {
-    return curationQueue.filter(
-      item => item.tenantId === tenantId && item.status === "pending"
-    );
+    return await db
+      .select()
+      .from(curationQueueTable)
+      .where(
+        and(
+          eq(curationQueueTable.tenantId, tenantId),
+          eq(curationQueueTable.status, "pending")
+        )
+      )
+      .orderBy(desc(curationQueueTable.submittedAt));
   },
 
   /**
@@ -71,28 +58,39 @@ export const curationStore = {
     tenantId: number,
     filters?: { status?: string; limit?: number }
   ): Promise<CurationItem[]> {
-    let items = curationQueue.filter(item => item.tenantId === tenantId);
-
+    const conditions = [eq(curationQueueTable.tenantId, tenantId)];
+    
     if (filters?.status) {
-      items = items.filter(item => item.status === filters.status);
+      conditions.push(eq(curationQueueTable.status, filters.status));
     }
+
+    let items = await db
+      .select()
+      .from(curationQueueTable)
+      .where(and(...conditions))
+      .orderBy(desc(curationQueueTable.submittedAt));
 
     if (filters?.limit) {
       items = items.slice(0, filters.limit);
     }
 
-    return items.sort((a, b) => 
-      new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-    );
+    return items;
   },
 
   /**
    * Obtém item por ID
    */
   async getById(tenantId: number, id: string): Promise<CurationItem | null> {
-    const item = curationQueue.find(
-      i => i.id === id && i.tenantId === tenantId
-    );
+    const [item] = await db
+      .select()
+      .from(curationQueueTable)
+      .where(
+        and(
+          eq(curationQueueTable.id, id),
+          eq(curationQueueTable.tenantId, tenantId)
+        )
+      )
+      .limit(1);
     return item || null;
   },
 
@@ -112,14 +110,22 @@ export const curationStore = {
     const item = await this.getById(tenantId, id);
     if (!item || item.status !== "pending") return null;
 
-    if (updates.title !== undefined) item.title = updates.title;
-    if (updates.tags !== undefined) item.tags = updates.tags;
-    if (updates.suggestedNamespaces !== undefined) {
-      item.suggestedNamespaces = updates.suggestedNamespaces;
-    }
-    if (updates.note !== undefined) item.note = updates.note;
+    const [updated] = await db
+      .update(curationQueueTable)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(curationQueueTable.id, id),
+          eq(curationQueueTable.tenantId, tenantId),
+          eq(curationQueueTable.status, "pending")
+        )
+      )
+      .returning();
 
-    return item;
+    return updated || null;
   },
 
   /**
@@ -142,15 +148,8 @@ export const curationStore = {
       content: item.content,
       source: "curation_approved",
       status: "indexed",
-      metadata: {
-        curationId: item.id,
-        reviewedBy,
-        tags: item.tags,
-        namespaces: item.suggestedNamespaces,
-      },
-      createdAt: sql`NOW()`,
-      updatedAt: sql`NOW()`,
-    }).returning();
+      metadata: {} as any,
+    } as any).returning();
 
     // Index approved content into Knowledge Base vector store with namespace metadata
     await knowledgeIndexer.indexDocument(newDoc.id, newDoc.content, tenantId, {
@@ -160,14 +159,27 @@ export const curationStore = {
       curationId: item.id,
     });
 
-    item.status = "approved";
-    item.reviewedBy = reviewedBy;
-    item.reviewedAt = new Date().toISOString();
-    item.publishedId = newDoc.id.toString();
+    // Update curation queue item status in database
+    const [updatedItem] = await db
+      .update(curationQueueTable)
+      .set({
+        status: "approved",
+        reviewedBy,
+        reviewedAt: new Date(),
+        publishedId: newDoc.id.toString(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(curationQueueTable.id, id),
+          eq(curationQueueTable.tenantId, tenantId)
+        )
+      )
+      .returning();
 
-    console.log(`[Curation] Approved and published item ${item.id} to KB as document ${newDoc.id}`);
+    console.log(`[Curation] Approved and published item ${id} to KB as document ${newDoc.id}`);
 
-    return { item, publishedId: newDoc.id.toString() };
+    return { item: updatedItem, publishedId: newDoc.id.toString() };
   },
 
   /**
@@ -179,27 +191,41 @@ export const curationStore = {
     reviewedBy: string,
     note?: string
   ): Promise<CurationItem | null> {
-    const item = await this.getById(tenantId, id);
-    if (!item || item.status !== "pending") return null;
+    const [updated] = await db
+      .update(curationQueueTable)
+      .set({
+        status: "rejected",
+        reviewedBy,
+        reviewedAt: new Date(),
+        note: note || null,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(curationQueueTable.id, id),
+          eq(curationQueueTable.tenantId, tenantId),
+          eq(curationQueueTable.status, "pending")
+        )
+      )
+      .returning();
 
-    item.status = "rejected";
-    item.reviewedBy = reviewedBy;
-    item.reviewedAt = new Date().toISOString();
-    if (note) item.note = note;
-
-    return item;
+    return updated || null;
   },
 
   /**
    * Remove item da fila (apenas para testes)
    */
   async remove(tenantId: number, id: string): Promise<boolean> {
-    const index = curationQueue.findIndex(
-      i => i.id === id && i.tenantId === tenantId
-    );
-    if (index === -1) return false;
+    const result = await db
+      .delete(curationQueueTable)
+      .where(
+        and(
+          eq(curationQueueTable.id, id),
+          eq(curationQueueTable.tenantId, tenantId)
+        )
+      )
+      .returning();
 
-    curationQueue.splice(index, 1);
-    return true;
+    return result.length > 0;
   },
 };
