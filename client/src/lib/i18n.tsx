@@ -45,6 +45,8 @@ interface Translations {
       webSearches: string;
       deepWeb: string;
       kbDocuments: string;
+      gpuWorkers: string;
+      federatedJobs: string;
       allProviders: string;
       openaiOnly: string;
       knowledgeBaseQueries: string;
@@ -54,6 +56,8 @@ interface Translations {
       duckduckgoProvider: string;
       torNetworkQueries: string;
       indexedKnowledge: string;
+      healthyGpuWorkers: string;
+      completedTrainingJobs: string;
     };
     
     // Token Monitoring
@@ -555,6 +559,8 @@ const translations: Record<Language, Translations> = {
         webSearches: "Buscas Web",
         deepWeb: "DeepWeb",
         kbDocuments: "Documentos KB",
+        gpuWorkers: "Trabalhadores GPU",
+        federatedJobs: "Jobs de Treinamento",
         allProviders: "Todos provedores",
         openaiOnly: "Apenas OpenAI",
         knowledgeBaseQueries: "Consultas Knowledge Base",
@@ -564,6 +570,8 @@ const translations: Record<Language, Translations> = {
         duckduckgoProvider: "DuckDuckGo",
         torNetworkQueries: "consultas rede Tor",
         indexedKnowledge: "conhecimento indexado",
+        healthyGpuWorkers: "GPUs ativas no pool",
+        completedTrainingJobs: "jobs federados completados",
       },
       
       tokenMonitoring: {
@@ -1042,6 +1050,8 @@ const translations: Record<Language, Translations> = {
         webSearches: "Web Searches",
         deepWeb: "DeepWeb",
         kbDocuments: "KB Documents",
+        gpuWorkers: "GPU Workers",
+        federatedJobs: "Training Jobs",
         allProviders: "All providers",
         openaiOnly: "OpenAI only",
         knowledgeBaseQueries: "Knowledge Base queries",
@@ -1051,6 +1061,8 @@ const translations: Record<Language, Translations> = {
         duckduckgoProvider: "DuckDuckGo",
         torNetworkQueries: "Tor network queries",
         indexedKnowledge: "indexed knowledge",
+        healthyGpuWorkers: "active GPUs in pool",
+        completedTrainingJobs: "completed federated jobs",
       },
       
       tokenMonitoring: {
@@ -1529,6 +1541,8 @@ const translations: Record<Language, Translations> = {
         webSearches: "Búsquedas Web",
         deepWeb: "DeepWeb",
         kbDocuments: "Documentos KB",
+        gpuWorkers: "Trabajadores GPU",
+        federatedJobs: "Jobs de Entrenamiento",
         allProviders: "Todos los proveedores",
         openaiOnly: "Solo OpenAI",
         knowledgeBaseQueries: "consultas Base de Conocimiento",
@@ -1538,6 +1552,8 @@ const translations: Record<Language, Translations> = {
         duckduckgoProvider: "DuckDuckGo",
         torNetworkQueries: "consultas red Tor",
         indexedKnowledge: "conocimiento indexado",
+        healthyGpuWorkers: "GPUs activas en el pool",
+        completedTrainingJobs: "jobs federados completados",
       },
       
       tokenMonitoring: {

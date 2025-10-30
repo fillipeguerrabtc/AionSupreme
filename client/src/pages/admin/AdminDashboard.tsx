@@ -112,6 +112,24 @@ export default function AdminDashboard() {
     },
   });
 
+  // Fetch GPU workers stats
+  const { data: gpuData } = useQuery({
+    queryKey: ["/api/gpu/status"],
+    queryFn: async () => {
+      const res = await fetch('/api/gpu/status');
+      return res.json();
+    },
+  });
+
+  // Fetch Federated Training jobs
+  const { data: trainingJobs } = useQuery({
+    queryKey: ["/api/training/jobs"],
+    queryFn: async () => {
+      const res = await fetch(`/api/training/jobs?tenantId=${tenantId}`);
+      return res.json();
+    },
+  });
+
   // Calculate total tokens from all providers
   const totalTokens = tokenSummary?.reduce((sum: number, provider: any) => {
     return sum + (provider.today?.tokens || 0);
@@ -537,6 +555,54 @@ export default function AdminDashboard() {
               </div>
               <CardDescription className="text-xs">
                 {t.admin.overview.indexedKnowledge}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          {/* Card 9: GPU Workers → GPU Management Tab */}
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("gpu")}
+            data-testid="card-gpu-workers"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Server className="w-4 h-4" />
+                {t.admin.overview.gpuWorkers}
+              </CardTitle>
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
+                {gpuData?.stats ? (
+                  gpuData.stats.healthy || 0
+                ) : (
+                  <span className="animate-pulse">...</span>
+                )}
+              </div>
+              <CardDescription className="text-xs">
+                {t.admin.overview.healthyGpuWorkers}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          {/* Card 10: Federated Training Jobs → Federated Training Tab */}
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("federated")}
+            data-testid="card-federated-jobs"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Cpu className="w-4 h-4" />
+                {t.admin.overview.federatedJobs}
+              </CardTitle>
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
+                {trainingJobs?.jobs ? (
+                  Array.isArray(trainingJobs.jobs) ? trainingJobs.jobs.filter((job: any) => job.status === 'completed').length : 0
+                ) : (
+                  <span className="animate-pulse">...</span>
+                )}
+              </div>
+              <CardDescription className="text-xs">
+                {t.admin.overview.completedTrainingJobs}
               </CardDescription>
             </CardHeader>
           </Card>
