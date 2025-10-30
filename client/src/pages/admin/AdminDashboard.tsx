@@ -289,75 +289,79 @@ export default function AdminDashboard() {
   } as React.CSSProperties;
 
   return (
-    <SidebarProvider style={sidebarStyle}>
-      <div className="flex h-screen w-full">
-        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        
-        <SidebarInset className="flex flex-col flex-1">
-          {/* Modern Header with Glassmorphism */}
-          <header className="glass sticky top-0 z-40 border-b border-white/10">
-            <div className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
-                {/* Logo + AION fixo no canto superior esquerdo - sempre visível */}
-                <button 
-                  onClick={() => navigate("/")} 
-                  className="hover-elevate rounded-lg px-3 py-2 transition-all bg-transparent border-0 cursor-pointer flex items-center gap-2" 
-                  data-testid="link-logo-home"
-                >
-                  <AionLogo className="h-8 w-8" />
-                  <span className="font-bold text-xl gradient-text">AION</span>
-                </button>
-                
-                <div className="h-6 w-px bg-border/50" />
-                
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => navigate("/")}
-                  className="glass-premium"
-                  data-testid="button-back-to-chat"
-                >
-                  <MessageSquare className="w-5 h-5" />
+    <div className="h-screen flex flex-col w-full">
+      {/* Global Header - Fixed at top, above everything */}
+      <header className="glass sticky top-0 z-50 border-b border-white/10 shrink-0">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            {/* Logo + AION - Always visible */}
+            <button 
+              onClick={() => navigate("/")} 
+              className="hover-elevate rounded-lg px-3 py-2 transition-all bg-transparent border-0 cursor-pointer flex items-center gap-3" 
+              data-testid="link-logo-home"
+            >
+              <AionLogo className="h-8 w-8" />
+              <span className="font-bold text-2xl gradient-text">AION</span>
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate("/")}
+              className="glass-premium"
+              data-testid="button-back-to-chat"
+            >
+              <MessageSquare className="w-5 h-5" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="glass-premium" data-testid="button-language">
+                  <Languages className="w-5 h-5" />
                 </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="glass-premium" data-testid="button-language">
-                      <Languages className="w-5 h-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="glass-premium border-primary/20">
-                    <DropdownMenuItem
-                      onClick={() => setLanguage("pt-BR")}
-                      className={language === "pt-BR" ? "bg-primary/20" : ""}
-                      data-testid="lang-pt-BR"
-                    >
-                      🇧🇷 Português
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setLanguage("en-US")}
-                      className={language === "en-US" ? "bg-primary/20" : ""}
-                      data-testid="lang-en-US"
-                    >
-                      🇺🇸 English
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setLanguage("es-ES")}
-                      className={language === "es-ES" ? "bg-primary/20" : ""}
-                      data-testid="lang-es-ES"
-                    >
-                      🇪🇸 Español
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </header>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass-premium border-primary/20">
+                <DropdownMenuItem
+                  onClick={() => setLanguage("pt-BR")}
+                  className={language === "pt-BR" ? "bg-primary/20" : ""}
+                  data-testid="lang-pt-BR"
+                >
+                  Português (BR)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setLanguage("en-US")}
+                  className={language === "en-US" ? "bg-primary/20" : ""}
+                  data-testid="lang-en-US"
+                >
+                  English (US)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setLanguage("es-ES")}
+                  className={language === "es-ES" ? "bg-primary/20" : ""}
+                  data-testid="lang-es-ES"
+                >
+                  Español (ES)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
 
-          {/* Main Content Area */}
-          <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background to-primary/10">
+      {/* Sidebar + Main Content Area */}
+      <SidebarProvider style={sidebarStyle}>
+        <div className="flex flex-1 w-full overflow-hidden">
+          <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+          
+          <SidebarInset className="flex flex-col flex-1">
+            {/* Subheader with sidebar controls */}
+            <div className="glass border-b border-white/10 px-4 py-2 flex items-center gap-2 shrink-0">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
+              <span className="text-sm text-muted-foreground">{t.admin.title}</span>
+            </div>
+
+            {/* Main Content Area */}
+            <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background to-primary/10">
             <div className="p-6">
               {/* Overview Tab */}
               {activeTab === "overview" && (
@@ -958,7 +962,8 @@ export default function AdminDashboard() {
             </div>
           </main>
         </SidebarInset>
-      </div>
-    </SidebarProvider>
+        </div>
+      </SidebarProvider>
+    </div>
   );
 }
