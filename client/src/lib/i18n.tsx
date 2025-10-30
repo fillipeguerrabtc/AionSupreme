@@ -32,7 +32,13 @@ interface Translations {
       gpuManagement: string;
       federatedTraining: string;
       autoEvolution: string;
+      datasets: string;
       settings: string;
+    };
+
+    // Sidebar
+    sidebar: {
+      navigation: string;
     };
     
     // Overview Tab
@@ -547,7 +553,12 @@ const translations: Record<Language, Translations> = {
         gpuManagement: "Gerenciamento de GPUs",
         federatedTraining: "Treinamento Federado",
         autoEvolution: "Auto-Evolução",
+        datasets: "Datasets",
         settings: "Configurações",
+      },
+
+      sidebar: {
+        navigation: "Navegação",
       },
       
       overview: {
@@ -1038,7 +1049,12 @@ const translations: Record<Language, Translations> = {
         gpuManagement: "GPU Management",
         federatedTraining: "Federated Training",
         autoEvolution: "Auto-Evolution",
+        datasets: "Datasets",
         settings: "Settings",
+      },
+
+      sidebar: {
+        navigation: "Navigation",
       },
       
       overview: {
@@ -1529,7 +1545,12 @@ const translations: Record<Language, Translations> = {
         gpuManagement: "Gestión de GPUs",
         federatedTraining: "Entrenamiento Federado",
         autoEvolution: "Auto-Evolución",
+        datasets: "Datasets",
         settings: "Configuraciones",
+      },
+
+      sidebar: {
+        navigation: "Navegación",
       },
       
       overview: {
