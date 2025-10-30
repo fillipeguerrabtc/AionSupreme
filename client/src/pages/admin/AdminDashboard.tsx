@@ -294,14 +294,17 @@ export default function AdminDashboard() {
       <header className="glass sticky top-0 z-50 border-b border-white/10 shrink-0">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            {/* Logo + AION - Always visible */}
+            {/* Logo + AION + Painel de Controle */}
             <button 
               onClick={() => navigate("/")} 
               className="hover-elevate rounded-lg px-3 py-2 transition-all bg-transparent border-0 cursor-pointer flex items-center gap-3" 
               data-testid="link-logo-home"
             >
-              <AionLogo className="h-8 w-8" />
-              <span className="font-bold text-2xl gradient-text">AION</span>
+              <AionLogo showText={false} className="h-8 w-8" />
+              <div>
+                <h1 className="font-bold text-2xl gradient-text">AION</h1>
+                <p className="text-xs text-muted-foreground">Painel de Controle</p>
+              </div>
             </button>
           </div>
           <div className="flex items-center gap-2">
