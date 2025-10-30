@@ -99,10 +99,8 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border/40">
-        <div className="flex items-center gap-2 px-2 py-4">
-          <AionLogo className="h-8 w-8" />
-          <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="font-bold text-lg">AION Admin</span>
+        <div className="flex items-center gap-2 px-2 py-4 group-data-[collapsible=icon]:hidden">
+          <div className="flex flex-col">
             <span className="text-xs text-muted-foreground">
               {t.admin.subtitle}
             </span>

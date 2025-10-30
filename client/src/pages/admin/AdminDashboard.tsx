@@ -132,13 +132,26 @@ export default function AdminDashboard() {
     },
   });
 
+  // Fetch Auto-Evolution stats
+  const { data: autoEvolutionStats } = useQuery({
+    queryKey: ["/api/training/auto-evolution/stats"],
+    queryFn: async () => {
+      const res = await fetch('/api/training/auto-evolution/stats');
+      return res.json();
+    },
+  });
+
   // Calculate total tokens from all providers
   // 🔍 IMPORTANT: This calculates TODAY's tokens, not all-time tokens
   // It sums provider.today.tokens from all providers (OpenAI, Groq, Gemini, HuggingFace, etc.)
   // The backend /api/tokens/summary returns today/month breakdown using America/Sao_Paulo timezone
   // "Today" means from 00:00:00 to 23:59:59 in Brazilian timezone
-  const totalTokens = tokenSummary?.reduce((sum: number, provider: any) => {
+  const totalTokensToday = tokenSummary?.reduce((sum: number, provider: any) => {
     return sum + (provider.today?.tokens || 0);
+  }, 0) || 0;
+  
+  const totalTokensMonth = tokenSummary?.reduce((sum: number, provider: any) => {
+    return sum + (provider.month?.tokens || 0);
   }, 0) || 0;
 
   // Fetch OpenAI specific stats from tokenSummary
@@ -285,6 +298,18 @@ export default function AdminDashboard() {
           <header className="glass sticky top-0 z-40 border-b border-white/10">
             <div className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
+                {/* Logo + AION fixo no canto superior esquerdo - sempre visível */}
+                <button 
+                  onClick={() => navigate("/")} 
+                  className="hover-elevate rounded-lg px-3 py-2 transition-all bg-transparent border-0 cursor-pointer flex items-center gap-2" 
+                  data-testid="link-logo-home"
+                >
+                  <AionLogo className="h-8 w-8" />
+                  <span className="font-bold text-xl gradient-text">AION</span>
+                </button>
+                
+                <div className="h-6 w-px bg-border/50" />
+                
                 <SidebarTrigger data-testid="button-sidebar-toggle" />
                 <Button 
                   variant="ghost" 
@@ -295,13 +320,6 @@ export default function AdminDashboard() {
                 >
                   <MessageSquare className="w-5 h-5" />
                 </Button>
-                <button 
-                  onClick={() => navigate("/admin")} 
-                  className="hover-elevate rounded-lg p-2 -m-2 transition-all bg-transparent border-0 cursor-pointer" 
-                  data-testid="link-logo-admin-home"
-                >
-                  <AionLogo size="md" showText={false} />
-                </button>
               </div>
               <div className="flex items-center gap-2">
                 <DropdownMenu>
@@ -360,14 +378,17 @@ export default function AdminDashboard() {
                 <Activity className="w-4 h-4" />
                 {t.admin.overview.totalTokens}
               </CardTitle>
-              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
-                {tokenSummary ? (
-                  totalTokens.toLocaleString()
-                ) : (
-                  <span className="animate-pulse">...</span>
-                )}
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">24h (Hoje):</span>
+                  <span className="font-bold text-lg">{tokenSummary ? totalTokensToday.toLocaleString() : '...'}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">30d (Mês):</span>
+                  <span className="font-bold">{tokenSummary ? totalTokensMonth.toLocaleString() : '...'}</span>
+                </div>
               </div>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs mt-2">
                 {t.admin.overview.allProviders}
               </CardDescription>
             </CardHeader>
@@ -438,15 +459,26 @@ export default function AdminDashboard() {
                 <Zap className="w-4 h-4" />
                 {t.admin.overview.freeApis}
               </CardTitle>
-              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
-                {freeAPIsHistory ? (
-                  (freeAPIsHistory.totalRequests || 0).toLocaleString()
-                ) : (
-                  <span className="animate-pulse">...</span>
-                )}
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Groq:</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'groq')?.today?.requests || 0} req</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Gemini:</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'gemini')?.today?.requests || 0} req</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">HuggingFace:</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'huggingface')?.today?.requests || 0} req</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">OpenRouter:</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.today?.requests || 0} req</span>
+                </div>
               </div>
-              <CardDescription className="text-xs">
-                {t.admin.overview.groqGeminiHfOpenrouter}
+              <CardDescription className="text-xs mt-2">
+                Últimas 24h
               </CardDescription>
             </CardHeader>
           </Card>
@@ -561,18 +593,34 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Server className="w-4 h-4" />
-                {t.admin.overview.gpuWorkers}
+                GPU Workers
               </CardTitle>
-              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
-                {gpuData?.stats ? (
-                  gpuData.stats.healthy || 0
-                ) : (
-                  <span className="animate-pulse">...</span>
-                )}
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Total:</span>
+                  <span className="font-bold">{gpuData?.stats?.total || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-green-400">Healthy:</span>
+                  <span className="font-bold text-green-400">{gpuData?.stats?.healthy || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-yellow-400">Unhealthy:</span>
+                  <span className="font-bold text-yellow-400">{gpuData?.stats?.unhealthy || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-red-400">Offline:</span>
+                  <span className="font-bold text-red-400">{gpuData?.stats?.offline || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Requests:</span>
+                  <span className="font-bold">{gpuData?.stats?.totalRequests || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Avg Latency:</span>
+                  <span className="font-bold">{(gpuData?.stats?.averageLatencyMs || 0).toFixed(0)}ms</span>
+                </div>
               </div>
-              <CardDescription className="text-xs">
-                {t.admin.overview.healthyGpuWorkers}
-              </CardDescription>
             </CardHeader>
           </Card>
 
@@ -611,10 +659,25 @@ export default function AdminDashboard() {
                 <Sparkles className="w-4 h-4" />
                 Auto-Evolução
               </CardTitle>
-              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
-                <span className="animate-pulse">Em breve</span>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Conversas:</span>
+                  <span className="font-bold">{autoEvolutionStats?.overview?.totalConversations || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-green-400">Alta Qualidade:</span>
+                  <span className="font-bold text-green-400">{autoEvolutionStats?.overview?.highQualityConversations || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Datasets KB:</span>
+                  <span className="font-bold">{autoEvolutionStats?.overview?.kbGeneratedDatasets || 0}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Jobs:</span>
+                  <span className="font-bold">{autoEvolutionStats?.overview?.completedJobs || 0}/{autoEvolutionStats?.overview?.totalJobs || 0}</span>
+                </div>
               </div>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs mt-2">
                 Sistema de auto-aprendizado
               </CardDescription>
             </CardHeader>
