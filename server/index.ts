@@ -58,6 +58,10 @@ app.use((req, res, next) => {
   
   const server = await registerRoutes(app);
 
+  // Load multi-agent system from database
+  const { loadAgentsFromDatabase } = await import("./agent/loader");
+  await loadAgentsFromDatabase(1); // Tenant ID = 1 (single-tenant mode)
+
   // Start file cleanup service (runs every hour to delete expired files)
   fileCleanup.start();
   

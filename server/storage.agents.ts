@@ -24,6 +24,31 @@ export const agentsStorage = {
     const rows = await db.update(agents).set({ enabled: false, updatedAt: new Date() }).where(and(eq(agents.tenantId, tenantId), eq(agents.id, id))).returning();
     return rows[0];
   },
+  
+  // Agent-Tools relationship management
+  async getAgentTools(agentId: string) {
+    const rows = await db
+      .select({ 
+        id: tools.id,
+        name: tools.name, 
+        type: tools.type, 
+        config: tools.config 
+      })
+      .from(agentTools)
+      .innerJoin(tools, eq(agentTools.toolId, tools.id))
+      .where(eq(agentTools.agentId, agentId));
+    return rows;
+  },
+  
+  async assignTool(agentId: string, toolId: number, config?: any) {
+    await db.insert(agentTools).values({ agentId, toolId, config });
+  },
+  
+  async removeTool(agentId: string, toolId: number) {
+    await db.delete(agentTools).where(
+      and(eq(agentTools.agentId, agentId), eq(agentTools.toolId, toolId))
+    );
+  },
 };
 
 export const toolsStorage = {

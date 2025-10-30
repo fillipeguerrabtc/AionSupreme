@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,12 +51,11 @@ export default function AgentsPage() {
   // Create agent mutation
   const createMutation = useMutation({
     mutationFn: async (data: Partial<Agent>) => {
-      const res = await fetch("/api/agents", {
+      const res = await apiRequest("/api/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error("Failed to create agent");
       return res.json();
     },
     onSuccess: () => {
@@ -72,11 +71,10 @@ export default function AgentsPage() {
   // Delete agent mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/agents/${id}`, {
+      const res = await apiRequest(`/api/agents/${id}`, {
         method: "DELETE",
         headers: { "x-tenant-id": "1" },
       });
-      if (!res.ok) throw new Error("Failed to delete agent");
       return res.json();
     },
     onSuccess: () => {
