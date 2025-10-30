@@ -970,3 +970,63 @@ export const insertGradientUpdateSchema = createInsertSchema(gradientUpdates).om
 });
 export type InsertGradientUpdate = z.infer<typeof insertGradientUpdateSchema>;
 export type GradientUpdate = typeof gradientUpdates.$inferSelect;
+
+// ============================================================================
+// DATASETS - Training datasets storage and management
+// ============================================================================
+export const datasets = pgTable("datasets", {
+  id: serial("id").primaryKey(),
+  
+  // Ownership
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  userId: varchar("user_id").references(() => users.id),
+  
+  // Dataset metadata
+  name: text("name").notNull(),
+  description: text("description"),
+  datasetType: text("dataset_type").notNull(), // "text" | "chat" | "instruction" | "qa" | "custom"
+  
+  // File information
+  originalFilename: text("original_filename").notNull(),
+  fileSize: integer("file_size").notNull(), // Size in bytes
+  fileMimeType: text("file_mime_type").notNull(),
+  storagePath: text("storage_path").notNull(), // Local or cloud storage path
+  
+  // Dataset statistics
+  totalExamples: integer("total_examples").notNull().default(0),
+  averageLength: integer("average_length"), // Average tokens per example
+  minLength: integer("min_length"),
+  maxLength: integer("max_length"),
+  
+  // Processing status
+  status: text("status").notNull().default("uploaded"), // "uploaded" | "processing" | "ready" | "failed"
+  processingError: text("processing_error"),
+  
+  // Validation
+  isValid: boolean("is_valid").notNull().default(false),
+  validationErrors: jsonb("validation_errors").$type<string[]>(),
+  
+  // Schema information for structured datasets
+  schema: jsonb("schema").$type<{
+    columns?: string[];
+    inputField?: string;
+    outputField?: string;
+    format?: string; // "jsonl" | "csv" | "parquet" etc
+  }>(),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("datasets_tenant_idx").on(table.tenantId),
+  userIdx: index("datasets_user_idx").on(table.userId),
+  statusIdx: index("datasets_status_idx").on(table.status),
+}));
+
+export const insertDatasetSchema = createInsertSchema(datasets).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDataset = z.infer<typeof insertDatasetSchema>;
+export type Dataset = typeof datasets.$inferSelect;

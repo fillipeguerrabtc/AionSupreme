@@ -31,11 +31,18 @@ export default function FederatedTrainingTab() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [jobName, setJobName] = useState("");
   const [modelType, setModelType] = useState("mistral-7b");
   const [totalChunks, setTotalChunks] = useState(6);
   const [learningRate, setLearningRate] = useState(2e-5);
   const [epochs, setEpochs] = useState(3);
+  
+  // Dataset upload state
+  const [datasetName, setDatasetName] = useState("");
+  const [datasetDescription, setDatasetDescription] = useState("");
+  const [datasetType, setDatasetType] = useState("instruction");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const { data: jobsData } = useQuery({
     queryKey: ["/api/training/jobs"],
@@ -44,6 +51,14 @@ export default function FederatedTrainingTab() {
       return res.json();
     },
     refetchInterval: 5000,
+  });
+
+  const { data: datasetsData } = useQuery({
+    queryKey: ["/api/training/datasets"],
+    queryFn: async () => {
+      const res = await fetch("/api/training/datasets?tenantId=1");
+      return res.json();
+    },
   });
 
   const createJob = useMutation({
@@ -67,6 +82,60 @@ export default function FederatedTrainingTab() {
     onError: (error: any) => {
       toast({
         title: `❌ ${t.admin.messages.jobCreateError}`,
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const uploadDataset = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await fetch("/api/training/datasets", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Upload failed");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
+      setUploadDialogOpen(false);
+      setDatasetName("");
+      setDatasetDescription("");
+      setSelectedFile(null);
+      toast({
+        title: "✅ Dataset Uploaded",
+        description: "Dataset processed successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "❌ Upload Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteDataset = useMutation({
+    mutationFn: async (datasetId: number) => {
+      const res = await apiRequest(`/api/training/datasets/${datasetId}`, {
+        method: "DELETE",
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
+      toast({
+        title: "✅ Dataset Deleted",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "❌ Delete Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -101,7 +170,43 @@ export default function FederatedTrainingTab() {
     });
   };
 
+  const handleUploadDataset = () => {
+    if (!datasetName.trim()) {
+      toast({
+        title: "⚠️ Name Required",
+        description: "Please enter a dataset name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedFile) {
+      toast({
+        title: "⚠️ File Required",
+        description: "Please select a file to upload",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("name", datasetName);
+    formData.append("description", datasetDescription);
+    formData.append("datasetType", datasetType);
+    formData.append("tenantId", "1");
+
+    uploadDataset.mutate(formData);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
   const jobs = jobsData?.jobs || [];
+  const datasets = datasetsData?.datasets || [];
 
   return (
     <div className="space-y-6">
@@ -377,6 +482,151 @@ export default function FederatedTrainingTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Dataset Management */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                Training Datasets
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Upload and manage datasets for federated training
+              </p>
+            </div>
+            <Button 
+              onClick={() => setUploadDialogOpen(true)}
+              variant="outline"
+              data-testid="button-upload-dataset"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload Dataset
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {datasets.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Upload className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>No datasets uploaded yet</p>
+              <p className="text-sm">Upload a dataset to start training</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {datasets.map((dataset: any) => (
+                <div 
+                  key={dataset.id} 
+                  className="p-4 border rounded-lg hover-elevate space-y-2"
+                  data-testid={`dataset-${dataset.id}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-medium">{dataset.name}</h4>
+                      {dataset.description && (
+                        <p className="text-sm text-muted-foreground">{dataset.description}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteDataset.mutate(dataset.id)}
+                      data-testid={`button-delete-dataset-${dataset.id}`}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                  <div className="flex gap-4 text-sm text-muted-foreground">
+                    <span>Type: {dataset.datasetType}</span>
+                    <span>Examples: {dataset.totalExamples}</span>
+                    <span>Size: {(dataset.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+                    <Badge variant={dataset.isValid ? "default" : "destructive"}>
+                      {dataset.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Upload Dataset Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Training Dataset</DialogTitle>
+            <DialogDescription>
+              Upload a dataset file for federated training. Supported formats: JSONL, JSON, CSV, TXT
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="dataset-name">Dataset Name</Label>
+              <Input
+                id="dataset-name"
+                value={datasetName}
+                onChange={(e) => setDatasetName(e.target.value)}
+                placeholder="My Training Dataset"
+                data-testid="input-dataset-name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="dataset-description">Description (Optional)</Label>
+              <Textarea
+                id="dataset-description"
+                value={datasetDescription}
+                onChange={(e) => setDatasetDescription(e.target.value)}
+                placeholder="Description of your dataset..."
+                data-testid="textarea-dataset-description"
+              />
+            </div>
+            <div>
+              <Label htmlFor="dataset-type">Dataset Type</Label>
+              <Select value={datasetType} onValueChange={setDatasetType}>
+                <SelectTrigger data-testid="select-dataset-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="instruction">Instruction</SelectItem>
+                  <SelectItem value="chat">Chat</SelectItem>
+                  <SelectItem value="qa">Q&A</SelectItem>
+                  <SelectItem value="text">Plain Text</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="dataset-file">Dataset File</Label>
+              <Input
+                id="dataset-file"
+                type="file"
+                accept=".jsonl,.json,.csv,.txt,.tsv"
+                onChange={handleFileChange}
+                data-testid="input-dataset-file"
+              />
+              {selectedFile && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUploadDataset}
+              disabled={uploadDataset.isPending}
+              data-testid="button-confirm-upload"
+            >
+              {uploadDataset.isPending ? "Uploading..." : "Upload"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Instructions */}
       <Card>

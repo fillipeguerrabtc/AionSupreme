@@ -27,6 +27,8 @@ import axios from "axios";
 import fs from "fs/promises";
 import path from "path";
 import { optionalAuth } from "./replitAuth";
+import { DatasetProcessor } from "./training/datasets/dataset-processor";
+import { DatasetValidator } from "./training/datasets/dataset-validator";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
@@ -1865,7 +1867,7 @@ export function registerRoutes(app: Express): Server {
       
       const jobData = insertTrainingJobSchema.parse(req.body);
       
-      const [job] = await db.insert(trainingJobs).values(jobData).returning();
+      const [job] = await db.insert(trainingJobs).values(jobData as any).returning();
       
       console.log(`[Federated] Created training job: ${job.name} (ID ${job.id})`);
       
@@ -2067,6 +2069,193 @@ export function registerRoutes(app: Express): Server {
       const checkpoint = JSON.parse(checkpointData);
       
       res.json({ checkpoint, path: checkpointPath });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // DATASET UPLOAD & MANAGEMENT
+  // ============================================================================
+
+  // POST /api/training/datasets - Upload new dataset
+  app.post("/api/training/datasets", upload.single("file"), async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { datasets } = await import("../shared/schema");
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const { name, description, datasetType, tenantId, userId } = req.body;
+
+      if (!name || !datasetType || !tenantId) {
+        return res.status(400).json({
+          error: "Missing required fields: name, datasetType, tenantId",
+        });
+      }
+
+      // Process the dataset
+      const result = await DatasetProcessor.processDataset({
+        tenantId: parseInt(tenantId),
+        userId: userId || undefined,
+        name,
+        description,
+        datasetType,
+        originalFilename: req.file.originalname,
+        tempFilePath: req.file.path,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      // Save to database
+      const [savedDataset] = await db
+        .insert(datasets)
+        .values(result.dataset as any)
+        .returning();
+
+      res.json({
+        message: "Dataset uploaded successfully",
+        dataset: savedDataset,
+      });
+    } catch (error: any) {
+      console.error("Dataset upload error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/training/datasets - List all datasets for tenant
+  app.get("/api/training/datasets", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { datasets } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const tenantId = parseInt(req.query.tenantId as string);
+
+      if (isNaN(tenantId)) {
+        return res.status(400).json({ error: "Invalid tenantId" });
+      }
+
+      const datasetList = await db
+        .select()
+        .from(datasets)
+        .where(eq(datasets.tenantId, tenantId))
+        .orderBy(datasets.createdAt);
+
+      res.json({ datasets: datasetList });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/training/datasets/:id - Get specific dataset
+  app.get("/api/training/datasets/:id", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { datasets } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const id = parseInt(req.params.id);
+
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid dataset ID" });
+      }
+
+      const [dataset] = await db
+        .select()
+        .from(datasets)
+        .where(eq(datasets.id, id))
+        .limit(1);
+
+      if (!dataset) {
+        return res.status(404).json({ error: "Dataset not found" });
+      }
+
+      res.json({ dataset });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/training/datasets/:id/preview - Get dataset content preview
+  app.get("/api/training/datasets/:id/preview", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { datasets } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const id = parseInt(req.params.id);
+      const maxLines = parseInt((req.query.maxLines as string) || "50");
+
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid dataset ID" });
+      }
+
+      const [dataset] = await db
+        .select()
+        .from(datasets)
+        .where(eq(datasets.id, id))
+        .limit(1);
+
+      if (!dataset) {
+        return res.status(404).json({ error: "Dataset not found" });
+      }
+
+      const content = await DatasetProcessor.getDatasetContent(
+        dataset.storagePath,
+        maxLines
+      );
+
+      res.json({
+        dataset: {
+          id: dataset.id,
+          name: dataset.name,
+          totalExamples: dataset.totalExamples,
+        },
+        preview: content,
+        maxLines,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // DELETE /api/training/datasets/:id - Delete dataset
+  app.delete("/api/training/datasets/:id", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { datasets } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const id = parseInt(req.params.id);
+
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid dataset ID" });
+      }
+
+      const [dataset] = await db
+        .select()
+        .from(datasets)
+        .where(eq(datasets.id, id))
+        .limit(1);
+
+      if (!dataset) {
+        return res.status(404).json({ error: "Dataset not found" });
+      }
+
+      // Delete file from storage
+      await DatasetProcessor.deleteDataset(dataset.storagePath);
+
+      // Delete from database
+      await db.delete(datasets).where(eq(datasets.id, id));
+
+      res.json({ message: "Dataset deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
