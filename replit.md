@@ -24,10 +24,12 @@ AION operates in single-tenant mode with **multi-agent architecture** utilizing 
 - **Integration**: Registered in AdminDashboard (/admin/namespaces route) and AdminSidebar (Curation section with FolderTree icon)
 - **NamespaceSelector Scroll Fix**: Removed duplicate overflow container to enable mouse wheel scrolling anywhere in dropdown (CommandList now directly has overflow-y-auto)
 
-**Knowledge Curation System (HITL - Human-in-the-Loop)**: Production-ready curation workflow with 2 specialized Curator agents:
+**Knowledge Curation System (HITL - Human-in-the-Loop) - PostgreSQL-Backed (Oct 30, 2025)**: Production-ready curation workflow with 2 specialized Curator agents:
 - **Curador de Conhecimento (AI Curator)**: Analyzes content, extracts metadata, scores quality, and queues items for human review. Has access to all namespaces (*) for centralized governance.
 - **Curador Executivo (Executive Curator)**: Human-augmented curator requiring mandatory human approval for all actions, ensuring quality control.
-Workflow: Content submission → curationStore.addToCuration() → Human review (approve/reject/edit via CurationQueuePage) → approveAndPublish() creates document in DB + indexes to KB with namespace metadata for scoped retrieval. Includes PromoteToKBButton for instant promotion of high-quality responses.
+- **Database Persistence**: Complete migration from in-memory to PostgreSQL (curation_queue table) with full CRUD operations via Drizzle ORM. All curation items persist across server restarts with tenant scoping, status tracking, and audit timestamps.
+- **Schema**: curation_queue table includes id, tenantId, title, content, source, submittedAt, status, reviewedBy, reviewedAt, note, tags, suggestedNamespaces, qualityScore, publishedId, updatedAt fields with proper indexes.
+Workflow: Content submission → curationStore.addToCuration() → PostgreSQL persistence → Human review (approve/reject/edit via CurationQueuePage) → approveAndPublish() creates document in DB + indexes to KB with namespace metadata for scoped retrieval. Includes PromoteToKBButton for instant promotion of high-quality responses. E2E tested and validated (Oct 30, 2025).
 
 ### UI/UX
 The frontend uses React 18, Vite, Wouter, and TanStack Query, built with Radix UI, shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired HSL-based custom design system. It includes a conversational chat interface and an Admin Dashboard with enterprise sidebar navigation for policy and metrics management across **13 sections** with multi-language support (PT-BR, EN-US, ES-ES). Branding consistently displays "AION". The Admin Dashboard features a structured layout with a collapsible sidebar and a sticky header, incorporating glassmorphism effects and professional visual hierarchy. 
@@ -48,7 +50,7 @@ The backend is built with Node.js and TypeScript using Express.js, with PostgreS
 - **AgentExecutor Pattern**: Loader wraps Agent configs with run() method via createAgentExecutor() factory, enabling planner to invoke agents without runtime errors
 - **11 Agents Seeded**: 9 Specialist Agents (Atendimento, Finanças, Tecnologia, Turismo, Automóveis, Gestão, Calendário, Marketing, Auxiliar) + 2 Curator Agents (Curador de Conhecimento with namespace "*", Curador Executivo with human-approval requirement)
 - **Admin UI**: Full CRUD operations with shadcn components, create/edit dialogs with NamespaceSelector supporting custom namespace creation, PATCH method alignment
-- **Curation System**: Backend routes (/api/curation/*, /api/kb/promote), in-memory queue store, CurationQueuePage UI with approve/reject/edit, PromoteToKBButton component
+- **Curation System**: Backend routes (/api/curation/*, /api/kb/promote), PostgreSQL-backed queue store (server/curation/store.ts), CurationQueuePage UI with approve/reject/edit, PromoteToKBButton component. Full database persistence with tenant isolation and status filtering.
 - **Event-Driven RAG**: Namespace-scoped indexing triggered by AGENT_CREATED/UPDATED/DELETED events
 - **Next Steps**: Implement production LLM/RAG logic in AgentExecutor.run() (currently placeholder), add runtime.unregisterAgent() for cleanup
 
