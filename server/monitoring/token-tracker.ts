@@ -1041,6 +1041,56 @@ export async function getCostHistory(
 // ============================================================================
 
 /**
+ * Check if cleanup is needed (if there's old data to delete)
+ * Checks BOTH tokenUsage and tokenAlerts tables
+ * @param tenantId - Optional tenant ID
+ * @returns true if there's data older than 5 years in either table, false otherwise
+ */
+export async function needsCleanup(tenantId?: number): Promise<boolean> {
+  const RETENTION_DAYS = 1825;
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - RETENTION_DAYS);
+  
+  // Check tokenUsage table
+  const usageCount = tenantId
+    ? await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(tokenUsage)
+        .where(
+          and(
+            eq(tokenUsage.tenantId, tenantId),
+            lte(tokenUsage.timestamp, cutoffDate)
+          )
+        )
+    : await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(tokenUsage)
+        .where(lte(tokenUsage.timestamp, cutoffDate));
+  
+  if (Number(usageCount[0]?.count ?? 0) > 0) {
+    return true;
+  }
+  
+  // Check tokenAlerts table
+  const alertsCount = tenantId
+    ? await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(tokenAlerts)
+        .where(
+          and(
+            eq(tokenAlerts.tenantId, tenantId),
+            lte(tokenAlerts.createdAt, cutoffDate)
+          )
+        )
+    : await db
+        .select({ count: sql<number>`COUNT(*)` })
+        .from(tokenAlerts)
+        .where(lte(tokenAlerts.createdAt, cutoffDate));
+  
+  return Number(alertsCount[0]?.count ?? 0) > 0;
+}
+
+/**
  * Cleanup old token usage data older than 5 years (1,825 days)
  * This function should be called periodically (monthly recommended)
  * to maintain database performance while preserving historical analytics
@@ -1051,15 +1101,28 @@ export async function getCostHistory(
  * - Applies to: tokenUsage, tokenAlerts
  * 
  * @param tenantId - Optional tenant ID, if not provided cleans all tenants
- * @returns Number of records deleted
+ * @param skipCheck - Skip the needsCleanup check (for forced cleanup)
+ * @returns Number of records deleted, or null if no cleanup was needed
  */
-export async function cleanupOldTokenData(tenantId?: number): Promise<{
+export async function cleanupOldTokenData(
+  tenantId?: number,
+  skipCheck: boolean = false
+): Promise<{
   tokenUsageDeleted: number;
   alertsDeleted: number;
-}> {
+} | null> {
   const RETENTION_DAYS = 1825; // 5 years = 1,825 days
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - RETENTION_DAYS);
+  
+  // Check if cleanup is needed
+  if (!skipCheck) {
+    const needed = await needsCleanup(tenantId);
+    if (!needed) {
+      console.log(`[Token Cleanup] No data older than ${cutoffDate.toISOString()} found - skipping cleanup`);
+      return null;
+    }
+  }
   
   console.log(`[Token Cleanup] Starting cleanup for data older than ${cutoffDate.toISOString()} (5 years)`);
   
