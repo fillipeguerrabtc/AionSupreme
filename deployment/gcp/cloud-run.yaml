@@ -1,0 +1,141 @@
+# ========================================
+# Google Cloud Run Service Configuration
+# AION - AI System with Auto-Scaling
+# ========================================
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: aion-ai
+  labels:
+    cloud.googleapis.com/location: us-central1
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+spec:
+  template:
+    metadata:
+      annotations:
+        # Auto-scaling configuration
+        autoscaling.knative.dev/minScale: "0"  # Scale to zero when idle (save costs)
+        autoscaling.knative.dev/maxScale: "10"  # Max 10 instances
+        autoscaling.knative.dev/target: "80"  # Target 80% CPU utilization
+        
+        # Resource limits (fits free tier)
+        run.googleapis.com/cpu-throttling: "true"
+        run.googleapis.com/startup-cpu-boost: "true"
+        
+        # VPC connector (optional - for private resources)
+        # run.googleapis.com/vpc-access-connector: projects/PROJECT_ID/locations/REGION/connectors/CONNECTOR_NAME
+        # run.googleapis.com/vpc-access-egress: private-ranges-only
+    spec:
+      containerConcurrency: 80  # Max concurrent requests per container
+      timeoutSeconds: 300  # 5 minute timeout
+      serviceAccountName: aion-service-account@PROJECT_ID.iam.gserviceaccount.com
+      
+      containers:
+      - name: aion-ai
+        image: gcr.io/PROJECT_ID/aion-ai:latest
+        ports:
+        - name: http1
+          containerPort: 5000
+        
+        env:
+        # Database (Neon Serverless PostgreSQL)
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: database-url
+              key: latest
+        
+        # OpenAI API Key
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-api-key
+              key: latest
+        
+        # Free LLM APIs
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: groq-api-key
+              key: latest
+        
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gemini-api-key
+              key: latest
+        
+        - name: HUGGINGFACE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: huggingface-api-key
+              key: latest
+        
+        - name: OPEN_ROUTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openrouter-api-key
+              key: latest
+        
+        # Session Secret
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: session-secret
+              key: latest
+        
+        # Environment
+        - name: NODE_ENV
+          value: "production"
+        
+        - name: PORT
+          value: "5000"
+        
+        - name: CLOUD_PROVIDER
+          value: "gcp"
+        
+        - name: REGION
+          value: "us-central1"
+        
+        resources:
+          limits:
+            cpu: "1000m"      # 1 vCPU
+            memory: "512Mi"   # 512 MB RAM (free tier limit)
+          requests:
+            cpu: "1000m"
+            memory: "512Mi"
+        
+        # Health checks
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
+        startupProbe:
+          httpGet:
+            path: /health/live
+            port: 5000
+          initialDelaySeconds: 0
+          periodSeconds: 3
+          timeoutSeconds: 3
+          failureThreshold: 10
+
+  traffic:
+  - percent: 100
+    latestRevision: true

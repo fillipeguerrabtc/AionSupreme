@@ -32,6 +32,8 @@ import { DatasetValidator } from "./training/datasets/dataset-validator";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
+const startupTime = Date.now();
+
 export function registerRoutes(app: Express): Server {
   // Apply audit middleware globally (lightweight)
   app.use(auditMiddleware);
@@ -41,6 +43,125 @@ export function registerRoutes(app: Express): Server {
   
   // Seed database on startup
   seedDatabase().catch(console.error);
+
+  // ========================================
+  // HEALTH CHECK ENDPOINTS (for multi-cloud deployment)
+  // ========================================
+  
+  // GET /health - Basic health check (fast, for load balancers)
+  app.get("/health", async (req, res) => {
+    try {
+      // Quick database ping
+      const { pool } = await import("./db");
+      await pool.query("SELECT 1");
+      
+      res.status(200).json({
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        uptime: Math.floor((Date.now() - startupTime) / 1000),
+      });
+    } catch (error: any) {
+      res.status(503).json({
+        status: "unhealthy",
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+  
+  // GET /health/detailed - Detailed health check (for monitoring)
+  app.get("/health/detailed", async (req, res) => {
+    const checks: any = {
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor((Date.now() - startupTime) / 1000),
+      version: "1.0.0",
+      environment: process.env.NODE_ENV || "development",
+      services: {},
+    };
+    
+    let allHealthy = true;
+    
+    // Database check
+    try {
+      const { pool } = await import("./db");
+      const start = Date.now();
+      await pool.query("SELECT 1");
+      const latency = Date.now() - start;
+      
+      checks.services.database = {
+        status: "healthy",
+        latency: `${latency}ms`,
+      };
+    } catch (error: any) {
+      allHealthy = false;
+      checks.services.database = {
+        status: "unhealthy",
+        error: error.message,
+      };
+    }
+    
+    // Free APIs check
+    try {
+      const apiStatus = freeLLMProviders.getHealthStatus();
+      checks.services.freeAPIs = {
+        status: "healthy",
+        providers: apiStatus,
+      };
+    } catch (error: any) {
+      checks.services.freeAPIs = {
+        status: "degraded",
+        error: error.message,
+      };
+    }
+    
+    // OpenAI check
+    try {
+      const hasOpenAI = !!process.env.OPENAI_API_KEY;
+      checks.services.openai = {
+        status: hasOpenAI ? "healthy" : "not_configured",
+        configured: hasOpenAI,
+      };
+    } catch (error: any) {
+      checks.services.openai = {
+        status: "unknown",
+        error: error.message,
+      };
+    }
+    
+    // GPU Pool check
+    try {
+      const gpuStatus = gpuOrchestrator.getStatus();
+      checks.services.gpuPool = {
+        status: gpuStatus.activeWorkers > 0 ? "healthy" : "no_workers",
+        activeWorkers: gpuStatus.activeWorkers,
+        totalWorkers: gpuStatus.totalWorkers,
+      };
+    } catch (error: any) {
+      checks.services.gpuPool = {
+        status: "degraded",
+        error: error.message,
+      };
+    }
+    
+    checks.status = allHealthy ? "healthy" : "degraded";
+    res.status(allHealthy ? 200 : 503).json(checks);
+  });
+  
+  // GET /health/ready - Readiness probe (for Kubernetes/Cloud Run)
+  app.get("/health/ready", async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      await pool.query("SELECT 1");
+      res.status(200).json({ ready: true });
+    } catch (error: any) {
+      res.status(503).json({ ready: false, error: error.message });
+    }
+  });
+  
+  // GET /health/live - Liveness probe (for Kubernetes/Cloud Run)
+  app.get("/health/live", (req, res) => {
+    res.status(200).json({ alive: true });
+  });
 
   // POST /api/v1/chat/completions
   // 🎯 PRIORITY ORDER: KB → Free APIs → Web → OpenAI

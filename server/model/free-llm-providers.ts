@@ -440,6 +440,42 @@ export class FreeLLMProviders {
 
     return embeddings;
   }
+
+  /**
+   * Get health status of all providers (for monitoring/health checks)
+   */
+  getHealthStatus() {
+    return {
+      openrouter: {
+        configured: !!this.openrouter,
+        available: this.hasCredits('openrouter'),
+        used: this.usage.openrouter.daily,
+        limit: this.usage.openrouter.limit,
+        remaining: this.usage.openrouter.limit - this.usage.openrouter.daily,
+      },
+      groq: {
+        configured: !!this.groq,
+        available: this.hasCredits('groq'),
+        used: this.usage.groq.daily,
+        limit: this.usage.groq.limit,
+        remaining: this.usage.groq.limit - this.usage.groq.daily,
+      },
+      gemini: {
+        configured: !!this.gemini,
+        available: this.hasCredits('gemini'),
+        used: this.usage.gemini.daily,
+        limit: this.usage.gemini.limit,
+        remaining: this.usage.gemini.limit - this.usage.gemini.daily,
+      },
+      hf: {
+        configured: !!this.hf,
+        available: this.hasCredits('hf'),
+        used: this.usage.hf.daily,
+        limit: this.usage.hf.limit,
+        remaining: this.usage.hf.limit - this.usage.hf.daily,
+      },
+    };
+  }
 }
 
 // Singleton instance

@@ -1,0 +1,57 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Build outputs
+dist
+.vite
+build
+
+# Development files
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Temporary files
+tmp
+temp
+/tmp
+*.tmp
+
+# Test files
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+coverage
+
+# Documentation (not needed in production)
+*.md
+docs/
+README.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+
+# Deployment scripts (not needed inside container)
+deployment/
+*.sh
