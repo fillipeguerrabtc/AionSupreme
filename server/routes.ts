@@ -35,6 +35,7 @@ import { trainingDataCollection, datasets, trainingJobs } from "../shared/schema
 import { registerAgentRoutes } from "./routes/agents";
 import { registerCurationRoutes } from "./routes/curation";
 import { registerKbPromoteRoutes } from "./routes/kb_promote";
+import { registerNamespaceRoutes } from "./routes/namespaces";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
@@ -56,6 +57,9 @@ export function registerRoutes(app: Express): Server {
   // Register curation routes (HITL)
   registerCurationRoutes(app);
   registerKbPromoteRoutes(app);
+  
+  // Register namespace management routes
+  registerNamespaceRoutes(app);
 
   // ========================================
   // HEALTH CHECK ENDPOINTS (for multi-cloud deployment)
