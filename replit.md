@@ -22,10 +22,21 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 
 **Admin Dashboard Layout Architecture (Updated 2025-01-30):**
 - **Layout Structure**: `<SidebarProvider> → <div flex> → <AdminSidebar> + <SidebarInset with header + main>`. Sidebar positioned to the left, header inside SidebarInset content area (not overlapping sidebar).
-- **Sidebar**: Shadcn Sidebar component positioned to the left side. Features collapsible behavior (icon mode). Contains navigation menu items starting with Overview, Token Monitoring, History, Cost, Knowledge Base, GPU Management, Federated Training, Auto-Evolution, Datasets, and Settings. NO logo or header inside sidebar.
+- **Sidebar**: Shadcn Sidebar component positioned to the left side. Features collapsible behavior (icon mode). Contains navigation menu items starting with Overview, Token Monitoring, History, Cost, Knowledge Base, GPU Management, Federated Training, Auto-Evolution, **Datasets (Production-Ready)**, and Settings. NO logo or header inside sidebar.
 - **Header**: Positioned inside SidebarInset (sticky top-0 z-50), contains SidebarTrigger + AionLogo (size="md") + "AION" title (text-xl gradient-text) + "Painel de Controle" subtitle (text-xs muted), navigation buttons, and language selector (text-only: "Português (BR)", "English (US)", "Español (ES)").
 - **Navigation**: Clicking logo/AION in header navigates to "overview" tab (not to chat page).
 - **Design System**: Glassmorphism effects (glass, glass-premium classes), subtle borders (border-white/10), gradient text, consistent spacing, and professional visual hierarchy.
+
+**Datasets Management Page (Production-Ready - Implemented 2025-01-30):**
+- **Enterprise-Grade Interface**: Full-featured dataset management with statistics cards, advanced filtering, search, sorting, bulk operations, preview, and download capabilities.
+- **Statistics Dashboard**: Real-time metrics including total datasets, total examples, total size, and auto-generated (KB) count.
+- **Advanced Filtering**: Multi-criteria filtering by dataset type (instruction, chat, qa, text, kb-auto, kb-high-quality, custom), status (ready, processing, failed), and full-text search across names/descriptions.
+- **Sorting**: Flexible sorting by date, name, size, or example count (ascending/descending).
+- **Dataset Operations**: Individual actions (preview content in dialog, download file, delete) and bulk operations (multi-select deletion with confirmation).
+- **Quality Indicators**: Automatic quality tier classification (high/medium/low) based on dataset type and average content length.
+- **Empty State Handling**: User-friendly empty states with helpful messages guiding users to upload datasets.
+- **Backend APIs**: Complete RESTful API with endpoints for list, preview, download, single delete, and bulk delete operations.
+- **Integration**: Seamless integration with Federated Training dataset uploads and Knowledge Base auto-generation workflow.
 
 ### Technical Implementations
 **Backend (Node.js + TypeScript):**

@@ -23,6 +23,7 @@
 - 📊 **Monitoramento de Tokens em Tempo Real** - Rastreamento de nível empresarial com timezone brasileiro (America/Sao_Paulo) para cálculos precisos de datas locais
 - 🆓 **Cadeia de 5 Níveis de LLM Grátis** - KB → Pool de GPU → APIs Grátis (Groq, Gemini, HF) → Busca Web → OpenAI (último recurso)
 - 🎛️ **Painel Administrativo** - Branding limpo "AION" com navegação sidebar empresarial para gerenciamento completo do sistema
+- 📦 **Gerenciamento de Datasets** - Interface pronta para produção para gerenciar datasets de treinamento com filtragem, busca, preview, download e operações em massa
 - 🌍 **Deploy Multi-Cloud** - Implantação dupla em GCP + AWS com failover automático (100% free tier)
 
 ### 🏗️ Arquitetura

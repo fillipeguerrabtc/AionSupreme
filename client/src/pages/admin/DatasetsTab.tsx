@@ -82,13 +82,15 @@ export default function DatasetsTab() {
   const [showBulkDelete, setShowBulkDelete] = useState(false);
 
   // Fetch all datasets
-  const { data: datasets, isLoading } = useQuery<DatasetWithMetrics[]>({
+  const { data: datasetsResponse, isLoading } = useQuery<{datasets: DatasetWithMetrics[]}>({
     queryKey: ["/api/training/datasets"],
     queryFn: async () => {
-      const res = await apiRequest("/api/training/datasets");
+      const res = await apiRequest("/api/training/datasets?tenantId=1");
       return res.json();
     },
   });
+
+  const datasets = datasetsResponse?.datasets || [];
 
   // Fetch dataset preview content
   const { data: previewContent, isLoading: isLoadingPreview } = useQuery({

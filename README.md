@@ -23,6 +23,7 @@
 - 📊 **Real-time Token Monitoring** - Enterprise-grade tracking with Brazilian timezone (America/Sao_Paulo) for accurate local date calculations
 - 🆓 **5-Tier Free LLM Chain** - KB → GPU Pool → Free APIs (Groq, Gemini, HF) → Web Search → OpenAI (last resort)
 - 🎛️ **Admin Dashboard** - Clean "AION" branding with enterprise sidebar navigation for complete system management
+- 📦 **Dataset Management** - Production-ready interface for managing training datasets with filtering, search, preview, download, and bulk operations
 - 🌍 **Multi-Cloud Deployment** - Dual deployment on GCP + AWS with automatic failover (100% free tier)
 
 ### 🏗️ Architecture
