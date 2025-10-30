@@ -498,6 +498,46 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // GET /api/admin/settings/timezone/:tenant_id - Get tenant timezone
+  app.get("/api/admin/settings/timezone/:tenant_id", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.params.tenant_id);
+      const tenant = await storage.getTenant(tenantId);
+      
+      if (!tenant) {
+        return res.status(404).json({ error: "Tenant not found" });
+      }
+      
+      res.json({ timezone: tenant.timezone || "America/Sao_Paulo" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/admin/settings/timezone/:tenant_id - Update tenant timezone
+  app.post("/api/admin/settings/timezone/:tenant_id", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.params.tenant_id);
+      const { timezone } = req.body;
+      
+      if (!timezone || typeof timezone !== 'string') {
+        return res.status(400).json({ error: "Invalid timezone" });
+      }
+      
+      // Validate timezone using Intl
+      try {
+        Intl.DateTimeFormat(undefined, { timeZone: timezone });
+      } catch {
+        return res.status(400).json({ error: "Invalid IANA timezone" });
+      }
+      
+      const updated = await storage.updateTenant(tenantId, { timezone });
+      res.json({ timezone: updated.timezone, success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /api/metrics/realtime
   app.get("/api/metrics/realtime", async (req, res) => {
     try {

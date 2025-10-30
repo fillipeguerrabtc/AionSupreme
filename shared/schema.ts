@@ -50,6 +50,7 @@ export const tenants = pgTable("tenants", {
   name: text("name").notNull(),
   apiKey: text("api_key").notNull().unique(),
   jurisdiction: text("jurisdiction").notNull().default("US"), // ISO country code
+  timezone: text("timezone").notNull().default("America/Sao_Paulo"), // IANA timezone for datetime formatting
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
