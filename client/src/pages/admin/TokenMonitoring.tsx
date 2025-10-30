@@ -480,20 +480,54 @@ export default function TokenMonitoring() {
                 >
                   30D
                 </Button>
+                <Button
+                  variant={selectedPeriod === 90 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedPeriod(90)}
+                  data-testid="period-90d"
+                >
+                  90D
+                </Button>
+                <Button
+                  variant={selectedPeriod === 1825 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedPeriod(1825)}
+                  data-testid="period-5y"
+                >
+                  5Y
+                </Button>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={trends?.daily ?? []}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Area type="monotone" dataKey="totalTokens" stackId="1" stroke={COLORS.openai} fill={COLORS.openai} fillOpacity={0.6} name="Total Tokens" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {trendsLoading ? (
+              <div className="flex items-center justify-center h-[300px]">
+                <Activity className="w-8 h-8 animate-pulse text-primary" />
+              </div>
+            ) : trends?.daily && trends.daily.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={trends.daily}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 12 }}
+                    angle={selectedPeriod > 90 ? -45 : 0}
+                    textAnchor={selectedPeriod > 90 ? "end" : "middle"}
+                    height={selectedPeriod > 90 ? 60 : 30}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Area type="monotone" dataKey="totalTokens" stackId="1" stroke={COLORS.openai} fill={COLORS.openai} fillOpacity={0.6} name="Total Tokens" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                <BarChart3 className="w-12 h-12 mb-2 opacity-50" />
+                <p className="text-sm">No usage data available for the selected period</p>
+                <p className="text-xs mt-1">Start using AION to see token consumption trends</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </TabsContent>
