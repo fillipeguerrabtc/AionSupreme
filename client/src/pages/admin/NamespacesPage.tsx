@@ -235,42 +235,92 @@ export default function NamespacesPage() {
   const handleUpdate = async () => {
     if (!selectedNamespace) return;
 
-    updateMutation.mutate({
-      id: selectedNamespace.id,
-      data: {
+    // Check if this is a predefined namespace being "customized"
+    const isPredefined = selectedNamespace.id.toString().startsWith("predefined-");
+    
+    if (isPredefined) {
+      // Create a new custom namespace based on the predefined one
+      createMutation.mutate({
+        name: editName,
         displayName: editDisplayName || editName,
         description: editDescription,
         icon: editIcon,
         category: editCategory,
         relatedNamespaces: editRelatedNamespaces,
-      },
-    }, {
-      onSuccess: async () => {
-        // If content was provided, ingest it into the namespace
-        if (editContent.trim()) {
-          try {
-            await apiRequest(`/api/namespaces/${selectedNamespace.id}/ingest`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                content: editContent,
-                title: `Atualização de conteúdo - ${editName}`,
-              }),
-            });
-            toast({ 
-              title: "Conteúdo adicionado à fila de curadoria!", 
-              description: "O conteúdo adicional aguarda aprovação humana antes de ser indexado na Knowledge Base" 
-            });
-          } catch (error) {
-            toast({ 
-              title: "Erro ao indexar conteúdo", 
-              description: error instanceof Error ? error.message : "Erro desconhecido",
-              variant: "destructive" 
-            });
+        enabled: true,
+      }, {
+        onSuccess: async (newNamespace) => {
+          toast({ 
+            title: "Versão customizada criada!", 
+            description: `Namespace "${editDisplayName}" foi criado baseado no namespace de sistema.` 
+          });
+          
+          // If content was provided, ingest it into the new namespace
+          if (editContent.trim()) {
+            try {
+              await apiRequest(`/api/namespaces/${newNamespace.id}/ingest`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  content: editContent,
+                  title: `Conteúdo inicial - ${editName}`,
+                }),
+              });
+              toast({ 
+                title: "Conteúdo adicionado à fila de curadoria!", 
+                description: "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base" 
+              });
+            } catch (error) {
+              toast({ 
+                title: "Erro ao indexar conteúdo", 
+                description: error instanceof Error ? error.message : "Erro desconhecido",
+                variant: "destructive" 
+              });
+            }
+          }
+          
+          setSelectedNamespace(null);
+        }
+      });
+    } else {
+      // Update existing custom namespace
+      updateMutation.mutate({
+        id: selectedNamespace.id,
+        data: {
+          displayName: editDisplayName || editName,
+          description: editDescription,
+          icon: editIcon,
+          category: editCategory,
+          relatedNamespaces: editRelatedNamespaces,
+        },
+      }, {
+        onSuccess: async () => {
+          // If content was provided, ingest it into the namespace
+          if (editContent.trim()) {
+            try {
+              await apiRequest(`/api/namespaces/${selectedNamespace.id}/ingest`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  content: editContent,
+                  title: `Atualização de conteúdo - ${editName}`,
+                }),
+              });
+              toast({ 
+                title: "Conteúdo adicionado à fila de curadoria!", 
+                description: "O conteúdo adicional aguarda aprovação humana antes de ser indexado na Knowledge Base" 
+              });
+            } catch (error) {
+              toast({ 
+                title: "Erro ao indexar conteúdo", 
+                description: error instanceof Error ? error.message : "Erro desconhecido",
+                variant: "destructive" 
+              });
+            }
           }
         }
-      }
-    });
+      });
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -478,19 +528,33 @@ export default function NamespacesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {namespace.source === "custom" && namespace.id ? (
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              if (namespace.source === "custom" && namespace.id) {
                                 const customNs = customNamespaces.find(ns => ns.id === namespace.id);
                                 if (customNs) setSelectedNamespace(customNs);
-                              }}
-                              data-testid={`button-edit-${namespace.id}`}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                              } else {
+                                // For predefined namespaces, create a "virtual" namespace object for editing
+                                setSelectedNamespace({
+                                  id: `predefined-${namespace.name}`,
+                                  tenantId: 1,
+                                  name: namespace.name,
+                                  displayName: namespace.displayName,
+                                  description: namespace.description,
+                                  category: namespace.category,
+                                  enabled: true,
+                                  relatedNamespaces: [],
+                                } as any);
+                              }
+                            }}
+                            data-testid={`button-edit-${namespace.id || namespace.name}`}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          {namespace.source === "custom" && namespace.id && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -499,10 +563,8 @@ export default function NamespacesPage() {
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Sistema</span>
-                        )}
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -517,9 +579,16 @@ export default function NamespacesPage() {
       <Dialog open={!!selectedNamespace} onOpenChange={(open) => !open && setSelectedNamespace(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar Namespace</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              {selectedNamespace?.id?.toString().startsWith("predefined-") 
+                ? "Criar Versão Customizada" 
+                : "Editar Namespace"}
+            </DialogTitle>
             <DialogDescription>
-              Atualize as informações do namespace {selectedNamespace?.name}
+              {selectedNamespace?.id?.toString().startsWith("predefined-")
+                ? `Crie uma versão personalizada de "${selectedNamespace?.name}". O namespace original permanecerá inalterado.`
+                : `Atualize as informações do namespace ${selectedNamespace?.name}`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
