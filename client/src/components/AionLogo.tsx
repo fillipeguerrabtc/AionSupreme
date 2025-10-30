@@ -34,10 +34,7 @@ export function AionLogo({ size = "md", showText = true, className = "" }: AionL
         </div>
       </div>
       {showText && (
-        <div>
-          <h1 className={`${textSizeClasses[size]} font-bold gradient-text`}>AION</h1>
-          <p className="text-xs text-muted-foreground">IA Suprema & Ilimitada</p>
-        </div>
+        <h1 className={`${textSizeClasses[size]} font-bold gradient-text`}>AION</h1>
       )}
     </div>
   );

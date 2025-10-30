@@ -496,10 +496,7 @@ export default function ChatPage() {
                     <Sparkles className="w-6 h-6 text-primary" />
                   </div>
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
-                  <p className="text-xs text-muted-foreground">{t.chat.subtitle}</p>
-                </div>
+                <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
               </button>
             </div>
           </header>
