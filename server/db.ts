@@ -11,5 +11,18 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 5000,
+});
+
+// Configure PostgreSQL session to use Brasília timezone
+pool.on('connect', async (client) => {
+  try {
+    await client.query("SET timezone = 'America/Sao_Paulo'");
+  } catch (err) {
+    console.error('[Database] Failed to set timezone:', err);
+  }
+});
+
 export const db = drizzle({ client: pool, schema });

@@ -5,6 +5,9 @@ import { fileCleanup } from "./cleanup/file-cleanup";
 import { setupAuth } from "./replitAuth";
 import { autoRecovery } from "./federated/auto-recovery";
 
+process.env.TZ = 'America/Sao_Paulo';
+console.log(`[Timezone] Configured to: ${process.env.TZ} (Brasília, Brazil)`);
+
 const app = express();
 
 declare module 'http' {

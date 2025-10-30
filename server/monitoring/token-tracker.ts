@@ -8,6 +8,30 @@ import { tokenUsage, tokenLimits, tokenAlerts, type InsertTokenUsage, type Inser
 import { eq, and, gte, sql, desc } from 'drizzle-orm';
 
 // ============================================================================
+// TIMEZONE HELPERS (Brasília/São Paulo)
+// ============================================================================
+
+/**
+ * Get the start of today in local timezone (Brasília)
+ * This ensures "today" matches the user's local time, not UTC
+ */
+function getLocalDayStart(date: Date = new Date()): Date {
+  const localDate = new Date(date);
+  localDate.setHours(0, 0, 0, 0);
+  return localDate;
+}
+
+/**
+ * Get the start of current month in local timezone (Brasília)
+ */
+function getLocalMonthStart(date: Date = new Date()): Date {
+  const localDate = new Date(date);
+  localDate.setDate(1);
+  localDate.setHours(0, 0, 0, 0);
+  return localDate;
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -133,9 +157,9 @@ export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]>
   const providers = ['groq', 'gemini', 'huggingface', 'openrouter', 'openai', 'kb', 'web', 'deepweb'];
   const now = new Date();
   
-  // FIX: Use UTC to match database timestamps
-  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  // Use local timezone (Brasília) for "today" and "this month" calculations
+  const todayStart = getLocalDayStart(now);
+  const monthStart = getLocalMonthStart(now);
   
   const summaries: UsageSummary[] = [];
   
@@ -261,10 +285,10 @@ export async function getProviderQuotas(tenantId: number): Promise<ProviderQuota
   
   const now = new Date();
   
-  // FIX: Use UTC to match database timestamps
-  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  // Use local timezone (Brasília) for daily reset calculation
+  const todayStart = getLocalDayStart(now);
   const tomorrow = new Date(todayStart);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  tomorrow.setDate(tomorrow.getDate() + 1);
   
   const quotas: ProviderQuota[] = [];
   
@@ -321,8 +345,8 @@ async function checkLimitsAndAlert(tenantId: number, provider: string): Promise<
   const limit = limits[0];
   const now = new Date();
   
-  // FIX: Use UTC to match database timestamps
-  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  // Use local timezone (Brasília) for alert calculations
+  const todayStart = getLocalDayStart(now);
   
   // Get today's usage
   const usage = await db

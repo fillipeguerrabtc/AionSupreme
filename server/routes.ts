@@ -3130,7 +3130,21 @@ export function registerRoutes(app: Express): Server {
     try {
       const tenantId = parseInt(req.query.tenant_id as string) || 1;
       const provider = req.query.provider as string | null;
-      const days = parseInt(req.query.days as string) || 30;
+      
+      // Map period to days
+      const periodParam = req.query.period as string;
+      const periodMap: Record<string, number> = {
+        '1d': 1,
+        '7d': 7,
+        '30d': 30,
+        '90d': 90,
+        '1y': 365,
+        '5y': 1825
+      };
+      const days = periodParam && periodMap[periodParam] 
+        ? periodMap[periodParam] 
+        : parseInt(req.query.days as string) || 30;
+      
       const breakdown = req.query.breakdown === 'true';
       
       // Support custom date range
