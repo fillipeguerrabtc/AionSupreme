@@ -18,9 +18,13 @@ async function searchRAG(query: string, namespaces: string[], tenantId: number, 
 
     console.log(`[AgentExecutor] Searching RAG in namespaces: [${namespaces.join(", ")}]`);
     
-    const results = await ragService.search(query, tenantId, { k });
+    // CRITICAL: Pass namespaces to filter RAG results to agent's allowed namespaces
+    const results = await ragService.search(query, tenantId, { 
+      k,
+      namespaces, // Filter by agent's namespaces
+    });
 
-    console.log(`[AgentExecutor] Found ${results.length} RAG results`);
+    console.log(`[AgentExecutor] Found ${results.length} RAG results (filtered by namespaces)`);
     return results;
   } catch (error: any) {
     console.error("[AgentExecutor] RAG search error:", error.message);
@@ -65,7 +69,7 @@ function createAgentExecutor(agent: Agent): AgentExecutor {
         const citations = ragResults.map(r => ({
           title: `Documento ID ${r.documentId}`,
           chunkId: r.id?.toString(),
-          namespace: agent.ragNamespaces[0], // Use first namespace as hint
+          namespace: r.metadata?.namespace || agent.ragNamespaces[0], // Use actual namespace from metadata
         }));
         
         // STEP 2: Build system prompt with agent's personality + RAG context

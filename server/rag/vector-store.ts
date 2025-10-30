@@ -80,7 +80,7 @@ export class VectorStore {
     queryEmbedding: number[],
     tenantId: number,
     k: number = 10,
-    filter?: { documentId?: number }
+    filter?: { documentId?: number; namespaces?: string[] }
   ): Promise<SearchResult[]> {
     const results: Array<{ id: number; score: number }> = [];
     
@@ -90,6 +90,20 @@ export class VectorStore {
       const meta = this.metadata.get(id);
       if (filter?.documentId && meta?.documentId !== filter.documentId) {
         continue;
+      }
+      
+      // CRITICAL: Filter by namespaces if specified
+      if (filter?.namespaces && filter.namespaces.length > 0) {
+        const docNamespace = meta?.meta?.namespace as string | undefined;
+        
+        // Check if document namespace matches any of the allowed namespaces
+        // Support wildcard "*" to access all namespaces
+        const hasWildcard = filter.namespaces.includes("*");
+        const hasMatchingNamespace = docNamespace && filter.namespaces.includes(docNamespace);
+        
+        if (!hasWildcard && !hasMatchingNamespace) {
+          continue; // Skip this document - not in allowed namespaces
+        }
       }
       
       // Cosine similarity (vectors are already normalized)
@@ -234,6 +248,7 @@ export class RAGService {
     options: {
       k?: number;
       documentId?: number;
+      namespaces?: string[];
     } = {}
   ): Promise<SearchResult[]> {
     const k = options.k || 10;
@@ -244,12 +259,15 @@ export class RAGService {
       tenantId
     );
     
-    // Search vector store
+    // Search vector store with namespace filtering
     const results = await vectorStore.search(
       queryEmbedding.embedding,
       tenantId,
       k,
-      options.documentId ? { documentId: options.documentId } : undefined
+      {
+        documentId: options.documentId,
+        namespaces: options.namespaces,
+      }
     );
     
     return results;
