@@ -317,16 +317,67 @@ interface Translations {
     knowledgeBase: {
       title: string;
       subtitle: string;
-      addText: string;
-      learnFromUrl: string;
-      searchWeb: string;
-      uploadFiles: string;
-      storedKnowledge: string;
-      manageAllKnowledge: string;
-      source: string;
-      provider: string;
-      edit: string;
-      delete: string;
+      
+      actions: {
+        addText: string;
+        learnFromUrl: string;
+        searchWeb: string;
+        uploadFiles: string;
+      };
+      
+      toasts: {
+        knowledgeAdded: string;
+        urlContentLearned: string;
+        webSearchSuccess: string; // {{count}} novos conhecimentos adicionados!
+        searchLabel: string; // Pesquisa:
+        documentUpdated: string;
+        documentRemoved: string;
+        uploadingFiles: string;
+        processingFiles: string; // Processando {{count}} arquivo(s)...
+        uploadCompleted: string;
+        filesProcessed: string; // {{count}} arquivo(s) processado(s) e indexado(s)
+        uploadError: string;
+        processingFailed: string;
+        error: string;
+      };
+      
+      forms: {
+        addText: {
+          title: string;
+          titlePlaceholder: string;
+          contentPlaceholder: string;
+          saving: string;
+          save: string;
+        };
+        learnUrl: {
+          title: string;
+          description: string;
+          urlPlaceholder: string;
+          learning: string;
+          learnFromThisUrl: string;
+        };
+        webSearch: {
+          title: string;
+          description: string;
+          searchPlaceholder: string;
+          searching: string;
+          searchAndLearn: string;
+        };
+      };
+      
+      documents: {
+        title: string;
+        subtitle: string;
+        source: string;
+        save: string;
+        cancel: string;
+        confirmDelete: string;
+      };
+      
+      states: {
+        loading: string;
+        noDocuments: string;
+      };
     };
     
     // GPU Management
@@ -742,16 +793,67 @@ const translations: Record<Language, Translations> = {
       knowledgeBase: {
         title: "Base de Conhecimento",
         subtitle: "Gerencie todos os conhecimentos indexados",
-        addText: "Adicionar Texto",
-        learnFromUrl: "Aprender de Link",
-        searchWeb: "Pesquisar Web",
-        uploadFiles: "Upload Arquivo(s)",
-        storedKnowledge: "Conhecimentos Armazenados",
-        manageAllKnowledge: "Gerenciar todos os conhecimentos da Knowledge Base",
-        source: "Fonte",
-        provider: "Provedor",
-        edit: "Editar",
-        delete: "Excluir",
+        
+        actions: {
+          addText: "Adicionar Texto",
+          learnFromUrl: "Aprender de Link",
+          searchWeb: "Pesquisar Web",
+          uploadFiles: "Upload Arquivo(s)",
+        },
+        
+        toasts: {
+          knowledgeAdded: "Conhecimento adicionado com sucesso!",
+          urlContentLearned: "Conteúdo do link aprendido com sucesso!",
+          webSearchSuccess: "{{count}} novos conhecimentos adicionados!",
+          searchLabel: "Pesquisa:",
+          documentUpdated: "Documento atualizado!",
+          documentRemoved: "Documento removido!",
+          uploadingFiles: "Fazendo upload...",
+          processingFiles: "Processando {{count}} arquivo(s)...",
+          uploadCompleted: "Upload concluído!",
+          filesProcessed: "{{count}} arquivo(s) processado(s) e indexado(s)",
+          uploadError: "Erro no upload",
+          processingFailed: "Falha ao processar arquivos",
+          error: "Erro",
+        },
+        
+        forms: {
+          addText: {
+            title: "Adicionar Novo Conhecimento",
+            titlePlaceholder: "Título do conhecimento...",
+            contentPlaceholder: "Escreva o conteúdo aqui...",
+            saving: "Salvando...",
+            save: "Salvar",
+          },
+          learnUrl: {
+            title: "Aprender de um Link",
+            description: "AION vai acessar o link e aprender todo o conteúdo",
+            urlPlaceholder: "https://example.com/artigo",
+            learning: "Aprendendo...",
+            learnFromThisUrl: "Aprender deste Link",
+          },
+          webSearch: {
+            title: "Pesquisar e Aprender da Web",
+            description: "AION vai pesquisar na internet e indexar todo o conteúdo encontrado",
+            searchPlaceholder: "Ex: Machine Learning fundamentals",
+            searching: "Pesquisando...",
+            searchAndLearn: "Pesquisar e Aprender",
+          },
+        },
+        
+        documents: {
+          title: "Conhecimentos Armazenados",
+          subtitle: "Gerenciar todos os conhecimentos da Knowledge Base",
+          source: "Fonte",
+          save: "Salvar",
+          cancel: "Cancelar",
+          confirmDelete: "Remover este conhecimento?",
+        },
+        
+        states: {
+          loading: "Carregando...",
+          noDocuments: "Nenhum conhecimento encontrado. Adicione novos conhecimentos acima!",
+        },
       },
       
       gpuManagement: {
@@ -1159,16 +1261,67 @@ const translations: Record<Language, Translations> = {
       knowledgeBase: {
         title: "Knowledge Base",
         subtitle: "Manage all indexed knowledge",
-        addText: "Add Text",
-        learnFromUrl: "Learn from URL",
-        searchWeb: "Search Web",
-        uploadFiles: "Upload File(s)",
-        storedKnowledge: "Stored Knowledge",
-        manageAllKnowledge: "Manage all Knowledge Base knowledge",
-        source: "Source",
-        provider: "Provider",
-        edit: "Edit",
-        delete: "Delete",
+        
+        actions: {
+          addText: "Add Text",
+          learnFromUrl: "Learn from URL",
+          searchWeb: "Search Web",
+          uploadFiles: "Upload File(s)",
+        },
+        
+        toasts: {
+          knowledgeAdded: "Knowledge added successfully!",
+          urlContentLearned: "URL content learned successfully!",
+          webSearchSuccess: "{{count}} new knowledge added!",
+          searchLabel: "Search:",
+          documentUpdated: "Document updated!",
+          documentRemoved: "Document removed!",
+          uploadingFiles: "Uploading files...",
+          processingFiles: "Processing {{count}} file(s)...",
+          uploadCompleted: "Upload completed!",
+          filesProcessed: "{{count}} file(s) processed and indexed",
+          uploadError: "Upload error",
+          processingFailed: "Failed to process files",
+          error: "Error",
+        },
+        
+        forms: {
+          addText: {
+            title: "Add New Knowledge",
+            titlePlaceholder: "Knowledge title...",
+            contentPlaceholder: "Write content here...",
+            saving: "Saving...",
+            save: "Save",
+          },
+          learnUrl: {
+            title: "Learn from a URL",
+            description: "AION will access the link and learn all content",
+            urlPlaceholder: "https://example.com/article",
+            learning: "Learning...",
+            learnFromThisUrl: "Learn from this URL",
+          },
+          webSearch: {
+            title: "Search and Learn from Web",
+            description: "AION will search the internet and index all found content",
+            searchPlaceholder: "Ex: Machine Learning fundamentals",
+            searching: "Searching...",
+            searchAndLearn: "Search and Learn",
+          },
+        },
+        
+        documents: {
+          title: "Stored Knowledge",
+          subtitle: "Manage all Knowledge Base knowledge",
+          source: "Source",
+          save: "Save",
+          cancel: "Cancel",
+          confirmDelete: "Remove this knowledge?",
+        },
+        
+        states: {
+          loading: "Loading...",
+          noDocuments: "No knowledge found. Add new knowledge above!",
+        },
       },
       
       gpuManagement: {
@@ -1576,16 +1729,67 @@ const translations: Record<Language, Translations> = {
       knowledgeBase: {
         title: "Base de Conocimiento",
         subtitle: "Gestiona todo el conocimiento indexado",
-        addText: "Añadir Texto",
-        learnFromUrl: "Aprender de URL",
-        searchWeb: "Buscar Web",
-        uploadFiles: "Subir Archivo(s)",
-        storedKnowledge: "Conocimientos Almacenados",
-        manageAllKnowledge: "Gestiona todo el conocimiento de la Base de Conocimiento",
-        source: "Fuente",
-        provider: "Proveedor",
-        edit: "Editar",
-        delete: "Eliminar",
+        
+        actions: {
+          addText: "Añadir Texto",
+          learnFromUrl: "Aprender de URL",
+          searchWeb: "Buscar Web",
+          uploadFiles: "Subir Archivo(s)",
+        },
+        
+        toasts: {
+          knowledgeAdded: "¡Conocimiento añadido con éxito!",
+          urlContentLearned: "¡Contenido de la URL aprendido con éxito!",
+          webSearchSuccess: "¡{{count}} nuevos conocimientos añadidos!",
+          searchLabel: "Búsqueda:",
+          documentUpdated: "¡Documento actualizado!",
+          documentRemoved: "¡Documento eliminado!",
+          uploadingFiles: "Subiendo archivos...",
+          processingFiles: "Procesando {{count}} archivo(s)...",
+          uploadCompleted: "¡Carga completada!",
+          filesProcessed: "{{count}} archivo(s) procesado(s) e indexado(s)",
+          uploadError: "Error al subir",
+          processingFailed: "Error al procesar archivos",
+          error: "Error",
+        },
+        
+        forms: {
+          addText: {
+            title: "Añadir Nuevo Conocimiento",
+            titlePlaceholder: "Título del conocimiento...",
+            contentPlaceholder: "Escribe el contenido aquí...",
+            saving: "Guardando...",
+            save: "Guardar",
+          },
+          learnUrl: {
+            title: "Aprender de una URL",
+            description: "AION accederá al enlace y aprenderá todo el contenido",
+            urlPlaceholder: "https://example.com/articulo",
+            learning: "Aprendiendo...",
+            learnFromThisUrl: "Aprender de esta URL",
+          },
+          webSearch: {
+            title: "Buscar y Aprender de la Web",
+            description: "AION buscará en internet e indexará todo el contenido encontrado",
+            searchPlaceholder: "Ej: Machine Learning fundamentals",
+            searching: "Buscando...",
+            searchAndLearn: "Buscar y Aprender",
+          },
+        },
+        
+        documents: {
+          title: "Conocimientos Almacenados",
+          subtitle: "Gestiona todo el conocimiento de la Base de Conocimiento",
+          source: "Fuente",
+          save: "Guardar",
+          cancel: "Cancelar",
+          confirmDelete: "¿Eliminar este conocimiento?",
+        },
+        
+        states: {
+          loading: "Cargando...",
+          noDocuments: "No se encontró conocimiento. ¡Añade nuevo conocimiento arriba!",
+        },
       },
       
       gpuManagement: {

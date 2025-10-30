@@ -19,10 +19,12 @@ import {
   Plus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/lib/i18n";
 import type { Document } from "@shared/schema";
 
 export default function KnowledgeBaseTab() {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [tenantId] = useState(1);
   const [showAddText, setShowAddText] = useState(false);
   const [showAddUrl, setShowAddUrl] = useState(false);
@@ -62,7 +64,7 @@ export default function KnowledgeBaseTab() {
       setShowAddText(false);
       setNewTextTitle("");
       setNewTextContent("");
-      toast({ title: "Conhecimento adicionado com sucesso!" });
+      toast({ title: t.admin.knowledgeBase.toasts.knowledgeAdded });
     },
   });
 
@@ -82,7 +84,7 @@ export default function KnowledgeBaseTab() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
       setShowAddUrl(false);
       setUrlToLearn("");
-      toast({ title: "Conteúdo do link aprendido com sucesso!" });
+      toast({ title: t.admin.knowledgeBase.toasts.urlContentLearned });
     },
   });
 
@@ -103,8 +105,8 @@ export default function KnowledgeBaseTab() {
       setShowWebSearch(false);
       setSearchQuery("");
       toast({ 
-        title: `${data.documentsIndexed || 0} novos conhecimentos adicionados!`,
-        description: `Pesquisa: "${searchQuery}"`,
+        title: t.admin.knowledgeBase.toasts.webSearchSuccess.replace('{{count}}', String(data.documentsIndexed || 0)),
+        description: t.admin.knowledgeBase.toasts.searchLabel + ` "${searchQuery}"`,
       });
     },
   });
@@ -121,7 +123,7 @@ export default function KnowledgeBaseTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
       setEditingDoc(null);
-      toast({ title: "Documento atualizado!" });
+      toast({ title: t.admin.knowledgeBase.toasts.documentUpdated });
     },
   });
 
@@ -133,7 +135,7 @@ export default function KnowledgeBaseTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
-      toast({ title: "Documento removido!" });
+      toast({ title: t.admin.knowledgeBase.toasts.documentRemoved });
     },
   });
 
@@ -147,7 +149,7 @@ export default function KnowledgeBaseTab() {
           data-testid="button-add-text"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Adicionar Texto
+          {t.admin.knowledgeBase.actions.addText}
         </Button>
 
         <Button
@@ -157,7 +159,7 @@ export default function KnowledgeBaseTab() {
           data-testid="button-learn-url"
         >
           <LinkIcon className="w-4 h-4 mr-2" />
-          Aprender de Link
+          {t.admin.knowledgeBase.actions.learnFromUrl}
         </Button>
 
         <Button
@@ -167,7 +169,7 @@ export default function KnowledgeBaseTab() {
           data-testid="button-web-search"
         >
           <Globe className="w-4 h-4 mr-2" />
-          Pesquisar Web
+          {t.admin.knowledgeBase.actions.searchWeb}
         </Button>
 
         <Button
@@ -177,7 +179,7 @@ export default function KnowledgeBaseTab() {
           data-testid="button-upload-file"
         >
           <Upload className="w-4 h-4 mr-2" />
-          Upload Arquivo(s)
+          {t.admin.knowledgeBase.actions.uploadFiles}
         </Button>
         <input
           id="file-upload"
@@ -197,8 +199,8 @@ export default function KnowledgeBaseTab() {
             });
 
             toast({
-              title: "Fazendo upload...",
-              description: `Processando ${files.length} arquivo(s)...`,
+              title: t.admin.knowledgeBase.toasts.uploadingFiles,
+              description: t.admin.knowledgeBase.toasts.processingFiles.replace('{{count}}', String(files.length)),
             });
 
             try {
@@ -211,20 +213,20 @@ export default function KnowledgeBaseTab() {
 
               if (response.ok) {
                 toast({
-                  title: "Upload concluído!",
-                  description: `${result.processed} arquivo(s) processado(s) e indexado(s)`,
+                  title: t.admin.knowledgeBase.toasts.uploadCompleted,
+                  description: t.admin.knowledgeBase.toasts.filesProcessed.replace('{{count}}', String(result.processed)),
                 });
                 queryClient.invalidateQueries({ queryKey: ["/api/admin/documents/1"] });
               } else {
                 toast({
-                  title: "Erro no upload",
-                  description: result.error || "Falha ao processar arquivos",
+                  title: t.admin.knowledgeBase.toasts.uploadError,
+                  description: result.error || t.admin.knowledgeBase.toasts.processingFailed,
                   variant: "destructive",
                 });
               }
             } catch (error: any) {
               toast({
-                title: "Erro",
+                title: t.admin.knowledgeBase.toasts.error,
                 description: error.message,
                 variant: "destructive",
               });
@@ -241,7 +243,7 @@ export default function KnowledgeBaseTab() {
         <Card className="glass-premium border-primary/20 animate-slide-up">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span className="gradient-text">Adicionar Novo Conhecimento</span>
+              <span className="gradient-text">{t.admin.knowledgeBase.forms.addText.title}</span>
               <Button
                 size="icon"
                 variant="ghost"
@@ -254,13 +256,13 @@ export default function KnowledgeBaseTab() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
-              placeholder="Título do conhecimento..."
+              placeholder={t.admin.knowledgeBase.forms.addText.titlePlaceholder}
               value={newTextTitle}
               onChange={(e) => setNewTextTitle(e.target.value)}
               data-testid="input-new-doc-title"
             />
             <Textarea
-              placeholder="Escreva o conteúdo aqui..."
+              placeholder={t.admin.knowledgeBase.forms.addText.contentPlaceholder}
               value={newTextContent}
               onChange={(e) => setNewTextContent(e.target.value)}
               className="min-h-[200px]"
@@ -273,7 +275,7 @@ export default function KnowledgeBaseTab() {
               data-testid="button-save-new-doc"
             >
               <Save className="w-4 h-4 mr-2" />
-              {addTextMutation.isPending ? "Salvando..." : "Salvar"}
+              {addTextMutation.isPending ? t.admin.knowledgeBase.forms.addText.saving : t.admin.knowledgeBase.forms.addText.save}
             </Button>
           </CardContent>
         </Card>
@@ -284,7 +286,7 @@ export default function KnowledgeBaseTab() {
         <Card className="glass-premium border-accent/20 animate-slide-up">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span className="gradient-text-vibrant">Aprender de um Link</span>
+              <span className="gradient-text-vibrant">{t.admin.knowledgeBase.forms.learnUrl.title}</span>
               <Button
                 size="icon"
                 variant="ghost"
@@ -295,12 +297,12 @@ export default function KnowledgeBaseTab() {
               </Button>
             </CardTitle>
             <CardDescription>
-              AION vai acessar o link e aprender todo o conteúdo
+              {t.admin.knowledgeBase.forms.learnUrl.description}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
-              placeholder="https://example.com/artigo"
+              placeholder={t.admin.knowledgeBase.forms.learnUrl.urlPlaceholder}
               value={urlToLearn}
               onChange={(e) => setUrlToLearn(e.target.value)}
               data-testid="input-url-to-learn"
@@ -312,7 +314,7 @@ export default function KnowledgeBaseTab() {
               data-testid="button-start-learn-url"
             >
               <LinkIcon className="w-4 h-4 mr-2" />
-              {learnFromUrlMutation.isPending ? "Aprendendo..." : "Aprender deste Link"}
+              {learnFromUrlMutation.isPending ? t.admin.knowledgeBase.forms.learnUrl.learning : t.admin.knowledgeBase.forms.learnUrl.learnFromThisUrl}
             </Button>
           </CardContent>
         </Card>
@@ -323,7 +325,7 @@ export default function KnowledgeBaseTab() {
         <Card className="glass-premium border-accent/20 animate-slide-up">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span className="gradient-text-vibrant">Pesquisar e Aprender da Web</span>
+              <span className="gradient-text-vibrant">{t.admin.knowledgeBase.forms.webSearch.title}</span>
               <Button
                 size="icon"
                 variant="ghost"
@@ -334,12 +336,12 @@ export default function KnowledgeBaseTab() {
               </Button>
             </CardTitle>
             <CardDescription>
-              AION vai pesquisar na internet e indexar todo o conteúdo encontrado
+              {t.admin.knowledgeBase.forms.webSearch.description}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
-              placeholder="Ex: Machine Learning fundamentals"
+              placeholder={t.admin.knowledgeBase.forms.webSearch.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               data-testid="input-search-query"
@@ -351,7 +353,7 @@ export default function KnowledgeBaseTab() {
               data-testid="button-start-web-search"
             >
               <Search className="w-4 h-4 mr-2" />
-              {webSearchMutation.isPending ? "Pesquisando..." : "Pesquisar e Aprender"}
+              {webSearchMutation.isPending ? t.admin.knowledgeBase.forms.webSearch.searching : t.admin.knowledgeBase.forms.webSearch.searchAndLearn}
             </Button>
           </CardContent>
         </Card>
@@ -360,19 +362,19 @@ export default function KnowledgeBaseTab() {
       {/* Documents List */}
       <Card className="glass-premium border-primary/20">
         <CardHeader>
-          <CardTitle className="gradient-text">Conhecimentos Armazenados ({documents.length})</CardTitle>
+          <CardTitle className="gradient-text">{t.admin.knowledgeBase.documents.title} ({documents.length})</CardTitle>
           <CardDescription>
-            Gerenciar todos os conhecimentos da Knowledge Base
+            {t.admin.knowledgeBase.documents.subtitle}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[600px]">
             <div className="space-y-2">
               {isLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+                <div className="text-center py-8 text-muted-foreground">{t.admin.knowledgeBase.states.loading}</div>
               ) : documents.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  Nenhum conhecimento encontrado. Adicione novos conhecimentos acima!
+                  {t.admin.knowledgeBase.states.noDocuments}
                 </div>
               ) : (
                 documents.map((doc) => (
@@ -406,7 +408,7 @@ export default function KnowledgeBaseTab() {
                             data-testid={`button-save-edit-${doc.id}`}
                           >
                             <Save className="w-4 h-4 mr-2" />
-                            Salvar
+                            {t.admin.knowledgeBase.documents.save}
                           </Button>
                           <Button
                             size="sm"
@@ -414,7 +416,7 @@ export default function KnowledgeBaseTab() {
                             onClick={() => setEditingDoc(null)}
                             data-testid={`button-cancel-edit-${doc.id}`}
                           >
-                            Cancelar
+                            {t.admin.knowledgeBase.documents.cancel}
                           </Button>
                         </div>
                       </div>
@@ -426,7 +428,7 @@ export default function KnowledgeBaseTab() {
                             {doc.content}
                           </p>
                           <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
-                            <span>Fonte: {doc.source || "manual"}</span>
+                            <span>{t.admin.knowledgeBase.documents.source} {doc.source || "manual"}</span>
                             <span>•</span>
                             <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
                           </div>
@@ -448,7 +450,7 @@ export default function KnowledgeBaseTab() {
                             size="icon"
                             variant="ghost"
                             onClick={() => {
-                              if (window.confirm("Remover este conhecimento?")) {
+                              if (window.confirm(t.admin.knowledgeBase.documents.confirmDelete)) {
                                 deleteDocMutation.mutate(doc.id);
                               }
                             }}
