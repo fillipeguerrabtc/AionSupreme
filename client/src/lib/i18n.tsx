@@ -484,6 +484,22 @@ interface Translations {
       systemPromptPlaceholder: string;
     };
     
+    // Settings
+    settings: {
+      title: string;
+      subtitle: string;
+      timezone: {
+        title: string;
+        description: string;
+        select: string;
+        currentTime: string;
+        save: string;
+        saving: string;
+        saved: string;
+        saveError: string;
+      };
+    };
+    
     // Messages
     messages: {
       policyUpdated: string;
@@ -526,6 +542,7 @@ const translations: Record<Language, Translations> = {
         gpuManagement: "Gerenciamento de GPUs",
         federatedTraining: "Treinamento Federado",
         autoEvolution: "Auto-Evolução",
+        settings: "Configurações",
       },
       
       overview: {
@@ -957,6 +974,21 @@ const translations: Record<Language, Translations> = {
         systemPromptPlaceholder: "Digite o system prompt...",
       },
       
+      settings: {
+        title: "Configurações",
+        subtitle: "Configure políticas, comportamento e preferências do sistema",
+        timezone: {
+          title: "Fuso Horário",
+          description: "Selecione seu fuso horário para exibição correta de datas e horários",
+          select: "Selecionar Fuso Horário",
+          currentTime: "Horário atual",
+          save: "Salvar",
+          saving: "Salvando...",
+          saved: "Fuso horário salvo com sucesso!",
+          saveError: "Erro ao salvar fuso horário",
+        },
+      },
+      
       messages: {
         policyUpdated: "Política atualizada com sucesso!",
         pdfsIndexed: "PDFs indexados com sucesso!",
@@ -997,6 +1029,7 @@ const translations: Record<Language, Translations> = {
         gpuManagement: "GPU Management",
         federatedTraining: "Federated Training",
         autoEvolution: "Auto-Evolution",
+        settings: "Settings",
       },
       
       overview: {
@@ -1428,6 +1461,21 @@ const translations: Record<Language, Translations> = {
         systemPromptPlaceholder: "Enter system prompt...",
       },
       
+      settings: {
+        title: "Settings",
+        subtitle: "Configure policies, behavior and system preferences",
+        timezone: {
+          title: "Timezone",
+          description: "Select your timezone for correct date and time display",
+          select: "Select Timezone",
+          currentTime: "Current time",
+          save: "Save",
+          saving: "Saving...",
+          saved: "Timezone saved successfully!",
+          saveError: "Error saving timezone",
+        },
+      },
+      
       messages: {
         policyUpdated: "Policy updated successfully!",
         pdfsIndexed: "PDFs indexed successfully!",
@@ -1468,6 +1516,7 @@ const translations: Record<Language, Translations> = {
         gpuManagement: "Gestión de GPUs",
         federatedTraining: "Entrenamiento Federado",
         autoEvolution: "Auto-Evolución",
+        settings: "Configuraciones",
       },
       
       overview: {
@@ -1897,6 +1946,21 @@ const translations: Record<Language, Translations> = {
         systemPrompt: "System Prompt",
         systemPromptDesc: "Instrucciones base para el comportamiento de la IA",
         systemPromptPlaceholder: "Introduce el system prompt...",
+      },
+      
+      settings: {
+        title: "Configuraciones",
+        subtitle: "Configura políticas, comportamiento y preferencias del sistema",
+        timezone: {
+          title: "Zona Horaria",
+          description: "Selecciona tu zona horaria para visualización correcta de fechas y horas",
+          select: "Seleccionar Zona Horaria",
+          currentTime: "Hora actual",
+          save: "Guardar",
+          saving: "Guardando...",
+          saved: "¡Zona horaria guardada con éxito!",
+          saveError: "Error al guardar zona horaria",
+        },
       },
       
       messages: {
