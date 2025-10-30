@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -178,6 +178,12 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
   const [customMode, setCustomMode] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // 🔄 CRITICAL: Sync activeTab when initialTab prop changes
+  // This allows direct subtab navigation from AdminDashboard overview cards
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   // Fetch token summary - returns array of UsageSummary
   const { data: summary, isLoading: summaryLoading} = useQuery<UsageSummary[]>({
