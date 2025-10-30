@@ -120,15 +120,21 @@ gcloud projects add-iam-policy-binding ${PROJECT_ID} \
 
 echo -e "${YELLOW}Step 7: Deploying to Cloud Run...${NC}"
 
-# Update cloud-run.yaml with project ID
-sed -i.bak "s/PROJECT_ID/${PROJECT_ID}/g" deployment/gcp/cloud-run.yaml
+# Update cloud-run.yaml with project ID and endpoints
+sed "s/PROJECT_ID/${PROJECT_ID}/g" deployment/gcp/cloud-run.yaml > /tmp/cloud-run-updated.yaml
 
-gcloud run services replace deployment/gcp/cloud-run.yaml \
+# Replace AWS endpoint if provided
+if [ -n "$AWS_ENDPOINT" ]; then
+  sed -i "s|AWS_ENDPOINT_PLACEHOLDER|${AWS_ENDPOINT}|g" /tmp/cloud-run-updated.yaml
+  echo "AWS endpoint configured: ${AWS_ENDPOINT}"
+else
+  echo -e "${YELLOW}Warning: AWS_ENDPOINT not set. Multi-cloud failover will be disabled.${NC}"
+  echo "Set AWS_ENDPOINT environment variable and redeploy to enable multi-cloud."
+fi
+
+gcloud run services replace /tmp/cloud-run-updated.yaml \
   --region=${REGION} \
   --platform=managed
-
-# Restore original cloud-run.yaml
-mv deployment/gcp/cloud-run.yaml.bak deployment/gcp/cloud-run.yaml
 
 echo -e "${YELLOW}Step 8: Allow unauthenticated access...${NC}"
 gcloud run services add-iam-policy-binding ${SERVICE_NAME} \

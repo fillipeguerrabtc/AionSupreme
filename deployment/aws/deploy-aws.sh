@@ -182,6 +182,15 @@ echo -e "${YELLOW}Step 10: Updating task definition...${NC}"
 # Update task definition with actual values
 sed "s/AWS_ACCOUNT_ID/${AWS_ACCOUNT_ID}/g" deployment/aws/task-definition.json > /tmp/task-definition-updated.json
 
+# Replace GCP endpoint if provided
+if [ -n "$GCP_ENDPOINT" ]; then
+  sed -i "s|GCP_ENDPOINT_PLACEHOLDER|${GCP_ENDPOINT}|g" /tmp/task-definition-updated.json
+  echo "GCP endpoint configured: ${GCP_ENDPOINT}"
+else
+  echo -e "${YELLOW}Warning: GCP_ENDPOINT not set. Multi-cloud failover will be disabled.${NC}"
+  echo "Set GCP_ENDPOINT environment variable and redeploy to enable multi-cloud."
+fi
+
 # Register task definition
 TASK_DEFINITION_ARN=$(aws ecs register-task-definition \
   --cli-input-json file:///tmp/task-definition-updated.json \

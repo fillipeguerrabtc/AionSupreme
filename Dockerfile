@@ -10,8 +10,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --omit=dev
+# Install ALL dependencies (including dev for Vite, TypeScript, etc.)
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -30,11 +30,12 @@ COPY tsconfig.json ./
 # Install ALL dependencies (including dev for TypeScript compilation)
 RUN npm ci
 
-# Copy server source
+# Copy server source AND deployment (needed for multi-cloud-sync)
 COPY server ./server
 COPY shared ./shared
 COPY training ./training
 COPY db ./db
+COPY deployment ./deployment
 
 # Compile TypeScript to JavaScript
 RUN npx tsc --project tsconfig.json
@@ -52,6 +53,9 @@ COPY --from=backend-builder /app/dist ./dist
 
 # Copy built frontend from frontend-builder
 COPY --from=frontend-builder /app/dist/public ./dist/public
+
+# Copy deployment module (needed at runtime for multi-cloud-sync)
+COPY --from=backend-builder /app/deployment ./deployment
 
 # Copy necessary files
 COPY drizzle ./drizzle

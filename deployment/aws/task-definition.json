@@ -33,6 +33,14 @@
         {
           "name": "REGION",
           "value": "us-east-1"
+        },
+        {
+          "name": "ENABLE_MULTI_CLOUD",
+          "value": "true"
+        },
+        {
+          "name": "GCP_ENDPOINT",
+          "value": "GCP_ENDPOINT_PLACEHOLDER"
         }
       ],
       "secrets": [

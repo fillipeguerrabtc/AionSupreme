@@ -184,12 +184,17 @@ chmod +x deployment/gcp/deploy-gcp.sh
 
 ```bash
 # Get service URL
-gcloud run services describe aion-ai \
+GCP_ENDPOINT=$(gcloud run services describe aion-ai \
   --region=us-central1 \
-  --format='value(status.url)'
+  --format='value(status.url)')
+
+echo "GCP Service URL: ${GCP_ENDPOINT}"
+
+# Save this URL - you'll need it for AWS deployment
+export GCP_ENDPOINT="${GCP_ENDPOINT}"
 
 # Test health check
-curl https://your-service-url.run.app/health
+curl ${GCP_ENDPOINT}/health
 ```
 
 ### Expected Output:
@@ -211,6 +216,10 @@ curl https://your-service-url.run.app/health
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 export AWS_REGION="us-east-1"
 export ECS_CLUSTER="aion-cluster"
+
+# IMPORTANT: Set GCP endpoint for multi-cloud failover
+# (Get this from GCP deployment step 3)
+export GCP_ENDPOINT="https://your-gcp-service.run.app"
 ```
 
 ### Step 2: Deploy
@@ -252,42 +261,41 @@ curl http://PUBLIC_IP:5000/health
 
 ### Enable Multi-Cloud Monitoring
 
+Multi-cloud monitoring is **automatically enabled** when you deploy to both clouds with the proper environment variables.
+
+**Two-Step Deployment Process:**
+
+1. **Deploy GCP First** (to get GCP endpoint URL)
+   ```bash
+   ./deployment/gcp/deploy-gcp.sh
+   # Save the GCP_ENDPOINT from output
+   export GCP_ENDPOINT="https://aion-ai-xxx.run.app"
+   ```
+
+2. **Deploy AWS Second** (with GCP endpoint configured)
+   ```bash
+   # Set GCP endpoint before deploying AWS
+   export GCP_ENDPOINT="https://aion-ai-xxx.run.app"
+   ./deployment/aws/deploy-aws.sh
+   # Save the AWS_ENDPOINT from output
+   export AWS_ENDPOINT="http://XX.XX.XX.XX:5000"
+   ```
+
+3. **Update GCP with AWS Endpoint** (enable full bidirectional monitoring)
+   ```bash
+   # Set AWS endpoint and redeploy GCP
+   export AWS_ENDPOINT="http://XX.XX.XX.XX:5000"
+   ./deployment/gcp/deploy-gcp.sh
+   ```
+
+**Verification:**
 ```bash
-# Set environment variables on both clouds
-export ENABLE_MULTI_CLOUD=true
-export GCP_ENDPOINT="https://your-gcp-service.run.app"
-export AWS_ENDPOINT="http://your-aws-ip:5000"
+# Both deployments should now report multi-cloud status
+curl ${GCP_ENDPOINT}/health/multi-cloud
+curl ${AWS_ENDPOINT}/health/multi-cloud
 ```
 
-### Update Deployments
-
-**GCP:**
-```bash
-# Add to cloud-run.yaml
-- name: ENABLE_MULTI_CLOUD
-  value: "true"
-- name: AWS_ENDPOINT
-  value: "http://AWS_IP:5000"
-
-# Redeploy
-gcloud run services replace deployment/gcp/cloud-run.yaml --region=us-central1
-```
-
-**AWS:**
-```bash
-# Add to task-definition.json environment section
-{
-  "name": "ENABLE_MULTI_CLOUD",
-  "value": "true"
-},
-{
-  "name": "GCP_ENDPOINT",
-  "value": "https://your-gcp-service.run.app"
-}
-
-# Redeploy
-./deployment/aws/deploy-aws.sh
-```
+The deployment scripts automatically configure the endpoints - you just need to set the environment variables before running them.
 
 ### Verify Sync Status
 
