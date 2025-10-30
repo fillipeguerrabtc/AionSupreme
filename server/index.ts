@@ -61,6 +61,9 @@ app.use((req, res, next) => {
   // Start file cleanup service (runs every hour to delete expired files)
   fileCleanup.start();
   
+  // Start token retention cleanup service (runs monthly to enforce 5-year retention)
+  fileCleanup.startTokenRetentionCleanup();
+  
   // Start federated learning auto-recovery system
   autoRecovery.start();
 

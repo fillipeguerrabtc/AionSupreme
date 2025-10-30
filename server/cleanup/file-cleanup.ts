@@ -7,9 +7,11 @@
 
 import { storage } from "../storage";
 import fs from "fs/promises";
+import { cleanupOldTokenData } from "../monitoring/token-tracker";
 
 export class FileCleanup {
   private intervalId: NodeJS.Timeout | null = null;
+  private tokenCleanupIntervalId: NodeJS.Timeout | null = null;
 
   /**
    * Start the cleanup service (runs every hour)
@@ -32,6 +34,55 @@ export class FileCleanup {
   }
 
   /**
+   * Start token data retention cleanup (runs monthly)
+   * Enforces 5-year data retention policy
+   */
+  startTokenRetentionCleanup(): void {
+    if (this.tokenCleanupIntervalId) {
+      console.log("[Token Retention] Service already running");
+      return;
+    }
+
+    console.log("[Token Retention] Starting 5-year retention cleanup service (runs monthly)");
+
+    // Run on first day of month at 3 AM (to avoid peak hours)
+    const scheduleNextCleanup = () => {
+      const now = new Date();
+      const nextRun = new Date(now.getFullYear(), now.getMonth() + 1, 1, 3, 0, 0); // 1st day of next month, 3 AM
+      const timeUntilNextRun = nextRun.getTime() - now.getTime();
+
+      console.log(`[Token Retention] Next cleanup scheduled for: ${nextRun.toISOString()}`);
+
+      this.tokenCleanupIntervalId = setTimeout(async () => {
+        await this.cleanupOldTokens();
+        scheduleNextCleanup(); // Schedule next month's cleanup
+      }, timeUntilNextRun);
+    };
+
+    // Run immediately on first start (useful for testing)
+    this.cleanupOldTokens().then(() => {
+      scheduleNextCleanup();
+    });
+  }
+
+  /**
+   * Clean up token data older than 5 years
+   * This maintains the 5-year retention policy
+   */
+  private async cleanupOldTokens(): Promise<void> {
+    try {
+      console.log("[Token Retention] Running 5-year retention cleanup...");
+      
+      // Clean for all tenants (pass undefined to clean globally)
+      const result = await cleanupOldTokenData();
+      
+      console.log(`[Token Retention] ✓ Cleanup complete - deleted ${result.tokenUsageDeleted} token records, ${result.alertsDeleted} alerts`);
+    } catch (error: any) {
+      console.error("[Token Retention] Error during cleanup:", error.message);
+    }
+  }
+
+  /**
    * Stop the cleanup service
    */
   stop(): void {
@@ -39,6 +90,11 @@ export class FileCleanup {
       clearInterval(this.intervalId);
       this.intervalId = null;
       console.log("[Cleanup] Stopped file cleanup service");
+    }
+    if (this.tokenCleanupIntervalId) {
+      clearTimeout(this.tokenCleanupIntervalId);
+      this.tokenCleanupIntervalId = null;
+      console.log("[Token Retention] Stopped token retention cleanup service");
     }
   }
 
