@@ -8,6 +8,7 @@
 import { storage } from "../storage";
 import fs from "fs/promises";
 import { cleanupOldTokenData } from "../monitoring/token-tracker";
+import { curationStore } from "../curation/store";
 
 export class FileCleanup {
   private intervalId: NodeJS.Timeout | null = null;
@@ -42,11 +43,11 @@ export class FileCleanup {
    */
   startTokenRetentionCleanup(): void {
     if (this.tokenCleanupIntervalId) {
-      console.log("[Token Retention] Service already running");
+      console.log("[Data Retention] Service already running");
       return;
     }
 
-    console.log("[Token Retention] Starting 5-year retention cleanup service (runs 1st of each month at 06:00 UTC / 03:00 Brasília)");
+    console.log("[Data Retention] Starting 5-year retention cleanup service for all systems (runs 1st of each month at 06:00 UTC / 03:00 Brasília)");
 
     // Helper to check and execute cleanup if conditions are met
     let lastExecutionDate: string | null = null; // Track "YYYY-MM" to prevent duplicate runs in same month
@@ -59,13 +60,13 @@ export class FileCleanup {
       
       // Only run if it's the 1st, correct hour, and we haven't run this month yet
       if (isDayOne && isCorrectHour && lastExecutionDate !== currentMonth) {
-        console.log(`[Token Retention] Monthly cleanup triggered on ${now.toISOString()}`);
+        console.log(`[Data Retention] Monthly cleanup triggered on ${now.toISOString()}`);
         
         // Only mark month as executed if cleanup actually ran
         this.cleanupOldTokens().then(executed => {
           if (executed) {
             lastExecutionDate = currentMonth;
-            console.log(`[Token Retention] Month ${currentMonth} marked as cleaned`);
+            console.log(`[Data Retention] Month ${currentMonth} marked as cleaned`);
           }
         });
       }
@@ -80,13 +81,13 @@ export class FileCleanup {
     
     if (isDayOne && isPast06) {
       const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-      console.log(`[Token Retention] Startup on 1st after 06:00 UTC - running catch-up cleanup`);
+      console.log(`[Data Retention] Startup on 1st after 06:00 UTC - running catch-up cleanup`);
       
       // Only mark month as executed if cleanup actually ran (not skipped due to no old data)
       this.cleanupOldTokens().then(executed => {
         if (executed) {
           lastExecutionDate = currentMonth;
-          console.log(`[Token Retention] Month ${currentMonth} marked as cleaned`);
+          console.log(`[Data Retention] Month ${currentMonth} marked as cleaned`);
         }
       });
     }
@@ -98,7 +99,7 @@ export class FileCleanup {
     nextHour.setUTCMinutes(0, 0, 0);
     const msUntilNextHour = nextHour.getTime() - now.getTime();
     
-    console.log(`[Token Retention] Next hourly check at ${nextHour.toISOString()} (in ${Math.round(msUntilNextHour / 1000)}s)`);
+    console.log(`[Data Retention] Next hourly check at ${nextHour.toISOString()} (in ${Math.round(msUntilNextHour / 1000)}s)`);
     
     // Schedule first check at next hour boundary
     setTimeout(() => {
@@ -113,26 +114,43 @@ export class FileCleanup {
   }
 
   /**
-   * Clean up token data older than 5 years
-   * This maintains the 5-year retention policy
+   * Clean up token data and curation queue older than 5 years
+   * This maintains the 5-year retention policy across all systems
    * Returns true if cleanup was performed, false if skipped
    */
   private async cleanupOldTokens(): Promise<boolean> {
     try {
-      console.log("[Token Retention] Running 5-year retention cleanup...");
+      console.log("[Data Retention] Running 5-year retention cleanup for all systems...");
       
-      // Clean for all tenants (pass undefined to clean globally)
-      const result = await cleanupOldTokenData();
-      
-      if (result === null) {
-        console.log(`[Token Retention] ✓ No old data to clean - skipped`);
-        return false;
+      let executed = false;
+
+      // Clean token usage data
+      const tokenResult = await cleanupOldTokenData();
+      if (tokenResult !== null) {
+        console.log(`[Data Retention] ✓ Tokens - deleted ${tokenResult.tokenUsageDeleted} records, ${tokenResult.alertsDeleted} alerts`);
+        executed = true;
+      } else {
+        console.log(`[Data Retention] ○ Tokens - no old data to clean`);
       }
-      
-      console.log(`[Token Retention] ✓ Cleanup complete - deleted ${result.tokenUsageDeleted} token records, ${result.alertsDeleted} alerts`);
-      return true;
+
+      // Clean curation queue data
+      const curationResult = await curationStore.cleanupOldCurationData();
+      if (curationResult !== null) {
+        console.log(`[Data Retention] ✓ Curation - deleted ${curationResult.curationItemsDeleted} old curation items`);
+        executed = true;
+      } else {
+        console.log(`[Data Retention] ○ Curation - no old data to clean`);
+      }
+
+      if (!executed) {
+        console.log(`[Data Retention] ✓ No old data found across any system - retention policy up to date`);
+      } else {
+        console.log(`[Data Retention] ✓ Cleanup complete - 5-year retention policy enforced`);
+      }
+
+      return executed;
     } catch (error: any) {
-      console.error("[Token Retention] Error during cleanup:", error.message);
+      console.error("[Data Retention] Error during cleanup:", error.message);
       return false;
     }
   }
@@ -149,7 +167,7 @@ export class FileCleanup {
     if (this.tokenCleanupIntervalId) {
       clearTimeout(this.tokenCleanupIntervalId);
       this.tokenCleanupIntervalId = null;
-      console.log("[Token Retention] Stopped token retention cleanup service");
+      console.log("[Data Retention] Stopped data retention cleanup service");
     }
   }
 

@@ -228,4 +228,24 @@ export const curationStore = {
 
     return result.length > 0;
   },
+  
+  /**
+   * Limpa dados da fila de curadoria com mais de 5 anos (retenção de dados)
+   * Implementa política de retenção de 5 anos conforme padrão da plataforma
+   */
+  async cleanupOldCurationData(): Promise<{ curationItemsDeleted: number } | null> {
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+
+    const deletedItems = await db
+      .delete(curationQueueTable)
+      .where(sql`${curationQueueTable.submittedAt} < ${fiveYearsAgo}`)
+      .returning();
+
+    if (deletedItems.length === 0) {
+      return null;
+    }
+
+    return { curationItemsDeleted: deletedItems.length };
+  },
 };

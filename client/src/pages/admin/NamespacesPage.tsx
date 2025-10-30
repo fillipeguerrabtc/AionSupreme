@@ -24,9 +24,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, FolderTree, FileText, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, FolderTree, FileText, Upload, Database, Layers } from "lucide-react";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { type Namespace } from "@shared/schema";
+import { NAMESPACE_CATEGORIES, getAllNamespaces, type NamespaceOption } from "@shared/namespaces";
+import { useMemo } from "react";
+
+// Type for combined namespace display
+type NamespaceDisplay = {
+  name: string;
+  displayName: string;
+  description: string;
+  category: string;
+  source: "predefined" | "custom";
+  id?: string;
+  enabled?: boolean;
+  relatedNamespaces?: string[];
+};
 
 export default function NamespacesPage() {
   const { toast } = useToast();
@@ -51,10 +65,36 @@ export default function NamespacesPage() {
   const [editRelatedNamespaces, setEditRelatedNamespaces] = useState<string[]>([]);
   const [editContent, setEditContent] = useState("");
   
-  // Fetch namespaces
-  const { data: namespaces = [], isLoading } = useQuery<Namespace[]>({
+  // Fetch custom namespaces from database
+  const { data: customNamespaces = [], isLoading } = useQuery<Namespace[]>({
     queryKey: ["/api/namespaces"],
   });
+
+  // Combine predefined and custom namespaces for display
+  const allNamespaces: NamespaceDisplay[] = useMemo(() => {
+    const predefined: NamespaceDisplay[] = getAllNamespaces().map((ns: NamespaceOption) => ({
+      name: ns.value,
+      displayName: ns.label,
+      description: ns.description || "",
+      category: ns.value.split("/")[0],
+      source: "predefined" as const,
+      enabled: true,
+    }));
+
+    const custom: NamespaceDisplay[] = customNamespaces.map((ns: Namespace) => ({
+      name: ns.name,
+      displayName: ns.displayName || ns.name,
+      description: ns.description || "",
+      category: ns.category || ns.name.split("/")[0],
+      source: "custom" as const,
+      id: ns.id,
+      enabled: ns.enabled,
+      relatedNamespaces: ns.relatedNamespaces || [],
+    }));
+
+    return [...predefined, ...custom].sort((a, b) => a.name.localeCompare(b.name));
+  }, [customNamespaces]);
+
 
   // Create namespace mutation
   const createMutation = useMutation({
@@ -380,19 +420,15 @@ export default function NamespacesPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FolderTree className="h-5 w-5" />
-            Namespaces Existentes
+            Todos os Namespaces
           </CardTitle>
           <CardDescription>
-            {namespaces.length} namespace{namespaces.length !== 1 ? "s" : ""} cadastrado{namespaces.length !== 1 ? "s" : ""}
+            {allNamespaces.length} namespaces totais ({getAllNamespaces().length} pré-definidos + {customNamespaces.length} personalizados)
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <p className="text-center py-8 text-muted-foreground">Carregando...</p>
-          ) : namespaces.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">
-              Nenhum namespace cadastrado. Crie o primeiro!
-            </p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -401,18 +437,18 @@ export default function NamespacesPage() {
                     <TableHead className="min-w-[200px]">Nome</TableHead>
                     <TableHead className="min-w-[200px]">Descrição</TableHead>
                     <TableHead className="min-w-[120px]">Categoria</TableHead>
-                    <TableHead className="min-w-[100px]">Relacionados</TableHead>
+                    <TableHead className="min-w-[100px]">Tipo</TableHead>
                     <TableHead className="min-w-[100px]">Status</TableHead>
                     <TableHead className="text-right min-w-[120px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {namespaces.map((namespace) => (
-                    <TableRow key={namespace.id} data-testid={`row-namespace-${namespace.id}`}>
+                  {allNamespaces.map((namespace, index) => (
+                    <TableRow key={namespace.id || namespace.name} data-testid={`row-namespace-${namespace.name}`}>
                       <TableCell>
                         <div>
-                          <div className="font-medium whitespace-nowrap">{namespace.displayName || namespace.name}</div>
-                          <div className="text-sm text-muted-foreground whitespace-nowrap">{namespace.name}</div>
+                          <div className="font-medium whitespace-nowrap">{namespace.displayName}</div>
+                          <div className="text-sm text-muted-foreground whitespace-nowrap font-mono">{namespace.name}</div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -420,51 +456,58 @@ export default function NamespacesPage() {
                           {namespace.description || <span className="text-muted-foreground italic">Sem descrição</span>}
                         </div>
                       </TableCell>
-                    <TableCell>
-                      {namespace.category ? (
+                      <TableCell>
                         <Badge variant="outline">{namespace.category}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {namespace.relatedNamespaces && namespace.relatedNamespaces.length > 0 ? (
-                        <Badge variant="secondary">
-                          {namespace.relatedNamespaces.length}
+                      </TableCell>
+                      <TableCell>
+                        {namespace.source === "predefined" ? (
+                          <Badge variant="secondary" className="gap-1">
+                            <Layers className="h-3 w-3" />
+                            Sistema
+                          </Badge>
+                        ) : (
+                          <Badge variant="default" className="gap-1">
+                            <Database className="h-3 w-3" />
+                            Personalizado
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={namespace.enabled ? "default" : "secondary"}>
+                          {namespace.enabled ? "Ativo" : "Inativo"}
                         </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={namespace.enabled ? "default" : "secondary"}>
-                        {namespace.enabled ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedNamespace(namespace)}
-                          data-testid={`button-edit-${namespace.id}`}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(namespace.id)}
-                          data-testid={`button-delete-${namespace.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {namespace.source === "custom" && namespace.id ? (
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const customNs = customNamespaces.find(ns => ns.id === namespace.id);
+                                if (customNs) setSelectedNamespace(customNs);
+                              }}
+                              data-testid={`button-edit-${namespace.id}`}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(namespace.id!)}
+                              data-testid={`button-delete-${namespace.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sistema</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
