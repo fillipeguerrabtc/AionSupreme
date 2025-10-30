@@ -49,6 +49,11 @@ export interface UsageSummary {
     requests: number;
     cost: number;
   };
+  allTime: {
+    tokens: number;
+    requests: number;
+    cost: number;
+  };
   limits?: {
     dailyTokenLimit: number | null;
     monthlyTokenLimit: number | null;
@@ -127,8 +132,10 @@ export async function trackTokenUsage(data: TokenTrackingData): Promise<void> {
 export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]> {
   const providers = ['groq', 'gemini', 'huggingface', 'openrouter', 'openai', 'kb', 'web', 'deepweb'];
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  // FIX: Use UTC to match database timestamps
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   
   const summaries: UsageSummary[] = [];
   
@@ -166,6 +173,21 @@ export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]>
         )
       );
     
+    // Get all-time usage (cumulative)
+    const allTimeUsage = await db
+      .select({
+        tokens: sql<number>`COALESCE(SUM(${tokenUsage.totalTokens}), 0)`,
+        requests: sql<number>`COUNT(*)`,
+        cost: sql<number>`COALESCE(SUM(${tokenUsage.cost}), 0)`
+      })
+      .from(tokenUsage)
+      .where(
+        and(
+          eq(tokenUsage.tenantId, tenantId),
+          eq(tokenUsage.provider, provider)
+        )
+      );
+    
     // Get limits
     const limits = await db
       .select()
@@ -181,6 +203,7 @@ export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]>
     const limit = limits[0];
     const todayData = todayUsage[0];
     const monthData = monthUsage[0];
+    const allTimeData = allTimeUsage[0];
     
     // Calculate status
     let status: 'ok' | 'warning' | 'critical' = 'ok';
@@ -204,6 +227,11 @@ export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]>
         tokens: Number(monthData.tokens),
         requests: Number(monthData.requests),
         cost: Number(monthData.cost)
+      },
+      allTime: {
+        tokens: Number(allTimeData.tokens),
+        requests: Number(allTimeData.requests),
+        cost: Number(allTimeData.cost)
       },
       limits: limit ? {
         dailyTokenLimit: limit.dailyTokenLimit,
@@ -232,9 +260,11 @@ export async function getProviderQuotas(tenantId: number): Promise<ProviderQuota
   ];
   
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  // FIX: Use UTC to match database timestamps
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const tomorrow = new Date(todayStart);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
   
   const quotas: ProviderQuota[] = [];
   
@@ -290,7 +320,9 @@ async function checkLimitsAndAlert(tenantId: number, provider: string): Promise<
   
   const limit = limits[0];
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  // FIX: Use UTC to match database timestamps
+  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   
   // Get today's usage
   const usage = await db

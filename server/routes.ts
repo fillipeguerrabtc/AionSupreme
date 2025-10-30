@@ -2448,6 +2448,116 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // POST /api/training/datasets/generate-from-kb - Auto-generate dataset from Knowledge Base
+  app.post("/api/training/datasets/generate-from-kb", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { datasets, trainingDataCollection } = await import("../shared/schema");
+      const { eq, and, gte } = await import("drizzle-orm");
+      const fs = await import('fs/promises');
+      const path = await import('path');
+
+      const { tenantId, mode, minScore } = req.body;
+      const tenant = tenantId || 1;
+      const scoreThreshold = minScore || (mode === 'kb-high-quality' ? 80 : 60);
+
+      // Get high-quality conversations from KB
+      const conversations = await db
+        .select()
+        .from(trainingDataCollection)
+        .where(
+          and(
+            eq(trainingDataCollection.tenantId, tenant),
+            gte(trainingDataCollection.autoQualityScore, scoreThreshold),
+            eq(trainingDataCollection.status, "approved")
+          )
+        )
+        .orderBy(trainingDataCollection.createdAt)
+        .limit(1000);
+
+      if (conversations.length === 0) {
+        return res.status(404).json({ 
+          error: "No high-quality conversations found in Knowledge Base",
+          suggestion: "Lower the score threshold or collect more conversations first"
+        });
+      }
+
+      // Convert to JSONL format
+      const datasetLines = conversations.map(conv => {
+        return JSON.stringify({
+          conversation_id: conv.conversationId,
+          training_data: conv.formattedData,
+          metadata: {
+            conversationId: conv.conversationId,
+            score: conv.autoQualityScore,
+            collectedAt: conv.createdAt,
+            messageCount: conv.metadata?.messageCount || 0,
+            totalTokens: conv.metadata?.totalTokens || 0,
+            toolsUsed: conv.metadata?.toolsUsed?.length || 0,
+            providers: conv.metadata?.providers || []
+          }
+        });
+      });
+
+      const datasetContent = datasetLines.join('\n');
+      
+      // Save to file
+      const datasetName = `KB-Auto-${mode}-${Date.now()}`;
+      const datasetPath = path.join(process.cwd(), 'training_datasets', `${datasetName}.jsonl`);
+      
+      // Create directory if it doesn't exist
+      await fs.mkdir(path.dirname(datasetPath), { recursive: true });
+      await fs.writeFile(datasetPath, datasetContent, 'utf-8');
+
+      // Calculate average score
+      const avgScore = conversations.reduce((sum, c) => sum + (c.autoQualityScore || 0), 0) / conversations.length;
+
+      // Save to database (with proper lifecycle - use defaults, will be validated later)
+      const [savedDataset] = await db
+        .insert(datasets)
+        .values({
+          tenantId: tenant,
+          userId: null, // KB-generated datasets are system-owned (no specific user)
+          name: datasetName,
+          description: `Auto-generated from ${conversations.length} high-quality KB conversations (score ≥ ${scoreThreshold})`,
+          datasetType: 'chat',
+          // Use schema defaults: status: "uploaded", isValid: false
+          // Dataset validator will process and mark as ready
+          totalExamples: conversations.length,
+          fileSize: Buffer.byteLength(datasetContent),
+          storagePath: datasetPath,
+          originalFilename: `${datasetName}.jsonl`,
+          fileMimeType: 'application/jsonl',
+          averageLength: Math.floor(conversations.reduce((sum, c) => sum + (c.metadata?.totalTokens || 0), 0) / conversations.length)
+        })
+        .returning();
+      
+      // Auto-validate KB-generated datasets (they're pre-processed and trusted)
+      await db
+        .update(datasets)
+        .set({
+          status: 'ready',
+          isValid: true,
+          validationErrors: null
+        })
+        .where(eq(datasets.id, savedDataset.id));
+
+      res.json({
+        message: "Dataset generated successfully from Knowledge Base",
+        dataset: savedDataset,
+        stats: {
+          totalConversations: conversations.length,
+          avgScore,
+          minScore: scoreThreshold,
+          mode
+        }
+      });
+    } catch (error: any) {
+      console.error("KB dataset generation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ============================================================================
   // TRAINING DATA COLLECTION - Auto-evolution from conversations
   // ============================================================================

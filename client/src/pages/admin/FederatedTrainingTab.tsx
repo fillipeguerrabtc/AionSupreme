@@ -37,6 +37,7 @@ export default function FederatedTrainingTab() {
   const [totalChunks, setTotalChunks] = useState(6);
   const [learningRate, setLearningRate] = useState(2e-5);
   const [epochs, setEpochs] = useState(3);
+  const [selectedDatasetId, setSelectedDatasetId] = useState("");
   
   // Dataset upload state
   const [datasetName, setDatasetName] = useState("");
@@ -142,7 +143,7 @@ export default function FederatedTrainingTab() {
     },
   });
 
-  const handleCreateJob = () => {
+  const handleCreateJob = async () => {
     if (!jobName.trim()) {
       toast({
         title: `⚠️ ${t.admin.messages.nameRequired}`,
@@ -150,6 +151,60 @@ export default function FederatedTrainingTab() {
         variant: "destructive",
       });
       return;
+    }
+
+    if (!selectedDatasetId) {
+      toast({
+        title: "⚠️ Dataset Required",
+        description: "Please select a dataset for training",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let finalDatasetId = selectedDatasetId;
+
+    // Auto-generate dataset from KB if user selected KB option
+    if (selectedDatasetId === 'kb-auto' || selectedDatasetId === 'kb-high-quality') {
+      try {
+        toast({
+          title: "🔄 Generating Dataset from KB...",
+          description: "Collecting high-quality conversations for training",
+        });
+
+        const response = await apiRequest("/api/training/datasets/generate-from-kb", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tenantId: 1,
+            mode: selectedDatasetId,
+            minScore: selectedDatasetId === 'kb-high-quality' ? 80 : 60
+          })
+        });
+
+        const result = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to generate dataset');
+        }
+
+        finalDatasetId = result.dataset.id.toString(); // Store as string temporarily
+        
+        toast({
+          title: "✅ Dataset Generated!",
+          description: `Created ${result.stats.totalConversations} training examples (avg score: ${result.stats.avgScore.toFixed(1)})`,
+        });
+
+        // Refresh datasets list
+        queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
+      } catch (error: any) {
+        toast({
+          title: "❌ Dataset Generation Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     createJob.mutate({
@@ -160,6 +215,7 @@ export default function FederatedTrainingTab() {
       totalSteps: 1000,
       currentStep: 0,
       status: "pending",
+      datasetId: Number(finalDatasetId), // Convert to number for schema validation
       hyperparameters: {
         learning_rate: learningRate,
         epochs,
@@ -168,6 +224,8 @@ export default function FederatedTrainingTab() {
         sync_interval: 100,
       },
     });
+    setJobName("");
+    setSelectedDatasetId("");
   };
 
   const handleUploadDataset = () => {
@@ -305,13 +363,24 @@ export default function FederatedTrainingTab() {
               />
             </div>
 
-            <div className="rounded-lg bg-muted p-4 space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Upload className="w-4 h-4" />
-                {t.admin.federatedTraining.createDialog.datasetComingSoon}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="dataset-select">Dataset para Treinamento</Label>
+              <Select value={selectedDatasetId} onValueChange={setSelectedDatasetId}>
+                <SelectTrigger data-testid="select-dataset">
+                  <SelectValue placeholder="Selecionar dataset..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kb-auto">📚 Auto-Generated from KB (Recommended)</SelectItem>
+                  <SelectItem value="kb-high-quality">⭐ KB High-Quality Only (score ≥ 80)</SelectItem>
+                  {datasets && datasets.map((dataset: any) => (
+                    <SelectItem key={dataset.id} value={dataset.id.toString()}>
+                      📁 {dataset.name} ({dataset.totalExamples} examples)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
-                {t.admin.federatedTraining.createDialog.datasetDesc}
+                Auto-generated datasets use high-quality conversations from your Knowledge Base for continuous learning
               </p>
             </div>
           </div>
@@ -322,7 +391,7 @@ export default function FederatedTrainingTab() {
             </Button>
             <Button 
               onClick={handleCreateJob}
-              disabled={createJob.isPending}
+              disabled={createJob.isPending || !selectedDatasetId}
               data-testid="button-confirm-create-job"
             >
               {createJob.isPending ? t.admin.federatedTraining.createDialog.creating : t.admin.federatedTraining.createDialog.create}
