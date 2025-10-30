@@ -1,6 +1,6 @@
 // server/agent/types.ts
 export interface AgentRunContext {
-  tenantId: string;
+  tenantId: number;
   sessionId: string;
   budgetUSD: number;
   namespaces?: string[];
