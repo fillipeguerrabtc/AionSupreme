@@ -289,79 +289,72 @@ export default function AdminDashboard() {
   } as React.CSSProperties;
 
   return (
-    <div className="h-screen flex flex-col w-full">
-      {/* Global Header - Fixed at top, above everything */}
-      <header className="glass sticky top-0 z-50 border-b border-white/10 shrink-0">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            {/* Logo + AION + Painel de Controle */}
-            <button 
-              onClick={() => navigate("/")} 
-              className="hover-elevate rounded-lg px-3 py-2 transition-all bg-transparent border-0 cursor-pointer flex items-center gap-3" 
-              data-testid="link-logo-home"
-            >
-              <AionLogo showText={false} className="h-8 w-8" />
-              <div>
-                <h1 className="font-bold text-2xl gradient-text">AION</h1>
-                <p className="text-xs text-muted-foreground">Painel de Controle</p>
-              </div>
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate("/")}
-              className="glass-premium"
-              data-testid="button-back-to-chat"
-            >
-              <MessageSquare className="w-5 h-5" />
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="glass-premium" data-testid="button-language">
-                  <Languages className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass-premium border-primary/20">
-                <DropdownMenuItem
-                  onClick={() => setLanguage("pt-BR")}
-                  className={language === "pt-BR" ? "bg-primary/20" : ""}
-                  data-testid="lang-pt-BR"
-                >
-                  Português (BR)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setLanguage("en-US")}
-                  className={language === "en-US" ? "bg-primary/20" : ""}
-                  data-testid="lang-en-US"
-                >
-                  English (US)
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setLanguage("es-ES")}
-                  className={language === "es-ES" ? "bg-primary/20" : ""}
-                  data-testid="lang-es-ES"
-                >
-                  Español (ES)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
-
-      {/* Sidebar + Main Content Area */}
-      <SidebarProvider style={sidebarStyle}>
-        <div className="flex flex-1 w-full overflow-hidden">
-          <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+    <SidebarProvider style={sidebarStyle}>
+      <div className="flex h-screen w-full">
+        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
           
           <SidebarInset className="flex flex-col flex-1">
-            {/* Subheader with sidebar controls */}
-            <div className="glass border-b border-white/10 px-4 py-2 flex items-center gap-2 shrink-0">
-              <SidebarTrigger data-testid="button-sidebar-toggle" />
-              <span className="text-sm text-muted-foreground">{t.admin.title}</span>
-            </div>
+            {/* Global Header - Fixed at top */}
+            <header className="glass sticky top-0 z-50 border-b border-white/10 shrink-0">
+              <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  {/* Logo + AION + Painel de Controle */}
+                  <button 
+                    onClick={() => setActiveTab("overview")} 
+                    className="hover-elevate rounded-lg px-2 py-1 transition-all bg-transparent border-0 cursor-pointer flex items-center gap-3" 
+                    data-testid="link-logo-home"
+                  >
+                    <AionLogo showText={false} size="md" />
+                    <div>
+                      <h1 className="font-bold text-xl gradient-text">AION</h1>
+                      <p className="text-xs text-muted-foreground">Painel de Controle</p>
+                    </div>
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => navigate("/")}
+                    className="glass-premium"
+                    data-testid="button-back-to-chat"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="glass-premium" data-testid="button-language">
+                        <Languages className="w-5 h-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="glass-premium border-primary/20">
+                      <DropdownMenuItem
+                        onClick={() => setLanguage("pt-BR")}
+                        className={language === "pt-BR" ? "bg-primary/20" : ""}
+                        data-testid="lang-pt-BR"
+                      >
+                        Português (BR)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setLanguage("en-US")}
+                        className={language === "en-US" ? "bg-primary/20" : ""}
+                        data-testid="lang-en-US"
+                      >
+                        English (US)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setLanguage("es-ES")}
+                        className={language === "es-ES" ? "bg-primary/20" : ""}
+                        data-testid="lang-es-ES"
+                      >
+                        Español (ES)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </header>
 
             {/* Main Content Area */}
             <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background to-primary/10">
@@ -965,8 +958,7 @@ export default function AdminDashboard() {
             </div>
           </main>
         </SidebarInset>
-        </div>
-      </SidebarProvider>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }

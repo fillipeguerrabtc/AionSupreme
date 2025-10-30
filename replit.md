@@ -14,10 +14,17 @@ AION operates in **single-tenant mode** for simplified deployment and cost optim
 ### UI/UX
 The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses Radix UI with shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired custom design system featuring HSL-based colors and Inter/JetBrains Mono fonts. It includes a conversational chat interface with persistent memory and an **Admin Dashboard with Enterprise Sidebar Navigation** (Shadcn Sidebar) for policy and metrics management across 11 major sections with multi-language support (PT-BR, EN-US, ES-ES).
 
-**Admin Dashboard Layout Architecture:**
-- **Global Header**: Fixed at the top (z-50, sticky), always visible above everything. Contains AionLogo (h-8 w-8) + "AION" branding (text-2xl gradient-text), navigation buttons, and language selector (text-only, no emojis: "Português (BR)", "English (US)", "Español (ES)").
-- **Sidebar**: Shadcn Sidebar component positioned below the global header, extends to full remaining height. Features collapsible behavior (icon mode) independent of header state.
-- **Layout Hierarchy**: `<header global> → <SidebarProvider> → <AdminSidebar> + <SidebarInset with subheader + main content>`. Header remains fixed while sidebar collapses/expands independently.
+**Branding (Updated 2025-01-30):**
+- **Clean Branding**: All references to "IA Suprema e Ilimitada" removed. System now displays only "AION" branding across all interfaces.
+- **Chat Page**: Header shows AionLogo (real logo image) + "AION" title + "Chat" subtitle. Browser title: "AION Chat".
+- **Admin Dashboard**: Header shows AionLogo + "AION" title + "Painel de Controle" subtitle. Browser title: "AION Admin - Painel de Controle".
+- **Logo Component**: AionLogo supports `showText={false}` to display only the logo image (blue infinity symbol) without text overlay.
+
+**Admin Dashboard Layout Architecture (Updated 2025-01-30):**
+- **Layout Structure**: `<SidebarProvider> → <div flex> → <AdminSidebar> + <SidebarInset with header + main>`. Sidebar positioned to the left, header inside SidebarInset content area (not overlapping sidebar).
+- **Sidebar**: Shadcn Sidebar component positioned to the left side. Features collapsible behavior (icon mode). Contains navigation menu items starting with Overview, Token Monitoring, History, Cost, Knowledge Base, GPU Management, Federated Training, Auto-Evolution, Datasets, and Settings. NO logo or header inside sidebar.
+- **Header**: Positioned inside SidebarInset (sticky top-0 z-50), contains SidebarTrigger + AionLogo (size="md") + "AION" title (text-xl gradient-text) + "Painel de Controle" subtitle (text-xs muted), navigation buttons, and language selector (text-only: "Português (BR)", "English (US)", "Español (ES)").
+- **Navigation**: Clicking logo/AION in header navigates to "overview" tab (not to chat page).
 - **Design System**: Glassmorphism effects (glass, glass-premium classes), subtle borders (border-white/10), gradient text, consistent spacing, and professional visual hierarchy.
 
 ### Technical Implementations

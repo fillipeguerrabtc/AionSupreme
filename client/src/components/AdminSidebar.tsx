@@ -19,10 +19,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { AionLogo } from "@/components/AionLogo";
 import { useLanguage } from "@/lib/i18n";
 
 interface AdminSidebarProps {
