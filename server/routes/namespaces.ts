@@ -69,9 +69,11 @@ export function registerNamespaceRoutes(app: Express) {
         tenantId: TENANT_ID,
       });
 
+      const insertData = validatedData as unknown as InsertNamespace & { tenantId: number };
+
       const [newNamespace] = await db
         .insert(namespaces)
-        .values([validatedData as InsertNamespace & { tenantId: number }])
+        .values(insertData)
         .returning();
 
       res.status(201).json(newNamespace);
