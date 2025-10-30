@@ -90,6 +90,13 @@ interface Translations {
         totalRequests: string;
         totalCost: string;
         dailyUsage: string;
+        pleaseSelectBothDates: string;
+        startDateBeforeEndDate: string;
+        customDateRangeApplied: string;
+        generatingPNG: string;
+        pleaseWait: string;
+        pngExported: string;
+        csvExported: string;
        };
       
       // Limits & Alerts
@@ -210,6 +217,14 @@ interface Translations {
         paid: string;
         paidAPIRequests: string;
         searches: string;
+        chartNotFound: string;
+        failedGeneratePNG: string;
+        exportFailed: string;
+        unknownError: string;
+        sources: string;
+        moreSources: string;
+        acknowledging: string;
+        viewSources: string;
       };
     };
     
@@ -426,6 +441,13 @@ const translations: Record<Language, Translations> = {
           totalRequests: "Total de Requisições",
           totalCost: "Custo Total",
           dailyUsage: "Uso Diário",
+          pleaseSelectBothDates: "Por favor, selecione ambas as datas",
+          startDateBeforeEndDate: "Data inicial deve ser anterior à data final",
+          customDateRangeApplied: "Período personalizado aplicado",
+          generatingPNG: "Gerando PNG…",
+          pleaseWait: "Por favor, aguarde",
+          pngExported: "PNG exportado",
+          csvExported: "CSV exportado",
         },
         
         limits: {
@@ -539,6 +561,14 @@ const translations: Record<Language, Translations> = {
           paid: "Pago",
           paidAPIRequests: "requisições API pagas",
           searches: "buscas",
+          chartNotFound: "Gráfico não encontrado",
+          failedGeneratePNG: "Falha ao gerar PNG",
+          exportFailed: "Falha na exportação",
+          unknownError: "Erro desconhecido",
+          sources: "fontes",
+          moreSources: "mais fontes",
+          acknowledging: "Reconhecendo...",
+          viewSources: "Ver Fontes",
         },
       },
       
@@ -746,6 +776,13 @@ const translations: Record<Language, Translations> = {
           totalRequests: "Total Requests",
           totalCost: "Total Cost",
           dailyUsage: "Daily Usage",
+          pleaseSelectBothDates: "Please select both dates",
+          startDateBeforeEndDate: "Start date must be before end date",
+          customDateRangeApplied: "Custom date range applied",
+          generatingPNG: "Generating PNG…",
+          pleaseWait: "Please wait",
+          pngExported: "PNG exported",
+          csvExported: "CSV exported",
         },
         
         limits: {
@@ -859,6 +896,14 @@ const translations: Record<Language, Translations> = {
           paid: "Paid",
           paidAPIRequests: "paid API requests",
           searches: "searches",
+          chartNotFound: "Chart not found",
+          failedGeneratePNG: "Failed to generate PNG",
+          exportFailed: "Export failed",
+          unknownError: "Unknown error",
+          sources: "sources",
+          moreSources: "more sources",
+          acknowledging: "Acknowledging...",
+          viewSources: "View Sources",
         },
       },
       
@@ -1066,6 +1111,13 @@ const translations: Record<Language, Translations> = {
           totalRequests: "Total de Solicitudes",
           totalCost: "Costo Total",
           dailyUsage: "Uso Diario",
+          pleaseSelectBothDates: "Por favor, selecciona ambas fechas",
+          startDateBeforeEndDate: "La fecha inicial debe ser anterior a la fecha final",
+          customDateRangeApplied: "Período personalizado aplicado",
+          generatingPNG: "Generando PNG…",
+          pleaseWait: "Por favor, espera",
+          pngExported: "PNG exportado",
+          csvExported: "CSV exportado",
         },
         
         limits: {
@@ -1179,6 +1231,14 @@ const translations: Record<Language, Translations> = {
           paid: "Pagado",
           paidAPIRequests: "solicitudes API pagadas",
           searches: "búsquedas",
+          chartNotFound: "Gráfico no encontrado",
+          failedGeneratePNG: "Error al generar PNG",
+          exportFailed: "Error en la exportación",
+          unknownError: "Error desconocido",
+          sources: "fuentes",
+          moreSources: "más fuentes",
+          acknowledging: "Reconociendo...",
+          viewSources: "Ver Fuentes",
         },
       },
       
