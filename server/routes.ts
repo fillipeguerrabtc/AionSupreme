@@ -2493,6 +2493,100 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // POST /api/training/datasets/bulk-delete - Bulk delete datasets
+  app.post("/api/training/datasets/bulk-delete", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { datasets } = await import("../shared/schema");
+      const { eq, inArray } = await import("drizzle-orm");
+
+      const { ids } = req.body;
+
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "Invalid or empty IDs array" });
+      }
+
+      const numericIds = ids.map(id => parseInt(id)).filter(id => !isNaN(id));
+
+      if (numericIds.length === 0) {
+        return res.status(400).json({ error: "No valid dataset IDs provided" });
+      }
+
+      // Fetch all datasets to delete files
+      const datasetsToDelete = await db
+        .select()
+        .from(datasets)
+        .where(inArray(datasets.id, numericIds));
+
+      if (datasetsToDelete.length === 0) {
+        return res.status(404).json({ error: "No datasets found with provided IDs" });
+      }
+
+      // Delete files from storage
+      for (const dataset of datasetsToDelete) {
+        try {
+          await DatasetProcessor.deleteDataset(dataset.storagePath);
+        } catch (error) {
+          console.error(`Failed to delete file for dataset ${dataset.id}:`, error);
+        }
+      }
+
+      // Delete from database
+      await db.delete(datasets).where(inArray(datasets.id, numericIds));
+
+      res.json({ 
+        message: "Datasets deleted successfully",
+        deleted: datasetsToDelete.length,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/training/datasets/:id/download - Download dataset file
+  app.get("/api/training/datasets/:id/download", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { datasets } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const fs = await import("fs/promises");
+
+      const id = parseInt(req.params.id);
+
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid dataset ID" });
+      }
+
+      const [dataset] = await db
+        .select()
+        .from(datasets)
+        .where(eq(datasets.id, id))
+        .limit(1);
+
+      if (!dataset) {
+        return res.status(404).json({ error: "Dataset not found" });
+      }
+
+      // Check if file exists
+      try {
+        await fs.access(dataset.storagePath);
+      } catch {
+        return res.status(404).json({ error: "Dataset file not found on disk" });
+      }
+
+      // Set headers for download
+      res.setHeader("Content-Type", dataset.fileMimeType || "application/octet-stream");
+      res.setHeader("Content-Disposition", `attachment; filename="${dataset.originalFilename || `dataset-${dataset.id}.jsonl`}"`);
+      res.setHeader("Content-Length", dataset.fileSize.toString());
+
+      // Stream file to response
+      const fileStream = (await import("fs")).createReadStream(dataset.storagePath);
+      fileStream.pipe(res);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // POST /api/training/datasets/generate-from-kb - Auto-generate dataset from Knowledge Base
   app.post("/api/training/datasets/generate-from-kb", async (req, res) => {
     try {

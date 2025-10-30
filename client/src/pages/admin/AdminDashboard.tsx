@@ -21,6 +21,7 @@ import CostHistoryTab from "./CostHistoryTab";
 import GPUManagementTab from "./GPUManagementTab";
 import FederatedTrainingTab from "./FederatedTrainingTab";
 import AutoEvolutionTab from "./AutoEvolutionTab";
+import DatasetsTab from "./DatasetsTab";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -735,19 +736,9 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* Datasets Tab (placeholder - will be implemented) */}
+              {/* Datasets Tab */}
               {activeTab === "datasets" && (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-bold gradient-text">Datasets</h2>
-                    <p className="text-muted-foreground">Gerenciamento de datasets de treinamento</p>
-                  </div>
-                  <Card className="glass-premium">
-                    <CardContent className="pt-6">
-                      <p className="text-muted-foreground">Em desenvolvimento...</p>
-                    </CardContent>
-                  </Card>
-                </div>
+                <DatasetsTab />
               )}
 
               {/* Settings Tab */}
