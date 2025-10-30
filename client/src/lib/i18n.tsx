@@ -33,6 +33,8 @@ interface Translations {
       federatedTraining: string;
       autoEvolution: string;
       datasets: string;
+      agents: string;
+      curation: string;
       settings: string;
     };
 
@@ -555,6 +557,7 @@ const translations: Record<Language, Translations> = {
         autoEvolution: "Auto-Evolução",
         datasets: "Datasets",
         agents: "Agentes Especialistas",
+        curation: "Curadoria",
         settings: "Configurações",
       },
 
@@ -1052,6 +1055,7 @@ const translations: Record<Language, Translations> = {
         autoEvolution: "Auto-Evolution",
         datasets: "Datasets",
         agents: "Specialist Agents",
+        curation: "Curation",
         settings: "Settings",
       },
 
@@ -1549,6 +1553,7 @@ const translations: Record<Language, Translations> = {
         autoEvolution: "Auto-Evolución",
         datasets: "Datasets",
         agents: "Agentes Especialistas",
+        curation: "Curaduría",
         settings: "Configuraciones",
       },
 

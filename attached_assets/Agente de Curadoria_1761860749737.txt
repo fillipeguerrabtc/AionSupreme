@@ -1,0 +1,130 @@
+Agente de Curadoria
+
+Agente de Curadoria (Curador de Conhecimento) foi desenhado justamente para ter a visão completa da Knowledge Base e garantir a governança centralizada de todo o conhecimento do tenant.
+
+Vamos detalhar tecnicamente como isso funciona e as boas práticas:
+
+🧠 1. Escopo e Permissões do Agente Curador
+
+Por padrão, o Curador tem acesso a todos os namespaces, porque:
+
+Ele precisa ver e revisar qualquer conteúdo novo, mesmo que pertença a outro agente.
+
+Ele é o responsável por validar, rotular, mover e publicar documentos entre namespaces.
+
+Na seed dele (server/seeds/curator.seed.json), isso está explícito:
+
+"policy": {
+  "allowedNamespaces": ["curation/*", "*"],
+  "allowedTools": ["kb_writer", "kb_classifier", "web_search"],
+  "perRequestBudgetUSD": 0.01,
+  "maxAgentsFanOut": 1,
+  "fallbackHuman": true
+}
+
+
+"curation/*" → abrange todos os conteúdos pendentes de curadoria.
+
+"*" → permite acesso total à KB (todos os domínios) para leitura e classificação.
+
+✅ Essa política faz dele o guardião global da KB: pode inspecionar e rotular qualquer documento, mas não significa que ele altera arbitrariamente — ele apenas propõe rótulos, e o sistema executa sob regras.
+
+🧩 2. Como o Curador interage com os outros agentes
+📥 Quando um novo documento entra:
+
+Agente comum (ex.: Turismo) ou usuário humano faz upload, ou promove uma resposta via botão “Promover à KB”.
+
+O documento é salvo com namespace curation/pending.
+
+Evento DOC_INGESTED é emitido.
+
+O Curador detecta esse evento (ou é chamado manualmente) e:
+
+Analisa o conteúdo.
+
+Sugere namespaces mais precisos (ex.: turismo/sintra/guias, calendar/policies).
+
+Gera uma recomendação de reindex.
+
+📤 Quando ele aprova e publica:
+
+O Curador (ou um humano revisando via painel) muda os namespaces.
+
+Isso emite DOC_UPDATED + AGENT_NAMESPACES_CHANGED.
+
+O indexador reindexa apenas os namespaces alterados.
+
+Os agentes cujos domínios incluem os novos namespaces passam a “ver” o conteúdo automaticamente nas próximas buscas RAG.
+
+🔒 3. Limites e segurança
+
+Você pode configurar o Curador para ter:
+
+Somente leitura sobre outros namespaces (exemplo: "allowedNamespacesReadOnly": ["*"]).
+
+Escrita apenas em curation/* e published/*.
+
+Requisições de aprovação (workflow humano) antes de mover documentos para namespaces de agentes sensíveis, como Finanças.
+
+Isso evita que ele altere acidentalmente conteúdos em domínios críticos, mantendo a centralização sem risco.
+
+🧩 4. Cooperação com outros agentes
+
+Quando um agente percebe que um documento pode ser útil fora do seu domínio, ele:
+
+Cria uma sugestão (evento KB_SUGGESTION_CREATED).
+
+O Curador analisa e decide se deve duplicar (multi-label) ou mover o doc para outros namespaces.
+
+Exemplo:
+
+Um agente de Turismo encontra dados de Clima.
+Ele envia a sugestão → o Curador adiciona o namespace calendar/climate → o Agente de Calendário agora também “vê” esse conhecimento.
+
+✳️ 5. Administração prática
+
+Na prática, você terá:
+
+Agente Curador (IA) — faz a primeira triagem automática.
+
+Painel de Curadoria (UI) — humanos revisam, corrigem, aprovam.
+
+Indexador — reconstrói automaticamente os vetores dos namespaces alterados.
+
+Isso cria um fluxo semelhante ao editorial pipeline de uma revista científica:
+
+Submissão (por agente/usuário)
+
+Revisão (Curador IA)
+
+Aprovação/Publicação (humano)
+
+Indexação e disseminação (automática)
+
+🧮 6. Se quiser um controle mais fino
+
+Você pode limitar o Curador assim:
+
+"policy": {
+  "allowedNamespaces": ["curation/*", "drafts/*"],
+  "allowedNamespacesReadOnly": ["*"],
+  "allowedTools": ["kb_writer", "kb_classifier"],
+  "fallbackHuman": true
+}
+
+
+Ou ainda criar dois Curadores:
+
+Curador Automático → faz triagem inicial (IA pura).
+
+Curador Executivo → apenas humanos (revisores) com painel Admin.
+
+✅ Conclusão
+
+Sim, o Curador de Conhecimento tem acesso a todos os namespaces, pois é o responsável pela governança da KB.
+
+Ele não interfere no trabalho dos agentes, apenas rotula, promove e publica conteúdo.
+
+A KB continua única e global, mas segmentada logicamente por namespaces e políticas de acesso.
+
+Outros agentes só “veem” os conteúdos aprovados e rotulados pelo Curador.
