@@ -266,110 +266,79 @@ export default function AdminDashboard() {
     );
   }
 
+  const sidebarStyle = {
+    "--sidebar-width": "16rem",
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
-      {/* Modern Header with Glassmorphism */}
-      <header className="glass sticky top-0 z-50 border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate("/")}
-              className="glass-premium"
-              data-testid="button-back-to-chat"
-            >
-              <MessageSquare className="w-5 h-5" />
-            </Button>
-            <button 
-              onClick={() => navigate("/admin")} 
-              className="hover-elevate rounded-lg p-2 -m-2 transition-all bg-transparent border-0 cursor-pointer" 
-              data-testid="link-logo-admin-home"
-            >
-              <AionLogo size="md" showText={false} />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold gradient-text">{t.admin.title}</h1>
-              <p className="text-xs text-muted-foreground">{t.admin.subtitle}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="glass-premium" data-testid="button-language">
-                  <Languages className="w-5 h-5" />
+    <SidebarProvider style={sidebarStyle}>
+      <div className="flex h-screen w-full">
+        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        <SidebarInset className="flex flex-col flex-1">
+          {/* Modern Header with Glassmorphism */}
+          <header className="glass sticky top-0 z-40 border-b border-white/10">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-3">
+                <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => navigate("/")}
+                  className="glass-premium"
+                  data-testid="button-back-to-chat"
+                >
+                  <MessageSquare className="w-5 h-5" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass-premium border-primary/20">
-                <DropdownMenuItem
-                  onClick={() => setLanguage("pt-BR")}
-                  className={language === "pt-BR" ? "bg-primary/20" : ""}
-                  data-testid="lang-pt-BR"
+                <button 
+                  onClick={() => navigate("/admin")} 
+                  className="hover-elevate rounded-lg p-2 -m-2 transition-all bg-transparent border-0 cursor-pointer" 
+                  data-testid="link-logo-admin-home"
                 >
-                  🇧🇷 Português
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setLanguage("en-US")}
-                  className={language === "en-US" ? "bg-primary/20" : ""}
-                  data-testid="lang-en-US"
-                >
-                  🇺🇸 English
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setLanguage("es-ES")}
-                  className={language === "es-ES" ? "bg-primary/20" : ""}
-                  data-testid="lang-es-ES"
-                >
-                  🇪🇸 Español
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
+                  <AionLogo size="md" showText={false} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="glass-premium" data-testid="button-language">
+                      <Languages className="w-5 h-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="glass-premium border-primary/20">
+                    <DropdownMenuItem
+                      onClick={() => setLanguage("pt-BR")}
+                      className={language === "pt-BR" ? "bg-primary/20" : ""}
+                      data-testid="lang-pt-BR"
+                    >
+                      🇧🇷 Português
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setLanguage("en-US")}
+                      className={language === "en-US" ? "bg-primary/20" : ""}
+                      data-testid="lang-en-US"
+                    >
+                      🇺🇸 English
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setLanguage("es-ES")}
+                      className={language === "es-ES" ? "bg-primary/20" : ""}
+                      data-testid="lang-es-ES"
+                    >
+                      🇪🇸 Español
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          </header>
 
-      <div className="max-w-7xl mx-auto p-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="glass-premium border-primary/20 w-full justify-start flex flex-wrap gap-2">
-            <TabsTrigger value="overview" data-testid="tab-dashboard-overview">
-              <Shield className="w-4 h-4 mr-2" />
-              {t.admin.tabs.overview}
-            </TabsTrigger>
-            <TabsTrigger value="tokens" data-testid="tab-dashboard-tokens">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              {t.admin.tabs.tokenMonitoring}
-            </TabsTrigger>
-            <TabsTrigger value="history" data-testid="tab-dashboard-history">
-              <Activity className="w-4 h-4 mr-2" />
-              {t.admin.tabs.history}
-            </TabsTrigger>
-            <TabsTrigger value="cost" data-testid="tab-dashboard-cost">
-              <DollarSign className="w-4 h-4 mr-2" />
-              {t.admin.tabs.costHistory}
-            </TabsTrigger>
-            <TabsTrigger value="knowledge" data-testid="tab-dashboard-knowledge">
-              <Database className="w-4 h-4 mr-2" />
-              {t.admin.tabs.knowledgeBase}
-            </TabsTrigger>
-            <TabsTrigger value="gpu" data-testid="tab-dashboard-gpu">
-              <Server className="w-4 h-4 mr-2" />
-              {t.admin.tabs.gpuManagement}
-            </TabsTrigger>
-            <TabsTrigger value="federated" data-testid="tab-dashboard-federated">
-              <Cpu className="w-4 h-4 mr-2" />
-              {t.admin.tabs.federatedTraining}
-            </TabsTrigger>
-            <TabsTrigger value="auto-evolution" data-testid="tab-dashboard-auto-evolution">
-              <Sparkles className="w-4 h-4 mr-2" />
-              {t.admin.tabs.autoEvolution}
-            </TabsTrigger>
-            <TabsTrigger value="settings" data-testid="tab-dashboard-settings">
-              <Settings className="w-4 h-4 mr-2" />
-              {t.admin.tabs.settings}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
+          {/* Main Content Area */}
+          <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background to-primary/10">
+            <div className="p-6">
+              {/* Overview Tab */}
+              {activeTab === "overview" && (
+                <div className="space-y-6">
         {/* Metrics Cards - Clickable - ONE CARD PER TAB/SUBTAB */}
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* Card 1: Total Tokens → History Tab */}
@@ -607,39 +576,97 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
           </Card>
+
+          {/* Card 11: Auto-Evolution → Auto-Evolution Tab */}
+          <Card 
+            className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
+            onClick={() => setActiveTab("evolution")}
+            data-testid="card-auto-evolution"
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Auto-Evolução
+              </CardTitle>
+              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
+                <span className="animate-pulse">Em breve</span>
+              </div>
+              <CardDescription className="text-xs">
+                Sistema de auto-aprendizado
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
+              </div>
+              )}
 
-          </TabsContent>
+              {/* Token Monitoring Tab */}
+              {activeTab === "tokens" && (
+                <div className="space-y-6">
+                  <TokenMonitoring />
+                </div>
+              )}
 
-          <TabsContent value="tokens" className="space-y-6">
-            <TokenMonitoring />
-          </TabsContent>
+              {/* Token History Tab */}
+              {activeTab === "history" && (
+                <div className="space-y-6">
+                  <TokenHistoryTab />
+                </div>
+              )}
 
-          <TabsContent value="history" className="space-y-6">
-            <TokenHistoryTab />
-          </TabsContent>
+              {/* Cost History Tab */}
+              {activeTab === "cost" && (
+                <div className="space-y-6">
+                  <CostHistoryTab />
+                </div>
+              )}
 
-          <TabsContent value="cost" className="space-y-6">
-            <CostHistoryTab />
-          </TabsContent>
+              {/* Knowledge Base Tab */}
+              {activeTab === "knowledge" && (
+                <div className="space-y-6">
+                  <KnowledgeBaseTab />
+                </div>
+              )}
 
-          <TabsContent value="knowledge" className="space-y-6">
-            <KnowledgeBaseTab />
-          </TabsContent>
+              {/* GPU Management Tab */}
+              {activeTab === "gpu" && (
+                <div className="space-y-6">
+                  <GPUManagementTab />
+                </div>
+              )}
 
-          <TabsContent value="gpu" className="space-y-6">
-            <GPUManagementTab />
-          </TabsContent>
+              {/* Federated Training Tab */}
+              {activeTab === "federated" && (
+                <div className="space-y-6">
+                  <FederatedTrainingTab />
+                </div>
+              )}
 
-          <TabsContent value="federated" className="space-y-6">
-            <FederatedTrainingTab />
-          </TabsContent>
+              {/* Auto-Evolution Tab */}
+              {activeTab === "evolution" && (
+                <div className="space-y-6">
+                  <AutoEvolutionTab />
+                </div>
+              )}
 
-          <TabsContent value="auto-evolution" className="space-y-6">
-            <AutoEvolutionTab />
-          </TabsContent>
+              {/* Datasets Tab (placeholder - will be implemented) */}
+              {activeTab === "datasets" && (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-bold gradient-text">Datasets</h2>
+                    <p className="text-muted-foreground">Gerenciamento de datasets de treinamento</p>
+                  </div>
+                  <Card className="glass-premium">
+                    <CardContent className="pt-6">
+                      <p className="text-muted-foreground">Em desenvolvimento...</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
-          <TabsContent value="settings" className="space-y-6">
+              {/* Settings Tab */}
+              {activeTab === "settings" && (
+                <div className="space-y-6">
             {/* Settings Header */}
             <div className="space-y-2">
               <h2 className="text-3xl font-bold gradient-text">{t.admin.settings.title}</h2>
@@ -840,9 +867,12 @@ export default function AdminDashboard() {
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+                </div>
+              )}
+            </div>
+          </main>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
