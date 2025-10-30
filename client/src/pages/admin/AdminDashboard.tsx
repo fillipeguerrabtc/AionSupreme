@@ -258,35 +258,35 @@ export default function AdminDashboard() {
           <TabsList className="glass-premium border-primary/20 w-full justify-start overflow-x-auto flex-wrap">
             <TabsTrigger value="overview" data-testid="tab-dashboard-overview">
               <Shield className="w-4 h-4 mr-2" />
-              Overview
+              {t.admin.tabs.overview}
             </TabsTrigger>
             <TabsTrigger value="tokens" data-testid="tab-dashboard-tokens">
               <BarChart3 className="w-4 h-4 mr-2" />
-              Token Monitoring
+              {t.admin.tabs.tokenMonitoring}
             </TabsTrigger>
             <TabsTrigger value="history" data-testid="tab-dashboard-history">
               <Activity className="w-4 h-4 mr-2" />
-              History
+              {t.admin.tabs.history}
             </TabsTrigger>
             <TabsTrigger value="cost" data-testid="tab-dashboard-cost">
               <DollarSign className="w-4 h-4 mr-2" />
-              Cost History
+              {t.admin.tabs.costHistory}
             </TabsTrigger>
             <TabsTrigger value="knowledge" data-testid="tab-dashboard-knowledge">
               <Database className="w-4 h-4 mr-2" />
-              Knowledge Base
+              {t.admin.tabs.knowledgeBase}
             </TabsTrigger>
             <TabsTrigger value="gpu" data-testid="tab-dashboard-gpu">
               <Server className="w-4 h-4 mr-2" />
-              GPU Management
+              {t.admin.tabs.gpuManagement}
             </TabsTrigger>
             <TabsTrigger value="federated" data-testid="tab-dashboard-federated">
               <Cpu className="w-4 h-4 mr-2" />
-              Federated Training
+              {t.admin.tabs.federatedTraining}
             </TabsTrigger>
             <TabsTrigger value="auto-evolution" data-testid="tab-dashboard-auto-evolution">
               <Sparkles className="w-4 h-4 mr-2" />
-              Auto-Evolution
+              {t.admin.tabs.autoEvolution}
             </TabsTrigger>
           </TabsList>
 
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Activity className="w-4 h-4" />
-                Total Tokens
+                {t.admin.overview.totalTokens}
               </CardTitle>
               <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {tokenSummary ? (
@@ -312,7 +312,7 @@ export default function AdminDashboard() {
                 )}
               </div>
               <CardDescription className="text-xs">
-                All providers
+                {t.admin.overview.allProviders}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
-                Total Cost
+                {t.admin.overview.totalCost}
               </CardTitle>
               <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {costHistory ? (
@@ -336,7 +336,7 @@ export default function AdminDashboard() {
                 )}
               </div>
               <CardDescription className="text-xs">
-                OpenAI only
+                {t.admin.overview.openaiOnly}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -350,7 +350,7 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Search className="w-4 h-4" />
-                KB Searches
+                {t.admin.overview.kbSearches}
               </CardTitle>
               <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {kbHistory ? (
@@ -360,7 +360,7 @@ export default function AdminDashboard() {
                 )}
               </div>
               <CardDescription className="text-xs">
-                Knowledge Base queries
+                {t.admin.overview.knowledgeBaseQueries}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -374,7 +374,7 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Zap className="w-4 h-4" />
-                Free APIs
+                {t.admin.overview.freeApis}
               </CardTitle>
               <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {freeAPIsHistory ? (
@@ -384,7 +384,7 @@ export default function AdminDashboard() {
                 )}
               </div>
               <CardDescription className="text-xs">
-                Groq, Gemini, HF, OpenRouter
+                {t.admin.overview.groqGeminiHfOpenrouter}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -398,7 +398,7 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
-                OpenAI
+                {t.admin.overview.openai}
               </CardTitle>
               <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {openaiStats ? (
@@ -408,7 +408,7 @@ export default function AdminDashboard() {
                 )}
               </div>
               <CardDescription className="text-xs">
-                Paid API requests
+                {t.admin.overview.paidApiRequests}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -422,7 +422,7 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Globe className="w-4 h-4" />
-                Web Searches
+                {t.admin.overview.webSearches}
               </CardTitle>
               <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {webStats?.web ? (
@@ -432,7 +432,7 @@ export default function AdminDashboard() {
                 )}
               </div>
               <CardDescription className="text-xs">
-                {webStats?.web ? `${webStats.web.uniqueDomains || 0} domains` : 'DuckDuckGo'}
+                {webStats?.web ? `${webStats.web.uniqueDomains || 0} ${t.admin.overview.domainsSearched}` : t.admin.overview.duckduckgoProvider}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -446,7 +446,7 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                DeepWeb
+                {t.admin.overview.deepWeb}
               </CardTitle>
               <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {webStats?.deepweb ? (
@@ -456,7 +456,7 @@ export default function AdminDashboard() {
                 )}
               </div>
               <CardDescription className="text-xs">
-                Tor network queries
+                {t.admin.overview.torNetworkQueries}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -470,13 +470,13 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Database className="w-4 h-4" />
-                KB Documents
+                {t.admin.overview.kbDocuments}
               </CardTitle>
               <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {Array.isArray(documentsData) ? documentsData.length : 0}
               </div>
               <CardDescription className="text-xs">
-                Indexed knowledge
+                {t.admin.overview.indexedKnowledge}
               </CardDescription>
             </CardHeader>
           </Card>

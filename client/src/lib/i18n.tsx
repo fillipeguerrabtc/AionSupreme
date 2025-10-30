@@ -31,6 +31,7 @@ interface Translations {
       knowledgeBase: string;
       gpuManagement: string;
       federatedTraining: string;
+      autoEvolution: string;
     };
     
     // Overview Tab
@@ -47,7 +48,9 @@ interface Translations {
       openaiOnly: string;
       knowledgeBaseQueries: string;
       groqGeminiHfOpenrouter: string;
+      paidApiRequests: string;
       domainsSearched: string;
+      duckduckgoProvider: string;
       torNetworkQueries: string;
       indexedKnowledge: string;
     };
@@ -522,6 +525,7 @@ const translations: Record<Language, Translations> = {
         knowledgeBase: "Base de Conhecimento",
         gpuManagement: "Gerenciamento de GPUs",
         federatedTraining: "Treinamento Federado",
+        autoEvolution: "Auto-Evolução",
       },
       
       overview: {
@@ -537,7 +541,9 @@ const translations: Record<Language, Translations> = {
         openaiOnly: "Apenas OpenAI",
         knowledgeBaseQueries: "Consultas Knowledge Base",
         groqGeminiHfOpenrouter: "Groq, Gemini, HF, OpenRouter",
+        paidApiRequests: "Requisições API pagas",
         domainsSearched: "domínios pesquisados",
+        duckduckgoProvider: "DuckDuckGo",
         torNetworkQueries: "consultas rede Tor",
         indexedKnowledge: "conhecimento indexado",
       },
@@ -990,6 +996,7 @@ const translations: Record<Language, Translations> = {
         knowledgeBase: "Knowledge Base",
         gpuManagement: "GPU Management",
         federatedTraining: "Federated Training",
+        autoEvolution: "Auto-Evolution",
       },
       
       overview: {
@@ -1005,7 +1012,9 @@ const translations: Record<Language, Translations> = {
         openaiOnly: "OpenAI only",
         knowledgeBaseQueries: "Knowledge Base queries",
         groqGeminiHfOpenrouter: "Groq, Gemini, HF, OpenRouter",
+        paidApiRequests: "Paid API requests",
         domainsSearched: "domains searched",
+        duckduckgoProvider: "DuckDuckGo",
         torNetworkQueries: "Tor network queries",
         indexedKnowledge: "indexed knowledge",
       },
@@ -1458,6 +1467,7 @@ const translations: Record<Language, Translations> = {
         knowledgeBase: "Base de Conocimiento",
         gpuManagement: "Gestión de GPUs",
         federatedTraining: "Entrenamiento Federado",
+        autoEvolution: "Auto-Evolución",
       },
       
       overview: {
@@ -1473,7 +1483,9 @@ const translations: Record<Language, Translations> = {
         openaiOnly: "Solo OpenAI",
         knowledgeBaseQueries: "consultas Base de Conocimiento",
         groqGeminiHfOpenrouter: "Groq, Gemini, HF, OpenRouter",
+        paidApiRequests: "Solicitudes API pagadas",
         domainsSearched: "dominios buscados",
+        duckduckgoProvider: "DuckDuckGo",
         torNetworkQueries: "consultas red Tor",
         indexedKnowledge: "conocimiento indexado",
       },
