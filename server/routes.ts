@@ -29,6 +29,9 @@ import path from "path";
 import { optionalAuth } from "./replitAuth";
 import { DatasetProcessor } from "./training/datasets/dataset-processor";
 import { DatasetValidator } from "./training/datasets/dataset-validator";
+import { db } from "./db";
+import { eq, and, gte, sql } from "drizzle-orm";
+import { trainingDataCollection, datasets, trainingJobs } from "../shared/schema";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
@@ -2618,6 +2621,135 @@ export function registerRoutes(app: Express): Server {
     } catch (error: any) {
       console.error("Error collecting training data:", error);
       res.status(500).json({ error: "Failed to collect training data" });
+    }
+  });
+
+  // GET /api/training/auto-evolution/stats - Get auto-evolution statistics
+  app.get("/api/training/auto-evolution/stats", async (req, res) => {
+    try {
+      const tenantId = 1; // TODO: Get from auth
+
+      // Total conversations collected
+      const totalConversationsResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(trainingDataCollection)
+        .where(eq(trainingDataCollection.tenantId, tenantId));
+      const totalConversations = totalConversationsResult[0]?.count || 0;
+
+      // High-quality conversations (score >= 60)
+      const highQualityResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(trainingDataCollection)
+        .where(
+          and(
+            eq(trainingDataCollection.tenantId, tenantId),
+            gte(trainingDataCollection.autoQualityScore, 60)
+          )
+        );
+      const highQualityConversations = highQualityResult[0]?.count || 0;
+
+      // Average quality score
+      const avgScoreResult = await db
+        .select({ avg: sql<number>`avg(${trainingDataCollection.autoQualityScore})::numeric` })
+        .from(trainingDataCollection)
+        .where(eq(trainingDataCollection.tenantId, tenantId));
+      const avgQualityScore = parseFloat(avgScoreResult[0]?.avg || '0');
+
+      // Datasets generated from KB (check description for "Auto-generated")
+      const kbDatasetsResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(datasets)
+        .where(
+          and(
+            eq(datasets.tenantId, tenantId),
+            sql`${datasets.description} LIKE '%Auto-generated%KB%'`
+          )
+        );
+      const kbGeneratedDatasets = kbDatasetsResult[0]?.count || 0;
+
+      // Total datasets
+      const totalDatasetsResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(datasets)
+        .where(eq(datasets.tenantId, tenantId));
+      const totalDatasets = totalDatasetsResult[0]?.count || 0;
+
+      // Training jobs completed
+      const completedJobsResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(trainingJobs)
+        .where(
+          and(
+            eq(trainingJobs.tenantId, tenantId),
+            eq(trainingJobs.status, 'completed')
+          )
+        );
+      const completedJobs = completedJobsResult[0]?.count || 0;
+
+      // Total training jobs
+      const totalJobsResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(trainingJobs)
+        .where(eq(trainingJobs.tenantId, tenantId));
+      const totalJobs = totalJobsResult[0]?.count || 0;
+
+      // Timeline data - conversations collected over time (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const timelineResult = await db
+        .select({
+          date: sql<string>`DATE(${trainingDataCollection.createdAt})`,
+          count: sql<number>`count(*)::int`,
+          avgScore: sql<number>`avg(${trainingDataCollection.autoQualityScore})::numeric`
+        })
+        .from(trainingDataCollection)
+        .where(
+          and(
+            eq(trainingDataCollection.tenantId, tenantId),
+            gte(trainingDataCollection.createdAt, thirtyDaysAgo)
+          )
+        )
+        .groupBy(sql`DATE(${trainingDataCollection.createdAt})`)
+        .orderBy(sql`DATE(${trainingDataCollection.createdAt})`);
+
+      const timeline = timelineResult.map((row: any) => ({
+        date: row.date,
+        count: Number(row.count) || 0,
+        avgScore: parseFloat(row.avgScore || '0')
+      }));
+
+      // Calculate efficiency metrics
+      const collectionToDatasetRatio = totalConversations > 0 
+        ? (kbGeneratedDatasets / totalConversations * 100).toFixed(1)
+        : '0.0';
+
+      const jobCompletionRate = totalJobs > 0
+        ? (completedJobs / totalJobs * 100).toFixed(1)
+        : '0.0';
+
+      res.json({
+        overview: {
+          totalConversations,
+          highQualityConversations,
+          avgQualityScore: parseFloat(avgQualityScore.toFixed(1)),
+          kbGeneratedDatasets,
+          totalDatasets,
+          completedJobs,
+          totalJobs
+        },
+        efficiency: {
+          collectionToDatasetRatio: parseFloat(collectionToDatasetRatio),
+          jobCompletionRate: parseFloat(jobCompletionRate),
+          highQualityPercentage: totalConversations > 0 
+            ? parseFloat((highQualityConversations / totalConversations * 100).toFixed(1))
+            : 0
+        },
+        timeline
+      });
+    } catch (error: any) {
+      console.error("Auto-evolution stats error:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 

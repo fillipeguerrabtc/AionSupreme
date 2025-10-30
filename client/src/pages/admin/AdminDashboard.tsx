@@ -19,6 +19,7 @@ import TokenHistoryTab from "./TokenHistoryTab";
 import CostHistoryTab from "./CostHistoryTab";
 import GPUManagementTab from "./GPUManagementTab";
 import FederatedTrainingTab from "./FederatedTrainingTab";
+import AutoEvolutionTab from "./AutoEvolutionTab";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -282,6 +283,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="federated" data-testid="tab-dashboard-federated">
               <Cpu className="w-4 h-4 mr-2" />
               Federated Training
+            </TabsTrigger>
+            <TabsTrigger value="auto-evolution" data-testid="tab-dashboard-auto-evolution">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Auto-Evolution
             </TabsTrigger>
           </TabsList>
 
@@ -635,6 +640,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="federated" className="space-y-6">
             <FederatedTrainingTab />
+          </TabsContent>
+
+          <TabsContent value="auto-evolution" className="space-y-6">
+            <AutoEvolutionTab />
           </TabsContent>
         </Tabs>
       </div>
