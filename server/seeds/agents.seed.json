@@ -1,0 +1,323 @@
+[
+  {
+    "name": "Atendimento",
+    "slug": "attendant",
+    "type": "specialist",
+    "description": "Agente especialista em atendimento e vendas omnichannel",
+    "systemPrompt": "Atue como agente de atendimento e vendas omnichannel. Gerencie conversas em WhatsApp, Messenger, Instagram DM e outros canais. Consulte catálogos de produtos, processe pagamentos, agende compromissos e integre com CRM. Seja proativo, empático e focado em conversão.",
+    "inferenceConfig": {
+      "model": "auto",
+      "temperature": 0.2,
+      "max_tokens": 800
+    },
+    "policy": {
+      "allowedTools": [
+        "whatsapp",
+        "twilio",
+        "facebook_messenger",
+        "instagram_dm",
+        "crm",
+        "catalog",
+        "payments",
+        "calendar",
+        "web_search"
+      ],
+      "allowedNamespaces": [
+        "yyd/text",
+        "produtos/*",
+        "policies/vendas",
+        "faq/*"
+      ],
+      "perRequestBudgetUSD": 0.02,
+      "maxAgentsFanOut": 1,
+      "fallbackHuman": true,
+      "escalationRules": {
+        "lowConfidenceThreshold": 0.6,
+        "negativeSentiment": true
+      }
+    },
+    "ragNamespaces": [
+      "yyd/text",
+      "produtos/*",
+      "faq/*"
+    ],
+    "enabled": true
+  },
+  {
+    "name": "Finanças",
+    "slug": "finance",
+    "type": "specialist",
+    "description": "Agente especialista em gestão financeira e contábil",
+    "systemPrompt": "Gerencie financeiro e contábil: ERP, pagamentos, faturamento, relatórios, conciliação bancária e análise de dados financeiros. Seja preciso, rigoroso e focado em compliance.",
+    "inferenceConfig": {
+      "model": "auto",
+      "temperature": 0.1,
+      "max_tokens": 700
+    },
+    "policy": {
+      "allowedTools": [
+        "erp",
+        "payments",
+        "billing",
+        "invoices",
+        "reports",
+        "sql",
+        "web_search"
+      ],
+      "allowedNamespaces": [
+        "finance/docs",
+        "finance/policies",
+        "finance/reports",
+        "contracts/*"
+      ],
+      "perRequestBudgetUSD": 0.03,
+      "maxAgentsFanOut": 1,
+      "fallbackHuman": true
+    },
+    "ragNamespaces": [
+      "finance/*",
+      "contracts/*"
+    ],
+    "enabled": true
+  },
+  {
+    "name": "Tecnologia",
+    "slug": "tech",
+    "type": "specialist",
+    "description": "Agente especialista em desenvolvimento full-stack, arquitetura e IA",
+    "systemPrompt": "Arquitetura, desenvolvimento full-stack, segurança, dados e IA. Escreva código limpo, documentado e testável. Siga best practices de engenharia de software.",
+    "inferenceConfig": {
+      "model": "auto",
+      "temperature": 0.3,
+      "max_tokens": 1200
+    },
+    "policy": {
+      "allowedTools": [
+        "git",
+        "repo_reader",
+        "codegen",
+        "python",
+        "sql",
+        "k8s",
+        "cloud",
+        "web_search"
+      ],
+      "allowedNamespaces": [
+        "code/*",
+        "architecture/*",
+        "runbooks/*",
+        "security/*",
+        "ai/research"
+      ],
+      "perRequestBudgetUSD": 0.05,
+      "maxAgentsFanOut": 2,
+      "fallbackHuman": true
+    },
+    "ragNamespaces": [
+      "code/*",
+      "architecture/*",
+      "ai/*",
+      "security/*"
+    ],
+    "enabled": true
+  },
+  {
+    "name": "Turismo",
+    "slug": "tourism",
+    "type": "specialist",
+    "description": "Agente especialista em turismo, viagens e experiências",
+    "systemPrompt": "Especialista em experiências e pacotes turísticos. Consulte clima, disponibilidade de hotéis/voos, monte roteiros personalizados e sugira atividades. Seja criativo e inspirador.",
+    "inferenceConfig": {
+      "model": "auto",
+      "temperature": 0.5,
+      "max_tokens": 900
+    },
+    "policy": {
+      "allowedTools": [
+        "catalog",
+        "weather",
+        "calendar",
+        "web_search",
+        "maps"
+      ],
+      "allowedNamespaces": [
+        "turismo/*",
+        "yyd/text",
+        "clima/*",
+        "faq/*"
+      ],
+      "perRequestBudgetUSD": 0.025,
+      "maxAgentsFanOut": 2
+    },
+    "ragNamespaces": [
+      "turismo/*",
+      "yyd/text",
+      "clima/*"
+    ],
+    "enabled": true
+  },
+  {
+    "name": "Automóveis",
+    "slug": "auto",
+    "type": "specialist",
+    "description": "Agente especialista em engenharia automotiva e mercado de veículos",
+    "systemPrompt": "Engenharia automotiva, manutenção, peças e mercado. Analise problemas mecânicos, sugira soluções, consulte catálogos de peças e forneça estimativas de custo.",
+    "inferenceConfig": {
+      "model": "auto",
+      "temperature": 0.3,
+      "max_tokens": 900
+    },
+    "policy": {
+      "allowedTools": [
+        "web_search",
+        "catalog_auto",
+        "parts_db",
+        "images_inspector"
+      ],
+      "allowedNamespaces": [
+        "auto/mechanics",
+        "auto/parts",
+        "auto/manuals",
+        "auto/market"
+      ],
+      "perRequestBudgetUSD": 0.03,
+      "maxAgentsFanOut": 1
+    },
+    "ragNamespaces": [
+      "auto/*"
+    ],
+    "enabled": true
+  },
+  {
+    "name": "Gestão",
+    "slug": "ops",
+    "type": "specialist",
+    "description": "Agente orquestrador de operações e monitoramento",
+    "systemPrompt": "Orquestra a operação: monitora agentes, KPIs, filas, erros e incidentes. Detecte anomalias, sugira otimizações e coordene respostas a incidents.",
+    "inferenceConfig": {
+      "model": "auto",
+      "temperature": 0.2,
+      "max_tokens": 700
+    },
+    "policy": {
+      "allowedTools": [
+        "orchestrator",
+        "monitoring",
+        "incident",
+        "web_search"
+      ],
+      "allowedNamespaces": [
+        "ops/runbooks",
+        "ops/policies",
+        "ops/slas"
+      ],
+      "perRequestBudgetUSD": 0.02,
+      "maxAgentsFanOut": 1,
+      "fallbackHuman": true
+    },
+    "ragNamespaces": [
+      "ops/*"
+    ],
+    "enabled": true
+  },
+  {
+    "name": "Calendário",
+    "slug": "calendar",
+    "type": "specialist",
+    "description": "Agente especialista em agendamentos e sincronização de calendários",
+    "systemPrompt": "Gerencie agendas, reservas e sincronizações com Google Calendar, Outlook, CRM e notificações. Evite conflitos, otimize horários e envie lembretes.",
+    "inferenceConfig": {
+      "model": "auto",
+      "temperature": 0.1,
+      "max_tokens": 600
+    },
+    "policy": {
+      "allowedTools": [
+        "google_calendar",
+        "outlook",
+        "crm",
+        "notifier"
+      ],
+      "allowedNamespaces": [
+        "procedures/agenda",
+        "faq/logistica",
+        "yyd/text"
+      ],
+      "perRequestBudgetUSD": 0.02,
+      "maxAgentsFanOut": 1,
+      "fallbackHuman": true
+    },
+    "ragNamespaces": [
+      "procedures/agenda",
+      "faq/logistica"
+    ],
+    "enabled": true
+  },
+  {
+    "name": "Marketing",
+    "slug": "marketing",
+    "type": "specialist",
+    "description": "Agente especialista em branding, SEO e mídia social",
+    "systemPrompt": "Branding, identidade visual, SEO, social media e geração de conteúdo. Crie posts, otimize páginas, agende publicações e analise métricas. Seja criativo e data-driven.",
+    "inferenceConfig": {
+      "model": "auto",
+      "temperature": 0.6,
+      "max_tokens": 900
+    },
+    "policy": {
+      "allowedTools": [
+        "web",
+        "cms",
+        "seo_audit",
+        "image_gen",
+        "social_scheduler"
+      ],
+      "allowedNamespaces": [
+        "branding/*",
+        "styleguides/*",
+        "seo/*",
+        "yyd/text"
+      ],
+      "perRequestBudgetUSD": 0.03,
+      "maxAgentsFanOut": 2,
+      "fallbackHuman": true
+    },
+    "ragNamespaces": [
+      "branding/*",
+      "seo/*",
+      "yyd/text"
+    ],
+    "enabled": true
+  },
+  {
+    "name": "Auxiliar",
+    "slug": "assistant",
+    "type": "specialist",
+    "description": "Agente executor de tarefas simples e operacionais",
+    "systemPrompt": "Executa tarefas simples sob instrução de outros agentes: preencher planilhas, enviar notificações, atualizar CRM, executar scripts Python. Seja eficiente e preciso.",
+    "inferenceConfig": {
+      "model": "auto",
+      "temperature": 0.3,
+      "max_tokens": 500
+    },
+    "policy": {
+      "allowedTools": [
+        "python",
+        "sheets",
+        "crm",
+        "notifier"
+      ],
+      "allowedNamespaces": [
+        "procedures/*",
+        "templates/*"
+      ],
+      "perRequestBudgetUSD": 0.01,
+      "maxAgentsFanOut": 1
+    },
+    "ragNamespaces": [
+      "procedures/*",
+      "templates/*"
+    ],
+    "enabled": true
+  }
+]

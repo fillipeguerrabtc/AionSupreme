@@ -1,0 +1,36 @@
+
+\documentclass[11pt]{article}
+\usepackage{amsmath, amssymb, amsthm, hyperref, graphicx}
+\title{AION Multi-Agente: Arquitetura, Algoritmos, Provas e Operação Gratuita}
+\author{AION Team}
+\date{\today}
+\begin{document}
+\maketitle
+
+\section{Visão Geral}
+Descrevemos a evolução do AION para uma arquitetura multi-agente, single-tenant, custo zero, com KB única particionada por namespaces, RAG 2-estágios, roteamento MoE e pools horizontais de agentes.
+
+\section{Modelo de Dados}
+Tabelas \texttt{agents}, \texttt{tools}, \texttt{agent\_tools} e \texttt{traces}. Políticas por agente governam ferramentas, namespaces, budgets e fan-out.
+
+\section{RAG 2-Estágios}
+Recall ANN bi-encoder $\rightarrow$ reranker cross-encoder (HF gratuito). Pontuação total:
+\begin{equation}
+s(d\mid q,a)=\alpha s_{\text{embed}}(q,d)+\beta s_{\text{rerank}}(q,d)+\gamma \log P(n(d)\mid a,q).
+\end{equation}
+Propriedade de afinidade: com $\gamma>0$, documentos de namespaces alinhados ao agente são privilegiados na ordem top-$k$.
+
+\section{Roteamento MoE}
+Definimos
+\begin{equation}
+\phi(a\mid q)=\lambda_1 I(q,a)+\lambda_2 R(a,\text{intent}(q))+\lambda_3 U(a)
+\end{equation}
+onde $I$ mede \emph{intentMatch}, $R$ o \emph{successRate} condicional e $U$ a recência/saúde. Seleção top-$p$ com fan-out máximo e orçamento.
+
+\section{Convergência de Custo}
+Com $p<1$ e orçamento fixo, o número de especialistas simultâneos é limitado (fan-out), reduzindo custo esperado sem comprometer qualidade subjetiva.
+
+\section{Orquestração Gratuita}
+Treinos/adapters em Colab/Kaggle (QLoRA 4-bit), modelos/embeddings HF, nenhum serviço pago. Observabilidade via \texttt{traces}.
+
+\end{document}

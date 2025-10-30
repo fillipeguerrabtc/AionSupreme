@@ -9,6 +9,7 @@ import {
   Sparkles,
   FileText,
   Settings as SettingsIcon,
+  Users,
 } from "lucide-react";
 import {
   Sidebar,
@@ -85,6 +86,12 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: FileText,
       value: "datasets",
       testId: "nav-datasets",
+    },
+    {
+      title: t.admin.tabs.agents,
+      icon: Users,
+      value: "agents",
+      testId: "nav-agents",
     },
     {
       title: t.admin.tabs.settings,

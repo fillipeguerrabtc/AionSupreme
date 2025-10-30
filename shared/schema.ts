@@ -1090,3 +1090,124 @@ export const insertTrainingDataCollectionSchema = createInsertSchema(trainingDat
 });
 export type InsertTrainingDataCollection = z.infer<typeof insertTrainingDataCollectionSchema>;
 export type TrainingDataCollection = typeof trainingDataCollection.$inferSelect;
+
+// ============================================================================
+// MULTI-AGENT SYSTEM - Agents, Tools, and Traces
+// ============================================================================
+
+/**
+ * Agents - Specialist agents with scoped knowledge bases and tools
+ * Each agent has:
+ * - Dedicated system prompt and inference config
+ * - Scoped RAG namespaces (e.g., "finance/*", "tech/code/*")
+ * - Allowed tools (e.g., whatsapp, crm, payments)
+ * - Policy controls (budget, fan-out, escalation rules)
+ */
+export const agents = pgTable("agents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  name: varchar("name", { length: 120 }).notNull(),
+  slug: varchar("slug", { length: 120 }).notNull(),
+  type: varchar("type", { length: 32 }).notNull().default("specialist"), // specialist|generalist|router-only
+  description: text("description"),
+  systemPrompt: text("system_prompt"),
+  inferenceConfig: jsonb("inference_config").$type<{
+    model?: string;
+    temperature?: number;
+    top_p?: number;
+    max_tokens?: number;
+    adapterIds?: string[]; // LoRA adapter IDs for custom fine-tuned models
+  }>(),
+  policy: jsonb("policy").$type<{
+    allowedTools?: string[];
+    allowedNamespaces?: string[];
+    perRequestBudgetUSD?: number;
+    maxAgentsFanOut?: number;
+    fallbackHuman?: boolean;
+    escalationRules?: {
+      lowConfidenceThreshold?: number;
+      negativeSentiment?: boolean;
+    };
+  }>(),
+  ragNamespaces: jsonb("rag_namespaces").$type<string[]>(), // Scoped KB namespaces
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertAgentSchema = createInsertSchema(agents).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertAgent = z.infer<typeof insertAgentSchema>;
+export type Agent = typeof agents.$inferSelect;
+
+/**
+ * Tools - External integrations and capabilities
+ * Tools can be assigned to specific agents
+ */
+export const tools = pgTable("tools", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  name: varchar("name", { length: 120 }).notNull(),
+  slug: varchar("slug", { length: 120 }).notNull(),
+  type: varchar("type", { length: 64 }).notNull(), // "whatsapp"|"crm"|"catalog"|"payments"|"calendar"|"web_search"|...
+  config: jsonb("config"),
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertToolSchema = createInsertSchema(tools).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertTool = z.infer<typeof insertToolSchema>;
+export type Tool = typeof tools.$inferSelect;
+
+/**
+ * Agent-Tools mapping (many-to-many)
+ */
+export const agentTools = pgTable("agent_tools", {
+  agentId: varchar("agent_id").notNull().references(() => agents.id),
+  toolId: varchar("tool_id").notNull().references(() => tools.id),
+});
+
+/**
+ * Traces - Multi-agent execution traces for observability
+ * Records router decisions, agents called, costs, and latencies
+ */
+export const traces = pgTable("traces", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  sessionId: varchar("session_id").notNull(),
+  userQuery: text("user_query").notNull(),
+  routerDecision: jsonb("router_decision").$type<{
+    selectedAgents?: { agentId: string; score: number; reason?: string }[];
+    topP?: number;
+    fanOut?: number;
+  }>(),
+  agentsCalled: jsonb("agents_called").$type<{
+    agentId: string;
+    costUSD: number;
+    tokens: { prompt: number; completion: number };
+    latencyMs: number;
+  }[]>(),
+  sources: jsonb("sources").$type<{
+    namespace: string;
+    chunkId: string;
+    score: number;
+  }[]>(),
+  totalCostUSD: real("total_cost_usd"),
+  totalLatencyMs: integer("total_latency_ms"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertTraceSchema = createInsertSchema(traces).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertTrace = z.infer<typeof insertTraceSchema>;
+export type Trace = typeof traces.$inferSelect;

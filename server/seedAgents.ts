@@ -1,0 +1,39 @@
+// server/seedAgents.ts
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { db } from "./db";
+import { agents as agentsTable } from "../shared/schema";
+import { eq } from "drizzle-orm";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+async function seedAgents(tenantId: number) {
+  const seedPath = path.join(__dirname, "seeds", "agents.seed.json");
+  const raw = fs.readFileSync(seedPath, "utf-8");
+  const agents = JSON.parse(raw);
+  
+  console.log(`[seed] Loading ${agents.length} agents for tenant ${tenantId}...`);
+  
+  for (const a of agents) {
+    // Check if agent already exists (by slug)
+    const existing = await db.select().from(agentsTable)
+      .where(eq(agentsTable.slug, a.slug))
+      .limit(1);
+    
+    if (existing.length > 0) {
+      console.log(`[seed] Agent "${a.name}" (${a.slug}) already exists, skipping...`);
+      continue;
+    }
+    
+    await db.insert(agentsTable).values({ ...a, tenantId });
+    console.log(`[seed] ✓ Created agent: ${a.name} (${a.slug})`);
+  }
+  
+  console.log(`[seed] ✓ Agent seeding completed for tenant ${tenantId}`);
+}
+
+// Default to tenant ID 1 (AION Default)
+const tenantId = process.env.SEED_TENANT_ID ? parseInt(process.env.SEED_TENANT_ID, 10) : 1;
+seedAgents(tenantId).then(()=>process.exit(0)).catch(e=>{console.error(e); process.exit(1)});

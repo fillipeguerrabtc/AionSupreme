@@ -1,0 +1,31 @@
+
+\documentclass[11pt]{article}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{hyperref}
+\title{AION Multi-Agente: Arquitetura, Algoritmos e Provas (Alinhado ao Monorepo)}
+\author{AION Team}
+\date{\today}
+\begin{document}
+\maketitle
+
+\section{Princípios}
+Single-Tenant, custo zero (Colab/Kaggle/HF), KB única particionada, RAG 2-estágios e roteamento MoE.
+
+\section{RAG 2-Estágios com Prior por Agente}
+Para consulta $q$, agente $a$, documento $d$ no namespace $n(d)$:
+\begin{equation}
+\text{score}(d\mid q,a)=\alpha s_{\text{embed}}(q,d)+\beta s_{\text{rerank}}(q,d)+\gamma \log P(n(d)\mid a,q).
+\end{equation}
+\subsection*{Propriedade de Afinidade por Domínio}
+Se $P(n\mid a,q)$ aumenta monotonicamente para namespaces apropriados a $a$, então a ordenação top-$k$ favorece documentos do domínio de $a$.
+
+\section{Roteamento MoE}
+\begin{equation}
+\phi(a\mid q)=\lambda_1 \cdot \text{intentMatch}(q,a) + \lambda_2 \cdot \text{successRate}(a,\text{intent}(q)) + \lambda_3 \cdot \text{recency}(a).
+\end{equation}
+Seleção top-$p$ com orçamento e fan-out máximos.
+
+\section{Operação Gratuita}
+Embeddings/modelos HF, treino/adapters em Colab/Kaggle, sem serviços pagos.
+
+\end{document}

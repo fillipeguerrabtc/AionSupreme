@@ -32,6 +32,7 @@ import { DatasetValidator } from "./training/datasets/dataset-validator";
 import { db } from "./db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { trainingDataCollection, datasets, trainingJobs } from "../shared/schema";
+import { registerAgentRoutes } from "./routes/agents";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
@@ -3441,6 +3442,11 @@ export function registerRoutes(app: Express): Server {
 
   // GET /metrics (Prometheus format)
   app.get("/metrics", exportPrometheusMetrics);
+
+  // ========================================================================
+  // MULTI-AGENT SYSTEM - Agent CRUD endpoints
+  // ========================================================================
+  registerAgentRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

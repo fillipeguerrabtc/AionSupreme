@@ -1,0 +1,101 @@
+O que está dentro (mapa rápido)
+DB / Drizzle
+
+shared/schema_agents.ts — novas tabelas: agents, tools, agent_tools, traces.
+
+server/migrations/001_init_agents.sql — migration pronta (inclui pgcrypto).
+
+Server
+
+server/storage.agents.ts — DAO de agentes/ferramentas/traces.
+
+server/agent/registry.ts — carrega agentes por tenant.
+
+server/agent/router.ts — MoE (top-p + fan-out com budget).
+
+server/agent/planner_multi.ts — executa 1–2 especialistas e faz fusão.
+
+server/agent/runtime.ts, server/agent/types.ts — contrato/registro.
+
+server/routes/agents.ts — CRUD /api/agents (Express) para plugar.
+
+server/events.ts — event bus simples.
+
+server/rag/agents-indexer.ts — listeners p/ reindex automático.
+
+server/seeds/agents.seed.json — os 9 agentes que você definiu.
+
+server/seedAgents.ts — script de seed loader.
+
+Client (Admin)
+
+client/src/pages/admin/AgentsPage.tsx — nova página “Agentes”.
+
+client/src/components/agents/AgentForm.tsx — criar/editar (prompt/tools/namespaces/políticas).
+
+client/src/components/agents/AgentTable.tsx — lista/KPIs básicos.
+
+client/src/components/agents/TestBench.tsx — bench para ver trace (placeholder).
+
+Docs & Patches
+
+docs/multi_agent_architecture_expanded.tex — LaTeX expandido (MoE, RAG, custo zero, propriedades).
+
+README_UPGRADE_MULTI_AGENT.md — manual denso com passo a passo.
+
+patches/server_routes.patch — adiciona registerAgentRoutes no seu server/routes.ts.
+
+patches/client_sidebar.patch — adiciona item “Agentes” no AdminSidebar.
+
+Instruções essenciais (resumo do README)
+
+Migração DB
+
+psql "$DATABASE_URL" -f server/migrations/001_init_agents.sql
+
+
+Wire das rotas (API)
+
+Aplique patches/server_routes.patch ou edite manualmente server/routes.ts:
+
+import { registerAgentRoutes } from "./routes/agents";
+export function registerRoutes(app) {
+  // ...
+  registerAgentRoutes(app); // <- Multi-agent CRUD
+}
+
+
+Sidebar (UI)
+
+Aplique patches/client_sidebar.patch ou adicione no AdminSidebar.tsx:
+
+<li><Link href="/admin/agents">Agentes</Link></li>
+
+
+Seeds
+
+SEED_TENANT_ID=<uuid> ts-node server/seedAgents.ts
+
+
+Planner
+
+Troque a chamada atual por:
+
+import { planAndExecute } from "./agent/planner_multi";
+const out = await planAndExecute(
+  { query, history },
+  { tenantId, sessionId, budgetUSD: 0.02 }
+);
+
+
+RAG & Reindex
+
+server/rag/agents-indexer.ts já assina eventos.
+
+Certifique-se de expor rebuildNamespaceIndex(tenantId, namespace) no seu knowledge-indexer.
+
+Single-Tenant / Custo Zero
+
+Sempre envie x-tenant-id nas chamadas.
+
+Use modelos/embeddings HF (grátis) e treinos/adapters via Colab/Kaggle (QLoRA 4-bit).
