@@ -228,6 +228,57 @@ interface Translations {
       };
     };
     
+    // Auto-Evolution
+    autoEvolution: {
+      title: string;
+      subtitle: string;
+      loading: string;
+      
+      overview: {
+        conversationsCollected: string;
+        highQualityNote: string;
+        avgQualityScore: string;
+        aboveThreshold: string;
+        kbGeneratedDatasets: string;
+        totalDatasets: string;
+        trainingJobs: string;
+        completionRate: string;
+      };
+      
+      efficiency: {
+        collectionEfficiency: string;
+        collectionEfficiencyDesc: string;
+        datasetsFrom: string;
+        conversations: string;
+        highQualityRate: string;
+        highQualityRateDesc: string;
+        jobSuccessRate: string;
+        jobSuccessRateDesc: string;
+        jobsCompleted: string;
+      };
+      
+      timeline: {
+        title: string;
+        subtitle: string;
+        conversationsLabel: string;
+        avgScoreLabel: string;
+        noData: string;
+      };
+      
+      systemStatus: {
+        title: string;
+        subtitle: string;
+        conversationCollection: string;
+        active: string;
+        waitingForConversations: string;
+        kbIntegration: string;
+        noDatasetsYet: string;
+        federatedTraining: string;
+        jobsCompleted: string;
+        noJobsYet: string;
+      };
+    };
+    
     // Knowledge Base
     knowledgeBase: {
       title: string;
@@ -572,6 +623,56 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      autoEvolution: {
+        title: "Auto-Evolução",
+        subtitle: "Monitore métricas de aprendizado contínuo e auto-aperfeiçoamento",
+        loading: "Carregando estatísticas de auto-evolução...",
+        
+        overview: {
+          conversationsCollected: "Conversas Coletadas",
+          highQualityNote: "alta qualidade (pontuação ≥ 60)",
+          avgQualityScore: "Pontuação Média de Qualidade",
+          aboveThreshold: "acima do limite",
+          kbGeneratedDatasets: "Datasets Gerados pela KB",
+          totalDatasets: "total de datasets",
+          trainingJobs: "Training Jobs",
+          completionRate: "taxa de conclusão",
+        },
+        
+        efficiency: {
+          collectionEfficiency: "Eficiência de Coleta",
+          collectionEfficiencyDesc: "Conversas convertidas com sucesso em datasets",
+          datasetsFrom: "datasets de",
+          conversations: "conversas",
+          highQualityRate: "Taxa de Alta Qualidade",
+          highQualityRateDesc: "Porcentagem de conversas acima do limite de qualidade",
+          jobSuccessRate: "Taxa de Sucesso dos Jobs",
+          jobSuccessRateDesc: "Training jobs concluídos com sucesso",
+          jobsCompleted: "jobs concluídos",
+        },
+        
+        timeline: {
+          title: "Linha do Tempo de Coleta (Últimos 30 Dias)",
+          subtitle: "Tendências diárias de coleta de conversas e qualidade",
+          conversationsLabel: "Conversas",
+          avgScoreLabel: "Pontuação Média",
+          noData: "Nenhum dado disponível para os últimos 30 dias",
+        },
+        
+        systemStatus: {
+          title: "Status do Sistema de Auto-Evolução",
+          subtitle: "Saúde do pipeline de aprendizado contínuo",
+          conversationCollection: "Coleta de Conversas",
+          active: "Ativo",
+          waitingForConversations: "Aguardando conversas",
+          kbIntegration: "Integração KB",
+          noDatasetsYet: "Nenhum dataset gerado ainda",
+          federatedTraining: "Treinamento Federado",
+          jobsCompleted: "jobs concluídos",
+          noJobsYet: "Nenhum job concluído ainda",
+        },
+      },
+      
       knowledgeBase: {
         title: "Base de Conhecimento",
         subtitle: "Gerencie todos os conhecimentos indexados",
@@ -907,6 +1008,56 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      autoEvolution: {
+        title: "Auto-Evolution",
+        subtitle: "Monitor continuous learning and self-improvement metrics",
+        loading: "Loading auto-evolution stats...",
+        
+        overview: {
+          conversationsCollected: "Conversations Collected",
+          highQualityNote: "high-quality (score ≥ 60)",
+          avgQualityScore: "Avg Quality Score",
+          aboveThreshold: "above threshold",
+          kbGeneratedDatasets: "KB-Generated Datasets",
+          totalDatasets: "total datasets",
+          trainingJobs: "Training Jobs",
+          completionRate: "completion rate",
+        },
+        
+        efficiency: {
+          collectionEfficiency: "Collection Efficiency",
+          collectionEfficiencyDesc: "Conversations successfully converted to datasets",
+          datasetsFrom: "datasets from",
+          conversations: "conversations",
+          highQualityRate: "High-Quality Rate",
+          highQualityRateDesc: "Percentage of conversations above quality threshold",
+          jobSuccessRate: "Job Success Rate",
+          jobSuccessRateDesc: "Training jobs completed successfully",
+          jobsCompleted: "jobs completed",
+        },
+        
+        timeline: {
+          title: "Collection Timeline (Last 30 Days)",
+          subtitle: "Daily conversation collection and quality trends",
+          conversationsLabel: "Conversations",
+          avgScoreLabel: "Avg Score",
+          noData: "No data available for the last 30 days",
+        },
+        
+        systemStatus: {
+          title: "Auto-Evolution System Status",
+          subtitle: "Continuous learning pipeline health",
+          conversationCollection: "Conversation Collection",
+          active: "Active",
+          waitingForConversations: "Waiting for conversations",
+          kbIntegration: "KB Integration",
+          noDatasetsYet: "No datasets generated yet",
+          federatedTraining: "Federated Training",
+          jobsCompleted: "jobs completed",
+          noJobsYet: "No jobs completed yet",
+        },
+      },
+      
       knowledgeBase: {
         title: "Knowledge Base",
         subtitle: "Manage all indexed knowledge",
@@ -1239,6 +1390,56 @@ const translations: Record<Language, Translations> = {
           moreSources: "más fuentes",
           acknowledging: "Reconociendo...",
           viewSources: "Ver Fuentes",
+        },
+      },
+      
+      autoEvolution: {
+        title: "Auto-Evolución",
+        subtitle: "Monitorea métricas de aprendizaje continuo y auto-mejora",
+        loading: "Cargando estadísticas de auto-evolución...",
+        
+        overview: {
+          conversationsCollected: "Conversaciones Recolectadas",
+          highQualityNote: "alta calidad (puntuación ≥ 60)",
+          avgQualityScore: "Puntuación Media de Calidad",
+          aboveThreshold: "por encima del umbral",
+          kbGeneratedDatasets: "Datasets Generados por KB",
+          totalDatasets: "total de datasets",
+          trainingJobs: "Training Jobs",
+          completionRate: "tasa de finalización",
+        },
+        
+        efficiency: {
+          collectionEfficiency: "Eficiencia de Recolección",
+          collectionEfficiencyDesc: "Conversaciones convertidas exitosamente a datasets",
+          datasetsFrom: "datasets de",
+          conversations: "conversaciones",
+          highQualityRate: "Tasa de Alta Calidad",
+          highQualityRateDesc: "Porcentaje de conversaciones por encima del umbral de calidad",
+          jobSuccessRate: "Tasa de Éxito de Jobs",
+          jobSuccessRateDesc: "Training jobs completados exitosamente",
+          jobsCompleted: "jobs completados",
+        },
+        
+        timeline: {
+          title: "Línea de Tiempo de Recolección (Últimos 30 Días)",
+          subtitle: "Tendencias diarias de recolección de conversaciones y calidad",
+          conversationsLabel: "Conversaciones",
+          avgScoreLabel: "Puntuación Media",
+          noData: "No hay datos disponibles para los últimos 30 días",
+        },
+        
+        systemStatus: {
+          title: "Estado del Sistema de Auto-Evolución",
+          subtitle: "Salud del pipeline de aprendizaje continuo",
+          conversationCollection: "Recolección de Conversaciones",
+          active: "Activo",
+          waitingForConversations: "Esperando conversaciones",
+          kbIntegration: "Integración KB",
+          noDatasetsYet: "No se han generado datasets aún",
+          federatedTraining: "Entrenamiento Federado",
+          jobsCompleted: "jobs completados",
+          noJobsYet: "No se han completado jobs aún",
         },
       },
       

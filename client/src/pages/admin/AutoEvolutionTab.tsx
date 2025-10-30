@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Brain, TrendingUp, Zap, CheckCircle, Database, Target } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useLanguage } from "@/lib/i18n";
 
 interface AutoEvolutionStats {
   overview: {
@@ -26,6 +27,7 @@ interface AutoEvolutionStats {
 }
 
 export default function AutoEvolutionTab() {
+  const { t } = useLanguage();
   const { data, isLoading } = useQuery<AutoEvolutionStats>({
     queryKey: ["/api/training/auto-evolution/stats"],
   });
@@ -33,7 +35,7 @@ export default function AutoEvolutionTab() {
   if (isLoading || !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading auto-evolution stats...</div>
+        <div className="text-muted-foreground">{t.admin.autoEvolution.loading}</div>
       </div>
     );
   }
@@ -44,9 +46,9 @@ export default function AutoEvolutionTab() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold">Auto-Evolution Dashboard</h2>
+        <h2 className="text-2xl font-bold">{t.admin.autoEvolution.title}</h2>
         <p className="text-muted-foreground">
-          Monitor continuous learning and self-improvement metrics
+          {t.admin.autoEvolution.subtitle}
         </p>
       </div>
 
@@ -54,7 +56,7 @@ export default function AutoEvolutionTab() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversations Collected</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.admin.autoEvolution.overview.conversationsCollected}</CardTitle>
             <Brain className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -62,14 +64,14 @@ export default function AutoEvolutionTab() {
               {overview.totalConversations.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground">
-              {overview.highQualityConversations} high-quality (score ≥ 60)
+              {overview.highQualityConversations} {t.admin.autoEvolution.overview.highQualityNote}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Quality Score</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.admin.autoEvolution.overview.avgQualityScore}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -77,14 +79,14 @@ export default function AutoEvolutionTab() {
               {overview.avgQualityScore.toFixed(1)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {efficiency.highQualityPercentage.toFixed(1)}% above threshold
+              {efficiency.highQualityPercentage.toFixed(1)}% {t.admin.autoEvolution.overview.aboveThreshold}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">KB-Generated Datasets</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.admin.autoEvolution.overview.kbGeneratedDatasets}</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -92,14 +94,14 @@ export default function AutoEvolutionTab() {
               {overview.kbGeneratedDatasets}
             </div>
             <p className="text-xs text-muted-foreground">
-              {overview.totalDatasets} total datasets
+              {overview.totalDatasets} {t.admin.autoEvolution.overview.totalDatasets}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Training Jobs</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.admin.autoEvolution.overview.trainingJobs}</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -107,7 +109,7 @@ export default function AutoEvolutionTab() {
               {overview.completedJobs} / {overview.totalJobs}
             </div>
             <p className="text-xs text-muted-foreground">
-              {efficiency.jobCompletionRate.toFixed(1)}% completion rate
+              {efficiency.jobCompletionRate.toFixed(1)}% {t.admin.autoEvolution.overview.completionRate}
             </p>
           </CardContent>
         </Card>
@@ -119,10 +121,10 @@ export default function AutoEvolutionTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5" />
-              Collection Efficiency
+              {t.admin.autoEvolution.efficiency.collectionEfficiency}
             </CardTitle>
             <CardDescription>
-              Conversations successfully converted to datasets
+              {t.admin.autoEvolution.efficiency.collectionEfficiencyDesc}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -130,7 +132,7 @@ export default function AutoEvolutionTab() {
               {efficiency.collectionToDatasetRatio.toFixed(1)}%
             </div>
             <div className="mt-2 text-sm text-muted-foreground">
-              {overview.kbGeneratedDatasets} datasets from {overview.totalConversations} conversations
+              {overview.kbGeneratedDatasets} {t.admin.autoEvolution.efficiency.datasetsFrom} {overview.totalConversations} {t.admin.autoEvolution.efficiency.conversations}
             </div>
           </CardContent>
         </Card>
@@ -139,10 +141,10 @@ export default function AutoEvolutionTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              High-Quality Rate
+              {t.admin.autoEvolution.efficiency.highQualityRate}
             </CardTitle>
             <CardDescription>
-              Percentage of conversations above quality threshold
+              {t.admin.autoEvolution.efficiency.highQualityRateDesc}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -150,7 +152,7 @@ export default function AutoEvolutionTab() {
               {efficiency.highQualityPercentage.toFixed(1)}%
             </div>
             <div className="mt-2 text-sm text-muted-foreground">
-              {overview.highQualityConversations} / {overview.totalConversations} conversations
+              {overview.highQualityConversations} / {overview.totalConversations} {t.admin.autoEvolution.efficiency.conversations}
             </div>
           </CardContent>
         </Card>
@@ -159,10 +161,10 @@ export default function AutoEvolutionTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5" />
-              Job Success Rate
+              {t.admin.autoEvolution.efficiency.jobSuccessRate}
             </CardTitle>
             <CardDescription>
-              Training jobs completed successfully
+              {t.admin.autoEvolution.efficiency.jobSuccessRateDesc}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -170,7 +172,7 @@ export default function AutoEvolutionTab() {
               {efficiency.jobCompletionRate.toFixed(1)}%
             </div>
             <div className="mt-2 text-sm text-muted-foreground">
-              {overview.completedJobs} / {overview.totalJobs} jobs completed
+              {overview.completedJobs} / {overview.totalJobs} {t.admin.autoEvolution.efficiency.jobsCompleted}
             </div>
           </CardContent>
         </Card>
@@ -179,9 +181,9 @@ export default function AutoEvolutionTab() {
       {/* Timeline Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Collection Timeline (Last 30 Days)</CardTitle>
+          <CardTitle>{t.admin.autoEvolution.timeline.title}</CardTitle>
           <CardDescription>
-            Daily conversation collection and quality trends
+            {t.admin.autoEvolution.timeline.subtitle}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -222,8 +224,8 @@ export default function AutoEvolutionTab() {
                     return date.toLocaleDateString();
                   }}
                   formatter={(value: number, name: string) => {
-                    if (name === 'count') return [value, 'Conversations'];
-                    if (name === 'avgScore') return [value.toFixed(1), 'Avg Score'];
+                    if (name === 'count') return [value, t.admin.autoEvolution.timeline.conversationsLabel];
+                    if (name === 'avgScore') return [value.toFixed(1), t.admin.autoEvolution.timeline.avgScoreLabel];
                     return [value, name];
                   }}
                 />
@@ -239,7 +241,7 @@ export default function AutoEvolutionTab() {
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-              No data available for the last 30 days
+              {t.admin.autoEvolution.timeline.noData}
             </div>
           )}
         </CardContent>
@@ -248,22 +250,22 @@ export default function AutoEvolutionTab() {
       {/* System Status */}
       <Card>
         <CardHeader>
-          <CardTitle>Auto-Evolution System Status</CardTitle>
+          <CardTitle>{t.admin.autoEvolution.systemStatus.title}</CardTitle>
           <CardDescription>
-            Continuous learning pipeline health
+            {t.admin.autoEvolution.systemStatus.subtitle}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="h-4 w-4 text-primary" />
-              <span className="font-medium">Conversation Collection</span>
+              <span className="font-medium">{t.admin.autoEvolution.systemStatus.conversationCollection}</span>
             </div>
             <div className="text-sm text-muted-foreground">
               {overview.totalConversations > 0 ? (
-                <span className="text-primary font-medium">Active</span>
+                <span className="text-primary font-medium">{t.admin.autoEvolution.systemStatus.active}</span>
               ) : (
-                <span>Waiting for conversations</span>
+                <span>{t.admin.autoEvolution.systemStatus.waitingForConversations}</span>
               )}
             </div>
           </div>
@@ -271,13 +273,13 @@ export default function AutoEvolutionTab() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Database className="h-4 w-4 text-primary" />
-              <span className="font-medium">KB Integration</span>
+              <span className="font-medium">{t.admin.autoEvolution.systemStatus.kbIntegration}</span>
             </div>
             <div className="text-sm text-muted-foreground">
               {overview.kbGeneratedDatasets > 0 ? (
-                <span className="text-primary font-medium">Active</span>
+                <span className="text-primary font-medium">{t.admin.autoEvolution.systemStatus.active}</span>
               ) : (
-                <span>No datasets generated yet</span>
+                <span>{t.admin.autoEvolution.systemStatus.noDatasetsYet}</span>
               )}
             </div>
           </div>
@@ -285,15 +287,15 @@ export default function AutoEvolutionTab() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" />
-              <span className="font-medium">Federated Training</span>
+              <span className="font-medium">{t.admin.autoEvolution.systemStatus.federatedTraining}</span>
             </div>
             <div className="text-sm text-muted-foreground">
               {overview.completedJobs > 0 ? (
                 <span className="text-primary font-medium">
-                  {overview.completedJobs} jobs completed
+                  {overview.completedJobs} {t.admin.autoEvolution.systemStatus.jobsCompleted}
                 </span>
               ) : (
-                <span>No jobs completed yet</span>
+                <span>{t.admin.autoEvolution.systemStatus.noJobsYet}</span>
               )}
             </div>
           </div>
