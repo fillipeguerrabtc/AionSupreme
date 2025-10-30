@@ -14,6 +14,12 @@ AION operates in **single-tenant mode** for simplified deployment and cost optim
 ### UI/UX
 The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses Radix UI with shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired custom design system featuring HSL-based colors and Inter/JetBrains Mono fonts. It includes a conversational chat interface with persistent memory and an **Admin Dashboard with Enterprise Sidebar Navigation** (Shadcn Sidebar) for policy and metrics management across 11 major sections with multi-language support (PT-BR, EN-US, ES-ES).
 
+**Admin Dashboard Layout Architecture:**
+- **Global Header**: Fixed at the top (z-50, sticky), always visible above everything. Contains AionLogo (h-8 w-8) + "AION" branding (text-2xl gradient-text), navigation buttons, and language selector (text-only, no emojis: "Português (BR)", "English (US)", "Español (ES)").
+- **Sidebar**: Shadcn Sidebar component positioned below the global header, extends to full remaining height. Features collapsible behavior (icon mode) independent of header state.
+- **Layout Hierarchy**: `<header global> → <SidebarProvider> → <AdminSidebar> + <SidebarInset with subheader + main content>`. Header remains fixed while sidebar collapses/expands independently.
+- **Design System**: Glassmorphism effects (glass, glass-premium classes), subtle borders (border-white/10), gradient text, consistent spacing, and professional visual hierarchy.
+
 ### Technical Implementations
 **Backend (Node.js + TypeScript):**
 - **Framework**: Express.js with TypeScript.
