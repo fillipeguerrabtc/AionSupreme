@@ -50,6 +50,15 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **Free GPU Training**: Automatic rotation between Google Colab and Kaggle for LoRA fine-tuning (Mistral 7B, Llama 3 8B, Phi-3).
 - **Multi-GPU Pool System**: Manages GPU workers for distributed training and inference, including health checks, load balancing, and auto-registration.
 
+**Continuous Auto-Evolution System:**
+- **Automatic Training Data Collection**: High-quality conversations (score ≥ 60, ≥ 4 messages, ≥ 100 tokens) are automatically collected after each assistant response.
+- **Quality Metrics**: Calculates scores based on message count, token count, latency, provider diversity, tool usage, and attachments.
+- **Enhanced JSONL Format**: Includes conversation context (last 3 exchanges), tool execution results with arguments, system prompt, and full message history for instruction tuning.
+- **KB → Training Integration**: Conversations are indexed into Knowledge Base for immediate reuse, then collected for long-term model fine-tuning.
+- **Dataset Management**: Admin dashboard for uploading custom datasets (JSONL, CSV, TXT), validation, quality scoring, and approval workflow.
+- **Federated Learning**: Multi-GPU distributed training system with automatic chunk splitting, worker registration, gradient aggregation via FedAvg algorithm.
+- **Tenant Isolation**: All training data collection respects multi-tenant boundaries with Zod validation and authorization checks.
+
 ### System Design Choices
 - **Multi-tenancy**: Complete isolation of data and policies per tenant.
 - **Externalized Policies**: JSON configurations for dynamic updates.
