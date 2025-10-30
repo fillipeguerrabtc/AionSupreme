@@ -77,6 +77,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Set production environment
 ENV NODE_ENV=production
 ENV PORT=5000
+ENV TZ=America/Sao_Paulo
 
 # Start application
 CMD ["node", "dist/index.js"]

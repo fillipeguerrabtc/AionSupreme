@@ -156,6 +156,7 @@ Políticas configuráveis em tempo de execução por inquilino:
 ### Backend
 - **Node.js** + TypeScript + Express
 - **PostgreSQL** (Neon serverless) + Drizzle ORM
+- **Timezone**: America/Sao_Paulo (Brasília, Brasil) para cálculos precisos de datas locais
 - **API OpenAI** (GPT-4, embeddings)
 - **DuckDuckGo** (busca web via scraping HTML)
 

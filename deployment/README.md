@@ -361,6 +361,17 @@ export OPEN_ROUTER_API_KEY="sk-or-v1-..."
 export SESSION_SECRET=$(openssl rand -hex 32)
 ```
 
+### Timezone Configuration
+```bash
+# AION uses America/Sao_Paulo (Brasília, Brazil) timezone
+# This is automatically configured in:
+# - server/index.ts (process.env.TZ)
+# - server/db.ts (PostgreSQL session)
+# - Dockerfile (ENV TZ)
+# 
+# No manual configuration needed - system uses Brasília time by default
+```
+
 ---
 
 ## ☁️ Google Cloud Run Deployment

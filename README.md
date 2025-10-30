@@ -155,7 +155,8 @@ Runtime-configurable policies per tenant:
 
 ### Backend
 - **Node.js** + TypeScript + Express
-- **PostgreSQL** (Neon serverless) + Drizzle ORM
+- **PostgreSQL** (Neon serverless) + Drizzle ORM  
+- **Timezone**: America/Sao_Paulo (Brasília, Brazil) for accurate local date calculations
 - **OpenAI API** (GPT-4, embeddings)
 - **DuckDuckGo** (web search via HTML scraping)
 

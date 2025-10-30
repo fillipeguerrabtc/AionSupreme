@@ -2655,7 +2655,7 @@ export function registerRoutes(app: Express): Server {
         .select({ avg: sql<number>`avg(${trainingDataCollection.autoQualityScore})::numeric` })
         .from(trainingDataCollection)
         .where(eq(trainingDataCollection.tenantId, tenantId));
-      const avgQualityScore = parseFloat(avgScoreResult[0]?.avg || '0');
+      const avgQualityScore = parseFloat(String(avgScoreResult[0]?.avg || 0));
 
       // Datasets generated from KB (check description for "Auto-generated")
       const kbDatasetsResult = await db

@@ -234,9 +234,12 @@ export default function TokenMonitoring() {
     }
   });
 
-  // Professional date formatting
+  // Professional date formatting (timezone-aware for Brasília)
   const formatDate = (dateStr: string, period: number) => {
-    const date = new Date(dateStr);
+    // Parse as local date (not UTC) by adding time component
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    
     if (period === 1) {
       // For 1 day, show hour (but we only have daily data)
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -252,11 +255,13 @@ export default function TokenMonitoring() {
     }
   };
 
-  // Custom tooltip formatter
+  // Custom tooltip formatter (timezone-aware for Brasília)
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null;
 
-    const date = new Date(label);
+    // Parse as local date (not UTC) to match Brasília timezone
+    const [year, month, day] = label.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
     const formattedDate = date.toLocaleDateString('en-US', {
       weekday: 'short',
       year: 'numeric',
