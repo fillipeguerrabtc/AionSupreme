@@ -94,6 +94,208 @@ Complete guide for deploying AION to Google Cloud Run and AWS Fargate with autom
 
 ---
 
+## 🆓 Free Account Setup Guide
+
+### Google Cloud Platform (GCP) - $300 Free Credits
+
+**Step 1: Create Google Account**
+1. Go to [accounts.google.com](https://accounts.google.com)
+2. Click "Create account" → "For myself"
+3. Fill in your details (name, email, password)
+4. Verify your phone number
+5. Complete account setup
+
+**Step 2: Activate GCP Free Trial**
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Click "Activate" on the free trial banner
+3. Select your country
+4. Accept Terms of Service
+5. **Billing Information**:
+   - Add a credit/debit card (won't be charged during free trial)
+   - Choose "Individual" account type
+   - Click "Start my free trial"
+
+**Step 3: Create AION Project**
+1. In GCP Console, click project dropdown (top left)
+2. Click "New Project"
+3. Name: `aion-ai-prod`
+4. Click "Create"
+5. Wait for project creation (~30 seconds)
+
+**Step 4: Enable Required APIs**
+```bash
+# Enable Cloud Run API
+gcloud services enable run.googleapis.com
+
+# Enable Container Registry
+gcloud services enable containerregistry.googleapis.com
+
+# Enable Secret Manager
+gcloud services enable secretmanager.googleapis.com
+```
+
+**Verification:**
+```bash
+# Check project ID
+gcloud config get-value project
+
+# Should output: aion-ai-prod
+```
+
+**Free Tier Limits (Always Free):**
+- ✅ 2 million Cloud Run requests/month
+- ✅ 360,000 vCPU-seconds/month
+- ✅ 180,000 GiB-seconds/month
+- ✅ Scale to zero (no charge when idle)
+
+---
+
+### Amazon Web Services (AWS) - 12 Months Free
+
+**Step 1: Create AWS Account**
+1. Go to [aws.amazon.com/free](https://aws.amazon.com/free)
+2. Click "Create a Free Account"
+3. Enter email address and account name
+4. Choose "Personal" account type
+5. Complete contact information
+
+**Step 2: Billing Information**
+1. Add credit/debit card (required for verification)
+2. Complete identity verification:
+   - Enter phone number
+   - Receive and enter verification code
+3. Select "Basic Support - Free" plan
+4. Click "Complete sign up"
+
+**Step 3: Sign In to Console**
+1. Go to [console.aws.amazon.com](https://console.aws.amazon.com)
+2. Sign in with your email and password (root account)
+3. Wait for account activation (~24 hours max)
+   - You'll receive email: "Welcome to Amazon Web Services"
+
+**Step 4: Create IAM User (Best Practice - Using Console)**
+
+**Why?** Never use root account for daily operations. Create an IAM admin user instead.
+
+1. In AWS Console, search for "IAM" and click on it
+2. Click "Users" in left sidebar
+3. Click "Create user" button
+4. **User details**:
+   - Username: `aion-deployer`
+   - Check "Provide user access to the AWS Management Console - optional" if you want console access too
+   - Click "Next"
+5. **Set permissions**:
+   - Select "Attach policies directly"
+   - Search for "AdministratorAccess"
+   - Check the box next to "AdministratorAccess"
+   - Click "Next"
+6. **Review and create**:
+   - Review settings
+   - Click "Create user"
+7. **Important**: Click "Download .csv" to save credentials
+   - Contains: Access Key ID and Secret Access Key
+   - Save this file securely - you can't retrieve the secret key again!
+
+**Step 5: Configure AWS CLI**
+```bash
+# Configure CLI with IAM user credentials
+aws configure
+
+# Enter values from the CSV file you downloaded:
+# - AWS Access Key ID: (from CSV)
+# - AWS Secret Access Key: (from CSV)
+# - Default region: us-east-1
+# - Default output format: json
+```
+
+**Verification:**
+```bash
+# Test credentials
+aws sts get-caller-identity
+
+# Should show your account details
+```
+
+**Free Tier Limits (12 Months):**
+- ✅ 750 hours/month of t2.micro/t3.micro EC2 instances
+- ⚠️ Fargate NOT included in free tier (expect ~$30/month)
+- ✅ 5GB S3 storage
+- ✅ 1 million Lambda requests
+
+**Cost Warning:**
+AWS Fargate is NOT free. Expected cost: ~$30/month for minimal deployment.
+Use GCP as primary to stay within free tier!
+
+---
+
+### Neon Database - Free PostgreSQL
+
+**Step 1: Create Neon Account**
+1. Go to [neon.tech](https://neon.tech)
+2. Click "Sign Up"
+3. Choose sign-up method:
+   - GitHub (recommended - fastest)
+   - Google
+   - Email
+
+**Step 2: Create Project**
+1. After login, click "New Project"
+2. Name: `aion-production`
+3. Region: `US East (Ohio)` or closest to you
+4. PostgreSQL version: `16` (latest)
+5. Click "Create Project"
+
+**Step 3: Get Connection String**
+1. In project dashboard, click "Connection Details"
+2. Copy the connection string:
+   ```
+   postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/aion?sslmode=require
+   ```
+3. Save this securely - you'll need it for deployment
+
+**Step 4: Configure Database**
+```bash
+# Set environment variable
+export DATABASE_URL="postgresql://user:password@ep-xxx.us-east-2.aws.neon.tech/aion?sslmode=require"
+
+# Initialize database schema
+npm run db:push
+```
+
+**Free Tier Limits (Forever Free):**
+- ✅ 0.5 GB storage
+- ✅ 10 GB egress/month
+- ✅ Auto-suspend after 5 minutes idle
+- ✅ Unlimited projects
+- ✅ 10 branches per project
+
+**Important Notes:**
+- Database auto-suspends when idle (saves costs)
+- First query after suspend may be slower (~1-2 seconds cold start)
+- Shared database across both clouds (GCP + AWS)
+
+---
+
+## 💡 Quick Start Checklist
+
+After setting up all accounts, verify you have:
+
+- [ ] GCP account with $300 credits activated
+- [ ] GCP project `aion-ai-prod` created
+- [ ] Cloud Run API enabled in GCP
+- [ ] `gcloud` CLI installed and configured
+- [ ] AWS account created and verified
+- [ ] IAM user with admin access created
+- [ ] AWS CLI installed and configured
+- [ ] Neon account created
+- [ ] Neon project `aion-production` created
+- [ ] DATABASE_URL saved securely
+- [ ] Docker installed and running
+
+**Ready to deploy?** Continue to "Database Setup (Neon)" section below.
+
+---
+
 ## 💾 Database Setup (Neon)
 
 ### Step 1: Create Neon Account
