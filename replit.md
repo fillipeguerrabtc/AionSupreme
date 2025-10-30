@@ -18,6 +18,7 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 **Backend (Node.js + TypeScript):**
 - **Framework**: Express.js with TypeScript.
 - **Database**: PostgreSQL via Drizzle ORM (Neon serverless).
+- **Timezone**: **America/Sao_Paulo (Brasília, Brazil)** - All date calculations use Brazilian timezone for accurate "today" and "this month" tracking.
 - **Core Services**: LLM Client, Storage Layer, RAG Service, Agent Engine (ReAct with POMDP), Policy Enforcement, Automatic Fallback, Multimodal Processor, Web Content Discovery (SearchVideos, SearchImages, SearchWeb, TorSearch), Free LLM Providers rotation, GPU Orchestrator, Training Data Collector, Token Monitoring System.
 - **Authentication**: Replit Auth (OpenID Connect).
 - **Multilingual Support**: LLM-based dynamic language detection and response generation.
@@ -59,7 +60,7 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **Dataset Management**: Admin dashboard for uploading custom datasets (JSONL, CSV, TXT), validation, quality scoring, and approval workflow. Supports both manual uploads and KB auto-generation with unified UI.
 - **Federated Learning**: Multi-GPU distributed training system with automatic chunk splitting, worker registration, gradient aggregation via FedAvg algorithm. Dataset selector includes KB-auto and KB-high-quality options alongside uploaded datasets.
 - **Data Isolation**: All training data collection uses default tenantId=1 for single-tenant deployments. Schema supports multi-tenant expansion if needed in future.
-- **Token Monitoring Dashboard**: Real-time tracking of token usage with UTC-aligned queries, preventing timezone mismatches. Includes today/month/all-time aggregation with per-provider breakdown and cost estimates.
+- **Token Monitoring Dashboard**: Enterprise-grade real-time tracking of token usage with **America/Sao_Paulo (Brasília) timezone** for accurate local date calculations. Includes today/month/all-time aggregation with per-provider breakdown, cost estimates, custom date ranges, professional chart visualization with zero-filled timelines, and comprehensive analytics.
 
 **Multi-Cloud Deployment (100% Free Tier):**
 - **Architecture**: Dual deployment on Google Cloud Run + AWS Fargate with shared Neon PostgreSQL database.
