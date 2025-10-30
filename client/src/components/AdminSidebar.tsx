@@ -11,6 +11,7 @@ import {
   Settings as SettingsIcon,
   Users,
   ClipboardCheck,
+  FolderTree,
 } from "lucide-react";
 import {
   Sidebar,
@@ -99,6 +100,12 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: ClipboardCheck,
       value: "curation",
       testId: "nav-curation",
+    },
+    {
+      title: "Namespaces",
+      icon: FolderTree,
+      value: "namespaces",
+      testId: "nav-namespaces",
     },
     {
       title: t.admin.tabs.settings,

@@ -32,6 +32,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AdminSidebar } from "@/components/AdminSidebar";
 import AgentsPage from "./AgentsPage";
 import CurationQueuePage from "./CurationQueuePage";
+import NamespacesPage from "./NamespacesPage";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -753,6 +754,12 @@ export default function AdminDashboard() {
               {activeTab === "curation" && (
                 <div className="space-y-6">
                   <CurationQueuePage />
+                </div>
+              )}
+
+              {activeTab === "namespaces" && (
+                <div className="space-y-6">
+                  <NamespacesPage />
                 </div>
               )}
 

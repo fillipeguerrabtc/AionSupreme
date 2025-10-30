@@ -71,7 +71,7 @@ export function registerNamespaceRoutes(app: Express) {
 
       const [newNamespace] = await db
         .insert(namespaces)
-        .values(validatedData as InsertNamespace & { tenantId: number })
+        .values([validatedData as InsertNamespace & { tenantId: number }])
         .returning();
 
       res.status(201).json(newNamespace);
@@ -116,12 +116,14 @@ export function registerNamespaceRoutes(app: Express) {
       const updateSchema = insertNamespaceSchema.partial();
       const validatedData = updateSchema.parse(req.body);
 
+      const updateData: any = {
+        ...validatedData,
+        updatedAt: new Date(),
+      };
+
       const [updatedNamespace] = await db
         .update(namespaces)
-        .set({
-          ...validatedData,
-          updatedAt: new Date(),
-        })
+        .set(updateData)
         .where(eq(namespaces.id, id))
         .returning();
 
