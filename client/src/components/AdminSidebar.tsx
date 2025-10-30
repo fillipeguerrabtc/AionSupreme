@@ -10,6 +10,7 @@ import {
   FileText,
   Settings as SettingsIcon,
   Users,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -92,6 +93,12 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: Users,
       value: "agents",
       testId: "nav-agents",
+    },
+    {
+      title: t.admin.tabs.curation,
+      icon: ClipboardCheck,
+      value: "curation",
+      testId: "nav-curation",
     },
     {
       title: t.admin.tabs.settings,

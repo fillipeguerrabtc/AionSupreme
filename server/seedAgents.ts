@@ -10,9 +10,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function seedAgents(tenantId: number) {
+  // Load main agents
   const seedPath = path.join(__dirname, "seeds", "agents.seed.json");
   const raw = fs.readFileSync(seedPath, "utf-8");
-  const agents = JSON.parse(raw);
+  const mainAgents = JSON.parse(raw);
+  
+  // Load curator agents
+  const curatorPath = path.join(__dirname, "seeds", "curators.seed.json");
+  const curatorRaw = fs.readFileSync(curatorPath, "utf-8");
+  const curatorAgents = JSON.parse(curatorRaw);
+  
+  // Combine all agents
+  const agents = [...mainAgents, ...curatorAgents];
   
   console.log(`[seed] Loading ${agents.length} agents for tenant ${tenantId}...`);
   

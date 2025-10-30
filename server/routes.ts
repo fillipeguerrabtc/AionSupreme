@@ -33,6 +33,8 @@ import { db } from "./db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { trainingDataCollection, datasets, trainingJobs } from "../shared/schema";
 import { registerAgentRoutes } from "./routes/agents";
+import { registerCurationRoutes } from "./routes/curation";
+import { registerKbPromoteRoutes } from "./routes/kb_promote";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
@@ -47,6 +49,13 @@ export function registerRoutes(app: Express): Server {
   
   // Seed database on startup
   seedDatabase().catch(console.error);
+
+  // Register multi-agent routes
+  registerAgentRoutes(app);
+  
+  // Register curation routes (HITL)
+  registerCurationRoutes(app);
+  registerKbPromoteRoutes(app);
 
   // ========================================
   // HEALTH CHECK ENDPOINTS (for multi-cloud deployment)

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "curator-ai-001",
+    "name": "Curador de Conhecimento",
+    "slug": "curador-ia",
+    "type": "specialist",
+    "description": "Agente especialista em classificação e organização de conhecimento. Analisa conteúdo, sugere namespaces e detecta duplicatas.",
+    "systemPrompt": "Você é o Curador de Conhecimento, responsável pela governança centralizada da Knowledge Base. Suas responsabilidades incluem:\n\n1. **Análise de Conteúdo**: Examinar novos documentos e classificá-los semanticamente\n2. **Sugestão de Namespaces**: Identificar os namespaces mais apropriados para cada conteúdo\n3. **Detecção de Duplicatas**: Verificar se o conteúdo já existe na KB\n4. **Geração de Tags**: Criar tags relevantes para facilitar busca e organização\n5. **Controle de Qualidade**: Avaliar a qualidade e relevância do conteúdo\n\nPrincípios:\n- Nunca publique conteúdo diretamente; sempre envie para fila de curadoria\n- Priorize precisão sobre velocidade na classificação\n- Use análise semântica para sugerir namespaces\n- Mantenha consistência na taxonomia da KB",
+    "enabled": true,
+    "ragNamespaces": ["*"],
+    "allowedTools": ["kb_search", "kb_writer", "kb_classifier"],
+    "policy": {
+      "allowedNamespaces": ["curation/*", "*"],
+      "allowedNamespacesReadOnly": ["*"],
+      "allowedTools": ["kb_search", "kb_writer", "kb_classifier", "web_search"],
+      "perRequestBudgetUSD": 0.01,
+      "maxAgentsFanOut": 1,
+      "fallbackHuman": true
+    },
+    "budgetLimit": 10.0,
+    "escalationAgent": null,
+    "inferenceConfig": {
+      "temperature": 0.3,
+      "maxTokens": 1500
+    },
+    "metadata": {
+      "role": "curator",
+      "category": "governance",
+      "priority": "high",
+      "capabilities": ["classification", "tagging", "duplicate_detection", "namespace_suggestion"]
+    }
+  },
+  {
+    "id": "curator-executive-001",
+    "name": "Curador Executivo",
+    "slug": "curador-executivo",
+    "type": "specialist",
+    "description": "Responsável por revisão humana e aprovação final de conteúdo antes da publicação. Garante qualidade e conformidade.",
+    "systemPrompt": "Você é o Curador Executivo, a camada final de aprovação humana para publicação de conteúdo na Knowledge Base.\n\nSuas responsabilidades:\n\n1. **Revisão de Qualidade**: Avaliar se o conteúdo atende aos padrões de qualidade\n2. **Validação de Metadados**: Verificar se título, tags e namespaces estão corretos\n3. **Aprovação/Rejeição**: Decidir se o conteúdo deve ser publicado ou rejeitado\n4. **Edição Fina**: Fazer ajustes finais em metadados antes da publicação\n5. **Auditoria**: Registrar decisões de aprovação/rejeição para compliance\n\nPrincípios:\n- SEMPRE requer interação humana antes de publicar\n- Documente o motivo de cada rejeição\n- Mantenha consistência nos critérios de aprovação\n- Priorize qualidade sobre quantidade\n- Siga as políticas de governança do tenant",
+    "enabled": true,
+    "ragNamespaces": ["*"],
+    "allowedTools": ["kb_search"],
+    "policy": {
+      "allowedNamespaces": ["curation/*"],
+      "allowedNamespacesReadOnly": ["*"],
+      "allowedTools": ["kb_search"],
+      "perRequestBudgetUSD": 0.005,
+      "maxAgentsFanOut": 1,
+      "fallbackHuman": true,
+      "requireHumanApproval": true
+    },
+    "budgetLimit": 5.0,
+    "escalationAgent": null,
+    "inferenceConfig": {
+      "temperature": 0.2,
+      "maxTokens": 1000
+    },
+    "metadata": {
+      "role": "curator_executive",
+      "category": "governance",
+      "priority": "critical",
+      "capabilities": ["human_review", "approval", "rejection", "quality_control"]
+    }
+  }
+]

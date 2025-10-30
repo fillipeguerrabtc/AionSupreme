@@ -25,6 +25,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Users } from "lucide-react";
+import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
+import { getNamespaceLabel } from "@shared/namespaces";
 
 type Agent = {
   id: string;
@@ -42,6 +44,20 @@ export default function AgentsPage() {
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  
+  // Create form state
+  const [createName, setCreateName] = useState("");
+  const [createSlug, setCreateSlug] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createPrompt, setCreatePrompt] = useState("");
+  const [createNamespaces, setCreateNamespaces] = useState<string[]>([]);
+  
+  // Edit form state
+  const [editName, setEditName] = useState("");
+  const [editSlug, setEditSlug] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editPrompt, setEditPrompt] = useState("");
+  const [editNamespaces, setEditNamespaces] = useState<string[]>([]);
   
   // Fetch agents
   const { data: agents = [], isLoading } = useQuery<Agent[]>({
@@ -62,6 +78,11 @@ export default function AgentsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
       toast({ title: "Agente criado com sucesso!" });
       setIsCreateOpen(false);
+      setCreateName("");
+      setCreateSlug("");
+      setCreateDescription("");
+      setCreatePrompt("");
+      setCreateNamespaces([]);
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao criar agente", description: error.message, variant: "destructive" });
@@ -106,16 +127,39 @@ export default function AgentsPage() {
     },
   });
 
-  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
     createMutation.mutate({
-      name: formData.get("name") as string,
-      slug: formData.get("slug") as string,
+      name: createName,
+      slug: createSlug,
       type: "specialist",
-      description: formData.get("description") as string,
-      systemPrompt: formData.get("systemPrompt") as string,
+      description: createDescription || undefined,
+      systemPrompt: createPrompt || undefined,
+      ragNamespaces: createNamespaces,
       enabled: true,
+    });
+  };
+
+  const handleEdit = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setEditName(agent.name);
+    setEditSlug(agent.slug);
+    setEditDescription(agent.description || "");
+    setEditPrompt(agent.systemPrompt || "");
+    setEditNamespaces(agent.ragNamespaces || []);
+  };
+
+  const handleSaveEdit = () => {
+    if (!selectedAgent) return;
+    updateMutation.mutate({
+      id: selectedAgent.id,
+      data: {
+        name: editName,
+        slug: editSlug,
+        description: editDescription || undefined,
+        systemPrompt: editPrompt || undefined,
+        ragNamespaces: editNamespaces,
+      },
     });
   };
 
@@ -138,7 +182,7 @@ export default function AgentsPage() {
               Criar Agente
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Criar Novo Agente</DialogTitle>
               <DialogDescription>
@@ -148,26 +192,63 @@ export default function AgentsPage() {
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Nome</Label>
-                  <Input id="name" name="name" required data-testid="input-agent-name" />
+                  <Label htmlFor="name">Nome do Agente</Label>
+                  <Input 
+                    id="name" 
+                    value={createName}
+                    onChange={(e) => setCreateName(e.target.value)}
+                    required 
+                    placeholder="Ex: Especialista em Finanças"
+                    data-testid="input-agent-name" 
+                  />
                 </div>
                 <div>
-                  <Label htmlFor="slug">Slug</Label>
-                  <Input id="slug" name="slug" required data-testid="input-agent-slug" />
+                  <Label htmlFor="slug">
+                    Slug (identificador único)
+                    <span className="text-muted-foreground text-xs ml-2">Ex: financas-empresa-x</span>
+                  </Label>
+                  <Input 
+                    id="slug" 
+                    value={createSlug}
+                    onChange={(e) => setCreateSlug(e.target.value)}
+                    required 
+                    placeholder="identificador-unico"
+                    data-testid="input-agent-slug" 
+                  />
                 </div>
               </div>
               <div>
                 <Label htmlFor="description">Descrição</Label>
-                <Input id="description" name="description" data-testid="input-agent-description" />
+                <Input 
+                  id="description" 
+                  value={createDescription}
+                  onChange={(e) => setCreateDescription(e.target.value)}
+                  placeholder="Breve descrição do agente"
+                  data-testid="input-agent-description" 
+                />
               </div>
               <div>
                 <Label htmlFor="systemPrompt">System Prompt</Label>
                 <Textarea
                   id="systemPrompt"
-                  name="systemPrompt"
+                  value={createPrompt}
+                  onChange={(e) => setCreatePrompt(e.target.value)}
                   rows={5}
+                  placeholder="Instruções e personalidade do agente..."
                   data-testid="input-agent-prompt"
                 />
+              </div>
+              <div>
+                <Label>Namespaces (áreas de conhecimento)</Label>
+                <NamespaceSelector 
+                  value={createNamespaces} 
+                  onChange={setCreateNamespaces}
+                  placeholder="Selecione ou crie namespaces customizados"
+                  allowCustom={true}
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Selecione namespaces existentes ou crie novos no formato: categoria/subcategoria
+                </p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
@@ -217,10 +298,10 @@ export default function AgentsPage() {
                     </TableCell>
                     <TableCell>{agent.type}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1 flex-wrap">
+                      <div className="flex gap-1 flex-wrap max-w-xs">
                         {agent.ragNamespaces?.slice(0, 2).map((ns, i) => (
-                          <Badge key={i} variant="outline" className="text-xs">
-                            {ns}
+                          <Badge key={i} variant="outline" className="text-xs font-mono">
+                            {getNamespaceLabel(ns)}
                           </Badge>
                         ))}
                         {agent.ragNamespaces && agent.ragNamespaces.length > 2 && (
@@ -240,7 +321,7 @@ export default function AgentsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => setSelectedAgent(agent)}
+                          onClick={() => handleEdit(agent)}
                           data-testid={`button-edit-${agent.id}`}
                         >
                           <Edit className="w-4 h-4" />
@@ -266,7 +347,7 @@ export default function AgentsPage() {
 
       {/* Edit Agent Dialog */}
       <Dialog open={selectedAgent !== null} onOpenChange={(open) => !open && setSelectedAgent(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Agente</DialogTitle>
             <DialogDescription>
@@ -274,35 +355,25 @@ export default function AgentsPage() {
             </DialogDescription>
           </DialogHeader>
           {selectedAgent && (
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const data = {
-                name: formData.get('name') as string,
-                slug: formData.get('slug') as string,
-                description: formData.get('description') as string || null,
-                systemPrompt: formData.get('systemPrompt') as string || null,
-              };
-              updateMutation.mutate({ id: selectedAgent.id, data });
-            }} className="space-y-4">
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="edit-name">Nome</Label>
+                  <Label htmlFor="edit-name">Nome do Agente</Label>
                   <Input 
                     id="edit-name" 
-                    name="name" 
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
                     required 
-                    defaultValue={selectedAgent.name}
                     data-testid="input-agent-name" 
                   />
                 </div>
                 <div>
-                  <Label htmlFor="edit-slug">Slug</Label>
+                  <Label htmlFor="edit-slug">Slug (identificador único)</Label>
                   <Input 
                     id="edit-slug" 
-                    name="slug" 
+                    value={editSlug}
+                    onChange={(e) => setEditSlug(e.target.value)}
                     required 
-                    defaultValue={selectedAgent.slug}
                     data-testid="input-agent-slug" 
                   />
                 </div>
@@ -311,8 +382,8 @@ export default function AgentsPage() {
                 <Label htmlFor="edit-description">Descrição</Label>
                 <Input 
                   id="edit-description" 
-                  name="description" 
-                  defaultValue={selectedAgent.description || ''}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
                   data-testid="input-agent-description" 
                 />
               </div>
@@ -320,21 +391,37 @@ export default function AgentsPage() {
                 <Label htmlFor="edit-systemPrompt">System Prompt</Label>
                 <Textarea
                   id="edit-systemPrompt"
-                  name="systemPrompt"
+                  value={editPrompt}
+                  onChange={(e) => setEditPrompt(e.target.value)}
                   rows={5}
-                  defaultValue={selectedAgent.systemPrompt || ''}
                   data-testid="input-agent-prompt"
                 />
+              </div>
+              <div>
+                <Label>Namespaces (áreas de conhecimento)</Label>
+                <NamespaceSelector 
+                  value={editNamespaces} 
+                  onChange={setEditNamespaces}
+                  placeholder="Selecione ou crie namespaces customizados"
+                  allowCustom={true}
+                  allowWildcard={editSlug.includes("curador")}
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  {editSlug.includes("curador") 
+                    ? "Curadores podem ter acesso total (*) a todos os namespaces"
+                    : "Selecione namespaces existentes ou crie novos no formato: categoria/subcategoria"
+                  }
+                </p>
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setSelectedAgent(null)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-agent">
+                <Button onClick={handleSaveEdit} disabled={updateMutation.isPending} data-testid="button-save-agent">
                   {updateMutation.isPending ? "Atualizando..." : "Salvar Alterações"}
                 </Button>
               </div>
-            </form>
+            </div>
           )}
         </DialogContent>
       </Dialog>
