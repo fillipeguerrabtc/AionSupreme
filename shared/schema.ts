@@ -1175,6 +1175,36 @@ export const agentTools = pgTable("agent_tools", {
   toolId: varchar("tool_id").notNull().references(() => tools.id),
 });
 
+// ============================================================================
+// NAMESPACES - Knowledge base namespace management
+// Allows admins to create, edit, and organize KB namespaces
+// Each namespace can have a name, description, related namespaces, and content
+// ============================================================================
+export const namespaces = pgTable("namespaces", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  name: varchar("name", { length: 255 }).notNull().unique(), // e.g., "financas/investimentos"
+  displayName: varchar("display_name", { length: 255 }), // Friendly name for UI
+  description: text("description"),
+  relatedNamespaces: jsonb("related_namespaces").$type<string[]>().default([]), // Array of related namespace names
+  icon: varchar("icon", { length: 50 }), // Lucide icon name
+  category: varchar("category", { length: 100 }), // Category for grouping
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("namespaces_tenant_idx").on(table.tenantId),
+  nameIdx: index("namespaces_name_idx").on(table.name),
+}));
+
+export const insertNamespaceSchema = createInsertSchema(namespaces).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertNamespace = z.infer<typeof insertNamespaceSchema>;
+export type Namespace = typeof namespaces.$inferSelect;
+
 /**
  * Traces - Multi-agent execution traces for observability
  * Records router decisions, agents called, costs, and latencies

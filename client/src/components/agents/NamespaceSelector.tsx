@@ -32,7 +32,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { NAMESPACE_CATEGORIES, WILDCARD_NAMESPACE, type NamespaceOption } from "@shared/namespaces";
 import { cn } from "@/lib/utils";
 
@@ -142,7 +141,7 @@ export function NamespaceSelector({
                   )}
                 </div>
               </CommandEmpty>
-              <ScrollArea className="h-[300px]">
+              <div className="max-h-[300px] overflow-y-auto">
                 {allowCustom && (
                   <CommandGroup heading="Criar Novo">
                     {!showCustomInput ? (
@@ -257,7 +256,7 @@ export function NamespaceSelector({
                   </CommandGroup>
                   );
                 })}
-              </ScrollArea>
+              </div>
             </CommandList>
           </Command>
         </PopoverContent>
