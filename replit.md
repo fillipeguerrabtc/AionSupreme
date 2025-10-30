@@ -59,6 +59,15 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **Federated Learning**: Multi-GPU distributed training system with automatic chunk splitting, worker registration, gradient aggregation via FedAvg algorithm.
 - **Tenant Isolation**: All training data collection respects multi-tenant boundaries with Zod validation and authorization checks.
 
+**Multi-Cloud Deployment (100% Free Tier):**
+- **Architecture**: Dual deployment on Google Cloud Run + AWS Fargate with shared Neon PostgreSQL database.
+- **Auto-Failover**: Health monitoring every 30s, automatic failover after 3 consecutive failures.
+- **Zero-Cost**: Both clouds scale to zero when idle, stay within free tier limits (512MB RAM, 1 vCPU).
+- **Production Dockerfile**: Multi-stage build optimized for both clouds (frontend builder → backend builder → production runtime).
+- **CI/CD Pipeline**: GitHub Actions workflow for automated deployment to both clouds with secrets management.
+- **Health Endpoints**: 5 comprehensive endpoints (/health, /health/detailed, /health/ready, /health/live, /health/multi-cloud).
+- **Deployment Process**: 3-step process (GCP → AWS with GCP endpoint → GCP redeploy with AWS endpoint) for full bidirectional monitoring.
+
 ### System Design Choices
 - **Multi-tenancy**: Complete isolation of data and policies per tenant.
 - **Externalized Policies**: JSON configurations for dynamic updates.
@@ -70,15 +79,15 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 
 ### Third-Party Services
 - **OpenAI API**: LLM completions, embeddings, function calling.
-- **Neon Database**: Serverless PostgreSQL.
+- **Neon Database**: Serverless PostgreSQL (shared across GCP + AWS deployments).
+- **Google Cloud Run**: Primary deployment platform (free tier: 2M requests/month, 360k vCPU-seconds, 180k GiB-seconds).
+- **AWS Fargate**: Backup deployment platform (free tier: 20 GB storage, limited compute).
 - **DuckDuckGo**: Web search.
 - **OpenRouter, Groq, Gemini, HuggingFace**: Free LLM API providers.
 - **Google Colab, Kaggle, Modal**: Free GPU resources for fine-tuning.
 - **RunPod/Modal**: GPU workers for video generation.
-- **Replit**: Hosting for authentication and development environment.
-- **Vercel/Netlify**: Frontend hosting.
-- **Supabase**: Database services.
-- **Cloudflare**: CDN.
+- **Replit**: Development environment and authentication.
+- **GitHub Actions**: CI/CD pipeline for automated multi-cloud deployment.
 
 ### Key Libraries (NPM)
 - **@neondatabase/serverless**: PostgreSQL client
