@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Check, 
   ChevronsUpDown, 
@@ -14,6 +15,7 @@ import {
   Calendar,
   Megaphone,
   BookOpen,
+  FolderTree,
   LucideIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,7 +34,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { NAMESPACE_CATEGORIES, WILDCARD_NAMESPACE, type NamespaceOption } from "@shared/namespaces";
+import { NAMESPACE_CATEGORIES, WILDCARD_NAMESPACE, type NamespaceOption, type NamespaceCategory } from "@shared/namespaces";
+import type { Namespace } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -46,6 +49,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Calendar,
   Megaphone,
   BookOpen,
+  FolderTree,
 };
 
 interface NamespaceSelectorProps {
@@ -68,6 +72,27 @@ export function NamespaceSelector({
   const [open, setOpen] = useState(false);
   const [customNamespace, setCustomNamespace] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
+
+  // Fetch namespaces from database
+  const { data: dbNamespaces = [] } = useQuery<Namespace[]>({
+    queryKey: ["/api/namespaces"],
+  });
+
+  // Combine predefined and database namespaces
+  const combinedCategories: NamespaceCategory[] = [
+    ...NAMESPACE_CATEGORIES,
+    // Add database namespaces as a separate category
+    ...(dbNamespaces.length > 0 ? [{
+      id: "custom",
+      label: "Namespaces Personalizados",
+      icon: "FolderTree",
+      namespaces: dbNamespaces.map(ns => ({
+        value: ns.name,
+        label: ns.displayName || ns.name,
+        description: ns.description || undefined,
+      })),
+    }] : []),
+  ];
 
   const toggleNamespace = (namespace: string) => {
     if (value.includes(namespace)) {
@@ -217,7 +242,7 @@ export function NamespaceSelector({
                     </CommandItem>
                   </CommandGroup>
                 )}
-                {NAMESPACE_CATEGORIES.map((category) => {
+                {combinedCategories.map((category) => {
                   const IconComponent = ICON_MAP[category.icon];
                   return (
                   <CommandGroup 
@@ -263,7 +288,7 @@ export function NamespaceSelector({
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {value.map((namespace) => {
-            const ns = NAMESPACE_CATEGORIES.flatMap(cat => cat.namespaces).find(
+            const ns = combinedCategories.flatMap(cat => cat.namespaces).find(
               n => n.value === namespace
             );
             return (

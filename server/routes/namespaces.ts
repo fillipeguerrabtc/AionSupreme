@@ -3,7 +3,7 @@ import { db } from "../db";
 import { namespaces, insertNamespaceSchema, type Namespace, type InsertNamespace } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
-import { knowledgeIndexer } from "../rag/knowledge-indexer";
+import { curationStore } from "../curation/store";
 
 const TENANT_ID = 1;
 
@@ -182,7 +182,7 @@ export function registerNamespaceRoutes(app: Express) {
     }
   });
 
-  // POST /api/namespaces/:id/ingest - Ingest content into namespace
+  // POST /api/namespaces/:id/ingest - Ingest content into namespace curation queue
   app.post("/api/namespaces/:id/ingest", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -207,31 +207,27 @@ export function registerNamespaceRoutes(app: Express) {
         return res.status(404).json({ error: "Namespace not found" });
       }
 
-      // Index content into knowledge base with namespace
-      await knowledgeIndexer.indexDocument({
-        tenantId: TENANT_ID,
-        content,
+      // Add content to curation queue for human approval (HITL workflow)
+      const curationItem = await curationStore.addToCuration(TENANT_ID, {
         title: title || `Conteúdo do namespace ${namespace.displayName || namespace.name}`,
-        namespaces: [namespace.name],
-        metadata: {
-          source: "namespace_ingestion",
-          namespaceId: namespace.id,
-          namespaceName: namespace.name,
-          ingestedAt: new Date().toISOString(),
-        },
+        content,
+        suggestedNamespaces: [namespace.name],
+        tags: ["namespace_ingestion", namespace.category || "general"],
+        submittedBy: `Namespace Management (${namespace.name})`,
       });
 
-      console.log(`[Namespaces] Indexed content for namespace: ${namespace.name}`);
+      console.log(`[Namespaces] Added content to curation queue for namespace: ${namespace.name} (curation ID: ${curationItem.id})`);
 
       res.json({ 
         success: true, 
-        message: `Conteúdo indexado com sucesso no namespace ${namespace.name}`,
+        message: `Conteúdo adicionado à fila de curadoria para aprovação`,
+        curationId: curationItem.id,
         namespace: namespace.name,
       });
     } catch (error) {
-      console.error("Error ingesting content:", error);
+      console.error("Error adding content to curation queue:", error);
       res.status(500).json({ 
-        error: "Failed to ingest content",
+        error: "Failed to add content to curation queue",
         message: error instanceof Error ? error.message : String(error)
       });
     }

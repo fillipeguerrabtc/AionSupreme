@@ -17,9 +17,10 @@ AION operates in single-tenant mode with **multi-agent architecture** utilizing 
 
 **Namespace Management System (Oct 30, 2025)**: PRODUCTION-READY comprehensive namespace management with:
 - **Database Schema**: Full `namespaces` table in shared/schema.ts with id, tenantId, name, displayName, description, relatedNamespaces, icon, category, enabled fields
-- **Backend API**: Complete CRUD routes in server/routes/namespaces.ts (GET, POST, PATCH, DELETE) + POST /api/namespaces/:id/ingest endpoint for content ingestion
+- **Backend API**: Complete CRUD routes in server/routes/namespaces.ts (GET, POST, PATCH, DELETE) + POST /api/namespaces/:id/ingest endpoint for HITL content curation
 - **Frontend UI**: NamespacesPage component (client/src/pages/admin/NamespacesPage.tsx) with table view, create/edit dialogs, content upload fields
-- **Content Ingestion Pipeline**: When creating/editing namespaces, users can add text content that is automatically indexed into Knowledge Base via knowledgeIndexer with namespace tags
+- **Content Curation Pipeline (HITL)**: When creating/editing namespaces, users can add text content that is routed to curation queue (curationStore.addToCuration) for human approval before Knowledge Base indexing
+- **NamespaceSelector Integration**: Fetches namespaces from database via useQuery, combines with predefined namespaces, displays in "Namespaces Personalizados" category
 - **Integration**: Registered in AdminDashboard (/admin/namespaces route) and AdminSidebar (Curation section with FolderTree icon)
 - **NamespaceSelector Scroll Fix**: Removed duplicate overflow container to enable mouse wheel scrolling anywhere in dropdown (CommandList now directly has overflow-y-auto)
 

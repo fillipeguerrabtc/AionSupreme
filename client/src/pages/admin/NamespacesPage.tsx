@@ -177,8 +177,8 @@ export default function NamespacesPage() {
               }),
             });
             toast({ 
-              title: "Conteúdo indexado!", 
-              description: "O Agente Curador está processando o conteúdo para a Knowledge Base" 
+              title: "Conteúdo adicionado à fila de curadoria!", 
+              description: "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base" 
             });
           } catch (error) {
             toast({ 
@@ -218,8 +218,8 @@ export default function NamespacesPage() {
               }),
             });
             toast({ 
-              title: "Conteúdo indexado!", 
-              description: "O Agente Curador está processando o conteúdo adicional para a Knowledge Base" 
+              title: "Conteúdo adicionado à fila de curadoria!", 
+              description: "O conteúdo adicional aguarda aprovação humana antes de ser indexado na Knowledge Base" 
             });
           } catch (error) {
             toast({ 

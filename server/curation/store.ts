@@ -1,5 +1,9 @@
 // server/curation/store.ts
 // Store de curadoria com HITL (Human-in-the-Loop)
+import { knowledgeIndexer } from "../rag/knowledge-indexer";
+import { db } from "../db";
+import { documents } from "@shared/schema";
+import { sql } from "drizzle-orm";
 
 export interface CurationItem {
   id: string;
@@ -119,8 +123,7 @@ export const curationStore = {
   },
 
   /**
-   * Aprova e publica item
-   * TODO: Integrar com KB real (criar documento versionado)
+   * Aprova e publica item - integrado com Knowledge Base
    */
   async approveAndPublish(
     tenantId: number,
@@ -132,21 +135,34 @@ export const curationStore = {
       throw new Error("Item not found or already processed");
     }
 
+    // Create document record in database
+    const [newDoc] = await db.insert(documents).values({
+      tenantId,
+      title: item.title,
+      content: item.content,
+      source: "curation_approved",
+      status: "indexed",
+      metadata: {
+        curationId: item.id,
+        reviewedBy,
+        tags: item.tags,
+        namespaces: item.suggestedNamespaces,
+      },
+      createdAt: sql`NOW()`,
+      updatedAt: sql`NOW()`,
+    }).returning();
+
+    // Index approved content into Knowledge Base vector store
+    await knowledgeIndexer.indexDocument(newDoc.id, newDoc.content, tenantId);
+
     item.status = "approved";
     item.reviewedBy = reviewedBy;
     item.reviewedAt = new Date().toISOString();
+    item.publishedId = newDoc.id.toString();
 
-    // TODO: Integrar com publishToKB real
-    // const publishedId = await publishToKB({
-    //   title: item.title,
-    //   content: item.content,
-    //   namespaces: item.suggestedNamespaces,
-    //   tags: item.tags,
-    // });
-    const publishedId = `kb_doc_${Date.now()}`;
-    item.publishedId = publishedId;
+    console.log(`[Curation] Approved and published item ${item.id} to KB as document ${newDoc.id}`);
 
-    return { item, publishedId };
+    return { item, publishedId: newDoc.id.toString() };
   },
 
   /**
