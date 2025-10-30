@@ -133,6 +133,10 @@ export default function AdminDashboard() {
   });
 
   // Calculate total tokens from all providers
+  // 🔍 IMPORTANT: This calculates TODAY's tokens, not all-time tokens
+  // It sums provider.today.tokens from all providers (OpenAI, Groq, Gemini, HuggingFace, etc.)
+  // The backend /api/tokens/summary returns today/month breakdown using America/Sao_Paulo timezone
+  // "Today" means from 00:00:00 to 23:59:59 in Brazilian timezone
   const totalTokens = tokenSummary?.reduce((sum: number, provider: any) => {
     return sum + (provider.today?.tokens || 0);
   }, 0) || 0;

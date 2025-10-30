@@ -12,7 +12,7 @@ Preferred communication style: Simple, everyday language.
 AION operates in **single-tenant mode** for simplified deployment and cost optimization. Policy enforcement is externalized via JSON configurations for runtime updates. It features a dual-interface: an end-user chat and an administrative dashboard. A key feature is an automatic fallback system for LLM refusals, performing web searches, indexing content, and responding without censorship in UNRESTRICTED mode. The system uses a **5-tier priority chain with multi-GPU load balancing**: **KB → GPU Pool (custom LoRA models) → Free APIs (Groq, Gemini, HF) → Web Search → OpenAI**. The GPU Pool provides zero-cost inference via automatic rotation of Google Colab workers across multiple accounts. Universal multilingual support is provided via LLM-based dynamic language detection and response generation.
 
 ### UI/UX
-The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses Radix UI with shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired custom design system featuring HSL-based colors and Inter/JetBrains Mono fonts. It includes a conversational chat interface with persistent memory and an Admin Dashboard for policy and metrics management.
+The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses Radix UI with shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired custom design system featuring HSL-based colors and Inter/JetBrains Mono fonts. It includes a conversational chat interface with persistent memory and an **Admin Dashboard with Enterprise Sidebar Navigation** (Shadcn Sidebar) for policy and metrics management across 11 major sections with multi-language support (PT-BR, EN-US, ES-ES).
 
 ### Technical Implementations
 **Backend (Node.js + TypeScript):**
@@ -61,6 +61,9 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **Federated Learning**: Multi-GPU distributed training system with automatic chunk splitting, worker registration, gradient aggregation via FedAvg algorithm. Dataset selector includes KB-auto and KB-high-quality options alongside uploaded datasets.
 - **Data Isolation**: All training data collection uses default tenantId=1 for single-tenant deployments. Schema supports multi-tenant expansion if needed in future.
 - **Token Monitoring Dashboard**: Enterprise-grade real-time tracking of token usage with **America/Sao_Paulo (Brasília) timezone** for accurate local date calculations. Includes today/month/all-time aggregation with per-provider breakdown, cost estimates, custom date ranges, professional chart visualization with zero-filled timelines, and comprehensive analytics.
+  - **Admin Dashboard Architecture**: Uses Shadcn Sidebar pattern (enterprise-grade navigation) with SidebarProvider → AdminSidebar + SidebarInset structure. Replaced horizontal tabs with collapsible sidebar for scalability and professional appearance. Features 11 clickable overview cards with direct navigation to specific tabs/subtabs.
+  - **Total Tokens Logic**: Overview card "Total de Tokens" displays TODAY's token sum (00:00-23:59 Brazilian time) across ALL providers (OpenAI, Groq, Gemini, HuggingFace, OpenRouter). Calculated via `tokenSummary.reduce((sum, p) => sum + p.today.tokens, 0)`. NOT all-time tokens.
+  - **Direct Subtab Navigation**: Clicking overview cards navigates to specific Token Monitoring subtabs: Total Tokens→Overview, KB Searches→KB tab, Free APIs→Free APIs tab, OpenAI→OpenAI tab, Web→Web tab, DeepWeb→DeepWeb tab. Implemented via `initialTab` prop passed to TokenMonitoring component.
 
 **Multi-Cloud Deployment (100% Free Tier):**
 - **Architecture**: Dual deployment on Google Cloud Run + AWS Fargate with shared Neon PostgreSQL database.
