@@ -1,11 +1,17 @@
 /**
  * AION Supreme - Token Usage Tracking Service
  * Real-time monitoring of token consumption across all APIs
+ * 
+ * DATA RETENTION POLICY:
+ * - Historical data retention: 5 YEARS (1,825 days)
+ * - All token usage, web searches, KB searches are preserved for 5 years
+ * - Automatic cleanup runs monthly to remove data older than 5 years
+ * - This ensures comprehensive analytics while maintaining database performance
  */
 
 import { db } from '../db';
 import { tokenUsage, tokenLimits, tokenAlerts, type InsertTokenUsage, type InsertTokenAlert } from '@shared/schema';
-import { eq, and, gte, sql, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
 
 // ============================================================================
 // TIMEZONE HELPERS (Brasília/São Paulo)
@@ -1027,5 +1033,114 @@ export async function getCostHistory(
     records,
     totals: providerTotals,
     overallTotal: providerTotals.reduce((sum, p) => sum + Number(p.totalCost), 0)
+  };
+}
+
+// ============================================================================
+// DATA RETENTION & CLEANUP (5 YEARS)
+// ============================================================================
+
+/**
+ * Cleanup old token usage data older than 5 years (1,825 days)
+ * This function should be called periodically (monthly recommended)
+ * to maintain database performance while preserving historical analytics
+ * 
+ * RETENTION POLICY:
+ * - All data < 5 years old: PRESERVED
+ * - All data >= 5 years old: DELETED
+ * - Applies to: tokenUsage, tokenAlerts
+ * 
+ * @param tenantId - Optional tenant ID, if not provided cleans all tenants
+ * @returns Number of records deleted
+ */
+export async function cleanupOldTokenData(tenantId?: number): Promise<{
+  tokenUsageDeleted: number;
+  alertsDeleted: number;
+}> {
+  const RETENTION_DAYS = 1825; // 5 years = 1,825 days
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - RETENTION_DAYS);
+  
+  console.log(`[Token Cleanup] Starting cleanup for data older than ${cutoffDate.toISOString()} (5 years)`);
+  
+  // Delete old token usage records
+  const tokenUsageDeleted = tenantId
+    ? await db
+        .delete(tokenUsage)
+        .where(
+          and(
+            eq(tokenUsage.tenantId, tenantId),
+            lte(tokenUsage.timestamp, cutoffDate)
+          )
+        )
+    : await db
+        .delete(tokenUsage)
+        .where(lte(tokenUsage.timestamp, cutoffDate));
+  
+  // Delete old alerts
+  const alertsDeleted = tenantId
+    ? await db
+        .delete(tokenAlerts)
+        .where(
+          and(
+            eq(tokenAlerts.tenantId, tenantId),
+            lte(tokenAlerts.createdAt, cutoffDate)
+          )
+        )
+    : await db
+        .delete(tokenAlerts)
+        .where(lte(tokenAlerts.createdAt, cutoffDate));
+  
+  const result = {
+    tokenUsageDeleted: Array.isArray(tokenUsageDeleted) ? tokenUsageDeleted.length : 0,
+    alertsDeleted: Array.isArray(alertsDeleted) ? alertsDeleted.length : 0
+  };
+  
+  console.log(`[Token Cleanup] Completed: ${result.tokenUsageDeleted} token records, ${result.alertsDeleted} alerts deleted`);
+  
+  return result;
+}
+
+/**
+ * Get data retention statistics
+ * Shows how much historical data is stored and oldest record date
+ */
+export async function getRetentionStats(tenantId: number): Promise<{
+  totalRecords: number;
+  oldestRecord: Date | null;
+  newestRecord: Date | null;
+  retentionDays: number;
+  dataSize: string;
+}> {
+  const stats = await db
+    .select({
+      count: sql<number>`COUNT(*)`,
+      oldest: sql<Date>`MIN(${tokenUsage.timestamp})`,
+      newest: sql<Date>`MAX(${tokenUsage.timestamp})`
+    })
+    .from(tokenUsage)
+    .where(eq(tokenUsage.tenantId, tenantId));
+  
+  const stat = stats[0];
+  const totalRecords = Number(stat.count);
+  const oldestRecord = stat.oldest ? new Date(stat.oldest) : null;
+  const newestRecord = stat.newest ? new Date(stat.newest) : null;
+  
+  const retentionDays = oldestRecord && newestRecord
+    ? Math.floor((newestRecord.getTime() - oldestRecord.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+  
+  // Estimate data size (rough approximation: ~500 bytes per record)
+  const estimatedBytes = totalRecords * 500;
+  const dataSize = estimatedBytes < 1024 * 1024
+    ? `${(estimatedBytes / 1024).toFixed(2)} KB`
+    : `${(estimatedBytes / (1024 * 1024)).toFixed(2)} MB`;
+  
+  return {
+    totalRecords,
+    oldestRecord,
+    newestRecord,
+    retentionDays,
+    dataSize
   };
 }

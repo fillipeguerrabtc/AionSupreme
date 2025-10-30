@@ -62,6 +62,7 @@ interface UsageSummary {
   provider: string;
   today: UsageMetrics;
   month: UsageMetrics;
+  allTime: UsageMetrics;
   limits?: {
     dailyTokenLimit?: number | null;
     monthlyTokenLimit?: number | null;
@@ -406,6 +407,8 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
   // Type-safe helper functions
   const getTotalTokens = () => summary?.reduce((acc, s) => acc + s.today.tokens, 0) ?? 0;
+  const getTotalTokensMonth = () => summary?.reduce((acc, s) => acc + s.month.tokens, 0) ?? 0;
+  const getTotalTokensAllTime = () => summary?.reduce((acc, s) => acc + s.allTime.tokens, 0) ?? 0;
   const getTotalCost = () => summary?.reduce((acc, s) => acc + s.today.cost, 0) ?? 0;
   const getTotalRequests = () => summary?.reduce((acc, s) => acc + s.today.requests, 0) ?? 0;
   
@@ -547,10 +550,30 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold gradient-text">
-                {getTotalTokens().toLocaleString()}
+              <div className="space-y-3">
+                <div>
+                  <div className="text-2xl font-bold gradient-text">
+                    {getTotalTokens().toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground">24h (Hoje)</p>
+                </div>
+                <Separator className="bg-border/50" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">
+                      {getTotalTokensMonth().toLocaleString()}
+                    </div>
+                    <p className="text-xs text-muted-foreground">30d (Mês)</p>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-primary">
+                      {getTotalTokensAllTime().toLocaleString()}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Total</p>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">{t.admin.overview.allProviders}</p>
+              <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/30">{t.admin.overview.allProviders}</p>
             </CardContent>
           </Card>
 
