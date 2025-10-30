@@ -539,6 +539,68 @@ export async function getTokenTrends(
   }));
 }
 
+// Get token trends with breakdown by provider (including KB, Web, DeepWeb)
+export interface TokenTrendByProvider {
+  date: string;
+  totalTokens: number;
+  groq?: number;
+  gemini?: number;
+  huggingface?: number;
+  openrouter?: number;
+  openai?: number;
+  kb?: number;
+  web?: number;
+  deepweb?: number;
+  [key: string]: number | string | undefined;
+}
+
+export async function getTokenTrendsWithProviders(
+  tenantId: number,
+  days: number = 30
+): Promise<TokenTrendByProvider[]> {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  // Get all token usage grouped by date and provider
+  const results = await db
+    .select({
+      date: sql<string>`DATE(${tokenUsage.timestamp})`,
+      provider: tokenUsage.provider,
+      tokens: sql<number>`COALESCE(SUM(${tokenUsage.totalTokens}), 0)`,
+      requests: sql<number>`COUNT(*)`
+    })
+    .from(tokenUsage)
+    .where(
+      and(
+        eq(tokenUsage.tenantId, tenantId),
+        gte(tokenUsage.timestamp, startDate)
+      )
+    )
+    .groupBy(sql`DATE(${tokenUsage.timestamp})`, tokenUsage.provider)
+    .orderBy(sql`DATE(${tokenUsage.timestamp})`);
+  
+  // Group by date and aggregate providers
+  const grouped = new Map<string, TokenTrendByProvider>();
+  
+  results.forEach(r => {
+    const dateStr = r.date;
+    if (!grouped.has(dateStr)) {
+      grouped.set(dateStr, {
+        date: dateStr,
+        totalTokens: 0
+      });
+    }
+    
+    const entry = grouped.get(dateStr)!;
+    const providerKey = r.provider || 'unknown';
+    entry[providerKey] = Number(r.tokens);
+    entry.totalTokens += Number(r.tokens);
+  });
+  
+  // Convert to array and sort by date
+  return Array.from(grouped.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 // ============================================================================
 // WEB/DEEPWEB SEARCH HISTORY
 // ============================================================================

@@ -3129,14 +3129,25 @@ export function registerRoutes(app: Express): Server {
       const tenantId = parseInt(req.query.tenant_id as string) || 1;
       const provider = req.query.provider as string | null;
       const days = parseInt(req.query.days as string) || 30;
+      const breakdown = req.query.breakdown === 'true';
       
-      const trends = await tokenTracker.getTokenTrends(tenantId, provider, days);
-      
-      // Transform to expected format: { daily: [...] }
-      res.json({
-        daily: trends,
-        period_days: days
-      });
+      if (breakdown) {
+        // Return data with provider breakdown
+        const trends = await tokenTracker.getTokenTrendsWithProviders(tenantId, days);
+        res.json({
+          daily: trends,
+          period_days: days,
+          breakdown: true
+        });
+      } else {
+        // Return aggregated data
+        const trends = await tokenTracker.getTokenTrends(tenantId, provider, days);
+        res.json({
+          daily: trends,
+          period_days: days,
+          breakdown: false
+        });
+      }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

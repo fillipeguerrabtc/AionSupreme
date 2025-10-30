@@ -25,6 +25,7 @@ import {
   Save
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from 'html2canvas';
 import { 
   LineChart, 
   Line, 
@@ -166,9 +167,10 @@ const COLORS = {
 export default function TokenMonitoring() {
   const { toast } = useToast();
   const [selectedPeriod, setSelectedPeriod] = useState(30);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   // Fetch token summary - returns array of UsageSummary
-  const { data: summary, isLoading: summaryLoading } = useQuery<UsageSummary[]>({
+  const { data: summary, isLoading: summaryLoading} = useQuery<UsageSummary[]>({
     queryKey: ['/api/tokens/summary'],
     refetchInterval: 30000 // Refresh every 30s
   });
@@ -179,11 +181,11 @@ export default function TokenMonitoring() {
     refetchInterval: 60000 // Refresh every minute
   });
 
-  // Fetch trends
+  // Fetch trends with breakdown support
   const { data: trends, isLoading: trendsLoading } = useQuery<TokenTrends>({
-    queryKey: ['/api/tokens/trends', selectedPeriod],
+    queryKey: ['/api/tokens/trends', selectedPeriod, showBreakdown],
     queryFn: async () => {
-      const res = await apiRequest(`/api/tokens/trends?days=${selectedPeriod}`);
+      const res = await apiRequest(`/api/tokens/trends?days=${selectedPeriod}&breakdown=${showBreakdown}`);
       return res.json();
     }
   });
@@ -224,6 +226,87 @@ export default function TokenMonitoring() {
       return res.json();
     }
   });
+
+  // Export functions
+  const exportToCSV = () => {
+    if (!trends?.daily || trends.daily.length === 0) {
+      toast({ title: "No data to export", variant: "destructive" });
+      return;
+    }
+
+    const headers = showBreakdown 
+      ? ['Date', 'Total Tokens', 'Groq', 'Gemini', 'HuggingFace', 'OpenRouter', 'OpenAI', 'KB', 'Web', 'DeepWeb']
+      : ['Date', 'Tokens', 'Requests', 'Cost'];
+    
+    const rows = trends.daily.map((d: any) => {
+      if (showBreakdown) {
+        return [
+          d.date,
+          d.totalTokens || 0,
+          d.groq || 0,
+          d.gemini || 0,
+          d.huggingface || 0,
+          d.openrouter || 0,
+          d.openai || 0,
+          d.kb || 0,
+          d.web || 0,
+          d.deepweb || 0
+        ].join(',');
+      } else {
+        return [d.date, d.tokens || 0, d.requests || 0, d.cost || 0].join(',');
+      }
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `token-usage-${selectedPeriod}d-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "CSV exported successfully" });
+  };
+
+  const exportToPNG = async () => {
+    const chartElement = document.querySelector('[data-chart="usage-trends"]') as HTMLElement;
+    if (!chartElement) {
+      toast({ title: "Chart not found", variant: "destructive" });
+      return;
+    }
+
+    try {
+      toast({ title: "Generating PNG...", description: "Please wait" });
+      
+      const canvas = await html2canvas(chartElement, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false
+      });
+      
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          toast({ title: "Failed to generate PNG", variant: "destructive" });
+          return;
+        }
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `token-usage-${selectedPeriod}d-${new Date().toISOString().split('T')[0]}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast({ title: "PNG exported successfully" });
+      });
+    } catch (error) {
+      console.error('PNG export error:', error);
+      toast({ 
+        title: "Export failed", 
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive" 
+      });
+    }
+  };
 
   // Type-safe helper functions
   const getTotalTokens = () => summary?.reduce((acc, s) => acc + s.today.tokens, 0) ?? 0;
@@ -453,49 +536,97 @@ export default function TokenMonitoring() {
         </Card>
 
         {/* Trends Chart */}
-        <Card className="glass-premium border-accent/20">
+        <Card className="glass-premium border-accent/20" data-chart="usage-trends">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-accent" />
-                  Usage Trends
-                </CardTitle>
-                <CardDescription>Token consumption over time</CardDescription>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-accent" />
+                    Usage Trends
+                  </CardTitle>
+                  <CardDescription>Token consumption over time</CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={showBreakdown ? "outline" : "default"}
+                    size="sm"
+                    onClick={() => setShowBreakdown(false)}
+                    data-testid="view-total"
+                  >
+                    Total
+                  </Button>
+                  <Button
+                    variant={showBreakdown ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowBreakdown(true)}
+                    data-testid="view-breakdown"
+                  >
+                    By Provider
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant={selectedPeriod === 7 ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedPeriod(7)}
-                  data-testid="period-7d"
-                >
-                  7D
-                </Button>
-                <Button
-                  variant={selectedPeriod === 30 ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedPeriod(30)}
-                  data-testid="period-30d"
-                >
-                  30D
-                </Button>
-                <Button
-                  variant={selectedPeriod === 90 ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedPeriod(90)}
-                  data-testid="period-90d"
-                >
-                  90D
-                </Button>
-                <Button
-                  variant={selectedPeriod === 1825 ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedPeriod(1825)}
-                  data-testid="period-5y"
-                >
-                  5Y
-                </Button>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex gap-2">
+                  <Button
+                    variant={selectedPeriod === 1 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedPeriod(1)}
+                    data-testid="period-1d"
+                  >
+                    1D
+                  </Button>
+                  <Button
+                    variant={selectedPeriod === 7 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedPeriod(7)}
+                    data-testid="period-7d"
+                  >
+                    7D
+                  </Button>
+                  <Button
+                    variant={selectedPeriod === 30 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedPeriod(30)}
+                    data-testid="period-30d"
+                  >
+                    30D
+                  </Button>
+                  <Button
+                    variant={selectedPeriod === 90 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedPeriod(90)}
+                    data-testid="period-90d"
+                  >
+                    90D
+                  </Button>
+                  <Button
+                    variant={selectedPeriod === 1825 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedPeriod(1825)}
+                    data-testid="period-5y"
+                  >
+                    5Y
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportToCSV}
+                    data-testid="export-csv"
+                  >
+                    CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={exportToPNG}
+                    data-testid="export-png"
+                  >
+                    PNG
+                  </Button>
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -518,7 +649,20 @@ export default function TokenMonitoring() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Area type="monotone" dataKey="totalTokens" stackId="1" stroke={COLORS.openai} fill={COLORS.openai} fillOpacity={0.6} name="Total Tokens" />
+                  {showBreakdown ? (
+                    <>
+                      <Area type="monotone" dataKey="groq" stackId="1" stroke={COLORS.groq} fill={COLORS.groq} fillOpacity={0.6} name="Groq" />
+                      <Area type="monotone" dataKey="gemini" stackId="1" stroke={COLORS.gemini} fill={COLORS.gemini} fillOpacity={0.6} name="Gemini" />
+                      <Area type="monotone" dataKey="huggingface" stackId="1" stroke={COLORS.huggingface} fill={COLORS.huggingface} fillOpacity={0.6} name="HuggingFace" />
+                      <Area type="monotone" dataKey="openrouter" stackId="1" stroke={COLORS.openrouter} fill={COLORS.openrouter} fillOpacity={0.6} name="OpenRouter" />
+                      <Area type="monotone" dataKey="openai" stackId="1" stroke={COLORS.openai} fill={COLORS.openai} fillOpacity={0.6} name="OpenAI" />
+                      <Area type="monotone" dataKey="kb" stackId="1" stroke={COLORS.kb} fill={COLORS.kb} fillOpacity={0.6} name="KB" />
+                      <Area type="monotone" dataKey="web" stackId="1" stroke={COLORS.web} fill={COLORS.web} fillOpacity={0.6} name="Web" />
+                      <Area type="monotone" dataKey="deepweb" stackId="1" stroke={COLORS.deepweb} fill={COLORS.deepweb} fillOpacity={0.6} name="DeepWeb" />
+                    </>
+                  ) : (
+                    <Area type="monotone" dataKey="tokens" stackId="1" stroke={COLORS.openai} fill={COLORS.openai} fillOpacity={0.6} name="Total Tokens" />
+                  )}
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
