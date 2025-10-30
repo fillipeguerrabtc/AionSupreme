@@ -3,6 +3,7 @@ import { db } from "../db";
 import { namespaces, insertNamespaceSchema, type Namespace, type InsertNamespace } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
+import { knowledgeIndexer } from "../rag/knowledge-indexer";
 
 const TENANT_ID = 1;
 
@@ -176,6 +177,61 @@ export function registerNamespaceRoutes(app: Express) {
       console.error("Error deleting namespace:", error);
       res.status(500).json({ 
         error: "Failed to delete namespace",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // POST /api/namespaces/:id/ingest - Ingest content into namespace
+  app.post("/api/namespaces/:id/ingest", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { content, title } = req.body;
+
+      if (!content || typeof content !== "string") {
+        return res.status(400).json({ error: "Content is required and must be a string" });
+      }
+
+      // Verify namespace exists
+      const [namespace] = await db
+        .select()
+        .from(namespaces)
+        .where(
+          and(
+            eq(namespaces.id, id),
+            eq(namespaces.tenantId, TENANT_ID)
+          )
+        );
+
+      if (!namespace) {
+        return res.status(404).json({ error: "Namespace not found" });
+      }
+
+      // Index content into knowledge base with namespace
+      await knowledgeIndexer.indexDocument({
+        tenantId: TENANT_ID,
+        content,
+        title: title || `Conteúdo do namespace ${namespace.displayName || namespace.name}`,
+        namespaces: [namespace.name],
+        metadata: {
+          source: "namespace_ingestion",
+          namespaceId: namespace.id,
+          namespaceName: namespace.name,
+          ingestedAt: new Date().toISOString(),
+        },
+      });
+
+      console.log(`[Namespaces] Indexed content for namespace: ${namespace.name}`);
+
+      res.json({ 
+        success: true, 
+        message: `Conteúdo indexado com sucesso no namespace ${namespace.name}`,
+        namespace: namespace.name,
+      });
+    } catch (error) {
+      console.error("Error ingesting content:", error);
+      res.status(500).json({ 
+        error: "Failed to ingest content",
         message: error instanceof Error ? error.message : String(error)
       });
     }

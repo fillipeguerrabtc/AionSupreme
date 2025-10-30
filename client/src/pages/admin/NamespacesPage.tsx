@@ -136,7 +136,7 @@ export default function NamespacesPage() {
     setCreateContent("");
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!createName.trim()) {
       toast({ 
         title: "Nome obrigatório", 
@@ -163,10 +163,36 @@ export default function NamespacesPage() {
       icon: createIcon,
       category: createCategory,
       relatedNamespaces: createRelatedNamespaces,
+    }, {
+      onSuccess: async (newNamespace) => {
+        // If content was provided, ingest it into the namespace
+        if (createContent.trim()) {
+          try {
+            await apiRequest(`/api/namespaces/${newNamespace.id}/ingest`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                content: createContent,
+                title: `Conteúdo inicial - ${createName}`,
+              }),
+            });
+            toast({ 
+              title: "Conteúdo indexado!", 
+              description: "O Agente Curador está processando o conteúdo para a Knowledge Base" 
+            });
+          } catch (error) {
+            toast({ 
+              title: "Erro ao indexar conteúdo", 
+              description: error instanceof Error ? error.message : "Erro desconhecido",
+              variant: "destructive" 
+            });
+          }
+        }
+      }
     });
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!selectedNamespace) return;
 
     updateMutation.mutate({
@@ -178,6 +204,32 @@ export default function NamespacesPage() {
         category: editCategory,
         relatedNamespaces: editRelatedNamespaces,
       },
+    }, {
+      onSuccess: async () => {
+        // If content was provided, ingest it into the namespace
+        if (editContent.trim()) {
+          try {
+            await apiRequest(`/api/namespaces/${selectedNamespace.id}/ingest`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                content: editContent,
+                title: `Atualização de conteúdo - ${editName}`,
+              }),
+            });
+            toast({ 
+              title: "Conteúdo indexado!", 
+              description: "O Agente Curador está processando o conteúdo adicional para a Knowledge Base" 
+            });
+          } catch (error) {
+            toast({ 
+              title: "Erro ao indexar conteúdo", 
+              description: error instanceof Error ? error.message : "Erro desconhecido",
+              variant: "destructive" 
+            });
+          }
+        }
+      }
     });
   };
 

@@ -124,7 +124,7 @@ export function NamespaceSelector({
         <PopoverContent className="w-[400px] p-0">
           <Command>
             <CommandInput placeholder="Buscar namespaces..." data-testid="input-search-namespaces" />
-            <CommandList>
+            <CommandList className="max-h-[300px] overflow-y-auto">
               <CommandEmpty>
                 <div className="p-4 text-center text-sm text-muted-foreground">
                   Nenhum namespace encontrado.
@@ -141,8 +141,7 @@ export function NamespaceSelector({
                   )}
                 </div>
               </CommandEmpty>
-              <div className="max-h-[300px] overflow-y-auto">
-                {allowCustom && (
+              {allowCustom && (
                   <CommandGroup heading="Criar Novo">
                     {!showCustomInput ? (
                       <CommandItem
@@ -254,9 +253,8 @@ export function NamespaceSelector({
                       </CommandItem>
                     ))}
                   </CommandGroup>
-                  );
-                })}
-              </div>
+                );
+              })}
             </CommandList>
           </Command>
         </PopoverContent>
