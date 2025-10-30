@@ -32,6 +32,7 @@ interface Translations {
       gpuManagement: string;
       federatedTraining: string;
       autoEvolution: string;
+      settings: string;
     };
     
     // Overview Tab

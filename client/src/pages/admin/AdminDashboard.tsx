@@ -8,11 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap, Server, Cpu } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap, Server, Cpu, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
+import { COMMON_TIMEZONES, getCurrentDateTimeInTimezone } from "@/lib/datetime";
 import TokenMonitoring from "./TokenMonitoring";
 import KnowledgeBaseTab from "./KnowledgeBaseTab";
 import TokenHistoryTab from "./TokenHistoryTab";
@@ -34,6 +36,8 @@ export default function AdminDashboard() {
   const [tenantId] = useState(1);
   const [systemPromptValue, setSystemPromptValue] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [selectedTimezone, setSelectedTimezone] = useState("America/Sao_Paulo");
+  const [currentTime, setCurrentTime] = useState(getCurrentDateTimeInTimezone(selectedTimezone));
   
   // Local state for pending changes (not yet saved)
   const [pendingRules, setPendingRules] = useState<any>(null);
@@ -99,6 +103,15 @@ export default function AdminDashboard() {
     },
   });
 
+  // Fetch tenant timezone
+  const { data: tenantTimezone } = useQuery({
+    queryKey: ["/api/admin/settings/timezone", tenantId],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/settings/timezone/${tenantId}`);
+      return res.json();
+    },
+  });
+
   // Calculate total tokens from all providers
   const totalTokens = tokenSummary?.reduce((sum: number, provider: any) => {
     return sum + (provider.today?.tokens || 0);
@@ -153,6 +166,50 @@ export default function AdminDashboard() {
       setHasUnsavedChanges(false);
     }
   }, [policy]);
+
+  // Initialize timezone from backend
+  useEffect(() => {
+    if (tenantTimezone?.timezone) {
+      setSelectedTimezone(tenantTimezone.timezone);
+    }
+  }, [tenantTimezone]);
+
+  // Update current time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(getCurrentDateTimeInTimezone(selectedTimezone));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [selectedTimezone]);
+
+  // Mutation to save timezone
+  const saveTimezoneMutation = useMutation({
+    mutationFn: async (timezone: string) => {
+      const res = await apiRequest(`/api/admin/settings/timezone/${tenantId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ timezone }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Update local state immediately to ensure UI responsiveness
+      if (data.timezone) {
+        setSelectedTimezone(data.timezone);
+        setCurrentTime(getCurrentDateTimeInTimezone(data.timezone));
+      }
+      toast({ title: t.admin.settings.timezone.saved });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/timezone", tenantId] });
+    },
+    onError: () => {
+      toast({ 
+        title: t.admin.settings.timezone.saveError,
+        variant: "destructive" 
+      });
+    },
+  });
 
   // Handler to save all pending changes
   const handleSaveChanges = () => {
@@ -248,14 +305,13 @@ export default function AdminDashboard() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Settings className="w-6 h-6 text-muted-foreground glow-primary" />
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="glass-premium border-primary/20 w-full justify-start overflow-x-auto flex-wrap">
+          <TabsList className="glass-premium border-primary/20 w-full justify-start flex flex-wrap gap-2">
             <TabsTrigger value="overview" data-testid="tab-dashboard-overview">
               <Shield className="w-4 h-4 mr-2" />
               {t.admin.tabs.overview}
@@ -287,6 +343,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="auto-evolution" data-testid="tab-dashboard-auto-evolution">
               <Sparkles className="w-4 h-4 mr-2" />
               {t.admin.tabs.autoEvolution}
+            </TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-dashboard-settings">
+              <Settings className="w-4 h-4 mr-2" />
+              {t.admin.tabs.settings}
             </TabsTrigger>
           </TabsList>
 
@@ -482,140 +542,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Policy Controls Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Moral/Ética/Legal */}
-          <Card className="glass-premium border-primary/20 animate-slide-up overflow-visible">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" />
-                <span className="gradient-text">{t.admin.policies.title}</span>
-              </CardTitle>
-              <CardDescription>
-                {t.admin.policies.description}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 overflow-visible">
-              {Object.entries(pendingRules || policy?.rules || {}).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card/50 border border-border/50">
-                  <Label htmlFor={key} className="text-sm font-medium cursor-pointer flex-1">
-                    {t.admin.policies.rules[key as keyof typeof t.admin.policies.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </Label>
-                  <div className="flex-shrink-0 w-11 relative z-10">
-                    <Switch
-                      id={key}
-                      checked={value as boolean}
-                      onCheckedChange={(checked) => {
-                        setPendingRules({ ...pendingRules, [key]: checked });
-                        setHasUnsavedChanges(true);
-                      }}
-                      data-testid={`switch-${key}`}
-                    />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Comportamento da IA */}
-          <Card className="glass-premium border-accent/20 hover-elevate animate-slide-up" style={{ animationDelay: "100ms" }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-accent" />
-                <span className="gradient-text-vibrant">{t.admin.behavior.title}</span>
-              </CardTitle>
-              <CardDescription>
-                {t.admin.behavior.description}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">
-                  {t.admin.behavior.formality}: {(((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100).toFixed(0)}%
-                </Label>
-                <Slider
-                  value={[((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100]}
-                  onValueChange={([value]) => {
-                    setPendingBehavior({ ...pendingBehavior, formality: value / 100 });
-                    setHasUnsavedChanges(true);
-                  }}
-                  className="glass p-2 rounded-xl"
-                  data-testid="slider-formality"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">
-                  {t.admin.behavior.creativity}: {(((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100).toFixed(0)}%
-                </Label>
-                <Slider
-                  value={[((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100]}
-                  onValueChange={([value]) => {
-                    setPendingBehavior({ ...pendingBehavior, creativity: value / 100 });
-                    setHasUnsavedChanges(true);
-                  }}
-                  className="glass p-2 rounded-xl"
-                  data-testid="slider-creativity"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Save Button */}
-        {hasUnsavedChanges && (
-          <Card className="glass-premium border-accent/30 bg-accent/5 hover-elevate animate-slide-up">
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-accent animate-pulse" />
-                  Você tem alterações não salvas
-                </p>
-                <Button
-                  onClick={handleSaveChanges}
-                  disabled={updatePolicy.isPending}
-                  className="bg-gradient-to-r from-accent to-primary hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg shadow-accent/25"
-                  data-testid="button-save-changes"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {updatePolicy.isPending ? "Salvando..." : "Salvar Alterações"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* System Prompt */}
-        <Card className="glass-premium border-primary/20 hover-elevate animate-slide-up" style={{ animationDelay: "200ms" }}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-primary" />
-              <span className="gradient-text">{t.admin.behavior.systemPrompt}</span>
-            </CardTitle>
-            <CardDescription>
-              {t.admin.behavior.systemPromptDesc}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              value={systemPromptValue}
-              onChange={(e) => setSystemPromptValue(e.target.value)}
-              className="glass border-primary/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 min-h-[200px] max-h-[600px] font-mono text-sm resize-y"
-              placeholder={t.admin.behavior.systemPromptPlaceholder}
-              data-testid="textarea-system-prompt"
-            />
-            <Button
-              onClick={() => updatePolicy.mutate({ systemPrompt: systemPromptValue })}
-              disabled={updatePolicy.isPending}
-              className="bg-gradient-to-r from-primary to-accent hover:scale-105 active:scale-95 transition-all duration-300"
-              data-testid="button-save-system-prompt"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              {updatePolicy.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </CardContent>
-        </Card>
-
           </TabsContent>
 
           <TabsContent value="tokens" className="space-y-6">
@@ -644,6 +570,209 @@ export default function AdminDashboard() {
 
           <TabsContent value="auto-evolution" className="space-y-6">
             <AutoEvolutionTab />
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            {/* Settings Header */}
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold gradient-text">{t.admin.settings.title}</h2>
+              <p className="text-muted-foreground">{t.admin.settings.subtitle}</p>
+            </div>
+
+            {/* Policy Controls Grid */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Moral/Ética/Legal */}
+              <Card className="glass-premium border-primary/20 animate-slide-up overflow-visible">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-primary" />
+                    <span className="gradient-text">{t.admin.policies.title}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {t.admin.policies.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 overflow-visible">
+                  {Object.entries(pendingRules || policy?.rules || {}).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card/50 border border-border/50">
+                      <Label htmlFor={key} className="text-sm font-medium cursor-pointer flex-1">
+                        {t.admin.policies.rules[key as keyof typeof t.admin.policies.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Label>
+                      <div className="flex-shrink-0 w-11 relative z-10">
+                        <Switch
+                          id={key}
+                          checked={value as boolean}
+                          onCheckedChange={(checked) => {
+                            setPendingRules({ ...pendingRules, [key]: checked });
+                            setHasUnsavedChanges(true);
+                          }}
+                          data-testid={`switch-${key}`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Comportamento da IA */}
+              <Card className="glass-premium border-accent/20 hover-elevate animate-slide-up" style={{ animationDelay: "100ms" }}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-accent" />
+                    <span className="gradient-text-vibrant">{t.admin.behavior.title}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {t.admin.behavior.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">
+                      {t.admin.behavior.formality}: {(((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100).toFixed(0)}%
+                    </Label>
+                    <Slider
+                      value={[((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100]}
+                      onValueChange={([value]) => {
+                        setPendingBehavior({ ...pendingBehavior, formality: value / 100 });
+                        setHasUnsavedChanges(true);
+                      }}
+                      className="glass p-2 rounded-xl"
+                      data-testid="slider-formality"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">
+                      {t.admin.behavior.creativity}: {(((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100).toFixed(0)}%
+                    </Label>
+                    <Slider
+                      value={[((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100]}
+                      onValueChange={([value]) => {
+                        setPendingBehavior({ ...pendingBehavior, creativity: value / 100 });
+                        setHasUnsavedChanges(true);
+                      }}
+                      className="glass p-2 rounded-xl"
+                      data-testid="slider-creativity"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Save Button */}
+            {hasUnsavedChanges && (
+              <Card className="glass-premium border-accent/30 bg-accent/5 hover-elevate animate-slide-up">
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-accent animate-pulse" />
+                      Você tem alterações não salvas
+                    </p>
+                    <Button
+                      onClick={handleSaveChanges}
+                      disabled={updatePolicy.isPending}
+                      className="bg-gradient-to-r from-accent to-primary hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg shadow-accent/25"
+                      data-testid="button-save-changes"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {updatePolicy.isPending ? "Salvando..." : "Salvar Alterações"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* System Prompt */}
+            <Card className="glass-premium border-primary/20 hover-elevate animate-slide-up" style={{ animationDelay: "200ms" }}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  <span className="gradient-text">{t.admin.behavior.systemPrompt}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t.admin.behavior.systemPromptDesc}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea
+                  value={systemPromptValue}
+                  onChange={(e) => setSystemPromptValue(e.target.value)}
+                  className="glass border-primary/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 min-h-[200px] max-h-[600px] font-mono text-sm resize-y"
+                  placeholder={t.admin.behavior.systemPromptPlaceholder}
+                  data-testid="textarea-system-prompt"
+                />
+                <Button
+                  onClick={() => updatePolicy.mutate({ systemPrompt: systemPromptValue })}
+                  disabled={updatePolicy.isPending}
+                  className="bg-gradient-to-r from-primary to-accent hover:scale-105 active:scale-95 transition-all duration-300"
+                  data-testid="button-save-system-prompt"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {updatePolicy.isPending ? "Salvando..." : "Salvar"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Timezone Selector */}
+            <Card className="glass-premium border-primary/20 hover-elevate animate-slide-up" style={{ animationDelay: "300ms" }}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" />
+                  <span className="gradient-text">{t.admin.settings.timezone.title}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t.admin.settings.timezone.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">
+                    {t.admin.settings.timezone.select}
+                  </Label>
+                  <Select 
+                    value={selectedTimezone} 
+                    onValueChange={setSelectedTimezone}
+                  >
+                    <SelectTrigger 
+                      className="glass border-primary/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                      data-testid="select-timezone"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="glass-premium border-primary/20">
+                      {COMMON_TIMEZONES.map((tz) => (
+                        <SelectItem 
+                          key={tz.value} 
+                          value={tz.value}
+                          data-testid={`timezone-${tz.value}`}
+                        >
+                          {tz.label} - {tz.country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="p-4 rounded-xl bg-card/50 border border-border/50 space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {t.admin.settings.timezone.currentTime}
+                  </p>
+                  <p className="text-2xl font-bold gradient-text-vibrant font-mono" data-testid="text-current-time">
+                    {currentTime}
+                  </p>
+                </div>
+
+                <Button
+                  onClick={() => saveTimezoneMutation.mutate(selectedTimezone)}
+                  disabled={saveTimezoneMutation.isPending}
+                  className="bg-gradient-to-r from-primary to-accent hover:scale-105 active:scale-95 transition-all duration-300"
+                  data-testid="button-save-timezone"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {saveTimezoneMutation.isPending ? t.admin.settings.timezone.saving : t.admin.settings.timezone.save}
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
