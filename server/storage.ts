@@ -17,6 +17,7 @@ import {
   generatedFiles, type GeneratedFile, type InsertGeneratedFile,
   videoJobs, type VideoJob, type InsertVideoJob,
   videoAssets, type VideoAsset, type InsertVideoAsset,
+  trainingDataCollection, type TrainingDataCollection, type InsertTrainingDataCollection,
 } from "@shared/schema";
 
 // ============================================================================
@@ -134,6 +135,14 @@ export interface IStorage {
   getProjectFilesByProject(projectId: number): Promise<ProjectFile[]>;
   createProjectFile(file: InsertProjectFile): Promise<ProjectFile>;
   deleteProjectFile(id: number): Promise<void>;
+  
+  // Training Data Collection (auto-evolution from conversations)
+  getTrainingDataCollection(id: number): Promise<TrainingDataCollection | undefined>;
+  getTrainingDataCollectionByTenant(tenantId: number, status?: string, limit?: number): Promise<TrainingDataCollection[]>;
+  getTrainingDataCollectionByConversation(conversationId: number): Promise<TrainingDataCollection | undefined>;
+  createTrainingDataCollection(data: InsertTrainingDataCollection): Promise<TrainingDataCollection>;
+  updateTrainingDataCollection(id: number, data: Partial<InsertTrainingDataCollection>): Promise<TrainingDataCollection>;
+  deleteTrainingDataCollection(id: number): Promise<void>;
 }
 
 // ============================================================================
@@ -674,6 +683,60 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProjectFile(id: number): Promise<void> {
     await db.delete(projectFiles).where(eq(projectFiles.id, id));
+  }
+
+  // --------------------------------------------------------------------------
+  // TRAINING DATA COLLECTION - Auto-evolution from conversations
+  // --------------------------------------------------------------------------
+  async getTrainingDataCollection(id: number): Promise<TrainingDataCollection | undefined> {
+    const [record] = await db.select().from(trainingDataCollection).where(eq(trainingDataCollection.id, id));
+    return record;
+  }
+
+  async getTrainingDataCollectionByTenant(
+    tenantId: number,
+    status?: string,
+    limit: number = 100
+  ): Promise<TrainingDataCollection[]> {
+    let query = db.select().from(trainingDataCollection)
+      .where(eq(trainingDataCollection.tenantId, tenantId))
+      .orderBy(desc(trainingDataCollection.createdAt))
+      .limit(limit);
+    
+    if (status) {
+      query = db.select().from(trainingDataCollection)
+        .where(and(
+          eq(trainingDataCollection.tenantId, tenantId),
+          eq(trainingDataCollection.status, status)
+        ))
+        .orderBy(desc(trainingDataCollection.createdAt))
+        .limit(limit);
+    }
+    
+    return query;
+  }
+
+  async getTrainingDataCollectionByConversation(conversationId: number): Promise<TrainingDataCollection | undefined> {
+    const [record] = await db.select().from(trainingDataCollection)
+      .where(eq(trainingDataCollection.conversationId, conversationId));
+    return record;
+  }
+
+  async createTrainingDataCollection(data: InsertTrainingDataCollection): Promise<TrainingDataCollection> {
+    const [created] = await db.insert(trainingDataCollection).values([data] as any).returning();
+    return created;
+  }
+
+  async updateTrainingDataCollection(id: number, data: Partial<InsertTrainingDataCollection>): Promise<TrainingDataCollection> {
+    const [updated] = await db.update(trainingDataCollection)
+      .set({ ...data, updatedAt: new Date() } as any)
+      .where(eq(trainingDataCollection.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTrainingDataCollection(id: number): Promise<void> {
+    await db.delete(trainingDataCollection).where(eq(trainingDataCollection.id, id));
   }
 }
 

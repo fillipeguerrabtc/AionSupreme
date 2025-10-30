@@ -1030,3 +1030,62 @@ export const insertDatasetSchema = createInsertSchema(datasets).omit({
 });
 export type InsertDataset = z.infer<typeof insertDatasetSchema>;
 export type Dataset = typeof datasets.$inferSelect;
+
+// ============================================================================
+// TRAINING_DATA_COLLECTION - Auto-evolution from conversations
+// Tracks high-quality conversations for model fine-tuning
+// ============================================================================
+export const trainingDataCollection = pgTable("training_data_collection", {
+  id: serial("id").primaryKey(),
+  
+  // Source conversation
+  conversationId: integer("conversation_id").notNull().references(() => conversations.id),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  
+  // Quality metrics
+  rating: integer("rating"), // 1-5 stars (optional user feedback)
+  autoQualityScore: integer("auto_quality_score"), // 0-100 (automatic scoring based on tokens, latency, etc)
+  
+  // Approval workflow
+  status: text("status").notNull().default("pending"), // "pending" | "approved" | "rejected" | "trained"
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  
+  // Training integration
+  datasetId: integer("dataset_id").references(() => datasets.id), // Created dataset from this conversation
+  trainingJobId: integer("training_job_id").references(() => trainingJobs.id), // Training job using this data
+  
+  // Converted training data (JSONL format for instruction tuning)
+  formattedData: jsonb("formatted_data").$type<{
+    instruction: string;
+    input?: string;
+    output: string;
+    system?: string;
+  }[]>(),
+  
+  // Metadata
+  metadata: jsonb("metadata").$type<{
+    messageCount?: number;
+    totalTokens?: number;
+    avgLatency?: number;
+    providers?: string[]; // Which LLMs were used
+    toolsUsed?: string[]; // Which tools were invoked
+    hasAttachments?: boolean;
+  }>(),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  conversationIdx: index("training_data_conversation_idx").on(table.conversationId),
+  tenantIdx: index("training_data_tenant_idx").on(table.tenantId),
+  statusIdx: index("training_data_status_idx").on(table.status),
+  ratingIdx: index("training_data_rating_idx").on(table.rating),
+}));
+
+export const insertTrainingDataCollectionSchema = createInsertSchema(trainingDataCollection).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertTrainingDataCollection = z.infer<typeof insertTrainingDataCollectionSchema>;
+export type TrainingDataCollection = typeof trainingDataCollection.$inferSelect;

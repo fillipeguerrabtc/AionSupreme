@@ -1333,6 +1333,58 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
+      // 🧠 AUTO-COLLECT HIGH-QUALITY CONVERSATIONS FOR TRAINING
+      // Trigger after ASSISTANT messages (conversation complete)
+      if (role === "assistant") {
+        try {
+          const { ConversationCollector } = await import("./training/collectors/conversation-collector");
+          
+          // Get all messages for this conversation
+          const allMessages = await storage.getMessagesByConversation(conversationId);
+          
+          // Calculate quality metrics
+          const metrics = ConversationCollector.calculateQualityScore(allMessages);
+          
+          // Only collect if quality meets threshold
+          if (ConversationCollector.shouldCollect(metrics)) {
+            // Check if already collected
+            const existing = await storage.getTrainingDataCollectionByConversation(conversationId);
+            
+            if (!existing) {
+              // Get conversation for tenantId
+              const conversation = await storage.getConversation(conversationId);
+              if (conversation) {
+                // Convert to training format
+                const systemPrompt = ConversationCollector.extractSystemPrompt(allMessages);
+                const formattedData = ConversationCollector.convertToTrainingFormat(allMessages, systemPrompt);
+                
+                // Create training data collection entry
+                await storage.createTrainingDataCollection({
+                  conversationId,
+                  tenantId: conversation.tenantId,
+                  autoQualityScore: metrics.score,
+                  status: "pending",
+                  formattedData,
+                  metadata: {
+                    messageCount: metrics.messageCount,
+                    totalTokens: metrics.totalTokens,
+                    avgLatency: metrics.avgLatency,
+                    providers: metrics.providers,
+                    toolsUsed: metrics.toolsUsed,
+                    hasAttachments: metrics.hasAttachments,
+                  },
+                });
+                
+                console.log(`   ✅ High-quality conversation collected for training (ID: ${conversationId}, score: ${metrics.score}, messages: ${metrics.messageCount})`);
+              }
+            }
+          }
+        } catch (collectorError: any) {
+          // Don't fail the request if collection fails
+          console.error('[Auto-Collect] Failed to collect training data:', collectorError.message);
+        }
+      }
+      
       res.json(message);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -2258,6 +2310,186 @@ export function registerRoutes(app: Express): Server {
       res.json({ message: "Dataset deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // TRAINING DATA COLLECTION - Auto-evolution from conversations
+  // ============================================================================
+
+  // POST /api/training-data/collect/:conversationId - Collect conversation for training
+  app.post("/api/training-data/collect/:conversationId", async (req, res) => {
+    try {
+      const { ConversationCollector } = await import("./training/collectors/conversation-collector");
+      const conversationId = parseInt(req.params.conversationId);
+
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ error: "Invalid conversation ID" });
+      }
+
+      // Get conversation messages
+      const messages = await storage.getMessagesByConversation(conversationId);
+      
+      if (!messages || messages.length === 0) {
+        return res.status(404).json({ error: "Conversation not found or empty" });
+      }
+
+      // Calculate quality metrics
+      const metrics = ConversationCollector.calculateQualityScore(messages);
+
+      // Convert to training format
+      const systemPrompt = ConversationCollector.extractSystemPrompt(messages);
+      const formattedData = ConversationCollector.convertToTrainingFormat(messages, systemPrompt);
+
+      // Get conversation details
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation) {
+        return res.status(404).json({ error: "Conversation not found" });
+      }
+
+      // Create training data collection entry
+      const trainingData = await storage.createTrainingDataCollection({
+        conversationId,
+        tenantId: conversation.tenantId,
+        autoQualityScore: metrics.score,
+        status: ConversationCollector.shouldCollect(metrics) ? "pending" : "rejected",
+        formattedData,
+        metadata: {
+          messageCount: metrics.messageCount,
+          totalTokens: metrics.totalTokens,
+          avgLatency: metrics.avgLatency,
+          providers: metrics.providers,
+          toolsUsed: metrics.toolsUsed,
+          hasAttachments: metrics.hasAttachments,
+        },
+      });
+
+      res.json({
+        success: true,
+        trainingData,
+        metrics,
+        shouldCollect: ConversationCollector.shouldCollect(metrics),
+      });
+    } catch (error: any) {
+      console.error("Error collecting training data:", error);
+      res.status(500).json({ error: "Failed to collect training data" });
+    }
+  });
+
+  // GET /api/training-data - List collected training data
+  app.get("/api/training-data", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.query.tenantId as string) || 1;
+      const status = req.query.status as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 100;
+
+      const data = await storage.getTrainingDataCollectionByTenant(tenantId, status, limit);
+
+      res.json({ trainingData: data });
+    } catch (error: any) {
+      console.error("Error listing training data:", error);
+      res.status(500).json({ error: "Failed to list training data" });
+    }
+  });
+
+  // PATCH /api/training-data/:id - Update training data status (approve/reject)
+  app.patch("/api/training-data/:id", async (req, res) => {
+    try {
+      const { z } = await import("zod");
+      
+      const updateSchema = z.object({
+        status: z.enum(["pending", "approved", "rejected", "trained"]).optional(),
+        rating: z.number().int().min(1).max(5).optional(),
+        approvedBy: z.string().optional(),
+        tenantId: z.number().int(), // Required for authorization
+      });
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid ID" });
+      }
+
+      // Validate request body
+      const validation = updateSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: validation.error.message });
+      }
+      
+      const { status, rating, approvedBy, tenantId } = validation.data;
+      
+      // Verify tenant ownership
+      const existing = await storage.getTrainingDataCollection(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Training data not found" });
+      }
+      
+      if (existing.tenantId !== tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const updates: any = {};
+      
+      if (status) {
+        updates.status = status;
+        if (status === "approved") {
+          updates.approvedAt = new Date();
+          if (approvedBy) {
+            updates.approvedBy = approvedBy;
+          }
+        }
+      }
+
+      if (rating !== undefined) {
+        updates.rating = rating;
+      }
+
+      const updated = await storage.updateTrainingDataCollection(id, updates);
+
+      res.json({ success: true, trainingData: updated });
+    } catch (error: any) {
+      console.error("Error updating training data:", error);
+      res.status(500).json({ error: "Failed to update training data" });
+    }
+  });
+
+  // DELETE /api/training-data/:id - Delete training data
+  app.delete("/api/training-data/:id", async (req, res) => {
+    try {
+      const { z } = await import("zod");
+      
+      const deleteSchema = z.object({
+        tenantId: z.number().int(),
+      });
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid ID" });
+      }
+
+      // Validate tenant authorization
+      const validation = deleteSchema.safeParse(req.query);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Tenant ID required" });
+      }
+      
+      const { tenantId } = validation.data;
+      
+      // Verify ownership
+      const existing = await storage.getTrainingDataCollection(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Training data not found" });
+      }
+      
+      if (existing.tenantId !== tenantId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      await storage.deleteTrainingDataCollection(id);
+
+      res.json({ success: true, message: "Training data deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting training data:", error);
+      res.status(500).json({ error: "Failed to delete training data" });
     }
   });
 
