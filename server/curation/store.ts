@@ -152,8 +152,13 @@ export const curationStore = {
       updatedAt: sql`NOW()`,
     }).returning();
 
-    // Index approved content into Knowledge Base vector store
-    await knowledgeIndexer.indexDocument(newDoc.id, newDoc.content, tenantId);
+    // Index approved content into Knowledge Base vector store with namespace metadata
+    await knowledgeIndexer.indexDocument(newDoc.id, newDoc.content, tenantId, {
+      namespaces: item.suggestedNamespaces,
+      tags: item.tags,
+      source: "curation_approved",
+      curationId: item.id,
+    });
 
     item.status = "approved";
     item.reviewedBy = reviewedBy;

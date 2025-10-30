@@ -231,9 +231,14 @@ export class KnowledgeIndexer {
   /**
    * Index a single document by ID and content
    */
-  async indexDocument(documentId: number, content: string, tenantId: number): Promise<void> {
+  async indexDocument(
+    documentId: number, 
+    content: string, 
+    tenantId: number,
+    metadata?: Record<string, any>
+  ): Promise<void> {
     console.log(`[KnowledgeIndexer] Indexing document ${documentId}...`);
-    await ragService.indexDocument(documentId, content, tenantId, {});
+    await ragService.indexDocument(documentId, content, tenantId, metadata || {});
     console.log(`[KnowledgeIndexer] ✅ Document ${documentId} indexed`);
   }
 

@@ -27,7 +27,7 @@ AION operates in single-tenant mode with **multi-agent architecture** utilizing 
 **Knowledge Curation System (HITL - Human-in-the-Loop)**: Production-ready curation workflow with 2 specialized Curator agents:
 - **Curador de Conhecimento (AI Curator)**: Analyzes content, extracts metadata, scores quality, and queues items for human review. Has access to all namespaces (*) for centralized governance.
 - **Curador Executivo (Executive Curator)**: Human-augmented curator requiring mandatory human approval for all actions, ensuring quality control.
-Workflow: AI Curator analyzes → Queue with metadata → Human review (approve/reject/edit via CurationQueuePage) → Promote to KB with namespace assignment. Includes PromoteToKBButton for instant promotion of high-quality responses.
+Workflow: Content submission → curationStore.addToCuration() → Human review (approve/reject/edit via CurationQueuePage) → approveAndPublish() creates document in DB + indexes to KB with namespace metadata for scoped retrieval. Includes PromoteToKBButton for instant promotion of high-quality responses.
 
 ### UI/UX
 The frontend uses React 18, Vite, Wouter, and TanStack Query, built with Radix UI, shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired HSL-based custom design system. It includes a conversational chat interface and an Admin Dashboard with enterprise sidebar navigation for policy and metrics management across **13 sections** with multi-language support (PT-BR, EN-US, ES-ES). Branding consistently displays "AION". The Admin Dashboard features a structured layout with a collapsible sidebar and a sticky header, incorporating glassmorphism effects and professional visual hierarchy. 
