@@ -55,9 +55,11 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **Quality Metrics**: Calculates scores based on message count, token count, latency, provider diversity, tool usage, and attachments.
 - **Enhanced JSONL Format**: Includes conversation context (last 3 exchanges), tool execution results with arguments, system prompt, and full message history for instruction tuning.
 - **KB → Training Integration**: Conversations are indexed into Knowledge Base for immediate reuse, then collected for long-term model fine-tuning.
-- **Dataset Management**: Admin dashboard for uploading custom datasets (JSONL, CSV, TXT), validation, quality scoring, and approval workflow.
-- **Federated Learning**: Multi-GPU distributed training system with automatic chunk splitting, worker registration, gradient aggregation via FedAvg algorithm.
+- **Auto-Generated Datasets from KB**: Admin dashboard includes automatic dataset generation from Knowledge Base with quality-based filtering (≥60 for auto, ≥80 for high-quality). Endpoint POST /api/training/datasets/generate-from-kb creates JSONL datasets with proper lifecycle management.
+- **Dataset Management**: Admin dashboard for uploading custom datasets (JSONL, CSV, TXT), validation, quality scoring, and approval workflow. Supports both manual uploads and KB auto-generation with unified UI.
+- **Federated Learning**: Multi-GPU distributed training system with automatic chunk splitting, worker registration, gradient aggregation via FedAvg algorithm. Dataset selector includes KB-auto and KB-high-quality options alongside uploaded datasets.
 - **Tenant Isolation**: All training data collection respects multi-tenant boundaries with Zod validation and authorization checks.
+- **Token Monitoring Dashboard**: Real-time tracking of token usage with UTC-aligned queries, preventing timezone mismatches. Includes today/month/all-time aggregation with per-provider breakdown and cost estimates.
 
 **Multi-Cloud Deployment (100% Free Tier):**
 - **Architecture**: Dual deployment on Google Cloud Run + AWS Fargate with shared Neon PostgreSQL database.
