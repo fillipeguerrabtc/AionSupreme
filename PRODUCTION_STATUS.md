@@ -60,17 +60,34 @@
 - ✅ POST /api/admin/index-pdfs - Indexar 7 PDFs técnicos
 - ✅ GET /api/documents - Listar documentos
 - ✅ GET /metrics - Prometheus format
+- ✅ **Dataset Management Endpoints** (New - 2025-01-30):
+  * GET /api/training/datasets - List all datasets with filtering
+  * GET /api/training/datasets/:id/preview - Preview dataset content
+  * GET /api/training/datasets/:id/download - Download dataset file
+  * DELETE /api/training/datasets/:id - Delete single dataset
+  * POST /api/training/datasets/bulk-delete - Bulk delete datasets
 
 ### Frontend
 - ✅ **Chat Page**: Interface conversacional com message bubbles
-- ✅ **Admin Dashboard**: Painel de controle completo
+- ✅ **Admin Dashboard**: Painel de controle completo com Shadcn Sidebar
+  - Overview with 11 clickable navigation cards
+  - Token Monitoring with Brazilian timezone (America/Sao_Paulo)
   - Policy toggles (moral/ética/legal)
   - LLM parameters (temperature, top_p, top_k)
   - System prompt editor
   - PDF indexing trigger
+  - **Datasets Management** (Production-Ready - 2025-01-30):
+    * Statistics cards (total datasets, examples, size, KB-generated)
+    * Advanced filtering (type, status) and full-text search
+    * Sorting (by date, name, size, examples count)
+    * Preview content in dialog
+    * Download datasets
+    * Individual and bulk deletion
+    * Quality indicators (high/medium/low)
+    * Empty state handling
 - ✅ **Design System**: Tailwind configurado com design_guidelines.md
 - ✅ **Dark Mode**: Ready (variáveis CSS configuradas)
-- ✅ **Data-testids**: Adicionados em elementos-chave
+- ✅ **Data-testids**: Comprehensive coverage for all interactive elements
 
 ## 🔧 Otimizações Técnicas Aplicadas
 

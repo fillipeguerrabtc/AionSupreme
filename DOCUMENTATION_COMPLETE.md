@@ -54,9 +54,9 @@
 
 ---
 
-## 🆕 ARQUIVOS CRIADOS HOJE (Phase 2)
+## 🆕 ARQUIVOS CRIADOS/ATUALIZADOS
 
-### Novos Componentes Implementados
+### Novos Componentes Implementados (Phase 2)
 1. ✅ `server/llm/free-apis.ts` - Rotação de APIs gratuitas
 2. ✅ `server/llm/refusal-detector.ts` - Detector de recusa 5-níveis
 3. ✅ `server/llm/automatic-fallback.ts` - Fallback automático
@@ -68,15 +68,29 @@
 9. ✅ `server/ai/metrics.ts` - nDCG, MRR, Precision@K, MAP, CTR, CR
 10. ✅ `server/policy/enforcement.ts` - Policy enforcement externalizado
 
-### Frontend (Correções)
-11. ✅ `client/src/hooks/usePageTitle.ts` - Títulos dinâmicos por rota
-12. ✅ `client/src/App.tsx` - Integração do hook
-13. ✅ `client/index.html` - Favicon AION corrigido
-14. ✅ `client/public/favicon.png` - Logo AION (351KB)
+### Dataset Management System (Latest Update - 2025-01-30)
+11. ✅ `client/src/pages/admin/DatasetsTab.tsx` - Enterprise-grade dataset management interface
+12. ✅ `server/training/datasets/dataset-processor.ts` - Dataset processing and validation
+13. ✅ `server/routes.ts` - New dataset management API endpoints:
+    - GET /api/training/datasets - List all datasets
+    - GET /api/training/datasets/:id/preview - Preview content
+    - GET /api/training/datasets/:id/download - Download file
+    - DELETE /api/training/datasets/:id - Delete dataset
+    - POST /api/training/datasets/bulk-delete - Bulk delete
+14. ✅ `shared/schema.ts` - Dataset schema with comprehensive fields
 
-### Documentação Nova
-15. ✅ `docs/MASTER_SUMMARY.md` - **NOVO!** Consolidação total
-16. ✅ `DOCUMENTATION_COMPLETE.md` - Este documento
+### Frontend (Correções)
+15. ✅ `client/src/hooks/usePageTitle.ts` - Títulos dinâmicos por rota
+16. ✅ `client/src/App.tsx` - Integração do hook
+17. ✅ `client/index.html` - Favicon AION corrigido
+18. ✅ `client/public/favicon.png` - Logo AION (351KB)
+
+### Documentação Atualizada
+19. ✅ `docs/MASTER_SUMMARY.md` - Consolidação total
+20. ✅ `DOCUMENTATION_COMPLETE.md` - Este documento
+21. ✅ `README.md` - Updated with dataset management feature
+22. ✅ `README_PT-BR.md` - Updated with dataset management feature
+23. ✅ `replit.md` - Complete Datasets Management Page section added
 
 ---
 

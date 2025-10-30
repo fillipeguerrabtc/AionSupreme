@@ -8,10 +8,11 @@
 4. [Knowledge Base & RAG](#knowledge-base--rag)
 5. [Agentes Autônomos](#agentes-autônomos)
 6. [Admin & Políticas](#admin--políticas)
-7. [Métricas & Observabilidade](#métricas--observabilidade)
-8. [Multimodal](#multimodal)
-9. [Códigos de Erro](#códigos-de-erro)
-10. [Rate Limits](#rate-limits)
+7. [Dataset Management](#dataset-management)
+8. [Métricas & Observabilidade](#métricas--observabilidade)
+9. [Multimodal](#multimodal)
+10. [Códigos de Erro](#códigos-de-erro)
+11. [Rate Limits](#rate-limits)
 
 ---
 
@@ -603,6 +604,164 @@ Indexa os 19 PDFs técnicos na base de conhecimento.
 {
   "success": true,
   "documentIds": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+}
+```
+
+---
+
+## 📦 Dataset Management
+
+### GET `/api/training/datasets`
+
+Lista todos os datasets de treinamento do tenant.
+
+#### Request
+
+```http
+GET /api/training/datasets?tenantId=1
+```
+
+#### Query Parameters
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `tenantId` | number | Sim | ID do tenant |
+
+#### Response (200)
+
+```json
+{
+  "datasets": [
+    {
+      "id": 1,
+      "name": "KB Auto-Generated Dataset",
+      "description": "High-quality conversations from Knowledge Base",
+      "datasetType": "kb-auto",
+      "status": "ready",
+      "totalExamples": 150,
+      "fileSize": 524288,
+      "averageLength": 1250,
+      "originalFilename": "kb-auto-2025-01-30.jsonl",
+      "storagePath": "/uploaded_datasets/kb-auto-2025-01-30.jsonl",
+      "fileMimeType": "application/jsonl",
+      "schema": {
+        "format": "jsonl",
+        "columns": ["messages", "context", "tools"],
+        "inputField": "messages",
+        "outputField": null
+      },
+      "qualityScore": 85,
+      "validationErrors": [],
+      "createdAt": "2025-01-30T10:00:00Z",
+      "tenantId": 1
+    }
+  ]
+}
+```
+
+---
+
+### GET `/api/training/datasets/:id/preview`
+
+Visualiza as primeiras linhas de um dataset.
+
+#### Request
+
+```http
+GET /api/training/datasets/1/preview
+```
+
+#### Response (200)
+
+```json
+{
+  "preview": [
+    {
+      "messages": [
+        {"role": "user", "content": "Explain quantum entanglement"},
+        {"role": "assistant", "content": "Quantum entanglement is..."}
+      ],
+      "context": ["Previous conversation about quantum physics"],
+      "tools": []
+    },
+    {
+      "messages": [
+        {"role": "user", "content": "What is RAG?"},
+        {"role": "assistant", "content": "RAG stands for Retrieval-Augmented Generation..."}
+      ]
+    }
+  ],
+  "totalLines": 150
+}
+```
+
+---
+
+### GET `/api/training/datasets/:id/download`
+
+Faz download do arquivo do dataset.
+
+#### Request
+
+```http
+GET /api/training/datasets/1/download
+```
+
+#### Response (200)
+
+Returns the dataset file with appropriate headers:
+- `Content-Type`: `application/jsonl` (or original MIME type)
+- `Content-Disposition`: `attachment; filename="dataset-name.jsonl"`
+- `Content-Length`: File size in bytes
+
+---
+
+### DELETE `/api/training/datasets/:id`
+
+Deleta um dataset específico.
+
+#### Request
+
+```http
+DELETE /api/training/datasets/1
+```
+
+#### Response (200)
+
+```json
+{
+  "message": "Dataset deleted successfully"
+}
+```
+
+---
+
+### POST `/api/training/datasets/bulk-delete`
+
+Deleta múltiplos datasets de uma vez.
+
+#### Request
+
+```json
+{
+  "ids": [1, 2, 3, 4, 5]
+}
+```
+
+#### Response (200)
+
+```json
+{
+  "message": "Datasets deleted successfully",
+  "deleted": 5
+}
+```
+
+#### Error (404)
+
+```json
+{
+  "error": "No datasets found with provided IDs"
 }
 ```
 
