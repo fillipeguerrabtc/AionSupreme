@@ -68,6 +68,26 @@ export default function AgentsPage() {
     },
   });
 
+  // Update agent mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Agent> }) => {
+      const res = await apiRequest(`/api/agents/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
+        body: JSON.stringify(data),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      toast({ title: "Agente atualizado com sucesso!" });
+      setSelectedAgent(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao atualizar agente", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Delete agent mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -243,6 +263,81 @@ export default function AgentsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Agent Dialog */}
+      <Dialog open={selectedAgent !== null} onOpenChange={(open) => !open && setSelectedAgent(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Agente</DialogTitle>
+            <DialogDescription>
+              Atualize a configuração do agente {selectedAgent?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedAgent && (
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const data = {
+                name: formData.get('name') as string,
+                slug: formData.get('slug') as string,
+                description: formData.get('description') as string || null,
+                systemPrompt: formData.get('systemPrompt') as string || null,
+              };
+              updateMutation.mutate({ id: selectedAgent.id, data });
+            }} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-name">Nome</Label>
+                  <Input 
+                    id="edit-name" 
+                    name="name" 
+                    required 
+                    defaultValue={selectedAgent.name}
+                    data-testid="input-agent-name" 
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-slug">Slug</Label>
+                  <Input 
+                    id="edit-slug" 
+                    name="slug" 
+                    required 
+                    defaultValue={selectedAgent.slug}
+                    data-testid="input-agent-slug" 
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="edit-description">Descrição</Label>
+                <Input 
+                  id="edit-description" 
+                  name="description" 
+                  defaultValue={selectedAgent.description || ''}
+                  data-testid="input-agent-description" 
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-systemPrompt">System Prompt</Label>
+                <Textarea
+                  id="edit-systemPrompt"
+                  name="systemPrompt"
+                  rows={5}
+                  defaultValue={selectedAgent.systemPrompt || ''}
+                  data-testid="input-agent-prompt"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setSelectedAgent(null)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-agent">
+                  {updateMutation.isPending ? "Atualizando..." : "Salvar Alterações"}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

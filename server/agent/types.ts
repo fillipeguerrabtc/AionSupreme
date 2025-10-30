@@ -18,9 +18,26 @@ export interface AgentOutput {
   tokens?: { prompt: number; completion: number };
   latencyMs?: number;
 }
+
+// Agent configuration (stored in DB and used by registry)
 export interface Agent {
   id: string;
   name: string;
-  type: "specialist"|"generalist"|"router-only";
+  slug: string;
+  type: "specialist" | "generalist" | "router-only";
+  description?: string;
+  systemPrompt?: string;
+  enabled: boolean;
+  ragNamespaces: string[];
+  allowedTools: string[];
+  policy: any;
+  budgetLimit?: number;
+  escalationAgent?: string;
+  inferenceConfig?: any;
+  metadata?: any;
+}
+
+// Runtime executor (implements run method, wraps Agent config)
+export interface AgentExecutor extends Agent {
   run(input: AgentInput, ctx: AgentRunContext): Promise<AgentOutput>;
 }

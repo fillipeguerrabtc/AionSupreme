@@ -60,3 +60,10 @@ class AgentRegistry {
 
 // Singleton instance
 export const agentRegistry = new AgentRegistry();
+
+// Compatibility export for router.ts
+export async function loadAgents(tenantId: number): Promise<Agent[]> {
+  // Returns all agents from registry for the given tenant
+  // For now, returns all agents since we're single-tenant
+  return agentRegistry.getAllAgents();
+}
