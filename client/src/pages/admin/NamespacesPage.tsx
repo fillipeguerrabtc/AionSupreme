@@ -394,31 +394,32 @@ export default function NamespacesPage() {
               Nenhum namespace cadastrado. Crie o primeiro!
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Relacionados</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {namespaces.map((namespace) => (
-                  <TableRow key={namespace.id} data-testid={`row-namespace-${namespace.id}`}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{namespace.displayName || namespace.name}</div>
-                        <div className="text-sm text-muted-foreground">{namespace.name}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-md truncate">
-                        {namespace.description || <span className="text-muted-foreground italic">Sem descrição</span>}
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[200px]">Nome</TableHead>
+                    <TableHead className="min-w-[200px]">Descrição</TableHead>
+                    <TableHead className="min-w-[120px]">Categoria</TableHead>
+                    <TableHead className="min-w-[100px]">Relacionados</TableHead>
+                    <TableHead className="min-w-[100px]">Status</TableHead>
+                    <TableHead className="text-right min-w-[120px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {namespaces.map((namespace) => (
+                    <TableRow key={namespace.id} data-testid={`row-namespace-${namespace.id}`}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium whitespace-nowrap">{namespace.displayName || namespace.name}</div>
+                          <div className="text-sm text-muted-foreground whitespace-nowrap">{namespace.name}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-[300px] truncate">
+                          {namespace.description || <span className="text-muted-foreground italic">Sem descrição</span>}
+                        </div>
+                      </TableCell>
                     <TableCell>
                       {namespace.category ? (
                         <Badge variant="outline">{namespace.category}</Badge>
@@ -464,6 +465,7 @@ export default function NamespacesPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
