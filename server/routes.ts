@@ -134,10 +134,12 @@ export function registerRoutes(app: Express): Server {
     // GPU Pool check
     try {
       const gpuStatus = gpuOrchestrator.getStatus();
+      const activeWorkers = gpuStatus.endpoints.filter(e => e.status === 'online').length;
+      const totalWorkers = gpuStatus.endpoints.length;
       checks.services.gpuPool = {
-        status: gpuStatus.activeWorkers > 0 ? "healthy" : "no_workers",
-        activeWorkers: gpuStatus.activeWorkers,
-        totalWorkers: gpuStatus.totalWorkers,
+        status: activeWorkers > 0 ? "healthy" : "no_workers",
+        activeWorkers,
+        totalWorkers,
       };
     } catch (error: any) {
       checks.services.gpuPool = {
