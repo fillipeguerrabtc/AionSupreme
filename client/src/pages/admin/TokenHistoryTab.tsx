@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Clock, CheckCircle2, XCircle, Activity } from "lucide-react";
 import { format } from "date-fns";
+import { useLanguage } from "@/lib/i18n";
 
 interface TokenHistoryRecord {
   id: number;
@@ -31,6 +32,7 @@ const providerColors: Record<string, string> = {
 };
 
 export default function TokenHistoryTab() {
+  const { t } = useLanguage();
   const { data: history, isLoading } = useQuery<TokenHistoryRecord[]>({
     queryKey: ["/api/tokens/complete-history"],
     queryFn: async () => {
@@ -59,21 +61,21 @@ export default function TokenHistoryTab() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Records</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.tokenHistory.overview.totalRecords}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">{history?.length || 0}</div>
           </CardHeader>
         </Card>
         
         <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Tokens</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.tokenHistory.overview.totalTokens}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">{totalTokens.toLocaleString()}</div>
           </CardHeader>
         </Card>
         
         <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Cost</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.tokenHistory.overview.totalCost}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">${totalCost.toFixed(4)}</div>
           </CardHeader>
         </Card>
@@ -83,10 +85,10 @@ export default function TokenHistoryTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-accent" />
-            Complete Token Usage History
+            {t.admin.tokenHistory.history.title}
           </CardTitle>
           <CardDescription>
-            Last 500 records from all providers (Free APIs + OpenAI)
+            {t.admin.tokenHistory.history.subtitle}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -111,7 +113,7 @@ export default function TokenHistoryTab() {
                     
                     <div className="text-right">
                       <div className="font-mono text-sm font-medium">
-                        {record.totalTokens.toLocaleString()} tokens
+                        {record.totalTokens.toLocaleString()} {t.admin.tokenHistory.history.tokens}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {record.promptTokens} → {record.completionTokens}
@@ -139,7 +141,7 @@ export default function TokenHistoryTab() {
               
               {(!history || history.length === 0) && (
                 <div className="text-center py-12 text-muted-foreground">
-                  No token usage history found
+                  {t.admin.tokenHistory.history.noHistory}
                 </div>
               )}
             </div>

@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DollarSign, TrendingUp, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { useLanguage } from "@/lib/i18n";
 
 interface CostRecord {
   id: number;
@@ -40,6 +41,7 @@ const providerColors: Record<string, string> = {
 const CHART_COLORS = ["#10b981", "#3b82f6", "#f97316", "#eab308", "#a855f7", "#06b6d4"];
 
 export default function CostHistoryTab() {
+  const { t } = useLanguage();
   const { data, isLoading } = useQuery<CostHistoryData>({
     queryKey: ["/api/tokens/cost-history"],
     queryFn: async () => {
@@ -75,7 +77,7 @@ export default function CostHistoryTab() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Cost</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.costHistory.overview.totalCost}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">
               ${(data?.overallTotal || 0).toFixed(4)}
             </div>
@@ -84,7 +86,7 @@ export default function CostHistoryTab() {
         
         <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Paid Requests</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.costHistory.overview.paidRequests}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">
               {data?.records.length || 0}
             </div>
@@ -93,7 +95,7 @@ export default function CostHistoryTab() {
         
         <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Providers</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.costHistory.overview.providers}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">
               {data?.totals.length || 0}
             </div>
@@ -106,7 +108,7 @@ export default function CostHistoryTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-accent" />
-              Cost Distribution by Provider
+              {t.admin.costHistory.charts.costDistribution}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -139,7 +141,7 @@ export default function CostHistoryTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-accent" />
-              Cost by Provider
+              {t.admin.costHistory.charts.costByProvider}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -163,10 +165,10 @@ export default function CostHistoryTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-accent" />
-            Complete Cost History
+            {t.admin.costHistory.history.title}
           </CardTitle>
           <CardDescription>
-            Last 500 paid API requests
+            {t.admin.costHistory.history.subtitle}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -195,7 +197,7 @@ export default function CostHistoryTab() {
                     
                     <div className="text-right">
                       <div className="font-mono text-sm text-muted-foreground">
-                        {record.totalTokens.toLocaleString()} tokens
+                        {record.totalTokens.toLocaleString()} {t.admin.costHistory.history.tokens}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {record.promptTokens} → {record.completionTokens}
@@ -213,7 +215,7 @@ export default function CostHistoryTab() {
               
               {(!data?.records || data.records.length === 0) && (
                 <div className="text-center py-12 text-muted-foreground">
-                  No cost history found
+                  {t.admin.costHistory.history.noCostHistory}
                 </div>
               )}
             </div>

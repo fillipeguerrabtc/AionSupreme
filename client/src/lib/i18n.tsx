@@ -279,6 +279,40 @@ interface Translations {
       };
     };
     
+    // Cost History
+    costHistory: {
+      overview: {
+        totalCost: string;
+        paidRequests: string;
+        providers: string;
+      };
+      charts: {
+        costDistribution: string;
+        costByProvider: string;
+      };
+      history: {
+        title: string;
+        subtitle: string;
+        tokens: string;
+        noCostHistory: string;
+      };
+    };
+    
+    // Token History  
+    tokenHistory: {
+      overview: {
+        totalRecords: string;
+        totalTokens: string;
+        totalCost: string;
+      };
+      history: {
+        title: string;
+        subtitle: string;
+        tokens: string;
+        noHistory: string;
+      };
+    };
+    
     // Knowledge Base
     knowledgeBase: {
       title: string;
@@ -673,6 +707,38 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      costHistory: {
+        overview: {
+          totalCost: "Custo Total",
+          paidRequests: "Requisições Pagas",
+          providers: "Provedores",
+        },
+        charts: {
+          costDistribution: "Distribuição de Custos por Provedor",
+          costByProvider: "Custo por Provedor",
+        },
+        history: {
+          title: "Histórico Completo de Custos",
+          subtitle: "Últimas 500 requisições API pagas",
+          tokens: "tokens",
+          noCostHistory: "Nenhum histórico de custos encontrado",
+        },
+      },
+      
+      tokenHistory: {
+        overview: {
+          totalRecords: "Total de Registros",
+          totalTokens: "Total de Tokens",
+          totalCost: "Custo Total",
+        },
+        history: {
+          title: "Histórico Completo de Uso de Tokens",
+          subtitle: "Últimos 500 registros de todos os provedores (APIs Gratuitas + OpenAI)",
+          tokens: "tokens",
+          noHistory: "Nenhum histórico de uso de tokens encontrado",
+        },
+      },
+      
       knowledgeBase: {
         title: "Base de Conhecimento",
         subtitle: "Gerencie todos os conhecimentos indexados",
@@ -1058,6 +1124,38 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      costHistory: {
+        overview: {
+          totalCost: "Total Cost",
+          paidRequests: "Paid Requests",
+          providers: "Providers",
+        },
+        charts: {
+          costDistribution: "Cost Distribution by Provider",
+          costByProvider: "Cost by Provider",
+        },
+        history: {
+          title: "Complete Cost History",
+          subtitle: "Last 500 paid API requests",
+          tokens: "tokens",
+          noCostHistory: "No cost history found",
+        },
+      },
+      
+      tokenHistory: {
+        overview: {
+          totalRecords: "Total Records",
+          totalTokens: "Total Tokens",
+          totalCost: "Total Cost",
+        },
+        history: {
+          title: "Complete Token Usage History",
+          subtitle: "Last 500 records from all providers (Free APIs + OpenAI)",
+          tokens: "tokens",
+          noHistory: "No token usage history found",
+        },
+      },
+      
       knowledgeBase: {
         title: "Knowledge Base",
         subtitle: "Manage all indexed knowledge",
@@ -1440,6 +1538,38 @@ const translations: Record<Language, Translations> = {
           federatedTraining: "Entrenamiento Federado",
           jobsCompleted: "jobs completados",
           noJobsYet: "No se han completado jobs aún",
+        },
+      },
+      
+      costHistory: {
+        overview: {
+          totalCost: "Costo Total",
+          paidRequests: "Solicitudes Pagadas",
+          providers: "Proveedores",
+        },
+        charts: {
+          costDistribution: "Distribución de Costos por Proveedor",
+          costByProvider: "Costo por Proveedor",
+        },
+        history: {
+          title: "Historial Completo de Costos",
+          subtitle: "Últimas 500 solicitudes API pagadas",
+          tokens: "tokens",
+          noCostHistory: "No se encontró historial de costos",
+        },
+      },
+      
+      tokenHistory: {
+        overview: {
+          totalRecords: "Total de Registros",
+          totalTokens: "Total de Tokens",
+          totalCost: "Costo Total",
+        },
+        history: {
+          title: "Historial Completo de Uso de Tokens",
+          subtitle: "Últimos 500 registros de todos los proveedores (APIs Gratuitas + OpenAI)",
+          tokens: "tokens",
+          noHistory: "No se encontró historial de uso de tokens",
         },
       },
       
