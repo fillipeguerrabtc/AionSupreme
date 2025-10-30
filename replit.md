@@ -1,7 +1,7 @@
 # AION - Autonomous AI System
 
 ## Overview
-AION is an enterprise-grade autonomous AI system for multi-tenant environments, providing a robust, flexible, and self-operating AI solution. It aims to overcome limitations and biases of underlying LLM providers through externalized policy enforcement, an automatic fallback system, and a 5-tier priority chain with multi-GPU load balancing. Key capabilities include configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agents utilizing a POMDP with the ReAct framework, and professional video generation via an async GPU job system and LoRA fine-tuning. The system offers both an end-user chat interface and an administrative dashboard for comprehensive management, aiming to deliver a powerful, flexible, and cost-effective AI solution for enterprises.
+AION is an enterprise-grade autonomous AI system providing a robust, flexible, and self-operating AI solution. It aims to overcome limitations and biases of underlying LLM providers through externalized policy enforcement, an automatic fallback system, and a 5-tier priority chain with multi-GPU load balancing. Key capabilities include configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agents utilizing a POMDP with the ReAct framework, and professional video generation via an async GPU job system and LoRA fine-tuning. The system offers both an end-user chat interface and an administrative dashboard for comprehensive management, aiming to deliver a powerful, flexible, and cost-effective AI solution. Operates in **single-tenant mode** for simplified deployment and cost optimization.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -9,7 +9,7 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Core System Design
-AION employs a multi-tenant architecture with isolated policies, API keys, and usage metrics per tenant. Policy enforcement is externalized via JSON configurations for runtime updates. It features a dual-interface: an end-user chat and an administrative dashboard. A key feature is an automatic fallback system for LLM refusals, performing web searches, indexing content, and responding without censorship in UNRESTRICTED mode. The system uses a **5-tier priority chain with multi-GPU load balancing**: **KB → GPU Pool (custom LoRA models) → Free APIs (Groq, Gemini, HF) → Web Search → OpenAI**. The GPU Pool provides zero-cost inference via automatic rotation of Google Colab workers across multiple accounts. Universal multilingual support is provided via LLM-based dynamic language detection and response generation.
+AION operates in **single-tenant mode** for simplified deployment and cost optimization. Policy enforcement is externalized via JSON configurations for runtime updates. It features a dual-interface: an end-user chat and an administrative dashboard. A key feature is an automatic fallback system for LLM refusals, performing web searches, indexing content, and responding without censorship in UNRESTRICTED mode. The system uses a **5-tier priority chain with multi-GPU load balancing**: **KB → GPU Pool (custom LoRA models) → Free APIs (Groq, Gemini, HF) → Web Search → OpenAI**. The GPU Pool provides zero-cost inference via automatic rotation of Google Colab workers across multiple accounts. Universal multilingual support is provided via LLM-based dynamic language detection and response generation.
 
 ### UI/UX
 The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses Radix UI with shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired custom design system featuring HSL-based colors and Inter/JetBrains Mono fonts. It includes a conversational chat interface with persistent memory and an Admin Dashboard for policy and metrics management.
@@ -58,7 +58,7 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **Auto-Generated Datasets from KB**: Admin dashboard includes automatic dataset generation from Knowledge Base with quality-based filtering (≥60 for auto, ≥80 for high-quality). Endpoint POST /api/training/datasets/generate-from-kb creates JSONL datasets with proper lifecycle management.
 - **Dataset Management**: Admin dashboard for uploading custom datasets (JSONL, CSV, TXT), validation, quality scoring, and approval workflow. Supports both manual uploads and KB auto-generation with unified UI.
 - **Federated Learning**: Multi-GPU distributed training system with automatic chunk splitting, worker registration, gradient aggregation via FedAvg algorithm. Dataset selector includes KB-auto and KB-high-quality options alongside uploaded datasets.
-- **Tenant Isolation**: All training data collection respects multi-tenant boundaries with Zod validation and authorization checks.
+- **Data Isolation**: All training data collection uses default tenantId=1 for single-tenant deployments. Schema supports multi-tenant expansion if needed in future.
 - **Token Monitoring Dashboard**: Real-time tracking of token usage with UTC-aligned queries, preventing timezone mismatches. Includes today/month/all-time aggregation with per-provider breakdown and cost estimates.
 
 **Multi-Cloud Deployment (100% Free Tier):**
@@ -71,7 +71,7 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query. It uses R
 - **Deployment Process**: 3-step process (GCP → AWS with GCP endpoint → GCP redeploy with AWS endpoint) for full bidirectional monitoring.
 
 ### System Design Choices
-- **Multi-tenancy**: Complete isolation of data and policies per tenant.
+- **Single-Tenant Architecture**: Simplified deployment with default tenantId=1, optimized for personal/small team use. Multi-tenant schema preserved in database for future scalability but not actively enforced.
 - **Externalized Policies**: JSON configurations for dynamic updates.
 - **Separation Theorem**: Core model distinct from externalized Enforcement Policies.
 - **Uncensored Default**: System starts with all policies disabled, configurable via admin dashboard.

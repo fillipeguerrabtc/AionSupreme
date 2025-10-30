@@ -61,11 +61,11 @@ export async function authenticateApiKey(
 
 /**
  * Validate API key and return tenant
+ * NOTE: Not currently used - AION operates in single-tenant mode (tenantId=1)
  */
 async function validateApiKey(apiKey: string): Promise<{ id: number; name: string } | null> {
   try {
-    const tenants = await storage.getAllTenants();
-    const tenant = tenants.find((t) => t.apiKey === apiKey);
+    const tenant = await storage.getTenantByApiKey(apiKey);
     return tenant || null;
   } catch (error) {
     console.error("[Auth] Error validating API key:", error);
