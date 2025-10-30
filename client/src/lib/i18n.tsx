@@ -554,6 +554,7 @@ const translations: Record<Language, Translations> = {
         federatedTraining: "Treinamento Federado",
         autoEvolution: "Auto-Evolução",
         datasets: "Datasets",
+        agents: "Agentes Especialistas",
         settings: "Configurações",
       },
 
@@ -1050,6 +1051,7 @@ const translations: Record<Language, Translations> = {
         federatedTraining: "Federated Training",
         autoEvolution: "Auto-Evolution",
         datasets: "Datasets",
+        agents: "Specialist Agents",
         settings: "Settings",
       },
 
@@ -1546,6 +1548,7 @@ const translations: Record<Language, Translations> = {
         federatedTraining: "Entrenamiento Federado",
         autoEvolution: "Auto-Evolución",
         datasets: "Datasets",
+        agents: "Agentes Especialistas",
         settings: "Configuraciones",
       },
 

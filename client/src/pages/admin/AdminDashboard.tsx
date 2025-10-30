@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
+import AgentsPage from "./AgentsPage";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -739,6 +740,13 @@ export default function AdminDashboard() {
               {/* Datasets Tab */}
               {activeTab === "datasets" && (
                 <DatasetsTab />
+              )}
+
+              {/* Agents Tab */}
+              {activeTab === "agents" && (
+                <div className="space-y-6">
+                  <AgentsPage />
+                </div>
               )}
 
               {/* Settings Tab */}
