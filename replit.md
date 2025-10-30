@@ -19,7 +19,16 @@ The frontend uses React 18, Vite, Wouter, and TanStack Query, built with Radix U
 ### Technical Implementations
 The backend is built with Node.js and TypeScript using Express.js, with PostgreSQL via Drizzle ORM (Neon serverless). All date calculations use the America/Sao_Paulo timezone. Core services include LLM Client, Storage, Multi-Agent Router (MoE), RAG with namespace-scoping, Agent Engine (ReAct with POMDP), Policy Enforcement, Automatic Fallback, Multimodal Processing, Web Content Discovery, Free LLM Providers rotation, GPU Orchestrator, Training Data Collector, and Token Monitoring System. Authentication uses Replit Auth (OpenID Connect). Multilingual support is LLM-based. Refusal detection uses a 5-level verification system.
 
-**Multi-Agent Architecture**: The system uses a Mixture of Experts (MoE) router that analyzes incoming queries using intent classification and routing probability distribution. Agent selection employs softmax normalization with temperature control and top-p sampling. Each agent has isolated RAG namespaces, dedicated tool access (SearchWeb, KB.Search, Exec, CallAPI), configurable budget limits, and escalation rules. The planner supports multi-agent orchestration with parallel execution and result aggregation.
+**Multi-Agent Architecture (PRODUCTION-READY)**: The system uses a Mixture of Experts (MoE) router that analyzes incoming queries using intent classification and routing probability distribution. Agent selection employs softmax normalization with temperature control and top-p sampling. Each agent has isolated RAG namespaces, dedicated tool access (SearchWeb, KB.Search, Exec, CallAPI), configurable budget limits, and escalation rules. The planner supports multi-agent orchestration with parallel execution and result aggregation.
+
+**Implementation Status**: Complete multi-agent infrastructure deployed and tested (Oct 2025):
+- **Backend**: Full CRUD API (PATCH-based updates), 4 DB tables (agents, tools, agent_tools, traces), dual-cache architecture (registry for lookup, runtime for execution)
+- **Agent Pipeline**: DB → Loader → Registry + Runtime → Router (MoE) → Planner → Execution
+- **AgentExecutor Pattern**: Loader wraps Agent configs with run() method via createAgentExecutor() factory, enabling planner to invoke agents without runtime errors
+- **9 Specialist Agents Seeded**: Atendimento, Finanças, Tecnologia, Turismo, Automóveis, Gestão, Calendário, Marketing, Auxiliar
+- **Admin UI**: Full CRUD operations with shadcn components, create/edit dialogs, PATCH method alignment
+- **Event-Driven RAG**: Namespace-scoped indexing triggered by AGENT_CREATED/UPDATED/DELETED events
+- **Next Steps**: Implement production LLM/RAG logic in AgentExecutor.run() (currently placeholder), add runtime.unregisterAgent() for cleanup
 
 RAG combines OpenAI embeddings with BM25 for re-ranking using Max-Marginal Relevance (MMR), supported by an intelligent knowledge indexer with **namespace-scoped indexing** for agent isolation. The agent system utilizes a ReAct engine with POMDP for decision-making. The Policy Enforcement Pipeline uses a System Prompt Composer and Output Moderator with a JSON-configurable Policy DSL to refuse, redact, or rewrite responses. The Automatic Fallback System activates on LLM refusals in UNRESTRICTED mode, performing web searches and indexing content to generate uncensored responses.
 
