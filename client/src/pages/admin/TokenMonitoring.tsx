@@ -165,9 +165,14 @@ const COLORS = {
   kb: '#f59e0b'
 };
 
-export default function TokenMonitoring() {
+interface TokenMonitoringProps {
+  initialTab?: 'overview' | 'kb' | 'free-apis' | 'openai' | 'web' | 'deepweb' | 'limits';
+}
+
+export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonitoringProps = {}) {
   const { t } = useLanguage();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [selectedPeriod, setSelectedPeriod] = useState(30);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [customMode, setCustomMode] = useState(false);
@@ -474,7 +479,7 @@ export default function TokenMonitoring() {
   }
 
   return (
-    <Tabs defaultValue="overview" className="space-y-6">
+    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-6">
       <TabsList className="glass-premium border-primary/20">
         <TabsTrigger value="overview" data-testid="tab-overview">
           <BarChart3 className="w-4 h-4 mr-2" />

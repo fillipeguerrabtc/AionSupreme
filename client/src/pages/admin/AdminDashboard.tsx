@@ -37,6 +37,7 @@ export default function AdminDashboard() {
   const [tenantId] = useState(1);
   const [systemPromptValue, setSystemPromptValue] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
+  const [tokenSubtab, setTokenSubtab] = useState<'overview' | 'kb' | 'free-apis' | 'openai' | 'web' | 'deepweb' | 'limits'>('overview');
   const [selectedTimezone, setSelectedTimezone] = useState("America/Sao_Paulo");
   const [currentTime, setCurrentTime] = useState(getCurrentDateTimeInTimezone(selectedTimezone));
   
@@ -341,10 +342,13 @@ export default function AdminDashboard() {
                 <div className="space-y-6">
         {/* Metrics Cards - Clickable - ONE CARD PER TAB/SUBTAB */}
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {/* Card 1: Total Tokens → History Tab */}
+          {/* Card 1: Total Tokens → Token Monitoring (Overview) */}
           <Card 
             className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
-            onClick={() => setActiveTab("history")}
+            onClick={() => {
+              setTokenSubtab('overview');
+              setActiveTab("tokens");
+            }}
             data-testid="card-total-tokens"
           >
             <CardHeader className="pb-3">
@@ -389,10 +393,13 @@ export default function AdminDashboard() {
             </CardHeader>
           </Card>
 
-          {/* Card 3: KB Searches → Token Monitoring (KB Searches subtab) */}
+          {/* Card 3: KB Searches → Token Monitoring (KB subtab) */}
           <Card 
             className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
-            onClick={() => setActiveTab("tokens")}
+            onClick={() => {
+              setTokenSubtab('kb');
+              setActiveTab("tokens");
+            }}
             data-testid="card-kb-searches"
           >
             <CardHeader className="pb-3">
@@ -416,7 +423,10 @@ export default function AdminDashboard() {
           {/* Card 4: Free APIs → Token Monitoring (Free APIs subtab) */}
           <Card 
             className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
-            onClick={() => setActiveTab("tokens")}
+            onClick={() => {
+              setTokenSubtab('free-apis');
+              setActiveTab("tokens");
+            }}
             data-testid="card-free-apis"
           >
             <CardHeader className="pb-3">
@@ -440,7 +450,10 @@ export default function AdminDashboard() {
           {/* Card 5: OpenAI → Token Monitoring (OpenAI subtab) */}
           <Card 
             className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
-            onClick={() => setActiveTab("tokens")}
+            onClick={() => {
+              setTokenSubtab('openai');
+              setActiveTab("tokens");
+            }}
             data-testid="card-openai"
           >
             <CardHeader className="pb-3">
@@ -461,10 +474,13 @@ export default function AdminDashboard() {
             </CardHeader>
           </Card>
 
-          {/* Card 6: Web Searches → Token Monitoring (Web Searches subtab) */}
+          {/* Card 6: Web Searches → Token Monitoring (Web subtab) */}
           <Card 
             className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
-            onClick={() => setActiveTab("tokens")}
+            onClick={() => {
+              setTokenSubtab('web');
+              setActiveTab("tokens");
+            }}
             data-testid="card-web-searches"
           >
             <CardHeader className="pb-3">
@@ -488,7 +504,10 @@ export default function AdminDashboard() {
           {/* Card 7: DeepWeb Searches → Token Monitoring (DeepWeb subtab) */}
           <Card 
             className="glass-premium border-accent/20 hover-elevate cursor-pointer transition-all" 
-            onClick={() => setActiveTab("tokens")}
+            onClick={() => {
+              setTokenSubtab('deepweb');
+              setActiveTab("tokens");
+            }}
             data-testid="card-deepweb-searches"
           >
             <CardHeader className="pb-3">
@@ -603,7 +622,7 @@ export default function AdminDashboard() {
               {/* Token Monitoring Tab */}
               {activeTab === "tokens" && (
                 <div className="space-y-6">
-                  <TokenMonitoring />
+                  <TokenMonitoring initialTab={tokenSubtab} />
                 </div>
               )}
 
