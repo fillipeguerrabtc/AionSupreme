@@ -13,8 +13,20 @@ AION operates in single-tenant mode with **multi-agent architecture** utilizing 
 
 **Multi-Agent System**: AION now supports multiple specialized agents, each with dedicated knowledge base namespaces, tool access, and budget limits. An MoE router analyzes user queries and selects the best agent(s) using softmax probability distribution and top-p sampling. This enables vertical specialization (finance, tech, tourism, etc.), parallel processing, and improved cost efficiency through scoped RAG searches.
 
+**Friendly Namespace System**: Namespaces use human-friendly categories (e.g., `financas/investimentos`, `tech/software`, `turismo/lisboa`) allowing multiple agents per category. Admins can create custom namespaces for new themes or companies (e.g., `empresa-x/vendas`, `startup-y/marketing`) directly through the UI. The NamespaceSelector component supports multi-selection and dynamic namespace creation in format `categoria/subcategoria`.
+
+**Knowledge Curation System (HITL - Human-in-the-Loop)**: Production-ready curation workflow with 2 specialized Curator agents:
+- **Curador de Conhecimento (AI Curator)**: Analyzes content, extracts metadata, scores quality, and queues items for human review. Has access to all namespaces (*) for centralized governance.
+- **Curador Executivo (Executive Curator)**: Human-augmented curator requiring mandatory human approval for all actions, ensuring quality control.
+Workflow: AI Curator analyzes → Queue with metadata → Human review (approve/reject/edit via CurationQueuePage) → Promote to KB with namespace assignment. Includes PromoteToKBButton for instant promotion of high-quality responses.
+
 ### UI/UX
-The frontend uses React 18, Vite, Wouter, and TanStack Query, built with Radix UI, shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired HSL-based custom design system. It includes a conversational chat interface and an Admin Dashboard with enterprise sidebar navigation for policy and metrics management across **12 sections** with multi-language support (PT-BR, EN-US, ES-ES). Branding consistently displays "AION". The Admin Dashboard features a structured layout with a collapsible sidebar and a sticky header, incorporating glassmorphism effects and professional visual hierarchy. A full-featured Datasets Management Page (production-ready) provides statistics, advanced filtering, sorting, bulk operations, and quality indicators for dataset management. The new **Agents Management Page** provides full CRUD operations for specialist agents, namespace configuration, tool assignment, and budget limits.
+The frontend uses React 18, Vite, Wouter, and TanStack Query, built with Radix UI, shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired HSL-based custom design system. It includes a conversational chat interface and an Admin Dashboard with enterprise sidebar navigation for policy and metrics management across **13 sections** with multi-language support (PT-BR, EN-US, ES-ES). Branding consistently displays "AION". The Admin Dashboard features a structured layout with a collapsible sidebar and a sticky header, incorporating glassmorphism effects and professional visual hierarchy. 
+
+Key Dashboard Pages:
+- **Datasets Management Page** (production-ready): Statistics, advanced filtering, sorting, bulk operations, and quality indicators
+- **Agents Management Page**: Full CRUD operations for specialist agents with NamespaceSelector component enabling multi-selection of predefined namespaces AND creation of custom namespaces (format: `categoria/subcategoria`)
+- **Curation Queue Page** (HITL): Human-in-the-loop workflow for reviewing AI-curated content, approving/rejecting items, editing metadata, and promoting to Knowledge Base with namespace assignment
 
 ### Technical Implementations
 The backend is built with Node.js and TypeScript using Express.js, with PostgreSQL via Drizzle ORM (Neon serverless). All date calculations use the America/Sao_Paulo timezone. Core services include LLM Client, Storage, Multi-Agent Router (MoE), RAG with namespace-scoping, Agent Engine (ReAct with POMDP), Policy Enforcement, Automatic Fallback, Multimodal Processing, Web Content Discovery, Free LLM Providers rotation, GPU Orchestrator, Training Data Collector, and Token Monitoring System. Authentication uses Replit Auth (OpenID Connect). Multilingual support is LLM-based. Refusal detection uses a 5-level verification system.
@@ -25,8 +37,9 @@ The backend is built with Node.js and TypeScript using Express.js, with PostgreS
 - **Backend**: Full CRUD API (PATCH-based updates), 4 DB tables (agents, tools, agent_tools, traces), dual-cache architecture (registry for lookup, runtime for execution)
 - **Agent Pipeline**: DB → Loader → Registry + Runtime → Router (MoE) → Planner → Execution
 - **AgentExecutor Pattern**: Loader wraps Agent configs with run() method via createAgentExecutor() factory, enabling planner to invoke agents without runtime errors
-- **9 Specialist Agents Seeded**: Atendimento, Finanças, Tecnologia, Turismo, Automóveis, Gestão, Calendário, Marketing, Auxiliar
-- **Admin UI**: Full CRUD operations with shadcn components, create/edit dialogs, PATCH method alignment
+- **11 Agents Seeded**: 9 Specialist Agents (Atendimento, Finanças, Tecnologia, Turismo, Automóveis, Gestão, Calendário, Marketing, Auxiliar) + 2 Curator Agents (Curador de Conhecimento with namespace "*", Curador Executivo with human-approval requirement)
+- **Admin UI**: Full CRUD operations with shadcn components, create/edit dialogs with NamespaceSelector supporting custom namespace creation, PATCH method alignment
+- **Curation System**: Backend routes (/api/curation/*, /api/kb/promote), in-memory queue store, CurationQueuePage UI with approve/reject/edit, PromoteToKBButton component
 - **Event-Driven RAG**: Namespace-scoped indexing triggered by AGENT_CREATED/UPDATED/DELETED events
 - **Next Steps**: Implement production LLM/RAG logic in AgentExecutor.run() (currently placeholder), add runtime.unregisterAgent() for cleanup
 
