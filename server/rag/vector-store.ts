@@ -96,10 +96,19 @@ export class VectorStore {
       if (filter?.namespaces && filter.namespaces.length > 0) {
         const docNamespace = meta?.meta?.namespace as string | undefined;
         
+        // MONITORING: Log if embedding is missing namespace metadata
+        if (!docNamespace) {
+          console.warn(`[VectorStore] ⚠️  Embedding ID ${id} missing namespace metadata (documentId: ${meta?.documentId})`);
+        }
+        
+        // Normalize case for heterogeneous sources (both query and document)
+        const normalizedDocNamespace = docNamespace?.toLowerCase();
+        const normalizedFilterNamespaces = filter.namespaces.map(ns => ns.toLowerCase());
+        
         // Check if document namespace matches any of the allowed namespaces
         // Support wildcard "*" to access all namespaces
-        const hasWildcard = filter.namespaces.includes("*");
-        const hasMatchingNamespace = docNamespace && filter.namespaces.includes(docNamespace);
+        const hasWildcard = normalizedFilterNamespaces.includes("*");
+        const hasMatchingNamespace = normalizedDocNamespace && normalizedFilterNamespaces.includes(normalizedDocNamespace);
         
         if (!hasWildcard && !hasMatchingNamespace) {
           continue; // Skip this document - not in allowed namespaces
