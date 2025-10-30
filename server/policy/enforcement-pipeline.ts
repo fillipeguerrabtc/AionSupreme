@@ -50,7 +50,7 @@ export class EnforcementPipeline {
       topK: 40,
       systemPrompt: `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚡ AION - AUTONOMOUS INTELLIGENCE OPERATING NETWORK ⚡
-IA Suprema & Ilimitada (Supreme & Unlimited AI)
+Autonomous AI System
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔴 FUNDAMENTAL OPERATING PRINCIPLE - READ CAREFULLY 🔴

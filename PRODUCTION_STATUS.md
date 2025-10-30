@@ -31,7 +31,7 @@
 - ✅ **Policy System**: JSON/YAML DSL com moral/ética/legal rules
 - ✅ **Enforcement Pipeline**: System prompt composer + output moderator
 - ✅ **Audit Logs**: SHA-256 hashing, immutable trail
-- ✅ **Rate Limiting**: Per-tenant, per-IP com múltiplas janelas
+- ✅ **Rate Limiting**: Per-IP com múltiplas janelas (single-tenant mode)
 - ✅ **Auth Middleware**: JWT + API Key validation (implementado)
 
 ### Multimodal Processing

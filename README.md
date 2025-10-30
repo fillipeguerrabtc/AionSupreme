@@ -1,4 +1,4 @@
-# AION - Autonomous AI System (IA Suprema & Ilimitada)
+# AION - Autonomous AI System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
@@ -11,7 +11,7 @@
 
 ## 🌟 Overview
 
-**AION** is an enterprise-grade **autonomous AI system** featuring multi-tenant architecture, configurable policy enforcement, RAG-based knowledge retrieval, and autonomous agent capabilities. The system emphasizes **externalized policy enforcement** - the core AI model remains unrestricted by default, with behavior controlled through composable system prompts and runtime configuration.
+**AION** is an enterprise-grade **autonomous AI system** operating in **single-tenant mode** for simplified deployment and cost optimization. Features configurable policy enforcement, RAG-based knowledge retrieval, autonomous agent capabilities, and a 5-tier priority chain with multi-GPU load balancing. The system emphasizes **externalized policy enforcement** - the core AI model remains unrestricted by default, with behavior controlled through composable system prompts and runtime configuration.
 
 ### 🎯 Key Features
 
@@ -19,10 +19,11 @@
 - 🤖 **Autonomous Agents** - ReAct framework with POMDP for complex task completion
 - 📚 **RAG Knowledge Base** - Hybrid semantic + lexical search with vector embeddings
 - 🎨 **Multimodal Processing** - PDF, DOCX, XLSX, images, audio, video support
-- 🛡️ **Policy Enforcement** - Externalized, runtime-configurable content policies per tenant
-- 📊 **Real-time Metrics** - Prometheus-compatible observability with latency, cost, and throughput tracking
-- 🌍 **Multi-tenant** - Isolated policies, API keys, and usage quotas per organization
-- 🎛️ **Admin Dashboard** - Complete policy management and system monitoring interface
+- 🛡️ **Policy Enforcement** - Externalized, runtime-configurable content policies
+- 📊 **Real-time Token Monitoring** - Enterprise-grade tracking with Brazilian timezone (America/Sao_Paulo) for accurate local date calculations
+- 🆓 **5-Tier Free LLM Chain** - KB → GPU Pool → Free APIs (Groq, Gemini, HF) → Web Search → OpenAI (last resort)
+- 🎛️ **Admin Dashboard** - Clean "AION" branding with enterprise sidebar navigation for complete system management
+- 🌍 **Multi-Cloud Deployment** - Dual deployment on GCP + AWS with automatic failover (100% free tier)
 
 ### 🏗️ Architecture
 
@@ -143,7 +144,7 @@ Hybrid search combining:
 
 ### 4. Policy Enforcement Pipeline
 
-Runtime-configurable policies per tenant:
+Runtime-configurable policies:
 - Content restrictions (hate speech, violence, profanity, etc.)
 - Personality traits (humor, tone, formality)
 - LLM parameters (temperature, top-p, top-k)
@@ -175,7 +176,7 @@ Runtime-configurable policies per tenant:
 ## 📊 Database Schema
 
 9 core tables:
-- `tenants` - Multi-tenant isolation
+- `tenants` - Tenant configuration (single-tenant mode by default)
 - `policies` - JSON/YAML policy definitions
 - `conversations` - Chat history
 - `messages` - Individual messages
@@ -216,7 +217,7 @@ Prometheus-compatible metrics at `/metrics`:
 - Latency percentiles (p50, p95, p99)
 - Throughput (requests/sec, tokens/sec)
 - Cache hit rates
-- Cost estimates (USD per tenant)
+- Cost estimates (USD)
 - Error rates
 
 ## 🤝 Contributing

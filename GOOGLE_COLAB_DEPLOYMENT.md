@@ -337,4 +337,4 @@ print(f"🎉 AION rodando em: {public_url}")
 
 Para dúvidas sobre deployment no Google Colab, consulte a documentação completa ou abra uma issue no repositório.
 
-**AION - IA Suprema & Ilimitada** 🚀
+**AION - Autonomous AI System** 🚀

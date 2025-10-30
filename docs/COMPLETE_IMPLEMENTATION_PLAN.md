@@ -30,7 +30,7 @@ AION is designed as a **complete autonomous local AI system**, NOT an OpenAI wra
 
 ### ✅ Database Schema (Drizzle + PostgreSQL)
 ```typescript
-// Multi-tenant isolation
+// Single-tenant mode (schema preserved for future scalability)
 - tenants: id, name, apiKey, policies (JSONB), createdAt
 - users: id, tenantId, username, passwordHash, role
 - conversations: id, tenantId, userId, title, createdAt
@@ -1654,10 +1654,10 @@ app.post('/api/policies', requireAuth, requireMFA, async (req, res) => {
 ### 🔒 Security Best Practices
 
 **Authentication & Authorization**:
-- Multi-tenant isolation (tenant-scoped queries)
+- Single-tenant deployment (simplified for personal/team use)
 - Role-based access control (RBAC)
 - API key rotation every 90 days
-- Rate limiting per tenant (100 req/min)
+- Rate limiting per-IP (100 req/min)
 
 **Data Protection**:
 - Encrypt data at rest (database-level encryption)

@@ -393,4 +393,4 @@ Dúvidas? Veja documentação completa em:
 
 ---
 
-**Criado com ❤️ para AION - IA Suprema & Ilimitada**
+**Criado com ❤️ para AION - Autonomous AI System**

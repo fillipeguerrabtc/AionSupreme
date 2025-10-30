@@ -510,4 +510,4 @@ Você configurou:
 ---
 
 **Made with ❤️ by AION Community**  
-*IA Livre, Suprema & Ilimitada*
+*Autonomous AI System*

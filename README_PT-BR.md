@@ -1,4 +1,4 @@
-# AION - Sistema de IA Autônoma (IA Suprema & Ilimitada)
+# AION - Sistema de IA Autônoma
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
@@ -11,7 +11,7 @@
 
 ## 🌟 Visão Geral
 
-**AION** é um **sistema de IA autônoma** de nível empresarial com arquitetura multi-inquilino, aplicação configurável de políticas, recuperação de conhecimento baseada em RAG e capacidades de agentes autônomos. O sistema enfatiza **aplicação externalizada de políticas** - o modelo de IA central permanece irrestrito por padrão, com comportamento controlado através de prompts de sistema compostos e configuração em tempo de execução.
+**AION** é um **sistema de IA autônoma** de nível empresarial operando em **modo single-tenant** para implantação simplificada e otimização de custos. Apresenta aplicação configurável de políticas, recuperação de conhecimento baseada em RAG, capacidades de agentes autônomos e cadeia de prioridade de 5 níveis com balanceamento multi-GPU. O sistema enfatiza **aplicação externalizada de políticas** - o modelo de IA central permanece irrestrito por padrão, com comportamento controlado através de prompts de sistema compostos e configuração em tempo de execução.
 
 ### 🎯 Principais Recursos
 
@@ -19,10 +19,11 @@
 - 🤖 **Agentes Autônomos** - Framework ReAct com POMDP para conclusão de tarefas complexas
 - 📚 **Base de Conhecimento RAG** - Busca híbrida semântica + lexical com embeddings vetoriais
 - 🎨 **Processamento Multimodal** - Suporte para PDF, DOCX, XLSX, imagens, áudio, vídeo
-- 🛡️ **Aplicação de Políticas** - Políticas de conteúdo externalizadas e configuráveis em tempo de execução por inquilino
-- 📊 **Métricas em Tempo Real** - Observabilidade compatível com Prometheus com rastreamento de latência, custo e throughput
-- 🌍 **Multi-inquilino** - Políticas, chaves de API e quotas de uso isoladas por organização
-- 🎛️ **Painel Administrativo** - Interface completa de gerenciamento de políticas e monitoramento do sistema
+- 🛡️ **Aplicação de Políticas** - Políticas de conteúdo externalizadas e configuráveis em tempo de execução
+- 📊 **Monitoramento de Tokens em Tempo Real** - Rastreamento de nível empresarial com timezone brasileiro (America/Sao_Paulo) para cálculos precisos de datas locais
+- 🆓 **Cadeia de 5 Níveis de LLM Grátis** - KB → Pool de GPU → APIs Grátis (Groq, Gemini, HF) → Busca Web → OpenAI (último recurso)
+- 🎛️ **Painel Administrativo** - Branding limpo "AION" com navegação sidebar empresarial para gerenciamento completo do sistema
+- 🌍 **Deploy Multi-Cloud** - Implantação dupla em GCP + AWS com failover automático (100% free tier)
 
 ### 🏗️ Arquitetura
 
@@ -143,7 +144,7 @@ Busca híbrida combinando:
 
 ### 4. Pipeline de Aplicação de Políticas
 
-Políticas configuráveis em tempo de execução por inquilino:
+Políticas configuráveis em tempo de execução:
 - Restrições de conteúdo (discurso de ódio, violência, palavrões, etc.)
 - Traços de personalidade (humor, tom, formalidade)
 - Parâmetros LLM (temperatura, top-p, top-k)
@@ -175,7 +176,7 @@ Políticas configuráveis em tempo de execução por inquilino:
 ## 📊 Schema do Banco de Dados
 
 9 tabelas principais:
-- `tenants` - Isolamento multi-inquilino
+- `tenants` - Configuração de tenant (modo single-tenant por padrão)
 - `policies` - Definições de políticas JSON/YAML
 - `conversations` - Histórico de chat
 - `messages` - Mensagens individuais
@@ -216,7 +217,7 @@ Métricas compatíveis com Prometheus em `/metrics`:
 - Percentis de latência (p50, p95, p99)
 - Throughput (solicitações/seg, tokens/seg)
 - Taxas de acerto de cache
-- Estimativas de custo (USD por inquilino)
+- Estimativas de custo (USD)
 - Taxas de erro
 
 ## 🤝 Contribuindo

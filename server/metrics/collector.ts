@@ -5,7 +5,7 @@
  * - Latency percentiles (p50/p95/p99)
  * - Throughput (tokens/s, requests/s)
  * - Cache hit rates
- * - Cost tracking per tenant
+ * - Cost tracking (single-tenant mode)
  * - Resource utilization
  */
 

@@ -43,7 +43,7 @@ export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
 // ============================================================================
-// TENANTS - Multi-tenant isolation with jurisdiction-specific policies
+// TENANTS - Tenant configuration (single-tenant mode by default, schema preserved for future scalability)
 // ============================================================================
 export const tenants = pgTable("tenants", {
   id: serial("id").primaryKey(),
@@ -662,7 +662,7 @@ export type InsertTokenUsage = z.infer<typeof insertTokenUsageSchema>;
 export type TokenUsage = typeof tokenUsage.$inferSelect;
 
 // ============================================================================
-// TOKEN_LIMITS - Configurable limits per tenant/provider
+// TOKEN_LIMITS - Configurable limits per provider (single-tenant mode)
 // ============================================================================
 export const tokenLimits = pgTable("token_limits", {
   id: serial("id").primaryKey(),

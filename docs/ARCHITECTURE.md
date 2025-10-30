@@ -366,7 +366,7 @@ const defaultPolicy = {
 **Razão**:
 - Mudanças de política não requerem re-treinamento
 - Updates instantâneos em tempo de execução
-- Permite políticas diferentes por inquilino
+- Permite configuração flexível de políticas
 - Mais eficiente computacionalmente
 
 **Implementação**:
@@ -390,9 +390,9 @@ const defaultPolicy = {
 - ❌ Latência adicional (~5-10s)
 - ❌ Custo extra de embedding + LLM call
 
-### 4. **Multi-tenancy com Isolamento Completo**
+### 4. **Single-Tenant Architecture (Schema Preservado para Escalabilidade)**
 
-**Decisão**: Cada tenant tem políticas, chaves de API e métricas isoladas.
+**Decisão**: Sistema opera em modo single-tenant por padrão, com schema multi-tenant preservado para futura expansão.
 
 **Razão**:
 - Habilita modelo SaaS

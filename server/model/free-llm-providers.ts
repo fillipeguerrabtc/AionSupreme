@@ -55,7 +55,7 @@ export class FreeLLMProviders {
         apiKey: openrouterKey,
         defaultHeaders: {
           "HTTP-Referer": "https://aion.replit.dev",
-          "X-Title": "AION - AI Suprema",
+          "X-Title": "AION - Autonomous AI System",
         },
       });
       console.log("[Free LLM] ✓ OpenRouter API inicializada (50 req/dia grátis, 400+ modelos)");
