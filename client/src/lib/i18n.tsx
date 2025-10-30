@@ -56,14 +56,161 @@ interface Translations {
     tokenMonitoring: {
       title: string;
       subtitle: string;
-      kbSearches: string;
-      freeApis: string;
-      openai: string;
-      webSearches: string;
-      deepWebSearches: string;
-      limitsAlerts: string;
-      usageDistribution: string;
-      distributionDesc: string;
+      
+      // Tabs
+      tabs: {
+        overview: string;
+        kbSearches: string;
+        freeApis: string;
+        openai: string;
+        webSearches: string;
+        deepWeb: string;
+        limitsAlerts: string;
+      };
+      
+      // Overview
+      overview: {
+        title: string;
+        usageTrends: string;
+        trendsDesc: string;
+        periodButtons: {
+          today: string;
+          week: string;
+          month: string;
+          quarter: string;
+          year: string;
+          fiveYears: string;
+          custom: string;
+        };
+        breakdown: string;
+        exportData: string;
+        exportCSV: string;
+        exportPNG: string;
+        totalTokens: string;
+        totalRequests: string;
+        totalCost: string;
+        dailyUsage: string;
+       };
+      
+      // Limits & Alerts
+      limits: {
+        title: string;
+        subtitle: string;
+        configureTitle: string;
+        configureDesc: string;
+        dailyLimits: string;
+        monthlyLimits: string;
+        dailyTokenLimit: string;
+        dailyCostLimit: string;
+        monthlyTokenLimit: string;
+        monthlyCostLimit: string;
+        saveButton: string;
+        saving: string;
+        successMessage: string;
+        activeAlerts: string;
+        noAlerts: string;
+        noAlertsDesc: string;
+        acknowledged: string;
+        acknowledge: string;
+      };
+      
+      // Free APIs
+      freeApis: {
+        title: string;
+        trendsTitle: string;
+        trendsDesc: string;
+        detailedHistory: string;
+        detailedHistoryDesc: string;
+        recentRequests: string;
+        model: string;
+        promptTokens: string;
+        completionTokens: string;
+        totalTokensLabel: string;
+        timestamp: string;
+        noHistory: string;
+        noHistoryDesc: string;
+      };
+      
+      // KB Searches
+      kbSearches: {
+        title: string;
+        historyTitle: string;
+        historyDesc: string;
+        recentSearches: string;
+        query: string;
+        results: string;
+        confidence: string;
+        timestamp: string;
+        noHistory: string;
+        noHistoryDesc: string;
+      };
+      
+      // Web Searches
+      webSearches: {
+        title: string;
+        statsTitle: string;
+        statsDesc: string;
+        totalSearches: string;
+        successfulSearches: string;
+        totalSources: string;
+        uniqueDomains: string;
+        historyTitle: string;
+        historyDesc: string;
+        recentSearches: string;
+        query: string;
+        resultsCount: string;
+        timestamp: string;
+        viewSources: string;
+        noHistory: string;
+        noHistoryDesc: string;
+      };
+      
+      // DeepWeb
+      deepWeb: {
+        title: string;
+        statsTitle: string;
+        statsDesc: string;
+        totalSearches: string;
+        successfulSearches: string;
+        totalSources: string;
+        uniqueDomains: string;
+        historyTitle: string;
+        historyDesc: string;
+        recentSearches: string;
+        query: string;
+        resultsCount: string;
+        timestamp: string;
+        viewSources: string;
+        noHistory: string;
+        noHistoryDesc: string;
+      };
+      
+      // OpenAI
+      openaiTab: {
+        title: string;
+        usageTrends: string;
+        trendsDesc: string;
+        costHistory: string;
+        costHistoryDesc: string;
+        totalCost: string;
+        avgCostPerRequest: string;
+        totalRequests: string;
+      };
+      
+      // Common
+      common: {
+        loading: string;
+        error: string;
+        noData: string;
+        date: string;
+        provider: string;
+        status: string;
+        success: string;
+        failed: string;
+        paid: string;
+        paidAPIRequests: string;
+        searches: string;
+      };
     };
     
     // Knowledge Base
@@ -247,14 +394,152 @@ const translations: Record<Language, Translations> = {
       tokenMonitoring: {
         title: "Monitoramento de Tokens",
         subtitle: "Rastreie o uso de tokens em tempo real",
-        kbSearches: "Buscas KB",
-        freeApis: "APIs Gratuitas",
-        openai: "OpenAI",
-        webSearches: "Buscas Web",
-        deepWebSearches: "Buscas DeepWeb",
-        limitsAlerts: "Limites & Alertas",
-        usageDistribution: "Distribuição de Uso por Provedor",
-        distributionDesc: "Consumo de tokens em todos os provedores",
+        
+        tabs: {
+          overview: "Visão Geral",
+          kbSearches: "Buscas KB",
+          freeApis: "APIs Gratuitas",
+          openai: "OpenAI",
+          webSearches: "Buscas Web",
+          deepWeb: "DeepWeb",
+          limitsAlerts: "Limites & Alertas",
+        },
+        
+        overview: {
+          title: "Visão Geral",
+          usageTrends: "Tendências de Uso",
+          trendsDesc: "Consumo de tokens ao longo do tempo",
+          periodButtons: {
+            today: "Hoje",
+            week: "7 dias",
+            month: "30 dias",
+            quarter: "90 dias",
+            year: "1 ano",
+            fiveYears: "5 anos",
+            custom: "Período Personalizado",
+          },
+          breakdown: "Detalhamento por Provedor",
+          exportData: "Exportar Dados",
+          exportCSV: "Exportar CSV",
+          exportPNG: "Exportar PNG",
+          totalTokens: "Total de Tokens",
+          totalRequests: "Total de Requisições",
+          totalCost: "Custo Total",
+          dailyUsage: "Uso Diário",
+        },
+        
+        limits: {
+          title: "Limites & Alertas",
+          subtitle: "Configure limites e monitore alertas",
+          configureTitle: "Configurar Limites de Uso",
+          configureDesc: "Defina limites de tokens e custos para evitar excesso",
+          dailyLimits: "Limites Diários",
+          monthlyLimits: "Limites Mensais",
+          dailyTokenLimit: "Limite Diário de Tokens",
+          dailyCostLimit: "Limite Diário de Custo ($)",
+          monthlyTokenLimit: "Limite Mensal de Tokens",
+          monthlyCostLimit: "Limite Mensal de Custo ($)",
+          saveButton: "Salvar Limites",
+          saving: "Salvando...",
+          successMessage: "Limites configurados com sucesso",
+          activeAlerts: "Alertas Ativos",
+          noAlerts: "Nenhum alerta ativo",
+          noAlertsDesc: "Todos os limites estão dentro do esperado",
+          acknowledged: "Reconhecido",
+          acknowledge: "Reconhecer",
+        },
+        
+        freeApis: {
+          title: "APIs Gratuitas",
+          trendsTitle: "Tendências de Uso de APIs Gratuitas",
+          trendsDesc: "Consumo diário por provedor",
+          detailedHistory: "Histórico Detalhado de APIs Gratuitas",
+          detailedHistoryDesc: "Registro completo de todas as requisições",
+          recentRequests: "Requisições Recentes",
+          model: "Modelo",
+          promptTokens: "Tokens Prompt",
+          completionTokens: "Tokens Completion",
+          totalTokensLabel: "Total",
+          timestamp: "Data/Hora",
+          noHistory: "Nenhum histórico disponível",
+          noHistoryDesc: "Não há requisições registradas no período selecionado",
+        },
+        
+        kbSearches: {
+          title: "Buscas na Knowledge Base",
+          historyTitle: "Histórico de Buscas KB",
+          historyDesc: "Consultas realizadas na base de conhecimento",
+          recentSearches: "Buscas Recentes",
+          query: "Consulta",
+          results: "Resultados",
+          confidence: "Confiança",
+          timestamp: "Data/Hora",
+          noHistory: "Nenhum histórico disponível",
+          noHistoryDesc: "Não há buscas registradas",
+        },
+        
+        webSearches: {
+          title: "Buscas Web",
+          statsTitle: "Estatísticas de Buscas Web",
+          statsDesc: "Resumo de buscas e fontes indexadas",
+          totalSearches: "Total de Buscas",
+          successfulSearches: "Buscas Bem-Sucedidas",
+          totalSources: "Total de Fontes",
+          uniqueDomains: "Domínios Únicos",
+          historyTitle: "Histórico de Buscas Web",
+          historyDesc: "Consultas realizadas na web",
+          recentSearches: "Buscas Recentes",
+          query: "Consulta",
+          resultsCount: "Resultados",
+          timestamp: "Data/Hora",
+          viewSources: "Ver Fontes",
+          noHistory: "Nenhum histórico disponível",
+          noHistoryDesc: "Não há buscas web registradas",
+        },
+        
+        deepWeb: {
+          title: "DeepWeb",
+          statsTitle: "Estatísticas de Buscas DeepWeb",
+          statsDesc: "Resumo de buscas na rede Tor",
+          totalSearches: "Total de Buscas",
+          successfulSearches: "Buscas Bem-Sucedidas",
+          totalSources: "Total de Fontes",
+          uniqueDomains: "Domínios Únicos",
+          historyTitle: "Histórico de Buscas DeepWeb",
+          historyDesc: "Consultas realizadas na rede Tor",
+          recentSearches: "Buscas Recentes",
+          query: "Consulta",
+          resultsCount: "Resultados",
+          timestamp: "Data/Hora",
+          viewSources: "Ver Fontes",
+          noHistory: "Nenhum histórico disponível",
+          noHistoryDesc: "Não há buscas na DeepWeb registradas",
+        },
+        
+        openaiTab: {
+          title: "OpenAI",
+          usageTrends: "Tendências de Uso OpenAI",
+          trendsDesc: "Consumo de tokens e custos ao longo do tempo",
+          costHistory: "Histórico de Custos Diários",
+          costHistoryDesc: "Gastos por dia",
+          totalCost: "Custo Total",
+          avgCostPerRequest: "Custo Médio por Requisição",
+          totalRequests: "Total de Requisições",
+        },
+        
+        common: {
+          loading: "Carregando...",
+          error: "Erro ao carregar dados",
+          noData: "Nenhum dado disponível",
+          date: "Data",
+          provider: "Provedor",
+          status: "Status",
+          success: "Sucesso",
+          failed: "Falhou",
+          paid: "Pago",
+          paidAPIRequests: "requisições API pagas",
+          searches: "buscas",
+        },
       },
       
       knowledgeBase: {
@@ -429,14 +714,152 @@ const translations: Record<Language, Translations> = {
       tokenMonitoring: {
         title: "Token Monitoring",
         subtitle: "Track token usage in real-time",
-        kbSearches: "KB Searches",
-        freeApis: "Free APIs",
-        openai: "OpenAI",
-        webSearches: "Web Searches",
-        deepWebSearches: "DeepWeb Searches",
-        limitsAlerts: "Limits & Alerts",
-        usageDistribution: "Usage Distribution by Provider",
-        distributionDesc: "Token consumption across all providers",
+        
+        tabs: {
+          overview: "Overview",
+          kbSearches: "KB Searches",
+          freeApis: "Free APIs",
+          openai: "OpenAI",
+          webSearches: "Web Searches",
+          deepWeb: "DeepWeb",
+          limitsAlerts: "Limits & Alerts",
+        },
+        
+        overview: {
+          title: "Overview",
+          usageTrends: "Usage Trends",
+          trendsDesc: "Token consumption over time",
+          periodButtons: {
+            today: "Today",
+            week: "7 days",
+            month: "30 days",
+            quarter: "90 days",
+            year: "1 year",
+            fiveYears: "5 years",
+            custom: "Custom Period",
+          },
+          breakdown: "Breakdown by Provider",
+          exportData: "Export Data",
+          exportCSV: "Export CSV",
+          exportPNG: "Export PNG",
+          totalTokens: "Total Tokens",
+          totalRequests: "Total Requests",
+          totalCost: "Total Cost",
+          dailyUsage: "Daily Usage",
+        },
+        
+        limits: {
+          title: "Limits & Alerts",
+          subtitle: "Configure limits and monitor alerts",
+          configureTitle: "Configure Usage Limits",
+          configureDesc: "Set token and cost limits to prevent overuse",
+          dailyLimits: "Daily Limits",
+          monthlyLimits: "Monthly Limits",
+          dailyTokenLimit: "Daily Token Limit",
+          dailyCostLimit: "Daily Cost Limit ($)",
+          monthlyTokenLimit: "Monthly Token Limit",
+          monthlyCostLimit: "Monthly Cost Limit ($)",
+          saveButton: "Save Limits",
+          saving: "Saving...",
+          successMessage: "Limits configured successfully",
+          activeAlerts: "Active Alerts",
+          noAlerts: "No active alerts",
+          noAlertsDesc: "All limits are within expected ranges",
+          acknowledged: "Acknowledged",
+          acknowledge: "Acknowledge",
+        },
+        
+        freeApis: {
+          title: "Free APIs",
+          trendsTitle: "Free APIs Usage Trends",
+          trendsDesc: "Daily consumption per provider",
+          detailedHistory: "Detailed Free APIs History",
+          detailedHistoryDesc: "Complete log of all requests",
+          recentRequests: "Recent Requests",
+          model: "Model",
+          promptTokens: "Prompt Tokens",
+          completionTokens: "Completion Tokens",
+          totalTokensLabel: "Total",
+          timestamp: "Timestamp",
+          noHistory: "No history available",
+          noHistoryDesc: "No requests recorded in the selected period",
+        },
+        
+        kbSearches: {
+          title: "Knowledge Base Searches",
+          historyTitle: "KB Search History",
+          historyDesc: "Queries performed on the knowledge base",
+          recentSearches: "Recent Searches",
+          query: "Query",
+          results: "Results",
+          confidence: "Confidence",
+          timestamp: "Timestamp",
+          noHistory: "No history available",
+          noHistoryDesc: "No searches recorded",
+        },
+        
+        webSearches: {
+          title: "Web Searches",
+          statsTitle: "Web Search Statistics",
+          statsDesc: "Summary of searches and indexed sources",
+          totalSearches: "Total Searches",
+          successfulSearches: "Successful Searches",
+          totalSources: "Total Sources",
+          uniqueDomains: "Unique Domains",
+          historyTitle: "Web Search History",
+          historyDesc: "Web queries performed",
+          recentSearches: "Recent Searches",
+          query: "Query",
+          resultsCount: "Results",
+          timestamp: "Timestamp",
+          viewSources: "View Sources",
+          noHistory: "No history available",
+          noHistoryDesc: "No web searches recorded",
+        },
+        
+        deepWeb: {
+          title: "DeepWeb",
+          statsTitle: "DeepWeb Search Statistics",
+          statsDesc: "Summary of Tor network searches",
+          totalSearches: "Total Searches",
+          successfulSearches: "Successful Searches",
+          totalSources: "Total Sources",
+          uniqueDomains: "Unique Domains",
+          historyTitle: "DeepWeb Search History",
+          historyDesc: "Tor network queries performed",
+          recentSearches: "Recent Searches",
+          query: "Query",
+          resultsCount: "Results",
+          timestamp: "Timestamp",
+          viewSources: "View Sources",
+          noHistory: "No history available",
+          noHistoryDesc: "No DeepWeb searches recorded",
+        },
+        
+        openaiTab: {
+          title: "OpenAI",
+          usageTrends: "OpenAI Usage Trends",
+          trendsDesc: "Token consumption and costs over time",
+          costHistory: "Daily Cost History",
+          costHistoryDesc: "Expenses per day",
+          totalCost: "Total Cost",
+          avgCostPerRequest: "Avg Cost per Request",
+          totalRequests: "Total Requests",
+        },
+        
+        common: {
+          loading: "Loading...",
+          error: "Error loading data",
+          noData: "No data available",
+          date: "Date",
+          provider: "Provider",
+          status: "Status",
+          success: "Success",
+          failed: "Failed",
+          paid: "Paid",
+          paidAPIRequests: "paid API requests",
+          searches: "searches",
+        },
       },
       
       knowledgeBase: {
@@ -611,14 +1034,152 @@ const translations: Record<Language, Translations> = {
       tokenMonitoring: {
         title: "Monitoreo de Tokens",
         subtitle: "Rastrea el uso de tokens en tiempo real",
-        kbSearches: "Búsquedas KB",
-        freeApis: "APIs Gratuitas",
-        openai: "OpenAI",
-        webSearches: "Búsquedas Web",
-        deepWebSearches: "Búsquedas DeepWeb",
-        limitsAlerts: "Límites y Alertas",
-        usageDistribution: "Distribución de Uso por Proveedor",
-        distributionDesc: "Consumo de tokens en todos los proveedores",
+        
+        tabs: {
+          overview: "Resumen",
+          kbSearches: "Búsquedas KB",
+          freeApis: "APIs Gratuitas",
+          openai: "OpenAI",
+          webSearches: "Búsquedas Web",
+          deepWeb: "DeepWeb",
+          limitsAlerts: "Límites y Alertas",
+        },
+        
+        overview: {
+          title: "Resumen",
+          usageTrends: "Tendencias de Uso",
+          trendsDesc: "Consumo de tokens a lo largo del tiempo",
+          periodButtons: {
+            today: "Hoy",
+            week: "7 días",
+            month: "30 días",
+            quarter: "90 días",
+            year: "1 año",
+            fiveYears: "5 años",
+            custom: "Período Personalizado",
+          },
+          breakdown: "Desglose por Proveedor",
+          exportData: "Exportar Datos",
+          exportCSV: "Exportar CSV",
+          exportPNG: "Exportar PNG",
+          totalTokens: "Total de Tokens",
+          totalRequests: "Total de Solicitudes",
+          totalCost: "Costo Total",
+          dailyUsage: "Uso Diario",
+        },
+        
+        limits: {
+          title: "Límites y Alertas",
+          subtitle: "Configura límites y monitorea alertas",
+          configureTitle: "Configurar Límites de Uso",
+          configureDesc: "Define límites de tokens y costos para evitar exceso",
+          dailyLimits: "Límites Diarios",
+          monthlyLimits: "Límites Mensuales",
+          dailyTokenLimit: "Límite Diario de Tokens",
+          dailyCostLimit: "Límite Diario de Costo ($)",
+          monthlyTokenLimit: "Límite Mensual de Tokens",
+          monthlyCostLimit: "Límite Mensual de Costo ($)",
+          saveButton: "Guardar Límites",
+          saving: "Guardando...",
+          successMessage: "Límites configurados con éxito",
+          activeAlerts: "Alertas Activas",
+          noAlerts: "No hay alertas activas",
+          noAlertsDesc: "Todos los límites están dentro de lo esperado",
+          acknowledged: "Reconocido",
+          acknowledge: "Reconocer",
+        },
+        
+        freeApis: {
+          title: "APIs Gratuitas",
+          trendsTitle: "Tendencias de Uso de APIs Gratuitas",
+          trendsDesc: "Consumo diario por proveedor",
+          detailedHistory: "Historial Detallado de APIs Gratuitas",
+          detailedHistoryDesc: "Registro completo de todas las solicitudes",
+          recentRequests: "Solicitudes Recientes",
+          model: "Modelo",
+          promptTokens: "Tokens Prompt",
+          completionTokens: "Tokens Completion",
+          totalTokensLabel: "Total",
+          timestamp: "Fecha/Hora",
+          noHistory: "No hay historial disponible",
+          noHistoryDesc: "No hay solicitudes registradas en el período seleccionado",
+        },
+        
+        kbSearches: {
+          title: "Búsquedas en Base de Conocimiento",
+          historyTitle: "Historial de Búsquedas KB",
+          historyDesc: "Consultas realizadas en la base de conocimiento",
+          recentSearches: "Búsquedas Recientes",
+          query: "Consulta",
+          results: "Resultados",
+          confidence: "Confianza",
+          timestamp: "Fecha/Hora",
+          noHistory: "No hay historial disponible",
+          noHistoryDesc: "No hay búsquedas registradas",
+        },
+        
+        webSearches: {
+          title: "Búsquedas Web",
+          statsTitle: "Estadísticas de Búsquedas Web",
+          statsDesc: "Resumen de búsquedas y fuentes indexadas",
+          totalSearches: "Total de Búsquedas",
+          successfulSearches: "Búsquedas Exitosas",
+          totalSources: "Total de Fuentes",
+          uniqueDomains: "Dominios Únicos",
+          historyTitle: "Historial de Búsquedas Web",
+          historyDesc: "Consultas realizadas en la web",
+          recentSearches: "Búsquedas Recientes",
+          query: "Consulta",
+          resultsCount: "Resultados",
+          timestamp: "Fecha/Hora",
+          viewSources: "Ver Fuentes",
+          noHistory: "No hay historial disponible",
+          noHistoryDesc: "No hay búsquedas web registradas",
+        },
+        
+        deepWeb: {
+          title: "DeepWeb",
+          statsTitle: "Estadísticas de Búsquedas DeepWeb",
+          statsDesc: "Resumen de búsquedas en red Tor",
+          totalSearches: "Total de Búsquedas",
+          successfulSearches: "Búsquedas Exitosas",
+          totalSources: "Total de Fuentes",
+          uniqueDomains: "Dominios Únicos",
+          historyTitle: "Historial de Búsquedas DeepWeb",
+          historyDesc: "Consultas realizadas en red Tor",
+          recentSearches: "Búsquedas Recientes",
+          query: "Consulta",
+          resultsCount: "Resultados",
+          timestamp: "Fecha/Hora",
+          viewSources: "Ver Fuentes",
+          noHistory: "No hay historial disponible",
+          noHistoryDesc: "No hay búsquedas en DeepWeb registradas",
+        },
+        
+        openaiTab: {
+          title: "OpenAI",
+          usageTrends: "Tendencias de Uso OpenAI",
+          trendsDesc: "Consumo de tokens y costos a lo largo del tiempo",
+          costHistory: "Historial de Costos Diarios",
+          costHistoryDesc: "Gastos por día",
+          totalCost: "Costo Total",
+          avgCostPerRequest: "Costo Promedio por Solicitud",
+          totalRequests: "Total de Solicitudes",
+        },
+        
+        common: {
+          loading: "Cargando...",
+          error: "Error al cargar datos",
+          noData: "No hay datos disponibles",
+          date: "Fecha",
+          provider: "Proveedor",
+          status: "Estado",
+          success: "Éxito",
+          failed: "Fallido",
+          paid: "Pagado",
+          paidAPIRequests: "solicitudes API pagadas",
+          searches: "búsquedas",
+        },
       },
       
       knowledgeBase: {
