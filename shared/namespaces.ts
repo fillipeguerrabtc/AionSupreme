@@ -4,7 +4,7 @@
 export interface NamespaceCategory {
   id: string;
   label: string;
-  icon: string;
+  icon: string; // lucide-react icon name
   namespaces: NamespaceOption[];
 }
 
@@ -19,7 +19,7 @@ export const NAMESPACE_CATEGORIES: NamespaceCategory[] = [
   {
     id: "curation",
     label: "Curadoria",
-    icon: "⚙️",
+    icon: "Settings",
     namespaces: [
       { value: "curation/pending", label: "Pendente", description: "Conteúdo aguardando revisão" },
       { value: "curation/approved", label: "Aprovado", description: "Conteúdo aprovado para publicação" },
@@ -30,7 +30,7 @@ export const NAMESPACE_CATEGORIES: NamespaceCategory[] = [
   {
     id: "customer_service",
     label: "Atendimento ao Cliente",
-    icon: "🎧",
+    icon: "Headphones",
     namespaces: [
       { value: "atendimento/geral", label: "Atendimento Geral", description: "Perguntas frequentes e suporte" },
       { value: "atendimento/reclamacoes", label: "Reclamações", description: "Gestão de reclamações" },
@@ -41,7 +41,7 @@ export const NAMESPACE_CATEGORIES: NamespaceCategory[] = [
   {
     id: "finance",
     label: "Finanças",
-    icon: "💰",
+    icon: "DollarSign",
     namespaces: [
       { value: "financas/relatorios", label: "Relatórios Financeiros", description: "Balanços e demonstrativos" },
       { value: "financas/investimentos", label: "Investimentos", description: "Análises de investimento" },
@@ -53,7 +53,7 @@ export const NAMESPACE_CATEGORIES: NamespaceCategory[] = [
   {
     id: "technology",
     label: "Tecnologia",
-    icon: "💻",
+    icon: "Laptop",
     namespaces: [
       { value: "tech/desenvolvimento", label: "Desenvolvimento", description: "Código e arquitetura" },
       { value: "tech/infraestrutura", label: "Infraestrutura", description: "DevOps e cloud" },
@@ -65,7 +65,7 @@ export const NAMESPACE_CATEGORIES: NamespaceCategory[] = [
   {
     id: "tourism",
     label: "Turismo",
-    icon: "🌍",
+    icon: "Globe",
     namespaces: [
       { value: "turismo/destinos", label: "Destinos", description: "Informações sobre destinos" },
       { value: "turismo/hospedagem", label: "Hospedagem", description: "Hotéis e acomodações" },
@@ -77,7 +77,7 @@ export const NAMESPACE_CATEGORIES: NamespaceCategory[] = [
   {
     id: "automotive",
     label: "Automóveis",
-    icon: "🚗",
+    icon: "Car",
     namespaces: [
       { value: "auto/manutencao", label: "Manutenção", description: "Guias de manutenção" },
       { value: "auto/modelos", label: "Modelos", description: "Catálogo de veículos" },
@@ -88,7 +88,7 @@ export const NAMESPACE_CATEGORIES: NamespaceCategory[] = [
   {
     id: "management",
     label: "Gestão",
-    icon: "📊",
+    icon: "BarChart3",
     namespaces: [
       { value: "gestao/recursos-humanos", label: "Recursos Humanos", description: "Políticas de RH" },
       { value: "gestao/processos", label: "Processos", description: "Procedimentos operacionais" },
@@ -99,7 +99,7 @@ export const NAMESPACE_CATEGORIES: NamespaceCategory[] = [
   {
     id: "calendar",
     label: "Calendário",
-    icon: "📅",
+    icon: "Calendar",
     namespaces: [
       { value: "calendario/eventos", label: "Eventos", description: "Agenda de eventos" },
       { value: "calendario/feriados", label: "Feriados", description: "Feriados e datas comemorativas" },
@@ -110,7 +110,7 @@ export const NAMESPACE_CATEGORIES: NamespaceCategory[] = [
   {
     id: "marketing",
     label: "Marketing",
-    icon: "📣",
+    icon: "Megaphone",
     namespaces: [
       { value: "marketing/campanhas", label: "Campanhas", description: "Campanhas publicitárias" },
       { value: "marketing/conteudo", label: "Conteúdo", description: "Biblioteca de conteúdo" },
@@ -121,7 +121,7 @@ export const NAMESPACE_CATEGORIES: NamespaceCategory[] = [
   {
     id: "general",
     label: "Geral",
-    icon: "📚",
+    icon: "BookOpen",
     namespaces: [
       { value: "geral/conhecimento", label: "Conhecimento Geral", description: "Base de conhecimento geral" },
       { value: "geral/politicas", label: "Políticas", description: "Políticas da empresa" },

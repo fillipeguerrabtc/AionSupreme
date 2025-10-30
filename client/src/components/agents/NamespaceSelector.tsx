@@ -1,5 +1,21 @@
 import { useState } from "react";
-import { Check, ChevronsUpDown, X, Plus } from "lucide-react";
+import { 
+  Check, 
+  ChevronsUpDown, 
+  X, 
+  Plus,
+  Settings,
+  Headphones,
+  DollarSign,
+  Laptop,
+  Globe,
+  Car,
+  BarChart3,
+  Calendar,
+  Megaphone,
+  BookOpen,
+  LucideIcon
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -19,6 +35,19 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { NAMESPACE_CATEGORIES, WILDCARD_NAMESPACE, type NamespaceOption } from "@shared/namespaces";
 import { cn } from "@/lib/utils";
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  Settings,
+  Headphones,
+  DollarSign,
+  Laptop,
+  Globe,
+  Car,
+  BarChart3,
+  Calendar,
+  Megaphone,
+  BookOpen,
+};
 
 interface NamespaceSelectorProps {
   value: string[];
@@ -115,7 +144,7 @@ export function NamespaceSelector({
               </CommandEmpty>
               <ScrollArea className="h-[300px]">
                 {allowCustom && (
-                  <CommandGroup heading="➕ Criar Novo">
+                  <CommandGroup heading="Criar Novo">
                     {!showCustomInput ? (
                       <CommandItem
                         onSelect={() => setShowCustomInput(true)}
@@ -190,8 +219,18 @@ export function NamespaceSelector({
                     </CommandItem>
                   </CommandGroup>
                 )}
-                {NAMESPACE_CATEGORIES.map((category) => (
-                  <CommandGroup key={category.id} heading={`${category.icon} ${category.label}`}>
+                {NAMESPACE_CATEGORIES.map((category) => {
+                  const IconComponent = ICON_MAP[category.icon];
+                  return (
+                  <CommandGroup 
+                    key={category.id} 
+                    heading={
+                      <div className="flex items-center gap-2">
+                        {IconComponent && <IconComponent className="h-4 w-4" />}
+                        <span>{category.label}</span>
+                      </div>
+                    }
+                  >
                     {category.namespaces.map((ns: NamespaceOption) => (
                       <CommandItem
                         key={ns.value}
@@ -216,7 +255,8 @@ export function NamespaceSelector({
                       </CommandItem>
                     ))}
                   </CommandGroup>
-                ))}
+                  );
+                })}
               </ScrollArea>
             </CommandList>
           </Command>
