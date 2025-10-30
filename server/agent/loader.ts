@@ -45,6 +45,10 @@ export async function loadAgentsFromDatabase(tenantId: number): Promise<void> {
         // Register agent in registry
         agentRegistry.registerAgent(agent);
         
+        // Register agent in runtime (creates AgentExecutor with run() method)
+        const { registerAgent } = await import("./runtime");
+        await registerAgent(agent);
+        
         console.log(`[AgentLoader] ✅ Registered agent: ${agent.name} (${agent.id}) with tools: [${toolNames.join(", ")}]`);
       } catch (error: any) {
         console.error(`[AgentLoader] Error loading agent ${dbAgent.id}:`, error.message);
@@ -99,7 +103,9 @@ export async function reloadAgent(agentId: string, tenantId: number): Promise<vo
     metadata: dbAgent.metadata || {},
   };
   
-  // Re-register
+  // Re-register in registry and runtime
   agentRegistry.registerAgent(agent);
+  const { registerAgent } = await import("./runtime");
+  await registerAgent(agent);
   console.log(`[AgentLoader] ✅ Reloaded agent: ${agent.name}`);
 }
