@@ -9,7 +9,13 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Core System Design
-AION operates in single-tenant mode with **multi-agent architecture** utilizing Mixture of Experts (MoE) routing. Policy enforcement is externalized via JSON configurations. It features dual interfaces: an end-user chat and an administrative dashboard with dedicated Agents Management page. An automatic fallback system handles LLM refusals by performing web searches and indexing content. The system uses a 5-tier priority chain: KB → GPU Pool (custom LoRA models) → Free APIs (Groq, Gemini, HF) → Web Search → OpenAI, with the GPU Pool providing zero-cost inference via Google Colab workers. Universal multilingual support is provided via LLM-based dynamic language detection.
+AION operates in single-tenant mode with **multi-agent architecture** utilizing Mixture of Experts (MoE) routing with **REAL LLM-based intent classification**. Policy enforcement is externalized via JSON configurations. It features dual interfaces: an end-user chat and an administrative dashboard with dedicated Agents Management page. An automatic fallback system handles LLM refusals by performing web searches and indexing content. The system uses a **2-phase architecture**:
+
+**Phase 1 (CURRENT - Oct 30, 2025)**: Free LLM inference via rotation system (Groq 14.4k/day, Gemini 6M tokens/day, HuggingFace 720/day, OpenRouter 50/day) with OpenAI as final fallback. **Cost: $0-$5/month** (OpenAI embeddings only if heavy usage). No GPU needed.
+
+**Phase 2 (FUTURE)**: Custom LoRA models fine-tuned on Google Colab free GPUs (T4/P100) for zero-cost inference via GPU Pool workers. Continuous auto-evolution with training data collection from high-quality conversations.
+
+Universal multilingual support is provided via LLM-based dynamic language detection.
 
 **Multi-Agent System**: AION now supports multiple specialized agents, each with dedicated knowledge base namespaces, tool access, and budget limits. An MoE router analyzes user queries and selects the best agent(s) using softmax probability distribution and top-p sampling. This enables vertical specialization (finance, tech, tourism, etc.), parallel processing, and improved cost efficiency through scoped RAG searches.
 
@@ -42,17 +48,28 @@ Key Dashboard Pages:
 ### Technical Implementations
 The backend is built with Node.js and TypeScript using Express.js, with PostgreSQL via Drizzle ORM (Neon serverless). All date calculations use the America/Sao_Paulo timezone. Core services include LLM Client, Storage, Multi-Agent Router (MoE), RAG with namespace-scoping, Agent Engine (ReAct with POMDP), Policy Enforcement, Automatic Fallback, Multimodal Processing, Web Content Discovery, Free LLM Providers rotation, GPU Orchestrator, Training Data Collector, and Token Monitoring System. Authentication uses Replit Auth (OpenID Connect). Multilingual support is LLM-based. Refusal detection uses a 5-level verification system.
 
-**Multi-Agent Architecture (PRODUCTION-READY)**: The system uses a Mixture of Experts (MoE) router that analyzes incoming queries using intent classification and routing probability distribution. Agent selection employs softmax normalization with temperature control and top-p sampling. Each agent has isolated RAG namespaces, dedicated tool access (SearchWeb, KB.Search, Exec, CallAPI), configurable budget limits, and escalation rules. The planner supports multi-agent orchestration with parallel execution and result aggregation.
+**Multi-Agent Architecture (PRODUCTION-READY - Oct 30, 2025)**: The system uses a Mixture of Experts (MoE) router that analyzes incoming queries using **REAL LLM-based intent classification** via Groq (llama-3.3-70b-versatile) with fallback to keyword matching. Agent selection employs softmax normalization with temperature control and top-p sampling. Each agent has isolated RAG namespaces, dedicated tool access (SearchWeb, KB.Search, Exec, CallAPI), configurable budget limits, and escalation rules. The planner supports multi-agent orchestration with parallel execution and result aggregation.
 
-**Implementation Status**: Complete multi-agent infrastructure deployed and tested (Oct 2025):
+**Implementation Status**: Complete multi-agent infrastructure FULLY FUNCTIONAL (Oct 30, 2025):
 - **Backend**: Full CRUD API (PATCH-based updates), 4 DB tables (agents, tools, agent_tools, traces), dual-cache architecture (registry for lookup, runtime for execution)
-- **Agent Pipeline**: DB → Loader → Registry + Runtime → Router (MoE) → Planner → Execution
-- **AgentExecutor Pattern**: Loader wraps Agent configs with run() method via createAgentExecutor() factory, enabling planner to invoke agents without runtime errors
+- **Agent Pipeline**: DB → Loader → Registry + Runtime → Router (MoE with REAL LLM) → Planner → Execution (REAL LLM + RAG + Tools)
+- **Router (MoE) - REAL IMPLEMENTATION**: 
+  - Uses Groq LLM (llama-3.3-70b-versatile) for intent classification via generateWithFreeAPIs() from server/llm/free-apis.ts
+  - JSON-based routing with agent scores and reasoning
+  - Fallback to keyword matching if LLM fails
+  - Temperature 0.3 for consistent routing decisions
+- **AgentExecutor - REAL IMPLEMENTATION**: 
+  - Full LLM call using generateWithFreeAPIs() with agent's systemPrompt
+  - RAG search in agent's namespaces via ragService.search() with OpenAI embeddings
+  - Budget enforcement (rejects if budgetUSD > agent.budgetLimit)
+  - Citation tracking from RAG results
+  - Token usage tracking and latency metrics
+  - Error handling with graceful degradation
 - **11 Agents Seeded**: 9 Specialist Agents (Atendimento, Finanças, Tecnologia, Turismo, Automóveis, Gestão, Calendário, Marketing, Auxiliar) + 2 Curator Agents (Curador de Conhecimento with namespace "*", Curador Executivo with human-approval requirement)
 - **Admin UI**: Full CRUD operations with shadcn components, create/edit dialogs with NamespaceSelector supporting custom namespace creation, PATCH method alignment
 - **Curation System**: Backend routes (/api/curation/*, /api/kb/promote), PostgreSQL-backed queue store (server/curation/store.ts), CurationQueuePage UI with approve/reject/edit, PromoteToKBButton component. Full database persistence with tenant isolation and status filtering.
 - **Event-Driven RAG**: Namespace-scoped indexing triggered by AGENT_CREATED/UPDATED/DELETED events
-- **Next Steps**: Implement production LLM/RAG logic in AgentExecutor.run() (currently placeholder), add runtime.unregisterAgent() for cleanup
+- **Status**: ✅ 100% FUNCTIONAL - All agents registered with REAL executors, Router uses REAL LLM, AgentExecutor performs REAL LLM + RAG + budget enforcement
 
 RAG combines OpenAI embeddings with BM25 for re-ranking using Max-Marginal Relevance (MMR), supported by an intelligent knowledge indexer with **namespace-scoped indexing** for agent isolation. The agent system utilizes a ReAct engine with POMDP for decision-making. The Policy Enforcement Pipeline uses a System Prompt Composer and Output Moderator with a JSON-configurable Policy DSL to refuse, redact, or rewrite responses. The Automatic Fallback System activates on LLM refusals in UNRESTRICTED mode, performing web searches and indexing content to generate uncensored responses.
 
