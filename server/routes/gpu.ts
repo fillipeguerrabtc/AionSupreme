@@ -3,21 +3,22 @@
  * WITH INTELLIGENT QUOTA MANAGEMENT (uses only 70% of quota for safety!)
  */
 
-import { Router } from "express";
+import type { Express } from "express";
 import type { Request, Response } from "express";
 import { db } from "../db";
 import { gpuWorkers } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { quotaManager } from "../gpu/quota-manager";
 
-export function registerGpuRoutes(app: Router) {
-  const router = Router();
+export function registerGpuRoutes(app: Express) {
+  console.log("[GPU Routes] Registering GPU Pool API routes...");
 
   /**
    * POST /api/gpu/workers/register
    * Register a new GPU worker (Colab, Kaggle, local, cloud)
    */
-  router.post("/workers/register", async (req: Request, res: Response) => {
+  app.post("/api/gpu/workers/register", async (req: Request, res: Response) => {
+    console.log("[GPU Register] ✅ REQUEST RECEIVED:", req.method, req.path, req.body);
     try {
       const { tenantId, provider, accountId, ngrokUrl, capabilities } = req.body;
 
@@ -52,7 +53,7 @@ export function registerGpuRoutes(app: Router) {
    * POST /api/gpu/workers/heartbeat
    * Worker sends heartbeat to stay online + runtime info
    */
-  router.post("/workers/heartbeat", async (req: Request, res: Response) => {
+  app.post("/api/gpu/workers/heartbeat", async (req: Request, res: Response) => {
     try {
       const { workerId, sessionRuntimeHours, maxSessionHours, status } = req.body;
 
@@ -136,7 +137,7 @@ export function registerGpuRoutes(app: Router) {
    * GET /api/gpu/workers
    * List all GPU workers
    */
-  router.get("/workers", async (req: Request, res: Response) => {
+  app.get("/api/gpu/workers", async (req: Request, res: Response) => {
     try {
       const tenantId = parseInt(req.headers["x-tenant-id"] as string) || 1;
 
@@ -156,7 +157,7 @@ export function registerGpuRoutes(app: Router) {
    * GET /api/gpu/quota/status
    * Get quota status for all workers
    */
-  router.get("/quota/status", async (req: Request, res: Response) => {
+  app.get("/api/gpu/quota/status", async (req: Request, res: Response) => {
     try {
       const tenantId = parseInt(req.headers["x-tenant-id"] as string) || 1;
       const quotas = await quotaManager.getAllWorkerQuotas(tenantId);
@@ -173,7 +174,7 @@ export function registerGpuRoutes(app: Router) {
    * Record worker usage after job completion
    * Call this after every inference/training job!
    */
-  router.post("/quota/record", async (req: Request, res: Response) => {
+  app.post("/api/gpu/quota/record", async (req: Request, res: Response) => {
     try {
       const { workerId, durationMinutes } = req.body;
 
@@ -193,7 +194,7 @@ export function registerGpuRoutes(app: Router) {
    * POST /api/gpu/quota/reset
    * Manually reset weekly quotas (runs automatically every Monday)
    */
-  router.post("/quota/reset", async (req: Request, res: Response) => {
+  app.post("/api/gpu/quota/reset", async (req: Request, res: Response) => {
     try {
       const tenantId = parseInt(req.headers["x-tenant-id"] as string) || 1;
       await quotaManager.resetWeeklyQuotas(tenantId);
@@ -204,5 +205,5 @@ export function registerGpuRoutes(app: Router) {
     }
   });
 
-  app.use("/api/gpu", router);
+  console.log("[GPU Routes] ✅ 6 GPU Pool routes registered successfully");
 }

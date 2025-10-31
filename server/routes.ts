@@ -594,60 +594,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/gpu/status - Status do orquestrador de GPUs
-  app.get("/api/gpu/status", async (req, res) => {
-    try {
-      const status = gpuOrchestrator.getStatus();
-      res.json(status);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // POST /api/gpu/register - Registrar GPU (Colab/Kaggle/Modal via Ngrok)
-  app.post("/api/gpu/register", async (req, res) => {
-    try {
-      const { provider, ngrok_url } = req.body;
-      
-      if (!provider || !ngrok_url) {
-        return res.status(400).json({ error: "provider e ngrok_url são obrigatórios" });
-      }
-
-      if (!["colab", "kaggle", "modal"].includes(provider)) {
-        return res.status(400).json({ error: "provider deve ser colab, kaggle ou modal" });
-      }
-
-      await gpuOrchestrator.registerGPU(provider, ngrok_url);
-      
-      res.json({ 
-        success: true, 
-        message: `GPU ${provider} registrada com sucesso`,
-        url: ngrok_url,
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // POST /api/gpu/unregister - Desregistrar GPU
-  app.post("/api/gpu/unregister", async (req, res) => {
-    try {
-      const { provider } = req.body;
-      
-      if (!provider || !["colab", "kaggle", "modal"].includes(provider)) {
-        return res.status(400).json({ error: "provider inválido" });
-      }
-
-      gpuOrchestrator.unregisterGPU(provider);
-      
-      res.json({ 
-        success: true, 
-        message: `GPU ${provider} desregistrada`,
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // REMOVED: Old GPU routes moved to server/routes/gpu.ts (uses PostgreSQL instead of gpuOrchestrator)
+  // Now using: /api/gpu/workers/register, /api/gpu/workers/heartbeat, etc.
 
   // POST /api/training/prepare - Preparar dataset de treino
   app.post("/api/training/prepare", async (req, res) => {
@@ -1961,149 +1909,17 @@ export function registerRoutes(app: Express): Server {
   });
 
   // ========================================================================
-  // GPU POOL MANAGEMENT - Multi-GPU Load Balancing
+  // GPU POOL MANAGEMENT - MOVED TO server/routes/gpu.ts
   // ========================================================================
-
-  // GET /api/gpu/status - Get status of all GPU workers
-  app.get("/api/gpu/status", async (req, res) => {
-    try {
-      const { gpuPoolManager } = await import("./gpu/pool-manager");
-      const workers = await gpuPoolManager.getAllWorkers();
-      const stats = await gpuPoolManager.getPoolStats();
-      
-      res.json({
-        workers,
-        stats,
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // POST /api/gpu/register - Register new GPU worker
-  app.post("/api/gpu/register", async (req, res) => {
-    try {
-      const { gpuPoolManager } = await import("./gpu/pool-manager");
-      const { provider, accountId, ngrokUrl, capabilities } = req.body;
-      
-      if (!provider || !ngrokUrl || !capabilities) {
-        return res.status(400).json({ 
-          error: "Missing required fields: provider, ngrokUrl, capabilities" 
-        });
-      }
-      
-      const worker = await gpuPoolManager.registerWorker({
-        provider,
-        accountId,
-        ngrokUrl,
-        capabilities,
-      });
-      
-      console.log(`[API] GPU worker registered: ${provider} (${ngrokUrl})`);
-      
-      res.json({
-        success: true,
-        worker,
-      });
-    } catch (error: any) {
-      console.error("[API] Error registering GPU worker:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // GET /api/gpu/:id - Get specific GPU worker
-  app.get("/api/gpu/:id", async (req, res) => {
-    try {
-      const { gpuPoolManager } = await import("./gpu/pool-manager");
-      const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid GPU ID" });
-      }
-      
-      const worker = await gpuPoolManager.getWorker(id);
-      
-      if (!worker) {
-        return res.status(404).json({ error: "GPU worker not found" });
-      }
-      
-      res.json(worker);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // DELETE /api/gpu/:id - Remove GPU worker
-  app.delete("/api/gpu/:id", async (req, res) => {
-    try {
-      const { gpuPoolManager } = await import("./gpu/pool-manager");
-      const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid GPU ID" });
-      }
-      
-      const success = await gpuPoolManager.removeWorker(id);
-      
-      if (!success) {
-        return res.status(404).json({ error: "GPU worker not found" });
-      }
-      
-      console.log(`[API] GPU worker removed: ID ${id}`);
-      
-      res.json({
-        success: true,
-        message: `GPU worker ${id} removed`,
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // GET /api/gpu/stats - Get pool statistics
-  app.get("/api/gpu/stats", async (req, res) => {
-    try {
-      const { gpuPoolManager } = await import("./gpu/pool-manager");
-      const stats = await gpuPoolManager.getPoolStats();
-      
-      res.json(stats);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // GET /api/gpu/healthy - Get only healthy workers
-  app.get("/api/gpu/healthy", async (req, res) => {
-    try {
-      const { gpuPoolManager } = await import("./gpu/pool-manager");
-      const workers = await gpuPoolManager.getHealthyWorkers();
-      
-      res.json({
-        count: workers.length,
-        workers,
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // POST /api/gpu/generate-notebook - Generate Colab/Kaggle notebook
-  app.post("/api/gpu/generate-notebook", async (req, res) => {
-    try {
-      const { provider, job, config } = req.body;
-      const { generateColabNotebook, generateKaggleKernel, DEFAULT_LORA_CONFIGS } = await import("./gpu/orchestrator");
-      
-      const loraConfig = config || DEFAULT_LORA_CONFIGS[job.model] || DEFAULT_LORA_CONFIGS['mistral-7b'];
-      
-      const notebook = provider === 'kaggle' 
-        ? generateKaggleKernel(job, loraConfig)
-        : generateColabNotebook(job, loraConfig);
-      
-      res.json({ notebook, format: provider === 'kaggle' ? 'python' : 'ipynb' });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // All GPU routes have been moved to the modular system in server/routes/gpu.ts
+  // New endpoints use PostgreSQL database instead of gpuPoolManager
+  // Available routes:
+  //   - POST /api/gpu/workers/register
+  //   - POST /api/gpu/workers/heartbeat  
+  //   - GET  /api/gpu/workers
+  //   - GET  /api/gpu/quota/status
+  //   - POST /api/gpu/quota/record
+  //   - POST /api/gpu/quota/reset
 
   // ========================================================================
   // FEDERATED LEARNING SYSTEM - Distributed Training with Multi-GPU
