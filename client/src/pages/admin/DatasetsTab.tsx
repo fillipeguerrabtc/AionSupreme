@@ -384,25 +384,25 @@ export default function DatasetsTab() {
                 {trainingData.slice(0, 10).map((data: any, idx: number) => (
                   <AccordionItem key={data.id} value={`item-${idx}`}>
                     <AccordionTrigger className="text-sm hover-elevate px-3 rounded-md">
-                      <div className="flex items-center gap-2 flex-1">
-                        <Badge variant="outline" className="text-xs">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Badge variant="outline" className="text-xs shrink-0">
                           #{data.id}
                         </Badge>
                         <span className="truncate flex-1 text-left">
                           {data.formattedData?.[0]?.instruction || "Sem título"}
                         </span>
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs shrink-0">
                           {data.metadata?.namespaces?.[0] || "geral"}
                         </Badge>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent>
+                    <AccordionContent className="max-w-full overflow-hidden">
                       <div className="space-y-3 pt-2">
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground mb-1">
                             Instruction:
                           </p>
-                          <p className="text-sm bg-card/50 p-2 rounded-md border border-border/50">
+                          <p className="text-sm bg-card/50 p-2 rounded-md border border-border/50 break-words">
                             {data.formattedData?.[0]?.instruction}
                           </p>
                         </div>
@@ -410,7 +410,7 @@ export default function DatasetsTab() {
                           <p className="text-xs font-semibold text-muted-foreground mb-1">
                             Output (primeiros 200 caracteres):
                           </p>
-                          <p className="text-sm bg-card/50 p-2 rounded-md border border-border/50 line-clamp-3">
+                          <p className="text-sm bg-card/50 p-2 rounded-md border border-border/50 line-clamp-3 break-words">
                             {data.formattedData?.[0]?.output?.substring(0, 200)}...
                           </p>
                         </div>
@@ -421,9 +421,11 @@ export default function DatasetsTab() {
                             </Badge>
                           ))}
                         </div>
-                        <pre className="text-xs font-mono bg-card/80 p-3 rounded-md border border-primary/20 overflow-x-auto">
-                          {JSON.stringify(data.formattedData?.[0], null, 2)}
-                        </pre>
+                        <div className="max-w-full overflow-x-auto">
+                          <pre className="text-xs font-mono bg-card/80 p-3 rounded-md border border-primary/20 whitespace-pre-wrap break-words min-w-0">
+                            {JSON.stringify(data.formattedData?.[0], null, 2)}
+                          </pre>
+                        </div>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
@@ -679,7 +681,7 @@ export default function DatasetsTab() {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewDataset} onOpenChange={() => setPreviewDataset(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] glass-premium">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[80vh] glass-premium">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-primary" />
@@ -696,9 +698,11 @@ export default function DatasetsTab() {
                 <RefreshCw className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : (
-              <pre className="text-xs font-mono whitespace-pre-wrap break-all">
-                {JSON.stringify(previewContent, null, 2)}
-              </pre>
+              <div className="max-w-full overflow-x-auto">
+                <pre className="text-xs font-mono whitespace-pre-wrap break-words min-w-0">
+                  {JSON.stringify(previewContent, null, 2)}
+                </pre>
+              </div>
             )}
           </ScrollArea>
 
