@@ -6,6 +6,14 @@ AION is an enterprise-grade autonomous AI system designed for robustness, flexib
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+**REGRA FUNDAMENTAL DE TRABALHO:**
+1. **SEMPRE responda dúvidas do usuário primeiro**
+2. **SEMPRE continue tarefas em andamento até o final**
+3. **NUNCA deixe tarefas incompletas para trás**
+4. Se o usuário pedir novas atividades → adicione à fila APÓS as tarefas atuais
+5. Fluxo obrigatório: Responder → Completar tarefas atuais → Iniciar novas tarefas
+6. **NUNCA comece tarefas novas antes de terminar as antigas**
+
 ## Recent Critical Fixes (Oct 31, 2025)
 
 ### Latest Production Improvements (Oct 31, 2025 - Session 2)

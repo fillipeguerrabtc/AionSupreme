@@ -8,7 +8,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { VisionCascade } from "./vision-cascade";
 
 export interface ProcessedImage {
   localPath: string;
@@ -19,12 +19,16 @@ export interface ProcessedImage {
 export class ImageProcessor {
   private imagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
   private maxImageSize = 10 * 1024 * 1024; // 10MB max
+  private visionCascade: VisionCascade;
 
   constructor() {
     // Garante que diretório existe
     if (!fs.existsSync(this.imagesDir)) {
       fs.mkdirSync(this.imagesDir, { recursive: true });
     }
+    
+    // Inicializa Vision Cascade (Gemini → HF → OpenAI)
+    this.visionCascade = new VisionCascade();
   }
 
   /**
@@ -91,10 +95,18 @@ export class ImageProcessor {
 
       const buffer = Buffer.from(await response.arrayBuffer());
 
-      // Gera nome único baseado em hash
-      const hash = crypto.createHash('md5').update(url).digest('hex');
+      // Gera nome DESCRITIVO baseado em URL + hash para unicidade
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      const lastPart = pathParts[pathParts.length - 1] || 'image';
+      const cleanName = lastPart
+        .replace(/\.[^.]+$/, '') // Remove extensão existente
+        .replace(/[^a-zA-Z0-9-_]/g, '_') // Sanitiza caracteres especiais
+        .substring(0, 50); // Limita tamanho
+      
+      const hash = crypto.createHash('md5').update(url).digest('hex').substring(0, 8);
       const ext = this.getExtensionFromContentType(contentType) || 'jpg';
-      const filename = `${hash}.${ext}`;
+      const filename = `${cleanName}_${hash}.${ext}`;
       const filepath = path.join(this.imagesDir, filename);
 
       // Salva se não existe
@@ -111,67 +123,28 @@ export class ImageProcessor {
   }
 
   /**
-   * Gera descrição da imagem usando Gemini Vision API
+   * Gera descrição da imagem usando Vision Cascade (Gemini → HF → OpenAI)
    */
   private async generateDescription(imagePath: string, alt?: string): Promise<string> {
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      
-      if (!apiKey) {
-        console.warn(`[ImageProcessor] ⚠️ GEMINI_API_KEY não encontrada - usando alt text`);
-        return alt || 'Sem descrição (Vision API não configurada)';
-      }
-
-      // Lê imagem como base64
+      // Lê imagem
       const imageBuffer = fs.readFileSync(imagePath);
-      const base64Image = imageBuffer.toString('base64');
       const mimeType = this.getMimeType(imagePath);
 
-      // Prompt para Vision API
-      const prompt = `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
-Inclua:
-- O que está na imagem
-- Cores, formas, objetos principais
-- Contexto e ambiente
-- Qualquer texto visível
-- Informações relevantes para busca semântica
+      // Usa Vision Cascade (tenta Gemini → HF → OpenAI automaticamente)
+      const result = await this.visionCascade.generateDescription(imageBuffer, mimeType, alt);
 
-${alt ? `Contexto do alt text: "${alt}"` : ''}
-
-Descrição detalhada:`;
-
-      // Inicializa Gemini Vision API
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-2.0-flash-exp'
-      });
-
-      // Chama API com imagem
-      const result = await model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            data: base64Image,
-            mimeType
-          }
-        }
-      ]);
-
-      const response = result.response;
-      const text = response.text();
-
-      return text.trim();
+      if (result.success) {
+        console.log(`   ✅ Vision API: ${result.provider} (${result.tokensUsed} tokens)`);
+        return result.description;
+      } else {
+        console.warn(`   ⚠️ Todas Vision APIs falharam - usando alt text`);
+        return alt || 'Imagem sem descrição (APIs falharam)';
+      }
 
     } catch (error: any) {
-      // Logs mais detalhados para debug
-      if (error.message.includes('quota') || error.message.includes('429')) {
-        console.warn(`[ImageProcessor] ⚠️ Quota Gemini Vision excedida - usando alt text`);
-      } else if (error.message.includes('API key')) {
-        console.warn(`[ImageProcessor] ⚠️ Problema com API key - usando alt text`);
-      } else {
-        console.error(`[ImageProcessor] ❌ Erro ao gerar descrição:`, error.message);
-      }
-      return alt || 'Erro ao gerar descrição';
+      console.error(`[ImageProcessor] ❌ Erro ao gerar descrição:`, error.message);
+      return alt || 'Erro ao processar imagem';
     }
   }
 

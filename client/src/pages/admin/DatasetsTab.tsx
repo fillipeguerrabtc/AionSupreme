@@ -65,6 +65,7 @@ import {
   Sparkles,
   Calendar,
   TrendingUp,
+  Clock,
 } from "lucide-react";
 import type { Dataset } from "@shared/schema";
 
@@ -529,7 +530,9 @@ export default function DatasetsTab() {
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <Calendar className="w-4 h-4" />
-                                  {new Date(dataset.createdAt).toLocaleDateString("pt-BR")}
+                                  {new Date(dataset.createdAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })}
+                                  <Clock className="w-3 h-3 ml-1" />
+                                  {new Date(dataset.createdAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 {dataset.averageLength && (
                                   <span className="flex items-center gap-1">

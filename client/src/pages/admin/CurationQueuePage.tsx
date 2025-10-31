@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon } from "lucide-react";
+import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -440,9 +440,21 @@ export default function CurationQueuePage() {
                     <div className="flex items-start justify-between flex-1">
                       <div className="space-y-1 flex-1">
                         <CardTitle>{item.title}</CardTitle>
-                        <CardDescription className="flex items-center gap-2">
-                          Enviado por {item.submittedBy || "Desconhecido"} •{" "}
-                          {new Date(item.submittedAt).toLocaleDateString("pt-BR")}
+                        <CardDescription className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            Enviado por {item.submittedBy || "Desconhecido"}
+                          </div>
+                          <div className="flex items-center gap-1 text-xs">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(item.submittedAt).toLocaleDateString("pt-BR", { 
+                              dateStyle: "long" 
+                            })}
+                            <Clock className="h-3 w-3 ml-2" />
+                            {new Date(item.submittedAt).toLocaleTimeString("pt-BR", { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </div>
                         </CardDescription>
                       </div>
                       <div className="flex gap-2">
@@ -801,13 +813,20 @@ export default function CurationQueuePage() {
                             {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
                           </Badge>
                         </div>
-                        <CardDescription className="flex flex-col gap-1">
-                          <div>
-                            Enviado por {item.submittedBy || "Desconhecido"} • {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
+                        <CardDescription className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="h-3 w-3" />
+                            Enviado em {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
+                            <Clock className="h-3 w-3" />
+                            {new Date(item.submittedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          <div className="text-sm">
+                            Por {item.submittedBy || "Desconhecido"}
                           </div>
                           {item.reviewedBy && item.reviewedAt && (
-                            <div className="text-sm">
-                              {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} por {item.reviewedBy} • {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                              <Clock className="h-3 w-3" />
+                              {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} por {item.reviewedBy} em {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })} às {new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           )}
                         </CardDescription>

@@ -4,6 +4,8 @@
 import type { Express } from "express";
 import { curationStore } from "../curation/store";
 import { publishEvent } from "../events";
+import { ImageProcessor } from "../learn/image-processor";
+import { db } from "../db";
 
 export function registerCurationRoutes(app: Express) {
   /**
@@ -142,7 +144,7 @@ export function registerCurationRoutes(app: Express) {
 
   /**
    * POST /api/curation/reject
-   * Rejeita item
+   * Rejeita item E limpa imagens órfãs
    */
   app.post("/api/curation/reject", async (req, res) => {
     try {
@@ -164,6 +166,23 @@ export function registerCurationRoutes(app: Express) {
         tenantId,
         docId: item.id,
       });
+
+      // LIMPEZA: Remove imagens órfãs após rejeição
+      try {
+        const imageProcessor = new ImageProcessor();
+        const allDocs = await db.query.documents.findMany({
+          where: (doc, { eq }) => eq(doc.tenantId, tenantId)
+        });
+        const usedImages = allDocs
+          .map(doc => (doc.metadata as any)?.images || [])
+          .flat()
+          .filter(Boolean);
+        
+        await imageProcessor.cleanup(usedImages);
+        console.log(`[Curation] Limpeza de imagens órfãs concluída após rejeição`);
+      } catch (cleanupError: any) {
+        console.warn(`[Curation] Aviso ao limpar imagens:`, cleanupError.message);
+      }
 
       res.json(item);
     } catch (error: any) {
@@ -321,6 +340,23 @@ export function registerCurationRoutes(app: Express) {
         }
       }
 
+      // LIMPEZA: Remove imagens órfãs após bulk rejection
+      try {
+        const imageProcessor = new ImageProcessor();
+        const allDocs = await db.query.documents.findMany({
+          where: (doc, { eq }) => eq(doc.tenantId, tenantId)
+        });
+        const usedImages = allDocs
+          .map(doc => (doc.metadata as any)?.images || [])
+          .flat()
+          .filter(Boolean);
+        
+        await imageProcessor.cleanup(usedImages);
+        console.log(`[Curation] Limpeza de ${results.rejected} imagens órfãs após bulk reject`);
+      } catch (cleanupError: any) {
+        console.warn(`[Curation] Aviso ao limpar imagens:`, cleanupError.message);
+      }
+
       res.json(results);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -365,6 +401,23 @@ export function registerCurationRoutes(app: Express) {
           results.failed++;
           results.errors.push(`ID ${item.id}: ${error.message}`);
         }
+      }
+
+      // LIMPEZA: Remove TODAS as imagens órfãs após reject-all
+      try {
+        const imageProcessor = new ImageProcessor();
+        const allDocs = await db.query.documents.findMany({
+          where: (doc, { eq }) => eq(doc.tenantId, tenantId)
+        });
+        const usedImages = allDocs
+          .map(doc => (doc.metadata as any)?.images || [])
+          .flat()
+          .filter(Boolean);
+        
+        await imageProcessor.cleanup(usedImages);
+        console.log(`[Curation] Limpeza de TODAS as imagens órfãs após reject-all (${results.rejected} itens)`);
+      } catch (cleanupError: any) {
+        console.warn(`[Curation] Aviso ao limpar imagens:`, cleanupError.message);
       }
 
       res.json(results);

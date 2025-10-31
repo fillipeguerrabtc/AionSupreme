@@ -18,7 +18,9 @@ import {
   Save,
   X,
   Plus,
-  MessageSquare
+  MessageSquare,
+  Calendar,
+  Clock
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Document } from "@shared/schema";
@@ -489,10 +491,13 @@ export default function KnowledgeBasePage() {
                               {doc.content}
                             </p>
                             <div className="flex flex-wrap gap-2 mt-2">
-                              <div className="flex gap-2 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <span>Fonte: {doc.source || "manual"}</span>
                                 <span>•</span>
-                                <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                                <Calendar className="w-3 h-3" />
+                                <span>{new Date(doc.createdAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })}</span>
+                                <Clock className="w-3 h-3" />
+                                <span>{new Date(doc.createdAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
                               {(doc.metadata as any)?.namespaces && (doc.metadata as any).namespaces.length > 0 && (
                                 <>

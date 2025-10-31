@@ -162,11 +162,14 @@ export class DeepCrawler {
       // Remove elementos desnecessários
       $('script, style, noscript, iframe').remove();
 
-      // Extrai conteúdo textual
-      const content = this.extractContent($);
-
-      // Extrai imagens importantes
+      // Extrai imagens importantes PRIMEIRO
       const images = await this.extractImages($, url);
+
+      // Extrai conteúdo textual COM placeholders de imagens
+      let content = this.extractContent($);
+      
+      // Substitui placeholders pelas descrições reais
+      content = this.replaceImagePlaceholders(content, images);
 
       // Descobre links do mesmo domínio
       const links = this.extractLinks($, url);
@@ -199,7 +202,7 @@ export class DeepCrawler {
   }
 
   /**
-   * Extrai conteúdo textual da página
+   * Extrai conteúdo textual da página COM IMAGENS NO CONTEXTO CORRETO
    */
   private extractContent($: cheerio.CheerioAPI): string {
     // Remove elementos de navegação e publicidade
@@ -217,22 +220,57 @@ export class DeepCrawler {
       'body'
     ];
 
-    let content = '';
+    let contentElement: cheerio.Cheerio<any> = $('body'); // Default
     
     for (const selector of contentSelectors) {
       const element = $(selector).first();
       if (element.length > 0) {
-        content = element.text();
+        contentElement = element;
         break;
       }
     }
 
-    // Limpa whitespace excessivo
+    // Extrai texto E marca posições das imagens com placeholders únicos
+    let content = this.extractTextWithImagePlaceholders(contentElement);
+
+    // Limpa whitespace excessivo (mas preserva quebras de linha dos placeholders)
     content = content
-      .replace(/\s+/g, ' ')
+      .replace(/[ \t]+/g, ' ') // Colapsa espaços/tabs mas não quebras de linha
+      .replace(/\n{3,}/g, '\n\n') // Máximo 2 quebras de linha consecutivas
       .trim();
 
     return content;
+  }
+
+  /**
+   * Extrai texto e insere placeholders para imagens
+   */
+  private extractTextWithImagePlaceholders(element: cheerio.Cheerio<any>): string {
+    let result = '';
+    
+    element.contents().each((_, node) => {
+      if (node.type === 'text') {
+        result += node.data;
+      } else if (node.type === 'tag') {
+        const $node = element.find(node as any).first();
+        
+        if (node.name === 'img') {
+          // Marca posição da imagem com placeholder único
+          const src = $node.attr('src') || $node.attr('data-src') || '';
+          result += `\n[IMAGE:${src}]\n`;
+        } else if (node.name === 'br') {
+          result += '\n';
+        } else if (['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'].includes(node.name || '')) {
+          // Elementos de bloco: adiciona quebra de linha
+          result += '\n' + this.extractTextWithImagePlaceholders($node) + '\n';
+        } else {
+          // Inline elements: processa recursivamente
+          result += this.extractTextWithImagePlaceholders($node);
+        }
+      }
+    });
+    
+    return result;
   }
 
   /**
@@ -364,6 +402,28 @@ export class DeepCrawler {
     } catch {
       return url;
     }
+  }
+
+  /**
+   * Substitui placeholders de imagens pelas descrições reais
+   */
+  private replaceImagePlaceholders(content: string, images: CrawledPage['images']): string {
+    let result = content;
+    
+    for (const image of images) {
+      const placeholder = `[IMAGE:${image.url}]`;
+      
+      if (result.includes(placeholder)) {
+        // Substitui placeholder pela descrição formatada
+        const replacement = image.description 
+          ? `\n[IMAGEM: ${image.description}${image.alt ? ` (${image.alt})` : ''}]\n`
+          : `\n[IMAGEM: ${image.alt || 'Sem descrição'}]\n`;
+        
+        result = result.replace(placeholder, replacement);
+      }
+    }
+    
+    return result;
   }
 
   /**
