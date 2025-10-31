@@ -114,9 +114,10 @@ export function NamespaceSelector({
     const trimmed = customNamespace.trim();
     if (!trimmed) return;
 
-    // Validar formato namespace/subcategoria
-    if (!trimmed.includes("/")) {
-      alert("Namespace deve estar no formato: categoria/subcategoria\nExemplo: empresa-x/financas");
+    // Aceitar tanto namespace simples (ex: "tecnologia") quanto hierárquico (ex: "categoria/subcategoria")
+    // Validar apenas caracteres válidos (letras, números, hífen, underscore, barra)
+    if (!/^[a-z0-9_-]+(?:\/[a-z0-9_-]+)?$/i.test(trimmed)) {
+      alert("Namespace inválido. Use apenas letras, números, hífen e underscore.\nExemplos válidos:\n- tecnologia\n- empresa-x/financas\n- kb/geral");
       return;
     }
 
@@ -217,7 +218,7 @@ export function NamespaceSelector({
                           </Button>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Use formato: categoria/subcategoria
+                          Formatos aceitos: "tecnologia" ou "categoria/subcategoria"
                         </p>
                       </div>
                     )}
