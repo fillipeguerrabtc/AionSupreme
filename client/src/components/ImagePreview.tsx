@@ -17,7 +17,14 @@ export function ImagePreview({ url, title }: ImagePreviewProps) {
 
   const handleDownload = async () => {
     try {
-      const response = await fetch(url);
+      // Use proxy to avoid CORS issues
+      const proxyUrl = `/api/media/proxy?url=${encodeURIComponent(url)}`;
+      const response = await fetch(proxyUrl);
+      
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+      
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -29,6 +36,7 @@ export function ImagePreview({ url, title }: ImagePreviewProps) {
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error('Download failed:', error);
+      alert('Falha ao baixar imagem. Tente abrir em nova aba.');
     }
   };
 

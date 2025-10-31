@@ -78,7 +78,14 @@ export function VideoPreview({ url }: VideoPreviewProps) {
 
   const handleDownload = async () => {
     try {
-      const response = await fetch(videoInfo.embedUrl);
+      // Use proxy for direct video files to avoid CORS
+      const proxyUrl = `/api/media/proxy?url=${encodeURIComponent(videoInfo.embedUrl)}`;
+      const response = await fetch(proxyUrl);
+      
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+      
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -90,6 +97,7 @@ export function VideoPreview({ url }: VideoPreviewProps) {
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error('Download failed:', error);
+      alert('Falha ao baixar vídeo. Tente abrir em nova aba.');
     }
   };
 
