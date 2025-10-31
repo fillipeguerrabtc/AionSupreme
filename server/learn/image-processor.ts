@@ -44,8 +44,12 @@ export class ImageProcessor {
       const description = await this.generateDescription(localPath, alt);
 
       console.log(`   ✓ Imagem processada: ${path.basename(localPath)}`);
-      if (description) {
-        console.log(`     📝 Descrição: ${description.substring(0, 100)}...`);
+      if (description && !description.includes('Erro') && !description.includes('sem descrição')) {
+        console.log(`     📝 Descrição AI: ${description.substring(0, 100)}...`);
+      } else if (alt) {
+        console.log(`     📝 Alt text: ${alt}`);
+      } else {
+        console.log(`     ⚠️ Sem descrição disponível`);
       }
 
       return {
@@ -159,7 +163,14 @@ Descrição detalhada:`;
       return text.trim();
 
     } catch (error: any) {
-      console.error(`[ImageProcessor] Erro ao gerar descrição:`, error.message);
+      // Logs mais detalhados para debug
+      if (error.message.includes('quota') || error.message.includes('429')) {
+        console.warn(`[ImageProcessor] ⚠️ Quota Gemini Vision excedida - usando alt text`);
+      } else if (error.message.includes('API key')) {
+        console.warn(`[ImageProcessor] ⚠️ Problema com API key - usando alt text`);
+      } else {
+        console.error(`[ImageProcessor] ❌ Erro ao gerar descrição:`, error.message);
+      }
       return alt || 'Erro ao gerar descrição';
     }
   }

@@ -14,6 +14,7 @@ export interface CrawlRequest {
   namespace?: string;
   maxDepth?: number;
   maxPages?: number;
+  consolidatePages?: boolean; // Se true, cria um único item de curadoria com todo o conteúdo
 }
 
 export interface CrawlResult {
@@ -49,15 +50,27 @@ export class WebsiteCrawlerService {
 
     console.log(`[WebsiteCrawler] 📊 Crawling concluído:`, stats);
 
-    // Envia cada página para curation queue
+    // Envia para curation queue
     let curationItemsCreated = 0;
 
-    for (const page of pages) {
+    if (request.consolidatePages) {
+      // MODO CONSOLIDADO: Cria um único item com todo o conteúdo
       try {
-        await this.sendToCurationQueue(page, request.tenantId, request.namespace);
-        curationItemsCreated++;
+        await this.sendConsolidatedToCuration(pages, request.tenantId, request.namespace, request.url);
+        curationItemsCreated = 1;
+        console.log(`[WebsiteCrawler] 📦 Site completo consolidado em 1 item de curadoria`);
       } catch (error: any) {
-        console.error(`[WebsiteCrawler] ❌ Erro ao enviar página ${page.url} para curadoria:`, error.message);
+        console.error(`[WebsiteCrawler] ❌ Erro ao enviar conteúdo consolidado:`, error.message);
+      }
+    } else {
+      // MODO SEPARADO: Uma página = um item de curadoria
+      for (const page of pages) {
+        try {
+          await this.sendToCurationQueue(page, request.tenantId, request.namespace);
+          curationItemsCreated++;
+        } catch (error: any) {
+          console.error(`[WebsiteCrawler] ❌ Erro ao enviar página ${page.url} para curadoria:`, error.message);
+        }
       }
     }
 
@@ -125,6 +138,89 @@ export class WebsiteCrawlerService {
     } as any);
 
     console.log(`   ✓ Enviado para curadoria: "${page.title}"`);
+  }
+
+  /**
+   * Envia todas as páginas consolidadas em um único item de curadoria
+   */
+  private async sendConsolidatedToCuration(
+    pages: CrawledPage[],
+    tenantId: number,
+    namespace?: string,
+    baseUrl?: string
+  ): Promise<void> {
+    
+    // Título geral do site
+    const siteTitle = pages[0]?.title || 'Site completo';
+    const siteDomain = baseUrl ? new URL(baseUrl).hostname : 'desconhecido';
+    
+    // Monta conteúdo consolidado
+    let consolidatedContent = `# ${siteTitle}\n\n`;
+    consolidatedContent += `**Domínio:** ${siteDomain}\n`;
+    consolidatedContent += `**Total de páginas:** ${pages.length}\n`;
+    consolidatedContent += `**Data do crawling:** ${new Date().toISOString()}\n\n`;
+    consolidatedContent += `---\n\n`;
+
+    // Adiciona cada página como seção
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      
+      consolidatedContent += `## Página ${i + 1}: ${page.title || 'Sem título'}\n\n`;
+      consolidatedContent += `**URL:** ${page.url}\n\n`;
+      consolidatedContent += `### Conteúdo\n\n${page.content}\n\n`;
+
+      // Adiciona imagens desta página
+      if (page.images.length > 0) {
+        consolidatedContent += `### Imagens (${page.images.length})\n\n`;
+        
+        for (const img of page.images) {
+          consolidatedContent += `- **Imagem:** ${img.url}\n`;
+          if (img.description) {
+            consolidatedContent += `  **Descrição:** ${img.description}\n`;
+          }
+          if (img.alt) {
+            consolidatedContent += `  **Alt:** ${img.alt}\n`;
+          }
+          consolidatedContent += `\n`;
+        }
+      }
+
+      consolidatedContent += `---\n\n`;
+    }
+
+    // Tags automáticas
+    const tags = [
+      'website-completo',
+      'multi-paginas',
+      siteDomain,
+      `pages-${pages.length}`,
+      `quality-${this.calculateOverallQuality(pages)}`
+    ];
+
+    // Namespace sugerido
+    const suggestedNamespaces = namespace ? [namespace] : ['kb/websites'];
+
+    // Insere na curation queue
+    await db.insert(curationQueue).values({
+      tenantId,
+      title: `${siteTitle} - ${siteDomain} (${pages.length} páginas)`,
+      content: consolidatedContent,
+      suggestedNamespaces,
+      tags,
+      status: "pending",
+      submittedBy: "website-crawler-consolidated"
+    } as any);
+
+    console.log(`   ✓ Site completo enviado para curadoria: "${siteTitle}" (${pages.length} páginas)`);
+  }
+
+  /**
+   * Calcula qualidade geral de múltiplas páginas
+   */
+  private calculateOverallQuality(pages: CrawledPage[]): number {
+    const scores = pages.map(p => this.calculateQualityScore(p));
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    return Math.round(avg);
   }
 
   /**

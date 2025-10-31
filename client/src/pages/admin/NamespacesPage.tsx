@@ -347,7 +347,7 @@ export default function NamespacesPage() {
               Criar Namespace
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw]">
             <DialogHeader>
               <DialogTitle>Criar Novo Namespace</DialogTitle>
               <DialogDescription>
@@ -480,8 +480,8 @@ export default function NamespacesPage() {
           {isLoading ? (
             <p className="text-center py-8 text-muted-foreground">Carregando...</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="w-full overflow-x-auto">
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-[200px]">Nome</TableHead>
@@ -577,7 +577,7 @@ export default function NamespacesPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!selectedNamespace} onOpenChange={(open) => !open && setSelectedNamespace(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />

@@ -58,9 +58,9 @@ export class DeepCrawler {
   private imageProcessor: ImageProcessor;
   
   private options: Required<CrawlerOptions> = {
-    maxDepth: 999,
-    maxPages: 9999,
-    delayMs: 1000, // 1 segundo entre requests
+    maxDepth: 5,      // Profundidade de 5 níveis (ajustável via API)
+    maxPages: 100,    // Até 100 páginas por site (ajustável via API)
+    delayMs: 1000,    // 1 segundo entre requests
     includeImages: true,
     generateImageDescriptions: true,
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -281,10 +281,21 @@ export class DeepCrawler {
           if (result) {
             image.localPath = result.localPath;
             image.description = result.description;
+          } else {
+            // Se falhou ao processar, mantém pelo menos o alt text
+            image.description = image.alt || 'Imagem sem descrição disponível';
+            console.log(`   ⚠️ Mantendo imagem sem descrição: ${image.url}`);
           }
         } catch (error: any) {
           console.error(`   ⚠️ Erro ao processar imagem ${image.url}:`, error.message);
+          // Mantém a imagem mesmo com erro
+          image.description = image.alt || 'Erro ao processar imagem';
         }
+      }
+    } else if (!this.options.generateImageDescriptions && images.length > 0) {
+      // Se não gera descrições, usa apenas alt text
+      for (const image of images) {
+        image.description = image.alt || 'Imagem sem descrição';
       }
     }
 

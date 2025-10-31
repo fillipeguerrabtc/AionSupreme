@@ -764,13 +764,18 @@ export function registerRoutes(app: Express): Server {
   // Sends everything to curation queue (HITL)
   app.post("/api/admin/crawl-website", async (req, res) => {
     try {
-      const { tenant_id, url, namespace, maxDepth, maxPages } = req.body;
+      const { tenant_id, url, namespace, maxDepth, maxPages, consolidatePages } = req.body;
 
       if (!url) {
         return res.status(400).json({ error: "URL is required" });
       }
 
       console.log(`[API] 🕷️ Deep crawl solicitado: ${url}`);
+      if (consolidatePages) {
+        console.log(`[API] 📦 Modo: CONSOLIDADO (todas as páginas em um único conhecimento)`);
+      } else {
+        console.log(`[API] 📄 Modo: SEPARADO (cada página vira um conhecimento)`);
+      }
 
       // Import e executa crawler
       const { websiteCrawlerService } = await import("./learn/website-crawler-service");
@@ -780,7 +785,8 @@ export function registerRoutes(app: Express): Server {
         tenantId: tenant_id,
         namespace,
         maxDepth,
-        maxPages
+        maxPages,
+        consolidatePages
       });
 
       return res.json({
