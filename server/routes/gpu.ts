@@ -50,23 +50,64 @@ export function registerGpuRoutes(app: Router) {
 
   /**
    * POST /api/gpu/workers/heartbeat
-   * Worker sends heartbeat to stay online
+   * Worker sends heartbeat to stay online + runtime info
    */
   router.post("/workers/heartbeat", async (req: Request, res: Response) => {
     try {
-      const { workerId } = req.body;
+      const { workerId, sessionRuntimeHours, maxSessionHours, status } = req.body;
+
+      // Se está desligando (status: "offline"), apenas atualiza status
+      if (status === "offline") {
+        await db
+          .update(gpuWorkers)
+          .set({
+            status: "offline",
+            updatedAt: new Date(),
+          })
+          .where(eq(gpuWorkers.id, parseInt(workerId)));
+        
+        console.log(`[GPU Heartbeat] Worker ${workerId} going offline`);
+        return res.json({ success: true });
+      }
+
+      // Buscar worker atual para atualizar capabilities
+      const [worker] = await db
+        .select()
+        .from(gpuWorkers)
+        .where(eq(gpuWorkers.id, parseInt(workerId)))
+        .limit(1);
+
+      if (!worker) {
+        return res.status(404).json({ error: "Worker not found" });
+      }
+
+      const capabilities = (worker.capabilities as any) || {};
+      const metadata = capabilities.metadata || {};
+
+      // Atualizar metadata com session runtime
+      const updatedCapabilities = {
+        ...capabilities,
+        metadata: {
+          ...metadata,
+          sessionRuntimeHours: sessionRuntimeHours || 0,
+          maxSessionHours: maxSessionHours || 12,
+          lastHeartbeat: new Date().toISOString(),
+        },
+      };
 
       await db
         .update(gpuWorkers)
         .set({
           lastHealthCheck: new Date(),
           status: "healthy",
+          capabilities: updatedCapabilities,
           updatedAt: new Date(),
         })
         .where(eq(gpuWorkers.id, parseInt(workerId)));
 
       res.json({ success: true });
     } catch (error: any) {
+      console.error("[GPU Heartbeat] Error:", error);
       res.status(500).json({ error: error.message });
     }
   });

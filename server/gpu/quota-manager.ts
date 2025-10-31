@@ -7,6 +7,10 @@
  * - Round-robin distribution across all workers
  * - Automatic worker rotation when approaching limits
  * 
+ * CRITICAL: Different quota models for different providers:
+ * - COLAB: Quota por SESSÃO (12h max, usamos até 11.5h = 95.8%)
+ * - KAGGLE: Quota SEMANAL (30h/semana, usamos até 21h = 70%)
+ * 
  * SAFETY: We NEVER want to trigger Google's punishment mechanisms!
  */
 
@@ -20,9 +24,11 @@ interface WorkerQuota {
   accountEmail: string;
   quotaHoursPerWeek: number;
   usedHoursThisWeek: number;
+  sessionRuntimeHours: number; // Runtime da sessão ATUAL (Colab)
+  maxSessionHours: number; // Limite da sessão (11.5h Colab, 8.5h Kaggle)
   availableHours: number;
   utilizationPercentage: number;
-  isSafe: boolean; // true if utilization < 70%
+  isSafe: boolean; // true if utilization < safe threshold
 }
 
 export class QuotaManager {
@@ -34,6 +40,7 @@ export class QuotaManager {
 
   /**
    * Get quota status for all workers
+   * CRITICAL: Different logic for Colab (session-based) vs Kaggle (weekly)
    */
   async getAllWorkerQuotas(tenantId: number): Promise<WorkerQuota[]> {
     const workers = await db
@@ -49,12 +56,50 @@ export class QuotaManager {
       const capabilities = worker.capabilities as any || {};
       const metadata = capabilities.metadata || {};
       
-      // Initialize metadata if missing
+      // Session runtime info (vem do heartbeat)
+      const sessionRuntimeHours = metadata.sessionRuntimeHours || 0;
+      const maxSessionHours = metadata.maxSessionHours || 12;
+      
+      // Weekly quota info
       const quotaHoursPerWeek = metadata.quotaHoursPerWeek || this.getDefaultQuota(worker.provider);
       const usedHoursThisWeek = metadata.usedHoursThisWeek || 0;
-      const availableHours = quotaHoursPerWeek - usedHoursThisWeek;
-      const utilizationPercentage = quotaHoursPerWeek > 0 ? usedHoursThisWeek / quotaHoursPerWeek : 0;
-      const isSafe = utilizationPercentage < QuotaManager.SAFETY_MARGIN;
+      
+      // CRITICAL: Lógica diferente para Colab vs Kaggle
+      let utilizationPercentage: number;
+      let isSafe: boolean;
+      let availableHours: number;
+      
+      if (worker.provider === "colab") {
+        // COLAB: Quota por SESSÃO
+        // Consideramos unsafe se sessionRuntime >= 95% do maxSessionHours
+        // (o auto-shutdown já está configurado para 95.8% = 11.5h/12h)
+        utilizationPercentage = maxSessionHours > 0 ? sessionRuntimeHours / maxSessionHours : 0;
+        isSafe = sessionRuntimeHours < (maxSessionHours * 0.90); // 90% = seguro
+        availableHours = Math.max(0, maxSessionHours - sessionRuntimeHours);
+        
+        console.log(
+          `[QuotaManager] Colab worker ${worker.id}: ` +
+          `session ${sessionRuntimeHours.toFixed(2)}h/${maxSessionHours}h ` +
+          `(${(utilizationPercentage * 100).toFixed(1)}%) ${isSafe ? "✅" : "⚠️"}`
+        );
+      } else if (worker.provider === "kaggle") {
+        // KAGGLE: Quota SEMANAL
+        // Usamos apenas 70% da quota semanal (30h)
+        utilizationPercentage = quotaHoursPerWeek > 0 ? usedHoursThisWeek / quotaHoursPerWeek : 0;
+        isSafe = utilizationPercentage < QuotaManager.SAFETY_MARGIN; // 70%
+        availableHours = quotaHoursPerWeek - usedHoursThisWeek;
+        
+        console.log(
+          `[QuotaManager] Kaggle worker ${worker.id}: ` +
+          `week ${usedHoursThisWeek.toFixed(2)}h/${quotaHoursPerWeek}h ` +
+          `(${(utilizationPercentage * 100).toFixed(1)}%) ${isSafe ? "✅" : "⚠️"}`
+        );
+      } else {
+        // Outros providers (local, cloud): sempre safe
+        utilizationPercentage = 0;
+        isSafe = true;
+        availableHours = 999;
+      }
 
       quotas.push({
         workerId: worker.id,
@@ -62,6 +107,8 @@ export class QuotaManager {
         accountEmail: worker.accountId || "unknown",
         quotaHoursPerWeek,
         usedHoursThisWeek,
+        sessionRuntimeHours,
+        maxSessionHours,
         availableHours,
         utilizationPercentage,
         isSafe,
