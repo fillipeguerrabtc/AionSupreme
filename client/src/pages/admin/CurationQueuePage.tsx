@@ -507,6 +507,31 @@ export default function CurationQueuePage() {
               />
             </div>
 
+            {/* NOVO: Mostrar o conteúdo completo (somente leitura) */}
+            {selectedItem && (
+              <div className="space-y-2">
+                <Label htmlFor="view-content">Conteúdo Extraído</Label>
+                <div className="relative">
+                  <Textarea
+                    id="view-content"
+                    value={selectedItem.content}
+                    readOnly
+                    className="min-h-[200px] max-h-[400px] font-mono text-xs resize-none bg-muted/30"
+                    data-testid="textarea-view-content"
+                  />
+                  <Badge 
+                    variant="secondary" 
+                    className="absolute top-2 right-2 text-xs"
+                  >
+                    {selectedItem.content.length.toLocaleString()} caracteres
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Verifique se todo o conteúdo do link (incluindo sublinks) foi extraído corretamente
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="edit-tags">Tags (separadas por vírgula)</Label>
               <Input
