@@ -289,6 +289,21 @@ export default function ChatPage() {
       }
     }
     
+    // Create attachment metadata for user's uploaded files
+    const userAttachments = attachedFiles.map(file => {
+      const type = file.type.startsWith('image/') ? 'image' : 
+                   file.type.startsWith('video/') ? 'video' :
+                   file.type.startsWith('audio/') ? 'audio' : 'document';
+      
+      return {
+        type,
+        url: URL.createObjectURL(file), // Local URL for immediate display
+        filename: file.name,
+        mimeType: file.type,
+        size: file.size
+      };
+    });
+    
     // Save user message to database first
     try {
       const response = await apiRequest(`/api/conversations/${conversationId}/messages`, {
@@ -297,6 +312,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           role: "user",
           content: userMessage,
+          attachments: userAttachments
         }),
       });
       const savedMsg = await response.json();
@@ -306,11 +322,16 @@ export default function ChatPage() {
         role: "user",
         content: userMessage,
         conversationId: savedMsg.conversationId,
+        attachments: userAttachments
       }]);
     } catch (error) {
       console.error("Failed to save user message:", error);
       // Still show message even if save fails
-      setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+      setMessages(prev => [...prev, { 
+        role: "user", 
+        content: userMessage,
+        attachments: userAttachments
+      }]);
     }
     
     setInput("");
