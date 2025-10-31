@@ -20,6 +20,8 @@ import { sql } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { trackTokenUsage } from '../monitoring/token-tracker';
 import { z } from 'zod';
+import { GPUPool } from '../gpu/pool';
+import { autoLearningListener } from '../events/auto-learning-listener';
 
 // ============================================================================
 // TYPES & VALIDATION

@@ -101,7 +101,15 @@ app.use((req, res, next) => {
     port,
     host: "0.0.0.0",
     reusePort: true,
-  }, () => {
+  }, async () => {
     log(`serving on port ${port}`);
+    
+    // 🧠 Initialize Auto-Evolution System
+    try {
+      const { initAutoEvolution } = await import('./training/init-auto-evolution');
+      initAutoEvolution();
+    } catch (err) {
+      console.error('⚠️ Failed to initialize auto-evolution:', err);
+    }
   });
 })();

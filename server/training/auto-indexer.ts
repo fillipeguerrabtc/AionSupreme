@@ -102,7 +102,7 @@ export class AutoIndexer {
       // STEP 4: Indexar embeddings automaticamente
       await ragService.indexDocument(doc.id, assistantResponse, tenantId, { namespace });
 
-      console.log(`[AutoIndexer] ✅ Embeddings indexados para documento ${doc[0].id}`);
+      console.log(`[AutoIndexer] ✅ Embeddings indexados para documento ${doc.id}`);
 
       return true;
     } catch (error: any) {

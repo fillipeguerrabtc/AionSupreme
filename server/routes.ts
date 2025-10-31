@@ -252,52 +252,27 @@ export function registerRoutes(app: Express): Server {
         metricsCollector.recordTokens(tenantId, result.usage.totalTokens);
       }
       
-      // 🧠 AUTO-INDEX CONVERSATION TO KNOWLEDGE BASE
-      // This enables AION to learn from conversations and use KB first next time
+      // 🧠 AUTO-EVOLUTION: Trigger auto-learning system
+      // This creates the infinite learning loop: Chat → KB → Dataset → Training → Better Model
       try {
+        const { autoLearningListener } = await import('./training/auto-learning-listener');
         const userMessage = messages[messages.length - 1]?.content || '';
-        const aiResponse = result.content;
         
-        // Build conversation context from last N exchanges (up to 5)
-        const contextWindow = 5;
-        const recentMessages = messages.slice(-contextWindow * 2); // User + Assistant pairs
-        
-        let conversationContext = '';
-        for (const msg of recentMessages) {
-          const role = msg.role === 'user' ? 'User' : msg.role === 'assistant' ? 'AION' : 'System';
-          if (msg.role !== 'system') { // Skip system prompts
-            conversationContext += `${role}: ${msg.content}\n\n`;
-          }
-        }
-        
-        // Add current exchange
-        conversationContext += `AION: ${aiResponse}\n\n`;
-        
-        // Add metadata about the exchange
-        conversationContext += `[Source: ${result.source}, Provider: ${result.provider}]`;
-        
-        const conversationTitle = `Chat: ${userMessage.substring(0, 60)}...`;
-        
-        // Create document in database
-        const doc = await storage.createDocument({
+        // Fire and forget - don't block response
+        autoLearningListener.onChatCompleted({
+          conversationId: 0, // TODO: Get actual conversation ID from session
+          userMessage,
+          assistantResponse: result.content,
+          source: result.source as any,
+          provider: result.provider,
           tenantId,
-          title: conversationTitle,
-          content: conversationContext,
-          source: 'conversation',
-          metadata: {
-            query: userMessage.substring(0, 200),
-            description: `Auto-indexed from ${result.source} (${result.provider}), ${recentMessages.length + 1} messages`
-          }
+        }).catch((err: any) => {
+          console.error('[AutoLearning] Failed to process chat:', err.message);
         });
         
-        // Index into Knowledge Base (async, don't wait)
-        knowledgeIndexer.indexDocument(doc.id, conversationContext, tenantId)
-          .then(() => console.log(`   ✅ Conversation indexed into KB (doc ${doc.id}, ${recentMessages.length + 1} messages)`))
-          .catch(err => console.error(`   ✗ Failed to index conversation:`, err.message));
-        
-      } catch (indexError: any) {
-        // Don't fail the request if indexing fails
-        console.error('[Auto-Index] Failed to index conversation:', indexError.message);
+      } catch (autoLearnError: any) {
+        // Don't fail the request if auto-learning fails
+        console.error('[AutoLearning] System unavailable:', autoLearnError.message);
       }
       
       res.json({
