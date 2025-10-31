@@ -262,6 +262,7 @@ export const documents = pgTable("documents", {
     originalLength?: number; // Original content length before truncation
     truncated?: boolean; // Whether content was truncated
     analyzed?: boolean; // For images - whether Vision API was used
+    namespaces?: string[]; // Namespaces for multi-agent routing (CRITICAL!)
   }>(),
   
   createdAt: timestamp("created_at").notNull().defaultNow(),

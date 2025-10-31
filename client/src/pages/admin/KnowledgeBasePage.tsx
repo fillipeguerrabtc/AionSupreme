@@ -122,9 +122,7 @@ export default function KnowledgeBasePage() {
         body: JSON.stringify({ 
           title, 
           content,
-          ...(namespaces && namespaces.length > 0 ? { 
-            metadata: { namespaces } 
-          } : {})
+          metadata: { namespaces: namespaces || [] }
         }),
       });
       return res.json();

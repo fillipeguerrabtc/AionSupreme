@@ -717,9 +717,13 @@ export function registerRoutes(app: Express): Server {
   app.patch("/api/admin/documents/:id", async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
-      const { title, content } = req.body;
+      const { title, content, metadata } = req.body;
 
-      const updated = await storage.updateDocument(docId, { title, content });
+      const updated = await storage.updateDocument(docId, { 
+        title, 
+        content,
+        ...(metadata ? { metadata } : {})
+      });
       
       // Re-index document
       if (content) {
