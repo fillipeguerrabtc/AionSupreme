@@ -152,11 +152,6 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 max-w-full overflow-x-hidden">
-      {/* 🚨 ALERTA DE TESTE NO TOPO! 🚨 */}
-      <div className="w-full bg-red-600 text-white text-center py-6 text-3xl font-black">
-        🚨🚨🚨 TESTE: SE VOCÊ VÊ ISTO, O BUILD FUNCIONOU! 🚨🚨🚨
-      </div>
-      
       <header className="glass sticky top-0 z-50 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -438,10 +433,6 @@ export default function KnowledgeBasePage() {
                     >
                       {editingDoc === doc.id ? (
                         <div className="space-y-3">
-                          <div className="p-2 bg-green-500 text-white text-sm">
-                            🟢 MODO DE EDIÇÃO ATIVO - Doc ID: {doc.id}
-                          </div>
-                          
                           <Input
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
@@ -449,22 +440,11 @@ export default function KnowledgeBasePage() {
                             data-testid={`input-edit-title-${doc.id}`}
                           />
                           
-                          {/* Namespace Selector - MOVIDO PARA CIMA! */}
-                          <div className="space-y-2 p-3 bg-yellow-200 border-4 border-red-500">
-                            <div className="text-red-600 font-bold text-lg">
-                              🚨 TESTE: NamespaceSelector deveria aparecer AQUI! 🚨
-                            </div>
-                            <label className="text-sm font-semibold text-primary">
-                              🏷️ Namespaces (Multi-Agentes):
-                            </label>
-                            <NamespaceSelector
-                              value={editNamespaces}
-                              onChange={setEditNamespaces}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Selecione quais agentes podem acessar este conhecimento
-                            </p>
-                          </div>
+                          <NamespaceSelector
+                            value={editNamespaces}
+                            onChange={setEditNamespaces}
+                            allowWildcard={true}
+                          />
                           
                           <Textarea
                             value={editContent}
