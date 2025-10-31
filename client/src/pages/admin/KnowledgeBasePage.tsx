@@ -409,14 +409,29 @@ export default function KnowledgeBasePage() {
                           <Input
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
+                            placeholder="Título do conhecimento"
                             data-testid={`input-edit-title-${doc.id}`}
                           />
                           <Textarea
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
                             className="min-h-[100px]"
+                            placeholder="Conteúdo do conhecimento"
                             data-testid={`textarea-edit-content-${doc.id}`}
                           />
+                          
+                          {/* Display namespaces (read-only for now) */}
+                          {doc.metadata?.namespaces && doc.metadata.namespaces.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              <span className="text-sm text-muted-foreground">Namespaces:</span>
+                              {doc.metadata.namespaces.map((ns: string, idx: number) => (
+                                <Badge key={idx} variant="secondary" className="text-xs">
+                                  {ns}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -449,10 +464,24 @@ export default function KnowledgeBasePage() {
                             <p className="text-xs text-muted-foreground line-clamp-2">
                               {doc.content}
                             </p>
-                            <div className="flex gap-2 mt-2 text-xs text-muted-foreground">
-                              <span>Fonte: {doc.source || "manual"}</span>
-                              <span>•</span>
-                              <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              <div className="flex gap-2 text-xs text-muted-foreground">
+                                <span>Fonte: {doc.source || "manual"}</span>
+                                <span>•</span>
+                                <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                              </div>
+                              {doc.metadata?.namespaces && doc.metadata.namespaces.length > 0 && (
+                                <>
+                                  <span className="text-xs text-muted-foreground">•</span>
+                                  <div className="flex gap-1">
+                                    {doc.metadata.namespaces.map((ns: string, idx: number) => (
+                                      <Badge key={idx} variant="outline" className="text-xs h-5">
+                                        {ns}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="flex gap-1">
