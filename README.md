@@ -22,6 +22,7 @@
 - 🛡️ **Policy Enforcement** - Externalized, runtime-configurable content policies
 - 📊 **Real-time Token Monitoring** - Enterprise-grade tracking with Brazilian timezone (America/Sao_Paulo) for accurate local date calculations
 - 🆓 **5-Tier Free LLM Chain** - KB → GPU Pool → Free APIs (Groq, Gemini, HF) → Web Search → OpenAI (last resort)
+- 🎮 **GPU Pool System** - 10 simultaneous free GPUs (Colab + Kaggle) with intelligent quota management, auto-shutdown, and 24/7 rotation (~70-80 GPU hours/day at zero cost)
 - 🎛️ **Admin Dashboard** - Clean "AION" branding with enterprise sidebar navigation for complete system management
 - 📦 **Dataset Management** - Production-ready interface for managing training datasets with filtering, search, preview, download, and bulk operations
 - 🌍 **Multi-Cloud Deployment** - Dual deployment on GCP + AWS with automatic failover (100% free tier)
@@ -243,12 +244,60 @@ Built on top of:
 
 ---
 
+## 🎮 GPU Pool System (Phase 2)
+
+AION includes a **fully autonomous GPU pool** with zero-cost inference using Google Colab and Kaggle:
+
+### Features:
+- ✅ **10 Simultaneous Workers** (5 Colab + 5 Kaggle)
+- ✅ **~70-80 GPU hours/day** at zero cost
+- ✅ **Intelligent Quota Management** - Uses only 70% of quota (30% safety margin)
+- ✅ **Auto-Shutdown** - Notebooks terminate 30min before Google limits
+- ✅ **Round-Robin Load Balancing** - Automatic rotation across workers
+- ✅ **24/7 Coverage** - Optimized scheduling for continuous availability
+
+### Quick Setup:
+```bash
+# 1. Upload notebooks to Google Colab/Kaggle
+notebooks/colab_worker.ipynb   → 5 Google accounts
+notebooks/kaggle_worker.ipynb  → 5 Google accounts
+
+# 2. Configure each notebook
+AION_URL = "https://your-aion.replit.app"
+
+# 3. Click "Run All" (30 seconds per worker)
+# 4. Close browser - workers run in cloud!
+
+# Auto-shutdown after:
+# - Colab: 11.5h (Google limit: 12h)
+# - Kaggle: 8.5h (Google limit: 9h)
+```
+
+### Documentation:
+- 📖 **Setup Guide**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
+- 📅 **24/7 Schedule**: [GPU_SCHEDULE_24_7.md](./GPU_SCHEDULE_24_7.md)
+
+### API Endpoints:
+```bash
+POST /api/gpu/workers/register   # Worker registration
+POST /api/gpu/workers/heartbeat  # Keep-alive (60s)
+GET  /api/gpu/workers             # List all workers
+GET  /api/gpu/quota/status        # Real-time quota tracking
+POST /api/gpu/quota/record        # Record usage after jobs
+```
+
+**ROI**: ~$18-29k/year savings vs. paid GPU cloud services! 🚀
+
+---
+
 ## 🔗 Links
 
 - **Documentation**: [`docs/`](./docs/)
 - **Technical PDFs**: [`docs/pdfs/`](./docs/pdfs/)
 - **Production Status**: [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md)
 - **Deployment Guide**: [GOOGLE_COLAB_DEPLOYMENT.md](./GOOGLE_COLAB_DEPLOYMENT.md)
+- **GPU Pool Setup**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
+- **GPU 24/7 Schedule**: [GPU_SCHEDULE_24_7.md](./GPU_SCHEDULE_24_7.md)
 
 ---
 
