@@ -3396,6 +3396,76 @@ export function registerRoutes(app: Express): Server {
   // ========================================================================
   registerAgentRoutes(app);
 
+  // ========================================================================
+  // MEDIA PROXY - Resolve CORS and cache external media
+  // ========================================================================
+  
+  // In-memory cache for proxied media (max 100MB, 1 hour TTL)
+  const mediaCache = new Map<string, { data: Buffer; contentType: string; timestamp: number }>();
+  const MAX_CACHE_SIZE = 100 * 1024 * 1024; // 100MB
+  const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+  
+  app.get("/api/media/proxy", async (req, res) => {
+    try {
+      const url = req.query.url as string;
+      
+      if (!url) {
+        return res.status(400).json({ error: "Missing 'url' parameter" });
+      }
+      
+      // Validate URL
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL" });
+      }
+      
+      // Check cache
+      const cached = mediaCache.get(url);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        console.log(`[Media Proxy] Cache HIT: ${url}`);
+        res.setHeader('Content-Type', cached.contentType);
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return res.send(cached.data);
+      }
+      
+      // Fetch from external source
+      console.log(`[Media Proxy] Fetching: ${url}`);
+      const response = await axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout: 30000,
+        maxContentLength: 50 * 1024 * 1024, // 50MB max file size
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      const data = Buffer.from(response.data);
+      
+      // Cache if size allows
+      if (data.length < MAX_CACHE_SIZE) {
+        // Clean old cache entries if needed
+        if (mediaCache.size > 50) {
+          const oldestKey = Array.from(mediaCache.keys())[0];
+          mediaCache.delete(oldestKey);
+        }
+        
+        mediaCache.set(url, { data, contentType, timestamp: Date.now() });
+        console.log(`[Media Proxy] Cached: ${url} (${(data.length / 1024).toFixed(1)}KB)`);
+      }
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send(data);
+      
+    } catch (error: any) {
+      console.error("[Media Proxy] Error:", error.message);
+      res.status(500).json({ error: "Failed to fetch media", details: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

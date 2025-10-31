@@ -23,6 +23,13 @@ export interface AgentObservation {
   success: boolean;
   errorMessage?: string;
   metadata?: Record<string, any>;
+  attachments?: Array<{
+    type: "image" | "video" | "audio" | "document";
+    url: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+  }>;
 }
 
 export interface AgentStep {
