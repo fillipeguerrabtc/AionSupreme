@@ -23,6 +23,7 @@ import { useLanguage } from "@/lib/i18n";
 import { formatDateTimeInTimezone } from "@/lib/datetime";
 import type { Document } from "@shared/schema";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
+import { Badge } from "@/components/ui/badge";
 
 export default function KnowledgeBaseTab() {
   const { toast } = useToast();
@@ -457,6 +458,23 @@ export default function KnowledgeBaseTab() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <h3 className="font-semibold text-sm mb-1">{doc.title}</h3>
+                          
+                          {/* Exibir namespaces como badges */}
+                          {doc.metadata?.namespaces && doc.metadata.namespaces.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {doc.metadata.namespaces.map((ns: string) => (
+                                <Badge 
+                                  key={ns} 
+                                  variant="secondary"
+                                  className="text-xs"
+                                  data-testid={`badge-namespace-${ns}`}
+                                >
+                                  🏷️ {ns}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          
                           <p className="text-xs text-muted-foreground line-clamp-2">
                             {doc.content}
                           </p>
