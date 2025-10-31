@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Server, Activity, Trash2, Plus, RefreshCw, Circle } from "lucide-react";
+import { Server, Activity, Trash2, Plus, RefreshCw, Circle, Clock } from "lucide-react";
 import { formatDateTimeInTimezone } from "@/lib/datetime";
 
 interface GpuWorker {
@@ -20,6 +20,12 @@ interface GpuWorker {
     gpu: string;
     vram_gb?: number;
     max_concurrent?: number;
+    metadata?: {
+      sessionRuntimeHours?: number;
+      maxSessionHours?: number;
+      lastHeartbeat?: string;
+      usedHoursThisWeek?: number;
+    };
   };
   status: "healthy" | "unhealthy" | "offline" | "pending";
   lastHealthCheck?: string;
@@ -142,6 +148,50 @@ export default function GPUManagementTab() {
     return formatDateTimeInTimezone(dateStr, timezone, { format: 'short' });
   };
 
+  // Countdown timer component (real-time updates)
+  const TimeRemaining = ({ worker }: { worker: GpuWorker }) => {
+    const [timeLeft, setTimeLeft] = useState<string>("N/A");
+
+    useEffect(() => {
+      const updateTimer = () => {
+        const metadata = worker.capabilities.metadata;
+        if (!metadata?.sessionRuntimeHours || !metadata?.maxSessionHours || worker.status === "offline") {
+          setTimeLeft("N/A");
+          return;
+        }
+
+        const startTime = new Date(worker.createdAt).getTime();
+        const maxRuntimeMs = metadata.maxSessionHours * 60 * 60 * 1000;
+        const shutdownTime = startTime + maxRuntimeMs;
+        const now = Date.now();
+        const remaining = shutdownTime - now;
+
+        if (remaining <= 0) {
+          setTimeLeft("Shutting down...");
+          return;
+        }
+
+        const hours = Math.floor(remaining / (1000 * 60 * 60));
+        const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+        if (hours > 0) {
+          setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+        } else if (minutes > 0) {
+          setTimeLeft(`${minutes}m ${seconds}s`);
+        } else {
+          setTimeLeft(`${seconds}s`);
+        }
+      };
+
+      updateTimer();
+      const interval = setInterval(updateTimer, 1000);
+      return () => clearInterval(interval);
+    }, [worker]);
+
+    return <span className="text-sm font-mono">{timeLeft}</span>;
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Overview */}
@@ -231,6 +281,12 @@ export default function GPUManagementTab() {
                     <TableHead>Model</TableHead>
                     <TableHead>GPU</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Tempo
+                      </div>
+                    </TableHead>
                     <TableHead>Requests</TableHead>
                     <TableHead>Avg Latency</TableHead>
                     <TableHead>Last Used</TableHead>
@@ -251,6 +307,9 @@ export default function GPUManagementTab() {
                       <TableCell className="text-sm">{worker.capabilities.model}</TableCell>
                       <TableCell className="text-sm">{worker.capabilities.gpu}</TableCell>
                       <TableCell>{getStatusBadge(worker.status)}</TableCell>
+                      <TableCell className="text-sm">
+                        <TimeRemaining worker={worker} />
+                      </TableCell>
                       <TableCell>{worker.requestCount.toLocaleString()}</TableCell>
                       <TableCell>{worker.averageLatencyMs.toFixed(0)}ms</TableCell>
                       <TableCell className="text-sm text-muted-foreground">

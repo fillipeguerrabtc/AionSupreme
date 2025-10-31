@@ -135,7 +135,7 @@ export function registerGpuRoutes(app: Express) {
 
   /**
    * GET /api/gpu/status
-   * Dashboard status - reads from database
+   * Dashboard status - reads from database WITH HEARTBEAT TIMEOUT DETECTION
    */
   app.get("/api/gpu/status", async (req: Request, res: Response) => {
     try {
@@ -147,10 +147,35 @@ export function registerGpuRoutes(app: Express) {
         .where(eq(gpuWorkers.tenantId, tenantId))
         .orderBy(desc(gpuWorkers.lastHealthCheck));
 
-      const total = workers.length;
-      const healthy = workers.filter((w) => w.status === "healthy").length;
-      const unhealthy = workers.filter((w) => w.status === "unhealthy").length;
-      const offline = workers.filter((w) => w.status === "offline" || w.status === "pending").length;
+      // CRITICAL: Detect offline workers based on heartbeat timeout
+      const HEARTBEAT_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes without heartbeat = offline
+      const now = new Date();
+
+      const workersWithStatus = await Promise.all(
+        workers.map(async (worker) => {
+          const timeSinceLastHeartbeat = now.getTime() - new Date(worker.lastHealthCheck!).getTime();
+          
+          // Auto-detect offline workers (no heartbeat for 3+ minutes)
+          if (worker.status === "healthy" && timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT_MS) {
+            console.log(`[GPU Status] Worker ${worker.id} offline (no heartbeat for ${Math.floor(timeSinceLastHeartbeat / 1000)}s)`);
+            
+            // Update status to offline in database
+            await db
+              .update(gpuWorkers)
+              .set({ status: "offline", updatedAt: new Date() })
+              .where(eq(gpuWorkers.id, worker.id));
+            
+            return { ...worker, status: "offline" as const };
+          }
+          
+          return worker;
+        })
+      );
+
+      const total = workersWithStatus.length;
+      const healthy = workersWithStatus.filter((w) => w.status === "healthy").length;
+      const unhealthy = workersWithStatus.filter((w) => w.status === "unhealthy").length;
+      const offline = workersWithStatus.filter((w) => w.status === "offline" || w.status === "pending").length;
 
       const totalRequests = 0;
       const avgLatency = 0;
@@ -162,7 +187,7 @@ export function registerGpuRoutes(app: Express) {
         offline,
         totalRequests,
         avgLatency,
-        workers,
+        workers: workersWithStatus,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
