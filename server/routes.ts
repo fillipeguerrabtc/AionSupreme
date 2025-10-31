@@ -759,6 +759,42 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // POST /api/admin/crawl-website - Deep crawl entire website
+  // Crawls all sublinks, extracts text + images with Vision API descriptions
+  // Sends everything to curation queue (HITL)
+  app.post("/api/admin/crawl-website", async (req, res) => {
+    try {
+      const { tenant_id, url, namespace, maxDepth, maxPages } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+
+      console.log(`[API] 🕷️ Deep crawl solicitado: ${url}`);
+
+      // Import e executa crawler
+      const { websiteCrawlerService } = await import("./learn/website-crawler-service");
+      
+      const result = await websiteCrawlerService.crawlWebsite({
+        url,
+        tenantId: tenant_id,
+        namespace,
+        maxDepth,
+        maxPages
+      });
+
+      return res.json({
+        success: true,
+        message: `Website crawleado com sucesso! ${result.totalPages} páginas processadas.`,
+        result
+      });
+
+    } catch (error: any) {
+      console.error("[API] Erro ao crawlear website:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
   // POST /api/admin/learn-from-url - Learn from a URL
   // HITL FIX: All URL content goes through curation queue
   app.post("/api/admin/learn-from-url", async (req, res) => {
