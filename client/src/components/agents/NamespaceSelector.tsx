@@ -307,42 +307,44 @@ export function NamespaceSelector({
       </Popover>
 
       {value.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {value.map((namespace) => {
-            const ns = combinedCategories.flatMap(cat => cat.namespaces).find(
-              n => n.value === namespace
-            );
-            return (
-              <Badge
-                key={namespace}
-                variant="secondary"
-                className="gap-1"
-                data-testid={`badge-namespace-${namespace}`}
-              >
-                <span className="text-xs font-mono">{ns?.label || namespace}</span>
-                <button
-                  type="button"
-                  onClick={() => removeNamespace(namespace)}
-                  className="ml-1 hover:bg-destructive/20 rounded-sm"
-                  data-testid={`button-remove-namespace-${namespace}`}
+        <div className="max-h-[200px] overflow-y-auto p-2 border border-border/50 rounded-md bg-background/50">
+          <div className="flex flex-wrap gap-1.5">
+            {value.map((namespace) => {
+              const ns = combinedCategories.flatMap(cat => cat.namespaces).find(
+                n => n.value === namespace
+              );
+              return (
+                <Badge
+                  key={namespace}
+                  variant="secondary"
+                  className="gap-1"
+                  data-testid={`badge-namespace-${namespace}`}
                 >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            );
-          })}
-          {value.length > 1 && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={clearAll}
-              className="h-6 text-xs"
-              data-testid="button-clear-all-namespaces"
-            >
-              Limpar tudo
-            </Button>
-          )}
+                  <span className="text-xs font-mono">{ns?.label || namespace}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeNamespace(namespace)}
+                    className="ml-1 hover:bg-destructive/20 rounded-sm"
+                    data-testid={`button-remove-namespace-${namespace}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              );
+            })}
+            {value.length > 1 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearAll}
+                className="h-6 text-xs"
+                data-testid="button-clear-all-namespaces"
+              >
+                Limpar tudo
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>

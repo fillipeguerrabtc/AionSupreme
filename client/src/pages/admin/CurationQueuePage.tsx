@@ -487,7 +487,7 @@ export default function CurationQueuePage() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl" data-testid="dialog-edit-curation">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col" data-testid="dialog-edit-curation">
           <DialogHeader>
             <DialogTitle>Editar Item de Curadoria</DialogTitle>
             <DialogDescription>
@@ -495,7 +495,8 @@ export default function CurationQueuePage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          {/* Área scrollável com altura máxima */}
+          <div className="space-y-4 py-4 overflow-y-auto max-h-[60vh]">
             <div className="space-y-2">
               <Label htmlFor="edit-title">Título</Label>
               <Input
@@ -519,7 +520,11 @@ export default function CurationQueuePage() {
 
             <div className="space-y-2">
               <Label>Namespaces</Label>
-              <NamespaceSelector value={editNamespaces} onChange={setEditNamespaces} />
+              <NamespaceSelector 
+                value={editNamespaces} 
+                onChange={setEditNamespaces}
+                allowWildcard={true}
+              />
             </div>
 
             <div className="space-y-2">
@@ -534,7 +539,8 @@ export default function CurationQueuePage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2">
+          {/* Botões fixos no rodapé - sempre visíveis */}
+          <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} data-testid="button-cancel-edit">
               Cancelar
             </Button>
