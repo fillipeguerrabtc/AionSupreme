@@ -7,6 +7,7 @@ import { db } from '../db';
 import { documents, embeddings } from '@shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { embedText, cosineSimilarity } from './embedder';
+import { storage } from '../storage';
 
 // ============================================================================
 // TYPES
@@ -57,17 +58,17 @@ export async function semanticSearch(
   console.log('[RAG] Embedding query...');
   const queryVector = await embedText(query);
 
-  // Step 2: Retrieve all embeddings for tenant
-  console.log('[RAG] Retrieving embeddings...');
-  const allEmbeddings = await db
-    .select()
-    .from(embeddings)
-    .where(eq(embeddings.tenantId, tenantId));
+  // Step 2: Retrieve ONLY embeddings from APPROVED documents (status='indexed')
+  // HITL FIX: Use storage.getEmbeddingsByTenant which filters by document status
+  console.log('[RAG] Retrieving embeddings from APPROVED documents only...');
+  const allEmbeddings = await storage.getEmbeddingsByTenant(tenantId, 10000);
 
   if (allEmbeddings.length === 0) {
-    console.log('[RAG] No embeddings found');
+    console.log('[RAG] ⚠️  No APPROVED embeddings found (all content in curation queue)');
     return [];
   }
+  
+  console.log(`[RAG] ✅ Found ${allEmbeddings.length} embeddings from approved documents`);
 
   // Step 3: Calculate similarities
   console.log(`[RAG] Calculating similarities for ${allEmbeddings.length} chunks...`);
