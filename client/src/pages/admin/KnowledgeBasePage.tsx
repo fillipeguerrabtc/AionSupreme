@@ -294,18 +294,11 @@ export default function KnowledgeBasePage() {
                 onChange={(e) => setNewTextTitle(e.target.value)}
                 data-testid="input-new-doc-title"
               />
-              <Textarea
-                placeholder="Escreva o conteúdo aqui..."
-                value={newTextContent}
-                onChange={(e) => setNewTextContent(e.target.value)}
-                className="min-h-[200px]"
-                data-testid="textarea-new-doc-content"
-              />
               
-              {/* Namespace Selector */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Namespaces (Multi-Agentes):
+              {/* Namespace Selector - MOVIDO PARA CIMA! */}
+              <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                <label className="text-sm font-semibold text-primary">
+                  🏷️ Namespaces (Multi-Agentes):
                 </label>
                 <NamespaceSelector
                   value={newNamespaces}
@@ -315,6 +308,14 @@ export default function KnowledgeBasePage() {
                   Selecione quais agentes terão acesso a este conhecimento
                 </p>
               </div>
+              
+              <Textarea
+                placeholder="Escreva o conteúdo aqui..."
+                value={newTextContent}
+                onChange={(e) => setNewTextContent(e.target.value)}
+                className="min-h-[200px]"
+                data-testid="textarea-new-doc-content"
+              />
               
               <Button
                 onClick={() => addTextMutation.mutate()}
@@ -438,6 +439,21 @@ export default function KnowledgeBasePage() {
                             placeholder="Título do conhecimento"
                             data-testid={`input-edit-title-${doc.id}`}
                           />
+                          
+                          {/* Namespace Selector - MOVIDO PARA CIMA! */}
+                          <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                            <label className="text-sm font-semibold text-primary">
+                              🏷️ Namespaces (Multi-Agentes):
+                            </label>
+                            <NamespaceSelector
+                              value={editNamespaces}
+                              onChange={setEditNamespaces}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Selecione quais agentes podem acessar este conhecimento
+                            </p>
+                          </div>
+                          
                           <Textarea
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
@@ -445,20 +461,6 @@ export default function KnowledgeBasePage() {
                             placeholder="Conteúdo do conhecimento"
                             data-testid={`textarea-edit-content-${doc.id}`}
                           />
-                          
-                          {/* Namespace Selector - Editable */}
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-muted-foreground">
-                              Namespaces (Multi-Agentes):
-                            </label>
-                            <NamespaceSelector
-                              value={editNamespaces}
-                              onChange={setEditNamespaces}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Namespaces controlam quais agentes podem acessar este conhecimento
-                            </p>
-                          </div>
                           
                           <div className="flex gap-2">
                             <Button
