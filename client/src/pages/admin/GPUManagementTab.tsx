@@ -21,6 +21,7 @@ interface GpuWorker {
     vram_gb?: number;
     max_concurrent?: number;
     metadata?: {
+      sessionStart?: string;
       sessionRuntimeHours?: number;
       maxSessionHours?: number;
       lastHeartbeat?: string;
@@ -154,14 +155,22 @@ export default function GPUManagementTab() {
 
     useEffect(() => {
       const updateTimer = () => {
-        const metadata = worker.capabilities.metadata;
-        if (!metadata?.sessionRuntimeHours || !metadata?.maxSessionHours || worker.status === "offline") {
+        if (worker.status === "offline" || worker.status === "pending") {
           setTimeLeft("N/A");
           return;
         }
 
-        const startTime = new Date(worker.createdAt).getTime();
-        const maxRuntimeMs = metadata.maxSessionHours * 60 * 60 * 1000;
+        const metadata = worker.capabilities.metadata;
+        const maxSessionHours = metadata?.maxSessionHours;
+        const sessionStart = metadata?.sessionStart;
+
+        if (!maxSessionHours) {
+          setTimeLeft("N/A");
+          return;
+        }
+
+        const startTime = sessionStart ? new Date(sessionStart).getTime() : new Date(worker.createdAt).getTime();
+        const maxRuntimeMs = maxSessionHours * 60 * 60 * 1000;
         const shutdownTime = startTime + maxRuntimeMs;
         const now = Date.now();
         const remaining = shutdownTime - now;
@@ -187,7 +196,7 @@ export default function GPUManagementTab() {
       updateTimer();
       const interval = setInterval(updateTimer, 1000);
       return () => clearInterval(interval);
-    }, [worker]);
+    }, [worker.id, worker.status, worker.createdAt, worker.capabilities.metadata?.maxSessionHours, worker.capabilities.metadata?.sessionStart]);
 
     return <span className="text-sm font-mono">{timeLeft}</span>;
   };

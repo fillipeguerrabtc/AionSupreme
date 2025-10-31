@@ -70,6 +70,10 @@ app.use((req, res, next) => {
   
   // Start federated learning auto-recovery system
   autoRecovery.start();
+  
+  // Start GPU heartbeat monitor (detects offline workers every 60s)
+  const { startHeartbeatMonitor } = await import("./gpu/heartbeat-monitor");
+  startHeartbeatMonitor();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
