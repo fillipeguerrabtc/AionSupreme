@@ -161,7 +161,7 @@ export default function KnowledgeBaseTab() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Action Buttons */}
       <div className="grid gap-4 md:grid-cols-4">
         <Button

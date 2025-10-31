@@ -561,7 +561,7 @@ export default function DatasetsTab() {
                       className="p-4 hover-elevate transition-all duration-200"
                       data-testid={`dataset-row-${dataset.id}`}
                     >
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-start gap-4 min-w-0">
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={(checked) => {
@@ -574,26 +574,27 @@ export default function DatasetsTab() {
                             setSelectedDatasets(newSet);
                           }}
                           data-testid={`checkbox-dataset-${dataset.id}`}
+                          className="shrink-0 mt-1"
                         />
 
-                        <div className="flex-1 space-y-3">
+                        <div className="flex-1 min-w-0 space-y-3">
                           <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <TypeIcon className="w-4 h-4 text-primary" />
-                                <h3 className="font-semibold text-lg" data-testid={`text-dataset-name-${dataset.id}`}>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                <TypeIcon className="w-4 h-4 text-primary shrink-0" />
+                                <h3 className="font-semibold text-lg break-words" data-testid={`text-dataset-name-${dataset.id}`}>
                                   {dataset.name}
                                 </h3>
                                 {getStatusBadge(dataset.status)}
                               </div>
                               
                               {dataset.description && (
-                                <p className="text-sm text-muted-foreground mb-2">
+                                <p className="text-sm text-muted-foreground mb-2 break-words">
                                   {dataset.description}
                                 </p>
                               )}
 
-                              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground min-w-0">
                                 <span className="flex items-center gap-1">
                                   <FileText className="w-4 h-4" />
                                   {dataset.totalExamples.toLocaleString()} exemplos
@@ -627,7 +628,7 @@ export default function DatasetsTab() {
                               )}
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
                               <Button
                                 variant="outline"
                                 size="icon"
@@ -661,7 +662,7 @@ export default function DatasetsTab() {
                           </div>
 
                           {dataset.schema && (
-                            <div className="text-xs text-muted-foreground font-mono bg-card/50 p-2 rounded-md">
+                            <div className="text-xs text-muted-foreground font-mono bg-card/50 p-2 rounded-md break-words overflow-x-auto">
                               Schema: {dataset.schema.format} | 
                               Colunas: {dataset.schema.columns?.join(", ")} |
                               Input: {dataset.schema.inputField || "N/A"} |

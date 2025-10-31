@@ -330,24 +330,24 @@ export default function NamespacesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold" data-testid="text-namespaces-title">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-3xl font-bold break-words" data-testid="text-namespaces-title">
             Gerenciamento de Namespaces
           </h2>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 break-words">
             Organize e gerencie os namespaces da Knowledge Base
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-create-namespace">
+            <Button data-testid="button-create-namespace" className="shrink-0">
               <Plus className="h-4 w-4 mr-2" />
               Criar Namespace
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw]">
+          <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Criar Novo Namespace</DialogTitle>
               <DialogDescription>
@@ -476,59 +476,59 @@ export default function NamespacesPage() {
             {allNamespaces.length} namespaces totais ({getAllNamespaces().length} pré-definidos + {customNamespaces.length} personalizados)
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <p className="text-center py-8 text-muted-foreground">Carregando...</p>
           ) : (
             <div className="w-full overflow-x-auto">
-              <Table className="min-w-full">
+              <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[200px]">Nome</TableHead>
-                    <TableHead className="min-w-[200px]">Descrição</TableHead>
-                    <TableHead className="min-w-[120px]">Categoria</TableHead>
-                    <TableHead className="min-w-[100px]">Tipo</TableHead>
-                    <TableHead className="min-w-[100px]">Status</TableHead>
-                    <TableHead className="text-right min-w-[120px]">Ações</TableHead>
+                    <TableHead className="whitespace-nowrap">Nome</TableHead>
+                    <TableHead className="whitespace-nowrap">Descrição</TableHead>
+                    <TableHead className="whitespace-nowrap">Categoria</TableHead>
+                    <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                    <TableHead className="whitespace-nowrap">Status</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {allNamespaces.map((namespace, index) => (
                     <TableRow key={namespace.id || namespace.name} data-testid={`row-namespace-${namespace.name}`}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium whitespace-nowrap">{namespace.displayName}</div>
-                          <div className="text-sm text-muted-foreground whitespace-nowrap font-mono">{namespace.name}</div>
+                      <TableCell className="min-w-0">
+                        <div className="max-w-[250px]">
+                          <div className="font-medium truncate">{namespace.displayName}</div>
+                          <div className="text-sm text-muted-foreground truncate font-mono">{namespace.name}</div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-0">
                         <div className="max-w-[300px] truncate">
                           {namespace.description || <span className="text-muted-foreground italic">Sem descrição</span>}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{namespace.category}</Badge>
+                        <Badge variant="outline" className="whitespace-nowrap">{namespace.category}</Badge>
                       </TableCell>
                       <TableCell>
                         {namespace.source === "predefined" ? (
-                          <Badge variant="secondary" className="gap-1">
+                          <Badge variant="secondary" className="gap-1 whitespace-nowrap">
                             <Layers className="h-3 w-3" />
                             Sistema
                           </Badge>
                         ) : (
-                          <Badge variant="default" className="gap-1">
+                          <Badge variant="default" className="gap-1 whitespace-nowrap">
                             <Database className="h-3 w-3" />
                             Personalizado
                           </Badge>
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={namespace.enabled ? "default" : "secondary"}>
+                        <Badge variant={namespace.enabled ? "default" : "secondary"} className="whitespace-nowrap">
                           {namespace.enabled ? "Ativo" : "Inativo"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 shrink-0">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -577,7 +577,7 @@ export default function NamespacesPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!selectedNamespace} onOpenChange={(open) => !open && setSelectedNamespace(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw]">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />

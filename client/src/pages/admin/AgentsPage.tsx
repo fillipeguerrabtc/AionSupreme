@@ -164,25 +164,25 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold flex items-center gap-2">
-            <Users className="w-8 h-8" />
+    <div className="space-y-6 max-w-full overflow-x-hidden">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-3xl font-semibold flex items-center gap-2 break-words">
+            <Users className="w-8 h-8 shrink-0" />
             Agentes Especialistas
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 break-words">
             Gerencie agentes com conhecimento especializado em domínios verticais
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-create-agent">
+            <Button data-testid="button-create-agent" className="shrink-0">
               <Plus className="w-4 h-4 mr-2" />
               Criar Agente
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Criar Novo Agente</DialogTitle>
               <DialogDescription>

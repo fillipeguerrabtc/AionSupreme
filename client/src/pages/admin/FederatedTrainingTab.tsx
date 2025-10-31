@@ -267,18 +267,19 @@ export default function FederatedTrainingTab() {
   const datasets = datasetsData?.datasets || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">{t.admin.federatedTraining.title}</h2>
-          <p className="text-muted-foreground">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-2xl font-bold break-words">{t.admin.federatedTraining.title}</h2>
+          <p className="text-muted-foreground break-words">
             {t.admin.federatedTraining.subtitle}
           </p>
         </div>
         <Button 
           onClick={() => setCreateDialogOpen(true)}
           data-testid="button-create-job"
+          className="shrink-0"
         >
           {t.admin.federatedTraining.createJob}
         </Button>
@@ -286,7 +287,7 @@ export default function FederatedTrainingTab() {
 
       {/* Create Job Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t.admin.federatedTraining.createDialog.title}</DialogTitle>
             <DialogDescription>

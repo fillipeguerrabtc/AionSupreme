@@ -339,10 +339,10 @@ export default function CurationQueuePage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-full overflow-x-hidden">
       <div>
-        <h1 className="text-3xl font-bold">Fila de Curadoria</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-3xl font-bold break-words">Fila de Curadoria</h1>
+        <p className="text-muted-foreground mt-2 break-words">
           Revise e aprove conteúdo antes da publicação na Knowledge Base
         </p>
       </div>

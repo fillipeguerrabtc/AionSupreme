@@ -58,11 +58,11 @@ export default function AutoEvolutionTab() {
   const { overview, efficiency, timeline } = data;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold">{t.admin.autoEvolution.title}</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-2xl font-bold break-words">{t.admin.autoEvolution.title}</h2>
+        <p className="text-muted-foreground break-words">
           {t.admin.autoEvolution.subtitle}
         </p>
       </div>
