@@ -953,14 +953,17 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <Database className="w-5 h-5" style={{ color: COLORS.gemini }} />
                     Gemini
                   </span>
-                  <Badge variant="outline">{getProviderQuota('gemini')?.remaining.toLocaleString()} {t.admin.tokenMonitoring.freeApis.recentRequests.toLowerCase()}</Badge>
+                  <Badge variant="outline">{getProviderQuota('gemini')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>Google's AI (1,500 req/day)</CardDescription>
+                <CardDescription>Google's AI (limite: 1.500 requisições/dia)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.overview.dailyUsage}</span>
+                    <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5" />
+                      Requisições (conta para limite)
+                    </span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('gemini')?.used.toLocaleString()} / {getProviderQuota('gemini')?.dailyLimit.toLocaleString()}
                     </span>
@@ -971,13 +974,21 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t.admin.tokenMonitoring.overview.totalRequests}</p>
+                  <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                    <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
+                      <Zap className="w-3 h-3" />
+                      Requisições Hoje
+                    </p>
                     <p className="text-lg font-bold">{getProviderSummary('gemini')?.today.requests ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Contam para o limite</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t.admin.tokenMonitoring.overview.totalTokens}</p>
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
+                      <Hash className="w-3 h-3" />
+                      Tokens Consumidos
+                    </p>
                     <p className="text-lg font-bold">{(getProviderSummary('gemini')?.today.tokens ?? 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Só monitoramento</p>
                   </div>
                 </div>
               </CardContent>
@@ -993,14 +1004,17 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <Activity className="w-5 h-5" style={{ color: COLORS.huggingface }} />
                     HuggingFace
                   </span>
-                  <Badge variant="outline">{getProviderQuota('huggingface')?.remaining.toLocaleString()} {t.admin.tokenMonitoring.freeApis.recentRequests.toLowerCase()}</Badge>
+                  <Badge variant="outline">{getProviderQuota('huggingface')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>Open-source models (720 req/day)</CardDescription>
+                <CardDescription>Open-source models (limite: 720 requisições/dia)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.overview.dailyUsage}</span>
+                    <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5" />
+                      Requisições (conta para limite)
+                    </span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('huggingface')?.used.toLocaleString()} / {getProviderQuota('huggingface')?.dailyLimit.toLocaleString()}
                     </span>
@@ -1011,13 +1025,21 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t.admin.tokenMonitoring.overview.totalRequests}</p>
+                  <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                    <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
+                      <Zap className="w-3 h-3" />
+                      Requisições Hoje
+                    </p>
                     <p className="text-lg font-bold">{getProviderSummary('huggingface')?.today.requests ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Contam para o limite</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t.admin.tokenMonitoring.overview.totalTokens}</p>
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
+                      <Hash className="w-3 h-3" />
+                      Tokens Consumidos
+                    </p>
                     <p className="text-lg font-bold">{(getProviderSummary('huggingface')?.today.tokens ?? 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Só monitoramento</p>
                   </div>
                 </div>
               </CardContent>
@@ -1033,14 +1055,17 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <Zap className="w-5 h-5" style={{ color: COLORS.openrouter }} />
                     OpenRouter
                   </span>
-                  <Badge variant="outline">{getProviderQuota('openrouter')?.remaining.toLocaleString()} {t.admin.tokenMonitoring.freeApis.recentRequests.toLowerCase()}</Badge>
+                  <Badge variant="outline">{getProviderQuota('openrouter')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>400+ models (50 req/day free)</CardDescription>
+                <CardDescription>400+ models (limite: 50 requisições/dia grátis)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.overview.dailyUsage}</span>
+                    <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5" />
+                      Requisições (conta para limite)
+                    </span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('openrouter')?.used.toLocaleString()} / {getProviderQuota('openrouter')?.dailyLimit.toLocaleString()}
                     </span>
@@ -1051,13 +1076,21 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t.admin.tokenMonitoring.overview.totalRequests}</p>
+                  <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+                    <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
+                      <Zap className="w-3 h-3" />
+                      Requisições Hoje
+                    </p>
                     <p className="text-lg font-bold">{getProviderSummary('openrouter')?.today.requests ?? 0}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Contam para o limite</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t.admin.tokenMonitoring.overview.totalTokens}</p>
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
+                      <Hash className="w-3 h-3" />
+                      Tokens Consumidos
+                    </p>
                     <p className="text-lg font-bold">{(getProviderSummary('openrouter')?.today.tokens ?? 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Só monitoramento</p>
                   </div>
                 </div>
               </CardContent>
