@@ -93,6 +93,12 @@ export default function DatasetsTab() {
   const [editDescription, setEditDescription] = useState("");
   const [deleteDatasetId, setDeleteDatasetId] = useState<number | null>(null);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
+  
+  // Training Data Edit/Delete states
+  const [editTrainingData, setEditTrainingData] = useState<any | null>(null);
+  const [editTrainingInstruction, setEditTrainingInstruction] = useState("");
+  const [editTrainingOutput, setEditTrainingOutput] = useState("");
+  const [deleteTrainingDataId, setDeleteTrainingDataId] = useState<number | null>(null);
 
   // Fetch all datasets
   const { data: datasetsResponse, isLoading } = useQuery<{
@@ -201,6 +207,86 @@ export default function DatasetsTab() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao excluir datasets",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Training Data Edit mutation
+  const updateTrainingDataMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { instruction?: string; output?: string } }) => {
+      const formattedData = [{
+        instruction: data.instruction || editTrainingData?.formattedData?.[0]?.instruction || "",
+        output: data.output || editTrainingData?.formattedData?.[0]?.output || ""
+      }];
+      
+      const res = await apiRequest(`/api/training-data/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formattedData }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
+      
+      // Build toast message with validation results
+      let description = "Dados de treinamento atualizados com sucesso";
+      
+      if (data.validation?.corrections?.length > 0) {
+        description += `\n\n✅ Correções automáticas:\n${data.validation.corrections.join("\n")}`;
+      }
+      
+      if (data.validation?.warnings?.length > 0) {
+        description += `\n\n⚠️ Avisos:\n${data.validation.warnings.join("\n")}`;
+      }
+      
+      toast({
+        title: "Training Data atualizado",
+        description,
+      });
+      setEditTrainingData(null);
+      setEditTrainingInstruction("");
+      setEditTrainingOutput("");
+    },
+    onError: (error: any) => {
+      // Check if error has validation details
+      const errorMessage = error.message || "Erro desconhecido";
+      let description = errorMessage;
+      
+      if (error.details && Array.isArray(error.details)) {
+        description += `\n\nProblemas encontrados:\n${error.details.join("\n")}`;
+      }
+      
+      if (error.warnings && Array.isArray(error.warnings)) {
+        description += `\n\n⚠️ Avisos:\n${error.warnings.join("\n")}`;
+      }
+      
+      toast({
+        title: "Erro ao atualizar training data",
+        description,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Training Data Delete mutation
+  const deleteTrainingDataMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest(`/api/training-data/${id}`, { method: "DELETE" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
+      toast({
+        title: "Training Data excluído",
+        description: "Dados de treinamento removidos com sucesso",
+      });
+      setDeleteTrainingDataId(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao excluir training data",
         description: error.message,
         variant: "destructive",
       });
@@ -416,19 +502,51 @@ export default function DatasetsTab() {
               <Accordion type="single" collapsible className="w-full">
                 {trainingData.slice(0, 10).map((data: any, idx: number) => (
                   <AccordionItem key={data.id} value={`item-${idx}`}>
-                    <AccordionTrigger className="text-sm hover-elevate px-3 rounded-md">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <Badge variant="outline" className="text-xs shrink-0">
-                          #{data.id}
-                        </Badge>
-                        <span className="truncate flex-1 text-left">
-                          {data.formattedData?.[0]?.instruction || "Sem título"}
-                        </span>
-                        <Badge variant="secondary" className="text-xs shrink-0">
-                          {data.metadata?.namespaces?.[0] || "geral"}
-                        </Badge>
+                    <div className="flex items-center gap-2">
+                      <AccordionTrigger className="text-sm hover-elevate px-3 rounded-md flex-1">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Badge variant="outline" className="text-xs shrink-0">
+                            #{data.id}
+                          </Badge>
+                          <span className="truncate flex-1 text-left">
+                            {data.formattedData?.[0]?.instruction || "Sem título"}
+                          </span>
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            {data.metadata?.namespaces?.[0] || "geral"}
+                          </Badge>
+                        </div>
+                      </AccordionTrigger>
+                      
+                      <div className="flex items-center gap-1 shrink-0 pr-3">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7 glass border-primary/30"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditTrainingData(data);
+                            setEditTrainingInstruction(data.formattedData?.[0]?.instruction || "");
+                            setEditTrainingOutput(data.formattedData?.[0]?.output || "");
+                          }}
+                          data-testid={`button-edit-training-${data.id}`}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7 glass border-destructive/30 hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteTrainingDataId(data.id);
+                          }}
+                          data-testid={`button-delete-training-${data.id}`}
+                        >
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
                       </div>
-                    </AccordionTrigger>
+                    </div>
                     <AccordionContent className="max-w-full overflow-hidden">
                       <div className="space-y-3 pt-2">
                         <div>
@@ -868,6 +986,109 @@ export default function DatasetsTab() {
               data-testid="button-confirm-bulk-delete"
             >
               Excluir Todos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Training Data Dialog */}
+      <Dialog open={!!editTrainingData} onOpenChange={(open) => !open && setEditTrainingData(null)}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto glass-premium">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-5 h-5 text-primary" />
+              Editar Training Data
+            </DialogTitle>
+            <DialogDescription>
+              Atualize a instrução e saída para treinamento do modelo
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-training-instruction">Instruction (Pergunta/Prompt)</Label>
+              <Textarea
+                id="edit-training-instruction"
+                value={editTrainingInstruction}
+                onChange={(e) => setEditTrainingInstruction(e.target.value)}
+                placeholder="Instrução para o modelo (ex: 'Explique inteligência artificial')"
+                rows={4}
+                className="font-mono text-sm"
+                data-testid="textarea-edit-training-instruction"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-training-output">Output (Resposta Esperada)</Label>
+              <Textarea
+                id="edit-training-output"
+                value={editTrainingOutput}
+                onChange={(e) => setEditTrainingOutput(e.target.value)}
+                placeholder="Resposta que o modelo deve aprender (saída esperada)"
+                rows={8}
+                className="font-mono text-sm"
+                data-testid="textarea-edit-training-output"
+              />
+            </div>
+
+            <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
+              <p className="text-xs text-muted-foreground">
+                <Sparkles className="w-3 h-3 inline mr-1" />
+                Estes dados serão usados para treinar modelos LoRA nas GPUs gratuitas
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditTrainingData(null);
+                setEditTrainingInstruction("");
+                setEditTrainingOutput("");
+              }}
+              data-testid="button-cancel-edit-training"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (editTrainingData) {
+                  updateTrainingDataMutation.mutate({
+                    id: editTrainingData.id,
+                    data: {
+                      instruction: editTrainingInstruction,
+                      output: editTrainingOutput,
+                    },
+                  });
+                }
+              }}
+              disabled={updateTrainingDataMutation.isPending || !editTrainingInstruction.trim() || !editTrainingOutput.trim()}
+              data-testid="button-confirm-edit-training"
+            >
+              {updateTrainingDataMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Training Data Confirmation Dialog */}
+      <AlertDialog open={!!deleteTrainingDataId} onOpenChange={() => setDeleteTrainingDataId(null)}>
+        <AlertDialogContent className="glass-premium">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão de Training Data</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este dado de treinamento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTrainingDataId && deleteTrainingDataMutation.mutate(deleteTrainingDataId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-training"
+            >
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

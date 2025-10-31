@@ -2897,16 +2897,20 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // PATCH /api/training-data/:id - Update training data status (approve/reject)
+  // PATCH /api/training-data/:id - Update training data status (approve/reject) or content
   app.patch("/api/training-data/:id", async (req, res) => {
     try {
       const { z } = await import("zod");
+      const { TrainingDataValidator } = await import("./training/training-data-validator");
       
       const updateSchema = z.object({
         status: z.enum(["pending", "approved", "rejected", "trained"]).optional(),
         rating: z.number().int().min(1).max(5).optional(),
         approvedBy: z.string().optional(),
-        tenantId: z.number().int(), // Required for authorization
+        formattedData: z.array(z.object({
+          instruction: z.string(),
+          output: z.string(),
+        })).optional(),
       });
       
       const id = parseInt(req.params.id);
@@ -2920,19 +2924,43 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: validation.error.message });
       }
       
-      const { status, rating, approvedBy, tenantId } = validation.data;
+      const { status, rating, approvedBy, formattedData } = validation.data;
       
-      // Verify tenant ownership
+      // Verify item exists
       const existing = await storage.getTrainingDataCollection(id);
       if (!existing) {
         return res.status(404).json({ error: "Training data not found" });
       }
-      
-      if (existing.tenantId !== tenantId) {
-        return res.status(403).json({ error: "Access denied" });
-      }
 
       const updates: any = {};
+      const validationResult: any = {
+        warnings: [],
+        corrections: [],
+      };
+      
+      // Validate and auto-correct formattedData if provided
+      if (formattedData && formattedData.length > 0) {
+        const { instruction, output } = formattedData[0];
+        
+        // Run validation with auto-correction
+        const validationCheck = TrainingDataValidator.validate(instruction, output);
+        
+        if (!validationCheck.isValid) {
+          return res.status(400).json({ 
+            error: "Validation failed", 
+            details: validationCheck.errors,
+            warnings: validationCheck.warnings,
+          });
+        }
+
+        // Use corrected version if available
+        const finalData = validationCheck.corrected || { instruction, output };
+        updates.formattedData = [finalData];
+        
+        // Include warnings and corrections in response
+        validationResult.warnings = validationCheck.warnings;
+        validationResult.corrections = validationCheck.autoCorrections;
+      }
       
       if (status) {
         updates.status = status;
@@ -2950,7 +2978,11 @@ export function registerRoutes(app: Express): Server {
 
       const updated = await storage.updateTrainingDataCollection(id, updates);
 
-      res.json({ success: true, trainingData: updated });
+      res.json({ 
+        success: true, 
+        trainingData: updated,
+        validation: validationResult,
+      });
     } catch (error: any) {
       console.error("Error updating training data:", error);
       res.status(500).json({ error: "Failed to update training data" });
@@ -2960,33 +2992,15 @@ export function registerRoutes(app: Express): Server {
   // DELETE /api/training-data/:id - Delete training data
   app.delete("/api/training-data/:id", async (req, res) => {
     try {
-      const { z } = await import("zod");
-      
-      const deleteSchema = z.object({
-        tenantId: z.number().int(),
-      });
-      
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid ID" });
       }
-
-      // Validate tenant authorization
-      const validation = deleteSchema.safeParse(req.query);
-      if (!validation.success) {
-        return res.status(400).json({ error: "Tenant ID required" });
-      }
       
-      const { tenantId } = validation.data;
-      
-      // Verify ownership
+      // Verify item exists
       const existing = await storage.getTrainingDataCollection(id);
       if (!existing) {
         return res.status(404).json({ error: "Training data not found" });
-      }
-      
-      if (existing.tenantId !== tenantId) {
-        return res.status(403).json({ error: "Access denied" });
       }
 
       await storage.deleteTrainingDataCollection(id);
