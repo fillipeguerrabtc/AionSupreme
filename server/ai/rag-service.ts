@@ -22,7 +22,15 @@ export interface SearchResult {
     title?: string;
     source?: string;
     url?: string;
+    images?: string[];  // URLs de imagens aprovadas
   };
+  attachments?: Array<{  // Attachments multimodais
+    type: "image" | "video" | "document";
+    url: string;
+    filename: string;
+    mimeType: string;
+    size?: number;
+  }>;
 }
 
 export interface SearchOptions {
@@ -104,6 +112,20 @@ export async function semanticSearch(
 
     return filtered.slice(0, limit).map(r => {
       const doc = docMap.get(r.documentId);
+      const docMetadata = doc?.metadata as any;
+      
+      // Extrai imagens do metadata
+      const imageUrls = docMetadata?.images || [];
+      
+      // Converte URLs de imagens em attachments
+      const attachments = imageUrls.map((imgUrl: string) => ({
+        type: "image" as const,
+        url: imgUrl,
+        filename: imgUrl.split('/').pop() || 'image.jpg',
+        mimeType: 'image/jpeg',
+        size: 0
+      }));
+      
       return {
         documentId: r.documentId,
         chunkId: r.chunkId,
@@ -112,8 +134,10 @@ export async function semanticSearch(
         metadata: doc ? {
           title: doc.title,
           source: doc.source,
-          url: doc.metadata?.url as string | undefined
-        } : undefined
+          url: doc.metadata?.url as string | undefined,
+          images: imageUrls
+        } : undefined,
+        attachments: attachments.length > 0 ? attachments : undefined
       };
     });
   }
