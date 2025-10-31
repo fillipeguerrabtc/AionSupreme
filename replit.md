@@ -6,6 +6,36 @@ AION is an enterprise-grade autonomous AI system designed for robustness, flexib
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Critical Fixes (Oct 31, 2025)
+
+### HITL (Human-In-The-Loop) System - 100% Operational
+**Problem Solved:** All content now passes through mandatory human curation before entering Knowledge Base or training pipeline.
+
+**Implementation Details:**
+1. ✅ **AutoIndexer Bypass Closed** - All 3 indexing methods (indexResponse, indexWebContent, indexConversation) now route exclusively to curation_queue instead of direct KB writes.
+2. ✅ **CurationStore Enhanced** - approveAndPublish() saves approved content to both documents (status='indexed') and training_data_collection (status='approved') with namespace/quality validation.
+3. ✅ **RAG Filter Fixed** - semanticSearch() now uses storage.getEmbeddingsByTenant() which filters ONLY embeddings from documents with status='indexed'. Direct database queries eliminated.
+4. ✅ **Dataset Generator Protected** - Accepts ONLY training_data with status='approved'.
+5. ✅ **Migration Executed** - 102 legacy documents moved to curation queue, embeddings deleted, training data purged, multi-tenant compatible.
+
+**Current State:** 106 items in curation queue awaiting human review. Zero unreviewed content in production KB or training data.
+
+### System Prompt Priority Optimization
+**Problem Solved:** Questions answerable from System Prompt now consume ZERO tokens.
+
+**Implementation:** Added STEP -1 to Priority Orchestrator that checks System Prompt before KB/APIs. Questions about creator (Fillipe Guerra) now answered directly without consuming any API tokens.
+
+**New Priority Cascade:**
+```
+STEP -1: System Prompt (ZERO tokens) ← NEW!
+STEP  0: Trivial questions (date/time)
+STEP  1: Knowledge Base (RAG)
+STEP  2: GPU Pool
+STEP  3: Free APIs
+STEP  4: Web/DeepWeb
+STEP  5: OpenAI
+```
+
 ## System Architecture
 
 ### Core System Design
