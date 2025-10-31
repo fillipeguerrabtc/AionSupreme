@@ -134,6 +134,42 @@ export function registerGpuRoutes(app: Express) {
   });
 
   /**
+   * GET /api/gpu/status
+   * Dashboard status - reads from database
+   */
+  app.get("/api/gpu/status", async (req: Request, res: Response) => {
+    try {
+      const tenantId = parseInt(req.headers["x-tenant-id"] as string) || 1;
+
+      const workers = await db
+        .select()
+        .from(gpuWorkers)
+        .where(eq(gpuWorkers.tenantId, tenantId))
+        .orderBy(desc(gpuWorkers.lastHealthCheck));
+
+      const total = workers.length;
+      const healthy = workers.filter((w) => w.status === "healthy").length;
+      const unhealthy = workers.filter((w) => w.status === "unhealthy").length;
+      const offline = workers.filter((w) => w.status === "offline" || w.status === "pending").length;
+
+      const totalRequests = 0;
+      const avgLatency = 0;
+
+      res.json({
+        total,
+        healthy,
+        unhealthy,
+        offline,
+        totalRequests,
+        avgLatency,
+        workers,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * GET /api/gpu/workers
    * List all GPU workers
    */
@@ -148,6 +184,30 @@ export function registerGpuRoutes(app: Express) {
         .orderBy(desc(gpuWorkers.lastHealthCheck));
 
       res.json({ workers });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/gpu/workers/:id
+   * Get specific worker details
+   */
+  app.get("/api/gpu/workers/:id", async (req: Request, res: Response) => {
+    try {
+      const workerId = parseInt(req.params.id);
+
+      const [worker] = await db
+        .select()
+        .from(gpuWorkers)
+        .where(eq(gpuWorkers.id, workerId))
+        .limit(1);
+
+      if (!worker) {
+        return res.status(404).json({ error: "Worker not found" });
+      }
+
+      res.json(worker);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -205,5 +265,5 @@ export function registerGpuRoutes(app: Express) {
     }
   });
 
-  console.log("[GPU Routes] ✅ 6 GPU Pool routes registered successfully");
+  console.log("[GPU Routes] ✅ 8 GPU Pool routes registered successfully");
 }
