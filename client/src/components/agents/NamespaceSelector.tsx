@@ -147,10 +147,10 @@ export function NamespaceSelector({
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[400px] p-0">
+        <PopoverContent className="w-[400px] p-0" onWheel={(e) => e.stopPropagation()}>
           <Command shouldFilter={true}>
             <CommandInput placeholder="Buscar namespaces..." data-testid="input-search-namespaces" />
-            <CommandList className="max-h-[300px] overflow-y-auto">
+            <CommandList className="max-h-[300px]" style={{ overflowY: 'auto' }}>
               <CommandEmpty>
                 <div className="p-4 text-center text-sm text-muted-foreground">
                   Nenhum namespace encontrado.

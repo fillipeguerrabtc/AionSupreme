@@ -148,7 +148,12 @@ export const curationStore = {
       content: item.content,
       source: "curation_approved",
       status: "indexed",
-      metadata: {} as any,
+      metadata: {
+        namespaces: item.suggestedNamespaces,
+        tags: item.tags,
+        curationId: item.id,
+        reviewedBy,
+      } as any,
     } as any).returning();
 
     // Index approved content into Knowledge Base vector store with namespace metadata
