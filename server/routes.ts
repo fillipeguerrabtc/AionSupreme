@@ -2259,7 +2259,7 @@ export function registerRoutes(app: Express): Server {
       // Calcular estatísticas
       const approvedCount = trainingData.filter(d => d.status === 'approved').length;
       const totalExamples = trainingData.length;
-      const totalSize = compiledDatasets.reduce((sum, d) => sum + (d.size || 0), 0);
+      const totalSize = compiledDatasets.reduce((sum, d) => sum + (d.fileSize || 0), 0);
 
       res.json({ 
         datasets: compiledDatasets,
