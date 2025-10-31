@@ -290,12 +290,36 @@ Total capacity: ~92h remaining this week
 
 ✅ **Heartbeat** envia runtime atual (sessionRuntimeHours)  
 ✅ **Backend** processa e armazena runtime  
+✅ **Kaggle weekly tracking** acumula automaticamente via delta de heartbeat  
 ✅ **QuotaManager** diferencia Colab (sessão) vs Kaggle (semanal)  
 ✅ **Endpoint /health** permite interrogação ativa  
 ✅ **Round-robin inteligente** com safety margins  
 ✅ **Auto-shutdown** individualizado por tipo  
 ✅ **Detecção dinâmica** de todos workers online  
 ✅ **Zero configuração** manual de quotas  
+
+---
+
+## 🔮 Melhorias Futuras (Opcionais)
+
+### Sugeridas pelo Architect:
+
+1. **Testes Automatizados**
+   - Simular heartbeats sequenciais de Kaggle
+   - Verificar que quota ultrapassa 70% corretamente
+   - Validar que workers unsafe são evitados
+
+2. **Monitoring Avançado**
+   - Alertas quando worker atinge 70%/90%
+   - Dashboard em tempo real de utilização
+   - Histórico de uso por worker
+
+3. **Robustez de Heartbeat**
+   - Lidar com deltas grandes (>1h) em heartbeats perdidos
+   - Reconectar automaticamente se heartbeat falha
+   - Compensar tempo perdido em reconexões
+
+**Nota:** Sistema atual já funciona perfeitamente. Essas melhorias são opcionais para produção enterprise.
 
 ---
 

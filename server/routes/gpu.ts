@@ -84,13 +84,33 @@ export function registerGpuRoutes(app: Router) {
       const capabilities = (worker.capabilities as any) || {};
       const metadata = capabilities.metadata || {};
 
-      // Atualizar metadata com session runtime
+      // CRITICAL: Acumular usedHoursThisWeek para Kaggle workers
+      let usedHoursThisWeek = metadata.usedHoursThisWeek || 0;
+      
+      if (worker.provider === "kaggle") {
+        // Para Kaggle, acumular horas desde o último heartbeat
+        const lastSessionRuntime = metadata.sessionRuntimeHours || 0;
+        const currentSessionRuntime = sessionRuntimeHours || 0;
+        const deltaHours = Math.max(0, currentSessionRuntime - lastSessionRuntime);
+        
+        // Acumular apenas se houve progresso (evita acumular em duplicidade)
+        if (deltaHours > 0 && deltaHours < 1) { // Delta razoável (< 1h entre heartbeats)
+          usedHoursThisWeek += deltaHours;
+          console.log(
+            `[GPU Heartbeat] Kaggle worker ${workerId}: +${deltaHours.toFixed(2)}h ` +
+            `(total week: ${usedHoursThisWeek.toFixed(2)}h)`
+          );
+        }
+      }
+
+      // Atualizar metadata com session runtime + weekly usage
       const updatedCapabilities = {
         ...capabilities,
         metadata: {
           ...metadata,
           sessionRuntimeHours: sessionRuntimeHours || 0,
           maxSessionHours: maxSessionHours || 12,
+          usedHoursThisWeek: worker.provider === "kaggle" ? usedHoursThisWeek : (metadata.usedHoursThisWeek || 0),
           lastHeartbeat: new Date().toISOString(),
         },
       };
