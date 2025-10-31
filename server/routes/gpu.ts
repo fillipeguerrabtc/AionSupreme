@@ -107,5 +107,41 @@ export function registerGpuRoutes(app: Router) {
     }
   });
 
+  /**
+   * POST /api/gpu/quota/record
+   * Record worker usage after job completion
+   * Call this after every inference/training job!
+   */
+  router.post("/quota/record", async (req: Request, res: Response) => {
+    try {
+      const { workerId, durationMinutes } = req.body;
+
+      if (!workerId || !durationMinutes) {
+        return res.status(400).json({ error: "workerId and durationMinutes required" });
+      }
+
+      await quotaManager.recordUsage(parseInt(workerId), parseFloat(durationMinutes));
+
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/gpu/quota/reset
+   * Manually reset weekly quotas (runs automatically every Monday)
+   */
+  router.post("/quota/reset", async (req: Request, res: Response) => {
+    try {
+      const tenantId = parseInt(req.headers["x-tenant-id"] as string) || 1;
+      await quotaManager.resetWeeklyQuotas(tenantId);
+
+      res.json({ success: true, message: "Weekly quotas reset" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.use("/api/gpu", router);
 }

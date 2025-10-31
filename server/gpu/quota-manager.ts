@@ -38,23 +38,28 @@ export class QuotaManager {
   async getAllWorkerQuotas(tenantId: number): Promise<WorkerQuota[]> {
     const workers = await db
       .select()
-      .from(gpuWorkers)
-      .where(eq(gpuWorkers.tenantId, tenantId));
+      .from(gpuWorkers);
+    
+    // Filter by tenantId if exists (old workers might not have it)
+    const tenantWorkers = workers.filter(w => !w.tenantId || w.tenantId === tenantId);
 
     const quotas: WorkerQuota[] = [];
 
-    for (const worker of workers) {
-      const metadata = worker.metadata as any || {};
-      const quotaHoursPerWeek = metadata.quotaHoursPerWeek || this.getDefaultQuota(worker.workerType);
+    for (const worker of tenantWorkers) {
+      const capabilities = worker.capabilities as any || {};
+      const metadata = capabilities.metadata || {};
+      
+      // Initialize metadata if missing
+      const quotaHoursPerWeek = metadata.quotaHoursPerWeek || this.getDefaultQuota(worker.provider);
       const usedHoursThisWeek = metadata.usedHoursThisWeek || 0;
       const availableHours = quotaHoursPerWeek - usedHoursThisWeek;
-      const utilizationPercentage = usedHoursThisWeek / quotaHoursPerWeek;
+      const utilizationPercentage = quotaHoursPerWeek > 0 ? usedHoursThisWeek / quotaHoursPerWeek : 0;
       const isSafe = utilizationPercentage < QuotaManager.SAFETY_MARGIN;
 
       quotas.push({
         workerId: worker.id,
-        workerType: worker.workerType as any,
-        accountEmail: metadata.accountEmail || "unknown",
+        workerType: worker.provider as any,
+        accountEmail: worker.accountId || "unknown",
         quotaHoursPerWeek,
         usedHoursThisWeek,
         availableHours,
@@ -97,6 +102,7 @@ export class QuotaManager {
 
   /**
    * Record worker usage (call after job completion)
+   * CRITICAL: This MUST be called after every inference/training job!
    */
   async recordUsage(workerId: number, durationMinutes: number): Promise<void> {
     const [worker] = await db
@@ -110,26 +116,39 @@ export class QuotaManager {
       return;
     }
 
-    const metadata = (worker.metadata as any) || {};
+    const capabilities = (worker.capabilities as any) || {};
+    const metadata = capabilities.metadata || {};
     const usedHoursThisWeek = (metadata.usedHoursThisWeek || 0) + durationMinutes / 60;
+
+    // Update capabilities with new usage
+    const updatedCapabilities = {
+      ...capabilities,
+      metadata: {
+        ...metadata,
+        usedHoursThisWeek,
+        lastUsageRecorded: new Date().toISOString(),
+      },
+    };
 
     await db
       .update(gpuWorkers)
       .set({
-        metadata: {
-          ...metadata,
-          usedHoursThisWeek,
-        },
+        capabilities: updatedCapabilities,
         updatedAt: new Date(),
       })
       .where(eq(gpuWorkers.id, workerId));
 
-    const quotaHoursPerWeek = metadata.quotaHoursPerWeek || this.getDefaultQuota(worker.workerType);
+    const quotaHoursPerWeek = metadata.quotaHoursPerWeek || this.getDefaultQuota(worker.provider);
     const utilization = (usedHoursThisWeek / quotaHoursPerWeek) * 100;
+
+    console.log(
+      `[QuotaManager] 📊 Worker ${workerId} usage recorded: +${durationMinutes}min ` +
+      `(total: ${usedHoursThisWeek.toFixed(2)}h / ${quotaHoursPerWeek}h = ${utilization.toFixed(1)}%)`
+    );
 
     if (utilization > 70) {
       console.warn(
-        `[QuotaManager] ⚠️  Worker ${workerId} (${worker.workerType}) at ${utilization.toFixed(1)}% quota! ` +
+        `[QuotaManager] ⚠️  Worker ${workerId} (${worker.provider}) at ${utilization.toFixed(1)}% quota! ` +
         `Approaching safety limit.`
       );
     }
@@ -141,25 +160,34 @@ export class QuotaManager {
   async resetWeeklyQuotas(tenantId: number): Promise<void> {
     const workers = await db
       .select()
-      .from(gpuWorkers)
-      .where(eq(gpuWorkers.tenantId, tenantId));
+      .from(gpuWorkers);
 
-    for (const worker of workers) {
-      const metadata = (worker.metadata as any) || {};
+    // Filter by tenantId if exists
+    const tenantWorkers = workers.filter(w => !w.tenantId || w.tenantId === tenantId);
+
+    for (const worker of tenantWorkers) {
+      const capabilities = (worker.capabilities as any) || {};
+      const metadata = capabilities.metadata || {};
+      
+      const updatedCapabilities = {
+        ...capabilities,
+        metadata: {
+          ...metadata,
+          usedHoursThisWeek: 0,
+          lastQuotaReset: new Date().toISOString(),
+        },
+      };
       
       await db
         .update(gpuWorkers)
         .set({
-          metadata: {
-            ...metadata,
-            usedHoursThisWeek: 0,
-          },
+          capabilities: updatedCapabilities,
           updatedAt: new Date(),
         })
         .where(eq(gpuWorkers.id, worker.id));
     }
 
-    console.log(`[QuotaManager] 🔄 Weekly quotas reset for ${workers.length} workers`);
+    console.log(`[QuotaManager] 🔄 Weekly quotas reset for ${tenantWorkers.length} workers`);
   }
 
   /**

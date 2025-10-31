@@ -184,6 +184,28 @@ Ligue mais workers apenas quando necessário
   Pool Utilization: 56%
 ```
 
+### Registrar Uso de Quota (CRÍTICO!)
+
+**⚠️ IMPORTANTE:** Após usar um worker para inferência/treino, você DEVE registrar o uso:
+
+```bash
+# Registrar uso após job (exemplo: worker 1 rodou por 15 minutos)
+curl -X POST https://seu-aion.replit.app/api/gpu/quota/record \
+  -H "Content-Type: application/json" \
+  -d '{"workerId": 1, "durationMinutes": 15}'
+
+# Verificar status de quota
+curl https://seu-aion.replit.app/api/gpu/quota/status
+
+# Reset manual (normalmente automático às segundas)
+curl -X POST https://seu-aion.replit.app/api/gpu/quota/reset
+```
+
+**Por que isso é crítico:**
+- O sistema SÓ consegue rastrear uso se você registrar
+- Sem registro, todos workers ficam em 0% (ignora safety margin!)
+- Com registro correto, rotação automática funciona perfeitamente
+
 ---
 
 ## 🎮 Uso Avançado
