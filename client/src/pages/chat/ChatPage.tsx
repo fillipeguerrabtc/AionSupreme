@@ -13,12 +13,20 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { VideoPreview } from "@/components/VideoPreview";
 import { ImagePreview } from "@/components/ImagePreview";
+import { AttachmentsRenderer } from "@/components/AttachmentsRenderer";
 
 interface Message {
   id?: number;
   role: "user" | "assistant";
   content: string;
   conversationId?: number;
+  attachments?: Array<{
+    type: "image" | "video" | "audio" | "document";
+    url: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+  }>;
 }
 
 export default function ChatPage() {
@@ -57,6 +65,7 @@ export default function ChatPage() {
               role: m.role,
               content: m.content,
               conversationId: m.conversationId,
+              attachments: m.attachments,
             })));
             return;
           }
@@ -105,6 +114,7 @@ export default function ChatPage() {
         role: m.role,
         content: m.content,
         conversationId: m.conversationId,
+        attachments: m.attachments,
       })));
       
       if (isAuthenticated) {
@@ -544,6 +554,9 @@ export default function ChatPage() {
               >
                 <div data-testid={`text-message-${idx}`}>
                   {renderMessageContent(msg.content)}
+                  {msg.attachments && msg.attachments.length > 0 && (
+                    <AttachmentsRenderer attachments={msg.attachments} />
+                  )}
                 </div>
               </div>
               
