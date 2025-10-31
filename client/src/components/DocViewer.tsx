@@ -1,14 +1,15 @@
 import { FileText, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { HTMLAttributes } from "react";
 
-interface DocViewerProps {
+interface DocViewerProps extends HTMLAttributes<HTMLDivElement> {
   url: string;
   filename?: string;
   mimeType: string;
   size?: number;
 }
 
-export function DocViewer({ url, filename = "document", mimeType, size }: DocViewerProps) {
+export function DocViewer({ url, filename = "document", mimeType, size, ...props }: DocViewerProps) {
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -34,7 +35,7 @@ export function DocViewer({ url, filename = "document", mimeType, size }: DocVie
   const previewUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
   
   return (
-    <div className="glass-premium rounded-lg p-4 border border-primary/20 hover-elevate transition-all">
+    <div className="glass-premium rounded-lg p-4 border border-primary/20 hover-elevate transition-all" {...props}>
       <div className="flex items-start gap-3">
         <div className="glass p-3 rounded-lg">
           <Icon className={`w-6 h-6 ${color}`} />

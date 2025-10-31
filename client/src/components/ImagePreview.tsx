@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
+import type { HTMLAttributes, SyntheticEvent } from "react";
 
-interface ImagePreviewProps {
+interface ImagePreviewProps extends HTMLAttributes<HTMLDivElement> {
   url: string;
   title?: string;
 }
 
-export function ImagePreview({ url, title }: ImagePreviewProps) {
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+export function ImagePreview({ url, title, ...props }: ImagePreviewProps) {
+  const handleImageError = (e: SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.style.display = 'none';
   };
 
@@ -41,7 +42,7 @@ export function ImagePreview({ url, title }: ImagePreviewProps) {
   };
 
   return (
-    <div className="my-4 rounded-lg overflow-hidden border border-border glass group relative" data-testid="image-preview">
+    <div className="my-4 rounded-lg overflow-hidden border border-border glass group relative" {...props}>
       <img 
         src={url} 
         alt={title || "Image from search"}

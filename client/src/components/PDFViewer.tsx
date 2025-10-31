@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { HTMLAttributes } from "react";
 import { FileText, Download, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,13 +10,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-interface PDFViewerProps {
+interface PDFViewerProps extends HTMLAttributes<HTMLDivElement> {
   url: string;
   filename?: string;
   size?: number;
 }
 
-export function PDFViewer({ url, filename = "document.pdf", size }: PDFViewerProps) {
+export function PDFViewer({ url, filename = "document.pdf", size, ...props }: PDFViewerProps) {
   const [isOpen, setIsOpen] = useState(false);
   
   const formatSize = (bytes: number) => {
@@ -25,7 +26,7 @@ export function PDFViewer({ url, filename = "document.pdf", size }: PDFViewerPro
   };
   
   return (
-    <div className="glass-premium rounded-lg p-4 border border-primary/20 hover-elevate transition-all">
+    <div className="glass-premium rounded-lg p-4 border border-primary/20 hover-elevate transition-all" {...props}>
       <div className="flex items-start gap-3">
         <div className="glass p-3 rounded-lg">
           <FileText className="w-6 h-6 text-primary" />

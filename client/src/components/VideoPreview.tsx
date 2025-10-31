@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Download, ExternalLink } from "lucide-react";
+import type { HTMLAttributes } from "react";
 
-interface VideoPreviewProps {
+interface VideoPreviewProps extends HTMLAttributes<HTMLDivElement> {
   url: string;
 }
 
-export function VideoPreview({ url }: VideoPreviewProps) {
+export function VideoPreview({ url, ...props }: VideoPreviewProps) {
   // Extract video ID and platform
   const getEmbedUrl = (videoUrl: string): { embedUrl: string; platform: string } | null => {
     // YouTube patterns
@@ -104,7 +105,7 @@ export function VideoPreview({ url }: VideoPreviewProps) {
   // Direct video file
   if (videoInfo.platform === "Direct") {
     return (
-      <div className="my-4 rounded-lg overflow-hidden border border-border glass group relative" data-testid="video-preview-direct">
+      <div className="my-4 rounded-lg overflow-hidden border border-border glass group relative" {...props}>
         <video
           controls
           className="w-full max-h-96"
@@ -131,7 +132,7 @@ export function VideoPreview({ url }: VideoPreviewProps) {
 
   // Embedded iframe for YouTube/Vimeo/Dailymotion
   return (
-    <div className="my-4 rounded-lg overflow-hidden border border-border glass group relative" data-testid={`video-preview-${videoInfo.platform.toLowerCase()}`}>
+    <div className="my-4 rounded-lg overflow-hidden border border-border glass group relative" {...props}>
       <div className="aspect-video w-full">
         <iframe
           src={videoInfo.embedUrl}
