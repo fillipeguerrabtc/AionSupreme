@@ -77,19 +77,25 @@ export class DeepCrawler {
   }
 
   /**
-   * Inicia o crawling profundo
+   * Inicia o crawling profundo COM LOGS DETALHADOS
    */
   async crawl(): Promise<CrawledPage[]> {
-    console.log(`[DeepCrawler] 🚀 Iniciando crawling: ${this.baseUrl.href}`);
-    console.log(`[DeepCrawler] ⚙️ Configurações:`, {
-      maxDepth: this.options.maxDepth,
-      maxPages: this.options.maxPages,
-      includeImages: this.options.includeImages,
-      generateDescriptions: this.options.generateImageDescriptions
-    });
+    const startTime = Date.now();
+    
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`[DeepCrawler] 🚀 INICIANDO DEEP CRAWL`);
+    console.log(`${'='.repeat(80)}`);
+    console.log(`  URL Base: ${this.baseUrl.href}`);
+    console.log(`  Configurações:`);
+    console.log(`    • maxDepth: ${this.options.maxDepth} níveis`);
+    console.log(`    • maxPages: ${this.options.maxPages} páginas`);
+    console.log(`    • Processar imagens: ${this.options.includeImages ? 'SIM' : 'NÃO'}`);
+    console.log(`    • Descrições Vision API: ${this.options.generateImageDescriptions ? 'SIM' : 'NÃO'}`);
+    console.log(`${'='.repeat(80)}\n`);
 
     // Adiciona URL inicial à fila
     this.queue.push({ url: this.normalizeUrl(this.baseUrl.href), depth: 0 });
+    const depthStats: Record<number, number> = {};
 
     while (this.queue.length > 0 && this.pages.length < this.options.maxPages) {
       const { url, depth } = this.queue.shift()!;
@@ -99,11 +105,16 @@ export class DeepCrawler {
       
       // Pula se excedeu profundidade
       if (depth > this.options.maxDepth) {
-        console.log(`[DeepCrawler] ⏭️ Profundidade máxima atingida: ${url}`);
+        console.log(`[DeepCrawler] ⏭️ LIMITE DE PROFUNDIDADE (${depth} > ${this.options.maxDepth}): ${url}`);
         continue;
       }
 
-      console.log(`[DeepCrawler] 📄 [${this.pages.length + 1}/${this.options.maxPages}] Depth ${depth}: ${url}`);
+      depthStats[depth] = (depthStats[depth] || 0) + 1;
+
+      console.log(`\n[${this.pages.length + 1}/${this.options.maxPages}] 📄 CRAWLING`);
+      console.log(`  URL: ${url}`);
+      console.log(`  Profundidade: ${depth}/${this.options.maxDepth}`);
+      console.log(`  Fila: ${this.queue.length} URLs pendentes`);
 
       try {
         const page = await this.crawlPage(url, depth);
@@ -112,12 +123,25 @@ export class DeepCrawler {
           this.pages.push(page);
           this.visited.add(url);
 
+          console.log(`  ✅ SUCESSO:`);
+          console.log(`     • ${page.metadata.wordCount.toLocaleString()} palavras`);
+          console.log(`     • ${page.images.length} imagens`);
+          console.log(`     • ${page.links.length} links descobertos`);
+
           // Adiciona links descobertos à fila
+          let newLinksAdded = 0;
           for (const link of page.links) {
             if (!this.visited.has(link) && !this.queue.find(q => q.url === link)) {
               this.queue.push({ url: link, depth: depth + 1 });
+              newLinksAdded++;
             }
           }
+          
+          if (newLinksAdded > 0) {
+            console.log(`     • ${newLinksAdded} novos links adicionados à fila`);
+          }
+        } else {
+          console.log(`  ❌ FALHA ao extrair conteúdo`);
         }
 
         // Rate limiting: aguarda antes do próximo request
@@ -126,13 +150,34 @@ export class DeepCrawler {
         }
 
       } catch (error: any) {
-        console.error(`[DeepCrawler] ❌ Erro ao crawlear ${url}:`, error.message);
+        console.error(`  ❌ ERRO: ${error.message}`);
       }
     }
 
-    console.log(`[DeepCrawler] ✅ Crawling concluído!`);
-    console.log(`[DeepCrawler] 📊 Total de páginas: ${this.pages.length}`);
-    console.log(`[DeepCrawler] 🖼️ Total de imagens: ${this.pages.reduce((sum, p) => sum + p.images.length, 0)}`);
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    const totalImages = this.pages.reduce((sum, p) => sum + p.images.length, 0);
+    const totalWords = this.pages.reduce((sum, p) => sum + p.metadata.wordCount, 0);
+
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`[DeepCrawler] ✅ CRAWL CONCLUÍDO EM ${duration}s`);
+    console.log(`${'='.repeat(80)}`);
+    console.log(`  Estatísticas Finais:`);
+    console.log(`    • Páginas processadas: ${this.pages.length}/${this.options.maxPages}`);
+    console.log(`    • URLs visitadas: ${this.visited.size}`);
+    console.log(`    • URLs não processadas (fila): ${this.queue.length}`);
+    console.log(`    • Total de palavras: ${totalWords.toLocaleString()}`);
+    console.log(`    • Total de imagens: ${totalImages}`);
+    console.log(`\n  Distribuição por Profundidade:`);
+    
+    Object.keys(depthStats).sort((a, b) => parseInt(a) - parseInt(b)).forEach(d => {
+      const depth = parseInt(d);
+      const count = depthStats[depth];
+      const percentage = ((count / this.pages.length) * 100).toFixed(1);
+      const bar = '█'.repeat(Math.ceil((count / this.pages.length) * 30));
+      console.log(`    Nível ${depth}: ${count} páginas (${percentage}%) ${bar}`);
+    });
+    
+    console.log(`${'='.repeat(80)}\n`);
 
     return this.pages;
   }

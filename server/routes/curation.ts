@@ -167,21 +167,27 @@ export function registerCurationRoutes(app: Express) {
         docId: item.id,
       });
 
-      // LIMPEZA: Remove imagens órfãs após rejeição
+      // LIMPEZA: Remove APENAS imagens REJEITADAS (mantém imagens aprovadas)
       try {
         const imageProcessor = new ImageProcessor();
-        const allDocs = await db.query.documents.findMany({
-          where: (doc, { eq }) => eq(doc.tenantId, tenantId)
+        
+        // Busca TODAS as imagens em documentos APROVADOS (status='indexed')
+        const approvedDocs = await db.query.documents.findMany({
+          where: (doc, { eq, and }) => and(
+            eq(doc.tenantId, tenantId),
+            eq(doc.status, 'indexed')
+          )
         });
-        const usedImages = allDocs
+        
+        const usedImages = approvedDocs
           .map(doc => (doc.metadata as any)?.images || [])
           .flat()
           .filter(Boolean);
         
         await imageProcessor.cleanup(usedImages);
-        console.log(`[Curation] Limpeza de imagens órfãs concluída após rejeição`);
+        console.log(`[Curation] ✅ Limpeza: mantém ${usedImages.length} imagens aprovadas, remove órfãs`);
       } catch (cleanupError: any) {
-        console.warn(`[Curation] Aviso ao limpar imagens:`, cleanupError.message);
+        console.warn(`[Curation] ⚠️ Aviso ao limpar imagens:`, cleanupError.message);
       }
 
       res.json(item);
@@ -340,21 +346,26 @@ export function registerCurationRoutes(app: Express) {
         }
       }
 
-      // LIMPEZA: Remove imagens órfãs após bulk rejection
+      // LIMPEZA: Remove APENAS imagens REJEITADAS (mantém aprovadas)
       try {
         const imageProcessor = new ImageProcessor();
-        const allDocs = await db.query.documents.findMany({
-          where: (doc, { eq }) => eq(doc.tenantId, tenantId)
+        
+        const approvedDocs = await db.query.documents.findMany({
+          where: (doc, { eq, and }) => and(
+            eq(doc.tenantId, tenantId),
+            eq(doc.status, 'indexed')
+          )
         });
-        const usedImages = allDocs
+        
+        const usedImages = approvedDocs
           .map(doc => (doc.metadata as any)?.images || [])
           .flat()
           .filter(Boolean);
         
         await imageProcessor.cleanup(usedImages);
-        console.log(`[Curation] Limpeza de ${results.rejected} imagens órfãs após bulk reject`);
+        console.log(`[Curation] ✅ Limpeza: mantém ${usedImages.length} imagens aprovadas, remove ${results.rejected} rejeitadas`);
       } catch (cleanupError: any) {
-        console.warn(`[Curation] Aviso ao limpar imagens:`, cleanupError.message);
+        console.warn(`[Curation] ⚠️ Aviso ao limpar imagens:`, cleanupError.message);
       }
 
       res.json(results);
@@ -403,21 +414,26 @@ export function registerCurationRoutes(app: Express) {
         }
       }
 
-      // LIMPEZA: Remove TODAS as imagens órfãs após reject-all
+      // LIMPEZA: Remove APENAS imagens REJEITADAS (mantém aprovadas)
       try {
         const imageProcessor = new ImageProcessor();
-        const allDocs = await db.query.documents.findMany({
-          where: (doc, { eq }) => eq(doc.tenantId, tenantId)
+        
+        const approvedDocs = await db.query.documents.findMany({
+          where: (doc, { eq, and }) => and(
+            eq(doc.tenantId, tenantId),
+            eq(doc.status, 'indexed')
+          )
         });
-        const usedImages = allDocs
+        
+        const usedImages = approvedDocs
           .map(doc => (doc.metadata as any)?.images || [])
           .flat()
           .filter(Boolean);
         
         await imageProcessor.cleanup(usedImages);
-        console.log(`[Curation] Limpeza de TODAS as imagens órfãs após reject-all (${results.rejected} itens)`);
+        console.log(`[Curation] ✅ Limpeza: mantém ${usedImages.length} imagens aprovadas, remove todas rejeitadas (${results.rejected} itens)`);
       } catch (cleanupError: any) {
-        console.warn(`[Curation] Aviso ao limpar imagens:`, cleanupError.message);
+        console.warn(`[Curation] ⚠️ Aviso ao limpar imagens:`, cleanupError.message);
       }
 
       res.json(results);
