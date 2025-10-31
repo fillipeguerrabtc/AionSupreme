@@ -211,14 +211,16 @@ export const curationStore = {
     }
 
     // Update curation queue item status in database
+    const now = new Date();
     const [updatedItem] = await db
       .update(curationQueueTable)
       .set({
         status: "approved",
         reviewedBy,
-        reviewedAt: new Date(),
+        reviewedAt: now,
+        statusChangedAt: now, // Track when status changed for 5-year retention
         publishedId: newDoc.id.toString(),
-        updatedAt: new Date(),
+        updatedAt: now,
       })
       .where(
         and(
@@ -242,14 +244,16 @@ export const curationStore = {
     reviewedBy: string,
     note?: string
   ): Promise<CurationItem | null> {
+    const now = new Date();
     const [updated] = await db
       .update(curationQueueTable)
       .set({
         status: "rejected",
         reviewedBy,
-        reviewedAt: new Date(),
+        reviewedAt: now,
+        statusChangedAt: now, // Track when status changed for 5-year retention
         note: note || null,
-        updatedAt: new Date(),
+        updatedAt: now,
       })
       .where(
         and(
@@ -261,6 +265,40 @@ export const curationStore = {
       .returning();
 
     return updated || null;
+  },
+
+  /**
+   * Lista histórico completo (aprovados + rejeitados) com retenção de 5 anos
+   * Filtra automaticamente itens com mais de 5 anos
+   */
+  async listHistory(
+    tenantId: number,
+    filters?: { status?: "approved" | "rejected"; limit?: number }
+  ): Promise<CurationItem[]> {
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+
+    const conditions = [
+      eq(curationQueueTable.tenantId, tenantId),
+      sql`${curationQueueTable.status} IN ('approved', 'rejected')`,
+      sql`${curationQueueTable.statusChangedAt} >= ${fiveYearsAgo.toISOString()}`,
+    ];
+
+    if (filters?.status) {
+      conditions.push(eq(curationQueueTable.status, filters.status));
+    }
+
+    let items = await db
+      .select()
+      .from(curationQueueTable)
+      .where(and(...conditions))
+      .orderBy(desc(curationQueueTable.statusChangedAt));
+
+    if (filters?.limit) {
+      items = items.slice(0, filters.limit);
+    }
+
+    return items;
   },
 
   /**

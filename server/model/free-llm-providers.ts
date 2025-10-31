@@ -19,8 +19,9 @@ import OpenAI from "openai";
 import type { ChatMessage, ChatCompletionResult } from "./llm-client";
 
 interface ProviderUsage {
-  daily: number;
-  limit: number;
+  requests: number;     // Número de requisições (para limites)
+  tokens: number;       // Tokens consumidos (para monitoramento)
+  requestLimit: number; // Limite de requisições por dia
   lastReset: Date;
 }
 
@@ -30,12 +31,12 @@ export class FreeLLMProviders {
   private gemini: GoogleGenerativeAI | null = null;
   private hf: HfInference | null = null;
 
-  // Limites diários gratuitos
+  // Limites diários gratuitos (baseados em REQUISIÇÕES, não tokens)
   private usage = {
-    openrouter: { daily: 0, limit: 50, lastReset: new Date() } as ProviderUsage, // 50 req/dia grátis (1000 com $10+ créditos)
-    groq: { daily: 0, limit: 14400, lastReset: new Date() } as ProviderUsage,
-    gemini: { daily: 0, limit: 1500, lastReset: new Date() } as ProviderUsage,
-    hf: { daily: 0, limit: 720, lastReset: new Date() } as ProviderUsage,
+    openrouter: { requests: 0, tokens: 0, requestLimit: 50, lastReset: new Date() } as ProviderUsage, // 50 req/dia grátis
+    groq: { requests: 0, tokens: 0, requestLimit: 14400, lastReset: new Date() } as ProviderUsage,    // 14.4k req/dia
+    gemini: { requests: 0, tokens: 0, requestLimit: 1500, lastReset: new Date() } as ProviderUsage,   // 1.5k req/dia
+    hf: { requests: 0, tokens: 0, requestLimit: 720, lastReset: new Date() } as ProviderUsage,        // 720 req/dia
   };
 
   constructor() {
@@ -118,30 +119,36 @@ export class FreeLLMProviders {
       const hoursSinceReset = (now.getTime() - usage.lastReset.getTime()) / (1000 * 60 * 60);
       
       if (hoursSinceReset >= 24) {
-        usage.daily = 0;
+        usage.requests = 0;
+        usage.tokens = 0;
         usage.lastReset = now;
-        console.log(`[Free LLM] Reset ${provider} usage counter`);
+        console.log(`[Free LLM] Reset ${provider} usage counters (requests + tokens)`);
       }
     }
   }
 
   /**
-   * Verifica se provider tem créditos disponíveis
+   * Verifica se provider tem créditos disponíveis (baseado em REQUISIÇÕES)
    */
   private hasCredits(provider: keyof typeof this.usage): boolean {
     const usage = this.usage[provider];
-    return usage.daily < usage.limit;
+    return usage.requests < usage.requestLimit;
   }
 
   /**
-   * Incrementa contador de uso
+   * Incrementa contadores de uso (requisições + tokens)
    */
-  private incrementUsage(provider: keyof typeof this.usage): void {
-    this.usage[provider].daily++;
+  private incrementUsage(provider: keyof typeof this.usage, tokens: number = 0): void {
+    this.usage[provider].requests++;  // Sempre incrementa requisições
+    this.usage[provider].tokens += tokens;  // Adiciona tokens consumidos
   }
 
   /**
    * Retorna status de todos os providers
+   * 
+   * Retorna ambos formatos para compatibilidade retroativa:
+   * - `used`/`limit`: campos legados (requisições)
+   * - `requests`/`tokens`/`requestLimit`: campos novos (métricas separadas)
    */
   getStatus() {
     this.resetDailyUsageIfNeeded();
@@ -149,27 +156,39 @@ export class FreeLLMProviders {
     return {
       openrouter: {
         available: this.openrouter !== null && this.hasCredits('openrouter'),
-        used: this.usage.openrouter.daily,
-        limit: this.usage.openrouter.limit,
-        remaining: this.usage.openrouter.limit - this.usage.openrouter.daily,
+        used: this.usage.openrouter.requests,        // Campo legado (alias para requests)
+        limit: this.usage.openrouter.requestLimit,   // Campo legado (alias para requestLimit)
+        requests: this.usage.openrouter.requests,    // Novo: contador de requisições
+        tokens: this.usage.openrouter.tokens,        // Novo: contador de tokens
+        requestLimit: this.usage.openrouter.requestLimit,
+        remaining: this.usage.openrouter.requestLimit - this.usage.openrouter.requests,
       },
       groq: {
         available: this.groq !== null && this.hasCredits('groq'),
-        used: this.usage.groq.daily,
-        limit: this.usage.groq.limit,
-        remaining: this.usage.groq.limit - this.usage.groq.daily,
+        used: this.usage.groq.requests,              // Campo legado (alias para requests)
+        limit: this.usage.groq.requestLimit,         // Campo legado (alias para requestLimit)
+        requests: this.usage.groq.requests,          // Novo: contador de requisições
+        tokens: this.usage.groq.tokens,              // Novo: contador de tokens
+        requestLimit: this.usage.groq.requestLimit,
+        remaining: this.usage.groq.requestLimit - this.usage.groq.requests,
       },
       gemini: {
         available: this.gemini !== null && this.hasCredits('gemini'),
-        used: this.usage.gemini.daily,
-        limit: this.usage.gemini.limit,
-        remaining: this.usage.gemini.limit - this.usage.gemini.daily,
+        used: this.usage.gemini.requests,            // Campo legado (alias para requests)
+        limit: this.usage.gemini.requestLimit,       // Campo legado (alias para requestLimit)
+        requests: this.usage.gemini.requests,        // Novo: contador de requisições
+        tokens: this.usage.gemini.tokens,            // Novo: contador de tokens
+        requestLimit: this.usage.gemini.requestLimit,
+        remaining: this.usage.gemini.requestLimit - this.usage.gemini.requests,
       },
       hf: {
         available: this.hf !== null && this.hasCredits('hf'),
-        used: this.usage.hf.daily,
-        limit: this.usage.hf.limit,
-        remaining: this.usage.hf.limit - this.usage.hf.daily,
+        used: this.usage.hf.requests,                // Campo legado (alias para requests)
+        limit: this.usage.hf.requestLimit,           // Campo legado (alias para requestLimit)
+        requests: this.usage.hf.requests,            // Novo: contador de requisições
+        tokens: this.usage.hf.tokens,                // Novo: contador de tokens
+        requestLimit: this.usage.hf.requestLimit,
+        remaining: this.usage.hf.requestLimit - this.usage.hf.requests,
       },
     };
   }
@@ -195,10 +214,10 @@ export class FreeLLMProviders {
       max_tokens: 2048,
     });
 
-    this.incrementUsage('openrouter');
-
     const choice = completion.choices[0];
     const usage = completion.usage!;
+
+    this.incrementUsage('openrouter', usage.total_tokens);
 
     return {
       content: choice.message.content || "",
@@ -233,10 +252,10 @@ export class FreeLLMProviders {
       max_tokens: 2048,
     });
 
-    this.incrementUsage('groq');
-
     const choice = completion.choices[0];
     const usage = completion.usage!;
+
+    this.incrementUsage('groq', usage.total_tokens);
 
     return {
       content: choice.message.content || "",
@@ -324,16 +343,17 @@ export class FreeLLMProviders {
       temperature: 0.7,
     });
 
-    this.incrementUsage('hf');
-
     const choice = response.choices[0];
+    const totalTokens = response.usage?.total_tokens || 0;
+    
+    this.incrementUsage('hf', totalTokens);
     
     return {
       content: choice.message.content || "",
       usage: {
         promptTokens: response.usage?.prompt_tokens || 0,
         completionTokens: response.usage?.completion_tokens || 0,
-        totalTokens: response.usage?.total_tokens || 0,
+        totalTokens: totalTokens,
       },
       finishReason: choice.finish_reason || "stop",
       latencyMs: Date.now() - startTime,

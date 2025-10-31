@@ -374,6 +374,23 @@ export function registerCurationRoutes(app: Express) {
   });
 
   /**
+   * GET /api/curation/history
+   * Lista histórico completo (aprovados + rejeitados) com retenção de 5 anos
+   */
+  app.get("/api/curation/history", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
+      const status = req.query.status as "approved" | "rejected" | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+
+      const items = await curationStore.listHistory(tenantId, { status, limit });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * DELETE /api/curation/:id
    * Remove item da fila (apenas para testes)
    */

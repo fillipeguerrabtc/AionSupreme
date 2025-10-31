@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Check, X, Edit, Trash2, CheckSquare } from "lucide-react";
+import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +80,18 @@ export default function CurationQueuePage() {
     },
   });
 
+  // Fetch history items (approved + rejected, 5-year retention)
+  const { data: historyItems, isLoading: historyLoading } = useQuery<CurationItem[]>({
+    queryKey: ["/api/curation/history"],
+    queryFn: async () => {
+      const res = await fetch("/api/curation/history", {
+        headers: { "x-tenant-id": "1" },
+      });
+      if (!res.ok) throw new Error("Falha ao carregar histórico");
+      return res.json();
+    },
+  });
+
   // Edit mutation
   const editMutation = useMutation({
     mutationFn: async (data: { id: string; title: string; tags: string[]; suggestedNamespaces: string[]; note: string }) => {
@@ -112,6 +125,7 @@ export default function CurationQueuePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
       toast({ title: "Item aprovado e publicado com sucesso!" });
       setApproveDialogOpen(false);
       setSelectedItem(null);
@@ -133,6 +147,7 @@ export default function CurationQueuePage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", 1] });
       toast({ 
         title: `${data.approved} itens aprovados com sucesso!`,
@@ -158,6 +173,7 @@ export default function CurationQueuePage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", 1] });
       toast({ 
         title: `${data.approved} itens aprovados com sucesso!`,
@@ -182,6 +198,7 @@ export default function CurationQueuePage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
       toast({ 
         title: `${data.rejected} itens rejeitados com sucesso!`,
         description: data.failed > 0 ? `${data.failed} itens falharam` : undefined
@@ -207,6 +224,7 @@ export default function CurationQueuePage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
       toast({ 
         title: `${data.rejected} itens rejeitados com sucesso!`,
         description: `Todos os itens pendentes foram removidos da fila`
@@ -231,6 +249,7 @@ export default function CurationQueuePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
       toast({ title: "Item rejeitado" });
       setRejectDialogOpen(false);
       setSelectedItem(null);
@@ -328,7 +347,19 @@ export default function CurationQueuePage() {
         </p>
       </div>
 
-      {!items || items.length === 0 ? (
+      <Tabs defaultValue="pending" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="pending" data-testid="tab-pending">
+            Pendentes ({items?.length || 0})
+          </TabsTrigger>
+          <TabsTrigger value="history" data-testid="tab-history">
+            <HistoryIcon className="h-4 w-4 mr-2" />
+            Histórico ({historyItems?.length || 0})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending" className="space-y-4 mt-6">
+          {!items || items.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <p className="text-muted-foreground">Nenhum item pendente de curadoria.</p>
@@ -739,6 +770,94 @@ export default function CurationQueuePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4 mt-6">
+          {historyLoading ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <p className="text-muted-foreground">Carregando histórico...</p>
+              </CardContent>
+            </Card>
+          ) : !historyItems || historyItems.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <p className="text-muted-foreground">Nenhum item no histórico (retenção: 5 anos)</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4">
+              {historyItems.map((item) => (
+                <Card key={item.id} data-testid={`history-item-${item.id}`}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle>{item.title}</CardTitle>
+                          <Badge 
+                            variant={item.status === 'approved' ? 'default' : 'destructive'}
+                            data-testid={`badge-status-${item.id}`}
+                          >
+                            {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+                          </Badge>
+                        </div>
+                        <CardDescription className="flex flex-col gap-1">
+                          <div>
+                            Enviado por {item.submittedBy || "Desconhecido"} • {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
+                          </div>
+                          {item.reviewedBy && item.reviewedAt && (
+                            <div className="text-sm">
+                              {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} por {item.reviewedBy} • {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
+                            </div>
+                          )}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground line-clamp-3">{item.content}</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div>
+                        <span className="text-sm font-medium">Namespaces:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.suggestedNamespaces.map((ns) => (
+                            <Badge key={ns} variant="secondary" className="font-mono text-xs">
+                              {getNamespaceLabel(ns)}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      {item.tags.length > 0 && (
+                        <div>
+                          <span className="text-sm font-medium">Tags:</span>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {item.tags.map((tag) => (
+                              <Badge key={tag} variant="outline" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {item.note && (
+                        <div>
+                          <span className="text-sm font-medium">Nota:</span>
+                          <p className="text-sm text-muted-foreground mt-1">{item.note}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
