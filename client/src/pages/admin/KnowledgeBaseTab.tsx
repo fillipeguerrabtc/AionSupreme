@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/i18n";
 import { formatDateTimeInTimezone } from "@/lib/datetime";
 import type { Document } from "@shared/schema";
+import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 
 export default function KnowledgeBaseTab() {
   const { toast } = useToast();
@@ -37,6 +38,8 @@ export default function KnowledgeBaseTab() {
   const [editingDoc, setEditingDoc] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [editNamespaces, setEditNamespaces] = useState<string[]>([]);
+  const [newNamespaces, setNewNamespaces] = useState<string[]>([]);
 
   // Fetch tenant timezone for dynamic date formatting
   const { data: tenantTimezone } = useQuery<{ timezone: string }>({
@@ -66,6 +69,7 @@ export default function KnowledgeBaseTab() {
           title: newTextTitle,
           content: newTextContent,
           source: "manual",
+          metadata: { namespaces: newNamespaces },
         }),
       });
       return res.json();
@@ -75,6 +79,7 @@ export default function KnowledgeBaseTab() {
       setShowAddText(false);
       setNewTextTitle("");
       setNewTextContent("");
+      setNewNamespaces([]);
       toast({ title: t.admin.knowledgeBase.toasts.knowledgeAdded });
     },
   });
@@ -123,11 +128,15 @@ export default function KnowledgeBaseTab() {
   });
 
   const updateDocMutation = useMutation({
-    mutationFn: async ({ id, title, content }: { id: number; title: string; content: string }) => {
+    mutationFn: async ({ id, title, content, namespaces }: { id: number; title: string; content: string; namespaces?: string[] }) => {
       const res = await apiRequest(`/api/admin/documents/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, content }),
+        body: JSON.stringify({ 
+          title, 
+          content,
+          ...(namespaces && { metadata: { namespaces } })
+        }),
       });
       return res.json();
     },
@@ -272,6 +281,12 @@ export default function KnowledgeBaseTab() {
               onChange={(e) => setNewTextTitle(e.target.value)}
               data-testid="input-new-doc-title"
             />
+            
+            <NamespaceSelector
+              value={newNamespaces}
+              onChange={setNewNamespaces}
+            />
+            
             <Textarea
               placeholder={t.admin.knowledgeBase.forms.addText.contentPlaceholder}
               value={newTextContent}
@@ -400,6 +415,12 @@ export default function KnowledgeBaseTab() {
                           onChange={(e) => setEditTitle(e.target.value)}
                           data-testid={`input-edit-title-${doc.id}`}
                         />
+                        
+                        <NamespaceSelector
+                          value={editNamespaces}
+                          onChange={setEditNamespaces}
+                        />
+                        
                         <Textarea
                           value={editContent}
                           onChange={(e) => setEditContent(e.target.value)}
@@ -414,6 +435,7 @@ export default function KnowledgeBaseTab() {
                                 id: doc.id,
                                 title: editTitle,
                                 content: editContent,
+                                namespaces: editNamespaces,
                               })
                             }
                             data-testid={`button-save-edit-${doc.id}`}
@@ -452,6 +474,7 @@ export default function KnowledgeBaseTab() {
                               setEditingDoc(doc.id);
                               setEditTitle(doc.title);
                               setEditContent(doc.content);
+                              setEditNamespaces(doc.metadata?.namespaces || []);
                             }}
                             data-testid={`button-edit-${doc.id}`}
                           >
