@@ -656,12 +656,18 @@ export function registerRoutes(app: Express): Server {
   // KNOWLEDGE BASE MANAGEMENT
   // ============================================================================
 
-  // GET /api/admin/documents/:tenant_id - List all documents for a tenant
+  // GET /api/admin/documents/:tenant_id - List APPROVED documents for a tenant
+  // HITL FIX: Only show documents that passed human approval (status='indexed')
   app.get("/api/admin/documents/:tenant_id", async (req, res) => {
     try {
       const tenantId = parseInt(req.params.tenant_id);
-      const documents = await storage.getDocumentsByTenant(tenantId, 1000);
-      res.json(documents);
+      const allDocs = await storage.getDocumentsByTenant(tenantId, 1000);
+      
+      // Filter to show ONLY approved documents (status='indexed')
+      const approvedDocs = allDocs.filter(doc => doc.status === 'indexed');
+      
+      console.log(`[KB API] Returning ${approvedDocs.length} approved docs (filtered from ${allDocs.length} total)`);
+      res.json(approvedDocs);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
