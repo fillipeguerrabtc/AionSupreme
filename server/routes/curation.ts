@@ -172,6 +172,208 @@ export function registerCurationRoutes(app: Express) {
   });
 
   /**
+   * POST /api/curation/bulk-approve
+   * Aprova múltiplos itens de uma vez
+   */
+  app.post("/api/curation/bulk-approve", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
+      const { ids, reviewedBy } = req.body;
+
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "Missing or invalid field: ids (must be non-empty array)" });
+      }
+
+      if (!reviewedBy) {
+        return res.status(400).json({ error: "Missing required field: reviewedBy" });
+      }
+
+      const results = {
+        approved: 0,
+        failed: 0,
+        errors: [] as string[],
+      };
+
+      for (const id of ids) {
+        try {
+          const { item, publishedId } = await curationStore.approveAndPublish(
+            tenantId,
+            id,
+            reviewedBy
+          );
+
+          await publishEvent("DOC_UPDATED", {
+            tenantId,
+            docId: publishedId,
+            namespaces: item.suggestedNamespaces,
+          });
+
+          await publishEvent("AGENT_NAMESPACES_CHANGED", {
+            tenantId,
+            namespaces: item.suggestedNamespaces,
+          });
+
+          results.approved++;
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push(`ID ${id}: ${error.message}`);
+        }
+      }
+
+      res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/curation/approve-all
+   * Aprova TODOS os itens pendentes
+   */
+  app.post("/api/curation/approve-all", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
+      const { reviewedBy } = req.body;
+
+      if (!reviewedBy) {
+        return res.status(400).json({ error: "Missing required field: reviewedBy" });
+      }
+
+      const pending = await curationStore.listPending(tenantId);
+      const results = {
+        approved: 0,
+        failed: 0,
+        errors: [] as string[],
+      };
+
+      for (const item of pending) {
+        try {
+          const { item: approvedItem, publishedId } = await curationStore.approveAndPublish(
+            tenantId,
+            item.id,
+            reviewedBy
+          );
+
+          await publishEvent("DOC_UPDATED", {
+            tenantId,
+            docId: publishedId,
+            namespaces: approvedItem.suggestedNamespaces,
+          });
+
+          await publishEvent("AGENT_NAMESPACES_CHANGED", {
+            tenantId,
+            namespaces: approvedItem.suggestedNamespaces,
+          });
+
+          results.approved++;
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push(`ID ${item.id}: ${error.message}`);
+        }
+      }
+
+      res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/curation/bulk-reject
+   * Rejeita múltiplos itens de uma vez
+   */
+  app.post("/api/curation/bulk-reject", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
+      const { ids, reviewedBy, note } = req.body;
+
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: "Missing or invalid field: ids (must be non-empty array)" });
+      }
+
+      if (!reviewedBy) {
+        return res.status(400).json({ error: "Missing required field: reviewedBy" });
+      }
+
+      const results = {
+        rejected: 0,
+        failed: 0,
+        errors: [] as string[],
+      };
+
+      for (const id of ids) {
+        try {
+          const item = await curationStore.reject(tenantId, id, reviewedBy, note);
+          
+          if (item) {
+            await publishEvent("DOC_DELETED", {
+              tenantId,
+              docId: item.id,
+            });
+            results.rejected++;
+          } else {
+            results.failed++;
+            results.errors.push(`ID ${id}: Item not found`);
+          }
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push(`ID ${id}: ${error.message}`);
+        }
+      }
+
+      res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/curation/reject-all
+   * Rejeita TODOS os itens pendentes
+   */
+  app.post("/api/curation/reject-all", async (req, res) => {
+    try {
+      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
+      const { reviewedBy, note } = req.body;
+
+      if (!reviewedBy) {
+        return res.status(400).json({ error: "Missing required field: reviewedBy" });
+      }
+
+      const pending = await curationStore.listPending(tenantId);
+      const results = {
+        rejected: 0,
+        failed: 0,
+        errors: [] as string[],
+      };
+
+      for (const item of pending) {
+        try {
+          const rejectedItem = await curationStore.reject(tenantId, item.id, reviewedBy, note);
+          
+          if (rejectedItem) {
+            await publishEvent("DOC_DELETED", {
+              tenantId,
+              docId: rejectedItem.id,
+            });
+            results.rejected++;
+          } else {
+            results.failed++;
+            results.errors.push(`ID ${item.id}: Item not found`);
+          }
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push(`ID ${item.id}: ${error.message}`);
+        }
+      }
+
+      res.json(results);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * DELETE /api/curation/:id
    * Remove item da fila (apenas para testes)
    */

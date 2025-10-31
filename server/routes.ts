@@ -435,6 +435,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/kb/ingest
+  // HITL FIX: KB file ingestion goes through curation queue
   app.post("/api/kb/ingest", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) throw new Error("No file uploaded");
@@ -444,20 +445,27 @@ export function registerRoutes(app: Express): Server {
       
       const processed = await fileProcessor.processFile(req.file.path, mimeType);
       
-      const doc = await storage.createDocument({
-        tenantId,
-        filename: req.file.originalname,
-        mimeType,
-        size: req.file.size,
-        storageUrl: req.file.path,
-        extractedText: processed.extractedText,
-        status: "pending",
-        metadata: processed.metadata,
+      // Import curation store
+      const { curationStore } = await import("./curation/store");
+      
+      // Add to curation queue instead of direct KB publish
+      const item = await curationStore.addToCuration(tenantId, {
+        title: req.file.originalname,
+        content: processed.extractedText,
+        suggestedNamespaces: ["kb/ingest"],
+        tags: ["ingest", "file", mimeType],
+        submittedBy: "api",
       });
       
-      await ragService.indexDocument(doc.id, processed.extractedText, tenantId);
+      // Clean up temp file
+      await fs.unlink(req.file.path).catch(() => {});
       
-      res.json({ ok: true, id: doc.id });
+      res.json({ 
+        ok: true, 
+        curationId: item.id,
+        message: "File submitted to curation queue for human review",
+        status: "pending_approval"
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -674,6 +682,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/admin/documents - Add new document (manual text)
+  // HITL FIX: All manual KB feeding goes through curation queue
   app.post("/api/admin/documents", async (req, res) => {
     try {
       const { tenant_id, title, content, source } = req.body;
@@ -682,18 +691,23 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Title and content are required" });
       }
 
-      const doc = await storage.createDocument({
-        tenantId: tenant_id || 1,
+      // Import curation store
+      const { curationStore } = await import("./curation/store");
+      
+      // Add to curation queue instead of direct KB publish
+      const item = await curationStore.addToCuration(tenant_id || 1, {
         title,
         content,
-        source: source || "manual",
-        status: "indexed",
+        suggestedNamespaces: ["kb/general"],
+        tags: [source || "manual", "kb-text"],
+        submittedBy: "admin",
       });
 
-      // Index document for RAG
-      await knowledgeIndexer.indexDocument(doc.id, doc.content, tenant_id || 1);
-
-      res.json(doc);
+      res.json({ 
+        message: "Content submitted to curation queue for human review",
+        curationId: item.id,
+        status: "pending_approval"
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -730,6 +744,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/admin/learn-from-url - Learn from a URL
+  // HITL FIX: All URL content goes through curation queue
   app.post("/api/admin/learn-from-url", async (req, res) => {
     try {
       const { tenant_id, url } = req.body;
@@ -755,30 +770,32 @@ export function registerRoutes(app: Express): Server {
       // Allow up to 1 million characters for deep learning
       const finalContent = content.length > 1000000 ? content.substring(0, 1000000) : content;
 
-      // Create document
-      const doc = await storage.createDocument({
-        tenantId: tenant_id || 1,
+      // Import curation store
+      const { curationStore } = await import("./curation/store");
+      
+      // Add to curation queue instead of direct KB publish
+      const item = await curationStore.addToCuration(tenant_id || 1, {
         title,
         content: finalContent,
-        source: "url",
-        status: "indexed",
-        metadata: { 
-          url,
-          originalLength: content.length,
-          truncated: content.length > 1000000,
-        },
+        suggestedNamespaces: ["kb/web"],
+        tags: ["url", "web-content", url],
+        submittedBy: "admin",
       });
 
-      // Index for RAG
-      await knowledgeIndexer.indexDocument(doc.id, content, tenant_id || 1);
-
-      res.json(doc);
+      res.json({ 
+        message: "URL content submitted to curation queue for human review",
+        curationId: item.id,
+        url,
+        contentLength: finalContent.length,
+        status: "pending_approval"
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
   // POST /api/admin/upload-files - Upload and process multiple files
+  // HITL FIX: All uploaded files go through curation queue
   app.post("/api/admin/upload-files", upload.array("files", 20), async (req, res) => {
     try {
       const { tenant_id } = req.body;
@@ -788,7 +805,10 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "No files uploaded" });
       }
 
-      const processedDocs = [];
+      // Import curation store
+      const { curationStore } = await import("./curation/store");
+
+      const submittedItems = [];
       const errors = [];
 
       for (const file of files) {
@@ -831,27 +851,22 @@ export function registerRoutes(app: Express): Server {
           console.log(`  - Estimated: ${wordCount.toLocaleString()} words`);
           console.log(`  - Pages: ${processed.metadata?.pages || 'N/A'}`);
 
-          // Create document in database
-          const doc = await storage.createDocument({
-            tenantId: tenant_id || 1,
+          // Add to curation queue instead of direct KB publish
+          const item = await curationStore.addToCuration(tenant_id || 1, {
             title: file.originalname,
             content: processed.extractedText,
-            source: "upload",
-            status: "indexed",
-            metadata: {
-              filename: file.originalname,
-              mimeType,
-              size: processed.size,
-              charCount,
-              wordCount,
-              ...processed.metadata,
-            },
+            suggestedNamespaces: ["kb/uploads"],
+            tags: ["upload", "file", mimeType],
+            submittedBy: "admin",
           });
 
-          // Index for RAG
-          await knowledgeIndexer.indexDocument(doc.id, processed.extractedText, tenant_id || 1);
-
-          processedDocs.push(doc);
+          submittedItems.push({
+            filename: file.originalname,
+            curationId: item.id,
+            size: processed.size,
+            charCount,
+            wordCount,
+          });
 
           // Clean up temp file
           await fs.unlink(file.path).catch(() => {});
@@ -863,9 +878,11 @@ export function registerRoutes(app: Express): Server {
 
       res.json({
         success: true,
-        processed: processedDocs.length,
-        documents: processedDocs,
+        message: `${submittedItems.length} files submitted to curation queue for human review`,
+        submitted: submittedItems.length,
+        items: submittedItems,
         errors: errors.length > 0 ? errors : undefined,
+        status: "pending_approval"
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -873,6 +890,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/admin/web-search-learn - Search web and learn
+  // HITL FIX: All web search results go through curation queue
   app.post("/api/admin/web-search-learn", async (req, res) => {
     try {
       const { tenant_id, query } = req.body;
@@ -886,9 +904,12 @@ export function registerRoutes(app: Express): Server {
       
       // Parse results (SearchWeb returns AgentObservation with observation field)
       const results = JSON.parse(searchObservation.observation);
-      const documentsIndexed = [];
+      
+      // Import curation store
+      const { curationStore } = await import("./curation/store");
+      const submittedItems = [];
 
-      // Fetch and index top 10 results for comprehensive learning
+      // Fetch and submit top 10 results to curation queue
       for (const result of results.results.slice(0, 10)) {
         try {
           const response = await axios.get(result.url, { timeout: 15000 });
@@ -903,29 +924,34 @@ export function registerRoutes(app: Express): Server {
             // Allow up to 1 million characters for deep vertical learning
             const finalContent = content.length > 1000000 ? content.substring(0, 1000000) : content;
             
-            const doc = await storage.createDocument({
-              tenantId: tenant_id || 1,
+            // Add to curation queue instead of direct KB publish
+            const item = await curationStore.addToCuration(tenant_id || 1, {
               title: result.title,
               content: finalContent,
-              source: "web-search",
-              status: "indexed",
-              metadata: { 
-                url: result.url, 
-                query,
-                originalLength: content.length,
-                truncated: content.length > 1000000,
-              },
+              suggestedNamespaces: ["kb/web-search"],
+              tags: ["web-search", query, result.url],
+              submittedBy: "web-search",
             });
 
-            await knowledgeIndexer.indexDocument(doc.id, doc.content, tenant_id || 1);
-            documentsIndexed.push(doc);
+            submittedItems.push({
+              url: result.url,
+              title: result.title,
+              curationId: item.id,
+              contentLength: finalContent.length,
+            });
           }
         } catch (err) {
           console.error(`Failed to fetch ${result.url}:`, err);
         }
       }
 
-      res.json({ documentsIndexed: documentsIndexed.length, documents: documentsIndexed });
+      res.json({ 
+        message: `${submittedItems.length} web results submitted to curation queue for human review`,
+        query,
+        submitted: submittedItems.length, 
+        items: submittedItems,
+        status: "pending_approval"
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
