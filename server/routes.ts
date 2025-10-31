@@ -2233,22 +2233,44 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/training/datasets", async (req, res) => {
     try {
       const { db } = await import("./db");
-      const { datasets } = await import("../shared/schema");
-      const { eq } = await import("drizzle-orm");
+      const { datasets, trainingDataCollection } = await import("../shared/schema");
+      const { eq, desc } = await import("drizzle-orm");
 
-      const tenantId = parseInt(req.query.tenantId as string);
+      const tenantId = parseInt(req.query.tenantId as string) || 1;
 
       if (isNaN(tenantId)) {
         return res.status(400).json({ error: "Invalid tenantId" });
       }
 
-      const datasetList = await db
+      // Buscar datasets compilados (.jsonl files)
+      const compiledDatasets = await db
         .select()
         .from(datasets)
         .where(eq(datasets.tenantId, tenantId))
-        .orderBy(datasets.createdAt);
+        .orderBy(desc(datasets.createdAt));
 
-      res.json({ datasets: datasetList });
+      // Buscar dados de treinamento individuais (approved)
+      const trainingData = await db
+        .select()
+        .from(trainingDataCollection)
+        .where(eq(trainingDataCollection.tenantId, tenantId))
+        .orderBy(desc(trainingDataCollection.createdAt));
+
+      // Calcular estatísticas
+      const approvedCount = trainingData.filter(d => d.status === 'approved').length;
+      const totalExamples = trainingData.length;
+      const totalSize = compiledDatasets.reduce((sum, d) => sum + (d.size || 0), 0);
+
+      res.json({ 
+        datasets: compiledDatasets,
+        trainingData: trainingData,
+        stats: {
+          compiledDatasets: compiledDatasets.length,
+          totalExamples: totalExamples,
+          approvedExamples: approvedCount,
+          totalSize: totalSize,
+        }
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
