@@ -17,13 +17,33 @@ Vamos usar:
 
 ---
 
-## 🔧 Setup em 3 Passos
+## 🔧 Setup em 4 Passos
+
+### PASSO 0: Obter Ngrok Authtoken (5 minutos) ⚠️ OBRIGATÓRIO
+
+**Ngrok permite que AION se conecte aos workers remotamente.**
+
+1. **Criar conta grátis:** https://dashboard.ngrok.com/signup
+   - Pode usar sua conta Google
+   - É 100% grátis
+2. **Copiar seu authtoken:** https://dashboard.ngrok.com/get-started/your-authtoken
+   - Você verá algo como: `2abc...XYZ` (string longa)
+   - **GUARDAR ESSE TOKEN!** Você vai usar em TODOS os workers
+
+**⚠️ SEM ESTE TOKEN, OS WORKERS NÃO CONECTAM!**
+
+---
 
 ### PASSO 1: Informações Necessárias
 
 **URL do seu AION:**
 ```
 https://workspace-fillipebackup.replit.app
+```
+
+**Ngrok Authtoken:**
+```
+________________________________________ (cole aqui o token do Passo 0)
 ```
 
 **Suas 7 Contas Google:**
@@ -52,9 +72,19 @@ Conta 7: _____________@gmail.com (Kaggle)
    AION_URL = "https://workspace-fillipebackup.replit.app"
    ACCOUNT_EMAIL = "sua-conta-1@gmail.com"  # ← TROCAR
    WORKER_NAME = "Colab-Conta1-T4"  # ← TROCAR (Conta1, Conta2, etc.)
+   NGROK_AUTHTOKEN = "seu_token_do_passo_0"  # ← TROCAR (mesmo token para todos!)
    ```
 6. **Run All (Ctrl+F9)**
-7. **Aguardar:** "✅ WORKER IS ONLINE AND READY!"
+7. **Aguardar:**
+   ```
+   🔑 Authenticating ngrok...
+   ✅ Ngrok authenticated successfully!
+   🌐 Setting up ngrok tunnel...
+   ✅ Worker accessible at: https://...ngrok.io
+   📝 Registering worker with AION...
+   ✅ Registered successfully! Worker ID: X
+   ✅ WORKER IS ONLINE AND READY!
+   ```
 
 **Pronto!** Worker #1 conectado. Repita para contas 2-5.
 
@@ -74,6 +104,7 @@ Conta 7: _____________@gmail.com (Kaggle)
    AION_URL = "https://workspace-fillipebackup.replit.app"
    ACCOUNT_EMAIL = "sua-conta-6@gmail.com"  # ← TROCAR
    WORKER_NAME = "Kaggle-Conta6-T4"  # ← TROCAR
+   NGROK_AUTHTOKEN = "seu_token_do_passo_0"  # ← TROCAR (mesmo token!)
    ```
 7. **Run All**
 8. **Aguardar:** "✅ KAGGLE WORKER IS ONLINE!"
@@ -239,13 +270,26 @@ Kaggle-7: 25% usado (✅ Safe)
 
 ## 🚨 Troubleshooting
 
+### ❌ "PyngrokNgrokError: You must pass an authtoken"
+
+**Causa:** Você esqueceu de preencher o `NGROK_AUTHTOKEN` no notebook.
+
+**Solução:**
+1. Voltar ao Passo 0
+2. Copiar authtoken de: https://dashboard.ngrok.com/get-started/your-authtoken
+3. Colar no notebook na variável `NGROK_AUTHTOKEN`
+4. Run All novamente
+
+---
+
 ### Worker não conecta?
 
 **Verificar:**
-1. ✅ AION_URL está correto (https://workspace-fillipebackup.replit.app)
-2. ✅ Runtime type é **GPU** (não CPU)
-3. ✅ Ngrok túnel está ativo (deve aparecer: "✅ Worker accessible at: https://...")
-4. ✅ AION está rodando (acesse https://workspace-fillipebackup.replit.app)
+1. ✅ **NGROK_AUTHTOKEN** preenchido (NÃO pode ser "your_ngrok_authtoken_here")
+2. ✅ AION_URL está correto (https://workspace-fillipebackup.replit.app)
+3. ✅ Runtime type é **GPU** (não CPU)
+4. ✅ Ngrok túnel está ativo (deve aparecer: "✅ Worker accessible at: https://...")
+5. ✅ AION está rodando (acesse https://workspace-fillipebackup.replit.app)
 
 ### Worker desconecta sozinho?
 

@@ -14,13 +14,32 @@ Seu AION já tem **TUDO** implementado para treinar LLMs próprios:
 
 ---
 
-## 🎯 Plano de Ação (30 minutos)
+## 🎯 Plano de Ação (35 minutos)
 
-### STEP 1: Conectar 7 GPUs (15 min)
+### STEP 0: Obter Ngrok Authtoken (5 min) ⚠️ OBRIGATÓRIO
+
+**Por que preciso disso?**  
+Ngrok permite que AION se conecte aos workers remotamente.
+
+**Como obter:**
+1. Criar conta grátis: https://dashboard.ngrok.com/signup
+2. Copiar authtoken: https://dashboard.ngrok.com/get-started/your-authtoken
+3. Guardar o token! Você vai usar em TODOS os 7 workers
+
+⚠️ **SEM ESTE TOKEN, NENHUM WORKER CONECTA!**
+
+---
+
+### STEP 1: Conectar 7 GPUs (20 min)
 
 **URL do seu AION:**
 ```
 https://workspace-fillipebackup.replit.app
+```
+
+**Ngrok Authtoken (do STEP 0):**
+```
+________________________________ (cole aqui)
 ```
 
 **Para cada uma das suas 7 contas Google:**
@@ -35,6 +54,7 @@ https://workspace-fillipebackup.replit.app
    AION_URL = "https://workspace-fillipebackup.replit.app"
    ACCOUNT_EMAIL = "sua-conta@gmail.com"  # ← TROCAR
    WORKER_NAME = "Colab-Conta1-T4"  # ← TROCAR
+   NGROK_AUTHTOKEN = "seu_token_do_step_0"  # ← TROCAR (mesmo token!)
    ```
 6. Run All (Ctrl+F9)
 7. Aguardar: "✅ WORKER IS ONLINE AND READY!"
@@ -45,7 +65,7 @@ https://workspace-fillipebackup.replit.app
 3. New Notebook
 4. Upload: `notebooks/kaggle_worker.ipynb`
 5. Settings > GPU T4 x2
-6. Editar variáveis (igual ao Colab)
+6. Editar variáveis (igual ao Colab + NGROK_AUTHTOKEN)
 7. Run All
 
 **Resultado:**
@@ -321,12 +341,24 @@ https://workspace-fillipebackup.replit.app/admin
 
 ## 🚨 Troubleshooting
 
+### ❌ "PyngrokNgrokError: You must pass an authtoken"
+**Causa:** NGROK_AUTHTOKEN não preenchido ou inválido.
+
+**Solução:**
+1. Ir para: https://dashboard.ngrok.com/get-started/your-authtoken
+2. Copiar o token (string longa)
+3. Colar no notebook na variável `NGROK_AUTHTOKEN`
+4. Run All novamente
+
+---
+
 ### Workers não conectam?
 **Verificar:**
-1. ✅ AION rodando: https://workspace-fillipebackup.replit.app
-2. ✅ Runtime type = GPU (não CPU)
-3. ✅ Ngrok tunnel ativo (veja logs: "✅ Worker accessible at...")
-4. ✅ AION_URL correto nos notebooks
+1. ✅ **NGROK_AUTHTOKEN** válido (não pode ser "your_ngrok_authtoken_here")
+2. ✅ AION rodando: https://workspace-fillipebackup.replit.app
+3. ✅ Runtime type = GPU (não CPU)
+4. ✅ Ngrok tunnel ativo (veja logs: "✅ Worker accessible at...")
+5. ✅ AION_URL correto nos notebooks
 
 ### Training falha?
 **Causas comuns:**
