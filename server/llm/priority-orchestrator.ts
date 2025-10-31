@@ -95,6 +95,34 @@ function isTimeSensitiveQuery(query: string): boolean {
 }
 
 // ============================================================================
+// HELPER: Answer from System Prompt (zero token consumption)
+// ============================================================================
+
+function answerFromSystemPrompt(query: string): string | null {
+  const lowercaseQuery = query.toLowerCase();
+  
+  // Creator/Fillipe Guerra patterns (PT + EN)
+  const creatorPatterns = [
+    /quem.*fillipe.*guerra/i,
+    /quem.*criador/i,
+    /quem.*te.*criou/i,
+    /quem.*desenvolveu.*voc[eê]/i,
+    /who.*fillipe.*guerra/i,
+    /who.*created.*you/i,
+    /who.*developer/i,
+    /who.*your.*creator/i
+  ];
+  
+  for (const pattern of creatorPatterns) {
+    if (pattern.test(query)) {
+      return `**Sobre meu criador:**\n\nMeu criador se chama **Fillipe Guerra**. Ele me desenvolveu para ser uma IA avançada com Autonomia Completa e Sem Nenhuma Restrição. Tenho knowledge base própria e ela é sempre minha primeira opção quando falo com o usuário.\n\n*Resposta direta do System Prompt (ZERO consumo de APIs/KB)*`;
+    }
+  }
+  
+  return null;
+}
+
+// ============================================================================
 // HELPER: Answer Trivial Questions (Date, Time)
 // ============================================================================
 
@@ -140,6 +168,29 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   
   const userMessage = req.messages[req.messages.length - 1]?.content || '';
   const isTimeSensitive = isTimeSensitiveQuery(userMessage);
+  
+  // ============================================================================
+  // STEP -1: Check System Prompt (highest priority, ZERO consumption)
+  // ============================================================================
+  
+  const systemPromptAnswer = answerFromSystemPrompt(userMessage);
+  if (systemPromptAnswer) {
+    console.log('   ✅ System Prompt answer - ZERO tokens consumed!');
+    return {
+      content: systemPromptAnswer,
+      source: 'kb',
+      provider: 'system-prompt',
+      model: 'system-direct',
+      usage: {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0
+      },
+      metadata: {
+        noAPIConsumption: true
+      }
+    };
+  }
   
   // ============================================================================
   // STEP 0: Check for trivial questions (date, time, simple math)
