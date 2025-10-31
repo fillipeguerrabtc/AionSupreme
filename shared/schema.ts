@@ -725,6 +725,7 @@ export type TokenAlert = typeof tokenAlerts.$inferSelect;
 // ============================================================================
 export const gpuWorkers = pgTable("gpu_workers", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().references(() => tenants.id).default(1),
   
   // Provider and identification
   provider: text("provider").notNull(), // "colab" | "kaggle" | "modal" | "paperspace" | "lightning"
@@ -755,6 +756,7 @@ export const gpuWorkers = pgTable("gpu_workers", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   lastUsedAt: timestamp("last_used_at"), // When last served a request
 }, (table) => ({
+  tenantIdx: index("gpu_workers_tenant_idx").on(table.tenantId),
   providerIdx: index("gpu_workers_provider_idx").on(table.provider),
   statusIdx: index("gpu_workers_status_idx").on(table.status),
   accountIdIdx: index("gpu_workers_account_id_idx").on(table.accountId),
