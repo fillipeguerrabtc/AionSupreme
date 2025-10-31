@@ -240,6 +240,16 @@ export const documents = pgTable("documents", {
   // Extracted content (for files)
   extractedText: text("extracted_text"),
   
+  // Multimodal attachments (images, videos, documents discovered in web crawling or uploaded)
+  attachments: jsonb("attachments").$type<Array<{
+    type: "image" | "video" | "audio" | "document";
+    url: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+    description?: string; // AI-generated description for images
+  }>>(),
+  
   // Processing status
   status: text("status").notNull().default("indexed"), // "pending" | "processing" | "indexed" | "failed"
   errorMessage: text("error_message"),
@@ -1219,6 +1229,17 @@ export const curationQueue = pgTable("curation_queue", {
   content: text("content").notNull(),
   suggestedNamespaces: jsonb("suggested_namespaces").$type<string[]>().notNull().default([]),
   tags: jsonb("tags").$type<string[]>().notNull().default([]),
+  
+  // Multimodal attachments (images, videos, documents from web crawling or uploads)
+  attachments: jsonb("attachments").$type<Array<{
+    type: "image" | "video" | "audio" | "document";
+    url: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+    description?: string; // AI-generated description for images
+  }>>(),
+  
   status: varchar("status", { length: 20 }).notNull().default("pending"), // "pending" | "approved" | "rejected"
   submittedBy: varchar("submitted_by", { length: 255 }),
   submittedAt: timestamp("submitted_at").notNull().defaultNow(),

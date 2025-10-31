@@ -18,6 +18,14 @@ interface SearchResult {
   chunkText: string;
   metadata?: Record<string, any>;
   documentId: number;
+  attachments?: Array<{
+    type: 'image' | 'video' | 'pdf' | 'audio' | 'document';
+    url: string;
+    filename?: string;
+    mimeType?: string;
+    size?: number;
+    description?: string;
+  }>;
 }
 
 /**
@@ -250,6 +258,7 @@ export class RAGService {
   /**
    * Search knowledge base
    * As per PDFs: Retrieval with cosine similarity
+   * MULTIMODAL: Returns attachments from source documents
    */
   async search(
     query: string,
@@ -279,7 +288,26 @@ export class RAGService {
       }
     );
     
-    return results;
+    // MULTIMODAL: Fetch attachments from source documents
+    const uniqueDocIds = [...new Set(results.map(r => r.documentId))];
+    const documentAttachments = new Map<number, any[]>();
+    
+    for (const docId of uniqueDocIds) {
+      const doc = await storage.getDocument(docId);
+      if (doc?.attachments && doc.attachments.length > 0) {
+        documentAttachments.set(docId, doc.attachments);
+      }
+    }
+    
+    // Attach to results
+    const enrichedResults = results.map(result => ({
+      ...result,
+      attachments: documentAttachments.get(result.documentId)
+    }));
+    
+    console.log(`[RAG] Search completed: ${results.length} results, ${documentAttachments.size} docs with attachments`);
+    
+    return enrichedResults;
   }
 
   /**

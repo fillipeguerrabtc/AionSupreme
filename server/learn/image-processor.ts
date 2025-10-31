@@ -14,6 +14,9 @@ export interface ProcessedImage {
   localPath: string;
   description: string;
   originalUrl: string;
+  filename: string;
+  size: number;
+  mimeType: string;
 }
 
 export class ImageProcessor {
@@ -47,7 +50,12 @@ export class ImageProcessor {
       // Gera descrição com Vision API
       const description = await this.generateDescription(localPath, alt);
 
-      console.log(`   ✓ Imagem processada: ${path.basename(localPath)}`);
+      // Obtem metadados do arquivo
+      const stats = fs.statSync(localPath);
+      const mimeType = this.getMimeType(localPath);
+      const filename = path.basename(localPath);
+
+      console.log(`   ✓ Imagem processada: ${filename}`);
       if (description && !description.includes('Erro') && !description.includes('sem descrição')) {
         console.log(`     📝 Descrição AI: ${description.substring(0, 100)}...`);
       } else if (alt) {
@@ -59,7 +67,10 @@ export class ImageProcessor {
       return {
         localPath: path.relative(process.cwd(), localPath),
         description: description || alt || 'Sem descrição',
-        originalUrl: imageUrl
+        originalUrl: imageUrl,
+        filename,
+        size: stats.size,
+        mimeType
       };
 
     } catch (error: any) {

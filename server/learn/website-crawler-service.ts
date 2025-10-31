@@ -115,6 +115,18 @@ export class WebsiteCrawlerService {
       }
     }
 
+    // Converte imagens para formato de attachments (usando metadados REAIS do ImageProcessor!)
+    const attachments = page.images
+      .filter(img => img.localPath) // Apenas imagens que foram baixadas com sucesso
+      .map(img => ({
+        type: 'image' as const,
+        url: `/${img.localPath}`, // Path relativo ao projeto
+        filename: img.filename || img.localPath?.split('/').pop() || 'image.jpg',
+        mimeType: img.mimeType || 'image/jpeg', // Usar mimeType REAL do ImageProcessor
+        size: img.size || 0, // Usar size REAL do ImageProcessor
+        description: img.description
+      }));
+
     // Tags automáticas
     const tags = [
       'url',
@@ -126,18 +138,19 @@ export class WebsiteCrawlerService {
     // Namespace sugerido
     const suggestedNamespaces = namespace ? [namespace] : ['kb/web'];
 
-    // Insere na curation queue
+    // Insere na curation queue COM ATTACHMENTS
     await db.insert(curationQueue).values({
       tenantId,
       title: page.title || 'Sem título',
       content: fullContent,
       suggestedNamespaces,
       tags,
+      attachments: attachments.length > 0 ? attachments : undefined,
       status: "pending",
       submittedBy: "website-crawler"
     } as any);
 
-    console.log(`   ✓ Enviado para curadoria: "${page.title}"`);
+    console.log(`   ✓ Enviado para curadoria: "${page.title}" (${attachments.length} imagens)`);
   }
 
   /**
@@ -188,30 +201,46 @@ export class WebsiteCrawlerService {
       consolidatedContent += `---\n\n`;
     }
 
+    // Coleta TODAS as imagens de todas as páginas (usando metadados REAIS!)
+    const allAttachments = pages.flatMap(page => 
+      page.images
+        .filter(img => img.localPath)
+        .map(img => ({
+          type: 'image' as const,
+          url: `/${img.localPath}`,
+          filename: img.filename || img.localPath?.split('/').pop() || 'image.jpg',
+          mimeType: img.mimeType || 'image/jpeg', // Usar mimeType REAL do ImageProcessor
+          size: img.size || 0, // Usar size REAL do ImageProcessor
+          description: img.description
+        }))
+    );
+
     // Tags automáticas
     const tags = [
       'website-completo',
       'multi-paginas',
       siteDomain,
       `pages-${pages.length}`,
+      `images-${allAttachments.length}`,
       `quality-${this.calculateOverallQuality(pages)}`
     ];
 
     // Namespace sugerido
     const suggestedNamespaces = namespace ? [namespace] : ['kb/websites'];
 
-    // Insere na curation queue
+    // Insere na curation queue COM ATTACHMENTS
     await db.insert(curationQueue).values({
       tenantId,
       title: `${siteTitle} - ${siteDomain} (${pages.length} páginas)`,
       content: consolidatedContent,
       suggestedNamespaces,
       tags,
+      attachments: allAttachments.length > 0 ? allAttachments : undefined,
       status: "pending",
       submittedBy: "website-crawler-consolidated"
     } as any);
 
-    console.log(`   ✓ Site completo enviado para curadoria: "${siteTitle}" (${pages.length} páginas)`);
+    console.log(`   ✓ Site completo enviado para curadoria: "${siteTitle}" (${pages.length} páginas, ${allAttachments.length} imagens)`);
   }
 
   /**

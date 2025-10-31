@@ -141,13 +141,14 @@ export const curationStore = {
       throw new Error("Item not found or already processed");
     }
 
-    // Create document record in database
+    // Create document record in database WITH ATTACHMENTS
     const [newDoc] = await db.insert(documents).values({
       tenantId,
       title: item.title,
       content: item.content,
       source: "curation_approved",
       status: "indexed",
+      attachments: item.attachments || undefined, // Preserve multimodal attachments!
       metadata: {
         namespaces: item.suggestedNamespaces,
         tags: item.tags,
@@ -155,6 +156,11 @@ export const curationStore = {
         reviewedBy,
       } as any,
     } as any).returning();
+
+    // Log attachments being saved
+    if (item.attachments && item.attachments.length > 0) {
+      console.log(`[Curation] 📎 Salvando ${item.attachments.length} attachments junto com documento ${newDoc.id}`);
+    }
 
     // Index approved content into Knowledge Base vector store with namespace metadata
     await knowledgeIndexer.indexDocument(newDoc.id, newDoc.content, tenantId, {
