@@ -66,6 +66,33 @@ export function registerRoutes(app: Express): Server {
   registerGpuRoutes(app);
 
   // ========================================
+  // DATASET DOWNLOAD ENDPOINT
+  // ========================================
+  app.get("/api/datasets/:id/download", async (req, res) => {
+    try {
+      const datasetId = parseInt(req.params.id);
+      
+      const [dataset] = await db.select().from(datasets).where(eq(datasets.id, datasetId)).limit(1);
+      
+      if (!dataset) {
+        return res.status(404).json({ error: "Dataset not found" });
+      }
+      
+      // Resolver path absoluto (sendFile exige path absoluto)
+      const { resolve } = await import("path");
+      const absolutePath = resolve(dataset.storagePath);
+      
+      // Serve arquivo JSONL
+      res.setHeader("Content-Type", "application/jsonl");
+      res.setHeader("Content-Disposition", `attachment; filename="${dataset.originalFilename}"`);
+      res.sendFile(absolutePath);
+    } catch (error: any) {
+      console.error("[Dataset Download] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================
   // HEALTH CHECK ENDPOINTS (for multi-cloud deployment)
   // ========================================
   
@@ -255,7 +282,7 @@ export function registerRoutes(app: Express): Server {
       // 🧠 AUTO-EVOLUTION: Trigger auto-learning system
       // This creates the infinite learning loop: Chat → KB → Dataset → Training → Better Model
       try {
-        const { autoLearningListener } = await import('./training/auto-learning-listener');
+        const { autoLearningListener } = await import('./events/auto-learning-listener');
         const userMessage = messages[messages.length - 1]?.content || '';
         
         // Fire and forget - don't block response

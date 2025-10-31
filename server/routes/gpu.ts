@@ -14,8 +14,66 @@ export function registerGpuRoutes(app: Express) {
   console.log("[GPU Routes] Registering GPU Pool API routes...");
 
   /**
-   * POST /api/gpu/workers/register
-   * Register a new GPU worker (Colab, Kaggle, local, cloud)
+   * POST /api/gpu/register
+   * Register a new GPU worker from Colab/Kaggle notebook
+   */
+  app.post("/api/gpu/register", async (req: Request, res: Response) => {
+    console.log("[GPU Register] ✅ Worker registration request:", req.body);
+    try {
+      const { 
+        name, 
+        url, 
+        type, 
+        gpuType, 
+        platform, 
+        accountEmail, 
+        maxSessionHours, 
+        sessionStart,
+        capabilities 
+      } = req.body;
+
+      const workerData = {
+        tenantId: 1, // Single-tenant
+        provider: platform || type || "colab",
+        accountId: accountEmail || "unknown",
+        ngrokUrl: url || `http://temp-${Date.now()}.ngrok.io`,
+        capabilities: {
+          gpu: gpuType || "Tesla T4",
+          model: "TinyLlama-1.1B-Chat",
+          vram_gb: 15,
+          max_concurrent: 1,
+          capabilities: capabilities || ["training", "inference"],
+          metadata: {
+            workerName: name,
+            sessionStart: sessionStart,
+            maxSessionHours: maxSessionHours || 11.5,
+            platform: platform || type,
+          }
+        } as any,
+        status: "online",
+        lastHealthCheck: new Date(),
+      };
+
+      const [worker] = await db.insert(gpuWorkers).values(workerData).returning();
+
+      console.log(`[GPU Pool] 🎮 Worker online: ${name} (ID: ${worker.id}, ${gpuType})`);
+
+      res.json({ 
+        success: true, 
+        id: worker.id,
+        name: (worker.capabilities as any)?.metadata?.workerName,
+        url: worker.ngrokUrl,
+        status: worker.status,
+        gpuType: (worker.capabilities as any)?.gpu,
+      });
+    } catch (error: any) {
+      console.error("[GPU Pool] Registration error:", error);
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/gpu/workers/register (legacy endpoint for compatibility)
    */
   app.post("/api/gpu/workers/register", async (req: Request, res: Response) => {
     console.log("[GPU Register] ✅ REQUEST RECEIVED:", req.method, req.path, req.body);
@@ -267,5 +325,38 @@ export function registerGpuRoutes(app: Express) {
     }
   });
 
-  console.log("[GPU Routes] ✅ 8 GPU Pool routes registered successfully");
+  /**
+   * POST /api/gpu/shutdown
+   * Worker notifies shutdown (auto-shutdown or manual)
+   */
+  app.post("/api/gpu/shutdown", async (req: Request, res: Response) => {
+    try {
+      const { worker_name } = req.body;
+      
+      console.log(`[GPU Shutdown] Worker notified shutdown: ${worker_name}`);
+      
+      // Find worker by name in metadata
+      const workers = await db.select().from(gpuWorkers);
+      const worker = workers.find(w => (w.capabilities as any)?.metadata?.workerName === worker_name);
+      
+      if (worker) {
+        await db
+          .update(gpuWorkers)
+          .set({
+            status: "offline",
+            updatedAt: new Date(),
+          })
+          .where(eq(gpuWorkers.id, worker.id));
+        
+        console.log(`[GPU Shutdown] Worker ${worker.id} marked offline`);
+      }
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("[GPU Shutdown] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  console.log("[GPU Routes] ✅ 10 GPU Pool routes registered successfully");
 }

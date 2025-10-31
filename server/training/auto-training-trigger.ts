@@ -187,7 +187,7 @@ export class AutoTrainingTrigger {
 
       // Iniciar treino no worker
       await GPUPool.startTraining(worker.id, job.id, {
-        datasetPath: dataset.filepath,
+        datasetPath: String(dataset.datasetId), // Passar ID em vez de filepath
         modelName: this.defaultConfig.model,
         loraConfig: this.defaultConfig.lora,
         trainingArgs: this.defaultConfig.training,

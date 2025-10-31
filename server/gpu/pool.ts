@@ -176,12 +176,31 @@ export class GPUPool {
         return false;
       }
 
+      // Construir URL pública do dataset (acessível por workers remotos)
+      let baseUrl: string;
+      
+      if (process.env.REPLIT_DEV_DOMAIN) {
+        // Ambiente Replit (development ou deployment)
+        baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      } else if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+        // Fallback para formato antigo
+        baseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      } else {
+        // ERRO: sem domínio público configurado
+        throw new Error("Ambiente sem URL pública configurada. Workers remotos não conseguirão baixar datasets.");
+      }
+      
+      // datasetPath agora é o dataset ID (string)
+      const datasetUrl = `${baseUrl}/api/datasets/${request.datasetPath}/download`;
+      
+      console.log(`   📡 Dataset URL: ${datasetUrl}`);
+
       // Enviar job de treino
       const response = await axios.post(
         `${worker.ngrokUrl}/train`,
         {
           jobId,
-          dataset: request.datasetPath,
+          dataset: datasetUrl, // USAR URL EM VEZ DE PATH LOCAL
           model: request.modelName,
           lora: request.loraConfig,
           training: request.trainingArgs,
