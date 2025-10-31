@@ -286,6 +286,7 @@ export default function KnowledgeBaseTab() {
             <NamespaceSelector
               value={newNamespaces}
               onChange={setNewNamespaces}
+              allowWildcard={true}
             />
             
             <Textarea
@@ -420,6 +421,7 @@ export default function KnowledgeBaseTab() {
                         <NamespaceSelector
                           value={editNamespaces}
                           onChange={setEditNamespaces}
+                          allowWildcard={true}
                         />
                         
                         <Textarea
@@ -465,11 +467,11 @@ export default function KnowledgeBaseTab() {
                               {doc.metadata.namespaces.map((ns: string) => (
                                 <Badge 
                                   key={ns} 
-                                  variant="secondary"
+                                  variant={ns === "*" ? "default" : "secondary"}
                                   className="text-xs"
                                   data-testid={`badge-namespace-${ns}`}
                                 >
-                                  🏷️ {ns}
+                                  {ns === "*" ? "🌟 TODOS (Acesso Total)" : `🏷️ ${ns}`}
                                 </Badge>
                               ))}
                             </div>
