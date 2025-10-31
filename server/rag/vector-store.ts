@@ -62,7 +62,7 @@ export class VectorStore {
   /**
    * Index all embeddings for knowledge base
    */
-  async indexTenant(tenantId: number, limit: number = 10000): Promise<void> {
+  async indexTenant(limit: number = 10000): Promise<void> {
     console.log(`[VectorStore] Indexing knowledge base...`);
     
     const embeddings = await storage.getEmbeddings(limit);
@@ -307,7 +307,7 @@ export class RAGService {
   /**
    * Re-index entire knowledge base
    */
-  async reindexTenant(tenantId: number): Promise<void> {
+  async reindexTenant(): Promise<void> {
     console.log(`[RAG] Re-indexing knowledge base...`);
     
     // Clear existing vectors

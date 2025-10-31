@@ -46,7 +46,6 @@ export interface ChatMessage {
 
 export interface ChatCompletionOptions {
   messages: ChatMessage[];
-  tenantId: number;
   model?: string;
   temperature?: number;
   topP?: number;
@@ -121,7 +120,7 @@ class RateLimiter {
 
 export class LLMClient {
   private openai: OpenAI;
-  private rateLimiters: Map<number, RateLimiter> = new Map();
+  private rateLimiter: RateLimiter;
 
   constructor() {
     // Initialize OpenAI client
@@ -133,6 +132,10 @@ export class LLMClient {
       console.log("[LLM] ✓ OPENAI_API_KEY loaded successfully");
     }
     this.openai = new OpenAI({ apiKey });
+    
+    // Single global rate limiter (system is single-tenant)
+    // Default: 60 requests per minute = 1 request per second
+    this.rateLimiter = new RateLimiter(60, 1);
   }
 
   /**
@@ -140,10 +143,9 @@ export class LLMClient {
    * IMPORTANT: Includes FULL message history to avoid returning stale responses
    */
   private getCacheKey(options: ChatCompletionOptions): string {
-    const { messages, model, temperature, topP, tenantId } = options;
-    // Include tenant ID and FULL message array to ensure uniqueness
+    const { messages, model, temperature, topP } = options;
+    // Include FULL message array to ensure uniqueness
     const keyData = JSON.stringify({ 
-      tenantId,
       messages, 
       model, 
       temperature, 
@@ -179,14 +181,10 @@ export class LLMClient {
   }
 
   /**
-   * Get or create rate limiter for tenant
+   * Get global rate limiter (system is single-tenant)
    */
-  private getRateLimiter(tenantId: number): RateLimiter {
-    if (!this.rateLimiters.has(tenantId)) {
-      // Default: 60 requests per minute = 1 request per second
-      this.rateLimiters.set(tenantId, new RateLimiter(60, 1));
-    }
-    return this.rateLimiters.get(tenantId)!;
+  private getRateLimiter(): RateLimiter {
+    return this.rateLimiter;
   }
 
   /**
@@ -340,12 +338,12 @@ export class LLMClient {
     const cacheKey = this.getCacheKey(options);
     const cached = this.checkCache(cacheKey);
     if (cached) {
-      console.log(`[LLM] Cache hit for tenant ${options.tenantId}`);
+      console.log("[LLM] Cache hit");
       return cached;
     }
 
     // Rate limiting
-    const rateLimiter = this.getRateLimiter(options.tenantId);
+    const rateLimiter = this.getRateLimiter();
     await rateLimiter.acquire();
 
     // Default model and parameters
@@ -366,7 +364,7 @@ export class LLMClient {
       this.saveToCache(cacheKey, freeResult);
       
       // Record metrics (marca como free_api)
-      await this.recordMetrics(options.tenantId, "free_api", freeResult);
+      await this.recordMetrics("free_api", freeResult);
       
       console.log("[LLM] ✅ Resposta obtida via APIs GRATUITAS - OpenAI NÃO foi consultada! 🎉");
       
@@ -438,7 +436,7 @@ export class LLMClient {
       this.saveToCache(cacheKey, result);
 
       // Record metrics
-      await this.recordMetrics(options.tenantId, model, result);
+      await this.recordMetrics(model, result);
 
       console.log(`[LLM] ✅ Resposta obtida via OpenAI (custo: $${costUsd.toFixed(4)})`);
 
@@ -591,14 +589,12 @@ export class LLMClient {
    * Record metrics to database
    */
   private async recordMetrics(
-    tenantId: number,
     model: string,
     result: ChatCompletionResult
   ): Promise<void> {
     try {
       const metrics: InsertMetric[] = [
         {
-          tenantId,
           metricType: "latency",
           value: result.latencyMs,
           unit: "ms",
@@ -606,7 +602,6 @@ export class LLMClient {
           metadata: { model },
         },
         {
-          tenantId,
           metricType: "tokens",
           value: result.usage?.totalTokens || 0,
           unit: "tokens",
@@ -614,7 +609,6 @@ export class LLMClient {
           metadata: { model },
         },
         {
-          tenantId,
           metricType: "cost",
           value: result.costUsd,
           unit: "usd",
