@@ -117,7 +117,6 @@ export class HybridSearch {
   async rerankWithLLM(
     query: string,
     results: HybridSearchResult[],
-    tenantId: number,
     topK: number = 10
   ): Promise<HybridSearchResult[]> {
     if (results.length === 0) return [];
@@ -140,7 +139,6 @@ Respond with ONLY a number from 0-10:`;
 
         const response = await llmClient.chatCompletion({
           messages: [{ role: "user", content: prompt }],
-          tenantId,
           model: "gpt-3.5-turbo", // Use cheaper model for re-ranking
           temperature: 0,
           maxTokens: 5,

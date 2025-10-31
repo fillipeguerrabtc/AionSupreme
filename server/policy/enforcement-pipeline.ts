@@ -15,8 +15,8 @@ export class EnforcementPipeline {
    * Get policy or return DEFAULT UNRESTRICTED policy
    * NEVER throw error - system MUST work without configured policy
    */
-  async getOrCreateDefaultPolicy(tenantId: number): Promise<Policy> {
-    const policy = await storage.getPolicyByTenant(tenantId);
+  async getOrCreateDefaultPolicy(): Promise<Policy> {
+    const policy = await storage.getActivePolicy();
     
     if (policy) {
       return policy;
@@ -25,7 +25,7 @@ export class EnforcementPipeline {
     // Return DEFAULT UNRESTRICTED policy (all rules = false, no censorship)
     return {
       id: 0, // Virtual policy, not stored
-      tenantId,
+      tenantId: 1,
       policyName: "DEFAULT_UNRESTRICTED",
       rules: {
         hate_speech: false,

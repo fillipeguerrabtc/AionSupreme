@@ -4,24 +4,24 @@ import { eq, and } from "drizzle-orm";
 import { agents, tools, agentTools, traces } from "../shared/schema";
 
 export const agentsStorage = {
-  async listAgents(tenantId: number) {
-    return db.select().from(agents).where(eq(agents.tenantId, tenantId));
+  async listAgents() {
+    return db.select().from(agents);
   },
-  async getAgent(tenantId: number, id: string) {
-    const rows = await db.select().from(agents).where(and(eq(agents.tenantId, tenantId), eq(agents.id, id)));
+  async getAgent(id: string) {
+    const rows = await db.select().from(agents).where(eq(agents.id, id));
     return rows[0] || null;
   },
-  async createAgent(tenantId: number, data: any) {
-    const rows = await db.insert(agents).values({ ...data, tenantId }).returning();
+  async createAgent(data: any) {
+    const rows = await db.insert(agents).values(data).returning();
     return rows[0];
   },
-  async updateAgent(tenantId: number, id: string, data: any) {
-    const rows = await db.update(agents).set({ ...data, updatedAt: new Date() }).where(and(eq(agents.tenantId, tenantId), eq(agents.id, id))).returning();
+  async updateAgent(id: string, data: any) {
+    const rows = await db.update(agents).set({ ...data, updatedAt: new Date() }).where(eq(agents.id, id)).returning();
     return rows[0];
   },
-  async deleteAgent(tenantId: number, id: string) {
+  async deleteAgent(id: string) {
     // soft delete: enabled=false
-    const rows = await db.update(agents).set({ enabled: false, updatedAt: new Date() }).where(and(eq(agents.tenantId, tenantId), eq(agents.id, id))).returning();
+    const rows = await db.update(agents).set({ enabled: false, updatedAt: new Date() }).where(eq(agents.id, id)).returning();
     return rows[0];
   },
   
@@ -40,11 +40,11 @@ export const agentsStorage = {
     return rows;
   },
   
-  async assignTool(agentId: string, toolId: number, config?: any) {
-    await db.insert(agentTools).values({ agentId, toolId, config });
+  async assignTool(agentId: string, toolId: string) {
+    await db.insert(agentTools).values({ agentId, toolId });
   },
   
-  async removeTool(agentId: string, toolId: number) {
+  async removeTool(agentId: string, toolId: string) {
     await db.delete(agentTools).where(
       and(eq(agentTools.agentId, agentId), eq(agentTools.toolId, toolId))
     );
@@ -52,8 +52,8 @@ export const agentsStorage = {
 };
 
 export const toolsStorage = {
-  async listTools(tenantId: number) {
-    return db.select().from(tools).where(eq(tools.tenantId, tenantId));
+  async listTools() {
+    return db.select().from(tools);
   }
 };
 

@@ -1,26 +1,16 @@
 import { storage } from "./storage";
-import crypto from "crypto";
 
 /**
  * Seed database with initial data
- * Creates default tenant with unrestricted policy (system born completely free)
+ * Creates default unrestricted policy (system born completely free)
+ * SINGLE-TENANT: No tenant creation needed, tenantId defaults to 1
  */
 export async function seedDatabase() {
   try {
     console.log("🌱 Seeding database...");
 
-    // Create default tenant
-    const defaultTenant = await storage.createTenant({
-      name: "AION Default",
-      apiKey: crypto.randomBytes(32).toString("hex"),
-      jurisdiction: "US",
-    });
-
-    console.log(`✅ Created default tenant: ${defaultTenant.name} (API Key: ${defaultTenant.apiKey})`);
-
     // Create completely unrestricted policy (system born free, as per PDFs)
     const defaultPolicy = await storage.createPolicy({
-      tenantId: defaultTenant.id,
       policyName: "Default Policy - Unrestricted",
       
       // ALL rules set to FALSE = completely unrestricted by default
@@ -76,9 +66,8 @@ Provide helpful, direct, and complete responses to user questions.`,
     console.log(`   - Enabled tools: ${defaultPolicy.enabledTools.join(", ")}`);
 
     console.log("\n🎉 Database seeded successfully!");
-    console.log(`\n📋 Default API Key (save this): ${defaultTenant.apiKey}`);
     
-    return { tenant: defaultTenant, policy: defaultPolicy };
+    return { policy: defaultPolicy };
   } catch (error) {
     console.error("❌ Error seeding database:", error);
     throw error;

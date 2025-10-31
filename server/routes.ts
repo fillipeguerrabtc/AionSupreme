@@ -231,7 +231,6 @@ export function registerRoutes(app: Express): Server {
   // 🎯 PRIORITY ORDER: KB → Free APIs → Web → OpenAI
   app.post("/api/v1/chat/completions", async (req, res) => {
     const startTime = Date.now();
-    const tenantId = req.body.tenant_id || 1;
     
     try {
       const { messages } = req.body;
@@ -244,10 +243,10 @@ export function registerRoutes(app: Express): Server {
       })));
       
       // Record request metrics
-      metricsCollector.recordRequest(tenantId);
+      metricsCollector.recordRequest();
       
       // Get policy or use DEFAULT UNRESTRICTED (all rules = false)
-      const policy = await enforcementPipeline.getOrCreateDefaultPolicy(tenantId);
+      const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
       
       // Get last user message for language detection
       const lastUserMessage = messages[messages.length - 1]?.content || '';
@@ -266,7 +265,6 @@ export function registerRoutes(app: Express): Server {
       
       const result = await generateWithPriority({
         messages: fullMessages,
-        tenantId,
         temperature: policy.temperature,
         topP: policy.topP,
         unrestricted: isUnrestricted  // Auto-fallback when true
@@ -274,9 +272,9 @@ export function registerRoutes(app: Express): Server {
       
       // Record metrics
       const latency = Date.now() - startTime;
-      metricsCollector.recordLatency(tenantId, latency);
+      metricsCollector.recordLatency(latency);
       if (result.usage) {
-        metricsCollector.recordTokens(tenantId, result.usage.totalTokens);
+        metricsCollector.recordTokens(result.usage.totalTokens);
       }
       
       // 🧠 AUTO-EVOLUTION: Trigger auto-learning system
@@ -292,7 +290,6 @@ export function registerRoutes(app: Express): Server {
           assistantResponse: result.content,
           source: result.source as any,
           provider: result.provider,
-          tenantId,
         }).catch((err: any) => {
           console.error('[AutoLearning] Failed to process chat:', err.message);
         });
@@ -320,7 +317,7 @@ export function registerRoutes(app: Express): Server {
         }
       });
     } catch (error: any) {
-      metricsCollector.recordError(tenantId);
+      metricsCollector.recordError();
       res.status(500).json({ error: error.message });
     }
   });
@@ -331,18 +328,17 @@ export function registerRoutes(app: Express): Server {
     try {
       if (!req.file) throw new Error("No audio file uploaded");
       
-      const tenantId = parseInt(req.body.tenant_id || "1");
-      metricsCollector.recordRequest(tenantId);
+      metricsCollector.recordRequest();
       
       // Call OpenAI Whisper API
       const transcription = await llmClient.transcribeAudio(req.file.path);
       
       const latency = Date.now() - startTime;
-      metricsCollector.recordLatency(tenantId, latency);
+      metricsCollector.recordLatency(latency);
       
       res.json({ text: transcription });
     } catch (error: any) {
-      metricsCollector.recordError(parseInt(req.body.tenant_id || "1"));
+      metricsCollector.recordError();
       res.status(500).json({ error: error.message });
     }
   });
@@ -351,16 +347,15 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/v1/chat/multimodal", upload.array("files", 5), async (req, res) => {
     const startTime = Date.now();
     const parsedData = JSON.parse(req.body.data || "{}");
-    const tenantId = parsedData.tenant_id || 1;
     
     try {
       const { messages } = parsedData;
       const files = req.files as Express.Multer.File[];
       
-      metricsCollector.recordRequest(tenantId);
+      metricsCollector.recordRequest();
       
       // Get policy or use DEFAULT UNRESTRICTED (all rules = false)
-      const policy = await enforcementPipeline.getOrCreateDefaultPolicy(tenantId);
+      const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
       
       // Process all uploaded files
       let attachmentsContext = "";
@@ -391,12 +386,11 @@ export function registerRoutes(app: Express): Server {
       
       const result = await llmClient.chatCompletion({
         messages: fullMessages,
-        tenantId,
         temperature: policy.temperature,
         topP: policy.topP,
       });
       
-      const moderated = await enforcementPipeline.moderateOutput(result.content, policy, tenantId);
+      const moderated = await enforcementPipeline.moderateOutput(result.content, policy);
       
       // ⚡ AUTOMATIC FALLBACK: If OpenAI refused and system is UNRESTRICTED,
       // search web, index in KB, and respond without censorship
@@ -404,15 +398,14 @@ export function registerRoutes(app: Express): Server {
       const fallbackResult = await autoFallback.checkAndExecuteFallback(
         moderated,
         userMessage,
-        tenantId,
         policy
       );
       
       const finalContent = fallbackResult.content;
       
       const latency = Date.now() - startTime;
-      metricsCollector.recordLatency(tenantId, latency);
-      metricsCollector.recordTokens(tenantId, result.usage?.totalTokens || 0);
+      metricsCollector.recordLatency(latency);
+      metricsCollector.recordTokens(result.usage?.totalTokens || 0);
       
       res.json({
         choices: [{ 
@@ -430,7 +423,7 @@ export function registerRoutes(app: Express): Server {
         } : undefined,
       });
     } catch (error: any) {
-      metricsCollector.recordError(tenantId);
+      metricsCollector.recordError();
       res.status(500).json({ error: error.message });
     }
   });
@@ -441,7 +434,6 @@ export function registerRoutes(app: Express): Server {
     try {
       if (!req.file) throw new Error("No file uploaded");
       
-      const tenantId = parseInt(req.body.tenant_id || "1");
       const mimeType = fileProcessor.detectMimeType(req.file.originalname);
       
       const processed = await fileProcessor.processFile(req.file.path, mimeType);
@@ -450,7 +442,7 @@ export function registerRoutes(app: Express): Server {
       const { curationStore } = await import("./curation/store");
       
       // Add to curation queue instead of direct KB publish
-      const item = await curationStore.addToCuration(tenantId, {
+      const item = await curationStore.addToCuration({
         title: req.file.originalname,
         content: processed.extractedText,
         suggestedNamespaces: ["kb/ingest"],
@@ -475,8 +467,8 @@ export function registerRoutes(app: Express): Server {
   // POST /api/kb/search
   app.post("/api/kb/search", async (req, res) => {
     try {
-      const { query, k, tenant_id } = req.body;
-      const results = await ragService.search(query, tenant_id || 1, { k: k || 10 });
+      const { query, k } = req.body;
+      const results = await ragService.search(query, { k: k || 10 });
       res.json({ results });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -486,14 +478,14 @@ export function registerRoutes(app: Express): Server {
   // POST /api/agent/plan_act
   app.post("/api/agent/plan_act", async (req, res) => {
     try {
-      const { goal, tenant_id, conversation_id, message_id } = req.body;
+      const { goal, conversation_id, message_id } = req.body;
       
       const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
         name,
-        async (input: any) => fn({ ...input, tenantId: tenant_id || 1 }),
+        async (input: any) => fn(input),
       ]));
       
-      const result = await reactEngine.execute(goal, tenant_id || 1, conversation_id || 1, message_id || 1, tools);
+      const result = await reactEngine.execute(goal, conversation_id || 1, message_id || 1, tools);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -503,7 +495,7 @@ export function registerRoutes(app: Express): Server {
   // GET/POST /api/admin/policies/:tenant_id
   app.get("/api/admin/policies/:tenant_id", async (req, res) => {
     try {
-      const policy = await storage.getPolicyByTenant(parseInt(req.params.tenant_id));
+      const policy = await storage.getActivePolicy();
       res.json(policy || {});
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -512,14 +504,13 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/admin/policies/:tenant_id", async (req, res) => {
     try {
-      const tenantId = parseInt(req.params.tenant_id);
-      const existing = await storage.getPolicyByTenant(tenantId);
+      const existing = await storage.getActivePolicy();
       
       if (existing) {
         const updated = await storage.updatePolicy(existing.id, req.body);
         res.json(updated);
       } else {
-        const created = await storage.createPolicy({ ...req.body, tenantId });
+        const created = await storage.createPolicy(req.body);
         res.json(created);
       }
     } catch (error: any) {
@@ -530,14 +521,8 @@ export function registerRoutes(app: Express): Server {
   // GET /api/admin/settings/timezone/:tenant_id - Get tenant timezone
   app.get("/api/admin/settings/timezone/:tenant_id", async (req, res) => {
     try {
-      const tenantId = parseInt(req.params.tenant_id);
-      const tenant = await storage.getTenant(tenantId);
-      
-      if (!tenant) {
-        return res.status(404).json({ error: "Tenant not found" });
-      }
-      
-      res.json({ timezone: tenant.timezone || "America/Sao_Paulo" });
+      // Always return default timezone (tenant concept removed)
+      res.json({ timezone: "America/Sao_Paulo" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -546,7 +531,6 @@ export function registerRoutes(app: Express): Server {
   // POST /api/admin/settings/timezone/:tenant_id - Update tenant timezone
   app.post("/api/admin/settings/timezone/:tenant_id", async (req, res) => {
     try {
-      const tenantId = parseInt(req.params.tenant_id);
       const { timezone } = req.body;
       
       if (!timezone || typeof timezone !== 'string') {
@@ -560,8 +544,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid IANA timezone" });
       }
       
-      const updated = await storage.updateTenant(tenantId, { timezone });
-      res.json({ timezone: updated.timezone, success: true });
+      // Timezone setting is no longer persisted (tenant concept removed)
+      res.json({ timezone, success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -570,8 +554,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/metrics/realtime
   app.get("/api/metrics/realtime", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string || "1");
-      const metrics = await storage.getMetricsByTenant(tenantId, undefined, 100);
+      const metrics = await storage.getMetrics(undefined, 100);
       res.json({ metrics });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -611,10 +594,9 @@ export function registerRoutes(app: Express): Server {
   // POST /api/training/prepare - Preparar dataset de treino
   app.post("/api/training/prepare", async (req, res) => {
     try {
-      const { tenant_id, criteria } = req.body;
-      const tenantId = tenant_id || 1;
+      const { criteria } = req.body;
 
-      const result = await trainingDataCollector.prepareDataset(tenantId, criteria);
+      const result = await trainingDataCollector.prepareDataset(criteria);
       
       res.json({
         success: true,
@@ -630,10 +612,8 @@ export function registerRoutes(app: Express): Server {
   // GET /api/training/stats - Estatísticas de dados disponíveis
   app.get("/api/training/stats", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string || "1");
-      
       // Coletar dados sem exportar
-      const examples = await trainingDataCollector.collectTrainingData(tenantId);
+      const examples = await trainingDataCollector.collectTrainingData();
       const stats = await trainingDataCollector.generateStats(examples);
       const validation = await trainingDataCollector.validateDataset(examples);
 
@@ -653,8 +633,7 @@ export function registerRoutes(app: Express): Server {
   // POST /api/admin/index-pdfs (index all 7 technical PDFs)
   app.post("/api/admin/index-pdfs", async (req, res) => {
     try {
-      const tenantId = parseInt(req.body.tenant_id || "1");
-      const documentIds = await knowledgeIndexer.indexAllPDFs(tenantId);
+      const documentIds = await knowledgeIndexer.indexAllPDFs();
       res.json({ success: true, documentIds });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -665,12 +644,12 @@ export function registerRoutes(app: Express): Server {
   // KNOWLEDGE BASE MANAGEMENT
   // ============================================================================
 
-  // GET /api/admin/documents/:tenant_id - List APPROVED documents for a tenant
+  // GET /api/admin/documents/:tenant_id - List APPROVED documents
   // HITL FIX: Only show documents that passed human approval (status='indexed')
+  // Note: tenant_id path param preserved for compatibility but not used internally
   app.get("/api/admin/documents/:tenant_id", async (req, res) => {
     try {
-      const tenantId = parseInt(req.params.tenant_id);
-      const allDocs = await storage.getDocumentsByTenant(tenantId, 1000);
+      const allDocs = await storage.getDocuments(1000);
       
       // Filter to show ONLY approved documents (status='indexed')
       const approvedDocs = allDocs.filter(doc => doc.status === 'indexed');
@@ -1018,8 +997,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/documents (list documents)
   app.get("/api/documents", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string || "1");
-      const documents = await storage.getDocumentsByTenant(tenantId, 100);
+      const documents = await storage.getDocuments(100);
       res.json({ documents });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -1029,18 +1007,17 @@ export function registerRoutes(app: Express): Server {
   // POST /api/agent/hierarchical_plan (hierarchical planning)
   app.post("/api/agent/hierarchical_plan", async (req, res) => {
     try {
-      const { goal, tenant_id, conversation_id, message_id } = req.body;
+      const { goal, conversation_id, message_id } = req.body;
       
-      const plan = await hierarchicalPlanner.decomposeGoal(goal, tenant_id || 1);
+      const plan = await hierarchicalPlanner.decomposeGoal(goal);
       
       const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
         name,
-        async (input: any) => fn({ ...input, tenantId: tenant_id || 1 }),
+        async (input: any) => fn(input),
       ]));
       
       const result = await hierarchicalPlanner.executePlan(
         plan,
-        tenant_id || 1,
         conversation_id || 1,
         message_id || 1,
         tools
@@ -1059,15 +1036,13 @@ export function registerRoutes(app: Express): Server {
   // POST /api/generate/image - Generate image using DALL-E 3
   app.post("/api/generate/image", async (req, res) => {
     try {
-      const { prompt, size, quality, style, tenant_id, conversation_id } = req.body;
+      const { prompt, size, quality, style, conversation_id } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ error: "Prompt is required" });
       }
       
-      const tenantId = tenant_id || 1;
-      
-      console.log(`[API] Generating image for tenant ${tenantId}: "${prompt.slice(0, 60)}..."`);
+      console.log(`[API] Generating image: "${prompt.slice(0, 60)}..."`);
       
       // Generate image
       const result = await imageGenerator.generateImage({
@@ -1082,7 +1057,6 @@ export function registerRoutes(app: Express): Server {
       
       // Save to database
       const fileRecord = await storage.createGeneratedFile({
-        tenantId,
         conversationId: conversation_id || null,
         filename: path.basename(result.localPath),
         mimeType: "image/png",
@@ -1122,13 +1096,11 @@ export function registerRoutes(app: Express): Server {
   // POST /api/generate/text - Generate text file (code, markdown, etc)
   app.post("/api/generate/text", async (req, res) => {
     try {
-      const { content, filename, language, tenant_id, conversation_id } = req.body;
+      const { content, filename, language, conversation_id } = req.body;
       
       if (!content || !filename) {
         return res.status(400).json({ error: "Content and filename are required" });
       }
-      
-      const tenantId = tenant_id || 1;
       
       // Save to local storage
       const storageDir = path.join(process.cwd(), "server", "generated");
@@ -1155,7 +1127,6 @@ export function registerRoutes(app: Express): Server {
       const mimeType = mimeTypes[ext] || "text/plain";
       
       const fileRecord = await storage.createGeneratedFile({
-        tenantId,
         conversationId: conversation_id || null,
         filename,
         mimeType,
@@ -1253,15 +1224,12 @@ export function registerRoutes(app: Express): Server {
         audio,
         voiceId,
         model,
-        tenant_id,
         conversation_id,
       } = req.body;
       
       if (!prompt) {
         return res.status(400).json({ error: "Prompt is required" });
       }
-      
-      const tenantId = tenant_id || 1;
       
       const result = await videoGenerator.submitVideoJob({
         prompt,
@@ -1273,7 +1241,6 @@ export function registerRoutes(app: Express): Server {
         audio,
         voiceId,
         model,
-        tenantId,
         conversationId: conversation_id,
       });
       
@@ -1452,15 +1419,13 @@ export function registerRoutes(app: Express): Server {
   // POST /api/conversations - Create new conversation
   app.post("/api/conversations", optionalAuth, async (req, res) => {
     try {
-      const { tenant_id, title } = req.body;
-      const tenantId = tenant_id || 1;
+      const { title } = req.body;
       const user = req.user as any;
       
       // Get userId if authenticated
       const userId = req.isAuthenticated() && user?.claims?.sub ? user.claims.sub : null;
       
       const conversation = await storage.createConversation({
-        tenantId,
         userId: userId || undefined,
         title: title || "New Conversation",
       });
@@ -1589,7 +1554,7 @@ export function registerRoutes(app: Express): Server {
             const existing = await storage.getTrainingDataCollectionByConversation(conversationId);
             
             if (!existing) {
-              // Get conversation for tenantId
+              // Get conversation
               const conversation = await storage.getConversation(conversationId);
               if (conversation) {
                 // Convert to training format
@@ -1599,7 +1564,6 @@ export function registerRoutes(app: Express): Server {
                 // Create training data collection entry
                 await storage.createTrainingDataCollection({
                   conversationId,
-                  tenantId: conversation.tenantId,
                   autoQualityScore: metrics.score,
                   status: "pending",
                   formattedData,
@@ -1845,7 +1809,6 @@ export function registerRoutes(app: Express): Server {
   // POST /api/agent/chat - Agent-powered chat with automatic tool usage
   app.post("/api/agent/chat", async (req, res) => {
     const startTime = Date.now();
-    const tenantId = req.body.tenant_id || 1;
     
     try {
       const { messages, maxIterations } = req.body;
@@ -1857,7 +1820,7 @@ export function registerRoutes(app: Express): Server {
       console.log(`[Agent Chat] Starting ReAct cycle with ${messages.length} messages`);
       
       // Get policy
-      const policy = await enforcementPipeline.getOrCreateDefaultPolicy(tenantId);
+      const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
       
       // Get last user message
       const lastUserMessage = messages[messages.length - 1]?.content || '';
@@ -1875,7 +1838,6 @@ export function registerRoutes(app: Express): Server {
             role: m.role,
             content: m.content
           })),
-          tenantId,
           temperature: 0.7,
           topP: 0.9,
           maxTokens: 4000,
@@ -1886,7 +1848,7 @@ export function registerRoutes(app: Express): Server {
         const orchestratorResult = await generateWithPriority(orchestratorRequest);
         
         const latency = Date.now() - startTime;
-        metricsCollector.recordLatency(tenantId, latency);
+        metricsCollector.recordLatency(latency);
         
         return res.json({
           choices: [{ 
@@ -1906,7 +1868,7 @@ export function registerRoutes(app: Express): Server {
       // Create tools Map
       const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
         name,
-        async (input: any) => fn({ ...input, tenantId }),
+        async (input: any) => fn(input),
       ]));
       
       // Configure max iterations
@@ -1915,7 +1877,6 @@ export function registerRoutes(app: Express): Server {
       // Run ReAct agent (needs conversationId and messageId for tracking)
       const result = await reactEngine.execute(
         lastUserMessage,
-        tenantId,
         1, // conversationId (temporary, can be enhanced later)
         1, // messageId (temporary)
         tools
@@ -1949,14 +1910,13 @@ export function registerRoutes(app: Express): Server {
       const fallbackResult = await autoFallback.checkAndExecuteFallback(
         agentResponse,
         lastUserMessage,
-        tenantId,
         policy
       );
       
       const finalContent = fallbackResult.content;
       const latency = Date.now() - startTime;
       
-      metricsCollector.recordLatency(tenantId, latency);
+      metricsCollector.recordLatency(latency);
       
       res.json({
         choices: [{ 
@@ -1979,7 +1939,7 @@ export function registerRoutes(app: Express): Server {
         } : undefined,
       });
     } catch (error: any) {
-      metricsCollector.recordError(tenantId);
+      metricsCollector.recordError();
       console.error('[Agent Chat] Error:', error);
       res.status(500).json({ error: error.message });
     }
@@ -2042,11 +2002,7 @@ export function registerRoutes(app: Express): Server {
       const { trainingJobs } = await import("../shared/schema");
       const { desc } = await import("drizzle-orm");
       
-      const tenantId = parseInt(req.query.tenantId as string) || 1;
-      const { eq } = await import("drizzle-orm");
-      
       const jobs = await db.query.trainingJobs.findMany({
-        where: eq(trainingJobs.tenantId, tenantId),
         orderBy: [desc(trainingJobs.createdAt)],
       });
       
@@ -2246,17 +2202,16 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const { name, description, datasetType, tenantId, userId } = req.body;
+      const { name, description, datasetType, userId } = req.body;
 
-      if (!name || !datasetType || !tenantId) {
+      if (!name || !datasetType) {
         return res.status(400).json({
-          error: "Missing required fields: name, datasetType, tenantId",
+          error: "Missing required fields: name, datasetType",
         });
       }
 
       // Process the dataset
       const result = await DatasetProcessor.processDataset({
-        tenantId: parseInt(tenantId),
         userId: userId || undefined,
         name,
         description,
@@ -2292,26 +2247,18 @@ export function registerRoutes(app: Express): Server {
     try {
       const { db } = await import("./db");
       const { datasets, trainingDataCollection } = await import("../shared/schema");
-      const { eq, desc } = await import("drizzle-orm");
-
-      const tenantId = parseInt(req.query.tenantId as string) || 1;
-
-      if (isNaN(tenantId)) {
-        return res.status(400).json({ error: "Invalid tenantId" });
-      }
+      const { desc } = await import("drizzle-orm");
 
       // Buscar datasets compilados (.jsonl files)
       const compiledDatasets = await db
         .select()
         .from(datasets)
-        .where(eq(datasets.tenantId, tenantId))
         .orderBy(desc(datasets.createdAt));
 
       // Buscar dados de treinamento individuais (approved)
       const trainingData = await db
         .select()
         .from(trainingDataCollection)
-        .where(eq(trainingDataCollection.tenantId, tenantId))
         .orderBy(desc(trainingDataCollection.createdAt));
 
       // Calcular estatísticas
@@ -2584,12 +2531,11 @@ export function registerRoutes(app: Express): Server {
     try {
       const { db } = await import("./db");
       const { datasets, trainingDataCollection } = await import("../shared/schema");
-      const { eq, and, gte } = await import("drizzle-orm");
+      const { and, gte, eq } = await import("drizzle-orm");
       const fs = await import('fs/promises');
       const path = await import('path');
 
-      const { tenantId, mode, minScore } = req.body;
-      const tenant = tenantId || 1;
+      const { mode, minScore } = req.body;
       const scoreThreshold = minScore || (mode === 'kb-high-quality' ? 80 : 60);
 
       // Get high-quality conversations from KB
@@ -2598,7 +2544,6 @@ export function registerRoutes(app: Express): Server {
         .from(trainingDataCollection)
         .where(
           and(
-            eq(trainingDataCollection.tenantId, tenant),
             gte(trainingDataCollection.autoQualityScore, scoreThreshold),
             eq(trainingDataCollection.status, "approved")
           )
@@ -2647,7 +2592,6 @@ export function registerRoutes(app: Express): Server {
       const [savedDataset] = await db
         .insert(datasets)
         .values({
-          tenantId: tenant,
           userId: null, // KB-generated datasets are system-owned (no specific user)
           name: datasetName,
           description: `Auto-generated from ${conversations.length} high-quality KB conversations (score ≥ ${scoreThreshold})`,
@@ -2726,7 +2670,6 @@ export function registerRoutes(app: Express): Server {
       // Create training data collection entry
       const trainingData = await storage.createTrainingDataCollection({
         conversationId,
-        tenantId: conversation.tenantId,
         autoQualityScore: metrics.score,
         status: ConversationCollector.shouldCollect(metrics) ? "pending" : "rejected",
         formattedData,
@@ -2755,70 +2698,49 @@ export function registerRoutes(app: Express): Server {
   // GET /api/training/auto-evolution/stats - Get auto-evolution statistics
   app.get("/api/training/auto-evolution/stats", async (req, res) => {
     try {
-      const tenantId = 1; // TODO: Get from auth
-
       // Total conversations collected
       const totalConversationsResult = await db
         .select({ count: sql<number>`count(*)::int` })
-        .from(trainingDataCollection)
-        .where(eq(trainingDataCollection.tenantId, tenantId));
+        .from(trainingDataCollection);
       const totalConversations = totalConversationsResult[0]?.count || 0;
 
       // High-quality conversations (score >= 60)
       const highQualityResult = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(trainingDataCollection)
-        .where(
-          and(
-            eq(trainingDataCollection.tenantId, tenantId),
-            gte(trainingDataCollection.autoQualityScore, 60)
-          )
-        );
+        .where(gte(trainingDataCollection.autoQualityScore, 60));
       const highQualityConversations = highQualityResult[0]?.count || 0;
 
       // Average quality score
       const avgScoreResult = await db
         .select({ avg: sql<number>`avg(${trainingDataCollection.autoQualityScore})::numeric` })
-        .from(trainingDataCollection)
-        .where(eq(trainingDataCollection.tenantId, tenantId));
+        .from(trainingDataCollection);
       const avgQualityScore = parseFloat(String(avgScoreResult[0]?.avg || 0));
 
       // Datasets generated from KB (check description for "Auto-generated")
       const kbDatasetsResult = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(datasets)
-        .where(
-          and(
-            eq(datasets.tenantId, tenantId),
-            sql`${datasets.description} LIKE '%Auto-generated%KB%'`
-          )
-        );
+        .where(sql`${datasets.description} LIKE '%Auto-generated%KB%'`);
       const kbGeneratedDatasets = kbDatasetsResult[0]?.count || 0;
 
       // Total datasets
       const totalDatasetsResult = await db
         .select({ count: sql<number>`count(*)::int` })
-        .from(datasets)
-        .where(eq(datasets.tenantId, tenantId));
+        .from(datasets);
       const totalDatasets = totalDatasetsResult[0]?.count || 0;
 
       // Training jobs completed
       const completedJobsResult = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(trainingJobs)
-        .where(
-          and(
-            eq(trainingJobs.tenantId, tenantId),
-            eq(trainingJobs.status, 'completed')
-          )
-        );
+        .where(eq(trainingJobs.status, 'completed'));
       const completedJobs = completedJobsResult[0]?.count || 0;
 
       // Total training jobs
       const totalJobsResult = await db
         .select({ count: sql<number>`count(*)::int` })
-        .from(trainingJobs)
-        .where(eq(trainingJobs.tenantId, tenantId));
+        .from(trainingJobs);
       const totalJobs = totalJobsResult[0]?.count || 0;
 
       // Timeline data - conversations collected over time (last 30 days)
@@ -2832,12 +2754,7 @@ export function registerRoutes(app: Express): Server {
           avgScore: sql<number>`avg(${trainingDataCollection.autoQualityScore})::numeric`
         })
         .from(trainingDataCollection)
-        .where(
-          and(
-            eq(trainingDataCollection.tenantId, tenantId),
-            gte(trainingDataCollection.createdAt, thirtyDaysAgo)
-          )
-        )
+        .where(gte(trainingDataCollection.createdAt, thirtyDaysAgo))
         .groupBy(sql`DATE(${trainingDataCollection.createdAt})`)
         .orderBy(sql`DATE(${trainingDataCollection.createdAt})`);
 
@@ -2884,11 +2801,10 @@ export function registerRoutes(app: Express): Server {
   // GET /api/training-data - List collected training data
   app.get("/api/training-data", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenantId as string) || 1;
       const status = req.query.status as string | undefined;
       const limit = parseInt(req.query.limit as string) || 100;
 
-      const data = await storage.getTrainingDataCollectionByTenant(tenantId, status, limit);
+      const data = await storage.getAllTrainingDataCollection(status, limit);
 
       res.json({ trainingData: data });
     } catch (error: any) {
@@ -3246,8 +3162,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/summary - Get token usage summary for all providers
   app.get("/api/tokens/summary", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string) || 1;
-      const summary = await tokenTracker.getUsageSummary(tenantId);
+      const summary = await tokenTracker.getUsageSummary();
       res.json(summary);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3257,8 +3172,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/quotas - Get free API quotas and remaining capacity
   app.get("/api/tokens/quotas", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string) || 1;
-      const quotas = await tokenTracker.getProviderQuotas(tenantId);
+      const quotas = await tokenTracker.getProviderQuotas();
       res.json(quotas);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3268,7 +3182,6 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/trends - Get historical token usage trends
   app.get("/api/tokens/trends", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string) || 1;
       const provider = req.query.provider as string | null;
       
       // Map period to days
@@ -3293,7 +3206,7 @@ export function registerRoutes(app: Express): Server {
       
       if (breakdown) {
         // Return data with provider breakdown
-        const trends = await tokenTracker.getTokenTrendsWithProviders(tenantId, days, startDate, endDate);
+        const trends = await tokenTracker.getTokenTrendsWithProviders(days, startDate, endDate);
         res.json({
           daily: trends,
           period_days: days,
@@ -3303,7 +3216,7 @@ export function registerRoutes(app: Express): Server {
         });
       } else {
         // Return aggregated data
-        const trends = await tokenTracker.getTokenTrends(tenantId, provider, days, startDate, endDate);
+        const trends = await tokenTracker.getTokenTrends(provider, days, startDate, endDate);
         res.json({
           daily: trends,
           period_days: days,
@@ -3320,8 +3233,8 @@ export function registerRoutes(app: Express): Server {
   // POST /api/tokens/limits - Set token limits for a provider
   app.post("/api/tokens/limits", async (req, res) => {
     try {
-      const { tenantId, provider, limits } = req.body;
-      await tokenTracker.setTokenLimit(tenantId || 1, provider, limits);
+      const { provider, limits } = req.body;
+      await tokenTracker.setTokenLimit(provider, limits);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3331,8 +3244,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/alerts - Get unacknowledged alerts
   app.get("/api/tokens/alerts", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string) || 1;
-      const alerts = await tokenTracker.getUnacknowledgedAlerts(tenantId);
+      const alerts = await tokenTracker.getUnacknowledgedAlerts();
       res.json(alerts);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3353,11 +3265,10 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/web-search-history - Get web/deepweb search history with sources
   app.get("/api/tokens/web-search-history", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string) || 1;
       const provider = (req.query.provider as 'web' | 'deepweb' | 'both') || 'both';
       const limit = parseInt(req.query.limit as string) || 100;
       
-      const history = await tokenTracker.getWebSearchHistory(tenantId, provider, limit);
+      const history = await tokenTracker.getWebSearchHistory(provider, limit);
       res.json(history);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3367,8 +3278,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/web-search-stats - Get web/deepweb search statistics
   app.get("/api/tokens/web-search-stats", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string) || 1;
-      const stats = await tokenTracker.getWebSearchStats(tenantId);
+      const stats = await tokenTracker.getWebSearchStats();
       res.json(stats);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3378,10 +3288,9 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/kb-history - Get Knowledge Base search history
   app.get("/api/tokens/kb-history", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string) || 1;
       const limit = parseInt(req.query.limit as string) || 100;
       
-      const history = await tokenTracker.getKBSearchHistory(tenantId, limit);
+      const history = await tokenTracker.getKBSearchHistory(limit);
       res.json(history);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3391,10 +3300,9 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/complete-history - Get complete token usage history (all providers)
   app.get("/api/tokens/complete-history", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string) || 1;
       const limit = parseInt(req.query.limit as string) || 500; // Default to last 500 records
       
-      const history = await tokenTracker.getCompleteTokenHistory(tenantId, limit);
+      const history = await tokenTracker.getCompleteTokenHistory(limit);
       res.json(history);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3404,10 +3312,9 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/cost-history - Get complete cost history with breakdown
   app.get("/api/tokens/cost-history", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string) || 1;
       const limit = parseInt(req.query.limit as string) || 500;
       
-      const costHistory = await tokenTracker.getCostHistory(tenantId, limit);
+      const costHistory = await tokenTracker.getCostHistory(limit);
       res.json(costHistory);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3417,11 +3324,10 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/free-apis-history - Get Free APIs usage history
   app.get("/api/tokens/free-apis-history", async (req, res) => {
     try {
-      const tenantId = parseInt(req.query.tenant_id as string) || 1;
       const provider = req.query.provider as 'groq' | 'gemini' | 'huggingface' | 'openrouter' | undefined;
       const limit = parseInt(req.query.limit as string) || 100;
       
-      const history = await tokenTracker.getFreeAPIsHistory(tenantId, provider, limit);
+      const history = await tokenTracker.getFreeAPIsHistory(provider, limit);
       res.json(history);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3435,10 +3341,10 @@ export function registerRoutes(app: Express): Server {
   // POST /api/policy/detect-violation - Detect policy violations
   app.post("/api/policy/detect-violation", async (req, res) => {
     try {
-      const { text, tenantId } = req.body;
+      const { text } = req.body;
       const { enforcePolicy } = await import("./policy/enforcement");
       
-      const result = await enforcePolicy(text, tenantId);
+      const result = await enforcePolicy(text);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

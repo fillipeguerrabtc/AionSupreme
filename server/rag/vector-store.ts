@@ -40,7 +40,7 @@ export class VectorStore {
    * Index embeddings for a document
    * As per PDFs: Normalized vectors ê_{i,j}=e_{i,j}/||e_{i,j}||
    */
-  async indexDocument(documentId: number, tenantId: number): Promise<void> {
+  async indexDocument(documentId: number): Promise<void> {
     console.log(`[VectorStore] Indexing document ${documentId}...`);
     
     // Get all embeddings for this document
@@ -60,12 +60,12 @@ export class VectorStore {
   }
 
   /**
-   * Index all embeddings for a tenant
+   * Index all embeddings for knowledge base
    */
   async indexTenant(tenantId: number, limit: number = 10000): Promise<void> {
-    console.log(`[VectorStore] Indexing tenant ${tenantId}...`);
+    console.log(`[VectorStore] Indexing knowledge base...`);
     
-    const embeddings = await storage.getEmbeddingsByTenant(tenantId, limit);
+    const embeddings = await storage.getEmbeddings(limit);
     
     for (const emb of embeddings) {
       this.vectors.set(emb.id, emb.embedding as number[]);
@@ -76,7 +76,7 @@ export class VectorStore {
       });
     }
     
-    console.log(`[VectorStore] Indexed ${embeddings.length} embeddings for tenant ${tenantId}`);
+    console.log(`[VectorStore] Indexed ${embeddings.length} embeddings`);
   }
 
   /**
@@ -86,7 +86,6 @@ export class VectorStore {
    */
   async search(
     queryEmbedding: number[],
-    tenantId: number,
     k: number = 10,
     filter?: { documentId?: number; namespaces?: string[] }
   ): Promise<SearchResult[]> {
@@ -201,7 +200,6 @@ export class RAGService {
   async indexDocument(
     documentId: number,
     text: string,
-    tenantId: number,
     metadata?: Record<string, any>
   ): Promise<void> {
     console.log(`[RAG] Indexing document ${documentId}...`);
@@ -214,7 +212,7 @@ export class RAGService {
     
     try {
       // Process document (chunk + embed)
-      const results = await embedder.processDocument(text, tenantId, {
+      const results = await embedder.processDocument(text, {
         maxChunkSize: 512,
         overlapSize: 128,
         metadata,
@@ -223,7 +221,6 @@ export class RAGService {
       // Save embeddings to database
       const embeddingRecords = results.map((result, idx) => ({
         documentId,
-        tenantId,
         chunkIndex: idx,
         chunkText: result.chunk.text,
         chunkTokens: result.chunk.tokens,
@@ -235,7 +232,7 @@ export class RAGService {
       await storage.createEmbeddingsBatch(embeddingRecords);
       
       // Index in vector store
-      await vectorStore.indexDocument(documentId, tenantId);
+      await vectorStore.indexDocument(documentId);
       
       // Update document status
       await storage.updateDocument(documentId, {
@@ -262,7 +259,6 @@ export class RAGService {
    */
   async search(
     query: string,
-    tenantId: number,
     options: {
       k?: number;
       documentId?: number;
@@ -273,14 +269,12 @@ export class RAGService {
     
     // Generate query embedding
     const [queryEmbedding] = await embedder.generateEmbeddings(
-      [{ text: query, index: 0, tokens: Math.ceil(query.length / 4) }],
-      tenantId
+      [{ text: query, index: 0, tokens: Math.ceil(query.length / 4) }]
     );
     
     // Search vector store with namespace filtering
     const results = await vectorStore.search(
       queryEmbedding.embedding,
-      tenantId,
       k,
       {
         documentId: options.documentId,
@@ -311,16 +305,16 @@ export class RAGService {
   }
 
   /**
-   * Re-index entire tenant knowledge base
+   * Re-index entire knowledge base
    */
   async reindexTenant(tenantId: number): Promise<void> {
-    console.log(`[RAG] Re-indexing tenant ${tenantId}...`);
+    console.log(`[RAG] Re-indexing knowledge base...`);
     
     // Clear existing vectors
     vectorStore.clear();
     
     // Get all documents
-    const documents = await storage.getDocumentsByTenant(tenantId, 10000);
+    const documents = await storage.getDocuments(10000);
     
     let indexed = 0;
     let failed = 0;
@@ -328,7 +322,7 @@ export class RAGService {
     for (const doc of documents) {
       if (doc.status === "indexed" && doc.extractedText) {
         try {
-          await this.indexDocument(doc.id, doc.extractedText, tenantId, doc.metadata || undefined);
+          await this.indexDocument(doc.id, doc.extractedText, doc.metadata || undefined);
           indexed++;
         } catch (error) {
           console.error(`[RAG] Failed to re-index document ${doc.id}:`, error);

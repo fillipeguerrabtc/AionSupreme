@@ -109,8 +109,7 @@ export class KnowledgeIndexer {
    * Index a single PDF
    */
   async indexPDF(
-    pdfMetadata: PDFMetadata,
-    tenantId: number
+    pdfMetadata: PDFMetadata
   ): Promise<number> {
     const filePath = path.join(process.cwd(), "attached_assets", pdfMetadata.filename);
     
@@ -130,7 +129,6 @@ export class KnowledgeIndexer {
     
     // Create document record
     const document = await storage.createDocument({
-      tenantId,
       filename: pdfMetadata.filename,
       mimeType: "application/pdf",
       size: (await fs.stat(filePath)).size,
@@ -145,7 +143,7 @@ export class KnowledgeIndexer {
     });
     
     // Index with RAG service
-    await ragService.indexDocument(document.id, text, tenantId, {
+    await ragService.indexDocument(document.id, text, {
       part: pdfMetadata.part,
       section: pdfMetadata.description,
     });
@@ -159,8 +157,8 @@ export class KnowledgeIndexer {
    * Index all 7 technical PDFs
    * This is the complete knowledge base required by the system
    */
-  async indexAllPDFs(tenantId: number): Promise<number[]> {
-    console.log(`[KnowledgeIndexer] 📚 Indexing ALL 7 technical PDFs for tenant ${tenantId}...`);
+  async indexAllPDFs(): Promise<number[]> {
+    console.log(`[KnowledgeIndexer] 📚 Indexing ALL 7 technical PDFs...`);
     console.log(`[KnowledgeIndexer] Total PDFs: ${TECHNICAL_PDFS.length}`);
     
     const documentIds: number[] = [];
@@ -169,7 +167,7 @@ export class KnowledgeIndexer {
     
     for (const pdfMeta of TECHNICAL_PDFS) {
       try {
-        const docId = await this.indexPDF(pdfMeta, tenantId);
+        const docId = await this.indexPDF(pdfMeta);
         documentIds.push(docId);
         succeeded++;
       } catch (error: any) {
@@ -191,7 +189,6 @@ export class KnowledgeIndexer {
    */
   async searchKnowledge(
     query: string,
-    tenantId: number,
     options: {
       k?: number;
       part?: string; // Filter by specific part
@@ -202,7 +199,7 @@ export class KnowledgeIndexer {
     score: number;
     citationId: string;
   }>> {
-    const results = await ragService.search(query, tenantId, {
+    const results = await ragService.search(query, {
       k: options.k || 10,
     });
     
@@ -234,25 +231,30 @@ export class KnowledgeIndexer {
   async indexDocument(
     documentId: number, 
     content: string, 
-    tenantId: number,
     metadata?: Record<string, any>
   ): Promise<void> {
     console.log(`[KnowledgeIndexer] Indexing document ${documentId}...`);
-    await ragService.indexDocument(documentId, content, tenantId, metadata || {});
+    await ragService.indexDocument(documentId, content, metadata || {});
     console.log(`[KnowledgeIndexer] ✅ Document ${documentId} indexed`);
   }
 
   /**
    * Re-index a document (delete old embeddings and create new ones)
    */
-  async reIndexDocument(documentId: number, content: string, tenantId: number): Promise<void> {
+  async reIndexDocument(documentId: number): Promise<void> {
     console.log(`[KnowledgeIndexer] Re-indexing document ${documentId}...`);
     
     // Delete existing embeddings for this document
     await storage.deleteEmbeddingsByDocument(documentId);
     
-    // Re-index with new content
-    await ragService.indexDocument(documentId, content, tenantId, {});
+    // Get document to re-index
+    const doc = await storage.getDocument(documentId);
+    if (!doc || !doc.extractedText) {
+      throw new Error(`Document ${documentId} not found or has no extracted text`);
+    }
+    
+    // Re-index with existing content
+    await ragService.indexDocument(documentId, doc.extractedText, doc.metadata || {});
     
     console.log(`[KnowledgeIndexer] ✅ Document ${documentId} re-indexed`);
   }

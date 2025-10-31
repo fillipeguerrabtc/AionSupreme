@@ -65,7 +65,7 @@ export type Tenant = typeof tenants.$inferSelect;
 // ============================================================================
 export const policies = pgTable("policies", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   policyName: text("policy_name").notNull(),
   
   // Rules configuration (boolean flags for each category)
@@ -161,7 +161,7 @@ export type ProjectFile = typeof projectFiles.$inferSelect;
 // ============================================================================
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   userId: varchar("user_id").references(() => users.id), // Optional: null for anonymous sessions
   projectId: integer("project_id").references(() => projects.id), // Optional: link to project
   title: text("title").notNull().default("New Conversation"),
@@ -224,7 +224,7 @@ export type Message = typeof messages.$inferSelect;
 // ============================================================================
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Universal fields for all document types
   title: text("title").notNull().default("Untitled"), // Title/filename
@@ -294,7 +294,7 @@ export type Document = typeof documents.$inferSelect;
 export const embeddings = pgTable("embeddings", {
   id: serial("id").primaryKey(),
   documentId: integer("document_id").notNull().references(() => documents.id),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Chunk information
   chunkIndex: integer("chunk_index").notNull(),
@@ -363,7 +363,7 @@ export type ToolExecution = typeof toolExecutions.$inferSelect;
 // ============================================================================
 export const metrics = pgTable("metrics", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Metric type
   metricType: text("metric_type").notNull(), // "latency" | "tokens" | "cost" | "cache" | "error"
@@ -402,7 +402,7 @@ export type Metric = typeof metrics.$inferSelect;
 // ============================================================================
 export const generatedFiles = pgTable("generated_files", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   conversationId: integer("conversation_id").references(() => conversations.id),
   
   // File information
@@ -446,7 +446,7 @@ export type GeneratedFile = typeof generatedFiles.$inferSelect;
 // ============================================================================
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Event information
   eventType: text("event_type").notNull(), // "policy_change" | "message_sent" | "tool_executed" | "document_uploaded"
@@ -483,7 +483,7 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 // ============================================================================
 export const knowledgeSources = pgTable("knowledge_sources", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Source information
   sourceType: text("source_type").notNull(), // "web_scrape" | "api" | "upload" | "manual"
@@ -522,7 +522,7 @@ export type KnowledgeSource = typeof knowledgeSources.$inferSelect;
 // ============================================================================
 export const videoJobs = pgTable("video_jobs", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   conversationId: integer("conversation_id").references(() => conversations.id),
   
   // Job specification
@@ -577,7 +577,7 @@ export type VideoJob = typeof videoJobs.$inferSelect;
 // ============================================================================
 export const videoAssets = pgTable("video_assets", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   jobId: integer("job_id").references(() => videoJobs.id),
   
   // File information
@@ -630,7 +630,7 @@ export type VideoAsset = typeof videoAssets.$inferSelect;
 // ============================================================================
 export const tokenUsage = pgTable("token_usage", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // API Provider
   provider: text("provider").notNull(), // "groq" | "gemini" | "huggingface" | "openrouter" | "openai" | "kb" | "web" | "deepweb"
@@ -677,7 +677,7 @@ export type TokenUsage = typeof tokenUsage.$inferSelect;
 // ============================================================================
 export const tokenLimits = pgTable("token_limits", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Provider
   provider: text("provider").notNull(), // "groq" | "gemini" | "huggingface" | "openrouter" | "openai" | "all"
@@ -708,7 +708,7 @@ export type TokenLimit = typeof tokenLimits.$inferSelect;
 // ============================================================================
 export const tokenAlerts = pgTable("token_alerts", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   provider: text("provider").notNull(),
   alertType: text("alert_type").notNull(), // "threshold_reached" | "limit_exceeded" | "daily_reset"
@@ -736,7 +736,7 @@ export type TokenAlert = typeof tokenAlerts.$inferSelect;
 // ============================================================================
 export const gpuWorkers = pgTable("gpu_workers", {
   id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id).default(1),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Provider and identification
   provider: text("provider").notNull(), // "colab" | "kaggle" | "modal" | "paperspace" | "lightning"
@@ -795,7 +795,7 @@ export const trainingJobs = pgTable("training_jobs", {
   // Job identification
   name: text("name").notNull(),
   description: text("description"),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Model configuration
   modelType: text("model_type").notNull(), // "llama-3-8b" | "mistral-7b" | "phi-3"
@@ -992,7 +992,7 @@ export const datasets = pgTable("datasets", {
   id: serial("id").primaryKey(),
   
   // Ownership
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   userId: varchar("user_id").references(() => users.id),
   
   // Dataset metadata
@@ -1054,7 +1054,7 @@ export const trainingDataCollection = pgTable("training_data_collection", {
   
   // Source conversation (nullable for standalone training examples)
   conversationId: integer("conversation_id").references(() => conversations.id),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Quality metrics
   rating: integer("rating"), // 1-5 stars (optional user feedback)
@@ -1118,7 +1118,7 @@ export type TrainingDataCollection = typeof trainingDataCollection.$inferSelect;
  */
 export const agents = pgTable("agents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   name: varchar("name", { length: 120 }).notNull(),
   slug: varchar("slug", { length: 120 }).notNull(),
   type: varchar("type", { length: 32 }).notNull().default("specialist"), // specialist|generalist|router-only
@@ -1162,7 +1162,7 @@ export type Agent = typeof agents.$inferSelect;
  */
 export const tools = pgTable("tools", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   name: varchar("name", { length: 120 }).notNull(),
   slug: varchar("slug", { length: 120 }).notNull(),
   type: varchar("type", { length: 64 }).notNull(), // "whatsapp"|"crm"|"catalog"|"payments"|"calendar"|"web_search"|...
@@ -1195,7 +1195,7 @@ export const agentTools = pgTable("agent_tools", {
 // ============================================================================
 export const namespaces = pgTable("namespaces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   name: varchar("name", { length: 255 }).notNull().unique(), // e.g., "financas/investimentos"
   displayName: varchar("display_name", { length: 255 }), // Friendly name for UI
   description: text("description"),
@@ -1224,7 +1224,7 @@ export type Namespace = typeof namespaces.$inferSelect;
  */
 export const curationQueue = pgTable("curation_queue", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   title: text("title").notNull(),
   content: text("content").notNull(),
   suggestedNamespaces: jsonb("suggested_namespaces").$type<string[]>().notNull().default([]),
@@ -1271,7 +1271,7 @@ export type CurationQueue = typeof curationQueue.$inferSelect;
  */
 export const traces = pgTable("traces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: integer("tenant_id").notNull().references(() => tenants.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   sessionId: varchar("session_id").notNull(),
   userQuery: text("user_query").notNull(),
   routerDecision: jsonb("router_decision").$type<{

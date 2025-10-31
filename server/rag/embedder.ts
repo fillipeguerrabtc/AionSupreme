@@ -134,12 +134,12 @@ export class Embedder {
    * As per PDFs: Similarity cos(q,d)=E(q)·E(d)/(||E(q)||||E(d)||)
    * Returns normalized embeddings
    */
-  async generateEmbeddings(chunks: TextChunk[], tenantId: number): Promise<Array<{ chunk: TextChunk; embedding: number[] }>> {
+  async generateEmbeddings(chunks: TextChunk[]): Promise<Array<{ chunk: TextChunk; embedding: number[] }>> {
     // Extract text from chunks
     const texts = chunks.map(c => c.text);
     
     // Generate embeddings via LLM client
-    const rawEmbeddings = await llmClient.generateEmbeddings(texts, tenantId);
+    const rawEmbeddings = await llmClient.generateEmbeddings(texts);
     
     // Normalize embeddings: ê = e/||e||
     const normalizedEmbeddings = rawEmbeddings.map(embedding => this.normalize(embedding));
@@ -179,7 +179,6 @@ export class Embedder {
    */
   async processDocument(
     text: string,
-    tenantId: number,
     options: ChunkOptions & { metadata?: Record<string, any> } = {}
   ): Promise<Array<{ chunk: TextChunk; embedding: number[] }>> {
     // Chunk text
@@ -193,7 +192,7 @@ export class Embedder {
     }
     
     // Generate embeddings
-    const results = await this.generateEmbeddings(chunks, tenantId);
+    const results = await this.generateEmbeddings(chunks);
     
     console.log(`[Embedder] Processed document: ${chunks.length} chunks`);
     

@@ -32,22 +32,16 @@ export interface IStorage {
   createUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, data: Partial<UpsertUser>): Promise<User>;
   
-  // Tenants
-  getTenant(id: number): Promise<Tenant | undefined>;
-  getTenantByApiKey(apiKey: string): Promise<Tenant | undefined>;
-  createTenant(tenant: InsertTenant): Promise<Tenant>;
-  updateTenant(id: number, data: Partial<InsertTenant>): Promise<Tenant>;
-  
   // Policies
   getPolicy(id: number): Promise<Policy | undefined>;
-  getPolicyByTenant(tenantId: number): Promise<Policy | undefined>;
+  getActivePolicy(): Promise<Policy | undefined>;
   createPolicy(policy: InsertPolicy): Promise<Policy>;
   updatePolicy(id: number, data: Partial<InsertPolicy>): Promise<Policy>;
   deletePolicy(id: number): Promise<void>;
   
   // Conversations
   getConversation(id: number): Promise<Conversation | undefined>;
-  getConversationsByTenant(tenantId: number, limit?: number): Promise<Conversation[]>;
+  getConversations(limit?: number): Promise<Conversation[]>;
   getConversationsByUser(userId: string, limit?: number): Promise<Conversation[]>;
   getConversationsWithMessageCount(userId: string, limit?: number): Promise<Array<Conversation & { messagesCount: number }>>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
@@ -63,7 +57,7 @@ export interface IStorage {
   
   // Documents
   getDocument(id: number): Promise<Document | undefined>;
-  getDocumentsByTenant(tenantId: number, limit?: number): Promise<Document[]>;
+  getDocuments(limit?: number): Promise<Document[]>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: number, data: Partial<InsertDocument>): Promise<Document>;
   deleteDocument(id: number): Promise<void>;
@@ -71,7 +65,7 @@ export interface IStorage {
   // Embeddings
   getEmbedding(id: number): Promise<Embedding | undefined>;
   getEmbeddingsByDocument(documentId: number): Promise<Embedding[]>;
-  getEmbeddingsByTenant(tenantId: number, limit?: number): Promise<Embedding[]>;
+  getEmbeddings(limit?: number): Promise<Embedding[]>;
   createEmbedding(embedding: InsertEmbedding): Promise<Embedding>;
   createEmbeddingsBatch(embeddings: InsertEmbedding[]): Promise<Embedding[]>;
   deleteEmbeddingsByDocument(documentId: number): Promise<void>;
@@ -83,19 +77,19 @@ export interface IStorage {
   
   // Metrics
   getMetric(id: number): Promise<Metric | undefined>;
-  getMetricsByTenant(tenantId: number, metricType?: string, limit?: number): Promise<Metric[]>;
-  getMetricsByTimeRange(tenantId: number, startTime: Date, endTime: Date): Promise<Metric[]>;
+  getMetrics(metricType?: string, limit?: number): Promise<Metric[]>;
+  getMetricsByTimeRange(startTime: Date, endTime: Date): Promise<Metric[]>;
   createMetric(metric: InsertMetric): Promise<Metric>;
   createMetricsBatch(metrics: InsertMetric[]): Promise<Metric[]>;
   
   // Audit Logs
   getAuditLog(id: number): Promise<AuditLog | undefined>;
-  getAuditLogsByTenant(tenantId: number, limit?: number): Promise<AuditLog[]>;
+  getAuditLogs(limit?: number): Promise<AuditLog[]>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   
   // Knowledge Sources
   getKnowledgeSource(id: number): Promise<KnowledgeSource | undefined>;
-  getKnowledgeSourcesByTenant(tenantId: number): Promise<KnowledgeSource[]>;
+  getKnowledgeSources(): Promise<KnowledgeSource[]>;
   getActiveKnowledgeSources(): Promise<KnowledgeSource[]>;
   createKnowledgeSource(source: InsertKnowledgeSource): Promise<KnowledgeSource>;
   updateKnowledgeSource(id: number, data: Partial<InsertKnowledgeSource>): Promise<KnowledgeSource>;
@@ -110,7 +104,7 @@ export interface IStorage {
   
   // Video Jobs
   getVideoJob(id: number): Promise<VideoJob | undefined>;
-  getVideoJobsByTenant(tenantId: number, limit?: number): Promise<VideoJob[]>;
+  getVideoJobs(limit?: number): Promise<VideoJob[]>;
   getPendingVideoJobs(): Promise<VideoJob[]>;
   createVideoJob(job: InsertVideoJob): Promise<VideoJob>;
   updateVideoJob(id: number, data: Partial<InsertVideoJob>): Promise<VideoJob>;
@@ -118,7 +112,7 @@ export interface IStorage {
   // Video Assets
   getVideoAsset(id: number): Promise<VideoAsset | undefined>;
   getVideoAssetByJobId(jobId: number): Promise<VideoAsset | undefined>;
-  getVideoAssetsByTenant(tenantId: number, limit?: number): Promise<VideoAsset[]>;
+  getVideoAssets(limit?: number): Promise<VideoAsset[]>;
   createVideoAsset(asset: InsertVideoAsset): Promise<VideoAsset>;
   markVideoAssetAsDeleted(id: number): Promise<void>;
   getExpiredVideoAssets(): Promise<VideoAsset[]>;
@@ -138,7 +132,7 @@ export interface IStorage {
   
   // Training Data Collection (auto-evolution from conversations)
   getTrainingDataCollection(id: number): Promise<TrainingDataCollection | undefined>;
-  getTrainingDataCollectionByTenant(tenantId: number, status?: string, limit?: number): Promise<TrainingDataCollection[]>;
+  getAllTrainingDataCollection(status?: string, limit?: number): Promise<TrainingDataCollection[]>;
   getTrainingDataCollectionByConversation(conversationId: number): Promise<TrainingDataCollection | undefined>;
   createTrainingDataCollection(data: InsertTrainingDataCollection): Promise<TrainingDataCollection>;
   updateTrainingDataCollection(id: number, data: Partial<InsertTrainingDataCollection>): Promise<TrainingDataCollection>;
@@ -196,32 +190,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   // --------------------------------------------------------------------------
-  // TENANTS
-  // --------------------------------------------------------------------------
-  async getTenant(id: number): Promise<Tenant | undefined> {
-    const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id));
-    return tenant;
-  }
-
-  async getTenantByApiKey(apiKey: string): Promise<Tenant | undefined> {
-    const [tenant] = await db.select().from(tenants).where(eq(tenants.apiKey, apiKey));
-    return tenant;
-  }
-
-  async createTenant(tenant: InsertTenant): Promise<Tenant> {
-    const [created] = await db.insert(tenants).values(tenant).returning();
-    return created;
-  }
-
-  async updateTenant(id: number, data: Partial<InsertTenant>): Promise<Tenant> {
-    const [updated] = await db.update(tenants)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(tenants.id, id))
-      .returning();
-    return updated;
-  }
-
-  // --------------------------------------------------------------------------
   // POLICIES
   // --------------------------------------------------------------------------
   async getPolicy(id: number): Promise<Policy | undefined> {
@@ -229,9 +197,9 @@ export class DatabaseStorage implements IStorage {
     return policy;
   }
 
-  async getPolicyByTenant(tenantId: number): Promise<Policy | undefined> {
+  async getActivePolicy(): Promise<Policy | undefined> {
     const [policy] = await db.select().from(policies)
-      .where(and(eq(policies.tenantId, tenantId), eq(policies.isActive, true)))
+      .where(eq(policies.isActive, true))
       .orderBy(desc(policies.createdAt));
     return policy;
   }
@@ -261,9 +229,8 @@ export class DatabaseStorage implements IStorage {
     return conversation;
   }
 
-  async getConversationsByTenant(tenantId: number, limit: number = 50): Promise<Conversation[]> {
+  async getConversations(limit: number = 50): Promise<Conversation[]> {
     return db.select().from(conversations)
-      .where(eq(conversations.tenantId, tenantId))
       .orderBy(desc(conversations.updatedAt))
       .limit(limit);
   }
@@ -279,7 +246,13 @@ export class DatabaseStorage implements IStorage {
     // Efficient SQL query with LEFT JOIN and COUNT
     const results = await db
       .select({
-        ...conversations,
+        id: conversations.id,
+        tenantId: conversations.tenantId,
+        userId: conversations.userId,
+        projectId: conversations.projectId,
+        title: conversations.title,
+        createdAt: conversations.createdAt,
+        updatedAt: conversations.updatedAt,
         messagesCount: sql<number>`COUNT(${messages.id})::int`
       })
       .from(conversations)
@@ -353,9 +326,8 @@ export class DatabaseStorage implements IStorage {
     return document;
   }
 
-  async getDocumentsByTenant(tenantId: number, limit: number = 100): Promise<Document[]> {
+  async getDocuments(limit: number = 100): Promise<Document[]> {
     return db.select().from(documents)
-      .where(eq(documents.tenantId, tenantId))
       .orderBy(desc(documents.createdAt))
       .limit(limit);
   }
@@ -401,14 +373,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(embeddings.chunkIndex);
   }
 
-  async getEmbeddingsByTenant(tenantId: number, limit: number = 1000): Promise<Embedding[]> {
+  async getEmbeddings(limit: number = 1000): Promise<Embedding[]> {
     // HITL FIX: Only return embeddings for approved documents (status='indexed')
     // Join with documents table to filter by status
     const approvedDocs = await db.query.documents.findMany({
-      where: and(
-        eq(documents.tenantId, tenantId),
-        eq(documents.status, 'indexed')
-      ),
+      where: eq(documents.status, 'indexed'),
     });
     
     const approvedDocIds = approvedDocs.map(d => d.id);
@@ -419,10 +388,7 @@ export class DatabaseStorage implements IStorage {
     
     return db.select().from(embeddings)
       .where(
-        and(
-          eq(embeddings.tenantId, tenantId),
-          sql`${embeddings.documentId} IN (${sql.join(approvedDocIds.map(id => sql`${id}`), sql`, `)})`
-        )
+        sql`${embeddings.documentId} IN (${sql.join(approvedDocIds.map(id => sql`${id}`), sql`, `)})` 
       )
       .limit(limit);
   }
@@ -468,21 +434,21 @@ export class DatabaseStorage implements IStorage {
     return metric;
   }
 
-  async getMetricsByTenant(tenantId: number, metricType?: string, limit: number = 1000): Promise<Metric[]> {
-    const conditions = [eq(metrics.tenantId, tenantId)];
+  async getMetrics(metricType?: string, limit: number = 1000): Promise<Metric[]> {
     if (metricType) {
-      conditions.push(eq(metrics.metricType, metricType));
+      return db.select().from(metrics)
+        .where(eq(metrics.metricType, metricType))
+        .orderBy(desc(metrics.timestamp))
+        .limit(limit);
     }
     return db.select().from(metrics)
-      .where(and(...conditions))
       .orderBy(desc(metrics.timestamp))
       .limit(limit);
   }
 
-  async getMetricsByTimeRange(tenantId: number, startTime: Date, endTime: Date): Promise<Metric[]> {
+  async getMetricsByTimeRange(startTime: Date, endTime: Date): Promise<Metric[]> {
     return db.select().from(metrics)
       .where(and(
-        eq(metrics.tenantId, tenantId),
         gte(metrics.timestamp, startTime),
         lte(metrics.timestamp, endTime)
       ))
@@ -507,9 +473,8 @@ export class DatabaseStorage implements IStorage {
     return log;
   }
 
-  async getAuditLogsByTenant(tenantId: number, limit: number = 100): Promise<AuditLog[]> {
+  async getAuditLogs(limit: number = 100): Promise<AuditLog[]> {
     return db.select().from(auditLogs)
-      .where(eq(auditLogs.tenantId, tenantId))
       .orderBy(desc(auditLogs.timestamp))
       .limit(limit);
   }
@@ -527,9 +492,8 @@ export class DatabaseStorage implements IStorage {
     return source;
   }
 
-  async getKnowledgeSourcesByTenant(tenantId: number): Promise<KnowledgeSource[]> {
+  async getKnowledgeSources(): Promise<KnowledgeSource[]> {
     return db.select().from(knowledgeSources)
-      .where(eq(knowledgeSources.tenantId, tenantId))
       .orderBy(desc(knowledgeSources.createdAt));
   }
 
@@ -596,9 +560,8 @@ export class DatabaseStorage implements IStorage {
     return job;
   }
 
-  async getVideoJobsByTenant(tenantId: number, limit: number = 50): Promise<VideoJob[]> {
+  async getVideoJobs(limit: number = 50): Promise<VideoJob[]> {
     return db.select().from(videoJobs)
-      .where(eq(videoJobs.tenantId, tenantId))
       .orderBy(desc(videoJobs.createdAt))
       .limit(limit);
   }
@@ -635,9 +598,9 @@ export class DatabaseStorage implements IStorage {
     return asset;
   }
 
-  async getVideoAssetsByTenant(tenantId: number, limit: number = 50): Promise<VideoAsset[]> {
+  async getVideoAssets(limit: number = 50): Promise<VideoAsset[]> {
     return db.select().from(videoAssets)
-      .where(and(eq(videoAssets.tenantId, tenantId), eq(videoAssets.isDeleted, false)))
+      .where(eq(videoAssets.isDeleted, false))
       .orderBy(desc(videoAssets.createdAt))
       .limit(limit);
   }
@@ -723,27 +686,20 @@ export class DatabaseStorage implements IStorage {
     return record;
   }
 
-  async getTrainingDataCollectionByTenant(
-    tenantId: number,
+  async getAllTrainingDataCollection(
     status?: string,
     limit: number = 100
   ): Promise<TrainingDataCollection[]> {
-    let query = db.select().from(trainingDataCollection)
-      .where(eq(trainingDataCollection.tenantId, tenantId))
-      .orderBy(desc(trainingDataCollection.createdAt))
-      .limit(limit);
-    
     if (status) {
-      query = db.select().from(trainingDataCollection)
-        .where(and(
-          eq(trainingDataCollection.tenantId, tenantId),
-          eq(trainingDataCollection.status, status)
-        ))
+      return db.select().from(trainingDataCollection)
+        .where(eq(trainingDataCollection.status, status))
         .orderBy(desc(trainingDataCollection.createdAt))
         .limit(limit);
     }
     
-    return query;
+    return db.select().from(trainingDataCollection)
+      .orderBy(desc(trainingDataCollection.createdAt))
+      .limit(limit);
   }
 
   async getTrainingDataCollectionByConversation(conversationId: number): Promise<TrainingDataCollection | undefined> {

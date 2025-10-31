@@ -528,7 +528,7 @@ export class LLMClient {
    * 
    * 🚀 NOVO: Fallback para HuggingFace (grátis)
    */
-  async generateEmbeddings(texts: string[], tenantId: number): Promise<number[][]> {
+  async generateEmbeddings(texts: string[]): Promise<number[][]> {
     const startTime = Date.now();
     
     try {
@@ -542,7 +542,6 @@ export class LLMClient {
 
       // Record metrics
       await storage.createMetric({
-        tenantId,
         metricType: "tokens",
         value: response.usage.total_tokens,
         unit: "tokens",
@@ -553,7 +552,6 @@ export class LLMClient {
       });
 
       await storage.createMetric({
-        tenantId,
         metricType: "latency",
         value: latencyMs,
         unit: "ms",
@@ -572,7 +570,6 @@ export class LLMClient {
         const latencyMs = Date.now() - startTime;
         
         await storage.createMetric({
-          tenantId,
           metricType: "latency",
           value: latencyMs,
           unit: "ms",
