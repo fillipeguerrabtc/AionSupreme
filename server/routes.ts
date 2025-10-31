@@ -2406,6 +2406,50 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // PATCH /api/training/datasets/:id - Update dataset metadata
+  app.patch("/api/training/datasets/:id", async (req, res) => {
+    try {
+      const { db } = await import("./db");
+      const { datasets } = await import("../shared/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const id = parseInt(req.params.id);
+      const { name, description } = req.body;
+
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid dataset ID" });
+      }
+
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Name is required" });
+      }
+
+      const [dataset] = await db
+        .select()
+        .from(datasets)
+        .where(eq(datasets.id, id))
+        .limit(1);
+
+      if (!dataset) {
+        return res.status(404).json({ error: "Dataset not found" });
+      }
+
+      // Update dataset
+      const [updated] = await db
+        .update(datasets)
+        .set({
+          name: name.trim(),
+          description: description?.trim() || null,
+        })
+        .where(eq(datasets.id, id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // DELETE /api/training/datasets/:id - Delete dataset
   app.delete("/api/training/datasets/:id", async (req, res) => {
     try {

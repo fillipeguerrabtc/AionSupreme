@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,6 +56,7 @@ export default function NamespacesPage() {
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedNamespace, setSelectedNamespace] = useState<Namespace | null>(null);
+  const [deleteNamespaceId, setDeleteNamespaceId] = useState<string | null>(null);
   
   // Create form state
   const [createName, setCreateName] = useState("");
@@ -323,9 +334,10 @@ export default function NamespacesPage() {
     }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Tem certeza que deseja excluir este namespace?")) {
-      deleteMutation.mutate(id);
+  const handleDeleteConfirm = () => {
+    if (deleteNamespaceId) {
+      deleteMutation.mutate(deleteNamespaceId);
+      setDeleteNamespaceId(null);
     }
   };
 
@@ -558,7 +570,7 @@ export default function NamespacesPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleDelete(namespace.id!)}
+                              onClick={() => setDeleteNamespaceId(namespace.id!)}
                               data-testid={`button-delete-${namespace.id}`}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -698,6 +710,29 @@ export default function NamespacesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteNamespaceId} onOpenChange={(open) => !open && setDeleteNamespaceId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este namespace? Esta ação não pode ser desfeita.
+              Todo o conteúdo associado a este namespace permanecerá na Knowledge Base, mas não será mais filtrado por este namespace.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

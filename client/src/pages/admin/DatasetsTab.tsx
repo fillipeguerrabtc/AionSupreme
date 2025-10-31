@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
@@ -47,6 +49,7 @@ import {
   Upload,
   Download,
   Trash2,
+  Edit,
   Eye,
   FileText,
   BarChart3,
@@ -85,6 +88,9 @@ export default function DatasetsTab() {
   const [sortBy, setSortBy] = useState<"name" | "date" | "size" | "examples">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [previewDataset, setPreviewDataset] = useState<Dataset | null>(null);
+  const [editDataset, setEditDataset] = useState<Dataset | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [deleteDatasetId, setDeleteDatasetId] = useState<number | null>(null);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
 
@@ -122,6 +128,33 @@ export default function DatasetsTab() {
     queryFn: async () => {
       const res = await apiRequest(`/api/training/datasets/${previewDataset!.id}/preview`);
       return res.json();
+    },
+  });
+
+  // Update dataset mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { name: string; description?: string } }) => {
+      const res = await apiRequest(`/api/training/datasets/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
+      toast({
+        title: "Dataset atualizado",
+        description: "Dataset atualizado com sucesso",
+      });
+      setEditDataset(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar dataset",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -642,6 +675,20 @@ export default function DatasetsTab() {
                               <Button
                                 variant="outline"
                                 size="icon"
+                                onClick={() => {
+                                  setEditDataset(dataset);
+                                  setEditName(dataset.name);
+                                  setEditDescription(dataset.description || "");
+                                }}
+                                className="glass border-primary/30"
+                                data-testid={`button-edit-${dataset.id}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="icon"
                                 onClick={() => downloadDataset(dataset)}
                                 className="glass border-primary/30"
                                 data-testid={`button-download-${dataset.id}`}
@@ -710,6 +757,73 @@ export default function DatasetsTab() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPreviewDataset(null)}>
               Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dataset Dialog */}
+      <Dialog open={!!editDataset} onOpenChange={(open) => !open && setEditDataset(null)}>
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto glass-premium">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-5 h-5 text-primary" />
+              Editar Dataset
+            </DialogTitle>
+            <DialogDescription>
+              Atualize as informações do dataset
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Nome do Dataset</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Nome do dataset"
+                data-testid="input-edit-dataset-name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Descrição</Label>
+              <Textarea
+                id="edit-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Descrição do dataset (opcional)"
+                rows={3}
+                data-testid="textarea-edit-dataset-description"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditDataset(null)}
+              data-testid="button-cancel-edit"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (editDataset) {
+                  updateMutation.mutate({
+                    id: editDataset.id,
+                    data: {
+                      name: editName,
+                      description: editDescription || undefined,
+                    },
+                  });
+                }
+              }}
+              disabled={updateMutation.isPending || !editName.trim()}
+              data-testid="button-confirm-edit"
+            >
+              {updateMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>

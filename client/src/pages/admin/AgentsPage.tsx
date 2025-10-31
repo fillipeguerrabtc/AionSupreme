@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +54,7 @@ export default function AgentsPage() {
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [deleteAgentId, setDeleteAgentId] = useState<string | null>(null);
   
   // Create form state
   const [createName, setCreateName] = useState("");
@@ -329,8 +340,7 @@ export default function AgentsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => deleteMutation.mutate(agent.id)}
-                          disabled={deleteMutation.isPending}
+                          onClick={() => setDeleteAgentId(agent.id)}
                           data-testid={`button-delete-${agent.id}`}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -425,6 +435,34 @@ export default function AgentsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteAgentId} onOpenChange={(open) => !open && setDeleteAgentId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este agente? Esta ação não pode ser desfeita.
+              O agente será removido permanentemente do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteAgentId) {
+                  deleteMutation.mutate(deleteAgentId);
+                  setDeleteAgentId(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -5,6 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Upload, 
@@ -41,6 +51,7 @@ export default function KnowledgeBaseTab() {
   const [editContent, setEditContent] = useState("");
   const [editNamespaces, setEditNamespaces] = useState<string[]>([]);
   const [newNamespaces, setNewNamespaces] = useState<string[]>([]);
+  const [deleteDocId, setDeleteDocId] = useState<number | null>(null);
 
   // Fetch tenant timezone for dynamic date formatting
   const { data: tenantTimezone } = useQuery<{ timezone: string }>({
@@ -503,11 +514,7 @@ export default function KnowledgeBaseTab() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => {
-                              if (window.confirm(t.admin.knowledgeBase.documents.confirmDelete)) {
-                                deleteDocMutation.mutate(doc.id);
-                              }
-                            }}
+                            onClick={() => setDeleteDocId(doc.id)}
                             data-testid={`button-delete-${doc.id}`}
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
@@ -522,6 +529,33 @@ export default function KnowledgeBaseTab() {
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteDocId} onOpenChange={(open) => !open && setDeleteDocId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteDocId) {
+                  deleteDocMutation.mutate(deleteDocId);
+                  setDeleteDocId(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
