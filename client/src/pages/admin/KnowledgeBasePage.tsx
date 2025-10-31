@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Upload, 
@@ -421,10 +422,10 @@ export default function KnowledgeBasePage() {
                           />
                           
                           {/* Display namespaces (read-only for now) */}
-                          {doc.metadata?.namespaces && doc.metadata.namespaces.length > 0 && (
+                          {(doc.metadata as any)?.namespaces && (doc.metadata as any).namespaces.length > 0 && (
                             <div className="flex flex-wrap gap-2">
                               <span className="text-sm text-muted-foreground">Namespaces:</span>
-                              {doc.metadata.namespaces.map((ns: string, idx: number) => (
+                              {(doc.metadata as any).namespaces.map((ns: string, idx: number) => (
                                 <Badge key={idx} variant="secondary" className="text-xs">
                                   {ns}
                                 </Badge>
@@ -470,11 +471,11 @@ export default function KnowledgeBasePage() {
                                 <span>•</span>
                                 <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
                               </div>
-                              {doc.metadata?.namespaces && doc.metadata.namespaces.length > 0 && (
+                              {(doc.metadata as any)?.namespaces && (doc.metadata as any).namespaces.length > 0 && (
                                 <>
                                   <span className="text-xs text-muted-foreground">•</span>
                                   <div className="flex gap-1">
-                                    {doc.metadata.namespaces.map((ns: string, idx: number) => (
+                                    {(doc.metadata as any).namespaces.map((ns: string, idx: number) => (
                                       <Badge key={idx} variant="outline" className="text-xs h-5">
                                         {ns}
                                       </Badge>
