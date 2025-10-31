@@ -433,6 +433,10 @@ export default function KnowledgeBasePage() {
                     >
                       {editingDoc === doc.id ? (
                         <div className="space-y-3">
+                          <div className="p-2 bg-green-500 text-white text-sm">
+                            🟢 MODO DE EDIÇÃO ATIVO - Doc ID: {doc.id}
+                          </div>
+                          
                           <Input
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
@@ -441,7 +445,10 @@ export default function KnowledgeBasePage() {
                           />
                           
                           {/* Namespace Selector - MOVIDO PARA CIMA! */}
-                          <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                          <div className="space-y-2 p-3 bg-yellow-200 border-4 border-red-500">
+                            <div className="text-red-600 font-bold text-lg">
+                              🚨 TESTE: NamespaceSelector deveria aparecer AQUI! 🚨
+                            </div>
                             <label className="text-sm font-semibold text-primary">
                               🏷️ Namespaces (Multi-Agentes):
                             </label>
