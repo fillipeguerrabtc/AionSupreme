@@ -61,13 +61,13 @@ export default function GPUManagementTab() {
   });
 
   const workers: GpuWorker[] = (gpuData as any)?.workers || [];
-  const stats: PoolStats = (gpuData as any)?.stats || {
-    total: 0,
-    healthy: 0,
-    unhealthy: 0,
-    offline: 0,
-    totalRequests: 0,
-    averageLatencyMs: 0,
+  const stats: PoolStats = {
+    total: (gpuData as any)?.total || 0,
+    healthy: (gpuData as any)?.healthy || 0,
+    unhealthy: (gpuData as any)?.unhealthy || 0,
+    offline: (gpuData as any)?.offline || 0,
+    totalRequests: (gpuData as any)?.totalRequests || 0,
+    averageLatencyMs: (gpuData as any)?.avgLatency || 0,
   };
 
   // Delete GPU worker mutation

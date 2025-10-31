@@ -602,27 +602,27 @@ export default function AdminDashboard() {
               <div className="space-y-2 mt-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Total:</span>
-                  <span className="font-bold">{gpuData?.stats?.total || 0}</span>
+                  <span className="font-bold">{gpuData?.total || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-green-400">Healthy:</span>
-                  <span className="font-bold text-green-400">{gpuData?.stats?.healthy || 0}</span>
+                  <span className="font-bold text-green-400">{gpuData?.healthy || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-yellow-400">Unhealthy:</span>
-                  <span className="font-bold text-yellow-400">{gpuData?.stats?.unhealthy || 0}</span>
+                  <span className="font-bold text-yellow-400">{gpuData?.unhealthy || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-red-400">Offline:</span>
-                  <span className="font-bold text-red-400">{gpuData?.stats?.offline || 0}</span>
+                  <span className="font-bold text-red-400">{gpuData?.offline || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Requests:</span>
-                  <span className="font-bold">{gpuData?.stats?.totalRequests || 0}</span>
+                  <span className="font-bold">{gpuData?.totalRequests || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Avg Latency:</span>
-                  <span className="font-bold">{(gpuData?.stats?.averageLatencyMs || 0).toFixed(0)}ms</span>
+                  <span className="font-bold">{(gpuData?.avgLatency || 0).toFixed(0)}ms</span>
                 </div>
               </div>
             </CardHeader>
