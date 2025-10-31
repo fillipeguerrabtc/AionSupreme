@@ -500,7 +500,6 @@ export default function NamespacesPage() {
                     <TableHead className="whitespace-nowrap">Descrição</TableHead>
                     <TableHead className="whitespace-nowrap">Categoria</TableHead>
                     <TableHead className="whitespace-nowrap">Tipo</TableHead>
-                    <TableHead className="whitespace-nowrap">Status</TableHead>
                     <TableHead className="text-right whitespace-nowrap">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -534,11 +533,6 @@ export default function NamespacesPage() {
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={namespace.enabled ? "default" : "secondary"} className="whitespace-nowrap">
-                          {namespace.enabled ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2 shrink-0">
                           <Button
@@ -549,7 +543,6 @@ export default function NamespacesPage() {
                                 const customNs = customNamespaces.find(ns => ns.id === namespace.id);
                                 if (customNs) setSelectedNamespace(customNs);
                               } else {
-                                // For predefined namespaces, create a "virtual" namespace object for editing
                                 setSelectedNamespace({
                                   id: `predefined-${namespace.name}`,
                                   tenantId: 1,
@@ -566,16 +559,20 @@ export default function NamespacesPage() {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          {namespace.source === "custom" && namespace.id && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteNamespaceId(namespace.id!)}
-                              data-testid={`button-delete-${namespace.id}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              if (namespace.id) {
+                                setDeleteNamespaceId(namespace.id);
+                              } else {
+                                setDeleteNamespaceId(namespace.name);
+                              }
+                            }}
+                            data-testid={`button-delete-${namespace.id || namespace.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
