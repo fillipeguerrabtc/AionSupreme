@@ -30,6 +30,9 @@ export interface CrawledPage {
     alt: string;
     localPath?: string;
     description?: string;
+    filename?: string;     // Metadados do ImageProcessor
+    mimeType?: string;     // Metadados do ImageProcessor  
+    size?: number;         // Metadados do ImageProcessor
   }>;
   links: string[];
   metadata: {
@@ -362,8 +365,12 @@ export class DeepCrawler {
         try {
           const result = await this.imageProcessor.processImage(image.url, image.alt);
           if (result) {
+            // Copia TODOS os metadados do ImageProcessor (não apenas localPath e description!)
             image.localPath = result.localPath;
             image.description = result.description;
+            image.filename = result.filename;     // NOVO: metadados completos
+            image.mimeType = result.mimeType;     // NOVO: metadados completos
+            image.size = result.size;             // NOVO: metadados completos
           } else {
             // Se falhou ao processar, mantém pelo menos o alt text
             image.description = image.alt || 'Imagem sem descrição disponível';

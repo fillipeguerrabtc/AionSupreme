@@ -802,53 +802,52 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/admin/learn-from-url - Learn from a URL
+  // POST /api/admin/learn-from-url - Deep crawl website with all sublinks + images
   // HITL FIX: All URL content goes through curation queue
+  // UPGRADE: Now uses WebsiteCrawlerService for COMPLETE site crawling
   app.post("/api/admin/learn-from-url", async (req, res) => {
     try {
-      const { tenant_id, url } = req.body;
+      const { tenant_id, url, namespace, maxDepth, maxPages } = req.body;
 
       if (!url) {
         return res.status(400).json({ error: "URL is required" });
       }
 
-      // Fetch content from URL
-      const response = await axios.get(url, { timeout: 30000 });
-      const cheerio = await import("cheerio");
-      const $ = cheerio.load(response.data);
-
-      // Extract text content (more aggressive extraction)
-      $("script, style, nav, footer, header, aside, .advertisement, .ad, .sidebar").remove();
-      const title = $("title").text() || $("h1").first().text() || url;
-      const content = $("body").text().replace(/\s+/g, " ").trim();
-
-      if (!content) {
-        return res.status(400).json({ error: "No content found at URL" });
-      }
-
-      // Allow up to 1 million characters for deep learning
-      const finalContent = content.length > 1000000 ? content.substring(0, 1000000) : content;
-
-      // Import curation store
-      const { curationStore } = await import("./curation/store");
+      console.log(`[API] 🚀 Deep crawling requested for: ${url}`);
       
-      // Add to curation queue instead of direct KB publish
-      const item = await curationStore.addToCuration(tenant_id || 1, {
-        title,
-        content: finalContent,
-        suggestedNamespaces: ["kb/web"],
-        tags: ["url", "web-content", url],
-        submittedBy: "admin",
+      // Import e executa WebsiteCrawlerService (deep crawling completo!)
+      const { websiteCrawlerService } = await import("./learn/website-crawler-service");
+      
+      const result = await websiteCrawlerService.crawlWebsite({
+        url,
+        tenantId: tenant_id || 1,
+        namespace: namespace || 'kb/web',
+        maxDepth: maxDepth || 5,  // Default: 5 níveis de profundidade
+        maxPages: maxPages || 100, // Default: 100 páginas
+        consolidatePages: true     // SEMPRE cria KB única consolidada
+      });
+
+      console.log(`[API] ✅ Deep crawl concluído:`, {
+        totalPages: result.totalPages,
+        totalImages: result.totalImages,
+        imagesWithDescriptions: result.imagesWithDescriptions,
+        duration: `${(result.duration / 1000).toFixed(1)}s`
       });
 
       res.json({ 
-        message: "URL content submitted to curation queue for human review",
-        curationId: item.id,
+        message: `URL content submitted to curation queue for human review. ${result.totalPages} pages crawled with ${result.totalImages} images.`,
         url,
-        contentLength: finalContent.length,
-        status: "pending_approval"
+        status: "pending_approval",
+        stats: {
+          totalPages: result.totalPages,
+          totalImages: result.totalImages,
+          imagesWithDescriptions: result.imagesWithDescriptions,
+          totalWords: result.totalWords,
+          duration: result.duration
+        }
       });
     } catch (error: any) {
+      console.error("[API] ❌ Erro ao crawlear URL:", error);
       res.status(500).json({ error: error.message });
     }
   });
