@@ -8,6 +8,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Critical Fixes (Oct 31, 2025)
 
+### Latest Production Improvements (Oct 31, 2025 - Session 2)
+**6 Critical Fixes Implemented & Architect-Approved:**
+
+1. ✅ **Deep Crawler Image Preservation** - Images now ALWAYS maintained in content even when Gemini Vision API fails. Fallback: alt text → "Imagem sem descrição". Categorized error logging (quota exceeded/API key/network).
+
+2. ✅ **Crawler Limits Optimization** - Default limits changed to maxDepth=5, maxPages=100 (from unrealistic 999/9999) for complete site capture without timeouts. Overridable via API.
+
+3. ✅ **Consolidated Knowledge Mode** - New `consolidatePages` option merges entire website into single markdown KB entry with structured sections, images grouped, and multi-page tags. Eliminates curation queue clutter.
+
+4. ✅ **Namespaces Layout Fix** - Responsive dialogs (max-w-4xl + w-[95vw]) and horizontal table scrolling prevent content clipping. All fields visible on any screen size.
+
+5. ✅ **History Timestamp Backfill** - 3 historical curation items retroactively received `statusChangedAt` timestamps so they appear in History tab. All future approvals/rejections tracked automatically.
+
+6. ✅ **Token Monitor Clarity** - UI redesigned with Lucide icons (Activity, Zap, Hash) to distinguish request limits from token monitoring. Primary card: "Requisições Hoje" (counts toward limit), Secondary card: "Tokens Consumidos" (monitoring only). ZERO emojis per design guidelines.
+
 ### HITL (Human-In-The-Loop) System - 100% Operational
 **Problem Solved:** All content now passes through mandatory human curation before entering Knowledge Base or training pipeline.
 
