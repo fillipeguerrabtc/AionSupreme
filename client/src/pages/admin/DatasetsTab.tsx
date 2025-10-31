@@ -362,6 +362,78 @@ export default function DatasetsTab() {
         </Card>
       </div>
 
+      {/* Training Data Section (JSONL Format) */}
+      <Card className="glass-premium border-accent/20">
+        <CardHeader>
+          <CardTitle className="gradient-text-vibrant flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
+            Dados de Treinamento (JSONL Instruction-Tuning)
+          </CardTitle>
+          <CardDescription>
+            Formato convertido automaticamente para treinar modelos LoRA nas GPUs
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {trainingData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum dado de treinamento aprovado ainda. Aprove conteúdos na Curadoria!
+              </p>
+            ) : (
+              <Accordion type="single" collapsible className="w-full">
+                {trainingData.slice(0, 10).map((data: any, idx: number) => (
+                  <AccordionItem key={data.id} value={`item-${idx}`}>
+                    <AccordionTrigger className="text-sm hover-elevate px-3 rounded-md">
+                      <div className="flex items-center gap-2 flex-1">
+                        <Badge variant="outline" className="text-xs">
+                          #{data.id}
+                        </Badge>
+                        <span className="truncate flex-1 text-left">
+                          {data.formattedData?.[0]?.instruction || "Sem título"}
+                        </span>
+                        <Badge variant="secondary" className="text-xs">
+                          {data.metadata?.namespaces?.[0] || "geral"}
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-3 pt-2">
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">
+                            Instruction:
+                          </p>
+                          <p className="text-sm bg-card/50 p-2 rounded-md border border-border/50">
+                            {data.formattedData?.[0]?.instruction}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">
+                            Output (primeiros 200 caracteres):
+                          </p>
+                          <p className="text-sm bg-card/50 p-2 rounded-md border border-border/50 line-clamp-3">
+                            {data.formattedData?.[0]?.output?.substring(0, 200)}...
+                          </p>
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                          {data.metadata?.namespaces?.map((ns: string, i: number) => (
+                            <Badge key={i} variant="outline" className="text-xs">
+                              {ns}
+                            </Badge>
+                          ))}
+                        </div>
+                        <pre className="text-xs font-mono bg-card/80 p-3 rounded-md border border-primary/20 overflow-x-auto">
+                          {JSON.stringify(data.formattedData?.[0], null, 2)}
+                        </pre>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Filters and Actions */}
       <Card className="glass-premium border-primary/20">
         <CardHeader>
@@ -637,78 +709,6 @@ export default function DatasetsTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Training Data Section (JSONL Format) */}
-      <Card className="glass-premium border-accent/20">
-        <CardHeader>
-          <CardTitle className="gradient-text-vibrant flex items-center gap-2">
-            <Sparkles className="w-5 h-5" />
-            Dados de Treinamento (JSONL Instruction-Tuning)
-          </CardTitle>
-          <CardDescription>
-            Formato convertido automaticamente para treinar modelos LoRA nas GPUs
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {trainingData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhum dado de treinamento aprovado ainda. Aprove conteúdos na Curadoria!
-              </p>
-            ) : (
-              <Accordion type="single" collapsible className="w-full">
-                {trainingData.slice(0, 10).map((data: any, idx: number) => (
-                  <AccordionItem key={data.id} value={`item-${idx}`}>
-                    <AccordionTrigger className="text-sm hover-elevate px-3 rounded-md">
-                      <div className="flex items-center gap-2 flex-1">
-                        <Badge variant="outline" className="text-xs">
-                          #{data.id}
-                        </Badge>
-                        <span className="truncate flex-1 text-left">
-                          {data.formattedData?.[0]?.instruction || "Sem título"}
-                        </span>
-                        <Badge variant="secondary" className="text-xs">
-                          {data.metadata?.namespaces?.[0] || "geral"}
-                        </Badge>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-3 pt-2">
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground mb-1">
-                            Instruction:
-                          </p>
-                          <p className="text-sm bg-card/50 p-2 rounded-md border border-border/50">
-                            {data.formattedData?.[0]?.instruction}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground mb-1">
-                            Output (primeiros 200 caracteres):
-                          </p>
-                          <p className="text-sm bg-card/50 p-2 rounded-md border border-border/50 line-clamp-3">
-                            {data.formattedData?.[0]?.output?.substring(0, 200)}...
-                          </p>
-                        </div>
-                        <div className="flex gap-2 flex-wrap">
-                          {data.metadata?.namespaces?.map((ns: string, i: number) => (
-                            <Badge key={i} variant="outline" className="text-xs">
-                              {ns}
-                            </Badge>
-                          ))}
-                        </div>
-                        <pre className="text-xs font-mono bg-card/80 p-3 rounded-md border border-primary/20 overflow-x-auto">
-                          {JSON.stringify(data.formattedData?.[0], null, 2)}
-                        </pre>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteDatasetId} onOpenChange={() => setDeleteDatasetId(null)}>
