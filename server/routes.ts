@@ -719,10 +719,22 @@ export function registerRoutes(app: Express): Server {
       const docId = parseInt(req.params.id);
       const { title, content, metadata } = req.body;
 
+      // Get existing document to merge metadata
+      const existingDoc = await storage.getDocument(docId);
+      if (!existingDoc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Merge incoming metadata with existing metadata (preserve all fields)
+      const mergedMetadata = {
+        ...(existingDoc.metadata || {}),
+        ...(metadata || {}),
+      };
+
       const updated = await storage.updateDocument(docId, { 
         title, 
         content,
-        ...(metadata ? { metadata } : {})
+        metadata: mergedMetadata,
       });
       
       // Re-index document
