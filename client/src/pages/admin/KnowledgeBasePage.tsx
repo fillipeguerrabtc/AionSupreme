@@ -39,6 +39,7 @@ export default function KnowledgeBasePage() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editNamespaces, setEditNamespaces] = useState<string[]>([]);
+  const [newNamespaces, setNewNamespaces] = useState<string[]>([]);
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
     queryKey: ["/api/admin/documents", tenantId],
@@ -58,6 +59,7 @@ export default function KnowledgeBasePage() {
           title: newTextTitle,
           content: newTextContent,
           source: "manual",
+          metadata: { namespaces: newNamespaces },
         }),
       });
       return res.json();
@@ -67,6 +69,7 @@ export default function KnowledgeBasePage() {
       setShowAddText(false);
       setNewTextTitle("");
       setNewTextContent("");
+      setNewNamespaces([]);
       toast({ title: "Conhecimento adicionado com sucesso!" });
     },
   });
@@ -298,6 +301,21 @@ export default function KnowledgeBasePage() {
                 className="min-h-[200px]"
                 data-testid="textarea-new-doc-content"
               />
+              
+              {/* Namespace Selector */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Namespaces (Multi-Agentes):
+                </label>
+                <NamespaceSelector
+                  value={newNamespaces}
+                  onChange={setNewNamespaces}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Selecione quais agentes terão acesso a este conhecimento
+                </p>
+              </div>
+              
               <Button
                 onClick={() => addTextMutation.mutate()}
                 disabled={!newTextTitle || !newTextContent || addTextMutation.isPending}
@@ -434,8 +452,7 @@ export default function KnowledgeBasePage() {
                               Namespaces (Multi-Agentes):
                             </label>
                             <NamespaceSelector
-                              tenantId={tenantId}
-                              selectedNamespaces={editNamespaces}
+                              value={editNamespaces}
                               onChange={setEditNamespaces}
                             />
                             <p className="text-xs text-muted-foreground">
