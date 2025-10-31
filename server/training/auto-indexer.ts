@@ -75,62 +75,29 @@ export class AutoIndexer {
       return false;
     }
 
-    // STEP 3: Criar documento na Knowledge Base
+    // STEP 3: Enviar para CURATION QUEUE (HITL - Human-in-the-Loop)
+    // NÃO salvar direto na KB - isso previne contaminação do conhecimento
     try {
       const title = this.extractTitle(userMessage, assistantResponse);
-      const namespace = this.determineNamespace(userMessage, assistantResponse);
-
-      const [doc] = await db.insert(documents).values({
+      const suggestedNamespaces = [this.determineNamespace(userMessage, assistantResponse)];
+      const qualityScore = this.calculateAutoQualityScore(userMessage, assistantResponse);
+      
+      // Importar curationQueue table
+      const { curationQueue } = await import("../../shared/schema");
+      
+      // Adicionar à fila de curadoria
+      const [curationItem] = await db.insert(curationQueue).values({
         tenantId,
         title,
         content: assistantResponse,
-        source: `auto-indexed-${source}`,
-        status: "indexed",
-        metadata: {
-          conversationId,
-          userMessage: userMessage.substring(0, 500), // Preview da pergunta
-          provider,
-          source,
-          namespace,
-          autoIndexed: true,
-          indexedAt: new Date().toISOString(),
-        },
+        suggestedNamespaces,
+        tags: [`auto-${source}`, `quality-${qualityScore}`, provider || 'unknown'],
+        status: "pending",
+        submittedBy: "auto-indexer",
       } as any).returning();
 
-      console.log(`[AutoIndexer] ✅ Documento criado: ${doc.id} - "${title}"`);
-
-      // STEP 4: Indexar embeddings automaticamente
-      await ragService.indexDocument(doc.id, assistantResponse, tenantId, { namespace });
-
-      console.log(`[AutoIndexer] ✅ Embeddings indexados para documento ${doc.id}`);
-
-      // STEP 5: Salvar como training example (para auto-evolução)
-      try {
-        const { trainingDataCollection } = await import("../../shared/schema");
-        
-        const qualityScore = this.calculateAutoQualityScore(userMessage, assistantResponse);
-        
-        await db.insert(trainingDataCollection).values({
-          conversationId: conversationId,
-          tenantId: tenantId,
-          autoQualityScore: qualityScore,
-          status: qualityScore >= 70 ? "approved" : "pending", // Auto-approve high quality
-          formattedData: [{
-            instruction: userMessage,
-            output: assistantResponse,
-          }],
-          metadata: {
-            provider,
-            source,
-            messageCount: 2,
-            totalTokens: (userMessage.length + assistantResponse.length) / 4, // Rough estimate
-          },
-        } as any);
-        
-        console.log(`[AutoIndexer] ✅ Training example salvo (quality: ${qualityScore})`);
-      } catch (trainingError: any) {
-        console.error(`[AutoIndexer] ⚠️ Erro ao salvar training example:`, trainingError.message);
-      }
+      console.log(`[AutoIndexer] ✅ Enviado para curadoria: ${curationItem.id} - "${title}" (quality: ${qualityScore})`);
+      console.log(`[AutoIndexer] ⚠️ Aguardando aprovação humana antes de indexar na KB`);
 
       return true;
     } catch (error: any) {
@@ -141,6 +108,7 @@ export class AutoIndexer {
 
   /**
    * Auto-indexa conteúdo de web search (quando AION busca na web)
+   * FIXED: Now sends to curation queue instead of direct KB insertion
    */
   async indexWebContent(params: {
     query: string;
@@ -157,23 +125,22 @@ export class AutoIndexer {
 
     try {
       const title = this.extractTitle(query, content);
-      const [doc] = await db.insert(documents).values({
+      const qualityScore = this.calculateAutoQualityScore(query, content);
+      const { curationQueue } = await import("../../shared/schema");
+
+      // Send to curation queue for human review
+      const [curationItem] = await db.insert(curationQueue).values({
         tenantId,
         title,
         content,
-        source: "auto-indexed-web",
-        status: "indexed",
-        metadata: {
-          query,
-          url,
-          autoIndexed: true,
-          indexedAt: new Date().toISOString(),
-        },
+        suggestedNamespaces: ["web"],
+        tags: [`auto-web`, `quality-${qualityScore}`, url],
+        status: "pending",
+        submittedBy: "auto-indexer-web",
       } as any).returning();
 
-      await ragService.indexDocument(doc.id, content, tenantId);
-
-      console.log(`[AutoIndexer] ✅ Web content indexed: ${doc.id} - "${title}"`);
+      console.log(`[AutoIndexer] ✅ Web content sent to curation: ${curationItem.id} - "${title}"`);
+      console.log(`[AutoIndexer] ⚠️ Aguardando aprovação humana (URL: ${url})`);
       return true;
     } catch (error: any) {
       console.error(`[AutoIndexer] ❌ Erro ao indexar web content:`, error.message);
@@ -183,6 +150,7 @@ export class AutoIndexer {
 
   /**
    * Auto-indexa uma conversa completa de alta qualidade
+   * FIXED: Now sends to curation queue instead of direct KB insertion
    */
   async indexConversation(conversationId: number): Promise<boolean> {
     if (!this.enabled) return false;
@@ -206,35 +174,33 @@ export class AutoIndexer {
       // Converter para formato de treino
       const examples = ConversationCollector.convertToTrainingFormat(allMessages);
 
-      // Indexar cada par user-assistant como documento separado
-      let indexed = 0;
+      const conversation = await db.query.conversations.findFirst({
+        where: eq(conversations.id, conversationId),
+      });
+
+      const { curationQueue } = await import("../../shared/schema");
+
+      // Send each conversation pair to curation queue
+      let queued = 0;
       for (const example of examples) {
         const content = `Pergunta: ${example.instruction}\n\nResposta: ${example.output}`;
         const title = this.extractTitle(example.instruction, example.output);
 
-        const conversation = await db.query.conversations.findFirst({
-          where: eq(conversations.id, conversationId),
-        });
-
-        const [doc] = await db.insert(documents).values({
+        await db.insert(curationQueue).values({
           tenantId: conversation?.tenantId || 1,
           title,
           content,
-          source: "auto-indexed-conversation",
-          status: "indexed",
-          metadata: {
-            conversationId,
-            qualityScore: metrics.score,
-            autoIndexed: true,
-            indexedAt: new Date().toISOString(),
-          },
-        } as any).returning();
+          suggestedNamespaces: ["geral"],
+          tags: [`auto-conversation`, `quality-${metrics.score}`],
+          status: "pending",
+          submittedBy: "auto-indexer-conversation",
+        } as any);
 
-        await ragService.indexDocument(doc.id, content, conversation?.tenantId || 1);
-        indexed++;
+        queued++;
       }
 
-      console.log(`[AutoIndexer] ✅ Conversa ${conversationId} indexada (${indexed} exemplos, score: ${metrics.score})`);
+      console.log(`[AutoIndexer] ✅ Conversa ${conversationId} enviada para curadoria (${queued} exemplos, score: ${metrics.score})`);
+      console.log(`[AutoIndexer] ⚠️ Aguardando aprovação humana antes de indexar`);
       return true;
     } catch (error: any) {
       console.error(`[AutoIndexer] ❌ Erro ao indexar conversa:`, error.message);

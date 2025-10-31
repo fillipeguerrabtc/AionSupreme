@@ -386,14 +386,44 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getEmbeddingsByDocument(documentId: number): Promise<Embedding[]> {
+    // HITL FIX: Only return embeddings for approved documents (status='indexed')
+    // This prevents unreviewed content from appearing in RAG searches
+    const doc = await db.query.documents.findFirst({
+      where: eq(documents.id, documentId),
+    });
+    
+    if (!doc || doc.status !== 'indexed') {
+      return []; // Document not approved, return no embeddings
+    }
+    
     return db.select().from(embeddings)
       .where(eq(embeddings.documentId, documentId))
       .orderBy(embeddings.chunkIndex);
   }
 
   async getEmbeddingsByTenant(tenantId: number, limit: number = 1000): Promise<Embedding[]> {
+    // HITL FIX: Only return embeddings for approved documents (status='indexed')
+    // Join with documents table to filter by status
+    const approvedDocs = await db.query.documents.findMany({
+      where: and(
+        eq(documents.tenantId, tenantId),
+        eq(documents.status, 'indexed')
+      ),
+    });
+    
+    const approvedDocIds = approvedDocs.map(d => d.id);
+    
+    if (approvedDocIds.length === 0) {
+      return []; // No approved docs, return no embeddings
+    }
+    
     return db.select().from(embeddings)
-      .where(eq(embeddings.tenantId, tenantId))
+      .where(
+        and(
+          eq(embeddings.tenantId, tenantId),
+          sql`${embeddings.documentId} IN (${sql.join(approvedDocIds.map(id => sql`${id}`), sql`, `)})`
+        )
+      )
       .limit(limit);
   }
 

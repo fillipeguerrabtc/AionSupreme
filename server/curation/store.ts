@@ -159,6 +159,52 @@ export const curationStore = {
       curationId: item.id,
     });
 
+    // CRITICAL: Save to training_data_collection for auto-evolution
+    // Only curated/approved content goes to training!
+    try {
+      const { trainingDataCollection } = await import("@shared/schema");
+      
+      // VALIDATION: Ensure namespaces are valid
+      if (!item.suggestedNamespaces || item.suggestedNamespaces.length === 0) {
+        console.warn(`[Curation] ⚠️ No namespaces for item ${item.id}, using default 'geral'`);
+        item.suggestedNamespaces = ['geral'];
+      }
+      
+      // VALIDATION: Extract quality score from tags with fallback
+      const qualityTag = item.tags.find(t => t.startsWith('quality-'));
+      const qualityScore = qualityTag ? 
+        Math.max(0, Math.min(100, parseInt(qualityTag.split('-')[1]) || 75)) : 
+        75;
+      
+      if (!qualityTag) {
+        console.warn(`[Curation] ⚠️ No quality tag for item ${item.id}, using default 75`);
+      }
+      
+      await db.insert(trainingDataCollection).values({
+        conversationId: null, // Curated content doesn't have conversationId
+        tenantId: tenantId,
+        autoQualityScore: qualityScore,
+        status: "approved", // Human-approved content is always approved
+        formattedData: [{
+          instruction: item.title,
+          output: item.content,
+        }],
+        metadata: {
+          source: "curation_approved",
+          curationId: item.id,
+          namespaces: item.suggestedNamespaces,
+          tags: item.tags,
+          reviewedBy,
+        },
+      } as any);
+      
+      console.log(`[Curation] ✅ Saved to training_data_collection (quality: ${qualityScore}, namespaces: ${item.suggestedNamespaces.join(', ')})`);
+    } catch (trainingError: any) {
+      console.error(`[Curation] ❌ Failed to save training data:`, trainingError.message);
+      // Fail closed: if training data save fails, throw error to prevent silent failures
+      throw new Error(`Training data save failed: ${trainingError.message}`);
+    }
+
     // Update curation queue item status in database
     const [updatedItem] = await db
       .update(curationQueueTable)
@@ -177,7 +223,7 @@ export const curationStore = {
       )
       .returning();
 
-    console.log(`[Curation] Approved and published item ${id} to KB as document ${newDoc.id}`);
+    console.log(`[Curation] ✅ Approved and published item ${id} to KB as document ${newDoc.id}`);
 
     return { item: updatedItem, publishedId: newDoc.id.toString() };
   },

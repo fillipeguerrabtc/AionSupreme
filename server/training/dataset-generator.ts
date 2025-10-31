@@ -262,13 +262,15 @@ export class DatasetGenerator {
       // Contar training examples aprovados que não foram usados ainda
       const { trainingDataCollection } = await import("../../shared/schema");
       
+      // HITL FIX: Only count 'approved' training data (not 'pending')
+      // This enforces that only human-approved content goes to training
       const approvedExamples = await db
         .select({ count: sql<number>`count(*)` })
         .from(trainingDataCollection)
         .where(
           and(
             eq(trainingDataCollection.tenantId, tenantId),
-            sql`${trainingDataCollection.status} IN ('approved', 'pending')`,
+            eq(trainingDataCollection.status, 'approved'), // ONLY approved!
             sql`${trainingDataCollection.datasetId} IS NULL` // Não foi usado em dataset ainda
           )
         );
