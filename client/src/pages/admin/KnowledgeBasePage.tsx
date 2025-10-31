@@ -23,6 +23,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Document } from "@shared/schema";
 import { AionLogo } from "@/components/AionLogo";
+import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 
 export default function KnowledgeBasePage() {
   const { toast } = useToast();
@@ -37,6 +38,7 @@ export default function KnowledgeBasePage() {
   const [editingDoc, setEditingDoc] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [editNamespaces, setEditNamespaces] = useState<string[]>([]);
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
     queryKey: ["/api/admin/documents", tenantId],
@@ -113,18 +115,25 @@ export default function KnowledgeBasePage() {
   });
 
   const updateDocMutation = useMutation({
-    mutationFn: async ({ id, title, content }: { id: number; title: string; content: string }) => {
+    mutationFn: async ({ id, title, content, namespaces }: { id: number; title: string; content: string; namespaces?: string[] }) => {
       const res = await apiRequest(`/api/admin/documents/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, content }),
+        body: JSON.stringify({ 
+          title, 
+          content,
+          ...(namespaces && namespaces.length > 0 ? { 
+            metadata: { namespaces } 
+          } : {})
+        }),
       });
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
       setEditingDoc(null);
-      toast({ title: "Documento atualizado!" });
+      setEditNamespaces([]);
+      toast({ title: "Documento e namespaces atualizados!" });
     },
   });
 
@@ -141,7 +150,7 @@ export default function KnowledgeBasePage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 max-w-full overflow-x-hidden">
       <header className="glass sticky top-0 z-50 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -421,17 +430,20 @@ export default function KnowledgeBasePage() {
                             data-testid={`textarea-edit-content-${doc.id}`}
                           />
                           
-                          {/* Display namespaces (read-only for now) */}
-                          {(doc.metadata as any)?.namespaces && (doc.metadata as any).namespaces.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              <span className="text-sm text-muted-foreground">Namespaces:</span>
-                              {(doc.metadata as any).namespaces.map((ns: string, idx: number) => (
-                                <Badge key={idx} variant="secondary" className="text-xs">
-                                  {ns}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+                          {/* Namespace Selector - Editable */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Namespaces (Multi-Agentes):
+                            </label>
+                            <NamespaceSelector
+                              tenantId={tenantId}
+                              selectedNamespaces={editNamespaces}
+                              onChange={setEditNamespaces}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Namespaces controlam quais agentes podem acessar este conhecimento
+                            </p>
+                          </div>
                           
                           <div className="flex gap-2">
                             <Button
@@ -441,12 +453,14 @@ export default function KnowledgeBasePage() {
                                   id: doc.id,
                                   title: editTitle,
                                   content: editContent,
+                                  namespaces: editNamespaces,
                                 })
                               }
+                              disabled={updateDocMutation.isPending}
                               data-testid={`button-save-edit-${doc.id}`}
                             >
                               <Save className="w-4 h-4 mr-2" />
-                              Salvar
+                              {updateDocMutation.isPending ? "Salvando..." : "Salvar"}
                             </Button>
                             <Button
                               size="sm"
@@ -493,6 +507,7 @@ export default function KnowledgeBasePage() {
                                 setEditingDoc(doc.id);
                                 setEditTitle(doc.title);
                                 setEditContent(doc.content);
+                                setEditNamespaces((doc.metadata as any)?.namespaces || []);
                               }}
                               data-testid={`button-edit-${doc.id}`}
                             >

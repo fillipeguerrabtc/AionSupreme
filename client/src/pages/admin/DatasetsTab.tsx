@@ -303,7 +303,7 @@ export default function DatasetsTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold gradient-text">Datasets</h2>
