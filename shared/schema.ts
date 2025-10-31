@@ -1041,8 +1041,8 @@ export type Dataset = typeof datasets.$inferSelect;
 export const trainingDataCollection = pgTable("training_data_collection", {
   id: serial("id").primaryKey(),
   
-  // Source conversation
-  conversationId: integer("conversation_id").notNull().references(() => conversations.id),
+  // Source conversation (nullable for standalone training examples)
+  conversationId: integer("conversation_id").references(() => conversations.id),
   tenantId: integer("tenant_id").notNull().references(() => tenants.id),
   
   // Quality metrics

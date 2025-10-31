@@ -42,7 +42,7 @@ export class AutoLearningListener {
    * Processa evento de CHAT COMPLETADO
    */
   async onChatCompleted(payload: {
-    conversationId: number;
+    conversationId: number | null;
     userMessage: string;
     assistantResponse: string;
     source: "kb" | "gpu" | "free-api" | "web" | "openai";

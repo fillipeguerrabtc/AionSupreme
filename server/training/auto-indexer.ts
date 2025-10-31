@@ -45,7 +45,7 @@ export class AutoIndexer {
    * Auto-indexa uma resposta do AION se for conhecimento valioso
    */
   async indexResponse(params: {
-    conversationId: number;
+    conversationId: number | null;
     userMessage: string;
     assistantResponse: string;
     source: "chat" | "web" | "api" | "fallback";
@@ -103,6 +103,34 @@ export class AutoIndexer {
       await ragService.indexDocument(doc.id, assistantResponse, tenantId, { namespace });
 
       console.log(`[AutoIndexer] ✅ Embeddings indexados para documento ${doc.id}`);
+
+      // STEP 5: Salvar como training example (para auto-evolução)
+      try {
+        const { trainingDataCollection } = await import("../../shared/schema");
+        
+        const qualityScore = this.calculateAutoQualityScore(userMessage, assistantResponse);
+        
+        await db.insert(trainingDataCollection).values({
+          conversationId: conversationId,
+          tenantId: tenantId,
+          autoQualityScore: qualityScore,
+          status: qualityScore >= 70 ? "approved" : "pending", // Auto-approve high quality
+          formattedData: [{
+            instruction: userMessage,
+            output: assistantResponse,
+          }],
+          metadata: {
+            provider,
+            source,
+            messageCount: 2,
+            totalTokens: (userMessage.length + assistantResponse.length) / 4, // Rough estimate
+          },
+        } as any);
+        
+        console.log(`[AutoIndexer] ✅ Training example salvo (quality: ${qualityScore})`);
+      } catch (trainingError: any) {
+        console.error(`[AutoIndexer] ⚠️ Erro ao salvar training example:`, trainingError.message);
+      }
 
       return true;
     } catch (error: any) {
@@ -353,6 +381,29 @@ export class AutoIndexer {
         pendingExamples: 0,
       };
     }
+  }
+
+  /**
+   * Calcula score de qualidade automático (0-100)
+   */
+  private calculateAutoQualityScore(userMessage: string, assistantResponse: string): number {
+    let score = 0;
+    
+    // Comprimento da resposta (max 30 pontos)
+    score += Math.min((assistantResponse.length / 50), 30);
+    
+    // Pergunta substancial (max 20 pontos)
+    score += Math.min((userMessage.length / 20), 20);
+    
+    // Sem padrões de baixa qualidade (30 pontos)
+    const hasGoodContent = this.evaluateContent(assistantResponse);
+    if (hasGoodContent) score += 30;
+    
+    // Formatação estruturada (20 pontos)
+    const hasStructure = /\n|:|-|\*|•|\d+\./g.test(assistantResponse);
+    if (hasStructure) score += 20;
+    
+    return Math.min(Math.round(score), 100);
   }
 
   /**

@@ -287,7 +287,7 @@ export function registerRoutes(app: Express): Server {
         
         // Fire and forget - don't block response
         autoLearningListener.onChatCompleted({
-          conversationId: 0, // TODO: Get actual conversation ID from session
+          conversationId: null, // No conversation ID for standalone chats
           userMessage,
           assistantResponse: result.content,
           source: result.source as any,

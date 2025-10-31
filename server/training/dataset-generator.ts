@@ -259,40 +259,27 @@ export class DatasetGenerator {
    */
   async checkPendingExamples(tenantId: number): Promise<number> {
     try {
-      // Contar conversas de qualidade desde último dataset
-      const lastDataset = await db.query.datasets.findFirst({
-        where: eq(datasets.tenantId, tenantId),
-        orderBy: [desc(datasets.createdAt)],
-      });
-
-      const since = lastDataset?.createdAt || new Date(0);
-
-      // Contar conversas recentes
-      const recentConvs = await db
+      // Contar training examples aprovados que não foram usados ainda
+      const { trainingDataCollection } = await import("../../shared/schema");
+      
+      const approvedExamples = await db
         .select({ count: sql<number>`count(*)` })
-        .from(conversations)
+        .from(trainingDataCollection)
         .where(
           and(
-            eq(conversations.tenantId, tenantId),
-            gte(conversations.updatedAt, since)
+            eq(trainingDataCollection.tenantId, tenantId),
+            sql`${trainingDataCollection.status} IN ('approved', 'pending')`,
+            sql`${trainingDataCollection.datasetId} IS NULL` // Não foi usado em dataset ainda
           )
         );
 
-      // Contar documentos recentes
-      const recentDocs = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(documents)
-        .where(
-          and(
-            eq(documents.tenantId, tenantId),
-            eq(documents.status, "indexed"),
-            gte(documents.createdAt, since)
-          )
-        );
-
-      const totalPending = Number(recentConvs[0]?.count || 0) + Number(recentDocs[0]?.count || 0);
+      const totalPending = Number(approvedExamples[0]?.count || 0);
+      
+      console.log(`[DatasetGen] 📊 Training examples prontos: ${totalPending}`);
+      
       return totalPending;
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`[DatasetGen] Erro ao contar exemplos:`, error.message);
       return 0;
     }
   }
