@@ -1,11 +1,25 @@
 # GPU Worker Setup Guide for Professional Video Generation
 
+⚠️ **NOTA**: Este guia é para **VIDEO GENERATION** (RunPod/Modal - PAGO)
+
+Para **INFERÊNCIA/TREINO GRÁTIS** (Colab/Kaggle), veja: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
+
+---
+
 ## 🎬 Overview
 
 AION uses **GPU-backed workers** to generate professional, cinema-quality videos using open-source models:
 - **Open-Sora 1.2** (primary) - High-quality text-to-video
 - **AnimateDiff + Stable Video Diffusion** (secondary)
 - **ModelScope** (tertiary fallback)
+
+**Diferenças:**
+| Feature | Video Generation (Este Guia) | Inference/Training (SETUP_GPU_WORKERS.md) |
+|---------|------------------------------|-------------------------------------------|
+| Uso | Geração de vídeos profissionais | Inferência LLM + LoRA training |
+| Plataforma | RunPod, Modal (pago) | Google Colab, Kaggle (grátis) |
+| GPU | RTX 4090, A6000 (24GB+) | T4, P100 (15-16GB) |
+| Custo | ~$0.40-0.80/hora | $0 (100% grátis) |
 
 ## 📋 Prerequisites
 

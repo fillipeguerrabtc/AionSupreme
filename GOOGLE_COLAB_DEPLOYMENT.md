@@ -1,35 +1,50 @@
-# 🚀 AION - Google Colab Deployment Guide
+# 🚀 AION - Google Colab GPU Workers
 
-## Rodando 100% GRATUITO com GPUs Google Colab
+⚠️ **AVISO**: Este guia foi **substituído** pelo novo sistema de GPU Pool!
 
-Este guia ensina como rodar o **AION** completamente GRÁTIS usando infraestrutura Google Colab com GPUs.
+## 🎮 Novo Sistema: GPU Pool (Phase 2)
+
+AION agora usa um **sistema distribuído de GPU workers** ao invés de rodar o servidor inteiro no Colab.
+
+### ✅ Vantagens do Novo Sistema:
+- **10 GPUs simultâneas** (5 Colab + 5 Kaggle)
+- **~70-80h/dia** de GPU grátis
+- **Auto-shutdown inteligente** (nunca atinge limites)
+- **Rotação automática** entre workers
+- **Servidor roda no Replit** (sempre online)
+
+### 📖 Documentação Atualizada:
+- **Setup Completo**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
+- **Cronograma 24/7**: [GPU_SCHEDULE_24_7.md](./GPU_SCHEDULE_24_7.md)
 
 ---
 
-## 📋 Pré-requisitos
+## 🏗️ Arquitetura Nova vs. Antiga
 
-- Conta Google (gratuita)
-- Google Colab (gratuito)
-- Google Drive (para armazenar checkpoints)
-
----
-
-## 🎯 Arquitetura para Colab
-
+### ❌ Arquitetura Antiga (DESCONTINUADA):
 ```
-Google Colab (GPU Free Tier)
-├── Backend Python
-│   ├── FastAPI Server (porta 8000)
-│   ├── RAG Service (FAISS + Embeddings)
-│   ├── Agent Engine (ReAct + Tools)
-│   └── Policy Enforcement
-│
-├── Frontend (Ngrok Tunnel)
-│   └── React App servida via Vite
-│
-└── Storage
-    ├── PostgreSQL (via ngrok ou Supabase Free)
-    └── FAISS Vector Store (Google Drive mount)
+Google Colab (1 sessão)
+└── AION Server completo
+    ├── Backend + Frontend
+    └── Limite: 12h/sessão
+```
+
+### ✅ Arquitetura Nova (ATIVA):
+```
+Replit (Servidor Principal - sempre online)
+└── AION Server (backend + frontend)
+
+Google Colab/Kaggle (10 GPU Workers)
+├── Worker 1 (Colab - T4)  ┐
+├── Worker 2 (Colab - T4)  │
+├── Worker 3 (Colab - T4)  ├─ Rotação automática
+├── Worker 4 (Colab - T4)  │  ~70-80h/dia
+├── Worker 5 (Colab - T4)  │
+├── Worker 6 (Kaggle - P100)│
+├── Worker 7 (Kaggle - T4) │
+├── Worker 8 (Kaggle - T4) │
+├── Worker 9 (Kaggle - P100)│
+└── Worker 10 (Kaggle - T4)┘
 ```
 
 ---
