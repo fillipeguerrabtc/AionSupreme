@@ -1,38 +1,58 @@
-# 🎮 AION GPU Workers - Setup Completo
+# 🎮 Setup GPU Workers - AION
 
-## 📊 Visão Geral
+## 🎯 Resumo
 
-AION suporta **múltiplas GPUs simultâneas** com rotação automática e quota management inteligente.
+Sistema de GPU Pool com 4 GPUs gratuitas para teste:
+- ✅ **2 Google Colab** (T4, 11.5h por sessão)
+- ✅ **2 Kaggle** (T4 x2 ou P100, 8.5h por sessão)
 
-### Capacidade Total (5 Colab + 5 Kaggle)
-- **10 Workers** rodando ao mesmo tempo
-- **~70-80h/dia** de GPU grátis
-- **Auto-shutdown** 30min antes dos limites
-- **Round-robin** automático entre workers
+**Total:** ~40 horas GPU/dia grátis (fase de teste)
 
 ---
 
-## 🚀 Setup Rápido (15 minutos)
+## ⚠️ URL CORRETA DO AION
 
-### Passo 1: Configurar Workers
+**IMPORTANTE - USE ESTA URL:**
 
-**Para cada conta Google (recomendado: 5 contas):**
+```
+https://ff2e6297-cbf6-4c2e-ac26-3872e4c9c3ae-00-1vce3mtitdkqj.janeway.replit.dev
+```
 
-1. **Colab Worker:**
-   - Abra: `notebooks/colab_worker.ipynb`
-   - Upload para Google Colab
-   - Edite variáveis:
-     ```python
-     AION_URL = "https://seu-aion.replit.app"
-     ACCOUNT_EMAIL = "conta1@gmail.com"
-     WORKER_NAME = "Colab-Account1-T4"
-     ```
-   - Runtime > Change runtime type > **GPU (T4)**
-   - Run All (Ctrl+F9)
+❌ **NÃO USE:** `workspace-fillipebackup.replit.app` (URL antiga, retorna 404)
 
-2. **Kaggle Worker:**
-   - Abra: `notebooks/kaggle_worker.ipynb`
-   - Upload para Kaggle Notebooks
+---
+
+## 📝 Passo a Passo - 4 GPUs de Teste
+
+### 🔵 GPU 1: Google Colab #1
+
+1. **Abra Google Colab:** https://colab.research.google.com
+2. **Faça upload:** `notebooks/colab_worker.ipynb`
+3. **Configure Runtime:**
+   - Menu: `Runtime > Change runtime type`
+   - Selecione: `GPU` (T4)
+   - Clique: `Save`
+4. **Edite Cell 1 (Configuração):**
+   ```python
+   AION_URL = "https://ff2e6297-cbf6-4c2e-ac26-3872e4c9c3ae-00-1vce3mtitdkqj.janeway.replit.dev"
+   ACCOUNT_EMAIL = "seu-email-conta1@gmail.com"  # ← Troque aqui
+   WORKER_NAME = "Colab-Conta1-T4"               # ← Nome único
+   ```
+5. **Configure Ngrok Token:**
+   - Crie conta grátis: https://dashboard.ngrok.com/get-started/your-authtoken
+   - Copie seu `authtoken`
+   - Na cell 1, cole:
+   ```python
+   NGROK_AUTHTOKEN = "seu_token_aqui"  # ← Cole seu token
+   ```
+6. **Execute:** `Runtime > Run all` (Ctrl+F9)
+7. **Aguarde:** ~2 minutos para instalação
+8. **Verifique:** Deve aparecer:
+   ```
+   ✅ Worker registrado: {"success":true,"worker":{"id":1}}
+   🟢 ONLINE - Enviando heartbeat...
+   ⏱️  Auto-shutdown em 11h 30min
+   ```
    - Edite variáveis (mesmo processo)
    - Settings > Accelerator > **GPU T4 x2** ou **GPU P100**
    - Run All
