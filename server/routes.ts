@@ -306,7 +306,8 @@ export function registerRoutes(app: Express): Server {
         choices: [{ 
           message: { 
             role: "assistant", 
-            content: result.content 
+            content: result.content,
+            attachments: result.attachments  // MULTIMODAL: Pass attachments to frontend
           }, 
           finish_reason: "stop"
         }],

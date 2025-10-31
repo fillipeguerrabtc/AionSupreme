@@ -207,9 +207,13 @@ export default function ChatPage() {
       });
       
       const data = await response.json();
-      return data.choices[0].message.content;
+      // MULTIMODAL: Extract both content and attachments
+      return {
+        content: data.choices[0].message.content,
+        attachments: data.choices[0].message.attachments
+      };
     },
-    onSuccess: async (assistantMessage) => {
+    onSuccess: async (assistantResponse) => {
       // Save assistant message to database
       if (conversationId) {
         try {
@@ -218,7 +222,8 @@ export default function ChatPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               role: "assistant",
-              content: assistantMessage,
+              content: assistantResponse.content,
+              attachments: assistantResponse.attachments
             }),
           });
           const savedMsg = await response.json();
@@ -226,16 +231,25 @@ export default function ChatPage() {
           setMessages(prev => [...prev, {
             id: savedMsg.id,
             role: "assistant",
-            content: assistantMessage,
+            content: assistantResponse.content,
             conversationId: savedMsg.conversationId,
+            attachments: assistantResponse.attachments
           }]);
         } catch (error) {
           console.error("Failed to save assistant message:", error);
           // Still show message even if save fails
-          setMessages(prev => [...prev, { role: "assistant", content: assistantMessage }]);
+          setMessages(prev => [...prev, { 
+            role: "assistant", 
+            content: assistantResponse.content,
+            attachments: assistantResponse.attachments
+          }]);
         }
       } else {
-        setMessages(prev => [...prev, { role: "assistant", content: assistantMessage }]);
+        setMessages(prev => [...prev, { 
+          role: "assistant", 
+          content: assistantResponse.content,
+          attachments: assistantResponse.attachments
+        }]);
       }
       
       setAttachedFiles([]);

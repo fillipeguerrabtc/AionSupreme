@@ -62,6 +62,13 @@ export interface PriorityResponse {
     completionTokens: number;
     totalTokens: number;
   };
+  attachments?: Array<{  // Multimodal attachments from KB
+    type: "image" | "video" | "document";
+    url: string;
+    filename: string;
+    mimeType: string;
+    size?: number;
+  }>;
   metadata?: {
     kbResults?: number;
     kbConfidence?: number;
@@ -237,11 +244,21 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
           
           const kbResponse = `📚 Informações da Knowledge Base:\n\n${context}\n\n[Fonte: Knowledge Base - ${kbResult.topResults.length} documentos]`;
           
+          // MULTIMODAL: Collect attachments from KB results
+          const attachments: Array<{type: "image"|"video"|"document"; url: string; filename: string; mimeType: string; size?: number}> = [];
+          for (const result of kbResult.topResults) {
+            if (result.attachments && Array.isArray(result.attachments)) {
+              attachments.push(...result.attachments);
+            }
+          }
+          console.log(`   📎 Collected ${attachments.length} attachments from KB`);
+          
           return {
             content: kbResponse,
             source: 'kb',
             provider: 'knowledge-base',
             model: 'rag-mmr',
+            attachments: attachments.length > 0 ? attachments : undefined,
             metadata: {
               kbResults: kbResult.topResults.length,
               kbConfidence: kbResult.confidence,
@@ -301,11 +318,21 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
           
           const kbResponse = `📚 Informações da Knowledge Base:\n\n${context}\n\n[Fonte: Knowledge Base - ${kbResult.topResults.length} documentos]`;
           
+          // MULTIMODAL: Collect attachments from KB results
+          const attachments: Array<{type: "image"|"video"|"document"; url: string; filename: string; mimeType: string; size?: number}> = [];
+          for (const result of kbResult.topResults) {
+            if (result.attachments && Array.isArray(result.attachments)) {
+              attachments.push(...result.attachments);
+            }
+          }
+          console.log(`   📎 Collected ${attachments.length} attachments from KB`);
+          
           return {
             content: kbResponse,
             source: 'kb',
             provider: 'knowledge-base',
             model: 'rag-mmr',
+            attachments: attachments.length > 0 ? attachments : undefined,
             metadata: {
               kbResults: kbResult.topResults.length,
               kbConfidence: kbResult.confidence,

@@ -14,6 +14,13 @@ export interface AgentInput {
 export interface AgentOutput {
   text: string;
   citations?: { title: string; url?: string; namespace?: string; chunkId?: string }[];
+  attachments?: Array<{  // Multimodal attachments (images, videos, docs)
+    type: "image" | "video" | "document";
+    url: string;
+    filename: string;
+    mimeType: string;
+    size?: number;
+  }>;
   costUSD?: number;
   tokens?: { prompt: number; completion: number };
   latencyMs?: number;

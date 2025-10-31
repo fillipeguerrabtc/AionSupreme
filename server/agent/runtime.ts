@@ -72,6 +72,15 @@ function createAgentExecutor(agent: Agent): AgentExecutor {
           namespace: r.metadata?.namespace || agent.ragNamespaces[0], // Use actual namespace from metadata
         }));
         
+        // STEP 1.5: Collect attachments from RAG results (images, videos, documents)
+        const attachments: Array<{type: "image"|"video"|"document"; url: string; filename: string; mimeType: string; size?: number}> = [];
+        for (const result of ragResults) {
+          if (result.attachments && Array.isArray(result.attachments)) {
+            attachments.push(...result.attachments);
+          }
+        }
+        console.log(`[AgentExecutor] Collected ${attachments.length} attachments from RAG results`);
+        
         // STEP 2: Build system prompt with agent's personality + RAG context
         const systemPrompt = `${agent.systemPrompt || "Você é um assistente inteligente especializado."}
 
@@ -118,6 +127,7 @@ ${ragContext}`;
         return {
           text: llmResult.text,
           citations,
+          attachments: attachments.length > 0 ? attachments : undefined,
           costUSD: estimatedCost,
           tokens: {
             prompt: llmResult.tokensUsed ? Math.floor(llmResult.tokensUsed * 0.7) : 0,
