@@ -152,6 +152,11 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 max-w-full overflow-x-hidden">
+      {/* 🚨 ALERTA DE TESTE NO TOPO! 🚨 */}
+      <div className="w-full bg-red-600 text-white text-center py-6 text-3xl font-black">
+        🚨🚨🚨 TESTE: SE VOCÊ VÊ ISTO, O BUILD FUNCIONOU! 🚨🚨🚨
+      </div>
+      
       <header className="glass sticky top-0 z-50 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
