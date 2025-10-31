@@ -36,6 +36,7 @@ import { registerAgentRoutes } from "./routes/agents";
 import { registerCurationRoutes } from "./routes/curation";
 import { registerKbPromoteRoutes } from "./routes/kb_promote";
 import { registerNamespaceRoutes } from "./routes/namespaces";
+import { registerGpuRoutes } from "./routes/gpu";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
@@ -60,6 +61,9 @@ export function registerRoutes(app: Express): Server {
   
   // Register namespace management routes
   registerNamespaceRoutes(app);
+  
+  // Register GPU Pool routes (Plug&Play GPU workers)
+  registerGpuRoutes(app);
 
   // ========================================
   // HEALTH CHECK ENDPOINTS (for multi-cloud deployment)
