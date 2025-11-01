@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, ValidationError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/i18n";
 import {
@@ -99,6 +99,7 @@ export default function DatasetsTab() {
   const [editTrainingInstruction, setEditTrainingInstruction] = useState("");
   const [editTrainingOutput, setEditTrainingOutput] = useState("");
   const [deleteTrainingDataId, setDeleteTrainingDataId] = useState<number | null>(null);
+  const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
 
   // Fetch all datasets
   const { data: datasetsResponse, isLoading } = useQuery<{
@@ -292,6 +293,42 @@ export default function DatasetsTab() {
       });
     },
   });
+
+  // Inline validation for Training Data edit
+  useEffect(() => {
+    if (!editTrainingData) {
+      setValidationWarnings([]);
+      return;
+    }
+
+    const warnings: string[] = [];
+    const instruction = editTrainingInstruction.trim();
+    const output = editTrainingOutput.trim();
+
+    if (instruction.length > 0 && instruction.length < 5) {
+      warnings.push(`Instruction muito curta (${instruction.length} chars, recomendado: 5+)`);
+    }
+
+    if (output.length > 0 && output.length < 10) {
+      warnings.push(`Output muito curto (${output.length} chars, recomendado: 10+)`);
+    }
+
+    if (instruction === output && instruction.length > 0) {
+      warnings.push("Output não pode ser idêntico a Instruction");
+    }
+
+    const hasQuestionMark = instruction.includes("?");
+    const questionWords = ["what", "why", "how", "when", "where", "who", "which", "is", "are", "can", "should"];
+    const startsWithQuestion = questionWords.some((word) =>
+      instruction.toLowerCase().startsWith(word + " ")
+    );
+
+    if (!hasQuestionMark && !startsWithQuestion && instruction.length > 0 && instruction.length < 100) {
+      warnings.push("Instruction não parece ser uma pergunta ou comando");
+    }
+
+    setValidationWarnings(warnings);
+  }, [editTrainingInstruction, editTrainingOutput, editTrainingData]);
 
   // Download dataset
   const downloadDataset = async (dataset: Dataset) => {
@@ -1029,7 +1066,32 @@ export default function DatasetsTab() {
                 className="font-mono text-sm"
                 data-testid="textarea-edit-training-output"
               />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{editTrainingOutput.length} caracteres</span>
+                {editTrainingOutput.length < 10 && editTrainingOutput.length > 0 && (
+                  <span className="text-yellow-500">Muito curto (mínimo recomendado: 10)</span>
+                )}
+              </div>
             </div>
+
+            {/* Validation Warnings Inline */}
+            {validationWarnings.length > 0 && (
+              <div className="p-3 rounded-md bg-yellow-500/10 border border-yellow-500/30">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
+                      Avisos de Validação
+                    </p>
+                    <ul className="text-xs text-yellow-600 dark:text-yellow-300 space-y-1">
+                      {validationWarnings.map((warning, idx) => (
+                        <li key={idx}>• {warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
               <p className="text-xs text-muted-foreground">

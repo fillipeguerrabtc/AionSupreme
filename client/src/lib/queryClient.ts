@@ -1,7 +1,40 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+export class ValidationError extends Error {
+  public details?: string[];
+  public warnings?: string[];
+  public statusCode: number;
+
+  constructor(message: string, statusCode: number, details?: string[], warnings?: string[]) {
+    super(message);
+    this.name = "ValidationError";
+    this.statusCode = statusCode;
+    this.details = details;
+    this.warnings = warnings;
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    const contentType = res.headers.get("content-type");
+    
+    if (contentType?.includes("application/json")) {
+      try {
+        const json = await res.json();
+        const message = json.error || json.message || res.statusText;
+        
+        if (json.details || json.warnings) {
+          throw new ValidationError(message, res.status, json.details, json.warnings);
+        }
+        
+        throw new Error(`${res.status}: ${message}`);
+      } catch (e) {
+        if (e instanceof ValidationError) throw e;
+        const text = await res.text();
+        throw new Error(`${res.status}: ${text || res.statusText}`);
+      }
+    }
+    
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
