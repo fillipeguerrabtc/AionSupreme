@@ -158,6 +158,10 @@ export default function AdminDashboard() {
     return sum + (provider.month?.tokens || 0);
   }, 0) || 0;
 
+  const totalTokensAllTime = tokenSummary?.reduce((sum: number, provider: any) => {
+    return sum + (provider.allTime?.tokens || 0);
+  }, 0) || 0;
+
   // Fetch OpenAI specific stats from tokenSummary
   const openaiStats = tokenSummary?.find((p: any) => p.provider === 'openai');
 
@@ -388,8 +392,8 @@ export default function AdminDashboard() {
                   <span className="font-bold text-lg">{tokenSummary ? totalTokensToday.toLocaleString() : '...'}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">30d (Mês):</span>
-                  <span className="font-bold">{tokenSummary ? totalTokensMonth.toLocaleString() : '...'}</span>
+                  <span className="text-muted-foreground">Histórico:</span>
+                  <span className="font-bold text-primary">{tokenSummary ? totalTokensAllTime.toLocaleString() : '...'}</span>
                 </div>
               </div>
               <CardDescription className="text-xs mt-2">
@@ -466,19 +470,19 @@ export default function AdminDashboard() {
               <div className="space-y-2 mt-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Groq:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'groq')?.today?.requests || 0} req</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'groq')?.allTime?.requests || 0} req</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Gemini:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'gemini')?.today?.requests || 0} req</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'gemini')?.allTime?.requests || 0} req</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">HuggingFace:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'huggingface')?.today?.requests || 0} req</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'huggingface')?.allTime?.requests || 0} req</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">OpenRouter:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.today?.requests || 0} req</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.allTime?.requests || 0} req</span>
                 </div>
               </div>
               <CardDescription className="text-xs mt-2">

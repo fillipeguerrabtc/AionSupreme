@@ -352,7 +352,10 @@ export default function ImagesGalleryPage() {
                   data-testid={`image-card-${img.id}`}
                 >
                   {/* Selection Checkbox */}
-                  <div className="absolute top-2 left-2 z-10">
+                  <div 
+                    className="absolute top-2 left-2 z-10"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Checkbox
                       checked={selectedImages.has(img.id)}
                       onCheckedChange={() => handleToggleImage(img.id)}
@@ -396,17 +399,22 @@ export default function ImagesGalleryPage() {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
-                      <Checkbox
-                        checked={selectedImages.has(img.id)}
-                        onCheckedChange={() => handleToggleImage(img.id)}
-                        data-testid={`checkbox-image-${img.id}`}
-                      />
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selectedImages.has(img.id)}
+                          onCheckedChange={() => handleToggleImage(img.id)}
+                          data-testid={`checkbox-image-${img.id}`}
+                        />
+                      </div>
                       <img
                         src={img.url}
                         alt={img.description || img.filename}
                         className="w-20 h-20 object-cover rounded-md cursor-pointer"
                         loading="lazy"
-                        onClick={() => setSelectedImage(img)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedImage(img);
+                        }}
                       />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{img.filename}</p>
