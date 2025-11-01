@@ -48,7 +48,7 @@ export default function FederatedTrainingTab() {
   const { data: jobsData } = useQuery({
     queryKey: ["/api/training/jobs"],
     queryFn: async () => {
-      const res = await fetch("/api/training/jobs?tenantId=1");
+      const res = await fetch("/api/training/jobs");
       return res.json();
     },
     refetchInterval: 5000,
@@ -57,7 +57,7 @@ export default function FederatedTrainingTab() {
   const { data: datasetsData } = useQuery({
     queryKey: ["/api/training/datasets"],
     queryFn: async () => {
-      const res = await fetch("/api/training/datasets?tenantId=1");
+      const res = await fetch("/api/training/datasets");
       return res.json();
     },
   });
@@ -176,7 +176,6 @@ export default function FederatedTrainingTab() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            tenantId: 1,
             mode: selectedDatasetId,
             minScore: selectedDatasetId === 'kb-high-quality' ? 80 : 60
           })
@@ -208,7 +207,6 @@ export default function FederatedTrainingTab() {
     }
 
     createJob.mutate({
-      tenantId: 1,
       name: jobName,
       modelType,
       totalChunks,
@@ -252,7 +250,6 @@ export default function FederatedTrainingTab() {
     formData.append("name", datasetName);
     formData.append("description", datasetDescription);
     formData.append("datasetType", datasetType);
-    formData.append("tenantId", "1");
 
     uploadDataset.mutate(formData);
   };

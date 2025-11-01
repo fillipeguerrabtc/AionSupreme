@@ -45,7 +45,7 @@ export default function CostHistoryTab() {
   const { data, isLoading } = useQuery<CostHistoryData>({
     queryKey: ["/api/tokens/cost-history"],
     queryFn: async () => {
-      const res = await fetch("/api/tokens/cost-history?tenant_id=1&limit=500");
+      const res = await fetch("/api/tokens/cost-history?limit=500");
       if (!res.ok) throw new Error("Failed to fetch cost history");
       return res.json();
     },

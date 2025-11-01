@@ -35,13 +35,12 @@ const providerColors: Record<string, string> = {
 
 export default function TokenHistoryTab() {
   const { t } = useLanguage();
-  const [tenantId] = useState(1);
 
   // Fetch tenant timezone for dynamic date formatting
   const { data: tenantTimezone } = useQuery<{ timezone: string }>({
-    queryKey: ["/api/admin/settings/timezone", tenantId],
+    queryKey: ["/api/admin/settings/timezone"],
     queryFn: async () => {
-      const res = await apiRequest(`/api/admin/settings/timezone/${tenantId}`);
+      const res = await apiRequest(`/api/admin/settings/timezone`);
       return res.json();
     },
   });
@@ -50,7 +49,7 @@ export default function TokenHistoryTab() {
   const { data: history, isLoading } = useQuery<TokenHistoryRecord[]>({
     queryKey: ["/api/tokens/complete-history"],
     queryFn: async () => {
-      const res = await fetch("/api/tokens/complete-history?tenant_id=1&limit=500");
+      const res = await fetch("/api/tokens/complete-history?limit=500");
       if (!res.ok) throw new Error("Failed to fetch token history");
       return res.json();
     },

@@ -113,7 +113,7 @@ export default function DatasetsTab() {
   }>({
     queryKey: ["/api/training/datasets"],
     queryFn: async () => {
-      const res = await apiRequest("/api/training/datasets?tenantId=1");
+      const res = await apiRequest("/api/training/datasets");
       return res.json();
     },
   });

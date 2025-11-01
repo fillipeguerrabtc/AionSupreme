@@ -49,13 +49,12 @@ interface PoolStats {
 
 export default function GPUManagementTab() {
   const { toast } = useToast();
-  const [tenantId] = useState(1);
 
   // Fetch tenant timezone for dynamic date formatting
   const { data: tenantTimezone } = useQuery<{ timezone: string }>({
-    queryKey: ["/api/admin/settings/timezone", tenantId],
+    queryKey: ["/api/admin/settings/timezone"],
     queryFn: async () => {
-      const res = await apiRequest(`/api/admin/settings/timezone/${tenantId}`);
+      const res = await apiRequest(`/api/admin/settings/timezone`);
       return res.json();
     },
   });

@@ -545,7 +545,6 @@ export default function NamespacesPage() {
                               } else {
                                 setSelectedNamespace({
                                   id: `predefined-${namespace.name}`,
-                                  tenantId: 1,
                                   name: namespace.name,
                                   displayName: namespace.displayName,
                                   description: namespace.description,

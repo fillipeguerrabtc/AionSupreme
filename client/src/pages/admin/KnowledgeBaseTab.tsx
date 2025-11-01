@@ -38,7 +38,6 @@ import { Badge } from "@/components/ui/badge";
 export default function KnowledgeBaseTab() {
   const { toast } = useToast();
   const { t } = useLanguage();
-  const [tenantId] = useState(1);
   const [showAddText, setShowAddText] = useState(false);
   const [showAddUrl, setShowAddUrl] = useState(false);
   const [showWebSearch, setShowWebSearch] = useState(false);
@@ -53,20 +52,20 @@ export default function KnowledgeBaseTab() {
   const [newNamespaces, setNewNamespaces] = useState<string[]>([]);
   const [deleteDocId, setDeleteDocId] = useState<number | null>(null);
 
-  // Fetch tenant timezone for dynamic date formatting
-  const { data: tenantTimezone } = useQuery<{ timezone: string }>({
-    queryKey: ["/api/admin/settings/timezone", tenantId],
+  // Fetch system timezone for dynamic date formatting (single-tenant system)
+  const { data: systemTimezone } = useQuery<{ timezone: string }>({
+    queryKey: ["/api/admin/settings/timezone"],
     queryFn: async () => {
-      const res = await apiRequest(`/api/admin/settings/timezone/${tenantId}`);
+      const res = await apiRequest(`/api/admin/settings/timezone`);
       return res.json();
     },
   });
-  const timezone = tenantTimezone?.timezone || "America/Sao_Paulo";
+  const timezone = systemTimezone?.timezone || "America/Sao_Paulo";
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/admin/documents", tenantId],
+    queryKey: ["/api/admin/documents"],
     queryFn: async () => {
-      const res = await apiRequest(`/api/admin/documents/${tenantId}`);
+      const res = await apiRequest(`/api/admin/documents`);
       return res.json();
     },
   });
@@ -77,7 +76,6 @@ export default function KnowledgeBaseTab() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tenant_id: tenantId,
           title: newTextTitle,
           content: newTextContent,
           source: "manual",
@@ -87,7 +85,7 @@ export default function KnowledgeBaseTab() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setShowAddText(false);
       setNewTextTitle("");
       setNewTextContent("");
@@ -102,14 +100,13 @@ export default function KnowledgeBaseTab() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tenant_id: tenantId,
           url: urlToLearn,
         }),
       });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setShowAddUrl(false);
       setUrlToLearn("");
       toast({ title: t.admin.knowledgeBase.toasts.urlContentLearned });
@@ -122,14 +119,13 @@ export default function KnowledgeBaseTab() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tenant_id: tenantId,
           query: searchQuery,
         }),
       });
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setShowWebSearch(false);
       setSearchQuery("");
       toast({ 
@@ -153,7 +149,7 @@ export default function KnowledgeBaseTab() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setEditingDoc(null);
       toast({ title: t.admin.knowledgeBase.toasts.documentUpdated });
     },
@@ -166,7 +162,7 @@ export default function KnowledgeBaseTab() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       toast({ title: t.admin.knowledgeBase.toasts.documentRemoved });
     },
   });
@@ -224,7 +220,6 @@ export default function KnowledgeBaseTab() {
             if (!files || files.length === 0) return;
 
             const formData = new FormData();
-            formData.append("tenant_id", "1");
             
             Array.from(files).forEach(file => {
               formData.append("files", file);
@@ -248,7 +243,7 @@ export default function KnowledgeBaseTab() {
                   title: t.admin.knowledgeBase.toasts.uploadCompleted,
                   description: t.admin.knowledgeBase.toasts.filesProcessed.replace('{{count}}', String(result.processed)),
                 });
-                queryClient.invalidateQueries({ queryKey: ["/api/admin/documents/1"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
               } else {
                 toast({
                   title: t.admin.knowledgeBase.toasts.uploadError,

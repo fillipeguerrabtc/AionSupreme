@@ -461,7 +461,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenantId: 1,
           dailyTokenLimit: dailyTokenLimit ? parseInt(dailyTokenLimit) : null,
           dailyCostLimit: dailyCostLimit ? parseFloat(dailyCostLimit) : null,
           monthlyTokenLimit: monthlyTokenLimit ? parseInt(monthlyTokenLimit) : null,

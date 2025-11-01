@@ -29,7 +29,6 @@ import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 
 export default function KnowledgeBasePage() {
   const { toast } = useToast();
-  const [tenantId] = useState(1);
   const [showAddText, setShowAddText] = useState(false);
   const [showAddUrl, setShowAddUrl] = useState(false);
   const [showWebSearch, setShowWebSearch] = useState(false);
@@ -44,9 +43,9 @@ export default function KnowledgeBasePage() {
   const [newNamespaces, setNewNamespaces] = useState<string[]>([]);
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
-    queryKey: ["/api/admin/documents", tenantId],
+    queryKey: ["/api/admin/documents"],
     queryFn: async () => {
-      const res = await apiRequest(`/api/admin/documents/${tenantId}`);
+      const res = await apiRequest(`/api/admin/documents`);
       return res.json();
     },
   });
@@ -57,7 +56,6 @@ export default function KnowledgeBasePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tenant_id: tenantId,
           title: newTextTitle,
           content: newTextContent,
           source: "manual",
@@ -67,7 +65,7 @@ export default function KnowledgeBasePage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setShowAddText(false);
       setNewTextTitle("");
       setNewTextContent("");
@@ -82,14 +80,13 @@ export default function KnowledgeBasePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tenant_id: tenantId,
           url: urlToLearn,
         }),
       });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setShowAddUrl(false);
       setUrlToLearn("");
       toast({ title: "Conteúdo do link aprendido com sucesso!" });
@@ -102,14 +99,13 @@ export default function KnowledgeBasePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tenant_id: tenantId,
           query: searchQuery,
         }),
       });
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setShowWebSearch(false);
       setSearchQuery("");
       toast({ 
@@ -133,7 +129,7 @@ export default function KnowledgeBasePage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setEditingDoc(null);
       setEditNamespaces([]);
       toast({ title: "Documento e namespaces atualizados!" });
@@ -147,7 +143,7 @@ export default function KnowledgeBasePage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       toast({ title: "Documento removido!" });
     },
   });
@@ -227,7 +223,6 @@ export default function KnowledgeBasePage() {
               if (!files || files.length === 0) return;
 
               const formData = new FormData();
-              formData.append("tenant_id", "1");
               
               Array.from(files).forEach(file => {
                 formData.append("files", file);
@@ -251,7 +246,7 @@ export default function KnowledgeBasePage() {
                     title: "Upload concluído!",
                     description: `${result.processed} arquivo(s) processado(s) e indexado(s)`,
                   });
-                  queryClient.invalidateQueries({ queryKey: ["/api/admin/documents/1"] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
                 } else {
                   toast({
                     title: "Erro no upload",

@@ -38,7 +38,6 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const { t, language, setLanguage } = useLanguage();
   const [, navigate] = useLocation();
-  const [tenantId] = useState(1);
   const [systemPromptValue, setSystemPromptValue] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [tokenSubtab, setTokenSubtab] = useState<'overview' | 'kb' | 'free-apis' | 'openai' | 'web' | 'deepweb' | 'limits'>('overview');
@@ -51,9 +50,9 @@ export default function AdminDashboard() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const { data: policy, error, isLoading } = useQuery({
-    queryKey: ["/api/admin/policies", tenantId],
+    queryKey: ["/api/admin/policies"],
     queryFn: async () => {
-      const res = await apiRequest(`/api/admin/policies/${tenantId}`);
+      const res = await apiRequest(`/api/admin/policies`);
       const data = await res.json();
       return data;
     },
@@ -61,14 +60,14 @@ export default function AdminDashboard() {
 
   // Fetch documents count for Knowledge Base stats
   const { data: documentsData } = useQuery({
-    queryKey: ["/api/admin/documents/1"],
+    queryKey: ["/api/admin/documents"],
   });
 
   // Fetch token statistics for Dashboard cards
   const { data: tokenSummary } = useQuery({
     queryKey: ["/api/tokens/summary"],
     queryFn: async () => {
-      const res = await fetch(`/api/tokens/summary?tenant_id=${tenantId}`);
+      const res = await fetch(`/api/tokens/summary`);
       return res.json();
     },
   });
@@ -77,7 +76,7 @@ export default function AdminDashboard() {
   const { data: costHistory } = useQuery({
     queryKey: ["/api/tokens/cost-history"],
     queryFn: async () => {
-      const res = await fetch(`/api/tokens/cost-history?tenant_id=${tenantId}&limit=1000`);
+      const res = await fetch(`/api/tokens/cost-history?limit=1000`);
       return res.json();
     },
   });
@@ -86,7 +85,7 @@ export default function AdminDashboard() {
   const { data: freeAPIsHistory } = useQuery({
     queryKey: ["/api/tokens/free-apis-history"],
     queryFn: async () => {
-      const res = await fetch(`/api/tokens/free-apis-history?tenant_id=${tenantId}&limit=1000`);
+      const res = await fetch(`/api/tokens/free-apis-history?limit=1000`);
       return res.json();
     },
   });
@@ -111,9 +110,9 @@ export default function AdminDashboard() {
 
   // Fetch tenant timezone
   const { data: tenantTimezone } = useQuery({
-    queryKey: ["/api/admin/settings/timezone", tenantId],
+    queryKey: ["/api/admin/settings/timezone"],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/settings/timezone/${tenantId}`);
+      const res = await fetch(`/api/admin/settings/timezone`);
       return res.json();
     },
   });
@@ -131,7 +130,7 @@ export default function AdminDashboard() {
   const { data: trainingJobs } = useQuery({
     queryKey: ["/api/training/jobs"],
     queryFn: async () => {
-      const res = await fetch(`/api/training/jobs?tenantId=${tenantId}`);
+      const res = await fetch(`/api/training/jobs`);
       return res.json();
     },
   });
@@ -167,7 +166,7 @@ export default function AdminDashboard() {
       const { createdAt, updatedAt, id, tenantId: _tenantId, ...policyFields } = policy || {};
       const payload = { ...policyFields, ...updates };
       
-      const res = await apiRequest(`/api/admin/policies/${tenantId}`, {
+      const res = await apiRequest(`/api/admin/policies`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -177,7 +176,7 @@ export default function AdminDashboard() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/policies", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/policies"] });
       setPendingRules(null);
       setPendingBehavior(null);
       setHasUnsavedChanges(false);
@@ -189,7 +188,7 @@ export default function AdminDashboard() {
     mutationFn: async () => {
       const res = await apiRequest("/api/admin/index-pdfs", {
         method: "POST",
-        body: JSON.stringify({ tenant_id: tenantId }),
+        body: JSON.stringify({}),
       });
       return res.json();
     },
@@ -226,7 +225,7 @@ export default function AdminDashboard() {
   // Mutation to save timezone
   const saveTimezoneMutation = useMutation({
     mutationFn: async (timezone: string) => {
-      const res = await apiRequest(`/api/admin/settings/timezone/${tenantId}`, {
+      const res = await apiRequest(`/api/admin/settings/timezone`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -242,7 +241,7 @@ export default function AdminDashboard() {
         setCurrentTime(getCurrentDateTimeInTimezone(data.timezone));
       }
       toast({ title: t.admin.settings.timezone.saved });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/timezone", tenantId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/timezone"] });
     },
     onError: () => {
       toast({ 
