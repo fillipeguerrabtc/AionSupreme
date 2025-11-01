@@ -23,7 +23,6 @@ Guia de referência rápida para toda documentação do projeto.
 
 ### Deployment
 - **[DEPLOYMENT_COMPLETE.md](./DEPLOYMENT_COMPLETE.md)** - Status de deployment multi-cloud
-- **[GOOGLE_COLAB_DEPLOYMENT.md](./GOOGLE_COLAB_DEPLOYMENT.md)** - ⚠️ Descontinuado - Ver SETUP_GPU_WORKERS.md
 - **[CHECKLIST_DEPLOYMENT.md](./CHECKLIST_DEPLOYMENT.md)** - Checklist de deployment
 
 ### Arquitetura e Design
@@ -77,7 +76,6 @@ Sistema de 10 GPUs grátis (5 Colab + 5 Kaggle) com rotação automática, quota
 |------|-----------|-------|---------|
 | **SETUP_GPU_WORKERS.md** ⭐ | Inferência + Training | **GRÁTIS** | Colab + Kaggle |
 | GPU_WORKER_SETUP.md | Video Generation | PAGO (~$0.40-0.80/h) | RunPod + Modal |
-| GOOGLE_COLAB_DEPLOYMENT.md | Servidor no Colab | ⚠️ Descontinuado | - |
 
 ---
 

@@ -89,7 +89,7 @@ The application will be available at `http://localhost:5000`.
 - [**Automatic Fallback System**](./docs/AUTOMATIC_FALLBACK.md) - Refusal detection and autonomous web search
 - [**PDF Documentation Index**](./docs/INDEX.md) - Complete guide to the 19 technical PDFs
 - [**API Reference**](./docs/API.md) - REST API endpoints and usage
-- [**Deployment Guide**](./GOOGLE_COLAB_DEPLOYMENT.md) - Google Colab GPU deployment instructions
+- [**GPU Setup Guide**](./SETUP_GPU_WORKERS.md) - Free GPU workers setup (Google Colab + Kaggle)
 
 ### Technical PDFs (19 Parts)
 
@@ -295,7 +295,6 @@ POST /api/gpu/quota/record        # Record usage after jobs
 - **Documentation**: [`docs/`](./docs/)
 - **Technical PDFs**: [`docs/pdfs/`](./docs/pdfs/)
 - **Production Status**: [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md)
-- **Deployment Guide**: [GOOGLE_COLAB_DEPLOYMENT.md](./GOOGLE_COLAB_DEPLOYMENT.md)
 - **GPU Pool Setup**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
 - **GPU 24/7 Schedule**: [GPU_SCHEDULE_24_7.md](./GPU_SCHEDULE_24_7.md)
 

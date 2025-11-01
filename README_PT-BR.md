@@ -88,7 +88,7 @@ A aplicação estará disponível em `http://localhost:5000`.
 - [**Sistema de Fallback Automático**](./docs/AUTOMATIC_FALLBACK.md) - Detecção de recusa e busca web autônoma
 - [**Índice dos PDFs**](./docs/INDEX.md) - Guia completo para os 19 PDFs técnicos
 - [**Referência da API**](./docs/API.md) - Endpoints da API REST e uso
-- [**Guia de Deploy**](./GOOGLE_COLAB_DEPLOYMENT.md) - Instruções de deploy no Google Colab com GPU
+- [**Guia de Setup GPU**](./SETUP_GPU_WORKERS.md) - Setup de GPU workers grátis (Google Colab + Kaggle)
 
 ### PDFs Técnicos (19 Partes)
 
@@ -248,7 +248,7 @@ Construído em cima de:
 - **Documentação**: [`docs/`](./docs/)
 - **PDFs Técnicos**: [`docs/pdfs/`](./docs/pdfs/)
 - **Status de Produção**: [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md)
-- **Guia de Deploy**: [GOOGLE_COLAB_DEPLOYMENT.md](./GOOGLE_COLAB_DEPLOYMENT.md)
+- **Setup GPU Pool**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
 
 ---
 

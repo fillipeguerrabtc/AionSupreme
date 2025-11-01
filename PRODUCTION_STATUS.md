@@ -114,7 +114,7 @@
 ### FAISS Real vs In-Memory
 - **Atual**: In-memory Map com cosine similarity
 - **Motivo**: Replit não tem FAISS nativo, precisa Python binding
-- **Solução**: Para FAISS real, ver GOOGLE_COLAB_DEPLOYMENT.md
+- **Solução**: Para FAISS real, ver [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
 - **Performance**: Adequado para <100K vectors (suficiente para 7 PDFs)
 
 ### Auth Implementation
@@ -138,7 +138,7 @@
 ✅ Seed automático
 
 ### Google Colab (Preparado)
-📄 Ver GOOGLE_COLAB_DEPLOYMENT.md
+📄 Ver [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
 - Setup completo documentado
 - FAISS com GPU support
 - Free tier optimization
