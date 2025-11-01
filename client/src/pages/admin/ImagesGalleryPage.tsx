@@ -69,11 +69,19 @@ interface Document {
   attachments?: any[];
 }
 
+interface Namespace {
+  id: string;
+  name: string;
+  displayName: string | null;
+  description: string | null;
+}
+
 export default function ImagesGalleryPage() {
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [namespaceFilter, setNamespaceFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'images' | 'kb'>('images');
   
@@ -89,14 +97,20 @@ export default function ImagesGalleryPage() {
     queryKey: ["/api/admin/documents"],
   });
 
+  const { data: namespacesData } = useQuery<Namespace[]>({
+    queryKey: ["/api/admin/namespaces"],
+  });
+
   // Filtered images
   const filteredImages = imagesData?.images.filter(img => {
     const matchesSource = sourceFilter === 'all' || img.source === sourceFilter;
+    const matchesNamespace = namespaceFilter === 'all' || img.namespace === namespaceFilter;
     const matchesSearch = searchQuery === '' || 
       img.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      img.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      img.documentTitle?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSource && matchesSearch;
+      (img.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (img.documentTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (img.namespace?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+    return matchesSource && matchesNamespace && matchesSearch;
   }) || [];
 
   // Filter KB documents (only indexed ones)
@@ -238,10 +252,10 @@ export default function ImagesGalleryPage() {
               <div className="flex flex-col gap-4">
                 {/* Search & Filter Row */}
                 <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                  <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full sm:w-auto flex-wrap">
                     <div className="flex-1 sm:max-w-xs">
                       <Input
-                        placeholder="Buscar por nome, descrição..."
+                        placeholder="Buscar por nome, descrição, namespace..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         data-testid="input-search-images"
@@ -256,6 +270,19 @@ export default function ImagesGalleryPage() {
                         <SelectItem value="crawler">Web Crawler</SelectItem>
                         <SelectItem value="chat">Chat Upload</SelectItem>
                         <SelectItem value="document">Knowledge Base</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={namespaceFilter} onValueChange={setNamespaceFilter}>
+                      <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-namespace-filter">
+                        <SelectValue placeholder="Todos os namespaces" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os namespaces</SelectItem>
+                        {namespacesData?.map(ns => (
+                          <SelectItem key={ns.id} value={ns.name}>
+                            {ns.displayName || ns.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -382,9 +409,16 @@ export default function ImagesGalleryPage() {
                   </div>
                   <CardContent className="p-3">
                     <p className="text-xs truncate font-medium">{img.filename}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      {(img.size / 1024).toFixed(1)} KB
-                    </p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <p className="text-[10px] text-muted-foreground">
+                        {(img.size / 1024).toFixed(1)} KB
+                      </p>
+                      {img.namespace && (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0">
+                          {img.namespace}
+                        </Badge>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -429,10 +463,15 @@ export default function ImagesGalleryPage() {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 flex-wrap">
                         <Badge variant={getSourceBadge(img.source).variant}>
                           {getSourceBadge(img.source).label}
                         </Badge>
+                        {img.namespace && (
+                          <Badge variant="outline" className="font-mono">
+                            {img.namespace}
+                          </Badge>
+                        )}
                         <p className="text-sm text-muted-foreground whitespace-nowrap">
                           {(img.size / 1024).toFixed(1)} KB
                         </p>
