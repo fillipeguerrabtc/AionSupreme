@@ -34,7 +34,9 @@ import AgentsPage from "./AgentsPage";
 import CurationQueuePage from "./CurationQueuePage";
 import NamespacesPage from "./NamespacesPage";
 import ImagesGalleryPage from "./ImagesGalleryPage";
+import ImageSearchPage from "./ImageSearchPage";
 import LifecyclePoliciesTab from "./LifecyclePoliciesTab";
+import VisionPage from "./VisionPage";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -790,6 +792,18 @@ export default function AdminDashboard() {
               {activeTab === "images" && (
                 <div className="space-y-6">
                   <ImagesGalleryPage />
+                </div>
+              )}
+
+              {activeTab === "image-search" && (
+                <div className="space-y-6">
+                  <ImageSearchPage />
+                </div>
+              )}
+
+              {activeTab === "vision" && (
+                <div className="space-y-6">
+                  <VisionPage />
                 </div>
               )}
 

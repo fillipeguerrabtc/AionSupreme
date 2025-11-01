@@ -41,6 +41,8 @@ import { registerCurationRoutes } from "./routes/curation";
 import { registerKbPromoteRoutes } from "./routes/kb_promote";
 import { registerNamespaceRoutes } from "./routes/namespaces";
 import { registerGpuRoutes } from "./routes/gpu";
+import { registerVisionRoutes } from "./routes/vision";
+import { registerKbImagesRoutes } from "./routes/kb-images";
 
 const upload = multer({ dest: "/tmp/uploads/" });
 
@@ -69,6 +71,12 @@ export function registerRoutes(app: Express): Server {
   
   // Register GPU Pool routes (Plug&Play GPU workers)
   registerGpuRoutes(app);
+  
+  // Register Vision System routes (multimodal image understanding)
+  registerVisionRoutes(app);
+  
+  // Register KB Images routes (semantic image search in knowledge base)
+  registerKbImagesRoutes(app);
 
   // ========================================
   // DATASET DOWNLOAD ENDPOINT

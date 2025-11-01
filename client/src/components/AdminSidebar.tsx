@@ -14,6 +14,7 @@ import {
   FolderTree,
   Image,
   Timer,
+  Eye,
 } from "lucide-react";
 import {
   Sidebar,
@@ -108,6 +109,18 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: Image,
       value: "images",
       testId: "nav-images",
+    },
+    {
+      title: "Busca de Imagens (AI)",
+      icon: Eye,
+      value: "image-search",
+      testId: "nav-image-search",
+    },
+    {
+      title: "Vision System",
+      icon: Eye,
+      value: "vision",
+      testId: "nav-vision",
     },
     {
       title: "Namespaces",
