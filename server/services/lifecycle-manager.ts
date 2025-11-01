@@ -163,16 +163,33 @@ export class LifecycleManager {
 
   /**
    * Get modules scheduled to run based on current time
-   * Respects policy timezone (America/Sao_Paulo)
+   * Respects policy timezone from config
    */
   private getScheduledModules(): string[] {
     if (!this.policy) return [];
 
     const now = new Date();
     
-    // Convert to policy timezone (America/Sao_Paulo = UTC-3)
-    const brazilOffset = -3; // UTC-3 hours
-    const localTime = new Date(now.getTime() + (brazilOffset * 60 * 60 * 1000));
+    // Parse timezone offset from policy (e.g., "America/Sao_Paulo" or "UTC-3")
+    // For BRT (Brasília Time), the offset is UTC-3 (no DST since 2019)
+    let timezoneOffset = -3; // Default to BRT
+    
+    if (this.policy.schedule.timezone) {
+      const tz = this.policy.schedule.timezone;
+      if (tz.includes('UTC')) {
+        // Parse "UTC-3" format
+        const match = tz.match(/UTC([+-]\d+)/);
+        if (match) {
+          timezoneOffset = parseInt(match[1]);
+        }
+      } else if (tz.includes('Sao_Paulo') || tz.includes('Brasilia')) {
+        // BRT is permanently UTC-3 (no DST since 2019)
+        timezoneOffset = -3;
+      }
+    }
+    
+    // Convert to policy timezone
+    const localTime = new Date(now.getTime() + (timezoneOffset * 60 * 60 * 1000));
     
     const currentHour = localTime.getUTCHours();
     const currentDay = localTime.getUTCDate();
@@ -477,6 +494,18 @@ export class LifecycleManager {
     let recordsPreserved = 0;
 
     if (policy.name === 'cleanup_old_documents') {
+      // DOCUMENT-LEVEL PRESERVATION: Use recent activity as proxy for training dataset usage
+      // 
+      // Schema limitation: trainingDataCollection doesn't store sourceDocumentIds
+      // - Cannot directly verify if document ID is in training datasets
+      // - formatted_data contains instruction/output pairs, not source document IDs
+      // - metadata.namespaces[] is too coarse-grained (preserves entire namespaces)
+      //
+      // PRESERVATION STRATEGY: Use recent embeddings as proxy for "active in training"
+      // - If document has embeddings created in last 12 months → likely used in RAG → preserve
+      // - If document namespace is in trainingDataCollection.metadata.namespaces[] → preserve
+      // - Otherwise → safe to delete (not actively used in training)
+      
       const threshold = new Date();
       threshold.setFullYear(threshold.getFullYear() - 5);
 
@@ -485,32 +514,64 @@ export class LifecycleManager {
         .from(documents)
         .where(lt(documents.createdAt, threshold));
 
-      for (const doc of oldDocs) {
-        // TODO: Check if referenced by active training datasets
-        // Requires schema change: datasets table needs a sourceDocumentIds[] field
-        // For now, we skip this preservation check (safe mode: preserve all documents used in training data collections)
-        
-        // Check if document is referenced by any training data collection
-        const referencedByTraining = await db
-          .select()
-          .from(trainingDataCollection)
-          .where(sql`${trainingDataCollection.metadata}->>'sourceDocumentId' = ${doc.id.toString()}`)
-          .limit(1);
+      // Get all namespaces used in training data collections
+      const trainingCollections = await db
+        .select({ metadata: trainingDataCollection.metadata })
+        .from(trainingDataCollection);
 
-        if (referencedByTraining.length > 0) {
-          recordsPreserved++;
-          continue; // Preserve document used in training
+      // Build set of all namespaces referenced by training data
+      const trainingNamespaces = new Set<string>();
+      for (const collection of trainingCollections) {
+        const metadata = collection.metadata as { namespaces?: string[] };
+        if (metadata?.namespaces) {
+          metadata.namespaces.forEach(ns => trainingNamespaces.add(ns));
         }
-
-        // Safe to delete (embeddings cascade via FK)
-        await db
-          .delete(documents)
-          .where(eq(documents.id, doc.id));
-        
-        recordsDeleted++;
       }
 
-      console.log(`[LifecycleManager]     Deleted ${recordsDeleted} old KB documents, preserved ${recordsPreserved}`);
+      const recentEmbeddingThreshold = new Date();
+      recentEmbeddingThreshold.setMonth(recentEmbeddingThreshold.getMonth() - 12);
+
+      for (const doc of oldDocs) {
+        let shouldPreserve = false;
+
+        // Preservation check 1: Document namespace in training data
+        if (doc.namespace && trainingNamespaces.has(doc.namespace)) {
+          shouldPreserve = true;
+        }
+
+        // Preservation check 2: Document has recent embeddings (actively queried via RAG)
+        if (!shouldPreserve) {
+          const recentEmbeddings = await db
+            .select({ id: embeddings.id })
+            .from(embeddings)
+            .where(
+              and(
+                eq(embeddings.documentId, doc.id),
+                sql`${embeddings.createdAt} > ${recentEmbeddingThreshold}`
+              )
+            )
+            .limit(1);
+
+          if (recentEmbeddings.length > 0) {
+            shouldPreserve = true;
+          }
+        }
+
+        if (shouldPreserve) {
+          recordsPreserved++;
+        } else {
+          // Safe to delete (embeddings cascade via FK, physical files handled by cleanup service)
+          await db
+            .delete(documents)
+            .where(eq(documents.id, doc.id));
+          
+          recordsDeleted++;
+        }
+      }
+
+      console.log(`[LifecycleManager]     Deleted ${recordsDeleted} KB documents (>5yr, inactive)`);
+      console.log(`[LifecycleManager]     Preserved ${recordsPreserved} KB documents (training namespaces + recent embeddings)`);
+
     } else if (policy.name === 'cleanup_orphaned_embeddings') {
       // Delete embeddings without parent documents
       const allEmbeddings = await db.select().from(embeddings);
