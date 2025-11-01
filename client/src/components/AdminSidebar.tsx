@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   FolderTree,
   Image,
+  Timer,
 } from "lucide-react";
 import {
   Sidebar,
@@ -113,6 +114,12 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: FolderTree,
       value: "namespaces",
       testId: "nav-namespaces",
+    },
+    {
+      title: "Lifecycle Policies",
+      icon: Timer,
+      value: "lifecycle",
+      testId: "nav-lifecycle",
     },
     {
       title: t.admin.tabs.settings,

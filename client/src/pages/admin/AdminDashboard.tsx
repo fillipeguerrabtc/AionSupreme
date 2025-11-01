@@ -34,6 +34,7 @@ import AgentsPage from "./AgentsPage";
 import CurationQueuePage from "./CurationQueuePage";
 import NamespacesPage from "./NamespacesPage";
 import ImagesGalleryPage from "./ImagesGalleryPage";
+import LifecyclePoliciesTab from "./LifecyclePoliciesTab";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -795,6 +796,12 @@ export default function AdminDashboard() {
               {activeTab === "namespaces" && (
                 <div className="space-y-6">
                   <NamespacesPage />
+                </div>
+              )}
+
+              {activeTab === "lifecycle" && (
+                <div className="space-y-6">
+                  <LifecyclePoliciesTab />
                 </div>
               )}
 
