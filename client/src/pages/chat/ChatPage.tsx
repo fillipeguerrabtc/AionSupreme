@@ -75,7 +75,7 @@ export default function ChatPage() {
         const response = await apiRequest("/api/conversations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tenant_id: 1, title: "New Chat" }),
+          body: JSON.stringify({ title: "New Chat" }),
         });
         const newConv = await response.json();
         
@@ -136,7 +136,7 @@ export default function ChatPage() {
       const response = await apiRequest("/api/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenant_id: 1, title: "New Chat" }),
+        body: JSON.stringify({ title: "New Chat" }),
       });
       const newConv = await response.json();
       
@@ -172,7 +172,6 @@ export default function ChatPage() {
         const formData = new FormData();
         formData.append("data", JSON.stringify({
           messages: currentMessages,
-          tenant_id: 1,
         }));
         
         files.forEach(file => {
@@ -202,7 +201,6 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: currentMessages,
-          tenant_id: 1,
         }),
       });
       
@@ -392,7 +390,6 @@ export default function ChatPage() {
         const audioBlob = new Blob(audioChunks, { type: mimeType });
         const formData = new FormData();
         formData.append("audio", audioBlob, `recording.${extension}`);
-        formData.append("tenant_id", "1");
 
         console.log(`[Audio Recording] MIME type: ${mimeType}, size: ${audioBlob.size} bytes`);
 

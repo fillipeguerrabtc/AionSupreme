@@ -718,7 +718,7 @@ export function registerRoutes(app: Express): Server {
       
       // Re-index document
       if (content) {
-        await knowledgeIndexer.reIndexDocument(docId, content);
+        await knowledgeIndexer.reIndexDocument(docId);
       }
 
       res.json(updated);

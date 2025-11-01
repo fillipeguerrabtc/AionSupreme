@@ -50,7 +50,6 @@ export function PromoteToKBButton({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-tenant-id": "1",
         },
         body: JSON.stringify({
           title,

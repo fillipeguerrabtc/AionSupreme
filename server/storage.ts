@@ -346,6 +346,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteDocument(id: number): Promise<void> {
+    // Delete embeddings first (foreign key constraint)
+    await db.delete(embeddings).where(eq(embeddings.documentId, id));
+    // Then delete the document
     await db.delete(documents).where(eq(documents.id, id));
   }
 

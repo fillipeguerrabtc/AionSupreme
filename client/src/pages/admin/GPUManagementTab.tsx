@@ -50,15 +50,15 @@ interface PoolStats {
 export default function GPUManagementTab() {
   const { toast } = useToast();
 
-  // Fetch tenant timezone for dynamic date formatting
-  const { data: tenantTimezone } = useQuery<{ timezone: string }>({
+  // Fetch system timezone for dynamic date formatting
+  const { data: systemTimezone } = useQuery<{ timezone: string }>({
     queryKey: ["/api/admin/settings/timezone"],
     queryFn: async () => {
       const res = await apiRequest(`/api/admin/settings/timezone`);
       return res.json();
     },
   });
-  const timezone = tenantTimezone?.timezone || "America/Sao_Paulo";
+  const timezone = systemTimezone?.timezone || "America/Sao_Paulo";
 
   // Fetch GPU workers
   const { data: gpuData, isLoading } = useQuery({

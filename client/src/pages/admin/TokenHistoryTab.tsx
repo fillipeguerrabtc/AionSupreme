@@ -36,15 +36,15 @@ const providerColors: Record<string, string> = {
 export default function TokenHistoryTab() {
   const { t } = useLanguage();
 
-  // Fetch tenant timezone for dynamic date formatting
-  const { data: tenantTimezone } = useQuery<{ timezone: string }>({
+  // Fetch system timezone for dynamic date formatting
+  const { data: systemTimezone } = useQuery<{ timezone: string }>({
     queryKey: ["/api/admin/settings/timezone"],
     queryFn: async () => {
       const res = await apiRequest(`/api/admin/settings/timezone`);
       return res.json();
     },
   });
-  const timezone = tenantTimezone?.timezone || "America/Sao_Paulo";
+  const timezone = systemTimezone?.timezone || "America/Sao_Paulo";
 
   const { data: history, isLoading } = useQuery<TokenHistoryRecord[]>({
     queryKey: ["/api/tokens/complete-history"],

@@ -32,15 +32,15 @@ interface AutoEvolutionStats {
 export default function AutoEvolutionTab() {
   const { t } = useLanguage();
 
-  // Fetch tenant timezone for dynamic date formatting
-  const { data: tenantTimezone } = useQuery<{ timezone: string }>({
+  // Fetch system timezone for dynamic date formatting
+  const { data: systemTimezone } = useQuery<{ timezone: string }>({
     queryKey: ["/api/admin/settings/timezone"],
     queryFn: async () => {
       const res = await apiRequest(`/api/admin/settings/timezone`);
       return res.json();
     },
   });
-  const timezone = tenantTimezone?.timezone || "America/Sao_Paulo";
+  const timezone = systemTimezone?.timezone || "America/Sao_Paulo";
 
   const { data, isLoading } = useQuery<AutoEvolutionStats>({
     queryKey: ["/api/training/auto-evolution/stats"],
@@ -217,7 +217,7 @@ export default function AutoEvolutionTab() {
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(value) => {
-                    // Format using tenant timezone
+                    // Format using system timezone
                     const formatted = formatDateTimeInTimezone(value, timezone, { format: 'short' });
                     // Extract just the date portion (MM/DD)
                     const parts = formatted.split(',')[0].split('/');

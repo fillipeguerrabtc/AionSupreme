@@ -80,7 +80,7 @@ export default function AgentsPage() {
     mutationFn: async (data: Partial<Agent>) => {
       const res = await apiRequest("/api/agents", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       return res.json();
@@ -105,7 +105,7 @@ export default function AgentsPage() {
     mutationFn: async ({ id, data }: { id: string; data: Partial<Agent> }) => {
       const res = await apiRequest(`/api/agents/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       return res.json();
@@ -125,7 +125,6 @@ export default function AgentsPage() {
     mutationFn: async (id: string) => {
       const res = await apiRequest(`/api/agents/${id}`, {
         method: "DELETE",
-        headers: { "x-tenant-id": "1" },
       });
       return res.json();
     },
