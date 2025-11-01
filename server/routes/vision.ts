@@ -8,11 +8,15 @@ import { VisionCascade } from "../learn/vision-cascade";
 import { db } from "../db";
 import { tokenUsage } from "../../shared/schema";
 import { and, eq, gte } from "drizzle-orm";
+import { rateLimitMiddleware } from "../middleware/rate-limit";
 
 const visionCascade = new VisionCascade();
 
 export function registerVisionRoutes(app: Express) {
   console.log("[Vision Routes] Registering Vision System API routes...");
+  
+  // Apply rate limiting to all Vision routes
+  app.use("/api/vision/*", rateLimitMiddleware);
 
   /**
    * GET /api/vision/status
@@ -107,28 +111,64 @@ export function registerVisionRoutes(app: Express) {
 
   /**
    * POST /api/vision/test
-   * Testa um provider específico processando uma imagem de teste
+   * Testa um provider específico processando uma imagem de teste REAL
    */
   app.post("/api/vision/test", async (req: Request, res: Response) => {
     try {
-      const { provider, imageUrl } = req.body;
+      const { provider } = req.body;
       
       if (!provider) {
         return res.status(400).json({ error: "Provider is required" });
       }
 
-      // TODO: Implementar teste real com imagem
-      // Por agora, retorna mock de sucesso se API key existe
-      const hasApiKey = 
-        (provider === "gemini" && process.env.GEMINI_API_KEY) ||
-        ((provider === "gpt4v-openrouter" || provider === "claude3-openrouter") && process.env.OPEN_ROUTER_API_KEY) ||
-        (provider === "huggingface" && process.env.HUGGINGFACE_API_KEY) ||
-        (provider === "openai" && process.env.OPENAI_API_KEY);
-
-      if (!hasApiKey) {
+      // Validar provider
+      const validProviders: Array<'gemini' | 'gpt4v-openrouter' | 'claude3-openrouter' | 'huggingface' | 'openai'> = 
+        ['gemini', 'gpt4v-openrouter', 'claude3-openrouter', 'huggingface', 'openai'];
+      
+      if (!validProviders.includes(provider)) {
         return res.status(400).json({ 
+          error: `Invalid provider. Must be one of: ${validProviders.join(', ')}` 
+        });
+      }
+
+      // Criar imagem de teste simples (1x1 pixel PNG vermelho)
+      const testImageBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";
+      const testImageBuffer = Buffer.from(testImageBase64, 'base64');
+      const testMimeType = "image/png";
+
+      console.log(`[Vision Test] Testing provider: ${provider}`);
+      
+      // Executar teste REAL com o Vision Cascade
+      const startTime = Date.now();
+      let result;
+      let error = null;
+
+      try {
+        // Force o provider específico criando instância temporária
+        // Como VisionCascade sempre tenta em ordem, precisamos testar diretamente
+        const testMethods: Record<typeof provider, () => Promise<any>> = {
+          'gemini': () => (visionCascade as any).tryGemini(testImageBuffer, testMimeType, "test image"),
+          'gpt4v-openrouter': () => (visionCascade as any).tryGPT4VOpenRouter(testImageBuffer, testMimeType, "test image"),
+          'claude3-openrouter': () => (visionCascade as any).tryClaude3OpenRouter(testImageBuffer, testMimeType, "test image"),
+          'huggingface': () => (visionCascade as any).tryHuggingFace(testImageBuffer, "test image"),
+          'openai': () => (visionCascade as any).tryOpenAI(testImageBuffer, testMimeType, "test image")
+        };
+
+        result = await testMethods[provider as keyof typeof testMethods]();
+      } catch (err: any) {
+        error = err.message;
+        console.error(`[Vision Test] ${provider} failed:`, err.message);
+      }
+
+      const latency = Date.now() - startTime;
+
+      if (error || !result?.success) {
+        return res.status(400).json({
           success: false,
-          error: `API key not configured for ${provider}` 
+          error: error || "Provider test failed",
+          provider,
+          latency,
+          timestamp: new Date().toISOString()
         });
       }
 
@@ -137,7 +177,10 @@ export function registerVisionRoutes(app: Express) {
         data: {
           provider,
           tested: true,
-          message: `${provider} is configured and ready`,
+          description: result.description,
+          tokensUsed: result.tokensUsed,
+          latency,
+          message: `${provider} test completed successfully`,
           timestamp: new Date().toISOString()
         }
       });

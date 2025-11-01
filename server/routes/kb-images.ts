@@ -8,9 +8,13 @@ import { db } from "../db";
 import { documents, embeddings } from "../../shared/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { embedder } from "../rag/embedder";
+import { rateLimitMiddleware } from "../middleware/rate-limit";
 
 export function registerKbImagesRoutes(app: Express) {
   console.log("[KB Images Routes] Registering KB Image Search routes...");
+  
+  // Apply rate limiting to all KB Images routes
+  app.use("/api/kb/images*", rateLimitMiddleware);
 
   /**
    * GET /api/kb/images
@@ -82,7 +86,7 @@ export function registerKbImagesRoutes(app: Express) {
 
       // Buscar documentos que sejam imagens com embeddings
       // NOTE: Can't use pgvector operators because embedding column is jsonb, not vector type
-      // CRITICAL: Apply namespace filtering in SQL for security and performance
+      // CRITICAL: Apply namespace filtering + LIMIT in SQL for security and performance
       const conditions = [
         eq(documents.status, "indexed"),
         sql`${documents.mimeType} LIKE 'image/%'`
@@ -94,6 +98,10 @@ export function registerKbImagesRoutes(app: Express) {
           sql`${documents.metadata}->>'namespace' = ANY(${namespaces}::text[])`
         );
       }
+      
+      // PERFORMANCE FIX: Cap SQL result set before in-memory similarity scoring
+      // Fetch at most 10x the requested limit to balance recall vs memory usage
+      const maxCandidates = Math.min(limit * 10, 500);
       
       const imageDocuments = await db
         .select({
@@ -108,7 +116,9 @@ export function registerKbImagesRoutes(app: Express) {
         })
         .from(documents)
         .innerJoin(embeddings, eq(documents.id, embeddings.documentId))
-        .where(and(...conditions));
+        .where(and(...conditions))
+        .orderBy(sql`${documents.createdAt} DESC`)
+        .limit(maxCandidates);
 
       // Calculate similarity scores in-memory (same approach as VectorStore)
       const scoredResults = imageDocuments.map(doc => {
