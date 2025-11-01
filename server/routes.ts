@@ -995,6 +995,56 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // POST /api/admin/migrate-agent-namespaces - Migrate existing agents to new namespace system
+  // ADMIN ONLY - Protected endpoint with admin allowlist
+  // Query params: ?dryRun=true for dry-run mode
+  app.post("/api/admin/migrate-agent-namespaces", async (req, res) => {
+    const user = req.user as any;
+    
+    // 1. Authentication check
+    if (!req.isAuthenticated() || !user?.claims?.sub) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    // 2. Authorization check - admin allowlist
+    const adminAllowlist = (process.env.ADMIN_ALLOWED_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
+    const userSub = user.claims.sub;
+    
+    const isProduction = process.env.NODE_ENV === "production";
+    const isAuthorized = !isProduction && adminAllowlist.length === 0 ? true : adminAllowlist.includes(userSub);
+    
+    if (!isAuthorized) {
+      console.warn(`[Migration] Unauthorized access attempt by user: ${userSub}`);
+      return res.status(403).json({ 
+        error: "Forbidden: Admin access required." 
+      });
+    }
+    
+    try {
+      const dryRun = req.query.dryRun === "true";
+      const { migrateAgentNamespaces } = await import("./migrations/migrate-agent-namespaces");
+      const result = await migrateAgentNamespaces(dryRun);
+      
+      // Fail with 500 if errors > 0 in production mode
+      if (!dryRun && result.errors > 0) {
+        return res.status(500).json({
+          ...result,
+          message: `Migration failed with ${result.errors} errors`,
+        });
+      }
+      
+      res.json({
+        ...result,
+        message: dryRun 
+          ? "Dry-run completed (no changes made)"
+          : "Agent namespaces migration completed successfully",
+      });
+    } catch (error: any) {
+      console.error("[Migration] Error:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /api/admin/images - List all learned images
   app.get("/api/admin/images", async (req, res) => {
     try {
