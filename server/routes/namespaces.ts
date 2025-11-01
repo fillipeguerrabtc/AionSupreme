@@ -128,7 +128,7 @@ export function registerNamespaceRoutes(app: Express) {
     }
   });
 
-  // DELETE /api/namespaces/:id - Delete namespace
+  // DELETE /api/namespaces/:id - Cascade delete namespace
   app.delete("/api/namespaces/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -143,11 +143,19 @@ export function registerNamespaceRoutes(app: Express) {
         return res.status(404).json({ error: "Namespace not found" });
       }
 
-      await db
-        .delete(namespaces)
-        .where(eq(namespaces.id, id));
+      // Import cascade delete service
+      const { cascadeDeleteNamespace } = await import("../services/namespace-cascade");
 
-      res.status(204).send();
+      // Execute cascade delete (namespace + children + agents)
+      const result = await cascadeDeleteNamespace(existingNamespace.name);
+
+      console.log(`[Namespaces] Cascade deleted namespace: ${existingNamespace.name}`, result);
+
+      res.json({
+        success: true,
+        message: `Namespace deleted successfully`,
+        ...result,
+      });
     } catch (error) {
       console.error("Error deleting namespace:", error);
       res.status(500).json({ 
