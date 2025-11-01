@@ -1250,7 +1250,8 @@ export const curationQueue = pgTable("curation_queue", {
   submittedAt: timestamp("submitted_at").notNull().defaultNow(),
   reviewedBy: varchar("reviewed_by", { length: 255 }),
   reviewedAt: timestamp("reviewed_at"),
-  statusChangedAt: timestamp("status_changed_at"), // Timestamp when status changed (for 5-year retention)
+  statusChangedAt: timestamp("status_changed_at"), // Timestamp when status changed
+  expiresAt: timestamp("expires_at"), // Auto-deletion timestamp for rejected items (30 days after rejection)
   note: text("note"), // Admin notes (reason for rejection, etc.)
   publishedId: varchar("published_id", { length: 50 }), // Document ID after approval
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -1260,6 +1261,7 @@ export const curationQueue = pgTable("curation_queue", {
   statusIdx: index("curation_queue_status_idx").on(table.status),
   submittedAtIdx: index("curation_queue_submitted_at_idx").on(table.submittedAt),
   statusChangedAtIdx: index("curation_queue_status_changed_at_idx").on(table.statusChangedAt),
+  expiresAtIdx: index("curation_queue_expires_at_idx").on(table.expiresAt), // Index for daily cleanup job
 }));
 
 export const insertCurationQueueSchema = createInsertSchema(curationQueue).omit({ 

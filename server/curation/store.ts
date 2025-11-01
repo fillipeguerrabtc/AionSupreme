@@ -229,7 +229,7 @@ export const curationStore = {
   },
 
   /**
-   * Rejeita item
+   * Rejeita item e agenda auto-deleção em 30 dias (GDPR compliance)
    */
   async reject(
     id: string,
@@ -237,13 +237,16 @@ export const curationStore = {
     note?: string
   ): Promise<CurationItem | null> {
     const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+    
     const [updated] = await db
       .update(curationQueueTable)
       .set({
         status: "rejected",
         reviewedBy,
         reviewedAt: now,
-        statusChangedAt: now, // Track when status changed for 5-year retention
+        statusChangedAt: now,
+        expiresAt, // Auto-delete after 30 days
         note: note || null,
         updatedAt: now,
       })
@@ -255,6 +258,7 @@ export const curationStore = {
       )
       .returning();
 
+    console.log(`[Curation] ⏰ Item ${id} rejeitado, auto-deleção agendada para ${expiresAt.toISOString()}`);
     return updated || null;
   },
 
@@ -303,22 +307,29 @@ export const curationStore = {
   },
   
   /**
-   * Limpa dados da fila de curadoria com mais de 5 anos (retenção de dados)
-   * Implementa política de retenção de 5 anos conforme padrão da plataforma
+   * Limpa rejected items expirados (30 dias após rejeição)
+   * Implementa GDPR data minimization e storage limitation
+   * DEVE SER EXECUTADO DIARIAMENTE via cron job
    */
-  async cleanupOldCurationData(): Promise<{ curationItemsDeleted: number } | null> {
-    const fiveYearsAgo = new Date();
-    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+  async cleanupExpiredRejectedItems(): Promise<{ curationItemsDeleted: number } | null> {
+    const now = new Date();
 
     const deletedItems = await db
       .delete(curationQueueTable)
-      .where(sql`${curationQueueTable.submittedAt} < ${fiveYearsAgo}`)
+      .where(
+        and(
+          eq(curationQueueTable.status, "rejected"),
+          sql`${curationQueueTable.expiresAt} <= ${now}`
+        )
+      )
       .returning();
 
     if (deletedItems.length === 0) {
+      console.log(`[Curation Cleanup] ✅ Nenhum item rejeitado expirado para deletar`);
       return null;
     }
 
+    console.log(`[Curation Cleanup] 🗑️ ${deletedItems.length} itens rejeitados expirados deletados permanentemente`);
     return { curationItemsDeleted: deletedItems.length };
   },
 };

@@ -516,6 +516,33 @@ export function registerCurationRoutes(app: Express) {
   });
 
   /**
+   * POST /api/curation/cleanup
+   * Executa cleanup manual de itens rejeitados expirados (30 dias)
+   * GDPR compliance: auto-deletion of rejected content
+   */
+  app.post("/api/curation/cleanup", async (req, res) => {
+    try {
+      const result = await curationStore.cleanupExpiredRejectedItems();
+
+      if (!result) {
+        return res.json({ 
+          success: true, 
+          message: "No expired rejected items to delete",
+          deletedCount: 0 
+        });
+      }
+
+      res.json({
+        success: true,
+        message: `${result.curationItemsDeleted} expired rejected items deleted permanently`,
+        deletedCount: result.curationItemsDeleted,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * DELETE /api/curation/:id
    * Remove item da fila (apenas para testes)
    */
