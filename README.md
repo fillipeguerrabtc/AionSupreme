@@ -23,8 +23,10 @@
 - 📊 **Real-time Token Monitoring** - Enterprise-grade tracking with Brazilian timezone (America/Sao_Paulo) for accurate local date calculations
 - 🆓 **5-Tier Free LLM Chain** - KB → GPU Pool → Free APIs (Groq, Gemini, HF) → Web Search → OpenAI (last resort)
 - 🎮 **GPU Pool System** - 10 simultaneous free GPUs (Colab + Kaggle) with intelligent quota management, auto-shutdown, and 24/7 rotation (~70-80 GPU hours/day at zero cost)
-- 🎛️ **Admin Dashboard** - Clean "AION" branding with enterprise sidebar navigation for complete system management
+- 🎛️ **Admin Dashboard** - Clean "AION" branding with enterprise sidebar navigation (15 sections) for complete system management
 - 📦 **Dataset Management** - Production-ready interface for managing training datasets with filtering, search, preview, download, and bulk operations
+- 👁️ **Vision System** - Multi-provider monitoring with 5-tier cascade (Gemini, GPT-4V, Claude3, HuggingFace, OpenAI) and real-time quota tracking
+- 🔍 **KB Image Search** - Semantic AI-powered image search using vision-generated descriptions with cross-language support
 - 🌍 **Multi-Cloud Deployment** - Dual deployment on GCP + AWS with automatic failover (100% free tier)
 
 ### 🏗️ Architecture

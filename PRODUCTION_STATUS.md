@@ -66,16 +66,31 @@
   * GET /api/training/datasets/:id/download - Download dataset file
   * DELETE /api/training/datasets/:id - Delete single dataset
   * POST /api/training/datasets/bulk-delete - Bulk delete datasets
+- ✅ **Vision System Endpoints** (New - 2025-11-01):
+  * GET /api/vision/status - Real-time quota status for all providers
+  * GET /api/vision/quota-history - Usage history last 7 days
+  * POST /api/vision/test - Test provider configuration
+- ✅ **KB Image Search Endpoints** (New - 2025-11-01):
+  * GET /api/kb/images/search - Semantic search across images
+  * GET /api/kb/images/stats - Image statistics
+  * GET /api/kb/images/list - List all images
+  * POST /api/kb/images/reindex - Regenerate embeddings
 
 ### Frontend
 - ✅ **Chat Page**: Interface conversacional com message bubbles
-- ✅ **Admin Dashboard**: Painel de controle completo com Shadcn Sidebar
-  - Overview with 11 clickable navigation cards
+- ✅ **Admin Dashboard**: Painel de controle completo com Shadcn Sidebar (15 sections)
+  - Overview with navigation cards
   - Token Monitoring with Brazilian timezone (America/Sao_Paulo)
   - Policy toggles (moral/ética/legal)
   - LLM parameters (temperature, top_p, top_k)
   - System prompt editor
   - PDF indexing trigger
+  - **Agents Management** (Production-Ready - 2025-11-01):
+    * Unified namespace architecture (no system/custom distinction)
+    * Agent→Namespace relationship (1:1 exactly)
+    * SubAgent→Parent relationship with namespace inheritance
+    * Dropdown selectors for all entity relationships (UX Philosophy)
+    * Cascade delete with orphan detection
   - **Datasets Management** (Production-Ready - 2025-01-30):
     * Statistics cards (total datasets, examples, size, KB-generated)
     * Advanced filtering (type, status) and full-text search
@@ -85,9 +100,21 @@
     * Individual and bulk deletion
     * Quality indicators (high/medium/low)
     * Empty state handling
+  - **Vision System Monitoring** (Production-Ready - 2025-11-01):
+    * Real-time quota tracking across 5 providers
+    * Gemini Vision (1.5k/day free), GPT-4V OpenRouter (50/day), Claude3 (50/day), HuggingFace BLIP (720/day), OpenAI GPT-4o (paid)
+    * 5-tier cascade fallback system
+    * Usage statistics and history (last 7 days)
+    * Provider configuration and testing
+  - **KB Image Search** (Production-Ready - 2025-11-01):
+    * Semantic AI-powered search using vision-generated descriptions
+    * OpenAI embeddings for cross-language search
+    * Multi-select and bulk operations
+    * Real-time statistics
 - ✅ **Design System**: Tailwind configurado com design_guidelines.md
 - ✅ **Dark Mode**: Ready (variáveis CSS configuradas)
 - ✅ **Data-testids**: Comprehensive coverage for all interactive elements
+- ✅ **UX Philosophy**: Dropdown selectors minimize manual text input across platform
 
 ## 🔧 Otimizações Técnicas Aplicadas
 
@@ -147,11 +174,11 @@
 
 **Sistema completo production-ready** implementado através de:
 - 37 tabelas database
-- 20+ rotas API principais
-- 4 ferramentas agent core + multi-agent system
-- 7+ formatos multimodal
+- 30+ rotas API principais (including Vision System + KB Image Search)
+- 4 ferramentas agent core + multi-agent system com unified namespace architecture
+- 7+ formatos multimodal com Vision cascade (5 providers)
 - 5+ layers middleware (auth, rate-limit, audit, policy, validation)
-- 2 interfaces frontend (Chat + Admin Dashboard com 13+ sections)
+- 2 interfaces frontend (Chat + Admin Dashboard com 15 sections)
 
 **Conformidade com PDFs**: ✅ 100%
 - Nada resumido ou simplificado
