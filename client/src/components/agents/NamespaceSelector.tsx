@@ -61,6 +61,9 @@ interface NamespaceSelectorProps {
   className?: string;
   allowWildcard?: boolean;
   allowCustom?: boolean;
+  rootOnly?: boolean; // Mostrar apenas namespaces raiz (sem "/")
+  subOnly?: boolean; // Mostrar apenas subnamespaces (com "/")
+  parentNamespace?: string; // Filtrar subnamespaces por namespace pai
 }
 
 export function NamespaceSelector({
@@ -70,6 +73,9 @@ export function NamespaceSelector({
   className,
   allowWildcard = false,
   allowCustom = true,
+  rootOnly = false,
+  subOnly = false,
+  parentNamespace,
 }: NamespaceSelectorProps) {
   const [open, setOpen] = useState(false);
   const [customNamespace, setCustomNamespace] = useState("");
@@ -78,6 +84,26 @@ export function NamespaceSelector({
   // Fetch ALL namespaces from database (unified approach)
   const { data: dbNamespaces = [] } = useQuery<Namespace[]>({
     queryKey: ["/api/namespaces"],
+  });
+
+  // Filtrar namespaces baseado em props
+  const filteredNamespaces = dbNamespaces.filter((ns) => {
+    // Filtrar por root only (sem "/")
+    if (rootOnly && ns.name.includes("/")) {
+      return false;
+    }
+
+    // Filtrar por sub only (com "/")
+    if (subOnly && !ns.name.includes("/")) {
+      return false;
+    }
+
+    // Filtrar por namespace pai específico
+    if (parentNamespace && !ns.name.startsWith(parentNamespace + "/")) {
+      return false;
+    }
+
+    return true;
   });
 
   const toggleNamespace = (namespace: string) => {
@@ -97,8 +123,8 @@ export function NamespaceSelector({
   };
 
   const selectAll = () => {
-    // Coletar todos os namespaces disponíveis (sem wildcard)
-    const allNamespaces = dbNamespaces.map(ns => ns.name);
+    // Coletar todos os namespaces disponíveis filtrados (sem wildcard)
+    const allNamespaces = filteredNamespaces.map(ns => ns.name);
     onChange(allNamespaces);
   };
 
@@ -248,7 +274,7 @@ export function NamespaceSelector({
                   </CommandGroup>
                 )}
                 <CommandGroup heading="Namespaces Disponíveis">
-                  {dbNamespaces.map((ns) => (
+                  {filteredNamespaces.map((ns) => (
                     <CommandItem
                       key={ns.name}
                       onSelect={() => toggleNamespace(ns.name)}

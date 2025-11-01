@@ -445,6 +445,7 @@ export default function NamespacesPage() {
                     placeholder="Selecione o namespace pai..."
                     allowCustom={false}
                     allowWildcard={false}
+                    rootOnly={true}
                   />
                   <p className="text-xs text-muted-foreground">
                     Escolha o namespace existente onde este será criado
