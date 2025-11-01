@@ -14,7 +14,7 @@ import { HfInference } from "@huggingface/inference";
 import OpenAI from "openai";
 import { trackTokenUsage } from "../monitoring/token-tracker";
 
-export type VisionProvider = 'gemini' | 'gpt4v-openrouter' | 'claude3-openrouter' | 'huggingface' | 'openai';
+export type VisionProvider = 'gemini' | 'gpt4v-openrouter' | 'claude3-openrouter' | 'huggingface' | 'openai' | 'none';
 
 export interface VisionResult {
   description: string;
@@ -117,10 +117,10 @@ export class VisionCascade {
       }
     }
 
-    // Todas falharam - retorna fallback
+    // Todas falharam - retorna fallback sem provider hardcoded
     return {
       description: alt || 'Imagem sem descrição (todas APIs falharam)',
-      provider: 'gemini',
+      provider: 'none', // No provider succeeded (don't hardcode fallback to 'gemini' or 'openai')
       success: false,
       tokensUsed: 0
     };

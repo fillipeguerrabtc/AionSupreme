@@ -285,7 +285,7 @@ export class RAGService {
     );
     
     // MULTIMODAL: Fetch attachments from source documents
-    const uniqueDocIds = [...new Set(results.map(r => r.documentId))];
+    const uniqueDocIds = Array.from(new Set(results.map(r => r.documentId)));
     const documentAttachments = new Map<number, any[]>();
     
     for (const docId of uniqueDocIds) {

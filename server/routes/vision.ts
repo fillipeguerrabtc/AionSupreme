@@ -15,8 +15,80 @@ const visionCascade = new VisionCascade();
 export function registerVisionRoutes(app: Express) {
   console.log("[Vision Routes] Registering Vision System API routes...");
   
-  // Apply rate limiting to all Vision routes
-  app.use("/api/vision/*", rateLimitMiddleware);
+  // REMOVED: Rate limiting already applied globally in routes.ts via app.use("/api", ...)
+  // Keeping it here would cause double rate limiting (each request counted 2x)
+
+  /**
+   * GET /api/vision/providers
+   * Retorna informações sobre os provedores configurados
+   */
+  app.get("/api/vision/providers", async (req: Request, res: Response) => {
+    try {
+      // Provider configuration (database in future, hardcoded for now with comment)
+      // TODO: Move to database table 'vision_providers' for dynamic updates
+      const providers = [
+        {
+          id: "gemini",
+          name: "Google Gemini Vision",
+          model: "gemini-2.0-flash-exp",
+          tier: "FREE",
+          dailyLimit: 1500,
+          priority: 1,
+          features: ["High quality", "Fast", "Detailed descriptions"],
+          status: process.env.GEMINI_API_KEY ? "active" : "missing_key"
+        },
+        {
+          id: "gpt4v-openrouter",
+          name: "GPT-4 Vision (OpenRouter)",
+          model: "openai/gpt-4-vision-preview:free",
+          tier: "FREE",
+          dailyLimit: 50,
+          priority: 2,
+          features: ["Good quality", "OpenRouter free tier"],
+          status: process.env.OPEN_ROUTER_API_KEY ? "active" : "missing_key"
+        },
+        {
+          id: "claude3-openrouter",
+          name: "Claude 3 Haiku (OpenRouter)",
+          model: "anthropic/claude-3-haiku:free",
+          tier: "FREE",
+          dailyLimit: 50,
+          priority: 3,
+          features: ["Good quality", "Fast", "OpenRouter free tier"],
+          status: process.env.OPEN_ROUTER_API_KEY ? "active" : "missing_key"
+        },
+        {
+          id: "huggingface",
+          name: "HuggingFace BLIP",
+          model: "Salesforce/blip-image-captioning-large",
+          tier: "FREE",
+          dailyLimit: 720,
+          priority: 4,
+          features: ["Basic captions", "Free"],
+          status: process.env.HUGGINGFACE_API_KEY ? "active" : "missing_key"
+        },
+        {
+          id: "openai",
+          name: "OpenAI GPT-4o Vision",
+          model: "gpt-4o",
+          tier: "PAID",
+          dailyLimit: null,
+          priority: 5,
+          features: ["Highest quality", "Unlimited", "Paid only"],
+          status: process.env.OPENAI_API_KEY ? "active" : "missing_key"
+        }
+      ];
+
+      res.json({
+        success: true,
+        data: providers,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error("[Vision Routes] Error getting providers:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   /**
    * GET /api/vision/status
@@ -131,7 +203,7 @@ export function registerVisionRoutes(app: Express) {
         });
       }
 
-      // Criar imagem de teste simples (1x1 pixel PNG vermelho)
+      // Criar imagem de teste simples (1x1 pixel PNG - blue/semi-transparent)
       const testImageBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==";
       const testImageBuffer = Buffer.from(testImageBase64, 'base64');
       const testMimeType = "image/png";
@@ -190,5 +262,5 @@ export function registerVisionRoutes(app: Express) {
     }
   });
 
-  console.log("[Vision Routes] ✅ 4 Vision System routes registered successfully");
+  console.log("[Vision Routes] ✅ 5 Vision System routes registered successfully");
 }

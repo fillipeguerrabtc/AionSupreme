@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { extractTextContent } from "./utils/message-helpers";
 import { llmClient } from "./model/llm-client";
 import { freeLLMProviders } from "./model/free-llm-providers";
 import { gpuOrchestrator } from "./model/gpu-orchestrator";
@@ -259,23 +260,6 @@ export function registerRoutes(app: Express): Server {
       
       // Record request metrics
       metricsCollector.recordRequest();
-      
-      // Helper function to extract text from message content (handles string, array, object)
-      const extractTextContent = (content: any): string => {
-        if (typeof content === "string") {
-          return content;
-        } else if (Array.isArray(content)) {
-          // OpenAI multimodal format: [{type: "text", text: "..."}, ...]
-          return content
-            .filter((part: any) => part.type === "text" || typeof part === "string")
-            .map((part: any) => typeof part === "string" ? part : part.text || "")
-            .join(" ");
-        } else if (content && typeof content === "object") {
-          // Fallback for objects
-          return JSON.stringify(content);
-        }
-        return String(content || '');
-      };
       
       // Get last user message (normalized to string)
       const lastUserContent = messages[messages.length - 1]?.content || '';
@@ -573,6 +557,33 @@ export function registerRoutes(app: Express): Server {
       const mimeType = fileProcessor.detectMimeType(req.file.originalname);
       
       const processed = await fileProcessor.processFile(req.file.path, mimeType);
+
+      // DEDUPLICATION: Check if file is duplicate
+      const { deduplicationService } = await import("./services/deduplication-service");
+      const dupCheck = await deduplicationService.checkDuplicate({
+        filePath: req.file.path,
+        text: processed.extractedText,
+        tenantId: 1,
+        enableSemantic: processed.extractedText.length >= 100 // Only semantic if enough text
+      });
+
+      if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
+        // Clean up temp file
+        await fs.unlink(req.file.path).catch(() => {});
+        
+        return res.status(409).json({
+          error: "Duplicate file detected",
+          duplicate: {
+            id: dupCheck.duplicateOf.id,
+            title: dupCheck.duplicateOf.title,
+            method: dupCheck.method,
+            similarity: dupCheck.duplicateOf.similarity
+          },
+          message: dupCheck.method === 'hash'
+            ? "Exact duplicate file found in KB"
+            : `Similar content found (${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% match)`
+        });
+      }
       
       // Import curation store
       const { curationStore } = await import("./curation/store");
@@ -866,6 +877,29 @@ export function registerRoutes(app: Express): Server {
       
       if (!title || !content) {
         return res.status(400).json({ error: "Title and content are required" });
+      }
+
+      // DEDUPLICATION: Check if content is duplicate
+      const { deduplicationService } = await import("./services/deduplication-service");
+      const dupCheck = await deduplicationService.checkDuplicate({
+        text: content,
+        tenantId: 1,
+        enableSemantic: true // Enable semantic check for text
+      });
+
+      if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
+        return res.status(409).json({
+          error: "Duplicate content detected",
+          duplicate: {
+            id: dupCheck.duplicateOf.id,
+            title: dupCheck.duplicateOf.title,
+            method: dupCheck.method,
+            similarity: dupCheck.duplicateOf.similarity
+          },
+          message: dupCheck.method === 'hash'
+            ? "Exact duplicate found in KB"
+            : `Similar content found (${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% match)`
+        });
       }
 
       // Import curation store

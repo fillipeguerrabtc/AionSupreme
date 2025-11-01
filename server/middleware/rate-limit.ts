@@ -25,10 +25,11 @@ interface RateLimitEntry {
 class RateLimiter {
   private limits: Map<string, RateLimitEntry> = new Map();
   private config: RateLimitConfig = {
-    requestsPerMinute: 300, // Increased from 60 to 300 for development
-    requestsPerHour: 5000,
-    requestsPerDay: 50000,
-    tokensPerDay: 1000000,
+    // Use 300 as default for dev/prod, but allow env override
+    requestsPerMinute: parseInt(process.env.RATE_LIMIT_PER_MINUTE || "") || 300,
+    requestsPerHour: parseInt(process.env.RATE_LIMIT_PER_HOUR || "") || 5000,
+    requestsPerDay: parseInt(process.env.RATE_LIMIT_PER_DAY || "") || 50000,
+    tokensPerDay: parseInt(process.env.RATE_LIMIT_TOKENS || "") || 1000000,
   };
 
   /**
@@ -94,7 +95,7 @@ class RateLimiter {
     return Math.max(0, this.getLimit(window) - entry.count);
   }
 
-  private getLimit(window: "minute" | "hour" | "day"): number {
+  getLimit(window: "minute" | "hour" | "day"): number {
     switch (window) {
       case "minute":
         return this.config.requestsPerMinute;
@@ -156,9 +157,13 @@ export function rateLimitMiddleware(
     });
   }
 
-  // Add rate limit headers
-  res.setHeader("X-RateLimit-Remaining", rateLimiter.getRemaining(key, "minute"));
-  res.setHeader("X-RateLimit-Limit", 60);
+  // Add complete rate limit headers for all windows (minute/hour/day)
+  res.setHeader("X-RateLimit-Limit-Minute", rateLimiter.getLimit("minute"));
+  res.setHeader("X-RateLimit-Limit-Hour", rateLimiter.getLimit("hour"));
+  res.setHeader("X-RateLimit-Limit-Day", rateLimiter.getLimit("day"));
+  res.setHeader("X-RateLimit-Remaining-Minute", rateLimiter.getRemaining(key, "minute"));
+  res.setHeader("X-RateLimit-Remaining-Hour", rateLimiter.getRemaining(key, "hour"));
+  res.setHeader("X-RateLimit-Remaining-Day", rateLimiter.getRemaining(key, "day"));
 
   next();
 }

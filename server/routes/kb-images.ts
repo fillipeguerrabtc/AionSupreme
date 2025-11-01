@@ -13,8 +13,8 @@ import { rateLimitMiddleware } from "../middleware/rate-limit";
 export function registerKbImagesRoutes(app: Express) {
   console.log("[KB Images Routes] Registering KB Image Search routes...");
   
-  // Apply rate limiting to all KB Images routes
-  app.use("/api/kb/images*", rateLimitMiddleware);
+  // REMOVED: Rate limiting already applied globally in routes.ts via app.use("/api", ...)
+  // Keeping it here would cause double rate limiting (each request counted 2x)
 
   /**
    * GET /api/kb/images
@@ -218,17 +218,31 @@ export function registerKbImagesRoutes(app: Express) {
         return res.status(404).json({ error: "Image not found" });
       }
 
-      // Delete cascade (embeddings são deletados automaticamente via FK cascade)
-      await db.delete(documents).where(eq(documents.id, imageId));
+      // CRITICAL: Delete physical file from disk BEFORE deleting from database
+      if (image.storageUrl) {
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        
+        // Handle both relative and absolute paths
+        const filePath = path.isAbsolute(image.storageUrl)
+          ? image.storageUrl
+          : path.join(process.cwd(), image.storageUrl);
+        
+        try {
+          await fs.unlink(filePath);
+          console.log(`[KB Images] ✅ Deleted physical file: ${filePath}`);
+        } catch (err: any) {
+          // Log warning but don't fail the request (file might already be deleted)
+          console.warn(`[KB Images] ⚠️ Failed to delete file ${filePath}: ${err.message}`);
+        }
+      }
 
-      // TODO: Deletar arquivo físico também se necessário
-      // import { ImageProcessor } from "../learn/image-processor";
-      // const processor = new ImageProcessor();
-      // await processor.cleanup([/* keep list */]);
+      // Delete from database (embeddings cascade automatically via FK)
+      await db.delete(documents).where(eq(documents.id, imageId));
 
       res.json({
         success: true,
-        message: "Image deleted successfully",
+        message: "Image deleted successfully (file + database)",
         deletedId: imageId
       });
     } catch (error: any) {

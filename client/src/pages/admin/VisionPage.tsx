@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Eye, CheckCircle2, XCircle, Clock, TrendingUp, Zap } from "lucide-react";
+import { Eye, CheckCircle2, XCircle, Clock, TrendingUp, Zap, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface QuotaStatus {
@@ -49,63 +49,16 @@ export default function VisionPage() {
     refetchInterval: 30000, // Atualiza a cada 30s
   });
 
-  // TODO: Move provider info to database instead of hardcoded
-  const providerInfo = {
-    success: true,
-    data: [
-      {
-        id: "gemini",
-        name: "Google Gemini Vision",
-        model: "gemini-2.0-flash-exp",
-        tier: "FREE",
-        dailyLimit: 1500,
-        priority: 1,
-        features: ["High quality", "Fast", "Detailed descriptions"],
-        status: "active" as const
-      },
-      {
-        id: "gpt4v-openrouter",
-        name: "GPT-4 Vision (OpenRouter)",
-        model: "openai/gpt-4-vision-preview:free",
-        tier: "FREE",
-        dailyLimit: 50,
-        priority: 2,
-        features: ["Good quality", "OpenRouter free tier"],
-        status: "active" as const
-      },
-      {
-        id: "claude3-openrouter",
-        name: "Claude 3 Haiku (OpenRouter)",
-        model: "anthropic/claude-3-haiku:free",
-        tier: "FREE",
-        dailyLimit: 50,
-        priority: 3,
-        features: ["Good quality", "Fast", "OpenRouter free tier"],
-        status: "active" as const
-      },
-      {
-        id: "huggingface",
-        name: "HuggingFace BLIP",
-        model: "Salesforce/blip-image-captioning-large",
-        tier: "FREE",
-        dailyLimit: 720,
-        priority: 4,
-        features: ["Basic captions", "Free"],
-        status: "active" as const
-      },
-      {
-        id: "openai",
-        name: "OpenAI GPT-4o Vision",
-        model: "gpt-4o",
-        tier: "PAID",
-        dailyLimit: null,
-        priority: 5,
-        features: ["Highest quality", "Unlimited", "Paid only"],
-        status: "active" as const
-      }
-    ]
-  };
-  const providerLoading = false;
+  // Fetch provider info from backend API (no more hardcoded data!)
+  const { data: providerInfo, isLoading: providerLoading, error: providerError } = useQuery<{
+    success: boolean;
+    data: ProviderInfo[];
+    timestamp: string;
+  }>({
+    queryKey: ["/api/vision/providers"],
+    refetchInterval: 60000, // Atualiza a cada 1 min
+    retry: 3, // Retry 3 times on failure
+  });
 
   const { data: quotaHistory, isLoading: historyLoading } = useQuery<{
     success: boolean;
@@ -146,6 +99,26 @@ export default function VisionPage() {
           </p>
         </div>
       </div>
+
+      {/* Error handling for provider fetch failure */}
+      {providerError && (
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="w-5 h-5" />
+              Erro ao Carregar Provedores
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Não foi possível carregar a configuração dos provedores de visão.
+            </p>
+            <p className="text-xs font-mono bg-muted p-2 rounded">
+              {providerError instanceof Error ? providerError.message : String(providerError)}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quota Status Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
