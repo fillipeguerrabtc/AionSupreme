@@ -25,7 +25,9 @@ import { videoGenerator } from "./generation/video-generator";
 import multer from "multer";
 import axios from "axios";
 import fs from "fs/promises";
+import * as fsSync from "fs";
 import path from "path";
+import express from "express";
 import { optionalAuth } from "./replitAuth";
 import { DatasetProcessor } from "./training/datasets/dataset-processor";
 import { DatasetValidator } from "./training/datasets/dataset-validator";
@@ -732,6 +734,63 @@ export function registerRoutes(app: Express): Server {
     try {
       const docId = parseInt(req.params.id);
       await storage.deleteDocument(docId);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/admin/images - List all learned images
+  app.get("/api/admin/images", async (req, res) => {
+    try {
+      const imagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
+      
+      // Create directory if it doesn't exist
+      if (!fsSync.existsSync(imagesDir)) {
+        fsSync.mkdirSync(imagesDir, { recursive: true });
+        return res.json([]);
+      }
+
+      const files = fsSync.readdirSync(imagesDir);
+      const images = files
+        .filter((f: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(f))
+        .map((filename: string) => {
+          const filepath = path.join(imagesDir, filename);
+          const stats = fsSync.statSync(filepath);
+          
+          return {
+            filename,
+            path: `/images/${filename}`,
+            size: stats.size,
+            createdAt: stats.birthtime,
+            modifiedAt: stats.mtime,
+          };
+        })
+        .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      res.json(images);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // DELETE /api/admin/images/:filename - Delete learned image
+  app.delete("/api/admin/images/:filename", async (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const imagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
+      const filepath = path.join(imagesDir, filename);
+
+      // Security: ensure filename doesn't contain path traversal
+      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(400).json({ error: "Invalid filename" });
+      }
+
+      if (!fsSync.existsSync(filepath)) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+
+      fsSync.unlinkSync(filepath);
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3423,6 +3482,10 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: "Failed to fetch media", details: error.message });
     }
   });
+
+  // Serve learned images statically
+  const learnedImagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
+  app.use('/images', express.static(learnedImagesDir));
 
   const httpServer = createServer(app);
   return httpServer;

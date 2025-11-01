@@ -131,17 +131,39 @@ export class DeepCrawler {
           console.log(`     • ${page.images.length} imagens`);
           console.log(`     • ${page.links.length} links descobertos`);
 
+          // DEBUG: Mostrar links descobertos
+          if (page.links.length > 0) {
+            console.log(`     📋 Links descobertos:`);
+            page.links.slice(0, 10).forEach(l => console.log(`        - ${l}`));
+            if (page.links.length > 10) {
+              console.log(`        ... e mais ${page.links.length - 10} links`);
+            }
+          }
+
           // Adiciona links descobertos à fila
           let newLinksAdded = 0;
+          let skippedVisited = 0;
+          let skippedInQueue = 0;
+          
           for (const link of page.links) {
-            if (!this.visited.has(link) && !this.queue.find(q => q.url === link)) {
+            if (this.visited.has(link)) {
+              skippedVisited++;
+            } else if (this.queue.find(q => q.url === link)) {
+              skippedInQueue++;
+            } else {
               this.queue.push({ url: link, depth: depth + 1 });
               newLinksAdded++;
             }
           }
           
           if (newLinksAdded > 0) {
-            console.log(`     • ${newLinksAdded} novos links adicionados à fila`);
+            console.log(`     ✅ ${newLinksAdded} novos links adicionados à fila`);
+          }
+          if (skippedVisited > 0) {
+            console.log(`     ⏭️ ${skippedVisited} links já visitados`);
+          }
+          if (skippedInQueue > 0) {
+            console.log(`     ⏭️ ${skippedInQueue} links já na fila`);
           }
         } else {
           console.log(`  ❌ FALHA ao extrair conteúdo`);

@@ -26,7 +26,8 @@ import {
   Globe,
   Save,
   X,
-  Plus
+  Plus,
+  Image as ImageIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/i18n";
@@ -51,6 +52,8 @@ export default function KnowledgeBaseTab() {
   const [editNamespaces, setEditNamespaces] = useState<string[]>([]);
   const [newNamespaces, setNewNamespaces] = useState<string[]>([]);
   const [deleteDocId, setDeleteDocId] = useState<number | null>(null);
+  const [showImages, setShowImages] = useState(false);
+  const [deleteImageFilename, setDeleteImageFilename] = useState<string | null>(null);
 
   // Fetch system timezone for dynamic date formatting (single-tenant system)
   const { data: systemTimezone } = useQuery<{ timezone: string }>({
@@ -66,6 +69,23 @@ export default function KnowledgeBaseTab() {
     queryKey: ["/api/admin/documents"],
     queryFn: async () => {
       const res = await apiRequest(`/api/admin/documents`);
+      return res.json();
+    },
+  });
+
+  // Fetch learned images
+  interface LearnedImage {
+    filename: string;
+    path: string;
+    size: number;
+    createdAt: string;
+    modifiedAt: string;
+  }
+
+  const { data: images = [], isLoading: imagesLoading } = useQuery<LearnedImage[]>({
+    queryKey: ["/api/admin/images"],
+    queryFn: async () => {
+      const res = await apiRequest(`/api/admin/images`);
       return res.json();
     },
   });
@@ -167,10 +187,23 @@ export default function KnowledgeBaseTab() {
     },
   });
 
+  const deleteImageMutation = useMutation({
+    mutationFn: async (filename: string) => {
+      await apiRequest(`/api/admin/images/${filename}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/images"] });
+      setDeleteImageFilename(null);
+      toast({ title: "Imagem removida com sucesso!" });
+    },
+  });
+
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Action Buttons */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Button
           onClick={() => setShowAddText(!showAddText)}
           className="bg-gradient-to-r from-primary to-accent hover:scale-105 active:scale-95 transition-all duration-300"
@@ -208,6 +241,16 @@ export default function KnowledgeBaseTab() {
         >
           <Upload className="w-4 h-4 mr-2" />
           {t.admin.knowledgeBase.actions.uploadFiles}
+        </Button>
+
+        <Button
+          onClick={() => setShowImages(!showImages)}
+          variant={showImages ? "default" : "secondary"}
+          className="hover:scale-105 active:scale-95 transition-all duration-300"
+          data-testid="button-show-images"
+        >
+          <ImageIcon className="w-4 h-4 mr-2" />
+          Imagens ({images.length})
         </Button>
         <input
           id="file-upload"
@@ -524,6 +567,89 @@ export default function KnowledgeBaseTab() {
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* Images Gallery */}
+      {showImages && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" />
+              Imagens Aprendidas ({images.length})
+            </CardTitle>
+            <CardDescription>
+              Todas as imagens baixadas e processadas pelo sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {imagesLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Carregando imagens...</div>
+            ) : images.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">Nenhuma imagem encontrada</div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {images.map((image) => (
+                  <div 
+                    key={image.filename}
+                    className="group relative bg-card border rounded-lg overflow-hidden hover-elevate active-elevate-2 transition-all"
+                  >
+                    <div className="aspect-square overflow-hidden bg-muted">
+                      <img
+                        src={image.path}
+                        alt={image.filename}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="p-2 space-y-1">
+                      <p className="text-xs font-medium truncate" title={image.filename}>
+                        {image.filename}
+                      </p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{(image.size / 1024).toFixed(1)}KB</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => setDeleteImageFilename(image.filename)}
+                          data-testid={`button-delete-image-${image.filename}`}
+                        >
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Delete Image Confirmation Dialog */}
+      <AlertDialog open={!!deleteImageFilename} onOpenChange={(open) => !open && setDeleteImageFilename(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão de Imagem</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta imagem? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-image">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteImageFilename) {
+                  deleteImageMutation.mutate(deleteImageFilename);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-delete-image"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteDocId} onOpenChange={(open) => !open && setDeleteDocId(null)}>
