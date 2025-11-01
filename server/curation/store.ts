@@ -332,4 +332,32 @@ export const curationStore = {
     console.log(`[Curation Cleanup] 🗑️ ${deletedItems.length} itens rejeitados expirados deletados permanentemente`);
     return { curationItemsDeleted: deletedItems.length };
   },
+
+  /**
+   * 5-year retention cleanup for curation queue (approved/rejected items only)
+   * Keeps pending items indefinitely until human decision
+   * COMPLIANCE: LGPD Art. 16 (data minimization + legitimate retention period)
+   */
+  async cleanupOldCurationData(): Promise<{ curationItemsDeleted: number } | null> {
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
+
+    // Only delete finalized items (approved/rejected), keep pending indefinitely
+    const deletedItems = await db
+      .delete(curationQueueTable)
+      .where(
+        and(
+          sql`${curationQueueTable.status} IN ('approved', 'rejected')`,
+          sql`${curationQueueTable.statusChangedAt} <= ${fiveYearsAgo}`
+        )
+      )
+      .returning();
+
+    if (deletedItems.length === 0) {
+      return null;
+    }
+
+    console.log(`[Curation Retention] Deleted ${deletedItems.length} curation items older than 5 years`);
+    return { curationItemsDeleted: deletedItems.length };
+  },
 };

@@ -854,6 +854,64 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // DELETE /api/admin/documents/:id - Cascade delete KB document
+  app.delete("/api/admin/documents/:id", async (req, res) => {
+    try {
+      const docId = parseInt(req.params.id);
+      
+      // Import cascade service
+      const { kbCascadeService } = await import("./services/kb-cascade");
+      
+      const result = await kbCascadeService.deleteDocument(docId);
+      
+      if (!result.success) {
+        return res.status(500).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        message: `Document deleted successfully`,
+        documentsDeleted: result.documentsDeleted,
+        embeddingsDeleted: result.embeddingsDeleted,
+        filesDeleted: result.filesDeleted,
+        warnings: result.warnings,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // DELETE /api/admin/documents/bulk - Bulk cascade delete KB documents
+  app.delete("/api/admin/documents/bulk", async (req, res) => {
+    try {
+      const { documentIds } = req.body;
+      
+      if (!documentIds || !Array.isArray(documentIds) || documentIds.length === 0) {
+        return res.status(400).json({ error: "documentIds array is required" });
+      }
+
+      // Import cascade service
+      const { kbCascadeService } = await import("./services/kb-cascade");
+      
+      const result = await kbCascadeService.deleteDocuments(documentIds);
+      
+      if (!result.success) {
+        return res.status(500).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        message: `${result.documentsDeleted} documents deleted successfully`,
+        documentsDeleted: result.documentsDeleted,
+        embeddingsDeleted: result.embeddingsDeleted,
+        filesDeleted: result.filesDeleted,
+        warnings: result.warnings,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // PATCH /api/admin/documents/:id/attachments/:index - Update attachment description
   app.patch("/api/admin/documents/:id/attachments/:index", async (req, res) => {
     try {
