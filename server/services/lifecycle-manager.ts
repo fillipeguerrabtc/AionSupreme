@@ -10,7 +10,8 @@ import {
   embeddings,
   gpuWorkers, 
   agents, 
-  namespaces 
+  namespaces,
+  lifecycleAuditLogs
 } from '@shared/schema';
 import { eq, and, lt, sql, inArray } from 'drizzle-orm';
 import { curationStore } from '../curation/store';
@@ -137,18 +138,26 @@ export class LifecycleManager {
           results.push(result);
 
           if (this.policy?.auditLog.enabled) {
-            this.logAudit(result);
+            await this.saveAuditLog(result);
           }
         } catch (error) {
           console.error(`[LifecycleManager] Error executing policy ${policy.name}:`, error);
-          results.push({
+          
+          const errorResult: CleanupResult = {
             module: moduleName,
             policy: policy.name,
             recordsDeleted: 0,
             recordsPreserved: 0,
             errors: [(error as Error).message],
             timestamp: new Date(),
-          });
+          };
+          
+          results.push(errorResult);
+          
+          // CRITICAL: Audit failed operations for compliance
+          if (this.policy?.auditLog.enabled) {
+            await this.saveAuditLog(errorResult);
+          }
         }
       }
     }
@@ -713,19 +722,28 @@ export class LifecycleManager {
   }
 
   /**
-   * Log audit trail
+   * Save audit log to database for LGPD/GDPR compliance
    */
-  private logAudit(result: CleanupResult): void {
-    const auditEntry = {
-      timestamp: result.timestamp.toISOString(),
-      module: result.module,
-      policy: result.policy,
-      recordsAffected: result.recordsDeleted,
-      preservedCount: result.recordsPreserved,
-      errors: result.errors,
-    };
-
-    console.log(`[LifecycleManager] Audit:`, JSON.stringify(auditEntry));
+  private async saveAuditLog(result: CleanupResult): Promise<void> {
+    try {
+      await db.insert(lifecycleAuditLogs).values({
+        module: result.module,
+        policyName: result.policy,
+        action: 'lifecycle_cleanup',
+        timestamp: result.timestamp,
+        recordsAffected: result.recordsDeleted,
+        preservedRecords: result.recordsPreserved,
+        errors: result.errors,
+        metadata: {
+          policyVersion: this.policy?.version,
+          scheduledRun: true,
+        },
+      });
+      
+      console.log(`[LifecycleManager] Audit log saved: ${result.module}/${result.policy} - ${result.recordsDeleted} deleted, ${result.recordsPreserved} preserved`);
+    } catch (error) {
+      console.error('[LifecycleManager] Failed to save audit log:', error);
+    }
   }
 }
 

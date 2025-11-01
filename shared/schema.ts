@@ -1126,6 +1126,53 @@ export type InsertTrainingDataCollection = z.infer<typeof insertTrainingDataColl
 export type TrainingDataCollection = typeof trainingDataCollection.$inferSelect;
 
 // ============================================================================
+// LIFECYCLE_AUDIT_LOGS - LGPD/GDPR Compliance Audit Trail
+// Tracks all lifecycle management operations for regulatory compliance
+// ============================================================================
+export const lifecycleAuditLogs = pgTable("lifecycle_audit_logs", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
+  
+  // Operation details
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  module: text("module").notNull(), // "conversations" | "trainingData" | "datasets" | etc
+  policyName: text("policy_name").notNull(), // Policy that triggered this operation
+  action: text("action").notNull(), // "cleanup_expired" | "archive" | "purge" | etc
+  
+  // Impact metrics
+  recordsAffected: integer("records_affected").notNull().default(0),
+  preservedRecords: integer("preserved_records").notNull().default(0), // Records saved due to preservation clauses
+  
+  // Error tracking
+  errors: jsonb("errors").$type<string[]>().default([]),
+  
+  // Additional context
+  metadata: jsonb("metadata").$type<{
+    policyVersion?: string;
+    scheduledRun?: boolean;
+    manualTrigger?: boolean;
+    userId?: string; // Admin who triggered manual cleanup
+    retentionDays?: number;
+    preservationClauses?: string[]; // Which preservation rules were applied
+    affectedIds?: number[]; // Sample of affected record IDs
+  }>(),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("lifecycle_audit_tenant_idx").on(table.tenantId),
+  moduleIdx: index("lifecycle_audit_module_idx").on(table.module),
+  timestampIdx: index("lifecycle_audit_timestamp_idx").on(table.timestamp),
+  policyIdx: index("lifecycle_audit_policy_idx").on(table.policyName),
+}));
+
+export const insertLifecycleAuditLogSchema = createInsertSchema(lifecycleAuditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertLifecycleAuditLog = z.infer<typeof insertLifecycleAuditLogSchema>;
+export type LifecycleAuditLog = typeof lifecycleAuditLogs.$inferSelect;
+
+// ============================================================================
 // MULTI-AGENT SYSTEM - Agents, Tools, and Traces
 // ============================================================================
 
