@@ -678,6 +678,63 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // GET /api/admin/lifecycle-policies - Get lifecycle policy configuration
+  app.get("/api/admin/lifecycle-policies", async (req, res) => {
+    try {
+      const policyPath = path.join(process.cwd(), "config", "lifecycle-policy.json");
+      const policyContent = await fs.readFile(policyPath, "utf-8");
+      const policy = JSON.parse(policyContent);
+      res.json(policy);
+    } catch (error: any) {
+      console.error("[Lifecycle Policies] GET error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // PATCH /api/admin/lifecycle-policies - Update lifecycle policy configuration
+  app.patch("/api/admin/lifecycle-policies", async (req, res) => {
+    try {
+      const policyPath = path.join(process.cwd(), "config", "lifecycle-policy.json");
+      
+      // Validate input (basic structure check)
+      const updates = req.body;
+      if (!updates || typeof updates !== 'object') {
+        return res.status(400).json({ error: "Invalid policy data" });
+      }
+
+      // Read current policy
+      const currentContent = await fs.readFile(policyPath, "utf-8");
+      const currentPolicy = JSON.parse(currentContent);
+
+      // Merge updates (deep merge for nested objects)
+      const updatedPolicy = {
+        ...currentPolicy,
+        ...updates,
+        modules: {
+          ...currentPolicy.modules,
+          ...(updates.modules || {})
+        },
+        globalDefaults: {
+          ...currentPolicy.globalDefaults,
+          ...(updates.globalDefaults || {})
+        },
+        schedule: {
+          ...currentPolicy.schedule,
+          ...(updates.schedule || {})
+        }
+      };
+
+      // Write updated policy back to file
+      await fs.writeFile(policyPath, JSON.stringify(updatedPolicy, null, 2), "utf-8");
+      
+      console.log("[Lifecycle Policies] Configuration updated successfully");
+      res.json({ success: true, policy: updatedPolicy });
+    } catch (error: any) {
+      console.error("[Lifecycle Policies] PATCH error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /api/metrics/realtime
   app.get("/api/metrics/realtime", async (req, res) => {
     try {
