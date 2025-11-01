@@ -60,53 +60,69 @@ export default function AdminDashboard() {
   });
 
   // Fetch documents count for Knowledge Base stats
+  // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos
   const { data: documentsData } = useQuery({
     queryKey: ["/api/admin/documents"],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/documents');
+      return res.json();
+    },
+    refetchInterval: 10000,
   });
 
   // Fetch token statistics for Dashboard cards
+  // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos para manter dados em tempo real
   const { data: tokenSummary } = useQuery({
     queryKey: ["/api/tokens/summary"],
     queryFn: async () => {
       const res = await fetch(`/api/tokens/summary`);
       return res.json();
     },
+    refetchInterval: 10000,
   });
 
   // Fetch cost history for total cost card
+  // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos
   const { data: costHistory } = useQuery({
     queryKey: ["/api/tokens/cost-history"],
     queryFn: async () => {
       const res = await fetch(`/api/tokens/cost-history?limit=1000`);
       return res.json();
     },
+    refetchInterval: 10000,
   });
 
   // Fetch free APIs stats
+  // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos
   const { data: freeAPIsHistory } = useQuery({
     queryKey: ["/api/tokens/free-apis-history"],
     queryFn: async () => {
       const res = await fetch(`/api/tokens/free-apis-history?limit=1000`);
       return res.json();
     },
+    refetchInterval: 10000,
   });
 
   // Fetch KB search history
+  // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos
   const { data: kbHistory } = useQuery({
     queryKey: ["/api/tokens/kb-history"],
     queryFn: async () => {
       const res = await fetch('/api/tokens/kb-history?limit=100');
       return res.json();
     },
+    refetchInterval: 10000,
   });
 
   // Fetch web search stats
+  // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos
   const { data: webStats } = useQuery({
     queryKey: ["/api/tokens/web-search-stats"],
     queryFn: async () => {
       const res = await fetch('/api/tokens/web-search-stats');
       return res.json();
     },
+    refetchInterval: 10000,
   });
 
   // Fetch system timezone
@@ -119,30 +135,36 @@ export default function AdminDashboard() {
   });
 
   // Fetch GPU workers stats
+  // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos
   const { data: gpuData } = useQuery({
     queryKey: ["/api/gpu/status"],
     queryFn: async () => {
       const res = await fetch('/api/gpu/status');
       return res.json();
     },
+    refetchInterval: 10000,
   });
 
   // Fetch Federated Training jobs
+  // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos
   const { data: trainingJobs } = useQuery({
     queryKey: ["/api/training/jobs"],
     queryFn: async () => {
       const res = await fetch(`/api/training/jobs`);
       return res.json();
     },
+    refetchInterval: 10000,
   });
 
   // Fetch Auto-Evolution stats
+  // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos
   const { data: autoEvolutionStats } = useQuery({
     queryKey: ["/api/training/auto-evolution/stats"],
     queryFn: async () => {
       const res = await fetch('/api/training/auto-evolution/stats');
       return res.json();
     },
+    refetchInterval: 10000,
   });
 
   // Calculate total tokens from all providers
@@ -486,7 +508,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <CardDescription className="text-xs mt-2">
-                Últimas 24h
+                Histórico Total (FREE)
               </CardDescription>
             </CardHeader>
           </Card>
@@ -505,14 +527,17 @@ export default function AdminDashboard() {
                 <Sparkles className="w-4 h-4" />
                 {t.admin.overview.openai}
               </CardTitle>
-              <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
-                {openaiStats ? (
-                  (openaiStats.today?.requests || 0).toLocaleString()
-                ) : (
-                  <span className="animate-pulse">...</span>
-                )}
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Histórico Total:</span>
+                  <span className="font-bold text-lg">{openaiStats ? (openaiStats.allTime?.requests || 0).toLocaleString() : '...'} req</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Tokens:</span>
+                  <span className="font-bold text-primary">{openaiStats ? (openaiStats.allTime?.tokens || 0).toLocaleString() : '...'}</span>
+                </div>
               </div>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs mt-2">
                 {t.admin.overview.paidApiRequests}
               </CardDescription>
             </CardHeader>
