@@ -73,11 +73,11 @@ export function registerCurationRoutes(app: Express) {
 
   /**
    * PATCH /api/curation/edit
-   * Edita item pendente (título, tags, namespaces, nota)
+   * Edita item pendente (título, conteúdo, tags, namespaces, nota)
    */
   app.patch("/api/curation/edit", async (req, res) => {
     try {
-      const { id, title, tags, suggestedNamespaces, note } = req.body;
+      const { id, title, content, tags, suggestedNamespaces, note } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: "Missing required field: id" });
@@ -85,6 +85,7 @@ export function registerCurationRoutes(app: Express) {
 
       const item = await curationStore.editItem(id, {
         title,
+        content,
         tags,
         suggestedNamespaces,
         note,

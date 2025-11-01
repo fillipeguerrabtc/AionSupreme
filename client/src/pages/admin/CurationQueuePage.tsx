@@ -70,6 +70,7 @@ export default function CurationQueuePage() {
   
   // Edit form state
   const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
   const [editTags, setEditTags] = useState("");
   const [editNamespaces, setEditNamespaces] = useState<string[]>([]);
   const [editNote, setEditNote] = useState("");
@@ -98,7 +99,7 @@ export default function CurationQueuePage() {
 
   // Edit mutation
   const editMutation = useMutation({
-    mutationFn: async (data: { id: string; title: string; tags: string[]; suggestedNamespaces: string[]; note: string }) => {
+    mutationFn: async (data: { id: string; title: string; content: string; tags: string[]; suggestedNamespaces: string[]; note: string }) => {
       const res = await apiRequest("/api/curation/edit", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -267,6 +268,7 @@ export default function CurationQueuePage() {
   const handleEdit = (item: CurationItem) => {
     setSelectedItem(item);
     setEditTitle(item.title);
+    setEditContent(item.content);
     setEditTags(item.tags.join(", "));
     setEditNamespaces(item.suggestedNamespaces);
     setEditNote(item.note || "");
@@ -279,6 +281,7 @@ export default function CurationQueuePage() {
     editMutation.mutate({
       id: selectedItem.id,
       title: editTitle,
+      content: editContent,
       tags: editTags.split(",").map(t => t.trim()).filter(Boolean),
       suggestedNamespaces: editNamespaces,
       note: editNote,
@@ -595,30 +598,28 @@ export default function CurationQueuePage() {
               />
             </div>
 
-            {/* NOVO: Mostrar o conteúdo completo (somente leitura) */}
-            {selectedItem && (
-              <div className="space-y-2">
-                <Label htmlFor="view-content">Conteúdo Extraído</Label>
-                <div className="relative">
-                  <Textarea
-                    id="view-content"
-                    value={selectedItem.content}
-                    readOnly
-                    className="min-h-[200px] max-h-[400px] font-mono text-xs resize-none bg-muted/30"
-                    data-testid="textarea-view-content"
-                  />
-                  <Badge 
-                    variant="secondary" 
-                    className="absolute top-2 right-2 text-xs"
-                  >
-                    {selectedItem.content.length.toLocaleString()} caracteres
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Verifique se todo o conteúdo do link (incluindo sublinks) foi extraído corretamente
-                </p>
+            {/* Editar Conteúdo */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-content">Conteúdo</Label>
+              <div className="relative">
+                <Textarea
+                  id="edit-content"
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="min-h-[200px] max-h-[400px] font-mono text-xs"
+                  data-testid="textarea-edit-content"
+                />
+                <Badge 
+                  variant="secondary" 
+                  className="absolute top-2 right-2 text-xs"
+                >
+                  {editContent.length.toLocaleString()} caracteres
+                </Badge>
               </div>
-            )}
+              <p className="text-xs text-muted-foreground">
+                Edite o conteúdo extraído se necessário antes de aprovar
+              </p>
+            </div>
 
             {/* Image Preview in Edit Dialog */}
             {selectedItem?.attachments && selectedItem.attachments.filter(a => a.type === "image").length > 0 && (

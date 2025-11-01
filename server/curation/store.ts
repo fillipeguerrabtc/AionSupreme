@@ -82,12 +82,13 @@ export const curationStore = {
   },
 
   /**
-   * Edita item pendente (título, tags, namespaces)
+   * Edita item pendente (título, conteúdo, tags, namespaces, nota)
    */
   async editItem(
     id: string,
     updates: {
       title?: string;
+      content?: string;
       tags?: string[];
       suggestedNamespaces?: string[];
       note?: string;
