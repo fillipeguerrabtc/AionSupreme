@@ -1138,8 +1138,8 @@ export function registerRoutes(app: Express): Server {
       const result = await websiteCrawlerService.crawlWebsite({
         url,
         namespace: namespace || 'kb/web',
-        maxDepth: maxDepth || 5,  // Default: 5 níveis de profundidade
-        maxPages: maxPages || 100, // Default: 100 páginas
+        maxDepth: maxDepth || 10,  // Default: 10 níveis (crawl profundo completo)
+        maxPages: maxPages || 500, // Default: 500 páginas (sites grandes)
         consolidatePages: true     // SEMPRE cria KB única consolidada
       });
 
