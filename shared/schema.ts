@@ -1043,6 +1043,9 @@ export const datasets = pgTable("datasets", {
     format?: string; // "jsonl" | "csv" | "parquet" etc
   }>(),
   
+  // Source tracking for lifecycle management (preservation clauses)
+  sourceDocumentIds: integer("source_document_ids").array(),
+  
   // Timestamps
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -1056,6 +1059,7 @@ export const insertDatasetSchema = createInsertSchema(datasets).omit({
   id: true, 
   createdAt: true,
   updatedAt: true,
+  sourceDocumentIds: true, // Populated automatically during dataset creation
 });
 export type InsertDataset = z.infer<typeof insertDatasetSchema>;
 export type Dataset = typeof datasets.$inferSelect;
@@ -1100,6 +1104,8 @@ export const trainingDataCollection = pgTable("training_data_collection", {
     providers?: string[]; // Which LLMs were used
     toolsUsed?: string[]; // Which tools were invoked
     hasAttachments?: boolean;
+    documentIds?: number[]; // Source KB documents used to create this training data
+    namespaces?: string[]; // Namespaces where this training data applies
   }>(),
   
   createdAt: timestamp("created_at").notNull().defaultNow(),

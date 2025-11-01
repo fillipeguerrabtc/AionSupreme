@@ -494,17 +494,7 @@ export class LifecycleManager {
     let recordsPreserved = 0;
 
     if (policy.name === 'cleanup_old_documents') {
-      // DOCUMENT-LEVEL PRESERVATION: Use recent activity as proxy for training dataset usage
-      // 
-      // Schema limitation: trainingDataCollection doesn't store sourceDocumentIds
-      // - Cannot directly verify if document ID is in training datasets
-      // - formatted_data contains instruction/output pairs, not source document IDs
-      // - metadata.namespaces[] is too coarse-grained (preserves entire namespaces)
-      //
-      // PRESERVATION STRATEGY: Use recent embeddings as proxy for "active in training"
-      // - If document has embeddings created in last 12 months → likely used in RAG → preserve
-      // - If document namespace is in trainingDataCollection.metadata.namespaces[] → preserve
-      // - Otherwise → safe to delete (not actively used in training)
+      // DOCUMENT-LEVEL PRESERVATION: Verify if document is referenced by training datasets
       
       const threshold = new Date();
       threshold.setFullYear(threshold.getFullYear() - 5);
@@ -514,50 +504,35 @@ export class LifecycleManager {
         .from(documents)
         .where(lt(documents.createdAt, threshold));
 
-      // Get all namespaces used in training data collections
+      // Build set of all document IDs referenced by training data/datasets
+      const referencedDocIds = new Set<number>();
+      
+      // Check 1: datasets.sourceDocumentIds[]
+      const allDatasets = await db
+        .select({ sourceDocumentIds: datasets.sourceDocumentIds })
+        .from(datasets);
+      
+      for (const dataset of allDatasets) {
+        if (dataset.sourceDocumentIds) {
+          dataset.sourceDocumentIds.forEach(id => referencedDocIds.add(id));
+        }
+      }
+      
+      // Check 2: trainingDataCollection.metadata.documentIds[]
       const trainingCollections = await db
         .select({ metadata: trainingDataCollection.metadata })
         .from(trainingDataCollection);
-
-      // Build set of all namespaces referenced by training data
-      const trainingNamespaces = new Set<string>();
+      
       for (const collection of trainingCollections) {
-        const metadata = collection.metadata as { namespaces?: string[] };
-        if (metadata?.namespaces) {
-          metadata.namespaces.forEach(ns => trainingNamespaces.add(ns));
+        const metadata = collection.metadata as { documentIds?: number[] };
+        if (metadata?.documentIds) {
+          metadata.documentIds.forEach(id => referencedDocIds.add(id));
         }
       }
 
-      const recentEmbeddingThreshold = new Date();
-      recentEmbeddingThreshold.setMonth(recentEmbeddingThreshold.getMonth() - 12);
-
+      // Delete or preserve based on document-level verification
       for (const doc of oldDocs) {
-        let shouldPreserve = false;
-
-        // Preservation check 1: Document namespace in training data
-        if (doc.namespace && trainingNamespaces.has(doc.namespace)) {
-          shouldPreserve = true;
-        }
-
-        // Preservation check 2: Document has recent embeddings (actively queried via RAG)
-        if (!shouldPreserve) {
-          const recentEmbeddings = await db
-            .select({ id: embeddings.id })
-            .from(embeddings)
-            .where(
-              and(
-                eq(embeddings.documentId, doc.id),
-                sql`${embeddings.createdAt} > ${recentEmbeddingThreshold}`
-              )
-            )
-            .limit(1);
-
-          if (recentEmbeddings.length > 0) {
-            shouldPreserve = true;
-          }
-        }
-
-        if (shouldPreserve) {
+        if (referencedDocIds.has(doc.id)) {
           recordsPreserved++;
         } else {
           // Safe to delete (embeddings cascade via FK, physical files handled by cleanup service)
@@ -569,8 +544,8 @@ export class LifecycleManager {
         }
       }
 
-      console.log(`[LifecycleManager]     Deleted ${recordsDeleted} KB documents (>5yr, inactive)`);
-      console.log(`[LifecycleManager]     Preserved ${recordsPreserved} KB documents (training namespaces + recent embeddings)`);
+      console.log(`[LifecycleManager]     Deleted ${recordsDeleted} KB documents (>5yr, not in training datasets)`);
+      console.log(`[LifecycleManager]     Preserved ${recordsPreserved} KB documents (referenced by training data)`);
 
     } else if (policy.name === 'cleanup_orphaned_embeddings') {
       // Delete embeddings without parent documents
