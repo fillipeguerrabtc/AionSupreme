@@ -3,8 +3,10 @@
  * 
  * Cascata de prioridade:
  * 1. Gemini Vision (1.500 requisições/dia GRÁTIS)
- * 2. HuggingFace Vision (720 requisições/dia GRÁTIS)
- * 3. OpenAI Vision (PAGO - último recurso)
+ * 2. GPT-4V via OpenRouter (FREE tier)
+ * 3. Claude 3 Haiku via OpenRouter (FREE tier)
+ * 4. HuggingFace Vision (720 requisições/dia GRÁTIS)
+ * 5. OpenAI GPT-4o Vision (PAGO - último recurso)
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -12,23 +14,29 @@ import { HfInference } from "@huggingface/inference";
 import OpenAI from "openai";
 import { trackTokenUsage } from "../monitoring/token-tracker";
 
+export type VisionProvider = 'gemini' | 'gpt4v-openrouter' | 'claude3-openrouter' | 'huggingface' | 'openai';
+
 export interface VisionResult {
   description: string;
-  provider: 'gemini' | 'huggingface' | 'openai';
+  provider: VisionProvider;
   success: boolean;
   tokensUsed: number;
 }
 
 export class VisionCascade {
   private geminiKey: string | undefined;
+  private openRouterKey: string | undefined;
   private hfKey: string | undefined;
   private openaiKey: string | undefined;
   
   private geminiQuota = { used: 0, limit: 1500, lastReset: Date.now() };
+  private gpt4vQuota = { used: 0, limit: 50, lastReset: Date.now() }; // OpenRouter free tier
+  private claude3Quota = { used: 0, limit: 50, lastReset: Date.now() }; // OpenRouter free tier
   private hfQuota = { used: 0, limit: 720, lastReset: Date.now() };
 
   constructor() {
     this.geminiKey = process.env.GEMINI_API_KEY;
+    this.openRouterKey = process.env.OPEN_ROUTER_API_KEY;
     this.hfKey = process.env.HUGGINGFACE_API_KEY;
     this.openaiKey = process.env.OPENAI_API_KEY;
   }
@@ -46,7 +54,7 @@ export class VisionCascade {
     // Reset quotas se necessário (a cada 24h)
     this.resetQuotasIfNeeded();
 
-    // Tenta Gemini primeiro (mais rápido e grátis)
+    // 1. Tenta Gemini primeiro (mais rápido e grátis)
     if (this.geminiKey && this.hasQuota('gemini')) {
       try {
         const result = await this.tryGemini(imageBuffer, mimeType, alt);
@@ -59,7 +67,33 @@ export class VisionCascade {
       console.log(`[VisionCascade] ⏭️ Gemini indisponível (${this.geminiQuota.used}/${this.geminiQuota.limit})`);
     }
 
-    // Fallback: HuggingFace
+    // 2. Fallback: GPT-4V via OpenRouter (FREE)
+    if (this.openRouterKey && this.hasQuota('gpt4v-openrouter')) {
+      try {
+        const result = await this.tryGPT4VOpenRouter(imageBuffer, mimeType, alt);
+        console.log(`[VisionCascade] ✅ GPT-4V OpenRouter (${Date.now() - startTime}ms)`);
+        return result;
+      } catch (error: any) {
+        console.warn(`[VisionCascade] ⚠️ GPT-4V OpenRouter falhou: ${error.message}`);
+      }
+    } else {
+      console.log(`[VisionCascade] ⏭️ GPT-4V OpenRouter indisponível (${this.gpt4vQuota.used}/${this.gpt4vQuota.limit})`);
+    }
+
+    // 3. Fallback: Claude 3 Haiku via OpenRouter (FREE)
+    if (this.openRouterKey && this.hasQuota('claude3-openrouter')) {
+      try {
+        const result = await this.tryClaude3OpenRouter(imageBuffer, mimeType, alt);
+        console.log(`[VisionCascade] ✅ Claude 3 OpenRouter (${Date.now() - startTime}ms)`);
+        return result;
+      } catch (error: any) {
+        console.warn(`[VisionCascade] ⚠️ Claude 3 OpenRouter falhou: ${error.message}`);
+      }
+    } else {
+      console.log(`[VisionCascade] ⏭️ Claude 3 OpenRouter indisponível (${this.claude3Quota.used}/${this.claude3Quota.limit})`);
+    }
+
+    // 4. Fallback: HuggingFace
     if (this.hfKey && this.hasQuota('huggingface')) {
       try {
         const result = await this.tryHuggingFace(imageBuffer, alt);
@@ -72,7 +106,7 @@ export class VisionCascade {
       console.log(`[VisionCascade] ⏭️ HuggingFace indisponível (${this.hfQuota.used}/${this.hfQuota.limit})`);
     }
 
-    // Último recurso: OpenAI (PAGO)
+    // 5. Último recurso: OpenAI GPT-4o (PAGO)
     if (this.openaiKey) {
       try {
         const result = await this.tryOpenAI(imageBuffer, mimeType, alt);
@@ -151,6 +185,160 @@ Descrição detalhada:`;
       provider: 'gemini',
       success: true,
       tokensUsed: totalTokens
+    };
+  }
+
+  /**
+   * Tenta GPT-4V via OpenRouter (FREE tier)
+   */
+  private async tryGPT4VOpenRouter(imageBuffer: Buffer, mimeType: string, alt?: string): Promise<VisionResult> {
+    const openrouter = new OpenAI({
+      apiKey: this.openRouterKey!,
+      baseURL: 'https://openrouter.ai/api/v1',
+      defaultHeaders: {
+        'HTTP-Referer': 'https://aion.replit.app',
+        'X-Title': 'AION Vision System'
+      }
+    });
+
+    const base64Image = imageBuffer.toString('base64');
+
+    const prompt = `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
+Inclua:
+- O que está na imagem
+- Cores, formas, objetos principais
+- Contexto e ambiente
+- Qualquer texto visível
+- Informações relevantes para busca semântica
+
+${alt ? `Contexto do alt text: "${alt}"` : ''}
+
+Descrição detalhada:`;
+
+    const response = await openrouter.chat.completions.create({
+      model: 'openai/gpt-4-vision-preview:free',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 300
+    } as any);
+
+    const description = response.choices[0]?.message?.content || alt || 'Sem descrição';
+    const tokensUsed = response.usage?.total_tokens || 0;
+
+    // Incrementa quota
+    this.gpt4vQuota.used++;
+
+    // Track usage
+    await trackTokenUsage({
+      provider: 'openrouter',
+      model: 'openai/gpt-4-vision-preview:free',
+      requestType: 'image',
+      promptTokens: response.usage?.prompt_tokens || 0,
+      completionTokens: response.usage?.completion_tokens || 0,
+      totalTokens: tokensUsed,
+      cost: 0,
+      success: true,
+      metadata: {} as any
+    });
+
+    return {
+      description,
+      provider: 'gpt4v-openrouter',
+      success: true,
+      tokensUsed
+    };
+  }
+
+  /**
+   * Tenta Claude 3 Haiku via OpenRouter (FREE tier)
+   * NOTA: Claude usa formato OpenAI-compatible via OpenRouter
+   */
+  private async tryClaude3OpenRouter(imageBuffer: Buffer, mimeType: string, alt?: string): Promise<VisionResult> {
+    const openrouter = new OpenAI({
+      apiKey: this.openRouterKey!,
+      baseURL: 'https://openrouter.ai/api/v1',
+      defaultHeaders: {
+        'HTTP-Referer': 'https://aion.replit.app',
+        'X-Title': 'AION Vision System'
+      }
+    });
+
+    const base64Image = imageBuffer.toString('base64');
+
+    const prompt = `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
+Inclua:
+- O que está na imagem
+- Cores, formas, objetos principais
+- Contexto e ambiente
+- Qualquer texto visível
+- Informações relevantes para busca semântica
+
+${alt ? `Contexto do alt text: "${alt}"` : ''}
+
+Descrição detalhada:`;
+
+    // Claude via OpenRouter aceita formato OpenAI-compatible
+    const response = await openrouter.chat.completions.create({
+      model: 'anthropic/claude-3-haiku:free',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 300
+    } as any);
+
+    const description = response.choices[0]?.message?.content || alt || 'Sem descrição';
+    const tokensUsed = response.usage?.total_tokens || 0;
+
+    // Incrementa quota
+    this.claude3Quota.used++;
+
+    // Track usage
+    await trackTokenUsage({
+      provider: 'openrouter',
+      model: 'anthropic/claude-3-haiku:free',
+      requestType: 'image',
+      promptTokens: response.usage?.prompt_tokens || 0,
+      completionTokens: response.usage?.completion_tokens || 0,
+      totalTokens: tokensUsed,
+      cost: 0,
+      success: true,
+      metadata: {} as any
+    });
+
+    return {
+      description,
+      provider: 'claude3-openrouter',
+      success: true,
+      tokensUsed
     };
   }
 
@@ -251,8 +439,22 @@ Descrição detalhada:`;
   /**
    * Verifica se provider tem quota disponível
    */
-  private hasQuota(provider: 'gemini' | 'huggingface'): boolean {
-    const quota = provider === 'gemini' ? this.geminiQuota : this.hfQuota;
+  private hasQuota(provider: 'gemini' | 'gpt4v-openrouter' | 'claude3-openrouter' | 'huggingface'): boolean {
+    let quota;
+    switch (provider) {
+      case 'gemini':
+        quota = this.geminiQuota;
+        break;
+      case 'gpt4v-openrouter':
+        quota = this.gpt4vQuota;
+        break;
+      case 'claude3-openrouter':
+        quota = this.claude3Quota;
+        break;
+      case 'huggingface':
+        quota = this.hfQuota;
+        break;
+    }
     return quota.used < quota.limit;
   }
 
@@ -267,6 +469,18 @@ Descrição detalhada:`;
       console.log(`[VisionCascade] 🔄 Reset Gemini quota (${this.geminiQuota.used} → 0)`);
       this.geminiQuota.used = 0;
       this.geminiQuota.lastReset = now;
+    }
+
+    if (now - this.gpt4vQuota.lastReset >= DAY_MS) {
+      console.log(`[VisionCascade] 🔄 Reset GPT-4V OpenRouter quota (${this.gpt4vQuota.used} → 0)`);
+      this.gpt4vQuota.used = 0;
+      this.gpt4vQuota.lastReset = now;
+    }
+
+    if (now - this.claude3Quota.lastReset >= DAY_MS) {
+      console.log(`[VisionCascade] 🔄 Reset Claude 3 OpenRouter quota (${this.claude3Quota.used} → 0)`);
+      this.claude3Quota.used = 0;
+      this.claude3Quota.lastReset = now;
     }
 
     if (now - this.hfQuota.lastReset >= DAY_MS) {
@@ -286,6 +500,18 @@ Descrição detalhada:`;
         limit: this.geminiQuota.limit,
         available: this.hasQuota('gemini'),
         percentage: (this.geminiQuota.used / this.geminiQuota.limit) * 100
+      },
+      gpt4vOpenRouter: {
+        used: this.gpt4vQuota.used,
+        limit: this.gpt4vQuota.limit,
+        available: this.hasQuota('gpt4v-openrouter'),
+        percentage: (this.gpt4vQuota.used / this.gpt4vQuota.limit) * 100
+      },
+      claude3OpenRouter: {
+        used: this.claude3Quota.used,
+        limit: this.claude3Quota.limit,
+        available: this.hasQuota('claude3-openrouter'),
+        percentage: (this.claude3Quota.used / this.claude3Quota.limit) * 100
       },
       huggingface: {
         used: this.hfQuota.used,
