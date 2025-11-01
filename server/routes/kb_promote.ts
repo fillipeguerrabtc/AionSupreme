@@ -12,7 +12,7 @@ export function registerKbPromoteRoutes(app: Express) {
    */
   app.post("/api/kb/promote", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
+      // SINGLE-TENANT: System operates with tenantId = 1
       const { text, suggestedNamespaces, title, submittedBy } = req.body;
 
       if (!text || !suggestedNamespaces || suggestedNamespaces.length === 0) {
@@ -21,8 +21,8 @@ export function registerKbPromoteRoutes(app: Express) {
         });
       }
 
-      // Criar item na fila de curadoria
-      const item = await curationStore.addToCuration(tenantId, {
+      // Criar item na fila de curadoria (tenantId defaults to 1 in curationStore)
+      const item = await curationStore.addToCuration({
         title: title || "Conteúdo promovido",
         content: text,
         suggestedNamespaces,
@@ -32,7 +32,6 @@ export function registerKbPromoteRoutes(app: Express) {
 
       // Emitir evento
       await publishEvent("DOC_INGESTED", {
-        tenantId,
         docId: item.id,
         namespaces: ["curation/pending"],
       });

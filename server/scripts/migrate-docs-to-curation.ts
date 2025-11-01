@@ -13,35 +13,26 @@ async function migrateDocumentsToCuration() {
   console.log("\n🔄 [Migration] Starting migration of existing documents to curation queue...\n");
 
   try {
-    // Get ALL tenants to migrate properly (not hardcoded tenantId=1)
-    const allTenants = await db.select().from(tenants);
-    console.log(`📊 Found ${allTenants.length} tenants to process`);
+    // SINGLE-TENANT: Process all documents (tenantId = 1)
+    const TENANT_ID = 1;
 
-    let totalMigrated = 0;
-    let totalSkipped = 0;
-    let totalEmbeddings = 0;
-    let totalTrainingData = 0;
+    // Get all documents that were auto-indexed (not from curation)
+    const allDocs = await db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.tenantId, TENANT_ID),
+          eq(documents.status, "indexed")
+        )
+      );
 
-    for (const tenant of allTenants) {
-      console.log(`\n🔄 Processing tenant ${tenant.id} (${tenant.name})...`);
+    console.log(`📊 Found ${allDocs.length} documents in KB`);
 
-      // Get all documents that were auto-indexed (not from curation)
-      const allDocs = await db
-        .select()
-        .from(documents)
-        .where(
-          and(
-            eq(documents.tenantId, tenant.id),
-            eq(documents.status, "indexed")
-          )
-        );
+    let migrated = 0;
+    let skipped = 0;
 
-      console.log(`   Found ${allDocs.length} documents in KB`);
-
-      let migrated = 0;
-      let skipped = 0;
-
-      for (const doc of allDocs) {
+    for (const doc of allDocs) {
       // Check if already in curation queue
       const existing = await db
         .select()
@@ -58,9 +49,8 @@ async function migrateDocumentsToCuration() {
       const metadata = doc.metadata as any;
       const suggestedNamespaces = metadata?.namespace ? [metadata.namespace] : ["geral"];
       
-      // Add to curation queue for human review
+      // Add to curation queue for human review (tenantId defaults to 1 in schema)
       await db.insert(curationQueue).values({
-        tenantId: doc.tenantId,
         title: doc.title,
         content: doc.content,
         suggestedNamespaces,
@@ -90,38 +80,25 @@ async function migrateDocumentsToCuration() {
         .delete(embeddings)
         .where(eq(embeddings.documentId, doc.id));
 
-        migrated++;
-        
-        if (migrated % 10 === 0) {
-          console.log(`   Migrated ${migrated}/${allDocs.length} documents...`);
-        }
+      migrated++;
+      
+      if (migrated % 10 === 0) {
+        console.log(`   Migrated ${migrated}/${allDocs.length} documents...`);
       }
-
-      // CRITICAL: Clean historical training_data_collection contamination for this tenant
-      const { trainingDataCollection } = await import("../../shared/schema");
-      const { tenants } = await import("../../shared/schema");
-      const deletedTrainingData = await db
-        .delete(trainingDataCollection)
-        .where(eq(trainingDataCollection.tenantId, tenant.id))
-        .returning();
-
-      console.log(`   ✅ Tenant ${tenant.id} complete:`);
-      console.log(`      Migrated: ${migrated} documents`);
-      console.log(`      Skipped: ${skipped} (already in queue)`);
-      console.log(`      Deleted embeddings: ${migrated}`);
-      console.log(`      Deleted training data: ${deletedTrainingData.length}`);
-
-      totalMigrated += migrated;
-      totalSkipped += skipped;
-      totalEmbeddings += migrated;
-      totalTrainingData += deletedTrainingData.length;
     }
 
-    console.log(`\n✅ Migration complete for all tenants!`);
-    console.log(`   Total migrated: ${totalMigrated} documents`);
-    console.log(`   Total skipped: ${totalSkipped} (already in queue)`);
-    console.log(`   Total embeddings deleted: ${totalEmbeddings}`);
-    console.log(`   Total training data deleted: ${totalTrainingData}`);
+    // CRITICAL: Clean historical training_data_collection contamination
+    const { trainingDataCollection } = await import("../../shared/schema");
+    const deletedTrainingData = await db
+      .delete(trainingDataCollection)
+      .where(eq(trainingDataCollection.tenantId, TENANT_ID))
+      .returning();
+
+    console.log(`\n✅ Migration complete!`);
+    console.log(`   Migrated: ${migrated} documents`);
+    console.log(`   Skipped: ${skipped} (already in queue)`);
+    console.log(`   Deleted embeddings: ${migrated}`);
+    console.log(`   Deleted training data: ${deletedTrainingData.length}`);
     console.log(`\n⚠️ Next steps:`);
     console.log(`   1. Go to Admin → Curadoria`);
     console.log(`   2. Review and approve/reject each document`);

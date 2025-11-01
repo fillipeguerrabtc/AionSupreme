@@ -8,8 +8,9 @@ const cache = new Map<string, AgentExecutor>();
 
 /**
  * Search RAG knowledge base in agent's namespaces
+ * SINGLE-TENANT: tenantId = 1 (hardcoded)
  */
-async function searchRAG(query: string, namespaces: string[], tenantId: number, k: number = 5): Promise<any[]> {
+async function searchRAG(query: string, namespaces: string[], k: number = 5): Promise<any[]> {
   try {
     if (namespaces.length === 0) {
       console.log("[AgentExecutor] No namespaces configured, skipping RAG search");
@@ -19,7 +20,7 @@ async function searchRAG(query: string, namespaces: string[], tenantId: number, 
     console.log(`[AgentExecutor] Searching RAG in namespaces: [${namespaces.join(", ")}]`);
     
     // CRITICAL: Pass namespaces to filter RAG results to agent's allowed namespaces
-    const results = await ragService.search(query, tenantId, { 
+    const results = await ragService.search(query, { 
       k,
       namespaces, // Filter by agent's namespaces
     });
@@ -61,7 +62,6 @@ function createAgentExecutor(agent: Agent): AgentExecutor {
         const ragResults = await searchRAG(
           input.query,
           agent.ragNamespaces,
-          ctx.tenantId,
           5 // Top 5 results
         );
         

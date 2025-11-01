@@ -175,14 +175,13 @@ export class AutoIndexer {
 
       const { curationQueue } = await import("../../shared/schema");
 
-      // Send each conversation pair to curation queue
+      // Send each conversation pair to curation queue (tenantId defaults to 1 in schema)
       let queued = 0;
       for (const example of examples) {
         const content = `Pergunta: ${example.instruction}\n\nResposta: ${example.output}`;
         const title = this.extractTitle(example.instruction, example.output);
 
         await db.insert(curationQueue).values({
-          tenantId: conversation?.tenantId || 1,
           title,
           content,
           suggestedNamespaces: ["geral"],

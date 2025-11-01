@@ -135,7 +135,6 @@ Descrição detalhada:`;
     const totalTokens = promptTokens + imageTokens + completionTokens;
 
     await trackTokenUsage({
-      tenantId: 1,
       provider: 'gemini',
       model: 'gemini-2.0-flash-exp',
       requestType: 'image',
@@ -176,7 +175,6 @@ Descrição detalhada:`;
     const tokensUsed = Math.ceil(description.length / 4);
 
     await trackTokenUsage({
-      tenantId: 1,
       provider: 'huggingface',
       model: 'blip-image-captioning-large',
       requestType: 'image',
@@ -231,7 +229,6 @@ Descrição detalhada:`;
 
     // Track usage
     await trackTokenUsage({
-      tenantId: 1,
       provider: 'openai',
       model: 'gpt-4-vision-preview',
       requestType: 'image',

@@ -4,7 +4,6 @@ import { DatasetValidator } from "./dataset-validator";
 import type { InsertDataset } from "@shared/schema";
 
 export interface ProcessDatasetOptions {
-  tenantId: number;
   userId?: string;
   name: string;
   description?: string;
@@ -28,7 +27,6 @@ export class DatasetProcessor {
     options: ProcessDatasetOptions
   ): Promise<ProcessDatasetResult> {
     const {
-      tenantId,
       userId,
       name,
       description,
@@ -83,9 +81,8 @@ export class DatasetProcessor {
         console.warn("Failed to delete temp file:", e);
       }
 
-      // 6. Create dataset record
+      // 6. Create dataset record (tenantId defaults to 1 in schema)
       const dataset: InsertDataset = {
-        tenantId,
         userId: userId || null,
         name,
         description: description || null,

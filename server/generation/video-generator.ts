@@ -32,7 +32,6 @@ export interface VideoGenerationParams {
   audio?: boolean; // include narration/music
   voiceId?: string; // TTS voice selection
   model?: "open-sora" | "animatediff" | "modelscope" | "auto";
-  tenantId: number;
   conversationId?: number;
 }
 
@@ -72,15 +71,13 @@ export class VideoGenerator {
       audio = false,
       voiceId,
       model = "auto",
-      tenantId,
       conversationId,
     } = params;
 
     console.log(`[VideoGen] Creating video job: "${prompt.slice(0, 60)}..."`);
 
-    // Create job in database
+    // Create job in database (tenantId defaults to 1 in schema)
     const job = await storage.createVideoJob({
-      tenantId,
       conversationId: conversationId || null,
       prompt,
       parameters: {
