@@ -167,13 +167,26 @@ export const conversations = pgTable("conversations", {
   title: text("title").notNull().default("New Conversation"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  
+  // Lifecycle management fields
+  lastActivityAt: timestamp("last_activity_at"), // Last message timestamp (for idle detection)
+  expiresAt: timestamp("expires_at"), // Optional expiration (if retention policy applied)
+  archivedAt: timestamp("archived_at"), // Archived timestamp (18mo inactivity → archive)
 }, (table) => ({
   tenantIdx: index("conversations_tenant_idx").on(table.tenantId),
   userIdx: index("conversations_user_idx").on(table.userId),
   projectIdx: index("conversations_project_idx").on(table.projectId),
+  expiresIdx: index("conversations_expires_idx").on(table.expiresAt),
 }));
 
-export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertConversationSchema = createInsertSchema(conversations).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  lastActivityAt: true,
+  expiresAt: true,
+  archivedAt: true,
+});
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;
 
@@ -1158,6 +1171,7 @@ export const agents = pgTable("agents", {
   escalationAgent: varchar("escalation_agent", { length: 120 }), // Optional agent ID to escalate to
   metadata: jsonb("metadata"), // Optional metadata for custom agent properties
   enabled: boolean("enabled").notNull().default(true),
+  disabledAt: timestamp("disabled_at"), // Timestamp when agent was soft-deleted (for lifecycle GC)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -1165,7 +1179,8 @@ export const agents = pgTable("agents", {
 export const insertAgentSchema = createInsertSchema(agents).omit({ 
   id: true, 
   createdAt: true, 
-  updatedAt: true 
+  updatedAt: true,
+  disabledAt: true,
 }).extend({
   // Enhanced validations for agent tier and namespace assignment
   agentTier: z.enum(["agent", "subagent"]).default("agent"),
@@ -1357,6 +1372,7 @@ export const namespaces = pgTable("namespaces", {
   icon: varchar("icon", { length: 50 }), // Lucide icon name
   category: varchar("category", { length: 100 }), // Category for grouping
   enabled: boolean("enabled").notNull().default(true),
+  disabledAt: timestamp("disabled_at"), // Timestamp when namespace was soft-deleted (for lifecycle GC)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -1367,7 +1383,8 @@ export const namespaces = pgTable("namespaces", {
 export const insertNamespaceSchema = createInsertSchema(namespaces).omit({ 
   id: true, 
   createdAt: true, 
-  updatedAt: true 
+  updatedAt: true,
+  disabledAt: true,
 });
 export type InsertNamespace = z.infer<typeof insertNamespaceSchema>;
 export type Namespace = typeof namespaces.$inferSelect;
