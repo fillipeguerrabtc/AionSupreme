@@ -19,8 +19,7 @@ export const agentRelationshipsStorage = {
       })
       .from(agentRelationships)
       .leftJoin(parentAgents, eq(agentRelationships.parentAgentId, parentAgents.id))
-      .leftJoin(childAgents, eq(agentRelationships.childAgentId, childAgents.id))
-      .where(eq(agentRelationships.enabled, true)); // Only return active relationships
+      .leftJoin(childAgents, eq(agentRelationships.childAgentId, childAgents.id)); // All relationships in DB are active
   },
 
   async getByParent(parentAgentId: string) {
@@ -66,7 +65,6 @@ export const agentRelationshipsStorage = {
       maxDepth: data.maxDepth || 3,
       toolDelta: data.toolDelta,
       namespaceSuffix: data.namespaceSuffix,
-      enabled: true,
     };
 
     const rows = await db.insert(agentRelationships).values(relationship).returning();
@@ -88,15 +86,7 @@ export const agentRelationshipsStorage = {
   },
 
   async delete(id: number) {
-    const rows = await db
-      .update(agentRelationships)
-      .set({ enabled: false, updatedAt: new Date() })
-      .where(eq(agentRelationships.id, id))
-      .returning();
-    return rows[0];
-  },
-
-  async hardDelete(id: number) {
+    // HARD DELETE (no soft delete - exists in DB = active)
     await db.delete(agentRelationships).where(eq(agentRelationships.id, id));
   },
 
@@ -119,12 +109,7 @@ export const agentRelationshipsStorage = {
       const children = await db
         .select({ childAgentId: agentRelationships.childAgentId })
         .from(agentRelationships)
-        .where(
-          and(
-            eq(agentRelationships.parentAgentId, current),
-            eq(agentRelationships.enabled, true)
-          )
-        );
+        .where(eq(agentRelationships.parentAgentId, current));
 
       children.forEach((c) => queue.push(c.childAgentId));
     }

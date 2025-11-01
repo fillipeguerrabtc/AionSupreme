@@ -20,8 +20,8 @@ export const agentsStorage = {
     return rows[0];
   },
   async deleteAgent(id: string) {
-    // soft delete: enabled=false
-    const rows = await db.update(agents).set({ enabled: false, updatedAt: new Date() }).where(eq(agents.id, id)).returning();
+    // HARD DELETE (no soft delete - exists in DB = active)
+    const rows = await db.delete(agents).where(eq(agents.id, id)).returning();
     return rows[0];
   },
   
