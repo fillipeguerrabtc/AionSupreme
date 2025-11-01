@@ -25,6 +25,20 @@ export function registerAgentRoutes(app: Express) {
         return res.status(400).json({ error: validation.error });
       }
 
+      // ADDITIONAL VALIDATION: For SubAgents, verify parent Agent exists
+      if (agentTier === "subagent" && validation.rootNamespace) {
+        const allAgents = await agentsStorage.listAgents();
+        const parentAgents = allAgents.filter(
+          (agent) => agent.agentTier === "agent" && agent.assignedNamespaces?.includes(validation.rootNamespace!)
+        );
+
+        if (parentAgents.length === 0) {
+          return res.status(400).json({
+            error: `Não existe Agent pai para o namespace "${validation.rootNamespace}". Crie primeiro um Agent com namespace "${validation.rootNamespace}" antes de criar SubAgents.`
+          });
+        }
+      }
+
       const created = await agentsStorage.createAgent(req.body);
       await publishEvent("AGENT_CREATED", { agentId: created.id });
       res.status(201).json(created);
@@ -59,6 +73,20 @@ export function registerAgentRoutes(app: Express) {
         const validation = validateNamespaceAssignment(agentTier, assignedNamespaces);
         if (!validation.valid) {
           return res.status(400).json({ error: validation.error });
+        }
+
+        // ADDITIONAL VALIDATION: For SubAgents, verify parent Agent exists
+        if (agentTier === "subagent" && validation.rootNamespace) {
+          const allAgents = await agentsStorage.listAgents();
+          const parentAgents = allAgents.filter(
+            (agent) => agent.agentTier === "agent" && agent.assignedNamespaces?.includes(validation.rootNamespace!)
+          );
+
+          if (parentAgents.length === 0) {
+            return res.status(400).json({
+              error: `Não existe Agent pai para o namespace "${validation.rootNamespace}". Crie primeiro um Agent com namespace "${validation.rootNamespace}" antes de atribuir esses subnamespaces.`
+            });
+          }
         }
       }
 
