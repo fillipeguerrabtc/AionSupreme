@@ -60,6 +60,9 @@ export default function CurationQueuePage() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
   
+  // Content filter state (to separate pages from images)
+  const [contentFilter, setContentFilter] = useState<"all" | "pages" | "images">("all");
+  
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkApproveDialogOpen, setBulkApproveDialogOpen] = useState(false);
@@ -96,6 +99,36 @@ export default function CurationQueuePage() {
       return res.json();
     },
   });
+
+  // Filter items based on content type
+  const filterItems = (items: CurationItem[] | undefined) => {
+    if (!items) return [];
+    
+    if (contentFilter === "all") return items;
+    
+    if (contentFilter === "pages") {
+      // Pages are from website-crawler or website-crawler-consolidated
+      return items.filter(item => 
+        item.submittedBy === "website-crawler" || 
+        item.submittedBy === "website-crawler-consolidated" ||
+        item.submittedBy === "api" ||
+        (!item.submittedBy?.includes("image-crawler"))
+      );
+    }
+    
+    if (contentFilter === "images") {
+      // Images are from image-crawler or image-crawler-consolidated
+      return items.filter(item => 
+        item.submittedBy === "image-crawler" || 
+        item.submittedBy === "image-crawler-consolidated"
+      );
+    }
+    
+    return items;
+  };
+
+  const filteredItems = filterItems(items);
+  const filteredHistoryItems = filterItems(historyItems);
 
   // Edit mutation
   const editMutation = useMutation({
@@ -339,10 +372,10 @@ export default function CurationQueuePage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === items?.length) {
+    if (selectedIds.size === filteredItems?.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(items?.map(item => item.id) || []));
+      setSelectedIds(new Set(filteredItems?.map(item => item.id) || []));
     }
   };
 
@@ -383,22 +416,50 @@ export default function CurationQueuePage() {
         </p>
       </div>
 
+      {/* Content Type Filter */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={contentFilter === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setContentFilter("all")}
+          data-testid="filter-all"
+        >
+          Todos ({items?.length || 0})
+        </Button>
+        <Button
+          variant={contentFilter === "pages" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setContentFilter("pages")}
+          data-testid="filter-pages"
+        >
+          Páginas ({(items?.filter(i => i.submittedBy !== "image-crawler" && i.submittedBy !== "image-crawler-consolidated") || []).length})
+        </Button>
+        <Button
+          variant={contentFilter === "images" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setContentFilter("images")}
+          data-testid="filter-images"
+        >
+          Imagens ({(items?.filter(i => i.submittedBy === "image-crawler" || i.submittedBy === "image-crawler-consolidated") || []).length})
+        </Button>
+      </div>
+
       <Tabs defaultValue="pending" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="pending" data-testid="tab-pending">
-            Pendentes ({items?.length || 0})
+            Pendentes ({filteredItems?.length || 0})
           </TabsTrigger>
           <TabsTrigger value="history" data-testid="tab-history">
             <HistoryIcon className="h-4 w-4 mr-2" />
-            Histórico ({historyItems?.length || 0})
+            Histórico ({filteredHistoryItems?.length || 0})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="space-y-4 mt-6">
-          {!items || items.length === 0 ? (
+          {!filteredItems || filteredItems.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <p className="text-muted-foreground">Nenhum item pendente de curadoria.</p>
+            <p className="text-muted-foreground">Nenhum item {contentFilter !== "all" ? `(filtro: ${contentFilter === "pages" ? "páginas" : "imagens"})` : ""} pendente de curadoria.</p>
           </CardContent>
         </Card>
       ) : (
@@ -406,11 +467,11 @@ export default function CurationQueuePage() {
           {/* Bulk Actions */}
           <Card>
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <Checkbox
-                      checked={selectedIds.size === items.length && items.length > 0}
+                      checked={selectedIds.size === filteredItems.length && filteredItems.length > 0}
                       onCheckedChange={toggleSelectAll}
                       data-testid="checkbox-select-all"
                     />
@@ -420,7 +481,7 @@ export default function CurationQueuePage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant="default"
                     onClick={handleBulkApprove}
@@ -436,7 +497,7 @@ export default function CurationQueuePage() {
                     data-testid="button-approve-all"
                   >
                     <Check className="h-4 w-4 mr-2" />
-                    Aprovar Todas ({items.length})
+                    {contentFilter === "all" ? `Aprovar Todas (${filteredItems.length})` : `Aprovar Todas Pendentes (${items?.length || 0})`}
                   </Button>
                   <Button
                     variant="destructive"
@@ -454,7 +515,7 @@ export default function CurationQueuePage() {
                     data-testid="button-reject-all"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Rejeitar Todas ({items.length})
+                    {contentFilter === "all" ? `Rejeitar Todas (${filteredItems.length})` : `Rejeitar Todas Pendentes (${items?.length || 0})`}
                   </Button>
                 </div>
               </div>
@@ -463,7 +524,7 @@ export default function CurationQueuePage() {
 
           {/* Items List */}
           <div className="grid gap-4">
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <Card key={item.id} data-testid={`curation-item-${item.id}`}>
                 <CardHeader>
                   <div className="flex items-start gap-3">
@@ -892,7 +953,7 @@ export default function CurationQueuePage() {
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-confirm-reject-all"
             >
-              {rejectAllMutation.isPending ? "Rejeitando..." : `Rejeitar Todos (${items?.length})`}
+              {rejectAllMutation.isPending ? "Rejeitando..." : `Rejeitar Todos (${items?.length || 0})`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -906,15 +967,15 @@ export default function CurationQueuePage() {
                 <p className="text-muted-foreground">Carregando histórico...</p>
               </CardContent>
             </Card>
-          ) : !historyItems || historyItems.length === 0 ? (
+          ) : !filteredHistoryItems || filteredHistoryItems.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <p className="text-muted-foreground">Nenhum item no histórico (retenção: 5 anos)</p>
+                <p className="text-muted-foreground">Nenhum item {contentFilter !== "all" ? `(filtro: ${contentFilter === "pages" ? "páginas" : "imagens"})` : ""} no histórico (retenção: 5 anos)</p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-4">
-              {historyItems.map((item) => (
+              {filteredHistoryItems.map((item) => (
                 <Card key={item.id} data-testid={`history-item-${item.id}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
