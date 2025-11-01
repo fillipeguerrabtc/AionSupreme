@@ -106,12 +106,41 @@ ${ragContext}`;
           };
         }
         
-        // STEP 4: Call LLM with system prompt + user query
+        // STEP 4: Call LLM with system prompt + conversation history + user query
+        // Normalize history: Filter system messages and keep only user/assistant
+        const normalizedHistory = (input.history || [])
+          .filter((msg: any) => msg.role === "user" || msg.role === "assistant")
+          .map((msg: any) => {
+            // Handle different content formats (string, array, object)
+            let contentText: string;
+            if (typeof msg.content === "string") {
+              contentText = msg.content;
+            } else if (Array.isArray(msg.content)) {
+              // OpenAI multimodal format: [{type: "text", text: "..."}, ...]
+              contentText = msg.content
+                .filter((part: any) => part.type === "text" || typeof part === "string")
+                .map((part: any) => typeof part === "string" ? part : part.text || "")
+                .join(" ");
+            } else {
+              // Fallback for other formats
+              contentText = JSON.stringify(msg.content);
+            }
+            
+            return {
+              role: msg.role,
+              content: contentText
+            };
+          });
+        
+        // Build messages: [new_system_prompt, ...normalized_history, current_query]
+        const conversationMessages = [
+          { role: "system", content: systemPrompt },
+          ...normalizedHistory,
+          { role: "user", content: input.query }
+        ];
+        
         const llmResult = await generateWithFreeAPIs({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: input.query }
-          ],
+          messages: conversationMessages,
           temperature: 0.7,
           maxTokens: 1024,
         });

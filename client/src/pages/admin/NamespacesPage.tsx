@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, FolderTree, FileText, Upload, Database, Layers } from "lucide-react";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
+import { IconPicker } from "@/components/IconPicker";
 import { type Namespace } from "@shared/schema";
 import { NAMESPACE_CATEGORIES, getAllNamespaces, type NamespaceOption } from "@shared/namespaces";
 import { useMemo } from "react";
@@ -57,6 +58,10 @@ export default function NamespacesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedNamespace, setSelectedNamespace] = useState<Namespace | null>(null);
   const [deleteNamespaceId, setDeleteNamespaceId] = useState<string | null>(null);
+  
+  // Create mode: "root" ou "sub"
+  const [createMode, setCreateMode] = useState<"root" | "sub">("sub");
+  const [parentNamespace, setParentNamespace] = useState("");
   
   // Create form state
   const [createName, setCreateName] = useState("");
@@ -178,6 +183,8 @@ export default function NamespacesPage() {
   }, [selectedNamespace]);
 
   const resetCreateForm = () => {
+    setCreateMode("sub");
+    setParentNamespace("");
     setCreateName("");
     setCreateDisplayName("");
     setCreateDescription("");
@@ -191,20 +198,50 @@ export default function NamespacesPage() {
     if (!createName.trim()) {
       toast({ 
         title: "Nome obrigatório", 
-        description: "Por favor, insira um nome no formato categoria/subcategoria",
+        description: "Por favor, insira um nome para o namespace",
         variant: "destructive" 
       });
       return;
     }
 
-    // Validate namespace format
-    if (!createName.includes("/")) {
-      toast({ 
-        title: "Formato inválido", 
-        description: "O nome deve estar no formato categoria/subcategoria",
-        variant: "destructive" 
-      });
-      return;
+    // Validate based on mode
+    if (createMode === "root") {
+      if (createName.includes("/")) {
+        toast({ 
+          title: "Formato inválido para namespace raiz", 
+          description: "Namespace raiz não pode conter '/'",
+          variant: "destructive" 
+        });
+        return;
+      }
+    } else {
+      // Sub-namespace must have parent
+      if (!parentNamespace) {
+        toast({ 
+          title: "Namespace pai obrigatório", 
+          description: "Selecione o namespace pai para criar um sub-namespace",
+          variant: "destructive" 
+        });
+        return;
+      }
+      
+      if (!createName.includes("/")) {
+        toast({ 
+          title: "Formato inválido", 
+          description: "Sub-namespace deve estar no formato pai/filho",
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      if (!createName.startsWith(parentNamespace + "/")) {
+        toast({ 
+          title: "Formato inválido", 
+          description: `Sub-namespace deve começar com "${parentNamespace}/"`,
+          variant: "destructive" 
+        });
+        return;
+      }
     }
 
     createMutation.mutate({
@@ -363,21 +400,89 @@ export default function NamespacesPage() {
             <DialogHeader>
               <DialogTitle>Criar Novo Namespace</DialogTitle>
               <DialogDescription>
-                Adicione um novo namespace para organizar o conhecimento
+                Organize o conhecimento criando um namespace raiz ou sub-namespace
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
+              {/* Modo de criação */}
               <div className="space-y-2">
-                <Label htmlFor="create-name">Nome do Namespace *</Label>
+                <Label>Tipo de Namespace</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={createMode === "root" ? "default" : "outline"}
+                    onClick={() => {
+                      setCreateMode("root");
+                      setParentNamespace("");
+                      setCreateName("");
+                    }}
+                    className="h-auto py-3 flex-col items-start gap-1"
+                  >
+                    <span className="font-semibold">Namespace Raiz</span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                      Ex: "projetos" ou "vendas"
+                    </span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={createMode === "sub" ? "default" : "outline"}
+                    onClick={() => setCreateMode("sub")}
+                    className="h-auto py-3 flex-col items-start gap-1"
+                  >
+                    <span className="font-semibold">Sub-namespace</span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                      Ex: "financas/impostos"
+                    </span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Parent namespace selector (only for sub mode) */}
+              {createMode === "sub" && (
+                <div className="space-y-2">
+                  <Label htmlFor="parent-namespace">Namespace Pai *</Label>
+                  <NamespaceSelector
+                    value={parentNamespace ? [parentNamespace] : []}
+                    onChange={(values) => {
+                      const parent = values[0] || "";
+                      setParentNamespace(parent);
+                      // Auto-fill name with parent prefix
+                      if (parent && !createName.startsWith(parent + "/")) {
+                        setCreateName(parent + "/");
+                      }
+                    }}
+                    placeholder="Selecione o namespace pai..."
+                    allowCustom={false}
+                    allowWildcard={false}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Escolha o namespace existente onde este será criado
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="create-name">
+                  {createMode === "root" ? "Nome do Namespace *" : "Nome Completo *"}
+                </Label>
                 <Input
                   id="create-name"
-                  placeholder="categoria/subcategoria (ex: financas/investimentos)"
+                  placeholder={
+                    createMode === "root"
+                      ? "Ex: projetos, vendas, documentacao"
+                      : parentNamespace
+                      ? `${parentNamespace}/...`
+                      : "Ex: financas/impostos, tech/apis"
+                  }
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
                   data-testid="input-create-namespace-name"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Formato: categoria/subcategoria
+                  {createMode === "root" 
+                    ? "Nome único sem '/' para namespace raiz"
+                    : "Formato: namespace-pai/sub-namespace"
+                  }
                 </p>
               </div>
 
@@ -407,28 +512,15 @@ export default function NamespacesPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="create-icon">Ícone (lucide-react)</Label>
-                  <Input
-                    id="create-icon"
-                    placeholder="DollarSign, Laptop, etc."
-                    value={createIcon}
-                    onChange={(e) => setCreateIcon(e.target.value)}
-                    data-testid="input-create-namespace-icon"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="create-category">Categoria</Label>
-                  <Input
-                    id="create-category"
-                    placeholder="Categoria principal"
-                    value={createCategory}
-                    onChange={(e) => setCreateCategory(e.target.value)}
-                    data-testid="input-create-namespace-category"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="create-icon">Ícone</Label>
+                <IconPicker
+                  value={createIcon}
+                  onChange={setCreateIcon}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Opcional. Escolha um ícone visual para identificar este namespace
+                </p>
               </div>
 
               <div className="space-y-2">

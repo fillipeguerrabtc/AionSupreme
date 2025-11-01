@@ -230,15 +230,17 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/v1/chat/completions
-  // 🎯 PRIORITY ORDER: KB → Free APIs → Web → OpenAI
+  // 🎯 MULTI-AGENT SYSTEM with automatic routing
+  // Priority: Multi-Agent (MoE) → KB → Free APIs → Web → OpenAI
   app.post("/api/v1/chat/completions", async (req, res) => {
     const startTime = Date.now();
     
     try {
-      const { messages } = req.body;
+      const { messages, useMultiAgent = true } = req.body; // Enable multi-agent by default
       
       // DEBUG: Log message history length
       console.log(`[Chat API] Recebidas ${messages.length} mensagens no histórico`);
+      console.log(`[Chat API] Multi-Agent Mode: ${useMultiAgent ? 'ENABLED' : 'DISABLED'}`);
       console.log(`[Chat API] Últimas 3 mensagens:`, messages.slice(-3).map((m: any) => ({
         role: m.role,
         preview: m.content?.substring(0, 50)
@@ -247,19 +249,83 @@ export function registerRoutes(app: Express): Server {
       // Record request metrics
       metricsCollector.recordRequest();
       
+      // Helper function to extract text from message content (handles string, array, object)
+      const extractTextContent = (content: any): string => {
+        if (typeof content === "string") {
+          return content;
+        } else if (Array.isArray(content)) {
+          // OpenAI multimodal format: [{type: "text", text: "..."}, ...]
+          return content
+            .filter((part: any) => part.type === "text" || typeof part === "string")
+            .map((part: any) => typeof part === "string" ? part : part.text || "")
+            .join(" ");
+        } else if (content && typeof content === "object") {
+          // Fallback for objects
+          return JSON.stringify(content);
+        }
+        return String(content || '');
+      };
+      
+      // Get last user message (normalized to string)
+      const lastUserContent = messages[messages.length - 1]?.content || '';
+      const lastUserMessage = extractTextContent(lastUserContent);
+      
+      // 🤖 TRY MULTI-AGENT SYSTEM FIRST (if enabled and available)
+      if (useMultiAgent) {
+        try {
+          const { orchestrateAgents } = await import("./agent/orchestrator");
+          const { loadAgents } = await import("./agent/registry");
+          
+          const availableAgents = await loadAgents();
+          
+          if (availableAgents.length > 0) {
+            console.log(`[Chat API] 🤖 Using Multi-Agent System (${availableAgents.length} agents available)`);
+            
+            // Pass history EXCLUDING the last user message (to avoid duplication)
+            const historyWithoutLastTurn = messages.slice(0, -1);
+            
+            const agentResult = await orchestrateAgents(lastUserMessage, {
+              history: historyWithoutLastTurn, // Previous turns only, current query added separately
+              budgetUSD: 1.0,
+              tenantId: 1,
+              sessionId: "chat-session",
+            });
+            
+            const latency = Date.now() - startTime;
+            metricsCollector.recordLatency(latency);
+            
+            return res.json({
+              choices: [{
+                message: {
+                  role: "assistant",
+                  content: agentResult.content,
+                  attachments: agentResult.attachments,
+                },
+                finish_reason: "stop"
+              }],
+              usage: {
+                totalTokens: 0, // Multi-agent uses free APIs
+              },
+              metadata: {
+                ...agentResult.metadata,
+                latencyMs: latency,
+              }
+            });
+          } else {
+            console.log(`[Chat API] No agents available, falling back to priority orchestrator`);
+          }
+        } catch (multiAgentError: any) {
+          console.warn(`[Chat API] Multi-agent failed, falling back:`, multiAgentError.message);
+        }
+      }
+      
+      // FALLBACK: Use original priority orchestrator
+      console.log(`[Chat API] Using fallback Priority Orchestrator`);
+      
       // Get policy or use DEFAULT UNRESTRICTED (all rules = false)
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
-      
-      // Get last user message for language detection
-      const lastUserMessage = messages[messages.length - 1]?.content || '';
       const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...messages];
-      
-      // 🚀 USE PRIORITY ORCHESTRATOR
-      // 1. Knowledge Base (RAG)
-      // 2. Free APIs (Groq → Gemini → HF → OpenRouter) with auto-fallback
-      // 3. Web Search (if refusal detected in step 2)
-      // 4. OpenAI (last resort) with auto-fallback
       
       // Check if system is UNRESTRICTED (all rules = false)
       const activeRules = Object.values(policy.rules).filter(v => v === true);
@@ -283,7 +349,8 @@ export function registerRoutes(app: Express): Server {
       // This creates the infinite learning loop: Chat → KB → Dataset → Training → Better Model
       try {
         const { autoLearningListener } = await import('./events/auto-learning-listener');
-        const userMessage = messages[messages.length - 1]?.content || '';
+        const userMessageContent2 = messages[messages.length - 1]?.content || '';
+        const userMessage = extractTextContent(userMessageContent2);
         
         // Fire and forget - don't block response
         autoLearningListener.onChatCompleted({
@@ -435,8 +502,9 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      // Get last user message for language detection
-      const lastUserMessage = messages[messages.length - 1]?.content || '';
+      // Get last user message for language detection (normalize to string)
+      const lastUserContent2 = messages[messages.length - 1]?.content || '';
+      const lastUserMessage = extractTextContent(lastUserContent2);
       const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...enrichedMessages];
       
@@ -450,7 +518,8 @@ export function registerRoutes(app: Express): Server {
       
       // ⚡ AUTOMATIC FALLBACK: If OpenAI refused and system is UNRESTRICTED,
       // search web, index in KB, and respond without censorship
-      const userMessage = messages[messages.length - 1]?.content || '';
+      const userMessageContent = messages[messages.length - 1]?.content || '';
+      const userMessage = extractTextContent(userMessageContent);
       const fallbackResult = await autoFallback.checkAndExecuteFallback(
         moderated,
         userMessage,
@@ -888,7 +957,7 @@ export function registerRoutes(app: Express): Server {
   // POST /api/admin/seed-system - Seeds complete system (Namespaces, Tools, Agents)
   // ADMIN ONLY - Protected endpoint with admin allowlist
   app.post("/api/admin/seed-system", async (req, res) => {
-    const user = req.user as Express.User | undefined;
+    const user = req.user as any; // Replit Auth user type
     
     // 1. Authentication check
     if (!req.isAuthenticated() || !user?.claims?.sub) {
@@ -2294,8 +2363,9 @@ export function registerRoutes(app: Express): Server {
       // Get policy
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
       
-      // Get last user message
-      const lastUserMessage = messages[messages.length - 1]?.content || '';
+      // Get last user message (normalize to string)
+      const lastUserContent3 = messages[messages.length - 1]?.content || '';
+      const lastUserMessage = extractTextContent(lastUserContent3);
       
       // 🎯 EXPLICIT SOURCE DETECTION: Check if user explicitly requested a specific source
       const explicitRequest = detectExplicitSourceRequest(lastUserMessage);
