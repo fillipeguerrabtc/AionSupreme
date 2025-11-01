@@ -241,7 +241,6 @@ export class FileProcessor {
             content: "Describe this image in detail. Extract any text visible in the image.",
           },
         ],
-        tenantId: 1, // Default tenant for processing
         model: "gpt-4o", // GPT-4o tem suporte nativo a visão
         maxTokens: 500,
       });

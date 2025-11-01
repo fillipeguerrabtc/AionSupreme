@@ -204,7 +204,7 @@ Descrição detalhada:`;
     const dataUrl = `data:${mimeType};base64,${base64Image}`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4-vision-preview',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'user',
@@ -230,7 +230,7 @@ Descrição detalhada:`;
     // Track usage
     await trackTokenUsage({
       provider: 'openai',
-      model: 'gpt-4-vision-preview',
+      model: 'gpt-4o',
       requestType: 'image',
       promptTokens: response.usage?.prompt_tokens || 0,
       completionTokens: response.usage?.completion_tokens || 0,
