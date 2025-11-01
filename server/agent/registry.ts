@@ -84,13 +84,7 @@ export async function loadAgentChildren(parentAgentId: string): Promise<any[]> {
       })
       .from(agentRelationships)
       .innerJoin(agents, eq(agents.id, agentRelationships.childAgentId))
-      .where(
-        and(
-          eq(agentRelationships.parentAgentId, parentAgentId),
-          eq(agentRelationships.enabled, true),
-          eq(agents.enabled, true)
-        )
-      );
+      .where(eq(agentRelationships.parentAgentId, parentAgentId));
     
     return relationships;
   } catch (error: any) {

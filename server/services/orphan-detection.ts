@@ -19,7 +19,6 @@ export interface AgentWithInvalidNamespaces {
   assignedNamespaces: string[] | null;
   invalidNamespaces: string[];
   validNamespaces: string[];
-  enabled: boolean;
   canAutoFix: boolean; // true if has valid namespaces, false if all invalid
 }
 
@@ -78,7 +77,6 @@ export async function detectOrphanedAgents(): Promise<OrphanDetectionResult> {
         assignedNamespaces: agent.assignedNamespaces,
         invalidNamespaces: invalidNs,
         validNamespaces: validNs,
-        enabled: agent.enabled,
         canAutoFix: canAutoFixThis,
       });
 

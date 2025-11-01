@@ -11,7 +11,6 @@ export interface Agent {
   name: string;
   agentTier: "agent" | "subagent";
   assignedNamespaces: string[];
-  enabled: boolean;
 }
 
 export interface HierarchyNode {
@@ -27,11 +26,9 @@ export interface HierarchyNode {
  * @returns Hierarchy tree with parent-child relationships
  */
 export function inferHierarchyTree(allAgents: Agent[]): HierarchyNode[] {
-  const enabledAgents = allAgents.filter((a) => a.enabled);
-  
-  // Separate agents and subagents
-  const agents = enabledAgents.filter((a) => a.agentTier === "agent");
-  const subAgents = enabledAgents.filter((a) => a.agentTier === "subagent");
+  // Separate agents and subagents (all agents in DB are active)
+  const agents = allAgents.filter((a) => a.agentTier === "agent");
+  const subAgents = allAgents.filter((a) => a.agentTier === "subagent");
 
   // Build hierarchy nodes
   const hierarchyNodes: HierarchyNode[] = [];
@@ -83,10 +80,8 @@ export function findResponsibleAgents(
   namespace: string,
   allAgents: Agent[]
 ): Agent[] {
-  const enabledAgents = allAgents.filter((a) => a.enabled);
-
   // Step 1: Try exact subnamespace match (e.g., "financas/investimentos")
-  const exactSubAgents = enabledAgents.filter((agent) =>
+  const exactSubAgents = allAgents.filter((agent) =>
     agent.agentTier === "subagent" &&
     agent.assignedNamespaces.includes(namespace)
   );
@@ -98,7 +93,7 @@ export function findResponsibleAgents(
   // Step 2: Try root namespace match (e.g., "financas")
   const rootNamespace = namespace.includes("/") ? namespace.split("/")[0] : namespace;
   
-  const rootAgents = enabledAgents.filter((agent) =>
+  const rootAgents = allAgents.filter((agent) =>
     agent.agentTier === "agent" &&
     agent.assignedNamespaces.includes(rootNamespace)
   );
@@ -107,8 +102,8 @@ export function findResponsibleAgents(
     return rootAgents;
   }
 
-  // Step 3: Fallback - return all enabled Agents (generalist routing)
-  return enabledAgents.filter((agent) => agent.agentTier === "agent");
+  // Step 3: Fallback - return all Agents (generalist routing)
+  return allAgents.filter((agent) => agent.agentTier === "agent");
 }
 
 /**
