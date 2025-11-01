@@ -414,10 +414,7 @@ export class LifecycleManager {
             .select()
             .from(agents)
             .where(
-              and(
-                eq(agents.enabled, true),
-                sql`${agents.inferenceConfig}->>'adapterIds' @> ${JSON.stringify([job.latestCheckpoint])}`
-              )
+              sql`${agents.inferenceConfig}->>'adapterIds' @> ${JSON.stringify([job.latestCheckpoint])}`
             )
             .limit(1);
 
@@ -630,45 +627,18 @@ export class LifecycleManager {
   }
 
   /**
-   * Cleanup soft-deleted agents based on policy
+   * Cleanup agents (DISABLED - no soft delete anymore)
+   * DELETE is now hard delete, no gc_disabled_agents policy needed
    */
   private async cleanupAgents(policy: Policy): Promise<CleanupResult> {
     const now = new Date();
-    let recordsDeleted = 0;
-
-    if (policy.name === 'gc_disabled_agents') {
-      const threshold = new Date();
-      threshold.setDate(threshold.getDate() - 90);
-
-      const disabledAgents = await db
-        .select()
-        .from(agents)
-        .where(
-          and(
-            eq(agents.enabled, false),
-            sql`${agents.disabledAt} IS NOT NULL`,
-            lt(agents.disabledAt, threshold)
-          )
-        );
-
-      for (const agent of disabledAgents) {
-        // Preserve audit log (minimal metadata) before deletion
-        console.log(`[LifecycleManager]     Audit: Deleting agent ${agent.id} (${agent.name}) disabled since ${agent.disabledAt}`);
-        
-        await db
-          .delete(agents)
-          .where(eq(agents.id, agent.id));
-        
-        recordsDeleted++;
-      }
-
-      console.log(`[LifecycleManager]     Garbage collected ${recordsDeleted} disabled agents`);
-    }
+    
+    console.log('[LifecycleManager]     Skipped - agents use hard delete (no soft delete)');
 
     return {
       module: 'agents',
       policy: policy.name,
-      recordsDeleted,
+      recordsDeleted: 0,
       recordsPreserved: 0,
       errors: [],
       timestamp: now,
@@ -676,45 +646,18 @@ export class LifecycleManager {
   }
 
   /**
-   * Cleanup soft-deleted namespaces based on policy
+   * Cleanup namespaces (DISABLED - no soft delete anymore)
+   * DELETE is now hard delete via CASCADE, no gc_disabled_namespaces policy needed
    */
   private async cleanupNamespaces(policy: Policy): Promise<CleanupResult> {
     const now = new Date();
-    let recordsDeleted = 0;
-
-    if (policy.name === 'gc_disabled_namespaces') {
-      const threshold = new Date();
-      threshold.setDate(threshold.getDate() - 90);
-
-      const disabledNamespaces = await db
-        .select()
-        .from(namespaces)
-        .where(
-          and(
-            eq(namespaces.enabled, false),
-            sql`${namespaces.disabledAt} IS NOT NULL`,
-            lt(namespaces.disabledAt, threshold)
-          )
-        );
-
-      for (const ns of disabledNamespaces) {
-        // Preserve audit log before deletion
-        console.log(`[LifecycleManager]     Audit: Deleting namespace ${ns.id} (${ns.name}) disabled since ${ns.disabledAt}`);
-        
-        await db
-          .delete(namespaces)
-          .where(eq(namespaces.id, ns.id));
-        
-        recordsDeleted++;
-      }
-
-      console.log(`[LifecycleManager]     Garbage collected ${recordsDeleted} disabled namespaces`);
-    }
+    
+    console.log('[LifecycleManager]     Skipped - namespaces use hard delete with CASCADE (no soft delete)');
 
     return {
       module: 'namespaces',
       policy: policy.name,
-      recordsDeleted,
+      recordsDeleted: 0,
       recordsPreserved: 0,
       errors: [],
       timestamp: now,
