@@ -178,7 +178,7 @@ Runtime-configurable policies:
 ## 📊 Database Schema
 
 9 core tables:
-- `tenants` - Tenant configuration (single-tenant mode by default)
+- `tenants` - System configuration (single-tenant only)
 - `policies` - JSON/YAML policy definitions
 - `conversations` - Chat history
 - `messages` - Individual messages

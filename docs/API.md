@@ -38,7 +38,7 @@ X-API-Key: seu-api-key-aqui
 Content-Type: application/json
 ```
 
-**Nota**: Em desenvolvimento, autenticação é opcional. Em produção, use API keys por tenant.
+**Nota**: Em desenvolvimento, autenticação é opcional. Em produção, use API keys para autenticação.
 
 **Obter API Key**: Via admin dashboard ou no log de seed do banco:
 ```
@@ -57,7 +57,6 @@ Gera uma resposta de chat usando o LLM.
 
 ```json
 {
-  "tenant_id": 1,
   "messages": [
     {
       "role": "user",
@@ -89,7 +88,6 @@ Gera uma resposta de chat usando o LLM.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |-----------|------|-------------|-----------|
-| `tenant_id` | number | Não | ID do tenant (default: 1) |
 | `messages` | array | Sim | Array de mensagens do chat |
 | `messages[].role` | string | Sim | `"user"`, `"assistant"`, ou `"system"` |
 | `messages[].content` | string | Sim | Conteúdo da mensagem |
@@ -183,7 +181,6 @@ Content-Type: multipart/form-data
 Content-Disposition: form-data; name="data"
 
 {
-  "tenant_id": 1,
   "messages": [
     {"role": "user", "content": "Summarize this document"}
   ]
@@ -200,7 +197,7 @@ Content-Type: application/pdf
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |-----------|------|-------------|-----------|
-| `data` | string (JSON) | Sim | JSON stringified com messages e tenant_id |
+| `data` | string (JSON) | Sim | JSON stringified com messages |
 | `files` | file[] | Não | Array de arquivos (max: 5 arquivos) |
 
 #### Response (200)
@@ -241,10 +238,6 @@ Content-Disposition: form-data; name="audio"; filename="recording.mp3"
 Content-Type: audio/mpeg
 
 [binary audio content]
---boundary
-Content-Disposition: form-data; name="tenant_id"
-
-1
 --boundary--
 ```
 
@@ -275,10 +268,6 @@ Content-Disposition: form-data; name="file"; filename="research.pdf"
 Content-Type: application/pdf
 
 [binary file content]
---boundary
-Content-Disposition: form-data; name="tenant_id"
-
-1
 --boundary--
 ```
 
@@ -310,8 +299,7 @@ Busca semântica na base de conhecimento.
 ```json
 {
   "query": "How does attention mechanism work?",
-  "k": 10,
-  "tenant_id": 1
+  "k": 10
 }
 ```
 
@@ -321,7 +309,6 @@ Busca semântica na base de conhecimento.
 |-----------|------|-------------|-----------|
 | `query` | string | Sim | Query de busca |
 | `k` | number | Não | Número de resultados (default: 10) |
-| `tenant_id` | number | Não | ID do tenant (default: 1) |
 
 #### Response (200)
 
@@ -358,7 +345,7 @@ Lista documentos indexados.
 #### Request
 
 ```http
-GET /api/documents?tenant_id=1
+GET /api/documents
 ```
 
 #### Response (200)
@@ -368,7 +355,6 @@ GET /api/documents?tenant_id=1
   "documents": [
     {
       "id": 42,
-      "tenantId": 1,
       "filename": "research.pdf",
       "mimeType": "application/pdf",
       "size": 1234567,
@@ -392,7 +378,6 @@ Executa um agente autônomo com ReAct.
 ```json
 {
   "goal": "Research the latest developments in quantum computing and summarize the top 3 breakthroughs",
-  "tenant_id": 1,
   "conversation_id": 1,
   "message_id": 1
 }
@@ -403,7 +388,6 @@ Executa um agente autônomo com ReAct.
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |-----------|------|-------------|-----------|
 | `goal` | string | Sim | Objetivo do agente |
-| `tenant_id` | number | Não | ID do tenant (default: 1) |
 | `conversation_id` | number | Não | ID da conversa (para contexto) |
 | `message_id` | number | Não | ID da mensagem original |
 
@@ -452,8 +436,7 @@ Planejamento hierárquico de tarefas complexas.
 
 ```json
 {
-  "goal": "Build a REST API with authentication and deploy to production",
-  "tenant_id": 1
+  "goal": "Build a REST API with authentication and deploy to production"
 }
 ```
 
@@ -497,14 +480,14 @@ Planejamento hierárquico de tarefas complexas.
 
 ## 🛡️ Admin & Políticas
 
-### GET `/api/admin/policies/:tenant_id`
+### GET `/api/admin/policies`
 
-Obter política do tenant.
+Obter política do sistema.
 
 #### Request
 
 ```http
-GET /api/admin/policies/1
+GET /api/admin/policies
 ```
 
 #### Response (200)
@@ -512,7 +495,6 @@ GET /api/admin/policies/1
 ```json
 {
   "id": 1,
-  "tenantId": 1,
   "policyName": "DEFAULT_UNRESTRICTED",
   "rules": {
     "hate_speech": false,
@@ -546,9 +528,9 @@ GET /api/admin/policies/1
 
 ---
 
-### POST `/api/admin/policies/:tenant_id`
+### POST `/api/admin/policies`
 
-Criar ou atualizar política do tenant.
+Criar ou atualizar política do sistema.
 
 #### Request
 
@@ -574,7 +556,6 @@ Criar ou atualizar política do tenant.
 ```json
 {
   "id": 1,
-  "tenantId": 1,
   "policyName": "Custom Policy",
   "rules": {
     "hate_speech": true,
@@ -593,9 +574,7 @@ Indexa os 19 PDFs técnicos na base de conhecimento.
 #### Request
 
 ```json
-{
-  "tenant_id": 1
-}
+{}
 ```
 
 #### Response (200)
@@ -613,19 +592,13 @@ Indexa os 19 PDFs técnicos na base de conhecimento.
 
 ### GET `/api/training/datasets`
 
-Lista todos os datasets de treinamento do tenant.
+Lista todos os datasets de treinamento.
 
 #### Request
 
 ```http
-GET /api/training/datasets?tenantId=1
+GET /api/training/datasets
 ```
-
-#### Query Parameters
-
-| Parâmetro | Tipo | Obrigatório | Descrição |
-|-----------|------|-------------|-----------|
-| `tenantId` | number | Sim | ID do tenant |
 
 #### Response (200)
 
@@ -652,8 +625,7 @@ GET /api/training/datasets?tenantId=1
       },
       "qualityScore": 85,
       "validationErrors": [],
-      "createdAt": "2025-01-30T10:00:00Z",
-      "tenantId": 1
+      "createdAt": "2025-01-30T10:00:00Z"
     }
   ]
 }
@@ -771,12 +743,12 @@ Deleta múltiplos datasets de uma vez.
 
 ### GET `/api/metrics/realtime`
 
-Métricas em tempo real do tenant.
+Métricas em tempo real do sistema.
 
 #### Request
 
 ```http
-GET /api/metrics/realtime?tenant_id=1
+GET /api/metrics/realtime
 ```
 
 #### Response (200)
@@ -786,7 +758,6 @@ GET /api/metrics/realtime?tenant_id=1
   "metrics": [
     {
       "id": 1,
-      "tenantId": 1,
       "metricType": "latency",
       "value": 1234,
       "unit": "ms",
@@ -829,22 +800,22 @@ GET /metrics
 ```
 # HELP aion_requests_total Total number of requests
 # TYPE aion_requests_total counter
-aion_requests_total{tenant="1"} 1234
+aion_requests_total{instance="system"} 1234
 
 # HELP aion_latency_seconds Request latency
 # TYPE aion_latency_seconds histogram
-aion_latency_seconds_bucket{tenant="1",le="0.1"} 100
-aion_latency_seconds_bucket{tenant="1",le="0.5"} 450
-aion_latency_seconds_bucket{tenant="1",le="1.0"} 890
-aion_latency_seconds_bucket{tenant="1",le="+Inf"} 1234
+aion_latency_seconds_bucket{instance="system",le="0.1"} 100
+aion_latency_seconds_bucket{instance="system",le="0.5"} 450
+aion_latency_seconds_bucket{instance="system",le="1.0"} 890
+aion_latency_seconds_bucket{instance="system",le="+Inf"} 1234
 
 # HELP aion_tokens_total Total tokens processed
 # TYPE aion_tokens_total counter
-aion_tokens_total{tenant="1",model="gpt-4o"} 234567
+aion_tokens_total{instance="system",model="gpt-4o"} 234567
 
 # HELP aion_cost_usd_total Total cost in USD
 # TYPE aion_cost_usd_total counter
-aion_cost_usd_total{tenant="1"} 12.34
+aion_cost_usd_total{instance="system"} 12.34
 ```
 
 ---
@@ -881,7 +852,6 @@ aion_cost_usd_total{tenant="1"} 12.34
 | Código | Descrição | Solução |
 |--------|-----------|---------|
 | `MISSING_PARAMETER` | Parâmetro obrigatório faltando | Adicionar parâmetro à request |
-| `INVALID_TENANT` | Tenant ID inválido | Verificar tenant_id |
 | `RATE_LIMIT_EXCEEDED` | Rate limit excedido | Aguardar antes de nova request |
 | `OPENAI_API_ERROR` | Erro na API OpenAI | Verificar API key e quota |
 | `DOCUMENT_NOT_FOUND` | Documento não encontrado | Verificar ID do documento |
@@ -891,7 +861,7 @@ aion_cost_usd_total{tenant="1"} 12.34
 
 ## ⏱️ Rate Limits
 
-### Por Tenant
+### Sistema
 
 | Limite | Valor Padrão | Configurável |
 |--------|--------------|--------------|
@@ -932,8 +902,7 @@ curl -X POST http://localhost:5000/api/v1/chat/completions \
 
 # Upload documento
 curl -X POST http://localhost:5000/api/kb/ingest \
-  -F "file=@document.pdf" \
-  -F "tenant_id=1"
+  -F "file=@document.pdf"
 
 # Busca KB
 curl -X POST http://localhost:5000/api/kb/search \
@@ -962,7 +931,6 @@ console.log(data.choices[0].message.content);
 // Upload arquivo
 const formData = new FormData();
 formData.append('file', fileInput.files[0]);
-formData.append('tenant_id', '1');
 
 const uploadResponse = await fetch('http://localhost:5000/api/kb/ingest', {
   method: 'POST',

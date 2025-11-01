@@ -37,9 +37,9 @@ Preferred communication style: Simple, everyday language.
 **Implementation Details:**
 1. ✅ **AutoIndexer Bypass Closed** - All 3 indexing methods (indexResponse, indexWebContent, indexConversation) now route exclusively to curation_queue instead of direct KB writes.
 2. ✅ **CurationStore Enhanced** - approveAndPublish() saves approved content to both documents (status='indexed') and training_data_collection (status='approved') with namespace/quality validation.
-3. ✅ **RAG Filter Fixed** - semanticSearch() now uses storage.getEmbeddingsByTenant() which filters ONLY embeddings from documents with status='indexed'. Direct database queries eliminated.
+3. ✅ **RAG Filter Fixed** - semanticSearch() now uses storage.getEmbeddings() which filters ONLY embeddings from documents with status='indexed'. Direct database queries eliminated.
 4. ✅ **Dataset Generator Protected** - Accepts ONLY training_data with status='approved'.
-5. ✅ **Migration Executed** - 102 legacy documents moved to curation queue, embeddings deleted, training data purged, multi-tenant compatible.
+5. ✅ **Migration Executed** - 102 legacy documents moved to curation queue, embeddings deleted, training data purged. System operates in single-tenant mode.
 
 **Current State:** 106 items in curation queue awaiting human review. Zero unreviewed content in production KB or training data.
 

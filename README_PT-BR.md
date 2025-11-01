@@ -177,7 +177,7 @@ Políticas configuráveis em tempo de execução:
 ## 📊 Schema do Banco de Dados
 
 9 tabelas principais:
-- `tenants` - Configuração de tenant (modo single-tenant por padrão)
+- `tenants` - Configuração do sistema (apenas single-tenant)
 - `policies` - Definições de políticas JSON/YAML
 - `conversations` - Histórico de chat
 - `messages` - Mensagens individuais

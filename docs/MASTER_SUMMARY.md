@@ -160,7 +160,7 @@ export async function torSearch(query: string): Promise<SearchResult[]>
 
 // Auto-indexing pipeline
 const docs = await Promise.all(results.map(r => fetchPageContent(r.url)))
-await knowledgeIndexer.indexDocuments(docs, tenantId)
+await knowledgeIndexer.indexDocuments(docs)
 ```
 
 ### 5. RAG Avançado com MMR ✅
@@ -181,14 +181,12 @@ export function bm25Search(
 
 // Hybrid Search (70% semantic + 30% lexical)
 export function hybridSearch(
-  query: string,
-  tenantId: number
+  query: string
 ): Promise<SearchResult[]>
 
 // Confidence Scoring (τ=0.6 threshold)
 export function searchWithConfidence(
-  query: string,
-  tenantId: number
+  query: string
 ): Promise<ConfidenceResult>
 ```
 
@@ -214,7 +212,7 @@ function scoreChunk(chunk: Chunk): QualityScore {
 }
 
 // Batch reindexing
-async function reindexAll(tenantId: number): Promise<void>
+async function reindexAll(): Promise<void>
 ```
 
 ### 7. Embedding Service ✅

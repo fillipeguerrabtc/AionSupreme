@@ -390,26 +390,20 @@ const defaultPolicy = {
 - ❌ Latência adicional (~5-10s)
 - ❌ Custo extra de embedding + LLM call
 
-### 4. **Single-Tenant Architecture (Schema Preservado para Escalabilidade)**
+### 4. **Single-Tenant Architecture**
 
-**Decisão**: Sistema opera em modo single-tenant por padrão, com schema multi-tenant preservado para futura expansão.
+**Decisão**: Sistema opera exclusivamente em modo single-tenant.
 
 **Razão**:
-- Habilita modelo SaaS
-- Segurança entre organizações
-- Faturamento e quotas independentes
+- Simplicidade operacional e de desenvolvimento
+- Custo-eficiência sem overhead de multi-tenant
+- Performance otimizada para deployment dedicado
+- Facilita manutenção e debugging
 
 **Implementação**:
-```sql
--- Todos os dados têm tenant_id
-CREATE TABLE policies (
-  id SERIAL PRIMARY KEY,
-  tenant_id INT NOT NULL REFERENCES tenants(id),
-  ...
-);
-
-CREATE INDEX idx_policies_tenant ON policies(tenant_id);
-```
+- Todas as tabelas usam `tenantId DEFAULT 1` para compatibilidade com schema
+- Nenhuma lógica de multi-tenant no código
+- Sistema otimizado para instância única
 
 ### 5. **RAG com Busca Híbrida**
 
@@ -598,7 +592,7 @@ app.use("/api", rateLimitMiddleware);
 - `audio.transcriptions.create` - Whisper (speech-to-text)
 
 **Rate Limits**:
-- Token bucket: 60 req/min por tenant
+- Token bucket: 60 req/min global
 - Retry com exponential backoff
 - Cache de respostas (1h TTL)
 
@@ -606,7 +600,7 @@ app.use("/api", rateLimitMiddleware);
 ```typescript
 // Modelo GPT-4o: $0.0025/1K prompt, $0.01/1K completion
 const cost = (promptTokens * 0.0025/1000) + (completionTokens * 0.01/1000);
-await storage.createMetric({ tenantId, metricType: 'cost', value: cost });
+await storage.createMetric({ metricType: 'cost', value: cost });
 ```
 
 ---
@@ -639,46 +633,33 @@ await storage.createMetric({ tenantId, metricType: 'cost', value: cost });
 
 ## 🔒 Segurança e Isolamento
 
-### 1. Multi-tenancy
-
-**Isolamento**:
-- Todos os dados têm `tenant_id`
-- Row-level security via WHERE clauses
-- API keys únicas por tenant
-
-**Exemplo**:
-```typescript
-const policy = await storage.getPolicyByTenant(tenantId);
-```
-
----
-
-### 2. API Key Authentication
+### 1. API Key Authentication
 
 ```typescript
 const apiKey = req.headers['x-api-key'];
-const tenant = await storage.getTenantByApiKey(apiKey);
-if (!tenant) throw new Error('Invalid API key');
+if (!apiKey || !isValidApiKey(apiKey)) {
+  throw new Error('Invalid API key');
+}
 ```
 
 ---
 
-### 3. Audit Logging
+### 2. Audit Logging
 
 Todos os eventos são logados com:
 - Timestamp
-- Tenant ID
 - Event type
+- User/Request context
 - Data hash (SHA-256) para imutabilidade
 
 ---
 
-### 4. Rate Limiting
+### 3. Rate Limiting
 
 **Níveis**:
 1. Global: 1000 req/min
-2. Por tenant: 60 req/min
-3. Por IP: 10 req/min (planned)
+2. Por IP: 60 req/min (system-wide)
+3. Por endpoint: configurável
 
 ---
 
@@ -688,7 +669,6 @@ Todos os eventos são logados com:
 
 ```typescript
 interface Metric {
-  tenantId: number;
   metricType: 'latency' | 'tokens' | 'cost' | 'throughput' | 'error';
   value: number;
   unit: 'ms' | 'tokens' | 'usd' | 'req/s' | 'count';

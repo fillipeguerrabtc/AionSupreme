@@ -3,7 +3,7 @@
 ## ✅ Implementado (Production-Ready)
 
 ### Core Foundation
-- ✅ **Database Schemas**: PostgreSQL completo com 9 tabelas (tenants, policies, conversations, messages, documents, embeddings, tool_executions, metrics, audit_logs)
+- ✅ **Database Schemas**: PostgreSQL completo com 9 tabelas (policies, conversations, messages, documents, embeddings, tool_executions, metrics, audit_logs, tenants - single-tenant only)
 - ✅ **Storage Layer**: Interface completa com métodos CRUD para todas entidades
 - ✅ **Type System**: TypeScript strict com Drizzle schemas + Zod validation
 
@@ -11,7 +11,7 @@
 - ✅ **OpenAI Integration**: REAL API calls via OPENAI_API_KEY (não mock)
 - ✅ **Streaming Support**: Chat completions com streaming
 - ✅ **Tool Calling**: Function calling habilitado
-- ✅ **Rate Limiting**: Por tenant com retry logic
+- ✅ **Rate Limiting**: System-wide com retry logic
 - ✅ **Response Caching**: Deduplicação por hash
 
 ### RAG & Knowledge Base
@@ -47,7 +47,7 @@
 - ✅ **Metrics Collector**: Latency (p50/p95/p99), throughput, cache hits, costs
 - ✅ **Prometheus Exporter**: Formato completo com histograms, gauges, counters
 - ✅ **Real-time Tracking**: Métricas instrumentadas nos endpoints principais
-- ✅ **Cost Tracking**: Estimativa USD por tenant
+- ✅ **Cost Tracking**: Estimativa USD system-wide
 
 ### API Endpoints (Todos funcionais)
 - ✅ POST /api/v1/chat/completions - Chat com policy enforcement
@@ -55,8 +55,8 @@
 - ✅ POST /api/kb/search - Hybrid RAG search
 - ✅ POST /api/agent/plan_act - ReAct execution
 - ✅ POST /api/agent/hierarchical_plan - Hierarchical planning
-- ✅ GET/POST /api/admin/policies/:tenant_id - Policy management
-- ✅ GET /api/metrics/realtime - Métricas por tenant
+- ✅ GET/POST /api/admin/policies - Policy management
+- ✅ GET /api/metrics/realtime - Métricas do sistema
 - ✅ POST /api/admin/index-pdfs - Indexar 7 PDFs técnicos
 - ✅ GET /api/documents - Listar documentos
 - ✅ GET /metrics - Prometheus format
@@ -120,7 +120,7 @@
 ### Auth Implementation
 - Middlewares implementados (JWT, API Key)
 - Aplicados globalmente via app.use()
-- Development mode: Auto-tenant ID 1
+- Development mode: Single-tenant (ID defaults to 1)
 - Production: Requer Bearer token
 
 ### Metrics Instrumentation
