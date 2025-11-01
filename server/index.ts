@@ -60,7 +60,7 @@ app.use((req, res, next) => {
 
   // Load multi-agent system from database
   const { loadAgentsFromDatabase } = await import("./agent/loader");
-  await loadAgentsFromDatabase(1); // Tenant ID = 1 (single-tenant mode)
+  await loadAgentsFromDatabase(); // Single-tenant mode
 
   // Start file cleanup service (runs every hour to delete expired files)
   fileCleanup.start();

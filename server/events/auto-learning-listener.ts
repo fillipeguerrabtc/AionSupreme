@@ -21,7 +21,6 @@ import { datasetGenerator } from "../training/dataset-generator";
 import { autoTrainingTrigger } from "../training/auto-training-trigger";
 
 interface EventPayload {
-  tenantId: number;
   type: "chat" | "document" | "url" | "file" | "web_search" | "api_response";
   data: any;
 }
@@ -47,7 +46,6 @@ export class AutoLearningListener {
     assistantResponse: string;
     source: "kb" | "gpu" | "free-api" | "web" | "openai";
     provider?: string;
-    tenantId: number;
   }): Promise<void> {
     if (!this.enabled) return;
 
@@ -61,14 +59,13 @@ export class AutoLearningListener {
         assistantResponse: payload.assistantResponse,
         source: "chat",
         provider: payload.provider,
-        tenantId: payload.tenantId,
       });
 
       if (indexed) {
         console.log("   ✅ Conhecimento indexado na KB");
         
         // Verificar se deve gerar dataset
-        await this.checkAndTriggerDatasetGeneration(payload.tenantId);
+        await this.checkAndTriggerDatasetGeneration();
       }
     } catch (error: any) {
       console.error(`[AutoLearning] Erro ao processar chat:`, error.message);
@@ -83,7 +80,6 @@ export class AutoLearningListener {
     title: string;
     content: string;
     source: "manual" | "url" | "file" | "web";
-    tenantId: number;
   }): Promise<void> {
     if (!this.enabled) return;
 
@@ -93,7 +89,7 @@ export class AutoLearningListener {
       // Documento já está na KB (foi adicionado manualmente)
       // Apenas verificar se deve gerar dataset
       console.log(`   ✅ Documento na KB: "${payload.title}"`);
-      await this.checkAndTriggerDatasetGeneration(payload.tenantId);
+      await this.checkAndTriggerDatasetGeneration();
     } catch (error: any) {
       console.error(`[AutoLearning] Erro ao processar documento:`, error.message);
     }
@@ -105,7 +101,6 @@ export class AutoLearningListener {
   async onWebSearchCompleted(payload: {
     query: string;
     results: Array<{ title: string; url: string; snippet: string }>;
-    tenantId: number;
   }): Promise<void> {
     if (!this.enabled) return;
 
@@ -120,7 +115,6 @@ export class AutoLearningListener {
           query: payload.query,
           content: result.snippet,
           url: result.url,
-          tenantId: payload.tenantId,
         });
 
         if (success) indexed++;
@@ -129,7 +123,7 @@ export class AutoLearningListener {
       console.log(`   ✅ ${indexed} resultados indexados`);
       
       if (indexed > 0) {
-        await this.checkAndTriggerDatasetGeneration(payload.tenantId);
+        await this.checkAndTriggerDatasetGeneration();
       }
     } catch (error: any) {
       console.error(`[AutoLearning] Erro ao processar web search:`, error.message);
@@ -139,16 +133,16 @@ export class AutoLearningListener {
   /**
    * Verifica threshold e dispara geração de dataset se necessário
    */
-  private async checkAndTriggerDatasetGeneration(tenantId: number): Promise<void> {
+  private async checkAndTriggerDatasetGeneration(): Promise<void> {
     try {
-      const pending = await datasetGenerator.checkPendingExamples(tenantId);
+      const pending = await datasetGenerator.checkPendingExamples();
       
       if (pending >= 100) {
         console.log(`\n   🎯 THRESHOLD ATINGIDO! (${pending} exemplos pendentes)`);
         console.log("   → Disparando geração automática de dataset...");
         
         // Gerar dataset
-        const dataset = await datasetGenerator.generateAutoDataset(tenantId);
+        const dataset = await datasetGenerator.generateAutoDataset();
         
         if (dataset) {
           console.log(`   ✅ Dataset gerado: ${dataset.examplesCount} exemplos`);

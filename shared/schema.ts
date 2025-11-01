@@ -1143,6 +1143,9 @@ export const agents = pgTable("agents", {
     };
   }>(),
   ragNamespaces: jsonb("rag_namespaces").$type<string[]>(), // Scoped KB namespaces
+  budgetLimit: real("budget_limit"), // Optional per-agent budget limit in USD
+  escalationAgent: varchar("escalation_agent", { length: 120 }), // Optional agent ID to escalate to
+  metadata: jsonb("metadata"), // Optional metadata for custom agent properties
   enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

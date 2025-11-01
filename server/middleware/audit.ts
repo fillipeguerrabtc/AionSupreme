@@ -34,7 +34,6 @@ export function auditMiddleware(
   next: NextFunction
 ) {
   const startTime = Date.now();
-  const tenantId = (req as any).tenantId || 1;
 
   // Capture original res.json to intercept response
   const originalJson = res.json.bind(res);
@@ -51,7 +50,7 @@ export function auditMiddleware(
 
     const auditEntry: AuditEntry = {
       timestamp: new Date(),
-      tenantId,
+      tenantId: 1,
       method: req.method,
       path: req.path,
       ip: req.ip || req.socket.remoteAddress || "unknown",
@@ -71,10 +70,8 @@ export function auditMiddleware(
     if (shouldAudit(req.path, req.method)) {
       try {
         await enforcementPipeline.createAuditLog(
-          tenantId,
           `${req.method} ${req.path}`,
-          auditEntry,
-          undefined
+          auditEntry
         );
       } catch (error) {
         console.error("[Audit] Failed to create audit log:", error);

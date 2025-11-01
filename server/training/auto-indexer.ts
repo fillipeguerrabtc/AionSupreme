@@ -21,7 +21,6 @@ import { ragService } from "../rag/vector-store";
 import { ConversationCollector } from "./collectors/conversation-collector";
 
 interface IndexableContent {
-  tenantId: number;
   title: string;
   content: string;
   source: "chat" | "web" | "api" | "fallback";
@@ -50,14 +49,13 @@ export class AutoIndexer {
     assistantResponse: string;
     source: "chat" | "web" | "api" | "fallback";
     provider?: string;
-    tenantId: number;
   }): Promise<boolean> {
     if (!this.enabled) {
       console.log("[AutoIndexer] Desabilitado - pulando indexação");
       return false;
     }
 
-    const { conversationId, userMessage, assistantResponse, source, provider, tenantId } = params;
+    const { conversationId, userMessage, assistantResponse, source, provider } = params;
 
     // STEP 1: Avaliar se vale a pena indexar
     const shouldIndex = this.evaluateContent(assistantResponse);
@@ -68,7 +66,7 @@ export class AutoIndexer {
     }
 
     // STEP 2: Verificar duplicação (evitar indexar conhecimento repetido)
-    const isDuplicate = await this.checkDuplicate(assistantResponse, tenantId);
+    const isDuplicate = await this.checkDuplicate(assistantResponse);
     
     if (isDuplicate) {
       console.log(`[AutoIndexer] Conteúdo duplicado detectado - pulando indexação`);
@@ -85,9 +83,8 @@ export class AutoIndexer {
       // Importar curationQueue table
       const { curationQueue } = await import("../../shared/schema");
       
-      // Adicionar à fila de curadoria
+      // Adicionar à fila de curadoria (tenantId defaults to 1 in schema)
       const [curationItem] = await db.insert(curationQueue).values({
-        tenantId,
         title,
         content: assistantResponse,
         suggestedNamespaces,
@@ -114,11 +111,10 @@ export class AutoIndexer {
     query: string;
     content: string;
     url: string;
-    tenantId: number;
   }): Promise<boolean> {
     if (!this.enabled) return false;
 
-    const { query, content, url, tenantId } = params;
+    const { query, content, url } = params;
 
     const shouldIndex = this.evaluateContent(content);
     if (!shouldIndex) return false;
@@ -128,9 +124,8 @@ export class AutoIndexer {
       const qualityScore = this.calculateAutoQualityScore(query, content);
       const { curationQueue } = await import("../../shared/schema");
 
-      // Send to curation queue for human review
+      // Send to curation queue for human review (tenantId defaults to 1 in schema)
       const [curationItem] = await db.insert(curationQueue).values({
-        tenantId,
         title,
         content,
         suggestedNamespaces: ["web"],
@@ -241,10 +236,10 @@ export class AutoIndexer {
   /**
    * Verifica se conteúdo similar já está indexado (evita duplicação)
    */
-  private async checkDuplicate(content: string, tenantId: number): Promise<boolean> {
+  private async checkDuplicate(content: string): Promise<boolean> {
     try {
       // Buscar documentos similares
-      const results = await ragService.search(content.substring(0, 500), tenantId, {
+      const results = await ragService.search(content.substring(0, 500), {
         k: 3,
       });
 
@@ -303,23 +298,20 @@ export class AutoIndexer {
   /**
    * Obtém estatísticas do auto-indexer
    */
-  async getStats(tenantId: number): Promise<AutoIndexerStats> {
+  async getStats(): Promise<AutoIndexerStats> {
     try {
       // Total de documentos auto-indexados
       const totalDocs = await db
         .select({ count: sql<number>`count(*)` })
         .from(documents)
-        .where(
-          sql`${documents.tenantId} = ${tenantId} AND ${documents.metadata}->>'autoIndexed' = 'true'`
-        );
+        .where(sql`${documents.metadata}->>'autoIndexed' = 'true'`);
 
       // Documentos indexados hoje
       const todayDocs = await db
         .select({ count: sql<number>`count(*)` })
         .from(documents)
         .where(
-          sql`${documents.tenantId} = ${tenantId} 
-              AND ${documents.metadata}->>'autoIndexed' = 'true'
+          sql`${documents.metadata}->>'autoIndexed' = 'true'
               AND ${documents.createdAt} >= NOW() - INTERVAL '1 day'`
         );
 
@@ -327,9 +319,7 @@ export class AutoIndexer {
       const lastDoc = await db
         .select()
         .from(documents)
-        .where(
-          sql`${documents.tenantId} = ${tenantId} AND ${documents.metadata}->>'autoIndexed' = 'true'`
-        )
+        .where(sql`${documents.metadata}->>'autoIndexed' = 'true'`)
         .orderBy(desc(documents.createdAt))
         .limit(1);
 

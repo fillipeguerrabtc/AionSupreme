@@ -33,7 +33,6 @@ export function registerGpuRoutes(app: Express) {
       } = req.body;
 
       const workerData = {
-        tenantId: 1, // Single-tenant
         provider: platform || type || "colab",
         accountId: accountEmail || "unknown",
         ngrokUrl: url || `http://temp-${Date.now()}.ngrok.io`,
@@ -78,10 +77,9 @@ export function registerGpuRoutes(app: Express) {
   app.post("/api/gpu/workers/register", async (req: Request, res: Response) => {
     console.log("[GPU Register] ✅ REQUEST RECEIVED:", req.method, req.path, req.body);
     try {
-      const { tenantId, provider, accountId, ngrokUrl, capabilities } = req.body;
+      const { provider, accountId, ngrokUrl, capabilities } = req.body;
 
       const workerData = {
-        tenantId: tenantId || 1,
         provider: provider || "colab",
         accountId: accountId || "unknown",
         ngrokUrl: ngrokUrl || `http://temp-${Date.now()}.ngrok.io`,
@@ -199,12 +197,9 @@ export function registerGpuRoutes(app: Express) {
    */
   app.get("/api/gpu/status", async (req: Request, res: Response) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string) || 1;
-
       const workers = await db
         .select()
         .from(gpuWorkers)
-        .where(eq(gpuWorkers.tenantId, tenantId))
         .orderBy(desc(gpuWorkers.lastHealthCheck));
 
       const total = workers.length;
@@ -235,12 +230,9 @@ export function registerGpuRoutes(app: Express) {
    */
   app.get("/api/gpu/workers", async (req: Request, res: Response) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string) || 1;
-
       const workers = await db
         .select()
         .from(gpuWorkers)
-        .where(eq(gpuWorkers.tenantId, tenantId))
         .orderBy(desc(gpuWorkers.lastHealthCheck));
 
       res.json({ workers });
@@ -279,9 +271,8 @@ export function registerGpuRoutes(app: Express) {
    */
   app.get("/api/gpu/quota/status", async (req: Request, res: Response) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string) || 1;
-      const quotas = await quotaManager.getAllWorkerQuotas(tenantId);
-      const health = await quotaManager.getPoolHealth(tenantId);
+      const quotas = await quotaManager.getAllWorkerQuotas();
+      const health = await quotaManager.getPoolHealth();
 
       res.json({ quotas, health });
     } catch (error: any) {
@@ -316,8 +307,7 @@ export function registerGpuRoutes(app: Express) {
    */
   app.post("/api/gpu/quota/reset", async (req: Request, res: Response) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string) || 1;
-      await quotaManager.resetWeeklyQuotas(tenantId);
+      await quotaManager.resetWeeklyQuotas();
 
       res.json({ success: true, message: "Weekly quotas reset" });
     } catch (error: any) {

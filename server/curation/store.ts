@@ -13,7 +13,6 @@ export const curationStore = {
    * Adiciona item à fila de curadoria
    */
   async addToCuration(
-    tenantId: number,
     data: {
       title: string;
       content: string;
@@ -23,7 +22,6 @@ export const curationStore = {
     }
   ): Promise<CurationItem> {
     const [item] = await db.insert(curationQueueTable).values({
-      tenantId,
       title: data.title,
       content: data.content,
       suggestedNamespaces: data.suggestedNamespaces,
@@ -38,16 +36,11 @@ export const curationStore = {
   /**
    * Lista itens pendentes de curadoria
    */
-  async listPending(tenantId: number): Promise<CurationItem[]> {
+  async listPending(): Promise<CurationItem[]> {
     return await db
       .select()
       .from(curationQueueTable)
-      .where(
-        and(
-          eq(curationQueueTable.tenantId, tenantId),
-          eq(curationQueueTable.status, "pending")
-        )
-      )
+      .where(eq(curationQueueTable.status, "pending"))
       .orderBy(desc(curationQueueTable.submittedAt));
   },
 
@@ -55,10 +48,9 @@ export const curationStore = {
    * Lista todos os itens (com filtros opcionais)
    */
   async listAll(
-    tenantId: number,
     filters?: { status?: string; limit?: number }
   ): Promise<CurationItem[]> {
-    const conditions = [eq(curationQueueTable.tenantId, tenantId)];
+    const conditions = [];
     
     if (filters?.status) {
       conditions.push(eq(curationQueueTable.status, filters.status));
@@ -67,7 +59,7 @@ export const curationStore = {
     let items = await db
       .select()
       .from(curationQueueTable)
-      .where(and(...conditions))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(curationQueueTable.submittedAt));
 
     if (filters?.limit) {
@@ -80,16 +72,11 @@ export const curationStore = {
   /**
    * Obtém item por ID
    */
-  async getById(tenantId: number, id: string): Promise<CurationItem | null> {
+  async getById(id: string): Promise<CurationItem | null> {
     const [item] = await db
       .select()
       .from(curationQueueTable)
-      .where(
-        and(
-          eq(curationQueueTable.id, id),
-          eq(curationQueueTable.tenantId, tenantId)
-        )
-      )
+      .where(eq(curationQueueTable.id, id))
       .limit(1);
     return item || null;
   },
@@ -98,7 +85,6 @@ export const curationStore = {
    * Edita item pendente (título, tags, namespaces)
    */
   async editItem(
-    tenantId: number,
     id: string,
     updates: {
       title?: string;
@@ -107,7 +93,7 @@ export const curationStore = {
       note?: string;
     }
   ): Promise<CurationItem | null> {
-    const item = await this.getById(tenantId, id);
+    const item = await this.getById(id);
     if (!item || item.status !== "pending") return null;
 
     const [updated] = await db
@@ -119,7 +105,6 @@ export const curationStore = {
       .where(
         and(
           eq(curationQueueTable.id, id),
-          eq(curationQueueTable.tenantId, tenantId),
           eq(curationQueueTable.status, "pending")
         )
       )
@@ -132,18 +117,16 @@ export const curationStore = {
    * Aprova e publica item - integrado com Knowledge Base
    */
   async approveAndPublish(
-    tenantId: number,
     id: string,
     reviewedBy: string
   ): Promise<{ item: CurationItem; publishedId: string }> {
-    const item = await this.getById(tenantId, id);
+    const item = await this.getById(id);
     if (!item || item.status !== "pending") {
       throw new Error("Item not found or already processed");
     }
 
-    // Create document record in database WITH ATTACHMENTS
+    // Create document record in database WITH ATTACHMENTS (tenantId defaults to 1 in schema)
     const [newDoc] = await db.insert(documents).values({
-      tenantId,
       title: item.title,
       content: item.content,
       source: "curation_approved",
@@ -163,7 +146,7 @@ export const curationStore = {
     }
 
     // Index approved content into Knowledge Base vector store with namespace metadata
-    await knowledgeIndexer.indexDocument(newDoc.id, newDoc.content, tenantId, {
+    await knowledgeIndexer.indexDocument(newDoc.id, newDoc.content, {
       namespaces: item.suggestedNamespaces,
       tags: item.tags,
       source: "curation_approved",
@@ -191,9 +174,9 @@ export const curationStore = {
         console.warn(`[Curation] ⚠️ No quality tag for item ${item.id}, using default 75`);
       }
       
+      // tenantId defaults to 1 in schema
       await db.insert(trainingDataCollection).values({
         conversationId: null, // Curated content doesn't have conversationId
-        tenantId: tenantId,
         autoQualityScore: qualityScore,
         status: "approved", // Human-approved content is always approved
         formattedData: [{
@@ -228,12 +211,7 @@ export const curationStore = {
         publishedId: newDoc.id.toString(),
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(curationQueueTable.id, id),
-          eq(curationQueueTable.tenantId, tenantId)
-        )
-      )
+      .where(eq(curationQueueTable.id, id))
       .returning();
 
     console.log(`[Curation] ✅ Approved and published item ${id} to KB as document ${newDoc.id}`);
@@ -245,7 +223,6 @@ export const curationStore = {
    * Rejeita item
    */
   async reject(
-    tenantId: number,
     id: string,
     reviewedBy: string,
     note?: string
@@ -264,7 +241,6 @@ export const curationStore = {
       .where(
         and(
           eq(curationQueueTable.id, id),
-          eq(curationQueueTable.tenantId, tenantId),
           eq(curationQueueTable.status, "pending")
         )
       )
@@ -278,14 +254,12 @@ export const curationStore = {
    * Filtra automaticamente itens com mais de 5 anos
    */
   async listHistory(
-    tenantId: number,
     filters?: { status?: "approved" | "rejected"; limit?: number }
   ): Promise<CurationItem[]> {
     const fiveYearsAgo = new Date();
     fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
 
     const conditions = [
-      eq(curationQueueTable.tenantId, tenantId),
       sql`${curationQueueTable.status} IN ('approved', 'rejected')`,
       sql`${curationQueueTable.statusChangedAt} >= ${fiveYearsAgo.toISOString()}`,
     ];
@@ -310,15 +284,10 @@ export const curationStore = {
   /**
    * Remove item da fila (apenas para testes)
    */
-  async remove(tenantId: number, id: string): Promise<boolean> {
+  async remove(id: string): Promise<boolean> {
     const result = await db
       .delete(curationQueueTable)
-      .where(
-        and(
-          eq(curationQueueTable.id, id),
-          eq(curationQueueTable.tenantId, tenantId)
-        )
-      )
+      .where(eq(curationQueueTable.id, id))
       .returning();
 
     return result.length > 0;

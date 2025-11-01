@@ -63,16 +63,14 @@ export class TrainingDataCollector {
    * Coletar dados de treino do banco de dados
    */
   async collectTrainingData(
-    tenantId: number,
     criteria: CollectionCriteria = {}
   ): Promise<TrainingExample[]> {
-    console.log(`[Training] Coletando dados de treino para tenant ${tenantId}...`);
+    console.log(`[Training] Coletando dados de treino...`);
 
     const examples: TrainingExample[] = [];
 
     // Buscar conversas
-    const conversations = await storage.getConversationsByTenant(
-      tenantId,
+    const conversations = await storage.getConversations(
       criteria.limit || 1000
     );
 
@@ -304,7 +302,6 @@ export class TrainingDataCollector {
    * Preparar dataset completo para fine-tuning
    */
   async prepareDataset(
-    tenantId: number,
     criteria?: CollectionCriteria
   ): Promise<{
     filepath: string;
@@ -324,7 +321,7 @@ export class TrainingDataCollector {
     console.log("[Training] Preparando dataset para fine-tuning...");
 
     // 1. Coletar dados
-    const examples = await this.collectTrainingData(tenantId, criteria);
+    const examples = await this.collectTrainingData(criteria);
 
     // 2. Validar
     const validation = await this.validateDataset(examples);

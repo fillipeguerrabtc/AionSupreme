@@ -105,11 +105,11 @@ const VIOLATION_PATTERNS = {
 // POLICY LOADING
 // ============================================================================
 
-export async function loadPolicy(tenantId: number): Promise<PolicyConfig | null> {
+export async function loadPolicy(): Promise<PolicyConfig | null> {
   const result = await db
     .select()
     .from(policies)
-    .where(eq(policies.tenantId, tenantId))
+    .where(eq(policies.tenantId, 1))
     .limit(1);
 
   if (result.length === 0) {
@@ -259,11 +259,10 @@ Content Guidelines:
 // ============================================================================
 
 export async function enforcePolicy(
-  text: string,
-  tenantId: number
+  text: string
 ): Promise<{ allowed: boolean; text: string; violation?: ViolationResult }> {
   // Load policy
-  const policy = await loadPolicy(tenantId);
+  const policy = await loadPolicy();
 
   if (!policy) {
     // No policy = unrestricted

@@ -49,6 +49,8 @@ export interface AgentResult {
   stopReason: "goal_achieved" | "max_steps" | "no_progress" | "error";
 }
 
+export type AgentTool = (input: any) => Promise<AgentObservation>;
+
 export class ReActEngine {
   private maxSteps = 15; // T_max
   private confidenceThreshold = 0.8; // τ
@@ -60,10 +62,9 @@ export class ReActEngine {
    */
   async execute(
     goal: string,
-    tenantId: number,
     conversationId: number,
     messageId: number,
-    availableTools: Map<string, (input: any) => Promise<AgentObservation>>
+    availableTools: Map<string, AgentTool>
   ): Promise<AgentResult> {
     console.log(`[ReActEngine] Starting execution for goal: ${goal}`);
     
@@ -80,7 +81,7 @@ export class ReActEngine {
       try {
         // 1. Generate Thought + Action
         // As per PDFs: π_θ(r_t|h_t) then π_θ(a_t|h_t,r_t)
-        const { thought, action } = await this.generateAction(history, availableTools, tenantId);
+        const { thought, action } = await this.generateAction(history, availableTools);
         
         // Check if agent wants to finish
         if (action.toolName === "Finish") {
@@ -185,8 +186,7 @@ export class ReActEngine {
    */
   private async generateAction(
     history: string[],
-    availableTools: Map<string, any>,
-    tenantId: number
+    availableTools: Map<string, any>
   ): Promise<{ thought: string; action: AgentAction }> {
     // Build tools description
     const toolDescriptions = Array.from(availableTools.keys())
@@ -220,7 +220,6 @@ Now, what is your next step?`;
 
     const response = await llmClient.chatCompletion({
       messages: [{ role: "user", content: prompt }],
-      tenantId,
       model: "gpt-4o",
       temperature: 0.7,
     });

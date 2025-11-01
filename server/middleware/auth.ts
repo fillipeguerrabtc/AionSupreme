@@ -13,13 +13,13 @@ import crypto from "crypto";
 import { storage } from "../storage";
 
 interface AuthenticatedRequest extends Request {
-  tenantId?: number;
   apiKey?: string;
 }
 
 /**
  * API Key Authentication Middleware
  * Validates API key from Authorization header
+ * SINGLE-TENANT: No tenant validation needed
  */
 export async function authenticateApiKey(
   req: AuthenticatedRequest,
@@ -32,7 +32,6 @@ export async function authenticateApiKey(
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       // For development, allow requests without auth on certain routes
       if (process.env.NODE_ENV === "development" && req.path.startsWith("/api/")) {
-        req.tenantId = 1; // Default tenant
         return next();
       }
 
@@ -41,15 +40,13 @@ export async function authenticateApiKey(
 
     const apiKey = authHeader.substring(7); // Remove "Bearer "
 
-    // Validate API key
-    const tenant = await validateApiKey(apiKey);
+    // Validate API key (single-tenant: always valid in dev)
+    const isValid = await validateApiKey(apiKey);
 
-    if (!tenant) {
+    if (!isValid) {
       return res.status(401).json({ error: "Invalid API key" });
     }
 
-    // Attach tenant to request
-    req.tenantId = tenant.id;
     req.apiKey = apiKey;
 
     next();
@@ -61,11 +58,11 @@ export async function authenticateApiKey(
 
 /**
  * Validate API key (SINGLE-TENANT MODE)
- * NOTE: Always returns default tenant since AION is single-tenant (tenantId=1)
+ * NOTE: Always returns true since AION is single-tenant
  */
-async function validateApiKey(apiKey: string): Promise<{ id: number; name: string } | null> {
-  // Single-tenant: always return default tenant
-  return { id: 1, name: "AION" };
+async function validateApiKey(apiKey: string): Promise<boolean> {
+  // Single-tenant: always valid
+  return true;
 }
 
 /**
@@ -77,12 +74,12 @@ export function generateApiKey(): string {
 
 /**
  * Optional: JWT Token generation (for future OAuth/session management)
+ * SINGLE-TENANT: Removed tenantId from JWT
  */
-export function generateJWT(tenantId: number, secret: string): string {
+export function generateJWT(secret: string): string {
   const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
   const payload = Buffer.from(
     JSON.stringify({
-      tenantId,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
     })
@@ -98,8 +95,9 @@ export function generateJWT(tenantId: number, secret: string): string {
 
 /**
  * Verify JWT token
+ * SINGLE-TENANT: Returns true/false instead of tenant info
  */
-export function verifyJWT(token: string, secret: string): { tenantId: number } | null {
+export function verifyJWT(token: string, secret: string): boolean {
   try {
     const [header, payload, signature] = token.split(".");
     
@@ -109,18 +107,18 @@ export function verifyJWT(token: string, secret: string): { tenantId: number } |
       .digest("base64url");
 
     if (signature !== expectedSignature) {
-      return null;
+      return false;
     }
 
     const decoded = JSON.parse(Buffer.from(payload, "base64url").toString());
     
     // Check expiration
     if (decoded.exp < Math.floor(Date.now() / 1000)) {
-      return null;
+      return false;
     }
 
-    return { tenantId: decoded.tenantId };
+    return true;
   } catch (error) {
-    return null;
+    return false;
   }
 }

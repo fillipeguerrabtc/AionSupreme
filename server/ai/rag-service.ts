@@ -53,7 +53,6 @@ export interface ConfidenceResult {
 
 export async function semanticSearch(
   query: string,
-  tenantId: number,
   options: SearchOptions = {}
 ): Promise<SearchResult[]> {
   const {
@@ -67,9 +66,9 @@ export async function semanticSearch(
   const queryVector = await embedText(query);
 
   // Step 2: Retrieve ONLY embeddings from APPROVED documents (status='indexed')
-  // HITL FIX: Use storage.getEmbeddingsByTenant which filters by document status
+  // HITL FIX: Use storage.getEmbeddings which filters by document status
   console.log('[RAG] Retrieving embeddings from APPROVED documents only...');
-  const allEmbeddings = await storage.getEmbeddingsByTenant(tenantId, 10000);
+  const allEmbeddings = await storage.getEmbeddings(10000);
 
   if (allEmbeddings.length === 0) {
     console.log('[RAG] ⚠️  No APPROVED embeddings found (all content in curation queue)');
@@ -183,14 +182,12 @@ function bm25Score(
 
 export async function lexicalSearch(
   query: string,
-  tenantId: number,
   limit: number = 10
 ): Promise<SearchResult[]> {
   // Get all chunks
   const allChunks = await db
     .select()
-    .from(embeddings)
-    .where(eq(embeddings.tenantId, tenantId));
+    .from(embeddings);
 
   if (allChunks.length === 0) {
     return [];
@@ -218,7 +215,6 @@ export async function lexicalSearch(
 
 export async function hybridSearch(
   query: string,
-  tenantId: number,
   options: SearchOptions = {}
 ): Promise<SearchResult[]> {
   const { limit = 10, minScore = 0.3 } = options;
@@ -227,8 +223,8 @@ export async function hybridSearch(
 
   // Run both searches in parallel
   const [semanticResults, lexicalResults] = await Promise.all([
-    semanticSearch(query, tenantId, { limit: limit * 2, minScore, includeMetadata: false }),
-    lexicalSearch(query, tenantId, limit * 2)
+    semanticSearch(query, { limit: limit * 2, minScore, includeMetadata: false }),
+    lexicalSearch(query, limit * 2)
   ]);
 
   // Normalize scores to [0, 1]
@@ -287,7 +283,6 @@ export async function hybridSearch(
 
 export async function mmrSearch(
   query: string,
-  tenantId: number,
   options: SearchOptions = {}
 ): Promise<SearchResult[]> {
   const {
@@ -300,7 +295,7 @@ export async function mmrSearch(
   console.log(`[RAG] Performing MMR search (λ=${lambda})...`);
 
   // Step 1: Get initial candidates (2x limit)
-  const candidates = await semanticSearch(query, tenantId, {
+  const candidates = await semanticSearch(query, {
     limit: limit * 3,
     minScore,
     includeMetadata: false
@@ -400,13 +395,12 @@ export async function mmrSearch(
 
 export async function searchWithConfidence(
   query: string,
-  tenantId: number,
   options: SearchOptions = {}
 ): Promise<ConfidenceResult> {
   const { limit = 5, lambda = 0.7 } = options;
 
   // Perform MMR search
-  const results = await mmrSearch(query, tenantId, {
+  const results = await mmrSearch(query, {
     ...options,
     limit,
     lambda

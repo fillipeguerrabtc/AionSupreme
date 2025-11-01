@@ -94,11 +94,8 @@ export class AutoTrainingTrigger {
     console.log("\n🤖 [AutoTrain] Verificando condições para auto-treino...");
 
     try {
-      // Tenant padrão (single-tenant)
-      const tenantId = 1;
-
       // CONDIÇÃO 1: Verificar exemplos pendentes
-      const pendingExamples = await datasetGenerator.checkPendingExamples(tenantId);
+      const pendingExamples = await datasetGenerator.checkPendingExamples();
       console.log(`   📊 Exemplos pendentes: ${pendingExamples}`);
 
       if (pendingExamples < this.minExamplesThreshold) {
@@ -133,7 +130,7 @@ export class AutoTrainingTrigger {
       // TODAS AS CONDIÇÕES OK! 🚀
       console.log("\n   🎯 TODAS CONDIÇÕES OK - INICIANDO AUTO-TREINO!");
 
-      await this.triggerTraining(tenantId);
+      await this.triggerTraining();
     } catch (error: any) {
       console.error(`[AutoTrain] ❌ Erro no check:`, error.message);
     }
@@ -142,11 +139,11 @@ export class AutoTrainingTrigger {
   /**
    * Dispara treino automaticamente
    */
-  private async triggerTraining(tenantId: number): Promise<void> {
+  private async triggerTraining(): Promise<void> {
     try {
       // STEP 1: Gerar dataset automaticamente
       console.log("\n   📦 [1/3] Gerando dataset...");
-      const dataset = await datasetGenerator.generateAutoDataset(tenantId);
+      const dataset = await datasetGenerator.generateAutoDataset();
 
       if (!dataset) {
         console.log("   ❌ Falha ao gerar dataset");
@@ -159,7 +156,6 @@ export class AutoTrainingTrigger {
       console.log("\n   🔧 [2/3] Criando job de treino...");
       
       const [job] = await db.insert(trainingJobs).values({
-        tenantId,
         name: `Auto-Training ${new Date().toISOString()}`,
         description: `Treino automático com ${dataset.examplesCount} exemplos`,
         model: this.defaultConfig.model,
@@ -205,9 +201,9 @@ export class AutoTrainingTrigger {
   /**
    * Disparo manual (para testes)
    */
-  async triggerNow(tenantId: number = 1): Promise<void> {
+  async triggerNow(): Promise<void> {
     console.log("\n🚀 [AutoTrain] Disparo MANUAL iniciado...");
-    await this.triggerTraining(tenantId);
+    await this.triggerTraining();
   }
 
   /**

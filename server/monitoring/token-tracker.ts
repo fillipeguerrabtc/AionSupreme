@@ -54,7 +54,6 @@ export interface WebSearchMetadata {
 }
 
 export interface TokenTrackingData {
-  tenantId: number;
   provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter' | 'openai' | 'kb' | 'web' | 'deepweb';
   model: string;
   promptTokens: number;
@@ -137,9 +136,8 @@ function calculateCost(provider: string, model: string, promptTokens: number, co
 export async function trackTokenUsage(data: TokenTrackingData): Promise<void> {
   const cost = data.cost ?? calculateCost(data.provider, data.model, data.promptTokens, data.completionTokens);
   
-  // Insert usage record
+  // Insert usage record (tenantId defaults to 1 in schema)
   await db.insert(tokenUsage).values({
-    tenantId: data.tenantId,
     provider: data.provider,
     model: data.model,
     promptTokens: data.promptTokens,
@@ -152,14 +150,14 @@ export async function trackTokenUsage(data: TokenTrackingData): Promise<void> {
   });
   
   // Check limits and send alerts if necessary
-  await checkLimitsAndAlert(data.tenantId, data.provider);
+  await checkLimitsAndAlert(data.provider);
 }
 
 // ============================================================================
 // USAGE SUMMARY
 // ============================================================================
 
-export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]> {
+export async function getUsageSummary(): Promise<UsageSummary[]> {
   const providers = ['groq', 'gemini', 'huggingface', 'openrouter', 'openai', 'kb', 'web', 'deepweb'];
   const now = new Date();
   
@@ -181,7 +179,6 @@ export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]>
       .from(tokenUsage)
       .where(
         and(
-          eq(tokenUsage.tenantId, tenantId),
           eq(tokenUsage.provider, provider),
           gte(tokenUsage.timestamp, todayStart)
         )
@@ -197,7 +194,6 @@ export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]>
       .from(tokenUsage)
       .where(
         and(
-          eq(tokenUsage.tenantId, tenantId),
           eq(tokenUsage.provider, provider),
           gte(tokenUsage.timestamp, monthStart)
         )
@@ -211,23 +207,13 @@ export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]>
         cost: sql<number>`COALESCE(SUM(${tokenUsage.cost}), 0)`
       })
       .from(tokenUsage)
-      .where(
-        and(
-          eq(tokenUsage.tenantId, tenantId),
-          eq(tokenUsage.provider, provider)
-        )
-      );
+      .where(eq(tokenUsage.provider, provider));
     
     // Get limits
     const limits = await db
       .select()
       .from(tokenLimits)
-      .where(
-        and(
-          eq(tokenLimits.tenantId, tenantId),
-          eq(tokenLimits.provider, provider)
-        )
-      )
+      .where(eq(tokenLimits.provider, provider))
       .limit(1);
     
     const limit = limits[0];
@@ -281,7 +267,7 @@ export async function getUsageSummary(tenantId: number): Promise<UsageSummary[]>
 // PROVIDER QUOTAS (Free APIs)
 // ============================================================================
 
-export async function getProviderQuotas(tenantId: number): Promise<ProviderQuota[]> {
+export async function getProviderQuotas(): Promise<ProviderQuota[]> {
   const freeProviders = [
     { name: 'groq', dailyLimit: 14400 },
     { name: 'gemini', dailyLimit: 12000 }, // ~12k requests @ 500 tokens/req
@@ -306,7 +292,6 @@ export async function getProviderQuotas(tenantId: number): Promise<ProviderQuota
       .from(tokenUsage)
       .where(
         and(
-          eq(tokenUsage.tenantId, tenantId),
           eq(tokenUsage.provider, provider.name),
           gte(tokenUsage.timestamp, todayStart)
         )
@@ -333,13 +318,12 @@ export async function getProviderQuotas(tenantId: number): Promise<ProviderQuota
 // LIMITS AND ALERTS
 // ============================================================================
 
-async function checkLimitsAndAlert(tenantId: number, provider: string): Promise<void> {
+async function checkLimitsAndAlert(provider: string): Promise<void> {
   const limits = await db
     .select()
     .from(tokenLimits)
     .where(
       and(
-        eq(tokenLimits.tenantId, tenantId),
         eq(tokenLimits.provider, provider),
         eq(tokenLimits.alertsEnabled, true)
       )
@@ -363,7 +347,6 @@ async function checkLimitsAndAlert(tenantId: number, provider: string): Promise<
     .from(tokenUsage)
     .where(
       and(
-        eq(tokenUsage.tenantId, tenantId),
         eq(tokenUsage.provider, provider),
         gte(tokenUsage.timestamp, todayStart)
       )
@@ -379,7 +362,6 @@ async function checkLimitsAndAlert(tenantId: number, provider: string): Promise<
     const alertType = percentage >= 1.0 ? 'limit_exceeded' : 'threshold_reached';
     
     await createAlert({
-      tenantId,
       provider,
       alertType,
       message: `${provider} token usage at ${(percentage * 100).toFixed(1)}% of daily limit`,
@@ -395,7 +377,6 @@ async function checkLimitsAndAlert(tenantId: number, provider: string): Promise<
     const alertType = percentage >= 1.0 ? 'limit_exceeded' : 'threshold_reached';
     
     await createAlert({
-      tenantId,
       provider,
       alertType,
       message: `${provider} cost at ${(percentage * 100).toFixed(1)}% of daily limit ($${currentCost.toFixed(2)})`,
@@ -406,7 +387,7 @@ async function checkLimitsAndAlert(tenantId: number, provider: string): Promise<
   }
 }
 
-async function createAlert(data: Omit<InsertTokenAlert, 'acknowledged' | 'acknowledgedAt'>): Promise<void> {
+async function createAlert(data: Omit<InsertTokenAlert, 'tenantId' | 'acknowledged' | 'acknowledgedAt'>): Promise<void> {
   // Check if similar alert exists in last hour
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   
@@ -415,7 +396,6 @@ async function createAlert(data: Omit<InsertTokenAlert, 'acknowledged' | 'acknow
     .from(tokenAlerts)
     .where(
       and(
-        eq(tokenAlerts.tenantId, data.tenantId),
         eq(tokenAlerts.provider, data.provider),
         eq(tokenAlerts.alertType, data.alertType),
         gte(tokenAlerts.createdAt, oneHourAgo)
@@ -435,7 +415,6 @@ async function createAlert(data: Omit<InsertTokenAlert, 'acknowledged' | 'acknow
 // ============================================================================
 
 export async function setTokenLimit(
-  tenantId: number,
   provider: string,
   limits: {
     dailyTokenLimit?: number | null;
@@ -450,12 +429,7 @@ export async function setTokenLimit(
   const existing = await db
     .select()
     .from(tokenLimits)
-    .where(
-      and(
-        eq(tokenLimits.tenantId, tenantId),
-        eq(tokenLimits.provider, provider)
-      )
-    )
+    .where(eq(tokenLimits.provider, provider))
     .limit(1);
   
   if (existing.length > 0) {
@@ -468,9 +442,8 @@ export async function setTokenLimit(
       })
       .where(eq(tokenLimits.id, existing[0].id));
   } else {
-    // Create new
+    // Create new (tenantId defaults to 1 in schema)
     await db.insert(tokenLimits).values({
-      tenantId,
       provider,
       ...limits
     });
@@ -481,16 +454,11 @@ export async function setTokenLimit(
 // ALERT MANAGEMENT
 // ============================================================================
 
-export async function getUnacknowledgedAlerts(tenantId: number): Promise<typeof tokenAlerts.$inferSelect[]> {
+export async function getUnacknowledgedAlerts(): Promise<typeof tokenAlerts.$inferSelect[]> {
   return await db
     .select()
     .from(tokenAlerts)
-    .where(
-      and(
-        eq(tokenAlerts.tenantId, tenantId),
-        eq(tokenAlerts.acknowledged, false)
-      )
-    )
+    .where(eq(tokenAlerts.acknowledged, false))
     .orderBy(desc(tokenAlerts.createdAt))
     .limit(50);
 }
@@ -517,7 +485,6 @@ export interface TokenTrend {
 }
 
 export async function getTokenTrends(
-  tenantId: number,
   provider: string | null,
   days: number = 30,
   startDateOverride?: Date,
@@ -537,7 +504,6 @@ export async function getTokenTrends(
         .from(tokenUsage)
         .where(
           and(
-            eq(tokenUsage.tenantId, tenantId),
             eq(tokenUsage.provider, provider),
             gte(tokenUsage.timestamp, startDate),
             sql`DATE(${tokenUsage.timestamp}) <= DATE(${endDate.toISOString()})`
@@ -555,7 +521,6 @@ export async function getTokenTrends(
         .from(tokenUsage)
         .where(
           and(
-            eq(tokenUsage.tenantId, tenantId),
             gte(tokenUsage.timestamp, startDate),
             sql`DATE(${tokenUsage.timestamp}) <= DATE(${endDate.toISOString()})`
           )
@@ -605,7 +570,6 @@ export interface TokenTrendByProvider {
 }
 
 export async function getTokenTrendsWithProviders(
-  tenantId: number,
   days: number = 30,
   startDateOverride?: Date,
   endDateOverride?: Date
@@ -624,7 +588,6 @@ export async function getTokenTrendsWithProviders(
     .from(tokenUsage)
     .where(
       and(
-        eq(tokenUsage.tenantId, tenantId),
         gte(tokenUsage.timestamp, startDate),
         sql`DATE(${tokenUsage.timestamp}) <= DATE(${endDate.toISOString()})`
       )
@@ -707,7 +670,6 @@ export interface SearchHistoryEntry {
 }
 
 export async function getWebSearchHistory(
-  tenantId: number,
   provider: 'web' | 'deepweb' | 'both' = 'both',
   limit: number = 100
 ): Promise<SearchHistoryEntry[]> {
@@ -717,7 +679,6 @@ export async function getWebSearchHistory(
         .from(tokenUsage)
         .where(
           and(
-            eq(tokenUsage.tenantId, tenantId),
             sql`${tokenUsage.provider} IN ('web', 'deepweb')`,
             eq(tokenUsage.requestType, 'search')
           )
@@ -729,7 +690,6 @@ export async function getWebSearchHistory(
         .from(tokenUsage)
         .where(
           and(
-            eq(tokenUsage.tenantId, tenantId),
             eq(tokenUsage.provider, provider),
             eq(tokenUsage.requestType, 'search')
           )
@@ -751,7 +711,7 @@ export async function getWebSearchHistory(
   }));
 }
 
-export async function getWebSearchStats(tenantId: number): Promise<{
+export async function getWebSearchStats(): Promise<{
   web: {
     totalSearches: number;
     successfulSearches: number;
@@ -773,7 +733,6 @@ export async function getWebSearchStats(tenantId: number): Promise<{
     .from(tokenUsage)
     .where(
       and(
-        eq(tokenUsage.tenantId, tenantId),
         eq(tokenUsage.provider, 'web'),
         eq(tokenUsage.requestType, 'search')
       )
@@ -787,7 +746,6 @@ export async function getWebSearchStats(tenantId: number): Promise<{
     .from(tokenUsage)
     .where(
       and(
-        eq(tokenUsage.tenantId, tenantId),
         eq(tokenUsage.provider, 'deepweb'),
         eq(tokenUsage.requestType, 'search')
       )
@@ -799,7 +757,6 @@ export async function getWebSearchStats(tenantId: number): Promise<{
     .from(tokenUsage)
     .where(
       and(
-        eq(tokenUsage.tenantId, tenantId),
         eq(tokenUsage.provider, 'web'),
         eq(tokenUsage.requestType, 'search'),
         eq(tokenUsage.success, true)
@@ -811,7 +768,6 @@ export async function getWebSearchStats(tenantId: number): Promise<{
     .from(tokenUsage)
     .where(
       and(
-        eq(tokenUsage.tenantId, tenantId),
         eq(tokenUsage.provider, 'deepweb'),
         eq(tokenUsage.requestType, 'search'),
         eq(tokenUsage.success, true)
@@ -871,7 +827,6 @@ export interface KBSearchHistoryEntry {
 }
 
 export async function getKBSearchHistory(
-  tenantId: number,
   limit: number = 100
 ): Promise<KBSearchHistoryEntry[]> {
   const results = await db
@@ -879,7 +834,6 @@ export async function getKBSearchHistory(
     .from(tokenUsage)
     .where(
       and(
-        eq(tokenUsage.tenantId, tenantId),
         eq(tokenUsage.provider, 'kb'),
         eq(tokenUsage.requestType, 'chat')
       )
@@ -913,7 +867,6 @@ export interface FreeAPIHistoryEntry {
 }
 
 export async function getFreeAPIsHistory(
-  tenantId: number,
   provider?: 'groq' | 'gemini' | 'huggingface' | 'openrouter',
   limit: number = 100
 ): Promise<FreeAPIHistoryEntry[]> {
@@ -923,7 +876,6 @@ export async function getFreeAPIsHistory(
         .from(tokenUsage)
         .where(
           and(
-            eq(tokenUsage.tenantId, tenantId),
             eq(tokenUsage.provider, provider),
             eq(tokenUsage.requestType, 'chat')
           )
@@ -935,7 +887,6 @@ export async function getFreeAPIsHistory(
         .from(tokenUsage)
         .where(
           and(
-            eq(tokenUsage.tenantId, tenantId),
             sql`${tokenUsage.provider} IN ('groq', 'gemini', 'huggingface', 'openrouter')`,
             eq(tokenUsage.requestType, 'chat')
           )
@@ -962,7 +913,6 @@ export async function getFreeAPIsHistory(
 // ============================================================================
 
 export async function getCompleteTokenHistory(
-  tenantId: number,
   limit: number = 500
 ): Promise<any[]> {
   const records = await db
@@ -980,7 +930,6 @@ export async function getCompleteTokenHistory(
       metadata: tokenUsage.metadata
     })
     .from(tokenUsage)
-    .where(eq(tokenUsage.tenantId, tenantId))
     .orderBy(desc(tokenUsage.timestamp))
     .limit(limit);
   
@@ -988,7 +937,6 @@ export async function getCompleteTokenHistory(
 }
 
 export async function getCostHistory(
-  tenantId: number,
   limit: number = 500
 ): Promise<any> {
   // Get all records with costs
@@ -1004,12 +952,7 @@ export async function getCostHistory(
       timestamp: tokenUsage.timestamp
     })
     .from(tokenUsage)
-    .where(
-      and(
-        eq(tokenUsage.tenantId, tenantId),
-        sql`${tokenUsage.cost} > 0`
-      )
-    )
+    .where(sql`${tokenUsage.cost} > 0`)
     .orderBy(desc(tokenUsage.timestamp))
     .limit(limit);
   
@@ -1021,12 +964,7 @@ export async function getCostHistory(
       totalRequests: sql<number>`COUNT(*)`
     })
     .from(tokenUsage)
-    .where(
-      and(
-        eq(tokenUsage.tenantId, tenantId),
-        sql`${tokenUsage.cost} > 0`
-      )
-    )
+    .where(sql`${tokenUsage.cost} > 0`)
     .groupBy(tokenUsage.provider);
   
   return {
@@ -1043,49 +981,28 @@ export async function getCostHistory(
 /**
  * Check if cleanup is needed (if there's old data to delete)
  * Checks BOTH tokenUsage and tokenAlerts tables
- * @param tenantId - Optional tenant ID
  * @returns true if there's data older than 5 years in either table, false otherwise
  */
-export async function needsCleanup(tenantId?: number): Promise<boolean> {
+export async function needsCleanup(): Promise<boolean> {
   const RETENTION_DAYS = 1825;
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - RETENTION_DAYS);
   
   // Check tokenUsage table
-  const usageCount = tenantId
-    ? await db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(tokenUsage)
-        .where(
-          and(
-            eq(tokenUsage.tenantId, tenantId),
-            lte(tokenUsage.timestamp, cutoffDate)
-          )
-        )
-    : await db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(tokenUsage)
-        .where(lte(tokenUsage.timestamp, cutoffDate));
+  const usageCount = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(tokenUsage)
+    .where(lte(tokenUsage.timestamp, cutoffDate));
   
   if (Number(usageCount[0]?.count ?? 0) > 0) {
     return true;
   }
   
   // Check tokenAlerts table
-  const alertsCount = tenantId
-    ? await db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(tokenAlerts)
-        .where(
-          and(
-            eq(tokenAlerts.tenantId, tenantId),
-            lte(tokenAlerts.createdAt, cutoffDate)
-          )
-        )
-    : await db
-        .select({ count: sql<number>`COUNT(*)` })
-        .from(tokenAlerts)
-        .where(lte(tokenAlerts.createdAt, cutoffDate));
+  const alertsCount = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(tokenAlerts)
+    .where(lte(tokenAlerts.createdAt, cutoffDate));
   
   return Number(alertsCount[0]?.count ?? 0) > 0;
 }
@@ -1100,12 +1017,10 @@ export async function needsCleanup(tenantId?: number): Promise<boolean> {
  * - All data >= 5 years old: DELETED
  * - Applies to: tokenUsage, tokenAlerts
  * 
- * @param tenantId - Optional tenant ID, if not provided cleans all tenants
  * @param skipCheck - Skip the needsCleanup check (for forced cleanup)
  * @returns Number of records deleted, or null if no cleanup was needed
  */
 export async function cleanupOldTokenData(
-  tenantId?: number,
   skipCheck: boolean = false
 ): Promise<{
   tokenUsageDeleted: number;
@@ -1117,7 +1032,7 @@ export async function cleanupOldTokenData(
   
   // Check if cleanup is needed
   if (!skipCheck) {
-    const needed = await needsCleanup(tenantId);
+    const needed = await needsCleanup();
     if (!needed) {
       console.log(`[Token Cleanup] No data older than ${cutoffDate.toISOString()} found - skipping cleanup`);
       return null;
@@ -1127,32 +1042,14 @@ export async function cleanupOldTokenData(
   console.log(`[Token Cleanup] Starting cleanup for data older than ${cutoffDate.toISOString()} (5 years)`);
   
   // Delete old token usage records
-  const tokenUsageDeleted = tenantId
-    ? await db
-        .delete(tokenUsage)
-        .where(
-          and(
-            eq(tokenUsage.tenantId, tenantId),
-            lte(tokenUsage.timestamp, cutoffDate)
-          )
-        )
-    : await db
-        .delete(tokenUsage)
-        .where(lte(tokenUsage.timestamp, cutoffDate));
+  const tokenUsageDeleted = await db
+    .delete(tokenUsage)
+    .where(lte(tokenUsage.timestamp, cutoffDate));
   
   // Delete old alerts
-  const alertsDeleted = tenantId
-    ? await db
-        .delete(tokenAlerts)
-        .where(
-          and(
-            eq(tokenAlerts.tenantId, tenantId),
-            lte(tokenAlerts.createdAt, cutoffDate)
-          )
-        )
-    : await db
-        .delete(tokenAlerts)
-        .where(lte(tokenAlerts.createdAt, cutoffDate));
+  const alertsDeleted = await db
+    .delete(tokenAlerts)
+    .where(lte(tokenAlerts.createdAt, cutoffDate));
   
   const result = {
     tokenUsageDeleted: Array.isArray(tokenUsageDeleted) ? tokenUsageDeleted.length : 0,
@@ -1168,7 +1065,7 @@ export async function cleanupOldTokenData(
  * Get data retention statistics
  * Shows how much historical data is stored and oldest record date
  */
-export async function getRetentionStats(tenantId: number): Promise<{
+export async function getRetentionStats(): Promise<{
   totalRecords: number;
   oldestRecord: Date | null;
   newestRecord: Date | null;
@@ -1181,8 +1078,7 @@ export async function getRetentionStats(tenantId: number): Promise<{
       oldest: sql<Date>`MIN(${tokenUsage.timestamp})`,
       newest: sql<Date>`MAX(${tokenUsage.timestamp})`
     })
-    .from(tokenUsage)
-    .where(eq(tokenUsage.tenantId, tenantId));
+    .from(tokenUsage);
   
   const stat = stats[0];
   const totalRecords = Number(stat.count);

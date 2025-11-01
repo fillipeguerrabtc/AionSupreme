@@ -14,8 +14,7 @@ export function registerCurationRoutes(app: Express) {
    */
   app.get("/api/curation/pending", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
-      const items = await curationStore.listPending(tenantId);
+      const items = await curationStore.listPending();
       res.json(items);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -28,11 +27,10 @@ export function registerCurationRoutes(app: Express) {
    */
   app.get("/api/curation/all", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
       const status = req.query.status as string | undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 
-      const items = await curationStore.listAll(tenantId, { status, limit });
+      const items = await curationStore.listAll({ status, limit });
       res.json(items);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -45,7 +43,6 @@ export function registerCurationRoutes(app: Express) {
    */
   app.post("/api/curation/add", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
       const { title, content, suggestedNamespaces, tags, submittedBy } = req.body;
 
       if (!title || !content || !suggestedNamespaces) {
@@ -54,7 +51,7 @@ export function registerCurationRoutes(app: Express) {
         });
       }
 
-      const item = await curationStore.addToCuration(tenantId, {
+      const item = await curationStore.addToCuration({
         title,
         content,
         suggestedNamespaces,
@@ -64,7 +61,6 @@ export function registerCurationRoutes(app: Express) {
 
       // Emitir evento para indexador (opcional)
       await publishEvent("DOC_INGESTED", {
-        tenantId,
         docId: item.id,
         namespaces: ["curation/pending"],
       });
@@ -81,14 +77,13 @@ export function registerCurationRoutes(app: Express) {
    */
   app.patch("/api/curation/edit", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
       const { id, title, tags, suggestedNamespaces, note } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: "Missing required field: id" });
       }
 
-      const item = await curationStore.editItem(tenantId, id, {
+      const item = await curationStore.editItem(id, {
         title,
         tags,
         suggestedNamespaces,
@@ -111,7 +106,6 @@ export function registerCurationRoutes(app: Express) {
    */
   app.post("/api/curation/approve", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
       const { id, reviewedBy } = req.body;
 
       if (!id || !reviewedBy) {
@@ -119,20 +113,17 @@ export function registerCurationRoutes(app: Express) {
       }
 
       const { item, publishedId } = await curationStore.approveAndPublish(
-        tenantId,
         id,
         reviewedBy
       );
 
       // Emitir eventos para indexador
       await publishEvent("DOC_UPDATED", {
-        tenantId,
         docId: publishedId,
         namespaces: item.suggestedNamespaces,
       });
 
       await publishEvent("AGENT_NAMESPACES_CHANGED", {
-        tenantId,
         namespaces: item.suggestedNamespaces,
       });
 
@@ -148,14 +139,13 @@ export function registerCurationRoutes(app: Express) {
    */
   app.post("/api/curation/reject", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
       const { id, reviewedBy, note } = req.body;
 
       if (!id || !reviewedBy) {
         return res.status(400).json({ error: "Missing required fields: id, reviewedBy" });
       }
 
-      const item = await curationStore.reject(tenantId, id, reviewedBy, note);
+      const item = await curationStore.reject(id, reviewedBy, note);
 
       if (!item) {
         return res.status(404).json({ error: "Item not found or already processed" });
@@ -163,7 +153,6 @@ export function registerCurationRoutes(app: Express) {
 
       // Emitir evento de deleção
       await publishEvent("DOC_DELETED", {
-        tenantId,
         docId: item.id,
       });
 
@@ -173,10 +162,7 @@ export function registerCurationRoutes(app: Express) {
         
         // Busca TODAS as imagens em documentos APROVADOS (status='indexed')
         const approvedDocs = await db.query.documents.findMany({
-          where: (doc, { eq, and }) => and(
-            eq(doc.tenantId, tenantId),
-            eq(doc.status, 'indexed')
-          )
+          where: (doc, { eq }) => eq(doc.status, 'indexed')
         });
         
         const usedImages = approvedDocs
@@ -202,7 +188,6 @@ export function registerCurationRoutes(app: Express) {
    */
   app.post("/api/curation/bulk-approve", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
       const { ids, reviewedBy } = req.body;
 
       if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -222,19 +207,16 @@ export function registerCurationRoutes(app: Express) {
       for (const id of ids) {
         try {
           const { item, publishedId } = await curationStore.approveAndPublish(
-            tenantId,
             id,
             reviewedBy
           );
 
           await publishEvent("DOC_UPDATED", {
-            tenantId,
             docId: publishedId,
             namespaces: item.suggestedNamespaces,
           });
 
           await publishEvent("AGENT_NAMESPACES_CHANGED", {
-            tenantId,
             namespaces: item.suggestedNamespaces,
           });
 
@@ -257,14 +239,13 @@ export function registerCurationRoutes(app: Express) {
    */
   app.post("/api/curation/approve-all", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
       const { reviewedBy } = req.body;
 
       if (!reviewedBy) {
         return res.status(400).json({ error: "Missing required field: reviewedBy" });
       }
 
-      const pending = await curationStore.listPending(tenantId);
+      const pending = await curationStore.listPending();
       const results = {
         approved: 0,
         failed: 0,
@@ -274,19 +255,16 @@ export function registerCurationRoutes(app: Express) {
       for (const item of pending) {
         try {
           const { item: approvedItem, publishedId } = await curationStore.approveAndPublish(
-            tenantId,
             item.id,
             reviewedBy
           );
 
           await publishEvent("DOC_UPDATED", {
-            tenantId,
             docId: publishedId,
             namespaces: approvedItem.suggestedNamespaces,
           });
 
           await publishEvent("AGENT_NAMESPACES_CHANGED", {
-            tenantId,
             namespaces: approvedItem.suggestedNamespaces,
           });
 
@@ -309,7 +287,6 @@ export function registerCurationRoutes(app: Express) {
    */
   app.post("/api/curation/bulk-reject", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
       const { ids, reviewedBy, note } = req.body;
 
       if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -328,11 +305,10 @@ export function registerCurationRoutes(app: Express) {
 
       for (const id of ids) {
         try {
-          const item = await curationStore.reject(tenantId, id, reviewedBy, note);
+          const item = await curationStore.reject(id, reviewedBy, note);
           
           if (item) {
             await publishEvent("DOC_DELETED", {
-              tenantId,
               docId: item.id,
             });
             results.rejected++;
@@ -351,10 +327,7 @@ export function registerCurationRoutes(app: Express) {
         const imageProcessor = new ImageProcessor();
         
         const approvedDocs = await db.query.documents.findMany({
-          where: (doc, { eq, and }) => and(
-            eq(doc.tenantId, tenantId),
-            eq(doc.status, 'indexed')
-          )
+          where: (doc, { eq }) => eq(doc.status, 'indexed')
         });
         
         const usedImages = approvedDocs
@@ -380,14 +353,13 @@ export function registerCurationRoutes(app: Express) {
    */
   app.post("/api/curation/reject-all", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
       const { reviewedBy, note } = req.body;
 
       if (!reviewedBy) {
         return res.status(400).json({ error: "Missing required field: reviewedBy" });
       }
 
-      const pending = await curationStore.listPending(tenantId);
+      const pending = await curationStore.listPending();
       const results = {
         rejected: 0,
         failed: 0,
@@ -396,11 +368,10 @@ export function registerCurationRoutes(app: Express) {
 
       for (const item of pending) {
         try {
-          const rejectedItem = await curationStore.reject(tenantId, item.id, reviewedBy, note);
+          const rejectedItem = await curationStore.reject(item.id, reviewedBy, note);
           
           if (rejectedItem) {
             await publishEvent("DOC_DELETED", {
-              tenantId,
               docId: rejectedItem.id,
             });
             results.rejected++;
@@ -419,10 +390,7 @@ export function registerCurationRoutes(app: Express) {
         const imageProcessor = new ImageProcessor();
         
         const approvedDocs = await db.query.documents.findMany({
-          where: (doc, { eq, and }) => and(
-            eq(doc.tenantId, tenantId),
-            eq(doc.status, 'indexed')
-          )
+          where: (doc, { eq }) => eq(doc.status, 'indexed')
         });
         
         const usedImages = approvedDocs
@@ -448,11 +416,10 @@ export function registerCurationRoutes(app: Express) {
    */
   app.get("/api/curation/history", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
       const status = req.query.status as "approved" | "rejected" | undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 
-      const items = await curationStore.listHistory(tenantId, { status, limit });
+      const items = await curationStore.listHistory({ status, limit });
       res.json(items);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -465,8 +432,7 @@ export function registerCurationRoutes(app: Express) {
    */
   app.delete("/api/curation/:id", async (req, res) => {
     try {
-      const tenantId = parseInt(req.headers["x-tenant-id"] as string || "1", 10);
-      const success = await curationStore.remove(tenantId, req.params.id);
+      const success = await curationStore.remove(req.params.id);
 
       if (!success) {
         return res.status(404).json({ error: "Item not found" });

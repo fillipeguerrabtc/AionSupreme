@@ -75,7 +75,6 @@ export function smartChunk(
 
 export async function indexDocumentComplete(
   documentId: number,
-  tenantId: number,
   content: string,
   options: ChunkOptions = {}
 ): Promise<number> {
@@ -107,7 +106,6 @@ export async function indexDocumentComplete(
       // Save to database
       await db.insert(embeddings).values({
         documentId,
-        tenantId,
         chunkIndex: i,
         chunkText: chunk,
         chunkTokens: tokenCount,
@@ -136,12 +134,11 @@ export async function indexDocumentComplete(
 // BATCH INDEXING
 // ============================================================================
 
-export async function reindexAllDocuments(tenantId: number): Promise<number> {
+export async function reindexAllDocuments(): Promise<number> {
   console.log('[Indexer] Starting full reindexing...');
 
   const docs = await db.select()
-    .from(documents)
-    .where(eq(documents.tenantId, tenantId));
+    .from(documents);
 
   console.log(`[Indexer] Found ${docs.length} documents`);
 
@@ -149,7 +146,7 @@ export async function reindexAllDocuments(tenantId: number): Promise<number> {
 
   for (const doc of docs) {
     try {
-      const chunks = await indexDocumentComplete(doc.id, doc.tenantId, doc.content);
+      const chunks = await indexDocumentComplete(doc.id, doc.content);
       totalChunks += chunks;
     } catch (error: any) {
       console.error(`[Indexer] Failed to reindex document ${doc.id}:`, error.message);

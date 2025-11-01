@@ -25,7 +25,6 @@ export class EnforcementPipeline {
     // Return DEFAULT UNRESTRICTED policy (all rules = false, no censorship)
     return {
       id: 0, // Virtual policy, not stored
-      tenantId: 1,
       policyName: "DEFAULT_UNRESTRICTED",
       rules: {
         hate_speech: false,
@@ -266,14 +265,14 @@ Note: If you cannot fulfill a request due to external limitations, the system wi
     return prompt;
   }
 
-  async moderateOutput(content: string, policy: Policy, tenantId: number): Promise<string> {
+  async moderateOutput(content: string, policy: Policy): Promise<string> {
     const activeRules = Object.entries(policy.rules).filter(([_, active]) => active);
     
     // If no rules active, return content as-is (system born free)
     if (activeRules.length === 0) return content;
     
     // Check for violations
-    const hasViolation = await this.checkViolations(content, activeRules, tenantId);
+    const hasViolation = await this.checkViolations(content, activeRules);
     
     if (!hasViolation) return content;
     
@@ -283,19 +282,18 @@ Note: If you cannot fulfill a request due to external limitations, the system wi
     } else if (policy.onBlock === "redact") {
       return "[Content redacted]";
     } else if (policy.onBlock === "rewrite") {
-      return await this.rewriteContent(content, tenantId);
+      return await this.rewriteContent(content);
     }
     
     return content;
   }
 
-  private async checkViolations(content: string, rules: [string, boolean][], tenantId: number): Promise<boolean> {
+  private async checkViolations(content: string, rules: [string, boolean][]): Promise<boolean> {
     const ruleNames = rules.map(([name]) => name).join(", ");
     const prompt = `Check if the following content violates any of these rules: ${ruleNames}\n\nContent: ${content}\n\nRespond with only YES or NO:`;
     
     const result = await llmClient.chatCompletion({
       messages: [{ role: "user", content: prompt }],
-      tenantId,
       model: "gpt-3.5-turbo",
       temperature: 0,
       maxTokens: 5,
@@ -304,22 +302,20 @@ Note: If you cannot fulfill a request due to external limitations, the system wi
     return result.content.trim().toUpperCase() === "YES";
   }
 
-  private async rewriteContent(content: string, tenantId: number): Promise<string> {
+  private async rewriteContent(content: string): Promise<string> {
     const prompt = `Rewrite the following content to be appropriate and policy-compliant:\n\n${content}`;
     const result = await llmClient.chatCompletion({
       messages: [{ role: "user", content: prompt }],
-      tenantId,
       model: "gpt-3.5-turbo",
       temperature: 0.7,
     });
     return result.content;
   }
 
-  async createAuditLog(tenantId: number, eventType: string, data: Record<string, any>, policy?: Policy): Promise<void> {
+  async createAuditLog(eventType: string, data: Record<string, any>, policy?: Policy): Promise<void> {
     const dataHash = crypto.createHash("sha256").update(JSON.stringify(data)).digest("hex");
     
     await storage.createAuditLog({
-      tenantId,
       eventType,
       data,
       dataHash,

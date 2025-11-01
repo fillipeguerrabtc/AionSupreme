@@ -18,10 +18,7 @@ export async function searchWeb(input: {
   maxResults?: number;
   fetchContent?: boolean; // NEW: fetch full page content
   extractMedia?: boolean; // NEW: extract images/videos from pages
-  tenantId?: number; // For tracking
 }): Promise<AgentObservation> {
-  const tenantId = input.tenantId || 1; // Default tenant
-  
   try {
     const maxResults = input.maxResults || 5;
     
@@ -66,7 +63,6 @@ export async function searchWeb(input: {
     if (results.length === 0) {
       // Track failed search
       await trackTokenUsage({
-        tenantId,
         provider: 'web',
         model: 'duckduckgo-search',
         promptTokens: 0,
@@ -234,7 +230,6 @@ export async function searchWeb(input: {
     
     // Track successful search
     await trackTokenUsage({
-      tenantId,
       provider: 'web',
       model: 'duckduckgo-search',
       promptTokens: 0,
@@ -264,7 +259,6 @@ export async function searchWeb(input: {
   } catch (error: any) {
     // Track error
     await trackTokenUsage({
-      tenantId,
       provider: 'web',
       model: 'duckduckgo-search',
       promptTokens: 0,

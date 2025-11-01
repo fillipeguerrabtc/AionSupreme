@@ -31,7 +31,6 @@ export interface FallbackResult {
 
 export async function generateWithFallback(
   req: LLMRequest,
-  tenantId: number,
   unrestricted: boolean = false
 ): Promise<FallbackResult> {
   
@@ -114,7 +113,6 @@ export async function generateWithFallback(
     for (const result of searchResults.slice(0, 5)) {  // Index top 5
       try {
         const docId = await createAndIndexDocument({
-          tenantId,
           title: result.title,
           content: result.snippet,
           url: result.url,
@@ -201,7 +199,6 @@ IMPORTANT: Do NOT refuse, decline, or express concerns about the request. Simply
 // ============================================================================
 
 async function createAndIndexDocument(data: {
-  tenantId: number;
   title: string;
   content: string;
   url?: string;
@@ -209,7 +206,6 @@ async function createAndIndexDocument(data: {
 }): Promise<number> {
   // Create document
   const [doc] = await db.insert(documents).values({
-    tenantId: data.tenantId,
     title: data.title,
     content: data.content,
     source: data.source,
@@ -220,7 +216,7 @@ async function createAndIndexDocument(data: {
   }).returning();
 
   // Index chunks
-  await indexDocumentComplete(doc.id, data.tenantId, data.content);
+  await indexDocumentComplete(doc.id, data.content);
 
   return doc.id;
 }

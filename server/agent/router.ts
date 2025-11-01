@@ -44,7 +44,7 @@ function topP(choices: RouterChoice[], p=0.9, maxFanOut=2): RouterChoice[] {
  * LLM-based intent classification and agent scoring
  * Uses Groq (free, fast) to analyze query and match with agent capabilities
  */
-async function classifyAndScore(query: string, agents: Agent[], tenantId: number): Promise<RouterChoice[]> {
+async function classifyAndScore(query: string, agents: Agent[]): Promise<RouterChoice[]> {
   try {
     // Build agent descriptions for LLM
     const agentDescriptions = agents.map((agent, idx) => {
@@ -157,11 +157,11 @@ function fallbackScoring(query: string, agents: Agent[]): RouterChoice[] {
 /**
  * Main routing function - selects best agents for a query using MoE strategy
  */
-export async function route(query: string, tenantId: number, budgetUSD: number = 1.0): Promise<RouterChoice[]> {
+export async function route(query: string, budgetUSD: number = 1.0): Promise<RouterChoice[]> {
   console.log(`[Router] Routing query: "${query.substring(0, 80)}..." (budget: $${budgetUSD})`);
   
   // Load available agents
-  const pool = await loadAgents(tenantId);
+  const pool = await loadAgents();
   
   if (pool.length === 0) {
     console.warn("[Router] No agents available for routing");
@@ -169,7 +169,7 @@ export async function route(query: string, tenantId: number, budgetUSD: number =
   }
   
   // Classify and score using LLM
-  const scored = await classifyAndScore(query, pool, tenantId);
+  const scored = await classifyAndScore(query, pool);
   
   // Filter agents within budget (basic check)
   const affordable = scored.filter(choice => {

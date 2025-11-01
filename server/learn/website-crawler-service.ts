@@ -10,7 +10,6 @@ import { curationQueue } from "@shared/schema";
 
 export interface CrawlRequest {
   url: string;
-  tenantId: number;
   namespace?: string;
   maxDepth?: number;
   maxPages?: number;
@@ -56,7 +55,7 @@ export class WebsiteCrawlerService {
     if (request.consolidatePages) {
       // MODO CONSOLIDADO: Cria um único item com todo o conteúdo
       try {
-        await this.sendConsolidatedToCuration(pages, request.tenantId, request.namespace, request.url);
+        await this.sendConsolidatedToCuration(pages, request.namespace, request.url);
         curationItemsCreated = 1;
         console.log(`[WebsiteCrawler] 📦 Site completo consolidado em 1 item de curadoria`);
       } catch (error: any) {
@@ -66,7 +65,7 @@ export class WebsiteCrawlerService {
       // MODO SEPARADO: Uma página = um item de curadoria
       for (const page of pages) {
         try {
-          await this.sendToCurationQueue(page, request.tenantId, request.namespace);
+          await this.sendToCurationQueue(page, request.namespace);
           curationItemsCreated++;
         } catch (error: any) {
           console.error(`[WebsiteCrawler] ❌ Erro ao enviar página ${page.url} para curadoria:`, error.message);
@@ -94,7 +93,6 @@ export class WebsiteCrawlerService {
    */
   private async sendToCurationQueue(
     page: CrawledPage, 
-    tenantId: number,
     namespace?: string
   ): Promise<void> {
     
@@ -140,7 +138,6 @@ export class WebsiteCrawlerService {
 
     // Insere na curation queue COM ATTACHMENTS
     await db.insert(curationQueue).values({
-      tenantId,
       title: page.title || 'Sem título',
       content: fullContent,
       suggestedNamespaces,
@@ -158,7 +155,6 @@ export class WebsiteCrawlerService {
    */
   private async sendConsolidatedToCuration(
     pages: CrawledPage[],
-    tenantId: number,
     namespace?: string,
     baseUrl?: string
   ): Promise<void> {
@@ -230,7 +226,6 @@ export class WebsiteCrawlerService {
 
     // Insere na curation queue COM ATTACHMENTS
     await db.insert(curationQueue).values({
-      tenantId,
       title: `${siteTitle} - ${siteDomain} (${pages.length} páginas)`,
       content: consolidatedContent,
       suggestedNamespaces,

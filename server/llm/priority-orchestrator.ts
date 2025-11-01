@@ -44,7 +44,6 @@ export type WebSearchMetadata = z.infer<typeof WebSearchMetadataSchema>;
 
 export interface PriorityRequest {
   messages: Array<{ role: string; content: string }>;
-  tenantId: number;
   temperature?: number;
   topP?: number;
   maxTokens?: number;
@@ -234,7 +233,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       console.log('   🔍 Executing WEB SEARCH as requested (NO API CONSUMPTION)...');
       try {
         // First check KB for existing knowledge (fast & free)
-        const kbResult = await searchWithConfidence(userMessage, req.tenantId, { limit: 3 });
+        const kbResult = await searchWithConfidence(userMessage, { limit: 3 });
         
         if (kbResult.confidence >= 0.7 && kbResult.topResults.length > 0) {
           console.log('   ✅ Found in Knowledge Base! Using KB results instead...');
@@ -268,10 +267,9 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
         }
         
         // KB didn't have it - go to Web WITHOUT using APIs
-        const webFallback = await executeWebFallback(userMessage, req.tenantId, true); // skipLLM=true
+        const webFallback = await executeWebFallback(userMessage, true); // skipLLM=true
         
         await trackWebSearch(
-          req.tenantId,
           'web',
           webFallback.model,
           webFallback.searchMetadata
@@ -308,7 +306,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       console.log('   🕵️ Executing DEEPWEB SEARCH as requested (NO API CONSUMPTION)...');
       try {
         // First check KB for existing knowledge
-        const kbResult = await searchWithConfidence(userMessage, req.tenantId, { limit: 3 });
+        const kbResult = await searchWithConfidence(userMessage, { limit: 3 });
         
         if (kbResult.confidence >= 0.7 && kbResult.topResults.length > 0) {
           console.log('   ✅ Found in Knowledge Base! Using KB results instead...');
@@ -342,10 +340,9 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
         }
         
         // KB didn't have it - go to DeepWeb
-        const deepwebResult = await executeDeepWebSearch(userMessage, req.tenantId);
+        const deepwebResult = await executeDeepWebSearch(userMessage);
         
         await trackWebSearch(
-          req.tenantId,
           'deepweb',
           deepwebResult.model,
           deepwebResult.searchMetadata
@@ -381,10 +378,9 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
     if (req.forcedSource === 'kb') {
       console.log('   📚 Searching KNOWLEDGE BASE as requested...');
       try {
-        const kbResult = await searchWithConfidence(userMessage, req.tenantId, { limit: 5 });
+        const kbResult = await searchWithConfidence(userMessage, { limit: 5 });
         
         await trackTokenUsage({
-          tenantId: req.tenantId,
           provider: 'kb',
           model: 'rag-mmr',
           promptTokens: 0,
@@ -490,7 +486,7 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   console.log('\n📚 [STEP 1/5] Searching KNOWLEDGE BASE (RAG)...');
   
   try {
-    const kbResult = await searchWithConfidence(userMessage, req.tenantId, {
+    const kbResult = await searchWithConfidence(userMessage, {
       limit: 5
       // Note: threshold τ = 0.6 is hardcoded in searchWithConfidence
     });
@@ -512,7 +508,6 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       
       // Track KB usage (no tokens, just request count)
       await trackTokenUsage({
-        tenantId: req.tenantId,
         provider: 'kb',
         model: 'rag-mmr',
         promptTokens: 0,
@@ -539,7 +534,6 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
     
     // Track KB search attempt (failed due to low confidence)
     await trackTokenUsage({
-      tenantId: req.tenantId,
       provider: 'kb',
       model: 'rag-mmr',
       promptTokens: 0,
@@ -561,10 +555,9 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       console.log('   🔍 Time-sensitive query detected → Triggering WEB SEARCH...');
       
       try {
-        const webFallback = await executeWebFallback(userMessage, req.tenantId);
+        const webFallback = await executeWebFallback(userMessage);
         
         await trackWebSearch(
-          req.tenantId,
           'web',
           webFallback.model,
           webFallback.searchMetadata
@@ -597,7 +590,6 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
     
     // Track KB search failure
     await trackTokenUsage({
-      tenantId: req.tenantId,
       provider: 'kb',
       model: 'rag-mmr',
       promptTokens: 0,
@@ -649,7 +641,6 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
         
         // Track GPU usage (FREE, no cost)
         await trackTokenUsage({
-          tenantId: req.tenantId,
           provider: 'gpu-pool' as any,
           model: 'custom-lora',
           promptTokens: 0,
@@ -684,7 +675,6 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
         
         // Track failed GPU attempt
         await trackTokenUsage({
-          tenantId: req.tenantId,
           provider: 'gpu-pool' as any,
           model: 'custom-lora',
           promptTokens: 0,
@@ -696,11 +686,10 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
         });
         
         // Execute automatic web fallback
-        const webFallback = await executeWebFallback(userMessage, req.tenantId);
+        const webFallback = await executeWebFallback(userMessage);
         
         // Track web fallback usage
         await trackWebSearch(
-          req.tenantId,
           'web',
           webFallback.model,
           webFallback.searchMetadata
@@ -762,7 +751,6 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       
       // Track free API usage
       await trackTokenUsage({
-        tenantId: req.tenantId,
         provider: freeResponse.provider as any,
         model: freeResponse.model,
         promptTokens: 0,
@@ -794,7 +782,6 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       
       // Track failed free API attempt
       await trackTokenUsage({
-        tenantId: req.tenantId,
         provider: freeResponse.provider as any,
         model: freeResponse.model,
         promptTokens: 0,
@@ -806,11 +793,10 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
       });
       
       // Execute automatic web fallback
-      const webFallback = await executeWebFallback(userMessage, req.tenantId);
+      const webFallback = await executeWebFallback(userMessage);
       
       // Track web fallback usage with validated metadata
       await trackWebSearch(
-        req.tenantId,
         'web',
         webFallback.model,
         webFallback.searchMetadata
@@ -877,7 +863,6 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
     
     // Track OpenAI usage
     await trackTokenUsage({
-      tenantId: req.tenantId,
       provider: 'openai',
       model: 'gpt-4o-mini',
       promptTokens: openaiResponse.usage?.prompt_tokens || 0,
@@ -905,7 +890,6 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   
   // Track failed OpenAI attempt
   await trackTokenUsage({
-    tenantId: req.tenantId,
     provider: 'openai',
     model: 'gpt-4o-mini',
     promptTokens: openaiResponse.usage?.prompt_tokens || 0,
@@ -918,11 +902,10 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   if (req.unrestricted) {
     console.log('   🚀 UNRESTRICTED mode = ON → Activating WEB FALLBACK...');
     
-    const webFallback = await executeWebFallback(userMessage, req.tenantId);
+    const webFallback = await executeWebFallback(userMessage);
     
     // Track web fallback usage with validated metadata
     await trackWebSearch(
-      req.tenantId,
       'web',
       webFallback.model,
       webFallback.searchMetadata
@@ -1022,7 +1005,6 @@ interface WebFallbackResult {
 
 // Helper function to validate and track web searches safely
 async function trackWebSearch(
-  tenantId: number,
   provider: 'web' | 'deepweb',
   model: string,
   metadata: unknown
@@ -1033,7 +1015,6 @@ async function trackWebSearch(
     
     // Track with validated metadata
     await trackTokenUsage({
-      tenantId,
       provider,
       model,
       promptTokens: 0,
@@ -1048,7 +1029,6 @@ async function trackWebSearch(
     console.error('[Priority Orchestrator] Failed to validate/track web search metadata:', error);
     // Fallback: track without metadata to avoid losing the search count
     await trackTokenUsage({
-      tenantId,
       provider,
       model,
       promptTokens: 0,
@@ -1062,8 +1042,7 @@ async function trackWebSearch(
 }
 
 async function executeDeepWebSearch(
-  query: string,
-  tenantId: number
+  query: string
 ): Promise<WebFallbackResult> {
   console.log('   🕵️ Searching DeepWeb/Tor for information...');
   
@@ -1116,11 +1095,10 @@ async function executeDeepWebSearch(
         content: result.snippet || '',
         source: 'automatic-deepweb-fallback',
         status: 'indexed',
-        tenantId,
         metadata: { url: result.url, deepweb: true, isTorSite: result.isTorSite }
       }).returning();
       
-      await indexDocumentComplete(doc.id, tenantId, result.snippet || '');
+      await indexDocumentComplete(doc.id, result.snippet || '');
       indexed++;
     } catch (error: any) {
       console.error(`   ✗ Failed to index DeepWeb result:`, error.message);
@@ -1159,7 +1137,6 @@ async function executeDeepWebSearch(
 
 async function executeWebFallback(
   query: string,
-  tenantId: number,
   skipLLM: boolean = false  // When true, skip API calls and return raw summary
 ): Promise<WebFallbackResult> {
   console.log('   🔍 Searching web for information...');
@@ -1190,7 +1167,6 @@ async function executeWebFallback(
   for (const result of searchResults.slice(0, 5)) {
     try {
       const [doc] = await db.insert(documents).values({
-        tenantId,
         title: result.title,
         content: result.snippet,
         source: 'automatic-web-fallback',
@@ -1200,7 +1176,7 @@ async function executeWebFallback(
         updatedAt: sql`NOW()`
       }).returning();
       
-      await indexDocumentComplete(doc.id, tenantId, result.snippet);
+      await indexDocumentComplete(doc.id, result.snippet);
       indexed++;
     } catch (error: any) {
       console.error(`   ✗ Failed to index ${result.url}:`, error.message);

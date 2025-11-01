@@ -37,7 +37,7 @@ export class HierarchicalPlanner {
    * Decompose complex goal into sub-goals
    * Uses LLM to analyze goal and create hierarchical plan
    */
-  async decomposeGoal(goal: string, tenantId: number): Promise<HierarchicalPlan> {
+  async decomposeGoal(goal: string): Promise<HierarchicalPlan> {
     const prompt = `You are a hierarchical planning AI. Break down the following complex goal into smaller, manageable sub-goals.
 
 Goal: ${goal}
@@ -65,7 +65,6 @@ Respond with ONLY the JSON object, no explanation.`;
 
     const response = await llmClient.chatCompletion({
       messages: [{ role: "user", content: prompt }],
-      tenantId,
       model: "gpt-4",
       temperature: 0.3,
       maxTokens: 1000,
@@ -101,7 +100,6 @@ Respond with ONLY the JSON object, no explanation.`;
    */
   async executePlan(
     plan: HierarchicalPlan,
-    tenantId: number,
     conversationId: number,
     messageId: number,
     tools: Map<string, AgentTool>
@@ -133,17 +131,15 @@ Respond with ONLY the JSON object, no explanation.`;
       // Execute sub-goal using ReAct engine
       const result = await reactEngine.execute(
         subGoal.description,
-        tenantId,
         conversationId,
         messageId,
-        tools,
-        { maxSteps: Math.ceil(plan.estimatedSteps / plan.subGoals.length) }
+        tools
       );
 
       results.push({
         subGoalId: subGoal.id,
         success: result.success,
-        result: result.answer,
+        result: result.finalAnswer || "",
         stepsUsed: result.steps.length,
       });
 
@@ -153,7 +149,7 @@ Respond with ONLY the JSON object, no explanation.`;
     }
 
     // Aggregate results with meta-policy
-    const finalAnswer = await this.aggregateResults(plan.mainGoal, results, tenantId);
+    const finalAnswer = await this.aggregateResults(plan.mainGoal, results);
 
     return {
       success: results.every((r) => r.success),
@@ -205,8 +201,7 @@ Respond with ONLY the JSON object, no explanation.`;
    */
   private async aggregateResults(
     mainGoal: string,
-    results: SubGoalResult[],
-    tenantId: number
+    results: SubGoalResult[]
   ): Promise<string> {
     const successfulResults = results.filter((r) => r.success);
     
@@ -231,7 +226,6 @@ Provide a comprehensive final answer that addresses the main goal:`;
 
     const response = await llmClient.chatCompletion({
       messages: [{ role: "user", content: prompt }],
-      tenantId,
       model: "gpt-4",
       temperature: 0.5,
       maxTokens: 1000,

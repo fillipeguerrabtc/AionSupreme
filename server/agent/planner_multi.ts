@@ -9,7 +9,7 @@ function fuse(outputs: any[]) {
 }
 
 export async function planAndExecute(input: any, ctx: any) {
-  const choices = await route(input.query, ctx.tenantId, ctx.budgetUSD);
+  const choices = await route(input.query, ctx.budgetUSD);
   const results = [];
   for (const c of choices) {
     const agent = await getAgentById(c.agentId);

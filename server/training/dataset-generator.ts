@@ -45,7 +45,7 @@ export class DatasetGenerator {
   /**
    * Gera dataset automaticamente a partir de conversas + KB
    */
-  async generateAutoDataset(tenantId: number): Promise<GeneratedDataset | null> {
+  async generateAutoDataset(): Promise<GeneratedDataset | null> {
     if (!this.enabled) {
       console.log("[DatasetGen] Desabilitado - pulando geração");
       return null;
@@ -55,11 +55,11 @@ export class DatasetGenerator {
 
     try {
       // STEP 1: Coletar conversas de alta qualidade
-      const conversationExamples = await this.collectFromConversations(tenantId);
+      const conversationExamples = await this.collectFromConversations();
       console.log(`   ✓ Coletadas ${conversationExamples.length} exemplos de conversas`);
 
       // STEP 2: Coletar documentos da Knowledge Base
-      const kbExamples = await this.collectFromKnowledgeBase(tenantId);
+      const kbExamples = await this.collectFromKnowledgeBase();
       console.log(`   ✓ Coletados ${kbExamples.length} exemplos da KB`);
 
       // STEP 3: Combinar tudo
@@ -84,7 +84,6 @@ export class DatasetGenerator {
 
       // STEP 6: Registrar no banco
       const [dataset] = await db.insert(datasets).values({
-        tenantId,
         userId: null,
         name: `Auto-generated Dataset ${new Date().toISOString()}`,
         description: `Dataset gerado automaticamente com ${allExamples.length} exemplos`,
@@ -119,11 +118,10 @@ export class DatasetGenerator {
   /**
    * Coleta exemplos de conversas de alta qualidade
    */
-  private async collectFromConversations(tenantId: number): Promise<FormattedTrainingExample[]> {
+  private async collectFromConversations(): Promise<FormattedTrainingExample[]> {
     try {
       // Buscar conversas recentes com mensagens
       const recentConversations = await db.query.conversations.findMany({
-        where: eq(conversations.tenantId, tenantId),
         orderBy: [desc(conversations.updatedAt)],
         limit: 100, // Últimas 100 conversas
       });
@@ -158,14 +156,11 @@ export class DatasetGenerator {
    * Coleta exemplos da Knowledge Base
    * Transforma documentos em pares pergunta-resposta sintéticos
    */
-  private async collectFromKnowledgeBase(tenantId: number): Promise<FormattedTrainingExample[]> {
+  private async collectFromKnowledgeBase(): Promise<FormattedTrainingExample[]> {
     try {
       // Buscar documentos auto-indexados (recentes)
       const docs = await db.query.documents.findMany({
-        where: and(
-          eq(documents.tenantId, tenantId),
-          eq(documents.status, "indexed")
-        ),
+        where: eq(documents.status, "indexed"),
         orderBy: [desc(documents.createdAt)],
         limit: 200, // Últimos 200 docs
       });
@@ -257,7 +252,7 @@ export class DatasetGenerator {
   /**
    * Verifica se há exemplos suficientes para gerar dataset
    */
-  async checkPendingExamples(tenantId: number): Promise<number> {
+  async checkPendingExamples(): Promise<number> {
     try {
       // Contar training examples aprovados que não foram usados ainda
       const { trainingDataCollection } = await import("../../shared/schema");
@@ -269,7 +264,6 @@ export class DatasetGenerator {
         .from(trainingDataCollection)
         .where(
           and(
-            eq(trainingDataCollection.tenantId, tenantId),
             eq(trainingDataCollection.status, 'approved'), // ONLY approved!
             sql`${trainingDataCollection.datasetId} IS NULL` // Não foi usado em dataset ainda
           )
@@ -289,11 +283,10 @@ export class DatasetGenerator {
   /**
    * Obtém estatísticas do gerador
    */
-  async getStats(tenantId: number): Promise<DatasetStats> {
+  async getStats(): Promise<DatasetStats> {
     try {
       // Total de datasets gerados
       const allDatasets = await db.query.datasets.findMany({
-        where: eq(datasets.tenantId, tenantId),
         orderBy: [desc(datasets.createdAt)],
       });
 
@@ -301,7 +294,7 @@ export class DatasetGenerator {
       const lastDataset = allDatasets[0];
 
       // Contar exemplos pendentes
-      const pendingExamples = await this.checkPendingExamples(tenantId);
+      const pendingExamples = await this.checkPendingExamples();
 
       // Somar exemplos por fonte
       let fromConversations = 0;

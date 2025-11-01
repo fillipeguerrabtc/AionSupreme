@@ -719,7 +719,7 @@ export function registerRoutes(app: Express): Server {
       
       // Re-index document
       if (content) {
-        await knowledgeIndexer.reIndexDocument(docId, content, updated.tenantId);
+        await knowledgeIndexer.reIndexDocument(docId, content);
       }
 
       res.json(updated);
@@ -762,7 +762,6 @@ export function registerRoutes(app: Express): Server {
       
       const result = await websiteCrawlerService.crawlWebsite({
         url,
-        tenantId: tenant_id,
         namespace,
         maxDepth,
         maxPages,
@@ -799,7 +798,6 @@ export function registerRoutes(app: Express): Server {
       
       const result = await websiteCrawlerService.crawlWebsite({
         url,
-        tenantId: tenant_id || 1,
         namespace: namespace || 'kb/web',
         maxDepth: maxDepth || 5,  // Default: 5 níveis de profundidade
         maxPages: maxPages || 100, // Default: 100 páginas
@@ -1326,7 +1324,6 @@ export function registerRoutes(app: Express): Server {
         
         // Create video asset
         const asset = await storage.createVideoAsset({
-          tenantId: job.tenantId,
           jobId: job.id,
           filename,
           mimeType: "video/mp4",
@@ -3078,10 +3075,10 @@ export function registerRoutes(app: Express): Server {
   // POST /api/rag/search - Semantic search with MMR
   app.post("/api/rag/search", async (req, res) => {
     try {
-      const { query, tenantId, options } = req.body;
+      const { query, options } = req.body;
       const { mmrSearch } = await import("./ai/rag-service");
       
-      const results = await mmrSearch(query, tenantId || 1, options);
+      const results = await mmrSearch(query, options);
       res.json({ results });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3091,10 +3088,10 @@ export function registerRoutes(app: Express): Server {
   // POST /api/rag/search-with-confidence - Search with confidence scoring
   app.post("/api/rag/search-with-confidence", async (req, res) => {
     try {
-      const { query, tenantId, options } = req.body;
+      const { query, options } = req.body;
       const { searchWithConfidence } = await import("./ai/rag-service");
       
-      const result = await searchWithConfidence(query, tenantId || 1, options);
+      const result = await searchWithConfidence(query, options);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3104,10 +3101,10 @@ export function registerRoutes(app: Express): Server {
   // POST /api/rag/index-document - Index document with smart chunking
   app.post("/api/rag/index-document", async (req, res) => {
     try {
-      const { documentId, tenantId, content, options } = req.body;
+      const { documentId, content, options } = req.body;
       const { indexDocumentComplete } = await import("./ai/knowledge-indexer");
       
-      const chunks = await indexDocumentComplete(documentId, tenantId, content, options);
+      const chunks = await indexDocumentComplete(documentId, content, options);
       res.json({ success: true, chunks });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3121,9 +3118,9 @@ export function registerRoutes(app: Express): Server {
   // POST /api/training/collect - Collect training data from conversations
   app.post("/api/training/collect", async (req, res) => {
     try {
-      const { tenantId, options } = req.body;
+      const { options } = req.body;
       
-      const examples = await trainingDataCollector.collectTrainingData(tenantId, options);
+      const examples = await trainingDataCollector.collectTrainingData(options);
       res.json({ examples: examples.length, data: examples });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3133,9 +3130,9 @@ export function registerRoutes(app: Express): Server {
   // POST /api/training/export - Export training data to JSONL
   app.post("/api/training/export", async (req, res) => {
     try {
-      const { tenantId, options } = req.body;
+      const { options } = req.body;
       
-      const result = await trainingDataCollector.prepareDataset(tenantId, options);
+      const result = await trainingDataCollector.prepareDataset(options);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

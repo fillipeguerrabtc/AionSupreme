@@ -42,13 +42,13 @@ export class QuotaManager {
    * Get quota status for all workers
    * CRITICAL: Different logic for Colab (session-based) vs Kaggle (weekly)
    */
-  async getAllWorkerQuotas(tenantId: number): Promise<WorkerQuota[]> {
+  async getAllWorkerQuotas(): Promise<WorkerQuota[]> {
     const workers = await db
       .select()
       .from(gpuWorkers);
     
-    // Filter by tenantId if exists (old workers might not have it)
-    const tenantWorkers = workers.filter(w => !w.tenantId || w.tenantId === tenantId);
+    // Get all workers (single-tenant system)
+    const tenantWorkers = workers;
 
     const quotas: WorkerQuota[] = [];
 
@@ -122,8 +122,8 @@ export class QuotaManager {
    * Select next available worker using round-robin + quota safety
    * Returns null if no safe workers available
    */
-  async selectNextWorker(tenantId: number): Promise<number | null> {
-    const quotas = await this.getAllWorkerQuotas(tenantId);
+  async selectNextWorker(): Promise<number | null> {
+    const quotas = await this.getAllWorkerQuotas();
     
     // Filter only safe workers (< 70% utilization)
     const safeWorkers = quotas
@@ -204,13 +204,13 @@ export class QuotaManager {
   /**
    * Reset weekly quotas (run every Monday at 00:00 UTC)
    */
-  async resetWeeklyQuotas(tenantId: number): Promise<void> {
+  async resetWeeklyQuotas(): Promise<void> {
     const workers = await db
       .select()
       .from(gpuWorkers);
 
-    // Filter by tenantId if exists
-    const tenantWorkers = workers.filter(w => !w.tenantId || w.tenantId === tenantId);
+    // Get all workers (single-tenant system)
+    const tenantWorkers = workers;
 
     for (const worker of tenantWorkers) {
       const capabilities = (worker.capabilities as any) || {};
@@ -240,7 +240,7 @@ export class QuotaManager {
   /**
    * Get health status of entire GPU pool
    */
-  async getPoolHealth(tenantId: number): Promise<{
+  async getPoolHealth(): Promise<{
     totalWorkers: number;
     safeWorkers: number;
     warningWorkers: number; // 70-90%
@@ -248,7 +248,7 @@ export class QuotaManager {
     totalAvailableHours: number;
     poolUtilization: number;
   }> {
-    const quotas = await this.getAllWorkerQuotas(tenantId);
+    const quotas = await this.getAllWorkerQuotas();
 
     const safeWorkers = quotas.filter(q => q.utilizationPercentage < 0.70).length;
     const warningWorkers = quotas.filter(q => q.utilizationPercentage >= 0.70 && q.utilizationPercentage < 0.90).length;
@@ -300,8 +300,7 @@ export function startQuotaResetCron() {
       console.log("[QuotaManager] 🔄 Monday 00:00 UTC - Resetting weekly quotas...");
       
       try {
-        // Reset for all tenants
-        await quotaManager.resetWeeklyQuotas(1); // Default tenant
+        await quotaManager.resetWeeklyQuotas();
         console.log("[QuotaManager] ✅ Weekly quotas reset successfully");
       } catch (error) {
         console.error("[QuotaManager] ❌ Error resetting quotas:", error);

@@ -8,12 +8,12 @@ import type { Agent } from "./types";
  * Load all enabled agents from database and register them
  * Converts DB records into executable Agent objects with tools, budgets, prompts
  */
-export async function loadAgentsFromDatabase(tenantId: number): Promise<void> {
-  console.log(`[AgentLoader] Loading agents for tenant ${tenantId}...`);
+export async function loadAgentsFromDatabase(): Promise<void> {
+  console.log(`[AgentLoader] Loading agents...`);
   
   try {
     // Fetch all enabled agents
-    const dbAgents = await agentsStorage.listAgents(tenantId);
+    const dbAgents = await agentsStorage.listAgents();
     const enabledAgents = dbAgents.filter(a => a.enabled);
     
     console.log(`[AgentLoader] Found ${enabledAgents.length} enabled agents`);
@@ -29,7 +29,7 @@ export async function loadAgentsFromDatabase(tenantId: number): Promise<void> {
           id: dbAgent.id,
           name: dbAgent.name,
           slug: dbAgent.slug,
-          type: dbAgent.type || "specialist",
+          type: (dbAgent.type || "specialist") as "specialist" | "generalist" | "router-only",
           description: dbAgent.description || undefined,
           systemPrompt: dbAgent.systemPrompt || undefined,
           enabled: dbAgent.enabled,
@@ -65,10 +65,10 @@ export async function loadAgentsFromDatabase(tenantId: number): Promise<void> {
 /**
  * Reload a single agent (useful after updates)
  */
-export async function reloadAgent(agentId: string, tenantId: number): Promise<void> {
+export async function reloadAgent(agentId: string): Promise<void> {
   console.log(`[AgentLoader] Reloading agent ${agentId}...`);
   
-  const dbAgent = await agentsStorage.getAgent(tenantId, agentId);
+  const dbAgent = await agentsStorage.getAgent(agentId);
   if (!dbAgent) {
     console.warn(`[AgentLoader] Agent ${agentId} not found`);
     return;
@@ -90,7 +90,7 @@ export async function reloadAgent(agentId: string, tenantId: number): Promise<vo
     id: dbAgent.id,
     name: dbAgent.name,
     slug: dbAgent.slug,
-    type: dbAgent.type || "specialist",
+    type: (dbAgent.type || "specialist") as "specialist" | "generalist" | "router-only",
     description: dbAgent.description || undefined,
     systemPrompt: dbAgent.systemPrompt || undefined,
     enabled: dbAgent.enabled,

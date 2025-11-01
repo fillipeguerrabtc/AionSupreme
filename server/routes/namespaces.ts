@@ -5,8 +5,6 @@ import { eq, and, desc } from "drizzle-orm";
 import { z } from "zod";
 import { curationStore } from "../curation/store";
 
-const TENANT_ID = 1;
-
 /**
  * Namespace Management Routes
  * Full CRUD operations for KB namespaces
@@ -18,7 +16,6 @@ export function registerNamespaceRoutes(app: Express) {
       const allNamespaces = await db
         .select()
         .from(namespaces)
-        .where(eq(namespaces.tenantId, TENANT_ID))
         .orderBy(desc(namespaces.createdAt));
 
       res.json(allNamespaces);
@@ -39,12 +36,7 @@ export function registerNamespaceRoutes(app: Express) {
       const [namespace] = await db
         .select()
         .from(namespaces)
-        .where(
-          and(
-            eq(namespaces.id, id),
-            eq(namespaces.tenantId, TENANT_ID)
-          )
-        );
+        .where(eq(namespaces.id, id));
 
       if (!namespace) {
         return res.status(404).json({ error: "Namespace not found" });
@@ -63,18 +55,11 @@ export function registerNamespaceRoutes(app: Express) {
   // POST /api/namespaces - Create new namespace
   app.post("/api/namespaces", async (req: Request, res: Response) => {
     try {
-      const validatedData = insertNamespaceSchema.extend({
-        tenantId: z.number().optional(),
-      }).parse({
-        ...req.body,
-        tenantId: TENANT_ID,
-      });
-
-      const insertData = validatedData as unknown as InsertNamespace & { tenantId: number };
+      const validatedData = insertNamespaceSchema.parse(req.body);
 
       const [newNamespace] = await db
         .insert(namespaces)
-        .values(insertData)
+        .values(validatedData as any)
         .returning();
 
       res.status(201).json(newNamespace);
@@ -100,16 +85,11 @@ export function registerNamespaceRoutes(app: Express) {
     try {
       const { id } = req.params;
 
-      // Verify namespace exists and belongs to tenant
+      // Verify namespace exists
       const [existingNamespace] = await db
         .select()
         .from(namespaces)
-        .where(
-          and(
-            eq(namespaces.id, id),
-            eq(namespaces.tenantId, TENANT_ID)
-          )
-        );
+        .where(eq(namespaces.id, id));
 
       if (!existingNamespace) {
         return res.status(404).json({ error: "Namespace not found" });
@@ -153,16 +133,11 @@ export function registerNamespaceRoutes(app: Express) {
     try {
       const { id } = req.params;
 
-      // Verify namespace exists and belongs to tenant
+      // Verify namespace exists
       const [existingNamespace] = await db
         .select()
         .from(namespaces)
-        .where(
-          and(
-            eq(namespaces.id, id),
-            eq(namespaces.tenantId, TENANT_ID)
-          )
-        );
+        .where(eq(namespaces.id, id));
 
       if (!existingNamespace) {
         return res.status(404).json({ error: "Namespace not found" });
@@ -196,19 +171,14 @@ export function registerNamespaceRoutes(app: Express) {
       const [namespace] = await db
         .select()
         .from(namespaces)
-        .where(
-          and(
-            eq(namespaces.id, id),
-            eq(namespaces.tenantId, TENANT_ID)
-          )
-        );
+        .where(eq(namespaces.id, id));
 
       if (!namespace) {
         return res.status(404).json({ error: "Namespace not found" });
       }
 
       // Add content to curation queue for human approval (HITL workflow)
-      const curationItem = await curationStore.addToCuration(TENANT_ID, {
+      const curationItem = await curationStore.addToCuration({
         title: title || `Conteúdo do namespace ${namespace.displayName || namespace.name}`,
         content,
         suggestedNamespaces: [namespace.name],

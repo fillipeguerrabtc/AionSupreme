@@ -15,58 +15,56 @@ import { storage } from "../storage";
  * Export metrics in Prometheus format
  */
 export async function exportPrometheusMetrics(req: Request, res: Response) {
-  const tenantId = parseInt(req.query.tenant_id as string || "1");
-  
   try {
-    const snapshot = metricsCollector.getSnapshot(tenantId);
+    const snapshot = metricsCollector.getSnapshot();
     const lines: string[] = [];
 
     // Latency metrics (Histogram)
     lines.push("# HELP aion_request_latency_seconds Request latency in seconds");
     lines.push("# TYPE aion_request_latency_seconds histogram");
-    lines.push(`aion_request_latency_seconds{quantile="0.5",tenant="${tenantId}"} ${snapshot.latency.p50 / 1000}`);
-    lines.push(`aion_request_latency_seconds{quantile="0.95",tenant="${tenantId}"} ${snapshot.latency.p95 / 1000}`);
-    lines.push(`aion_request_latency_seconds{quantile="0.99",tenant="${tenantId}"} ${snapshot.latency.p99 / 1000}`);
+    lines.push(`aion_request_latency_seconds{quantile="0.5"} ${snapshot.latency.p50 / 1000}`);
+    lines.push(`aion_request_latency_seconds{quantile="0.95"} ${snapshot.latency.p95 / 1000}`);
+    lines.push(`aion_request_latency_seconds{quantile="0.99"} ${snapshot.latency.p99 / 1000}`);
     
     // Throughput metrics (Gauge)
     lines.push("# HELP aion_requests_per_second Current requests per second");
     lines.push("# TYPE aion_requests_per_second gauge");
-    lines.push(`aion_requests_per_second{tenant="${tenantId}"} ${snapshot.throughput.requestsPerSecond}`);
+    lines.push(`aion_requests_per_second ${snapshot.throughput.requestsPerSecond}`);
     
     lines.push("# HELP aion_tokens_per_second Current tokens per second");
     lines.push("# TYPE aion_tokens_per_second gauge");
-    lines.push(`aion_tokens_per_second{tenant="${tenantId}"} ${snapshot.throughput.tokensPerSecond}`);
+    lines.push(`aion_tokens_per_second ${snapshot.throughput.tokensPerSecond}`);
     
     // Cache metrics (Counter + Gauge)
     lines.push("# HELP aion_cache_hits_total Total cache hits");
     lines.push("# TYPE aion_cache_hits_total counter");
-    lines.push(`aion_cache_hits_total{tenant="${tenantId}"} ${snapshot.cache.hits}`);
+    lines.push(`aion_cache_hits_total ${snapshot.cache.hits}`);
     
     lines.push("# HELP aion_cache_misses_total Total cache misses");
     lines.push("# TYPE aion_cache_misses_total counter");
-    lines.push(`aion_cache_misses_total{tenant="${tenantId}"} ${snapshot.cache.misses}`);
+    lines.push(`aion_cache_misses_total ${snapshot.cache.misses}`);
     
     lines.push("# HELP aion_cache_hit_rate Cache hit rate (0-1)");
     lines.push("# TYPE aion_cache_hit_rate gauge");
-    lines.push(`aion_cache_hit_rate{tenant="${tenantId}"} ${snapshot.cache.hitRate}`);
+    lines.push(`aion_cache_hit_rate ${snapshot.cache.hitRate}`);
     
     // Cost metrics (Counter)
     lines.push("# HELP aion_tokens_total Total tokens processed");
     lines.push("# TYPE aion_tokens_total counter");
-    lines.push(`aion_tokens_total{tenant="${tenantId}"} ${snapshot.costs.totalTokens}`);
+    lines.push(`aion_tokens_total ${snapshot.costs.totalTokens}`);
     
     lines.push("# HELP aion_estimated_cost_usd Estimated cost in USD");
     lines.push("# TYPE aion_estimated_cost_usd gauge");
-    lines.push(`aion_estimated_cost_usd{tenant="${tenantId}"} ${snapshot.costs.estimatedCostUSD}`);
+    lines.push(`aion_estimated_cost_usd ${snapshot.costs.estimatedCostUSD}`);
     
     // Error metrics (Counter + Gauge)
     lines.push("# HELP aion_errors_total Total errors");
     lines.push("# TYPE aion_errors_total counter");
-    lines.push(`aion_errors_total{tenant="${tenantId}"} ${snapshot.errors.count}`);
+    lines.push(`aion_errors_total ${snapshot.errors.count}`);
     
     lines.push("# HELP aion_error_rate Errors per second");
     lines.push("# TYPE aion_error_rate gauge");
-    lines.push(`aion_error_rate{tenant="${tenantId}"} ${snapshot.errors.rate}`);
+    lines.push(`aion_error_rate ${snapshot.errors.rate}`);
 
     res.set("Content-Type", "text/plain; version=0.0.4");
     res.send(lines.join("\n") + "\n");
@@ -83,12 +81,10 @@ export function setupMetricsWebSocket(wss: any) {
   wss.on("connection", (ws: any, req: any) => {
     console.log("[Metrics] WebSocket client connected");
     
-    const tenantId = parseInt(new URL(req.url, "http://localhost").searchParams.get("tenant_id") || "1");
-    
     // Send metrics every 2 seconds
     const interval = setInterval(() => {
       try {
-        const snapshot = metricsCollector.getSnapshot(tenantId);
+        const snapshot = metricsCollector.getSnapshot();
         ws.send(JSON.stringify({
           type: "metrics",
           data: snapshot,

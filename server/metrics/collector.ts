@@ -21,7 +21,6 @@ interface LatencyMetric {
 
 interface MetricSnapshot {
   timestamp: Date;
-  tenantId: number;
   latency: LatencyMetric;
   throughput: {
     requestsPerSecond: number;
@@ -43,113 +42,90 @@ interface MetricSnapshot {
 }
 
 class MetricsCollector {
-  private latencies: Map<number, number[]> = new Map();
-  private requests: Map<number, number[]> = new Map();
-  private tokens: Map<number, number[]> = new Map();
-  private cacheStats: Map<number, { hits: number; misses: number }> = new Map();
-  private errors: Map<number, number[]> = new Map();
+  private latencies: number[] = [];
+  private requests: number[] = [];
+  private tokens: number[] = [];
+  private cacheStats = { hits: 0, misses: 0 };
+  private errors: number[] = [];
 
   /**
    * Record request latency
    */
-  recordLatency(tenantId: number, latencyMs: number) {
-    const arr = this.latencies.get(tenantId) || [];
-    arr.push(latencyMs);
+  recordLatency(latencyMs: number) {
+    this.latencies.push(latencyMs);
     
     // Keep only last 1000 entries
-    if (arr.length > 1000) arr.shift();
-    
-    this.latencies.set(tenantId, arr);
+    if (this.latencies.length > 1000) this.latencies.shift();
   }
 
   /**
    * Record request
    */
-  recordRequest(tenantId: number) {
-    const arr = this.requests.get(tenantId) || [];
-    arr.push(Date.now());
+  recordRequest() {
+    this.requests.push(Date.now());
     
     // Keep only last 60 seconds
     const cutoff = Date.now() - 60000;
-    const filtered = arr.filter((t) => t > cutoff);
-    
-    this.requests.set(tenantId, filtered);
+    this.requests = this.requests.filter((t) => t > cutoff);
   }
 
   /**
    * Record tokens used
    */
-  recordTokens(tenantId: number, tokens: number) {
-    const arr = this.tokens.get(tenantId) || [];
-    arr.push(tokens);
+  recordTokens(tokens: number) {
+    this.tokens.push(tokens);
     
     // Keep only last 1000 entries
-    if (arr.length > 1000) arr.shift();
-    
-    this.tokens.set(tenantId, arr);
+    if (this.tokens.length > 1000) this.tokens.shift();
   }
 
   /**
    * Record cache hit/miss
    */
-  recordCacheHit(tenantId: number, hit: boolean) {
-    const stats = this.cacheStats.get(tenantId) || { hits: 0, misses: 0 };
-    
+  recordCacheHit(hit: boolean) {
     if (hit) {
-      stats.hits++;
+      this.cacheStats.hits++;
     } else {
-      stats.misses++;
+      this.cacheStats.misses++;
     }
-    
-    this.cacheStats.set(tenantId, stats);
   }
 
   /**
    * Record error
    */
-  recordError(tenantId: number) {
-    const arr = this.errors.get(tenantId) || [];
-    arr.push(Date.now());
+  recordError() {
+    this.errors.push(Date.now());
     
     // Keep only last 60 seconds
     const cutoff = Date.now() - 60000;
-    const filtered = arr.filter((t) => t > cutoff);
-    
-    this.errors.set(tenantId, filtered);
+    this.errors = this.errors.filter((t) => t > cutoff);
   }
 
   /**
    * Get current metrics snapshot
    */
-  getSnapshot(tenantId: number): MetricSnapshot {
-    const latencies = this.latencies.get(tenantId) || [];
-    const requests = this.requests.get(tenantId) || [];
-    const tokens = this.tokens.get(tenantId) || [];
-    const cache = this.cacheStats.get(tenantId) || { hits: 0, misses: 0 };
-    const errors = this.errors.get(tenantId) || [];
-
+  getSnapshot(): MetricSnapshot {
     return {
       timestamp: new Date(),
-      tenantId,
-      latency: this.calculateLatencyPercentiles(latencies),
+      latency: this.calculateLatencyPercentiles(this.latencies),
       throughput: {
-        requestsPerSecond: requests.length / 60, // Last 60 seconds
-        tokensPerSecond: tokens.reduce((a, b) => a + b, 0) / 60,
+        requestsPerSecond: this.requests.length / 60, // Last 60 seconds
+        tokensPerSecond: this.tokens.reduce((a, b) => a + b, 0) / 60,
       },
       cache: {
-        hitRate: cache.hits + cache.misses > 0 
-          ? cache.hits / (cache.hits + cache.misses) 
+        hitRate: this.cacheStats.hits + this.cacheStats.misses > 0 
+          ? this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses) 
           : 0,
-        hits: cache.hits,
-        misses: cache.misses,
+        hits: this.cacheStats.hits,
+        misses: this.cacheStats.misses,
       },
       costs: {
-        totalTokens: tokens.reduce((a, b) => a + b, 0),
-        estimatedCostUSD: this.estimateCost(tokens),
+        totalTokens: this.tokens.reduce((a, b) => a + b, 0),
+        estimatedCostUSD: this.estimateCost(this.tokens),
       },
       errors: {
-        count: errors.length,
-        rate: errors.length / 60, // Errors per second
+        count: this.errors.length,
+        rate: this.errors.length / 60, // Errors per second
       },
     };
   }
@@ -196,12 +172,11 @@ class MetricsCollector {
   /**
    * Persist metrics to database
    */
-  async persistMetrics(tenantId: number) {
-    const snapshot = this.getSnapshot(tenantId);
+  async persistMetrics() {
+    const snapshot = this.getSnapshot();
     
     try {
       await storage.createMetric({
-        tenantId,
         metricType: "performance",
         value: snapshot.latency.mean,
         unit: "ms",
@@ -218,7 +193,5 @@ export const metricsCollector = new MetricsCollector();
 
 // Persist metrics every 60 seconds
 setInterval(() => {
-  // Persist for all active tenants
-  // For simplicity, just persist for tenant 1
-  metricsCollector.persistMetrics(1).catch(console.error);
+  metricsCollector.persistMetrics().catch(console.error);
 }, 60000);
