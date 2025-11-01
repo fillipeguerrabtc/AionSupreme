@@ -29,7 +29,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
-import { getNamespaceLabel } from "@shared/namespaces";
 
 interface CurationItem {
   id: string;
@@ -640,7 +639,7 @@ export default function CurationQueuePage() {
                     <div className="flex flex-wrap gap-1 mt-1">
                       {item.suggestedNamespaces.map((ns) => (
                         <Badge key={ns} variant="secondary" className="font-mono text-xs">
-                          {getNamespaceLabel(ns)}
+                          {ns}
                         </Badge>
                       ))}
                     </div>
@@ -1020,7 +1019,7 @@ export default function CurationQueuePage() {
                         <div className="flex flex-wrap gap-1 mt-1">
                           {item.suggestedNamespaces.map((ns) => (
                             <Badge key={ns} variant="secondary" className="font-mono text-xs">
-                              {getNamespaceLabel(ns)}
+                              {ns}
                             </Badge>
                           ))}
                         </div>

@@ -34,24 +34,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, FolderTree, FileText, Upload, Database, Layers } from "lucide-react";
+import { Plus, Edit, Trash2, FolderTree, FileText, Upload } from "lucide-react";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { IconPicker } from "@/components/IconPicker";
 import { type Namespace } from "@shared/schema";
-import { NAMESPACE_CATEGORIES, getAllNamespaces, type NamespaceOption } from "@shared/namespaces";
 import { useMemo } from "react";
-
-// Type for combined namespace display
-type NamespaceDisplay = {
-  name: string;
-  displayName: string;
-  description: string;
-  category: string;
-  source: "predefined" | "custom";
-  id?: string;
-  enabled?: boolean;
-  relatedNamespaces?: string[];
-};
 
 export default function NamespacesPage() {
   const { toast } = useToast();
@@ -81,35 +68,15 @@ export default function NamespacesPage() {
   const [editRelatedNamespaces, setEditRelatedNamespaces] = useState<string[]>([]);
   const [editContent, setEditContent] = useState("");
   
-  // Fetch custom namespaces from database
-  const { data: customNamespaces = [], isLoading } = useQuery<Namespace[]>({
+  // Fetch ALL namespaces from database (unified approach)
+  const { data: allNamespaces = [], isLoading } = useQuery<Namespace[]>({
     queryKey: ["/api/namespaces"],
   });
 
-  // Combine predefined and custom namespaces for display
-  const allNamespaces: NamespaceDisplay[] = useMemo(() => {
-    const predefined: NamespaceDisplay[] = getAllNamespaces().map((ns: NamespaceOption) => ({
-      name: ns.value,
-      displayName: ns.label,
-      description: ns.description || "",
-      category: ns.value.split("/")[0],
-      source: "predefined" as const,
-      enabled: true,
-    }));
-
-    const custom: NamespaceDisplay[] = customNamespaces.map((ns: Namespace) => ({
-      name: ns.name,
-      displayName: ns.displayName || ns.name,
-      description: ns.description || "",
-      category: ns.category || ns.name.split("/")[0],
-      source: "custom" as const,
-      id: ns.id,
-      enabled: ns.enabled,
-      relatedNamespaces: ns.relatedNamespaces || [],
-    }));
-
-    return [...predefined, ...custom].sort((a, b) => a.name.localeCompare(b.name));
-  }, [customNamespaces]);
+  // Sort namespaces alphabetically
+  const sortedNamespaces = useMemo(() => {
+    return [...allNamespaces].sort((a, b) => a.name.localeCompare(b.name));
+  }, [allNamespaces]);
 
 
   // Create namespace mutation
@@ -600,7 +567,7 @@ export default function NamespacesPage() {
             Todos os Namespaces
           </CardTitle>
           <CardDescription>
-            {allNamespaces.length} namespaces totais ({getAllNamespaces().length} pré-definidos + {customNamespaces.length} personalizados)
+            {sortedNamespaces.length} namespaces totais
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -614,12 +581,11 @@ export default function NamespacesPage() {
                     <TableHead className="whitespace-nowrap">Nome</TableHead>
                     <TableHead className="whitespace-nowrap">Descrição</TableHead>
                     <TableHead className="whitespace-nowrap">Categoria</TableHead>
-                    <TableHead className="whitespace-nowrap">Tipo</TableHead>
                     <TableHead className="text-right whitespace-nowrap">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {allNamespaces.map((namespace, index) => (
+                  {sortedNamespaces.map((namespace, index) => (
                     <TableRow key={namespace.id || namespace.name} data-testid={`row-namespace-${namespace.name}`}>
                       <TableCell className="min-w-0">
                         <div className="max-w-[250px]">
@@ -633,57 +599,23 @@ export default function NamespacesPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="whitespace-nowrap">{namespace.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {namespace.source === "predefined" ? (
-                          <Badge variant="secondary" className="gap-1 whitespace-nowrap">
-                            <Layers className="h-3 w-3" />
-                            Sistema
-                          </Badge>
-                        ) : (
-                          <Badge variant="default" className="gap-1 whitespace-nowrap">
-                            <Database className="h-3 w-3" />
-                            Personalizado
-                          </Badge>
-                        )}
+                        <Badge variant="outline" className="whitespace-nowrap">{namespace.category || namespace.name.split("/")[0]}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2 shrink-0">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              if (namespace.source === "custom" && namespace.id) {
-                                const customNs = customNamespaces.find(ns => ns.id === namespace.id);
-                                if (customNs) setSelectedNamespace(customNs);
-                              } else {
-                                setSelectedNamespace({
-                                  id: `predefined-${namespace.name}`,
-                                  name: namespace.name,
-                                  displayName: namespace.displayName,
-                                  description: namespace.description,
-                                  category: namespace.category,
-                                  enabled: true,
-                                  relatedNamespaces: [],
-                                } as any);
-                              }
-                            }}
-                            data-testid={`button-edit-${namespace.id || namespace.name}`}
+                            onClick={() => setSelectedNamespace(namespace)}
+                            data-testid={`button-edit-${namespace.id}`}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              if (namespace.id) {
-                                setDeleteNamespaceId(namespace.id);
-                              } else {
-                                setDeleteNamespaceId(namespace.name);
-                              }
-                            }}
-                            data-testid={`button-delete-${namespace.id || namespace.name}`}
+                            onClick={() => setDeleteNamespaceId(namespace.id)}
+                            data-testid={`button-delete-${namespace.id}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

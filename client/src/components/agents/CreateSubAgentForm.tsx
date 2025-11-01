@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,12 +15,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Namespace {
   id: number;
@@ -27,6 +36,14 @@ interface Namespace {
   parentNamespace: string | null;
   icon: string | null;
   description: string | null;
+}
+
+interface Agent {
+  id: string;
+  name: string;
+  slug: string;
+  agentTier: "agent" | "subagent";
+  assignedNamespaces: string[];
 }
 
 const createSubAgentFormSchema = insertAgentSchema.extend({
@@ -42,14 +59,30 @@ type CreateSubAgentFormValues = z.infer<typeof createSubAgentFormSchema>;
 
 export function CreateSubAgentForm() {
   const { toast } = useToast();
+  const [selectedParentAgentId, setSelectedParentAgentId] = useState<string>("");
+
+  // Fetch all agents (we'll filter to get parent agents)
+  const { data: allAgents = [] } = useQuery<Agent[]>({
+    queryKey: ["/api/agents"],
+  });
+
+  // Filter to get only tier="agent" (potential parents)
+  const parentAgents = allAgents.filter(agent => agent.agentTier === "agent");
+
+  // Get selected parent agent
+  const selectedParent = parentAgents.find(agent => agent.id === selectedParentAgentId);
+  const parentNamespace = selectedParent?.assignedNamespaces?.[0]; // Agent has exactly 1 namespace
 
   const { data: namespaces = [] } = useQuery<Namespace[]>({
     queryKey: ["/api/admin/namespaces"],
   });
 
-  const subNamespaces = namespaces.filter((ns) => ns.namespace.includes("/"));
+  // Filter subnamespaces based on selected parent's namespace
+  const availableSubNamespaces = parentNamespace
+    ? namespaces.filter((ns) => ns.namespace.startsWith(parentNamespace + "/"))
+    : [];
 
-  const groupedSubNamespaces = subNamespaces.reduce((acc, ns) => {
+  const groupedSubNamespaces = availableSubNamespaces.reduce((acc, ns) => {
     const root = ns.namespace.split("/")[0];
     if (!acc[root]) acc[root] = [];
     acc[root].push(ns);
@@ -143,6 +176,45 @@ export function CreateSubAgentForm() {
               )}
             />
 
+            {/* Parent Agent Selector */}
+            <div className="space-y-2">
+              <Label htmlFor="parent-agent">Agente Pai (Parent Agent) *</Label>
+              <Select
+                value={selectedParentAgentId}
+                onValueChange={(value) => {
+                  setSelectedParentAgentId(value);
+                  // Clear selected namespaces when parent changes
+                  form.setValue("assignedNamespaces", []);
+                }}
+                data-testid="select-parent-agent"
+              >
+                <SelectTrigger id="parent-agent" data-testid="trigger-parent-agent">
+                  <SelectValue placeholder="Selecione o Agent Pai..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {parentAgents.map((agent) => (
+                    <SelectItem 
+                      key={agent.id} 
+                      value={agent.id}
+                      data-testid={`option-parent-${agent.id}`}
+                    >
+                      {agent.name} ({agent.assignedNamespaces?.[0] || "sem namespace"})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedParent && (
+                <p className="text-sm text-muted-foreground" data-testid="info-parent-namespace">
+                  Namespace do pai: <Badge variant="outline">{parentNamespace}</Badge>
+                </p>
+              )}
+              {!selectedParentAgentId && (
+                <p className="text-sm text-muted-foreground">
+                  Escolha primeiro o Agent Pai para ver os subnamespaces disponíveis
+                </p>
+              )}
+            </div>
+
             <FormField
               control={form.control}
               name="assignedNamespaces"
@@ -150,43 +222,53 @@ export function CreateSubAgentForm() {
                 <FormItem>
                   <FormLabel>Subnamespaces *</FormLabel>
                   <FormDescription data-testid="desc-subagent-namespaces">
-                    Selecione 1 ou mais subnamespaces do mesmo namespace pai
+                    Selecione 1 ou mais subnamespaces dentro do namespace do Agent Pai
                   </FormDescription>
-                  <div className="space-y-4 max-h-64 overflow-y-auto border rounded-md p-4">
-                    {Object.entries(groupedSubNamespaces).map(([root, subNs]) => (
-                      <div key={root} className="space-y-2">
-                        <h4 className="font-medium text-sm" data-testid={`group-${root}`}>
-                          {root} ({subNs.length})
-                        </h4>
-                        {subNs.map((ns) => (
-                          <div
-                            key={ns.id}
-                            className="flex items-center space-x-2 ml-4"
-                            data-testid={`namespace-item-${ns.namespace}`}
-                          >
-                            <Checkbox
-                              id={`ns-${ns.id}`}
-                              data-testid={`checkbox-namespace-${ns.namespace}`}
-                              checked={field.value?.includes(ns.namespace)}
-                              onCheckedChange={(checked) => {
-                                const updated = checked
-                                  ? [...(field.value || []), ns.namespace]
-                                  : (field.value || []).filter((v) => v !== ns.namespace);
-                                field.onChange(updated);
-                              }}
-                            />
-                            <label
-                              htmlFor={`ns-${ns.id}`}
-                              className="text-sm cursor-pointer flex-1"
-                              data-testid={`label-namespace-${ns.namespace}`}
+                  {!selectedParentAgentId ? (
+                    <div className="border rounded-md p-4 text-center text-sm text-muted-foreground">
+                      ⬆️ Selecione primeiro um Agent Pai para ver os subnamespaces disponíveis
+                    </div>
+                  ) : availableSubNamespaces.length === 0 ? (
+                    <div className="border rounded-md p-4 text-center text-sm text-muted-foreground">
+                      ⚠️ O Agent Pai selecionado não possui subnamespaces. Crie subnamespaces no namespace "{parentNamespace}" primeiro.
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-h-64 overflow-y-auto border rounded-md p-4">
+                      {Object.entries(groupedSubNamespaces).map(([root, subNs]) => (
+                        <div key={root} className="space-y-2">
+                          <h4 className="font-medium text-sm" data-testid={`group-${root}`}>
+                            {root} ({subNs.length})
+                          </h4>
+                          {subNs.map((ns) => (
+                            <div
+                              key={ns.id}
+                              className="flex items-center space-x-2 ml-4"
+                              data-testid={`namespace-item-${ns.namespace}`}
                             >
-                              {ns.icon} {ns.namespace}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
+                              <Checkbox
+                                id={`ns-${ns.id}`}
+                                data-testid={`checkbox-namespace-${ns.namespace}`}
+                                checked={field.value?.includes(ns.namespace)}
+                                onCheckedChange={(checked) => {
+                                  const updated = checked
+                                    ? [...(field.value || []), ns.namespace]
+                                    : (field.value || []).filter((v) => v !== ns.namespace);
+                                  field.onChange(updated);
+                                }}
+                              />
+                              <label
+                                htmlFor={`ns-${ns.id}`}
+                                className="text-sm cursor-pointer flex-1"
+                                data-testid={`label-namespace-${ns.namespace}`}
+                              >
+                                {ns.icon} {ns.namespace}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {field.value && field.value.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1" data-testid="selected-namespaces">

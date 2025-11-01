@@ -34,9 +34,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { NAMESPACE_CATEGORIES, WILDCARD_NAMESPACE, type NamespaceOption, type NamespaceCategory } from "@shared/namespaces";
 import type { Namespace } from "@shared/schema";
 import { cn } from "@/lib/utils";
+
+// Wildcard namespace for curator (full access)
+const WILDCARD_NAMESPACE = "*";
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Settings,
@@ -73,26 +75,10 @@ export function NamespaceSelector({
   const [customNamespace, setCustomNamespace] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
 
-  // Fetch namespaces from database
+  // Fetch ALL namespaces from database (unified approach)
   const { data: dbNamespaces = [] } = useQuery<Namespace[]>({
     queryKey: ["/api/namespaces"],
   });
-
-  // Combine predefined and database namespaces
-  const combinedCategories: NamespaceCategory[] = [
-    ...NAMESPACE_CATEGORIES,
-    // Add database namespaces as a separate category
-    ...(dbNamespaces.length > 0 ? [{
-      id: "custom",
-      label: "Namespaces Personalizados",
-      icon: "FolderTree",
-      namespaces: dbNamespaces.map(ns => ({
-        value: ns.name,
-        label: ns.displayName || ns.name,
-        description: ns.description || undefined,
-      })),
-    }] : []),
-  ];
 
   const toggleNamespace = (namespace: string) => {
     if (value.includes(namespace)) {
@@ -112,9 +98,7 @@ export function NamespaceSelector({
 
   const selectAll = () => {
     // Coletar todos os namespaces disponíveis (sem wildcard)
-    const allNamespaces = combinedCategories
-      .flatMap(cat => cat.namespaces)
-      .map(ns => ns.value);
+    const allNamespaces = dbNamespaces.map(ns => ns.name);
     onChange(allNamespaces);
   };
 
@@ -263,44 +247,31 @@ export function NamespaceSelector({
                     </CommandItem>
                   </CommandGroup>
                 )}
-                {combinedCategories.map((category) => {
-                  const IconComponent = ICON_MAP[category.icon];
-                  return (
-                  <CommandGroup 
-                    key={category.id} 
-                    heading={
-                      <div className="flex items-center gap-2">
-                        {IconComponent && <IconComponent className="h-4 w-4" />}
-                        <span>{category.label}</span>
+                <CommandGroup heading="Namespaces Disponíveis">
+                  {dbNamespaces.map((ns) => (
+                    <CommandItem
+                      key={ns.name}
+                      onSelect={() => toggleNamespace(ns.name)}
+                      data-testid={`namespace-option-${ns.name}`}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value.includes(ns.name) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-medium">{ns.displayName || ns.name}</span>
+                        {ns.description && (
+                          <span className="text-xs text-muted-foreground">{ns.description}</span>
+                        )}
+                        <span className="text-xs font-mono text-muted-foreground mt-0.5">
+                          {ns.name}
+                        </span>
                       </div>
-                    }
-                  >
-                    {category.namespaces.map((ns: NamespaceOption) => (
-                      <CommandItem
-                        key={ns.value}
-                        onSelect={() => toggleNamespace(ns.value)}
-                        data-testid={`namespace-option-${ns.value}`}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            value.includes(ns.value) ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex flex-col">
-                          <span className="font-medium">{ns.label}</span>
-                          {ns.description && (
-                            <span className="text-xs text-muted-foreground">{ns.description}</span>
-                          )}
-                          <span className="text-xs font-mono text-muted-foreground mt-0.5">
-                            {ns.value}
-                          </span>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                );
-              })}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
             </CommandList>
           </Command>
         </PopoverContent>
@@ -310,9 +281,7 @@ export function NamespaceSelector({
         <div className="max-h-[200px] overflow-y-auto p-2 border border-border/50 rounded-md bg-background/50">
           <div className="flex flex-wrap gap-1.5">
             {value.map((namespace) => {
-              const ns = combinedCategories.flatMap(cat => cat.namespaces).find(
-                n => n.value === namespace
-              );
+              const ns = dbNamespaces.find(n => n.name === namespace);
               return (
                 <Badge
                   key={namespace}
@@ -320,7 +289,7 @@ export function NamespaceSelector({
                   className="gap-1"
                   data-testid={`badge-namespace-${namespace}`}
                 >
-                  <span className="text-xs font-mono">{ns?.label || namespace}</span>
+                  <span className="text-xs font-mono">{ns?.displayName || namespace}</span>
                   <button
                     type="button"
                     onClick={() => removeNamespace(namespace)}

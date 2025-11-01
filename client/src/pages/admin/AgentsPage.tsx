@@ -36,7 +36,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Users, Search } from "lucide-react";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
-import { getNamespaceLabel } from "@shared/namespaces";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentHierarchyManager } from "@/components/agents/AgentHierarchyManager";
 import { CreateAgentForm } from "@/components/agents/CreateAgentForm";
@@ -249,7 +248,7 @@ export default function AgentsPage() {
                       <div className="flex gap-1 flex-wrap max-w-xs">
                         {agent.ragNamespaces?.slice(0, 2).map((ns, i) => (
                           <Badge key={i} variant="outline" className="text-xs font-mono">
-                            {getNamespaceLabel(ns)}
+                            {ns}
                           </Badge>
                         ))}
                         {agent.ragNamespaces && agent.ragNamespaces.length > 2 && (
