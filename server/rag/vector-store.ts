@@ -231,13 +231,15 @@ export class RAGService {
       
       await storage.createEmbeddingsBatch(embeddingRecords);
       
-      // Index in vector store
-      await vectorStore.indexDocument(documentId);
-      
-      // Update document status
+      // Update document status to 'indexed' BEFORE indexing in vector store
+      // This is critical because vectorStore.indexDocument() queries embeddings
+      // and storage.getEmbeddingsByDocument() only returns embeddings for status='indexed'
       await storage.updateDocument(documentId, {
         status: "indexed",
       });
+      
+      // Index in vector store (now embeddings will be found)
+      await vectorStore.indexDocument(documentId);
       
       console.log(`[RAG] Successfully indexed document ${documentId} (${results.length} chunks)`);
     } catch (error: any) {
