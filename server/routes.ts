@@ -3766,7 +3766,7 @@ export function registerRoutes(app: Express): Server {
 
   // Serve learned images statically (from crawler)
   const learnedImagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
-  app.use('/images', express.static(learnedImagesDir));
+  app.use('/attached_assets/learned_images', express.static(learnedImagesDir));
   
   // Serve chat images statically (from user uploads in chat)
   const chatImagesDir = path.join(process.cwd(), 'attached_assets', 'chat_images');

@@ -22,6 +22,7 @@ import { trackTokenUsage } from '../monitoring/token-tracker';
 import { z } from 'zod';
 import { GPUPool } from '../gpu/pool';
 import { autoLearningListener } from '../events/auto-learning-listener';
+import { storage } from '../storage';
 
 // ============================================================================
 // TYPES & VALIDATION
@@ -824,6 +825,40 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
     
   } catch (error: any) {
     console.error('   ✗ All Free APIs failed:', error.message);
+    console.log('   → Proceeding to Web Search...');
+  }
+  
+  // ============================================================================
+  // STEP 4: WEB SEARCH (Before OpenAI, FREE)
+  // ============================================================================
+  
+  console.log('\n🔍 [STEP 4/5] Trying WEB SEARCH (before OpenAI)...');
+  
+  try {
+    const webFallback = await executeWebFallback(userMessage, true); // skipLLM=true for now
+    
+    await trackWebSearch(
+      'web',
+      webFallback.model,
+      webFallback.searchMetadata
+    );
+    
+    console.log('   ✅ Web search completed successfully!');
+    console.log('='.repeat(80) + '\n');
+    
+    return {
+      content: webFallback.content,
+      source: 'web-fallback',
+      provider: webFallback.provider,
+      model: webFallback.model,
+      metadata: {
+        webSearchPerformed: true,
+        documentsIndexed: webFallback.documentsIndexed,
+        noAPIConsumption: true
+      }
+    };
+  } catch (webError: any) {
+    console.error('   ✗ Web search failed:', webError.message);
     console.log('   → Proceeding to OpenAI (last resort)...');
   }
   
@@ -1090,13 +1125,14 @@ async function executeDeepWebSearch(
   let indexed = 0;
   for (const result of results.slice(0, 5)) {
     try {
-      const [doc] = await db.insert(documents).values({
+      const doc = await storage.createDocument({
         title: result.title || 'DeepWeb Result',
         content: result.snippet || '',
+        extractedText: result.snippet || '',
         source: 'automatic-deepweb-fallback',
         status: 'indexed',
         metadata: { url: result.url, deepweb: true, isTorSite: result.isTorSite }
-      }).returning();
+      });
       
       await indexDocumentComplete(doc.id, result.snippet || '');
       indexed++;
@@ -1166,15 +1202,14 @@ async function executeWebFallback(
   let indexed = 0;
   for (const result of searchResults.slice(0, 5)) {
     try {
-      const [doc] = await db.insert(documents).values({
+      const doc = await storage.createDocument({
         title: result.title,
         content: result.snippet,
+        extractedText: result.snippet,
         source: 'automatic-web-fallback',
         status: 'indexed',
-        metadata: { url: result.url },
-        createdAt: sql`NOW()`,
-        updatedAt: sql`NOW()`
-      }).returning();
+        metadata: { url: result.url }
+      });
       
       await indexDocumentComplete(doc.id, result.snippet);
       indexed++;
