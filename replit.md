@@ -1,10 +1,10 @@
-# AION - Autonomous AI System
+# AION - Sistema de IA Autônomo
 
-## Overview
-AION is an enterprise-grade autonomous AI system designed for robustness, flexibility, and self-operation, extending beyond current LLM limitations. It features configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agents utilizing a POMDP with the ReAct framework, and professional video generation. The system provides both an end-user chat interface and an administrative dashboard, operating in a single-tenant mode for optimized deployment and cost efficiency. Its business vision is to provide a self-sustaining, continuously evolving AI that learns and improves autonomously, reducing reliance on external APIs over time.
+## Visão Geral
+AION é um sistema de IA autônomo de nível empresarial projetado para robustez, flexibilidade e auto-operação, estendendo-se além das limitações atuais dos LLMs. Apresenta aplicação configurável de políticas, recuperação de conhecimento baseada em RAG, agentes autônomos avançados utilizando POMDP com o framework ReAct, e geração profissional de vídeo. O sistema fornece tanto uma interface de chat para usuários finais quanto um painel administrativo, operando em modo single-tenant para implantação otimizada e eficiência de custos. Sua visão de negócio é fornecer uma IA auto-sustentável e em evolução contínua que aprende e melhora autonomamente, reduzindo a dependência de APIs externas ao longo do tempo.
 
-## User Preferences
-Preferred communication style: Simple, everyday language.
+## Preferências do Usuário
+Estilo de comunicação preferido: Linguagem simples e cotidiana.
 
 **REGRA FUNDAMENTAL DE TRABALHO:**
 1. **SEMPRE responda dúvidas do usuário primeiro**
@@ -14,47 +14,47 @@ Preferred communication style: Simple, everyday language.
 5. Fluxo obrigatório: Responder → Completar tarefas atuais → Iniciar novas tarefas
 6. **NUNCA comece tarefas novas antes de terminar as antigas**
 
-## System Architecture
+## Arquitetura do Sistema
 
-### Core System Design
-AION operates in a single-tenant mode with a multi-agent architecture and Mixture of Experts (MoE) routing driven by LLM-based intent classification. Policy enforcement is externalized via JSON configurations. It features an automatic fallback system for LLM refusals, a 5-tier priority chain for responses, and universal multilingual support via dynamic language detection. The system supports specialized agents with dedicated knowledge base namespaces, tool access, and budget limits. A Human-in-the-Loop (HITL) knowledge curation system, backed by PostgreSQL, requires human approval for all content before indexing. The architecture includes a GPU Pool System for distributed training and inference, supporting LoRA fine-tuning on free GPUs and aiming for zero-cost inference. A Continuous Auto-Evolution System collects high-quality conversations for instruction tuning and dataset generation. The agent system includes a tier-based hierarchy for agents and sub-agents, defined by namespace assignments, with robust cascade deletion and orphan detection mechanisms.
+### Design do Sistema Central
+AION opera em modo single-tenant com arquitetura multi-agente e roteamento Mixture of Experts (MoE) impulsionado por classificação de intenções baseada em LLM. A aplicação de políticas é externalizada via configurações JSON. Apresenta um sistema de fallback automático para recusas de LLM, uma cadeia de prioridade de 5 níveis para respostas e suporte multilíngue universal via detecção dinâmica de idioma. O sistema suporta agentes especializados com namespaces dedicados de base de conhecimento, acesso a ferramentas e limites de orçamento. Um sistema de curadoria de conhecimento Human-in-the-Loop (HITL), apoiado por PostgreSQL, requer aprovação humana para todo conteúdo antes da indexação. A arquitetura inclui um Sistema de Pool de GPU para treinamento distribuído e inferência, suportando fine-tuning LoRA em GPUs gratuitas e visando inferência de custo zero. Um Sistema de Auto-Evolução Contínua coleta conversas de alta qualidade para instruction tuning e geração de datasets. O sistema de agentes inclui hierarquia baseada em níveis para agentes e sub-agentes, definida por atribuições de namespace, com mecanismos robustos de deleção em cascata e detecção de órfãos.
 
 ### UI/UX
-The frontend is built with React 18, Vite, Wouter, and TanStack Query, utilizing Radix UI, shadcn/ui patterns, Tailwind CSS, and a Material Design-inspired HSL-based custom design system. It offers a conversational chat interface and an Admin Dashboard with enterprise sidebar navigation, supporting 15 sections and multi-language capabilities (PT-BR, EN-US, ES-ES). The dashboard includes a collapsible sidebar, sticky header, glassmorphism effects, and pages for Datasets Management, Agents Management (with CRUD and unified namespace creation without system/custom distinction), Curation Queue for HITL content review, Vision System monitoring with real-time quota tracking across 5 providers (Gemini, GPT-4V, Claude3, HuggingFace, OpenAI), and KB Image Search with semantic AI-powered search using vision-generated descriptions. Knowledge Base management uses dedicated tabs for Documents and Images, with multi-select and bulk operation capabilities. UX Philosophy emphasizes dropdown selectors for all entity relationships (Agent→Namespace, SubAgent→Parent, Subnamespace→Parent) minimizing manual text input.
+O frontend é construído com React 18, Vite, Wouter e TanStack Query, utilizando Radix UI, padrões shadcn/ui, Tailwind CSS e um sistema de design customizado baseado em HSL inspirado em Material Design. Oferece uma interface conversacional de chat e um Painel Administrativo com navegação lateral empresarial, suportando 15 seções e capacidades multilíngues (PT-BR, EN-US, ES-ES). O painel inclui sidebar recolhível, cabeçalho fixo, efeitos de glassmorphism e páginas para Gerenciamento de Datasets, Gerenciamento de Agentes (com CRUD e criação unificada de namespace sem distinção sistema/custom), Fila de Curadoria para revisão de conteúdo HITL, monitoramento do Sistema de Visão com rastreamento de quota em tempo real através de 5 provedores (Gemini, GPT-4V, Claude3, HuggingFace, OpenAI), e Busca de Imagens KB com busca semântica alimentada por IA usando descrições geradas por visão. O gerenciamento da Base de Conhecimento usa abas dedicadas para Documentos e Imagens, com capacidades de seleção múltipla e operações em massa. A Filosofia UX enfatiza seletores dropdown para todos os relacionamentos de entidades (Agent→Namespace, SubAgent→Parent, Subnamespace→Parent) minimizando entrada de texto manual.
 
-### Technical Implementations
-The backend uses Node.js and TypeScript with Express.js and PostgreSQL via Drizzle ORM (Neon serverless). Core services include an LLM Client, Storage, Multi-Agent Router (MoE), RAG with namespace-scoping, an Agent Engine (ReAct with POMDP), Policy Enforcement, Automatic Fallback, Multimodal Processing, Web Content Discovery, Free LLM Providers rotation, GPU Orchestrator, Training Data Collector, Token Monitoring System, Lifecycle Management System, and Validation System (Zod schemas). Authentication uses Replit Auth (OpenID Connect). The multi-agent architecture utilizes a MoE router for LLM-based intent classification, with each agent having isolated RAG namespaces, dedicated tool access, configurable budget limits, and escalation rules. Namespace-based agent hierarchy is automatically inferred via namespace prefix matching (e.g., "core" is parent of "core.research"). RAG combines OpenAI embeddings with BM25 for re-ranking. The Policy Enforcement Pipeline uses a System Prompt Composer and Output Moderator with a JSON-configurable Policy DSL. Professional video generation uses an async job queue, GPU workers, and webhook callbacks. The GPU Pool System manages intelligent quota, auto-shutdown, round-robin load balancing, heartbeat monitoring, and multi-GPU parallel processing across Google Colab and Kaggle. Multi-Cloud Deployment uses Google Cloud Run and AWS Fargate with a shared Neon PostgreSQL database. Training data validation system includes 8 types of real-time inline validation. Lifecycle Management System enforces retention policies (conversations: 18mo archive + 5yr purge, training: 30d post-completion, GPU: 7d stale workers) with document-level preservation checking, timezone-aware scheduling (Brasília/UTC), and comprehensive audit logging. KB Cascade Delete ensures embeddings and physical files are deleted when documents are removed, with orphan detection preventing dangling references. Validation uses Zod schemas for lifecycle policies, datasets, and training data ensuring type-safe and validated data flows.
+### Implementações Técnicas
+O backend usa Node.js e TypeScript com Express.js e PostgreSQL via Drizzle ORM (Neon serverless). Os serviços principais incluem um Cliente LLM, Storage, Roteador Multi-Agente (MoE), RAG com escopo de namespace, um Motor de Agente (ReAct com POMDP), Aplicação de Políticas, Fallback Automático, Processamento Multimodal, Descoberta de Conteúdo Web, rotação de Provedores LLM Gratuitos, Orquestrador de GPU, Coletor de Dados de Treinamento, Sistema de Monitoramento de Tokens, Sistema de Gerenciamento de Ciclo de Vida e Sistema de Validação (schemas Zod). A autenticação usa Replit Auth (OpenID Connect). A arquitetura multi-agente utiliza um roteador MoE para classificação de intenções baseada em LLM, com cada agente tendo namespaces RAG isolados, acesso dedicado a ferramentas, limites de orçamento configuráveis e regras de escalação. A hierarquia de agentes baseada em namespace é inferida automaticamente via correspondência de prefixo de namespace (ex: "core" é pai de "core.research"). O RAG combina embeddings OpenAI com BM25 para re-ranking. O Pipeline de Aplicação de Políticas usa um Compositor de Prompts de Sistema e Moderador de Saída com uma DSL de Política configurável em JSON. A geração profissional de vídeo usa fila de jobs assíncrona, workers GPU e callbacks webhook. O Sistema de Pool de GPU gerencia quota inteligente, auto-desligamento, balanceamento de carga round-robin, monitoramento heartbeat e processamento paralelo multi-GPU através do Google Colab e Kaggle. A Implantação Multi-Nuvem usa Google Cloud Run e AWS Fargate com um banco de dados PostgreSQL compartilhado Neon. O sistema de validação de dados de treinamento inclui 8 tipos de validação inline em tempo real. O Sistema de Gerenciamento de Ciclo de Vida aplica políticas de retenção (conversas: arquivamento 18 meses + purga 5 anos, treinamento: 30 dias pós-conclusão, GPU: 7 dias workers obsoletos) com verificação de preservação em nível de documento, agendamento consciente de fuso horário (Brasília/UTC) e registro de auditoria abrangente. KB Cascade Delete garante que embeddings e arquivos físicos sejam deletados quando documentos são removidos, com detecção de órfãos prevenindo referências pendentes. A validação usa schemas Zod para políticas de ciclo de vida, datasets e dados de treinamento garantindo fluxos de dados validados e type-safe.
 
-### System Design Choices
-Key decisions include a single-tenant architecture, externalized JSON policies for dynamic updates, separation of the core model from enforcement policies, and an uncensored default mode. Observability includes metrics for latency, throughput, cache hit rates, cost estimates, and real-time token usage.
+### Escolhas de Design do Sistema
+Decisões-chave incluem uma arquitetura single-tenant, políticas JSON externalizadas para atualizações dinâmicas, separação do modelo central das políticas de aplicação e um modo padrão sem censura. A observabilidade inclui métricas para latência, throughput, taxas de acerto de cache, estimativas de custo e uso de tokens em tempo real.
 
-## External Dependencies
+## Dependências Externas
 
-### Third-Party Services
-- **OpenAI API**: LLM completions, embeddings, function calling.
-- **Neon Database**: Serverless PostgreSQL.
-- **Google Cloud Run**: Primary deployment platform.
-- **AWS Fargate**: Backup deployment platform.
-- **DuckDuckGo**: Web search.
-- **OpenRouter, Groq, Gemini, HuggingFace**: Free LLM API providers.
-- **Google Colab, Kaggle, Modal**: Free GPU resources for fine-tuning.
-- **RunPod/Modal**: GPU workers for video generation.
-- **Replit**: Development environment and authentication.
-- **GitHub Actions**: CI/CD pipeline.
+### Serviços de Terceiros
+- **API OpenAI**: Completions LLM, embeddings, function calling.
+- **Neon Database**: PostgreSQL Serverless.
+- **Google Cloud Run**: Plataforma primária de implantação.
+- **AWS Fargate**: Plataforma de implantação backup.
+- **DuckDuckGo**: Busca web.
+- **OpenRouter, Groq, Gemini, HuggingFace**: Provedores de API LLM gratuitos.
+- **Google Colab, Kaggle, Modal**: Recursos GPU gratuitos para fine-tuning.
+- **RunPod/Modal**: Workers GPU para geração de vídeo.
+- **Replit**: Ambiente de desenvolvimento e autenticação.
+- **GitHub Actions**: Pipeline CI/CD.
 
-### Key Libraries (NPM)
-- **@neondatabase/serverless**: PostgreSQL client
-- **drizzle-orm**: Type-safe ORM
-- **openai**: Official OpenAI SDK
-- **@radix-ui/**: Accessible UI primitives
-- **@tanstack/react-query**: Server state management
-- **tailwindcss**: Utility-first CSS framework
-- **zod**: Schema validation
-- **mammoth**: DOCX → text extraction
-- **xlsx**: Excel file parsing
-- **xml2js**: XML parsing
-- **pdf-parse**: PDF text extraction
-- **cheerio**: HTML parsing and web scraping
-- **multer**: File upload handling
-- **sharp**: Image processing
-- **file-type**: MIME type detection
+### Bibliotecas Principais (NPM)
+- **@neondatabase/serverless**: Cliente PostgreSQL
+- **drizzle-orm**: ORM Type-safe
+- **openai**: SDK oficial OpenAI
+- **@radix-ui/**: Primitivos UI acessíveis
+- **@tanstack/react-query**: Gerenciamento de estado do servidor
+- **tailwindcss**: Framework CSS utility-first
+- **zod**: Validação de schemas
+- **mammoth**: Extração DOCX → texto
+- **xlsx**: Parsing de arquivos Excel
+- **xml2js**: Parsing XML
+- **pdf-parse**: Extração de texto PDF
+- **cheerio**: Parsing HTML e web scraping
+- **multer**: Manipulação de upload de arquivos
+- **sharp**: Processamento de imagens
+- **file-type**: Detecção de tipo MIME

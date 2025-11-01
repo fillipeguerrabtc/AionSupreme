@@ -1,305 +1,305 @@
-# AION - Autonomous AI System
+# AION - Sistema de IA Autônomo
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Licença: MIT](https://img.shields.io/badge/Licença-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
 
-[**English**](#english) | [**Português**](./README_PT-BR.md)
+[**Português**](#português) | [**English**](./README_PT-BR.md)
 
 ---
 
-## 🌟 Overview
+## 🌟 Visão Geral
 
-**AION** is an enterprise-grade **autonomous AI system** operating in **single-tenant mode** for simplified deployment and cost optimization. Features configurable policy enforcement, RAG-based knowledge retrieval, autonomous agent capabilities, and a 5-tier priority chain with multi-GPU load balancing. The system emphasizes **externalized policy enforcement** - the core AI model remains unrestricted by default, with behavior controlled through composable system prompts and runtime configuration.
+**AION** é um **sistema de IA autônomo** de nível empresarial operando em **modo single-tenant** para implantação simplificada e otimização de custos. Apresenta aplicação configurável de políticas, recuperação de conhecimento baseada em RAG, capacidades de agentes autônomos e uma cadeia de prioridade de 5 níveis com balanceamento de carga multi-GPU. O sistema enfatiza **aplicação externalizada de políticas** - o modelo central de IA permanece irrestrito por padrão, com comportamento controlado através de prompts de sistema composáveis e configuração em tempo de execução.
 
-### 🎯 Key Features
+### 🎯 Recursos Principais
 
-- ⚡ **Automatic Fallback System** - Detects LLM provider refusals, searches free web, indexes in KB, responds without censorship
-- 🤖 **Autonomous Agents** - ReAct framework with POMDP for complex task completion
-- 📚 **RAG Knowledge Base** - Hybrid semantic + lexical search with vector embeddings
-- 🎨 **Multimodal Processing** - PDF, DOCX, XLSX, images, audio, video support
-- 🛡️ **Policy Enforcement** - Externalized, runtime-configurable content policies
-- 📊 **Real-time Token Monitoring** - Enterprise-grade tracking with Brazilian timezone (America/Sao_Paulo) for accurate local date calculations
-- 🆓 **5-Tier Free LLM Chain** - KB → GPU Pool → Free APIs (Groq, Gemini, HF) → Web Search → OpenAI (last resort)
-- 🎮 **GPU Pool System** - 10 simultaneous free GPUs (Colab + Kaggle) with intelligent quota management, auto-shutdown, and 24/7 rotation (~70-80 GPU hours/day at zero cost)
-- 🎛️ **Admin Dashboard** - Clean "AION" branding with enterprise sidebar navigation (15 sections) for complete system management
-- 📦 **Dataset Management** - Production-ready interface for managing training datasets with filtering, search, preview, download, and bulk operations
-- 👁️ **Vision System** - Multi-provider monitoring with 5-tier cascade (Gemini, GPT-4V, Claude3, HuggingFace, OpenAI) and real-time quota tracking
-- 🔍 **KB Image Search** - Semantic AI-powered image search using vision-generated descriptions with cross-language support
-- 🌍 **Multi-Cloud Deployment** - Dual deployment on GCP + AWS with automatic failover (100% free tier)
+- ⚡ **Sistema de Fallback Automático** - Detecta recusas de provedores LLM, busca na web gratuita, indexa na KB, responde sem censura
+- 🤖 **Agentes Autônomos** - Framework ReAct com POMDP para conclusão de tarefas complexas
+- 📚 **Base de Conhecimento RAG** - Busca híbrida semântica + lexical com embeddings vetoriais
+- 🎨 **Processamento Multimodal** - Suporte a PDF, DOCX, XLSX, imagens, áudio, vídeo
+- 🛡️ **Aplicação de Políticas** - Políticas de conteúdo externalizadas e configuráveis em runtime
+- 📊 **Monitoramento de Tokens em Tempo Real** - Rastreamento de nível empresarial com fuso horário do Brasil (America/Sao_Paulo) para cálculos de data local precisos
+- 🆓 **Cadeia de 5 Níveis de LLMs Gratuitos** - KB → Pool de GPU → APIs Gratuitas (Groq, Gemini, HF) → Busca Web → OpenAI (último recurso)
+- 🎮 **Sistema de Pool de GPU** - 10 GPUs gratuitas simultâneas (Colab + Kaggle) com gerenciamento inteligente de quota, auto-desligamento e rotação 24/7 (~70-80 horas GPU/dia a custo zero)
+- 🎛️ **Painel Administrativo** - Marca limpa "AION" com navegação lateral empresarial (15 seções) para gerenciamento completo do sistema
+- 📦 **Gerenciamento de Datasets** - Interface pronta para produção para gerenciar datasets de treinamento com filtragem, busca, preview, download e operações em massa
+- 👁️ **Sistema de Visão** - Monitoramento multi-provedor com cascata de 5 níveis (Gemini, GPT-4V, Claude3, HuggingFace, OpenAI) e rastreamento de quota em tempo real
+- 🔍 **Busca de Imagens na KB** - Busca de imagens com IA semântica usando descrições geradas por visão com suporte multilíngue
+- 🌍 **Implantação Multi-Nuvem** - Implantação dupla em GCP + AWS com failover automático (100% free tier)
 
-### 🏗️ Architecture
+### 🏗️ Arquitetura
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      AION System                             │
+│                      Sistema AION                            │
 ├─────────────────────────────────────────────────────────────┤
-│  Chat Interface          │         Admin Dashboard          │
-│  (End Users)            │         (Policy Management)       │
+│  Interface de Chat      │      Painel Administrativo         │
+│  (Usuários Finais)      │      (Gerenciamento de Políticas)  │
 ├──────────────────────────┼──────────────────────────────────┤
-│              Enforcement Pipeline & Auto-Fallback            │
-│  • System Prompt Composer  • Refusal Detection              │
-│  • Output Moderator        • Web Search & KB Indexing        │
+│         Pipeline de Aplicação & Auto-Fallback                │
+│  • Compositor de Prompts   • Detecção de Recusa              │
+│  • Moderador de Saída      • Busca Web & Indexação KB        │
 ├─────────────────────────────────────────────────────────────┤
-│                    Core Services                             │
-│  LLM Client  │  RAG Service  │  Agent Engine  │  Storage    │
+│                    Serviços Principais                        │
+│  Cliente LLM  │  Serviço RAG  │  Motor de Agente  │  Storage │
 ├─────────────────────────────────────────────────────────────┤
-│              External Integrations                           │
-│  OpenAI API  │  Neon PostgreSQL  │  DuckDuckGo Search       │
+│              Integrações Externas                            │
+│  API OpenAI  │  Neon PostgreSQL  │  Busca DuckDuckGo         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Quick Start
+## 🚀 Início Rápido
 
-### Prerequisites
+### Pré-requisitos
 
 - **Node.js** 20+ 
-- **PostgreSQL** 15+ (or Neon serverless)
-- **OpenAI API Key** (for LLM completions and embeddings)
+- **PostgreSQL** 15+ (ou Neon serverless)
+- **Chave API OpenAI** (para completions LLM e embeddings)
 
-### Installation
+### Instalação
 
 ```bash
-# Clone the repository
+# Clonar o repositório
 git clone https://github.com/filipeguerrrabr/AionSupreme.git
 cd AionSupreme
 
-# Install dependencies
+# Instalar dependências
 npm install
 
-# Configure environment variables
-# Create a .env file with:
+# Configurar variáveis de ambiente
+# Criar arquivo .env com:
 # - DATABASE_URL=postgresql://...
 # - OPENAI_API_KEY=sk-...
-# - SESSION_SECRET=your-secret-key
+# - SESSION_SECRET=sua-chave-secreta
 
-# Initialize database
+# Inicializar banco de dados
 npm run db:push
 
-# Start development server
+# Iniciar servidor de desenvolvimento
 npm run dev
 ```
 
-The application will be available at `http://localhost:5000`.
+A aplicação estará disponível em `http://localhost:5000`.
 
-## 📚 Documentation
+## 📚 Documentação
 
-### Core Documentation
+### Documentação Principal
 
-- [**Architecture Guide**](./docs/ARCHITECTURE.md) - System design, components, and technical decisions
-- [**Automatic Fallback System**](./docs/AUTOMATIC_FALLBACK.md) - Refusal detection and autonomous web search
-- [**PDF Documentation Index**](./docs/INDEX.md) - Complete guide to the 19 technical PDFs
-- [**API Reference**](./docs/API.md) - REST API endpoints and usage
-- [**GPU Setup Guide**](./SETUP_GPU_WORKERS.md) - Free GPU workers setup (Google Colab + Kaggle)
+- [**Guia de Arquitetura**](./docs/ARCHITECTURE.md) - Design do sistema, componentes e decisões técnicas
+- [**Sistema de Fallback Automático**](./docs/AUTOMATIC_FALLBACK.md) - Detecção de recusa e busca web autônoma
+- [**Índice de Documentação em PDF**](./docs/INDEX.md) - Guia completo dos 19 PDFs técnicos
+- [**Referência da API**](./docs/API.md) - Endpoints da API REST e uso
+- [**Guia de Configuração de GPU**](./SETUP_GPU_WORKERS.md) - Configuração de workers GPU gratuitos (Google Colab + Kaggle)
 
-### Technical PDFs (19 Parts)
+### PDFs Técnicos (19 Partes)
 
-Complete technical documentation covering:
-- **Parts 1-2**: Theoretical foundations (Transformer, MoE, LoRA, RLHF, scaling laws)
-- **Parts 3.1-3.4**: System architecture (multimodal, RAG, agents, deployment)
-- **Parts 4-16**: Implementation details, mathematical proofs, practical guides
+Documentação técnica completa cobrindo:
+- **Partes 1-2**: Fundamentos teóricos (Transformer, MoE, LoRA, RLHF, leis de escala)
+- **Partes 3.1-3.4**: Arquitetura do sistema (multimodal, RAG, agentes, implantação)
+- **Partes 4-16**: Detalhes de implementação, provas matemáticas, guias práticos
 
-All PDFs are organized in [`docs/pdfs/`](./docs/pdfs/).
+Todos os PDFs estão organizados em [`docs/pdfs/`](./docs/pdfs/).
 
-## 🎯 Core Features
+## 🎯 Recursos Principais
 
-### 1. Automatic Fallback System ⚡ NEW
+### 1. Sistema de Fallback Automático ⚡ NOVO
 
-When OpenAI refuses a request due to internal policies, AION automatically:
-1. **Detects refusal** using 11+ pattern-matching rules
-2. **Searches free web** (DuckDuckGo) for unrestricted information
-3. **Fetches full content** from top 3 sources (~100KB each)
-4. **Indexes in knowledge base** for future queries
-5. **Generates uncensored response** using retrieved context
+Quando OpenAI recusa uma requisição devido a políticas internas, AION automaticamente:
+1. **Detecta recusa** usando 11+ regras de correspondência de padrões
+2. **Busca na web gratuita** (DuckDuckGo) por informação irrestrita
+3. **Obtém conteúdo completo** das 3 principais fontes (~100KB cada)
+4. **Indexa na base de conhecimento** para consultas futuras
+5. **Gera resposta sem censura** usando contexto recuperado
 
-**Activation**: Only when system is in UNRESTRICTED mode (no policy rules enabled).
+**Ativação**: Apenas quando sistema está em modo UNRESTRICTED (nenhuma regra de política ativada).
 
 ```javascript
-// Example API response with fallback
+// Exemplo de resposta de API com fallback
 {
   "choices": [{
     "message": {
       "role": "assistant",
-      "content": "Direct answer using web sources..."
+      "content": "Resposta direta usando fontes da web..."
     }
   }],
   "fallback": {
     "used": true,
     "sourcesIndexed": 3,
-    "searchQuery": "encryption libraries"
+    "searchQuery": "bibliotecas de criptografia"
   }
 }
 ```
 
-### 2. Autonomous Agents (ReAct + POMDP)
+### 2. Agentes Autônomos (ReAct + POMDP)
 
-Agents can autonomously complete complex tasks using:
-- **Tools**: Web search, knowledge base search, code execution
-- **Planning**: Hierarchical goal decomposition
-- **Reasoning**: Thought → Action → Observation cycles
+Agentes podem concluir autonomamente tarefas complexas usando:
+- **Ferramentas**: Busca web, busca na base de conhecimento, execução de código
+- **Planejamento**: Decomposição hierárquica de objetivos
+- **Raciocínio**: Ciclos Pensamento → Ação → Observação
 
-### 3. RAG Knowledge Base
+### 3. Base de Conhecimento RAG
 
-Hybrid search combining:
-- **Semantic**: OpenAI embeddings with cosine similarity
-- **Lexical**: BM25 for keyword matching
-- **Re-ranking**: MMR to avoid redundancy
+Busca híbrida combinando:
+- **Semântica**: Embeddings OpenAI com similaridade de cosseno
+- **Lexical**: BM25 para correspondência de palavras-chave
+- **Re-ranking**: MMR para evitar redundância
 
-### 4. Policy Enforcement Pipeline
+### 4. Pipeline de Aplicação de Políticas
 
-Runtime-configurable policies:
-- Content restrictions (hate speech, violence, profanity, etc.)
-- Personality traits (humor, tone, formality)
-- LLM parameters (temperature, top-p, top-k)
-- Actions on violation: refuse, redact, or rewrite
+Políticas configuráveis em runtime:
+- Restrições de conteúdo (discurso de ódio, violência, profanidade, etc.)
+- Traços de personalidade (humor, tom, formalidade)
+- Parâmetros LLM (temperature, top-p, top-k)
+- Ações em violação: recusar, ocultar ou reescrever
 
-**FUNDAMENTAL RULE**: System is **born unrestricted** (all rules = false). Restrictions only apply when manually configured via admin dashboard.
+**REGRA FUNDAMENTAL**: Sistema **nasce irrestrito** (todas regras = false). Restrições só se aplicam quando configuradas manualmente via painel admin.
 
-## 🛠️ Tech Stack
+## 🛠️ Stack Tecnológico
 
 ### Backend
 - **Node.js** + TypeScript + Express
 - **PostgreSQL** (Neon serverless) + Drizzle ORM  
-- **Timezone**: America/Sao_Paulo (Brasília, Brazil) for accurate local date calculations
-- **OpenAI API** (GPT-4, embeddings)
-- **DuckDuckGo** (web search via HTML scraping)
+- **Fuso Horário**: America/Sao_Paulo (Brasília, Brasil) para cálculos de data local precisos
+- **API OpenAI** (GPT-4, embeddings)
+- **DuckDuckGo** (busca web via scraping HTML)
 
 ### Frontend
 - **React 18** + TypeScript
-- **Vite** (build tool and dev server)
-- **TanStack Query** (server state)
-- **Radix UI** + **shadcn/ui** (components)
-- **Tailwind CSS** (styling)
+- **Vite** (ferramenta de build e servidor dev)
+- **TanStack Query** (estado do servidor)
+- **Radix UI** + **shadcn/ui** (componentes)
+- **Tailwind CSS** (estilização)
 
-### Infrastructure
-- **Replit** (primary development platform)
-- **Google Colab** (optional GPU deployment)
-- **Prometheus** (metrics export)
+### Infraestrutura
+- **Replit** (plataforma primária de desenvolvimento)
+- **Google Colab** (implantação opcional de GPU)
+- **Prometheus** (exportação de métricas)
 
-## 📊 Database Schema
+## 📊 Schema do Banco de Dados
 
-9 core tables:
-- `tenants` - System configuration (single-tenant only)
-- `policies` - JSON/YAML policy definitions
-- `conversations` - Chat history
-- `messages` - Individual messages
-- `documents` - Uploaded files for RAG
-- `embeddings` - Vector embeddings for semantic search
-- `tool_executions` - Agent tool call audit trail
-- `metrics` - Performance and cost tracking
-- `audit_logs` - Immutable logs with SHA-256 hashes
+9 tabelas principais:
+- `tenants` - Configuração do sistema (apenas single-tenant)
+- `policies` - Definições de políticas JSON/YAML
+- `conversations` - Histórico de chat
+- `messages` - Mensagens individuais
+- `documents` - Arquivos enviados para RAG
+- `embeddings` - Embeddings vetoriais para busca semântica
+- `tool_executions` - Trilha de auditoria de chamadas de ferramentas de agentes
+- `metrics` - Rastreamento de desempenho e custos
+- `audit_logs` - Logs imutáveis com hashes SHA-256
 
-## 🔐 Environment Variables
+## 🔐 Variáveis de Ambiente
 
 ```bash
-# Database
+# Banco de Dados
 DATABASE_URL=postgresql://user:pass@host:5432/dbname
 
 # OpenAI
 OPENAI_API_KEY=sk-...
 
-# Session
-SESSION_SECRET=your-random-secret-key
+# Sessão
+SESSION_SECRET=sua-chave-secreta-aleatória
 ```
 
-## 🧪 Testing
+## 🧪 Testes
 
 ```bash
-# Run fallback system tests
+# Executar testes do sistema de fallback
 npm run test:fallback
 
-# Test outputs:
-# ✅ Refusal Detection: 100% accuracy
-# ✅ Web Search: 3 URLs found
-# ✅ Fallback Logic: Activates only in UNRESTRICTED mode
+# Saídas de teste:
+# ✅ Detecção de Recusa: 100% de precisão
+# ✅ Busca Web: 3 URLs encontradas
+# ✅ Lógica de Fallback: Ativa apenas em modo UNRESTRICTED
 ```
 
-## 📈 Metrics & Observability
+## 📈 Métricas & Observabilidade
 
-Prometheus-compatible metrics at `/metrics`:
-- Latency percentiles (p50, p95, p99)
-- Throughput (requests/sec, tokens/sec)
-- Cache hit rates
-- Cost estimates (USD)
-- Error rates
+Métricas compatíveis com Prometheus em `/metrics`:
+- Percentis de latência (p50, p95, p99)
+- Throughput (requisições/s, tokens/s)
+- Taxa de acerto de cache
+- Estimativas de custo (USD)
+- Taxa de erros
 
-## 🤝 Contributing
+## 🤝 Contribuindo
 
-This is a research and educational project. Contributions welcome for:
-- Improving refusal detection patterns
-- Adding new agent tools
-- Enhancing multimodal processing
-- Optimizing vector search
+Este é um projeto de pesquisa e educacional. Contribuições bem-vindas para:
+- Melhorar padrões de detecção de recusa
+- Adicionar novas ferramentas de agentes
+- Aprimorar processamento multimodal
+- Otimizar busca vetorial
 
-## 📄 License
+## 📄 Licença
 
-MIT License - see [LICENSE](./LICENSE) file for details.
+Licença MIT - veja arquivo [LICENSE](./LICENSE) para detalhes.
 
-## 🙏 Acknowledgments
+## 🙏 Agradecimentos
 
-Built on top of:
-- **OpenAI** - LLM completions and embeddings
-- **Neon** - Serverless PostgreSQL
-- **Replit** - Development platform
-- **shadcn/ui** - Beautiful UI components
+Construído em cima de:
+- **OpenAI** - Completions LLM e embeddings
+- **Neon** - PostgreSQL Serverless
+- **Replit** - Plataforma de desenvolvimento
+- **shadcn/ui** - Componentes UI bonitos
 
 ---
 
-## 🎮 GPU Pool System (Phase 2)
+## 🎮 Sistema de Pool de GPU (Fase 2)
 
-AION includes a **fully autonomous GPU pool** with zero-cost inference using Google Colab and Kaggle:
+AION inclui um **pool de GPU totalmente autônomo** com inferência de custo zero usando Google Colab e Kaggle:
 
-### Features:
-- ✅ **10 Simultaneous Workers** (5 Colab + 5 Kaggle)
-- ✅ **~70-80 GPU hours/day** at zero cost
-- ✅ **Intelligent Quota Management** - Uses only 70% of quota (30% safety margin)
-- ✅ **Auto-Shutdown** - Notebooks terminate 30min before Google limits
-- ✅ **Round-Robin Load Balancing** - Automatic rotation across workers
-- ✅ **24/7 Coverage** - Optimized scheduling for continuous availability
+### Recursos:
+- ✅ **10 Workers Simultâneos** (5 Colab + 5 Kaggle)
+- ✅ **~70-80 horas GPU/dia** a custo zero
+- ✅ **Gerenciamento Inteligente de Quota** - Usa apenas 70% da quota (margem de segurança de 30%)
+- ✅ **Auto-Desligamento** - Notebooks encerram 30min antes dos limites do Google
+- ✅ **Balanceamento Round-Robin** - Rotação automática entre workers
+- ✅ **Cobertura 24/7** - Agendamento otimizado para disponibilidade contínua
 
-### Quick Setup:
+### Configuração Rápida:
 ```bash
-# 1. Upload notebooks to Google Colab/Kaggle
-notebooks/colab_worker.ipynb   → 5 Google accounts
-notebooks/kaggle_worker.ipynb  → 5 Google accounts
+# 1. Upload notebooks para Google Colab/Kaggle
+notebooks/colab_worker.ipynb   → 5 contas Google
+notebooks/kaggle_worker.ipynb  → 5 contas Google
 
-# 2. Configure each notebook
-AION_URL = "https://your-aion.replit.app"
+# 2. Configurar cada notebook
+AION_URL = "https://sua-url-aion.replit.app"
 
-# 3. Click "Run All" (30 seconds per worker)
-# 4. Close browser - workers run in cloud!
+# 3. Clicar "Run All" (30 segundos por worker)
+# 4. Fechar navegador - workers rodam na nuvem!
 
-# Auto-shutdown after:
-# - Colab: 11.5h (Google limit: 12h)
-# - Kaggle: 8.5h (Google limit: 9h)
+# Auto-desligamento após:
+# - Colab: 11.5h (limite Google: 12h)
+# - Kaggle: 8.5h (limite Google: 9h)
 ```
 
-### Documentation:
-- 📖 **Setup Guide**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
-- 📅 **24/7 Schedule**: [GPU_SCHEDULE_24_7.md](./GPU_SCHEDULE_24_7.md)
+### Documentação:
+- 📖 **Guia de Configuração**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
+- 📅 **Cronograma 24/7**: [GPU_SCHEDULE_24_7.md](./GPU_SCHEDULE_24_7.md)
 
-### API Endpoints:
+### Endpoints da API:
 ```bash
-POST /api/gpu/workers/register   # Worker registration
+POST /api/gpu/workers/register   # Registro de worker
 POST /api/gpu/workers/heartbeat  # Keep-alive (60s)
-GET  /api/gpu/workers             # List all workers
-GET  /api/gpu/quota/status        # Real-time quota tracking
-POST /api/gpu/quota/record        # Record usage after jobs
+GET  /api/gpu/workers             # Listar todos workers
+GET  /api/gpu/quota/status        # Rastreamento de quota em tempo real
+POST /api/gpu/quota/record        # Registrar uso após jobs
 ```
 
-**ROI**: ~$18-29k/year savings vs. paid GPU cloud services! 🚀
+**ROI**: Economia de ~$18-29k/ano vs. serviços de GPU cloud pagos! 🚀
 
 ---
 
 ## 🔗 Links
 
-- **Documentation**: [`docs/`](./docs/)
-- **Technical PDFs**: [`docs/pdfs/`](./docs/pdfs/)
-- **Production Status**: [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md)
-- **GPU Pool Setup**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
-- **GPU 24/7 Schedule**: [GPU_SCHEDULE_24_7.md](./GPU_SCHEDULE_24_7.md)
+- **Documentação**: [`docs/`](./docs/)
+- **PDFs Técnicos**: [`docs/pdfs/`](./docs/pdfs/)
+- **Status de Produção**: [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md)
+- **Configuração Pool GPU**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
+- **Cronograma GPU 24/7**: [GPU_SCHEDULE_24_7.md](./GPU_SCHEDULE_24_7.md)
 
 ---
 
-**Made with ❤️ for autonomous AI research**
+**Feito com ❤️ para pesquisa de IA autônoma**

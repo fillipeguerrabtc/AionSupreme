@@ -1,284 +1,284 @@
-# AION - Design Guidelines (Compacted 2025)
+# AION - Diretrizes de Design (Compactado 2025)
 
-## Design Foundation
-**Premium Material Design** with glassmorphism and gradients for enterprise AI. Dark-mode-first dual interface: conversational chat + administrative power dashboard.
+## Fundação de Design
+**Material Design Premium** com glassmorphism e gradientes para IA empresarial. Interface dual com foco em dark mode: chat conversacional + painel administrativo de poder.
 
-**Core Principles:**
-1. Premium aesthetics via glassmorphism/gradients
-2. Dark mode priority with vibrant accents
-3. Beauty serves function
-4. Dual modality: inviting chat, professional admin
+**Princípios Centrais:**
+1. Estética premium via glassmorphism/gradientes
+2. Prioridade de dark mode com acentos vibrantes
+3. Beleza serve à função
+4. Modalidade dual: chat convidativo, admin profissional
 
 ---
 
-## Color System
+## Sistema de Cores
 
 ### Backgrounds
-- Primary: `#0a0a0f` | Secondary: `#121218` | Tertiary: `#1a1a24`
+- Primário: `#0a0a0f` | Secundário: `#121218` | Terciário: `#1a1a24`
 
-### Gradients
-- Primary: `#6366f1` → `#4f46e5` → `#4338ca` (purple-indigo)
-- Secondary: `#a855f7` → `#ec4899` (purple-pink)
-- Subtle: `#3730a3` 0% → transparent 100%
+### Gradientes
+- Primário: `#6366f1` → `#4f46e5` → `#4338ca` (purple-indigo)
+- Secundário: `#a855f7` → `#ec4899` (purple-pink)
+- Sutil: `#3730a3` 0% → transparente 100%
 
-### Interactive
-- Action: `#6366f1` | Hover: `#818cf8` | Secondary: `#a855f7`
-- Success: `#10b981` | Warning: `#f59e0b` | Error: `#ef4444`
+### Interativos
+- Ação: `#6366f1` | Hover: `#818cf8` | Secundário: `#a855f7`
+- Sucesso: `#10b981` | Aviso: `#f59e0b` | Erro: `#ef4444`
 
-### Text
-- Primary: `#ffffff` | Secondary: `#e5e7eb` | Tertiary: `#9ca3af` | Muted: `#6b7280`
+### Texto
+- Primário: `#ffffff` | Secundário: `#e5e7eb` | Terciário: `#9ca3af` | Discreto: `#6b7280`
 
-### Glass Effects
-- Standard: `rgba(255,255,255,0.05)` + backdrop-blur-xl + border `rgba(255,255,255,0.1)`
-- Premium: `rgba(99,102,241,0.1)` background with purple tint
-- Nested: Reduce opacity 50% per level
+### Efeitos de Vidro
+- Padrão: `rgba(255,255,255,0.05)` + backdrop-blur-xl + borda `rgba(255,255,255,0.1)`
+- Premium: background `rgba(99,102,241,0.1)` com tonalidade roxa
+- Aninhado: Reduzir opacidade 50% por nível
 
 ---
 
-## Typography
+## Tipografia
 
-**Fonts:** Inter (400/500/600/700), JetBrains Mono (code)
+**Fontes:** Inter (400/500/600/700), JetBrains Mono (código)
 
-**Hierarchy:**
-- Hero: text-5xl/6xl, font-bold, gradient text
-- Section: text-3xl/4xl, font-semibold, subtle glow
-- Component: text-xl/2xl, font-semibold
-- Body: text-base, leading-relaxed, text-secondary
+**Hierarquia:**
+- Hero: text-5xl/6xl, font-bold, texto gradiente
+- Seção: text-3xl/4xl, font-semibold, brilho sutil
+- Componente: text-xl/2xl, font-semibold
+- Corpo: text-base, leading-relaxed, text-secondary
 - Labels: text-sm, font-medium, text-tertiary
 - Meta: text-xs, text-muted
-- Code: text-sm, font-mono
+- Código: text-sm, font-mono
 
-**Effects:**
-- Gradient text: `bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent`
-- Glow: `drop-shadow-[0_0_8px_rgba(99,102,241,0.3)]`
+**Efeitos:**
+- Texto gradiente: `bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent`
+- Brilho: `drop-shadow-[0_0_8px_rgba(99,102,241,0.3)]`
 
 ---
 
 ## Layout
 
-**Spacing:** Core units 2/4/8/12/16/24
-**Grid:** 12-column (admin), max-w-4xl centered (chat)
+**Espaçamento:** Unidades centrais 2/4/8/12/16/24
+**Grid:** 12 colunas (admin), max-w-4xl centralizado (chat)
 **Breakpoints:** sm:640 | md:768 | lg:1024 | xl:1280 | 2xl:1536
 
 ---
 
-## Admin Dashboard Components
+## Componentes do Painel Administrativo
 
-### Structure
-- Sidebar: w-64 glass (collapse to w-16 icon-only)
-- Top bar: h-16 sticky with backdrop-blur
-- Content: gradient mesh background
-- Cards: floating with glass treatment
+### Estrutura
+- Sidebar: w-64 vidro (colapsa para w-16 apenas ícones)
+- Barra superior: h-16 sticky com backdrop-blur
+- Conteúdo: background mesh gradiente
+- Cards: flutuantes com tratamento de vidro
 
-### Glassmorphic Cards
+### Cards Glassmórficos
 ```
 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6
 hover:scale-[1.02] hover:bg-white/10 transition-all duration-300
 ```
 
-### Data Tables
-- Glass header (sticky), h-14 rows, zebra `rgba(255,255,255,0.02)`
-- Hover: glass effect on row, inline actions appear
-- Sorting: animated chevrons
+### Tabelas de Dados
+- Cabeçalho vidro (sticky), linhas h-14, zebra `rgba(255,255,255,0.02)`
+- Hover: efeito vidro na linha, ações inline aparecem
+- Ordenação: chevrons animados
 
-### Metrics Dashboard
+### Dashboard de Métricas
 ```
 grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6
-text-4xl font-bold gradient numbers
-trend arrows + sparklines (gradient fills)
-purple-tinted glass cards
+números text-4xl font-bold gradiente
+setas de tendência + sparklines (preenchimentos gradiente)
+cards de vidro com tonalidade roxa
 ```
 
-### Navigation Sidebar
-- Glass effect, icon+label (collapsible)
-- Active: gradient background + border accent
-- Hover: scale + glow
-- Separators: gradient lines
+### Sidebar de Navegação
+- Efeito vidro, ícone+label (recolhível)
+- Ativo: background gradiente + acento de borda
+- Hover: escala + brilho
+- Separadores: linhas gradiente
 
 ---
 
-## Chat Interface Components
+## Componentes da Interface de Chat
 
-### Structure
-- Full-height with gradient background
-- Minimal header h-14 (auto-hide scroll)
-- Fixed bottom input with safe-area-inset
+### Estrutura
+- Altura total com background gradiente
+- Cabeçalho mínimo h-14 (auto-oculta ao rolar)
+- Entrada inferior fixa com safe-area-inset
 
-### Message Bubbles
-**User:**
+### Bolhas de Mensagem
+**Usuário:**
 ```
-glass + purple gradient tint, rounded-2xl rounded-br-sm
-max-w-2xl ml-auto p-4, purple glow on hover
-```
-
-**AI:**
-```
-glass + indigo gradient tint, rounded-2xl rounded-bl-sm
-max-w-2xl mr-auto p-4, typing: animated gradient dots
+vidro + tonalidade gradiente roxa, rounded-2xl rounded-br-sm
+max-w-2xl ml-auto p-4, brilho roxo no hover
 ```
 
-### Input Composer
+**IA:**
 ```
-glass backdrop-blur, min-h-[56px] max-h-[240px] auto-resize
-gradient border on focus, icon buttons (glass bg)
-attachment chips (glassmorphic), send button (gradient bg)
+vidro + tonalidade gradiente índigo, rounded-2xl rounded-bl-sm
+max-w-2xl mr-auto p-4, digitando: pontos gradiente animados
 ```
 
-### File Attachments
-- Preview: glass with file icons, gradient progress bars
-- Drag-drop: dashed gradient border when active
-- Remove: glass circles with X
+### Compositor de Entrada
+```
+vidro backdrop-blur, min-h-[56px] max-h-[240px] auto-resize
+borda gradiente no foco, botões de ícone (bg vidro)
+chips de anexo (glassmórficos), botão enviar (bg gradiente)
+```
 
-### Multimodal Content
-- Images: rounded-xl glass frame, lightbox with blur backdrop
-- Videos: glass player, gradient controls
-- Code: dark glass + syntax highlighting
-- Audio: waveform gradient, glass controls
+### Anexos de Arquivo
+- Preview: vidro com ícones de arquivo, barras de progresso gradiente
+- Drag-drop: borda gradiente pontilhada quando ativo
+- Remover: círculos de vidro com X
+
+### Conteúdo Multimodal
+- Imagens: moldura vidro rounded-xl, lightbox com backdrop blur
+- Vídeos: player vidro, controles gradiente
+- Código: vidro escuro + destaque de sintaxe
+- Áudio: forma de onda gradiente, controles vidro
 
 ---
 
-## Buttons
+## Botões
 
-### Primary
+### Primário
 ```
 bg-gradient-to-r from-purple-500 to-indigo-500
 px-8 py-3 rounded-xl font-semibold
 hover:scale-[1.05] active:scale-[0.98]
 ```
 
-### Secondary
+### Secundário
 ```
 bg-white/5 border border-gradient
 hover:bg-white/10 hover:scale-[1.02]
 ```
 
-### Ghost
-Transparent + gradient text, hover: glass background
+### Fantasma
+Transparente + texto gradiente, hover: background vidro
 
-### Icon
+### Ícone
 ```
-size-10/12 rounded-xl glass bg
-centered icon (size-5)
-hover: enhanced glass + scale
+size-10/12 rounded-xl bg vidro
+ícone centralizado (size-5)
+hover: vidro aprimorado + escala
 ```
 
-### On Images/Hero
-Glass + backdrop-blur + gradient border
-**NO hover scale** - opacity change only
+### Em Imagens/Hero
+Vidro + backdrop-blur + borda gradiente
+**SEM hover scale** - apenas mudança de opacidade
 
 ---
 
-## Form Inputs
+## Inputs de Formulário
 ```
-glass container, h-12 px-4 py-3 rounded-xl
-gradient focus border
-labels: text-sm font-medium (gap-2 above)
-helper: text-xs text-muted (gap-1 below)
-error: red gradient border + message
+container vidro, h-12 px-4 py-3 rounded-xl
+borda gradiente no foco
+labels: text-sm font-medium (gap-2 acima)
+helper: text-xs text-muted (gap-1 abaixo)
+erro: borda gradiente vermelha + mensagem
 ```
 
 ---
 
-## Advanced Patterns
+## Padrões Avançados
 
-### Modal Dialogs
+### Diálogos Modais
 ```
 backdrop: backdrop-blur-md bg-black/60
-container: premium glass, max-w-3xl, max-h-[85vh], p-8
-header: gradient text + glass close button
-footer: gradient border-top, flex gap-4 justify-end
+container: vidro premium, max-w-3xl, max-h-[85vh], p-8
+cabeçalho: texto gradiente + botão fechar vidro
+rodapé: borda-topo gradiente, flex gap-4 justify-end
 ```
 
 ### Toasts
 ```
-fixed top-6 right-6, glass container
-gradient left border (type indicator)
-auto-dismiss with gradient progress
-slide-in spring animation, stack max 3, gap-3
+fixed top-6 right-6, container vidro
+borda esquerda gradiente (indicador de tipo)
+auto-dismiss com progresso gradiente
+animação slide-in spring, empilhar max 3, gap-3
 ```
 
-### Loading States
-- Skeleton: glass blocks with shimmer gradient animation
-- Spinner: gradient border rotation
-- Progress: gradient fill smooth transition
-- Page: fade with scale (0.98 → 1.0)
+### Estados de Carregamento
+- Skeleton: blocos vidro com animação shimmer gradiente
+- Spinner: rotação de borda gradiente
+- Progresso: transição suave de preenchimento gradiente
+- Página: fade com escala (0.98 → 1.0)
 
-### Gradient Mesh Backgrounds
-- Admin: radial gradients at corners (purple/indigo/pink 20% opacity)
-- Chat: vertical gradient purple to near-black
-- Modal: blur backdrop + gradient overlay
+### Backgrounds Mesh Gradiente
+- Admin: gradientes radiais nos cantos (purple/indigo/pink opacidade 20%)
+- Chat: gradiente vertical roxo para quase-preto
+- Modal: backdrop blur + overlay gradiente
 
 ---
 
-## Animations
+## Animações
 
-**Standard:** `transition-all duration-300 ease-out`
-**Quick:** `duration-200 ease-in-out`
-**Slow:** `duration-500 ease-out`
-**Spring:** modals/drawers
+**Padrão:** `transition-all duration-300 ease-out`
+**Rápido:** `duration-200 ease-in-out`
+**Lento:** `duration-500 ease-out`
+**Spring:** modais/drawers
 
-### Micro-interactions
-- Button: scale-[0.98] + gradient shift
-- Card hover: scale-[1.02] + enhanced glow
-- Input focus: gradient border 360deg rotation
-- Toggles: smooth slide + gradient trail
+### Micro-interações
+- Botão: scale-[0.98] + mudança gradiente
+- Card hover: scale-[1.02] + brilho aprimorado
+- Input focus: rotação borda gradiente 360deg
+- Toggles: deslize suave + rastro gradiente
 
 ### Scroll
-- Custom gradient thumb scrollbar
-- Smooth with momentum
-- Parallax on metrics (subtle)
+- Scrollbar thumb gradiente customizada
+- Suave com momentum
+- Parallax em métricas (sutil)
 - Fade-in: translate-y-4 opacity-0 → translate-y-0 opacity-100
 
 ---
 
-## Images
+## Imagens
 
-### Admin Hero (h-[400px])
-**Description:** Abstract 3D AI neural networks, flowing data streams, deep purples/indigos, glowing nodes. Premium, cutting-edge, interconnected systems.
-**Treatment:** Gradient overlay transparent → bg color, glassmorphic content
+### Hero Admin (h-[400px])
+**Descrição:** Redes neurais 3D abstratas de IA, fluxos de dados, roxos/índigos profundos, nós brilhantes. Premium, vanguarda, sistemas interconectados.
+**Tratamento:** Overlay gradiente transparente → cor bg, conteúdo glassmórfico
 
-### Chat Background
-**Description:** Minimal geometric gradient mesh pattern, 15-20% opacity. Subtle, non-distracting.
-**Treatment:** Fixed attachment, blend mode, readable text ensured
+### Background Chat
+**Descrição:** Padrão mesh geométrico gradiente mínimo, opacidade 15-20%. Sutil, não distrai.
+**Tratamento:** Anexo fixo, modo de mistura, texto legível assegurado
 
-### Content
-- User uploads: rounded-xl glass frame
-- Dashboards: technical diagrams + gradient accents
-- Avatars: circular + gradient ring
+### Conteúdo
+- Uploads de usuário: moldura vidro rounded-xl
+- Dashboards: diagramas técnicos + acentos gradiente
+- Avatares: circular + anel gradiente
 
 ---
 
-## Responsive
+## Responsivo
 
 ### Admin
-- **lg+:** Full sidebar, 4-col grids
-- **md:** Icon sidebar, 2-col grids
-- **sm:** Drawer sidebar, 1-col stack, horizontal table scroll
+- **lg+:** Sidebar completa, grids 4 colunas
+- **md:** Sidebar ícones, grids 2 colunas
+- **sm:** Drawer sidebar, empilhamento 1 coluna, scroll horizontal tabela
 
 ### Chat
-- **All:** Fixed bottom input + safe-area
-- **Mobile:** max-w-full messages, reduced padding, stacked attachments
-- **Desktop:** max-w-4xl centered, side-by-side previews
+- **Tudo:** Entrada inferior fixa + safe-area
+- **Mobile:** mensagens max-w-full, padding reduzido, anexos empilhados
+- **Desktop:** max-w-4xl centralizado, previews lado a lado
 
 ---
 
-## Accessibility
+## Acessibilidade
 
-- Semantic HTML + ARIA for glass/gradients
-- Keyboard nav with visible gradient focus rings
-- WCAG AA contrast (min 4.5:1 on dark)
-- Glass maintains text readability
-- Screen reader announcements
-- Respect `prefers-reduced-motion`
-- Skip links for dashboard nav
+- HTML semântico + ARIA para vidro/gradientes
+- Navegação por teclado com anéis de foco gradiente visíveis
+- Contraste WCAG AA (mín 4.5:1 em escuro)
+- Vidro mantém legibilidade do texto
+- Anúncios de leitor de tela
+- Respeitar `prefers-reduced-motion`
+- Links de pular para navegação do dashboard
 
 ---
 
-## Technical
+## Técnico
 
-**Icons:** Heroicons (outline/solid) - size-5 inline, size-6 standalone
+**Ícones:** Heroicons (outline/solid) - size-5 inline, size-6 standalone
 **Performance:**
-- Max 3 nested backdrop-blur levels
-- CSS transforms for gradients (GPU)
-- Lazy load charts/visualizations
-- Debounce animations 16ms
+- Máx 3 níveis de backdrop-blur aninhados
+- Transformações CSS para gradientes (GPU)
+- Lazy load gráficos/visualizações
+- Debounce animações 16ms
