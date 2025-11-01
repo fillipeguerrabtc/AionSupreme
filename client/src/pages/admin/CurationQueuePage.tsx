@@ -166,6 +166,35 @@ export default function CurationQueuePage() {
     },
   });
 
+  // Generate AI descriptions for images mutation
+  const generateDescriptionsMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest(`/api/curation/${id}/generate-descriptions`, {
+        method: "POST",
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Atualiza selectedItem com item fresh retornado do backend
+      if (data.item && selectedItem?.id === data.item.id) {
+        setSelectedItem(data.item);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      toast({
+        title: "Descrições geradas com sucesso!",
+        description: `${data.processedImages} imagens processadas`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao gerar descrições",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Approve all mutation
   const approveAllMutation = useMutation({
     mutationFn: async () => {
@@ -624,7 +653,18 @@ export default function CurationQueuePage() {
             {/* Image Preview in Edit Dialog */}
             {selectedItem?.attachments && selectedItem.attachments.filter(a => a.type === "image").length > 0 && (
               <div className="space-y-2">
-                <Label>Imagens Anexadas ({selectedItem.attachments.filter(a => a.type === "image").length})</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Imagens Anexadas ({selectedItem.attachments.filter(a => a.type === "image").length})</Label>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => selectedItem && generateDescriptionsMutation.mutate(selectedItem.id)}
+                    disabled={generateDescriptionsMutation.isPending}
+                    data-testid="button-generate-descriptions"
+                  >
+                    {generateDescriptionsMutation.isPending ? "Gerando..." : "🤖 Gerar Descrições AI"}
+                  </Button>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {selectedItem.attachments.filter(a => a.type === "image").map((img, idx) => (
                     <div key={idx} className="relative group rounded-md overflow-hidden border border-border">
@@ -636,6 +676,9 @@ export default function CurationQueuePage() {
                       />
                       <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1">
                         <p className="truncate">{img.filename}</p>
+                        {img.description && img.description !== "Sem descrição" && (
+                          <p className="text-[10px] text-green-400">✓ Descrição AI</p>
+                        )}
                         <p className="text-[10px] opacity-70">{(img.size / 1024).toFixed(1)} KB</p>
                       </div>
                     </div>

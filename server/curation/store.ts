@@ -82,7 +82,7 @@ export const curationStore = {
   },
 
   /**
-   * Edita item pendente (título, conteúdo, tags, namespaces, nota)
+   * Edita item pendente (título, conteúdo, tags, namespaces, nota, attachments)
    */
   async editItem(
     id: string,
@@ -92,6 +92,14 @@ export const curationStore = {
       tags?: string[];
       suggestedNamespaces?: string[];
       note?: string;
+      attachments?: Array<{
+        type: "image" | "video" | "audio" | "document";
+        url: string;
+        filename: string;
+        mimeType: string;
+        size: number;
+        description?: string;
+      }>;
     }
   ): Promise<CurationItem | null> {
     const item = await this.getById(id);

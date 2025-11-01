@@ -428,6 +428,94 @@ export function registerCurationRoutes(app: Express) {
   });
 
   /**
+   * POST /api/curation/:id/generate-descriptions
+   * Gera descrições AI para imagens em attachments usando Vision Cascade
+   */
+  app.post("/api/curation/:id/generate-descriptions", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Busca item de curadoria
+      const item = await curationStore.getById(id);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Valida se tem attachments
+      if (!item.attachments || item.attachments.length === 0) {
+        return res.status(400).json({ error: "Item has no attachments" });
+      }
+
+      const imageProcessor = new ImageProcessor();
+      const results: Array<{
+        filename: string;
+        description: string;
+        provider?: string;
+        error?: string;
+      }> = [];
+
+      // Processa cada attachment do tipo "image" que não tem description
+      for (const attachment of item.attachments) {
+        if (attachment.type !== "image") {
+          continue;
+        }
+
+        // Se já tem description, pula
+        if (attachment.description && attachment.description !== "Sem descrição") {
+          results.push({
+            filename: attachment.filename,
+            description: attachment.description,
+          });
+          continue;
+        }
+
+        try {
+          // Processa imagem com Vision Cascade
+          const processed = await imageProcessor.processImage(
+            attachment.url,
+            attachment.filename
+          );
+
+          if (processed && processed.description) {
+            // Atualiza attachment com description gerada
+            attachment.description = processed.description;
+            results.push({
+              filename: attachment.filename,
+              description: processed.description,
+            });
+          } else {
+            results.push({
+              filename: attachment.filename,
+              description: "Erro ao gerar descrição",
+              error: "Vision API failed",
+            });
+          }
+        } catch (error: any) {
+          console.error(`[Curation] Erro ao processar ${attachment.filename}:`, error.message);
+          results.push({
+            filename: attachment.filename,
+            description: "Erro ao gerar descrição",
+            error: error.message,
+          });
+        }
+      }
+
+      // Salva item atualizado com descriptions
+      const updatedItem = await curationStore.editItem(id, { attachments: item.attachments });
+
+      res.json({
+        id: item.id,
+        totalAttachments: item.attachments.length,
+        processedImages: results.length,
+        results,
+        item: updatedItem, // Return full updated item for frontend
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * DELETE /api/curation/:id
    * Remove item da fila (apenas para testes)
    */
