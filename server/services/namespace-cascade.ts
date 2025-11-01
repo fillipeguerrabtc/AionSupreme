@@ -84,11 +84,12 @@ export async function cascadeDeleteNamespace(namespaceName: string): Promise<Cas
     
     // Step 3: Delete KB documents and embeddings for all namespaces
     for (const ns of namespacesToDelete) {
-      // Find documents in this namespace
-      const docsInNamespace = await tx
-        .select()
-        .from(documents)
-        .where(eq(documents.namespace, ns));
+      // Find documents in this namespace (documents use metadata.namespaces array)
+      const allDocs = await tx.select().from(documents);
+      const docsInNamespace = allDocs.filter(doc => {
+        const metadata = doc.metadata as any;
+        return metadata?.namespaces?.includes(ns);
+      });
       
       if (docsInNamespace.length > 0) {
         const docIds = docsInNamespace.map(d => d.id);
@@ -100,20 +101,20 @@ export async function cascadeDeleteNamespace(namespaceName: string): Promise<Cas
         
         deletedEmbeddings += deletedEmbeddingsResult.rowCount || 0;
         
-        // Delete physical files
+        // Delete physical files (documents use storageUrl field)
         for (const doc of docsInNamespace) {
-          if (doc.filePath) {
+          if (doc.storageUrl) {
             try {
-              const fullPath = path.isAbsolute(doc.filePath) 
-                ? doc.filePath 
-                : path.join(process.cwd(), doc.filePath);
+              const fullPath = path.isAbsolute(doc.storageUrl) 
+                ? doc.storageUrl 
+                : path.join(process.cwd(), doc.storageUrl);
               
               if (fs.existsSync(fullPath)) {
                 fs.unlinkSync(fullPath);
                 deletedFiles++;
               }
             } catch (error: any) {
-              console.warn(`[Cascade] Could not delete file ${doc.filePath}:`, error.message);
+              console.warn(`[Cascade] Could not delete file ${doc.storageUrl}:`, error.message);
             }
           }
         }
