@@ -15,6 +15,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Upload, 
@@ -54,6 +56,8 @@ export default function KnowledgeBaseTab() {
   const [deleteDocId, setDeleteDocId] = useState<number | null>(null);
   const [showImages, setShowImages] = useState(false);
   const [deleteImageFilename, setDeleteImageFilename] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
+  const [showBulkDeleteImages, setShowBulkDeleteImages] = useState(false);
 
   // Fetch system timezone for dynamic date formatting (single-tenant system)
   const { data: systemTimezone } = useQuery<{ timezone: string }>({
@@ -200,10 +204,38 @@ export default function KnowledgeBaseTab() {
     },
   });
 
+  const bulkDeleteImagesMutation = useMutation({
+    mutationFn: async (filenames: string[]) => {
+      await Promise.all(
+        filenames.map((filename) =>
+          apiRequest(`/api/admin/images/${filename}`, { method: "DELETE" })
+        )
+      );
+      return filenames.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/images"] });
+      toast({
+        title: "Imagens excluídas",
+        description: `${count} imagens removidas com sucesso`,
+      });
+      setSelectedImages(new Set());
+      setShowBulkDeleteImages(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao excluir imagens",
+        description: error.message,
+        variant: "destructive",
+      });
+      setShowBulkDeleteImages(false);
+    },
+  });
+
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Action Buttons */}
-      <div className="grid gap-4 md:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-4">
         <Button
           onClick={() => setShowAddText(!showAddText)}
           className="bg-gradient-to-r from-primary to-accent hover:scale-105 active:scale-95 transition-all duration-300"
@@ -241,16 +273,6 @@ export default function KnowledgeBaseTab() {
         >
           <Upload className="w-4 h-4 mr-2" />
           {t.admin.knowledgeBase.actions.uploadFiles}
-        </Button>
-
-        <Button
-          onClick={() => setShowImages(!showImages)}
-          variant={showImages ? "default" : "secondary"}
-          className="hover:scale-105 active:scale-95 transition-all duration-300"
-          data-testid="button-show-images"
-        >
-          <ImageIcon className="w-4 h-4 mr-2" />
-          Imagens ({images.length})
         </Button>
         <input
           id="file-upload"
@@ -436,17 +458,31 @@ export default function KnowledgeBaseTab() {
         </Card>
       )}
 
-      {/* Documents List */}
-      <Card className="glass-premium border-primary/20">
-        <CardHeader>
-          <CardTitle className="gradient-text">{t.admin.knowledgeBase.documents.title} ({documents.length})</CardTitle>
-          <CardDescription>
-            {t.admin.knowledgeBase.documents.subtitle}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[600px]">
-            <div className="space-y-2">
+      {/* Tabs: Documents | Images */}
+      <Tabs defaultValue="documents" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="documents" data-testid="tab-documents">
+            <FileText className="w-4 h-4 mr-2" />
+            {t.admin.knowledgeBase.documents.title} ({documents.length})
+          </TabsTrigger>
+          <TabsTrigger value="images" data-testid="tab-images">
+            <ImageIcon className="w-4 h-4 mr-2" />
+            Imagens ({images.length})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Documents Tab Content */}
+        <TabsContent value="documents">
+          <Card className="glass-premium border-primary/20">
+            <CardHeader>
+              <CardTitle className="gradient-text">{t.admin.knowledgeBase.documents.title}</CardTitle>
+              <CardDescription>
+                {t.admin.knowledgeBase.documents.subtitle}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[600px]">
+                <div className="space-y-2">
               {isLoading ? (
                 <div className="text-center py-8 text-muted-foreground">{t.admin.knowledgeBase.states.loading}</div>
               ) : documents.length === 0 ? (
@@ -567,63 +603,103 @@ export default function KnowledgeBaseTab() {
           </ScrollArea>
         </CardContent>
       </Card>
+    </TabsContent>
 
-      {/* Images Gallery */}
-      {showImages && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ImageIcon className="w-5 h-5" />
-              Imagens Aprendidas ({images.length})
-            </CardTitle>
-            <CardDescription>
-              Todas as imagens baixadas e processadas pelo sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+    {/* Images Tab Content */}
+    <TabsContent value="images">
+      <Card className="glass-premium border-primary/20">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 gradient-text">
+                <ImageIcon className="w-5 h-5" />
+                Imagens Aprendidas
+              </CardTitle>
+              <CardDescription>
+                Todas as imagens baixadas e processadas pelo sistema
+              </CardDescription>
+            </div>
+            {selectedImages.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowBulkDeleteImages(true)}
+                data-testid="button-bulk-delete-images"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir Selecionadas ({selectedImages.size})
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[600px]">
             {imagesLoading ? (
               <div className="text-center py-8 text-muted-foreground">Carregando imagens...</div>
             ) : images.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">Nenhuma imagem encontrada</div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {images.map((image) => (
-                  <div 
-                    key={image.filename}
-                    className="group relative bg-card border rounded-lg overflow-hidden hover-elevate active-elevate-2 transition-all"
-                  >
-                    <div className="aspect-square overflow-hidden bg-muted">
-                      <img
-                        src={image.path}
-                        alt={image.filename}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="p-2 space-y-1">
-                      <p className="text-xs font-medium truncate" title={image.filename}>
-                        {image.filename}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{(image.size / 1024).toFixed(1)}KB</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => setDeleteImageFilename(image.filename)}
-                          data-testid={`button-delete-image-${image.filename}`}
-                        >
-                          <Trash2 className="w-3 h-3 text-destructive" />
-                        </Button>
+                {images.map((image) => {
+                  const isSelected = selectedImages.has(image.filename);
+                  return (
+                    <div 
+                      key={image.filename}
+                      className={`group relative bg-card border rounded-lg overflow-hidden hover-elevate transition-all ${
+                        isSelected ? 'ring-2 ring-primary' : ''
+                      }`}
+                    >
+                      <div className="absolute top-2 left-2 z-10">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            const newSelected = new Set(selectedImages);
+                            if (checked) {
+                              newSelected.add(image.filename);
+                            } else {
+                              newSelected.delete(image.filename);
+                            }
+                            setSelectedImages(newSelected);
+                          }}
+                          className="bg-background/80 backdrop-blur-sm"
+                          data-testid={`checkbox-image-${image.filename}`}
+                        />
+                      </div>
+                      <div className="aspect-square overflow-hidden bg-muted">
+                        <img
+                          src={image.path}
+                          alt={image.filename}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
+                      <div className="p-2 space-y-1">
+                        <p className="text-xs font-medium truncate" title={image.filename}>
+                          {image.filename}
+                        </p>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{(image.size / 1024).toFixed(1)}KB</span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => setDeleteImageFilename(image.filename)}
+                            data-testid={`button-delete-image-${image.filename}`}
+                          >
+                            <Trash2 className="w-3 h-3 text-destructive" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </TabsContent>
+  </Tabs>
 
       {/* Delete Image Confirmation Dialog */}
       <AlertDialog open={!!deleteImageFilename} onOpenChange={(open) => !open && setDeleteImageFilename(null)}>
@@ -646,6 +722,34 @@ export default function KnowledgeBaseTab() {
               data-testid="button-confirm-delete-image"
             >
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Images Confirmation Dialog */}
+      <AlertDialog open={showBulkDeleteImages} onOpenChange={setShowBulkDeleteImages}>
+        <AlertDialogContent className="glass-premium">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão em massa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedImages.size} imagens? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-bulk-delete-images">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const filenamesToDelete = Array.from(selectedImages);
+                if (filenamesToDelete.length > 0) {
+                  bulkDeleteImagesMutation.mutate(filenamesToDelete);
+                }
+              }}
+              disabled={bulkDeleteImagesMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-bulk-delete-images"
+            >
+              {bulkDeleteImagesMutation.isPending ? "Excluindo..." : "Excluir Todas"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
