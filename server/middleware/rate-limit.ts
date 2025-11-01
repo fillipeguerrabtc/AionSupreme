@@ -137,15 +137,15 @@ setInterval(() => rateLimiter.cleanup(), 5 * 60 * 1000);
 
 /**
  * Rate limiting middleware
+ * SINGLE-TENANT: Rate limits by IP only (no tenant separation)
  */
 export function rateLimitMiddleware(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const tenantId = (req as any).tenantId || "anonymous";
   const ip = req.ip || req.socket.remoteAddress || "unknown";
-  const key = `${tenantId}:${ip}`;
+  const key = `system:${ip}`;
 
   // Check per-minute limit
   if (rateLimiter.shouldLimit(key, "minute")) {
