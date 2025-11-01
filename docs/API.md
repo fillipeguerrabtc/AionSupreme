@@ -588,6 +588,126 @@ Indexa os 19 PDFs técnicos na base de conhecimento.
 
 ---
 
+### GET `/api/admin/lifecycle-policies`
+
+Obter configuração atual de políticas de lifecycle (retenção de dados, cleanup schedules).
+
+#### Request
+
+```http
+GET /api/admin/lifecycle-policies
+```
+
+#### Response (200)
+
+```json
+{
+  "version": "1.0",
+  "description": "LGPD-compliant lifecycle policies with timezone-aware scheduling",
+  "globalDefaults": {
+    "retentionYears": 5,
+    "retentionDays": 1825,
+    "timezone": "America/Sao_Paulo",
+    "auditLogEnabled": true,
+    "dryRun": false
+  },
+  "modules": {
+    "conversations": {
+      "enabled": true,
+      "retentionPolicy": {
+        "archiveAfterMonths": 18,
+        "deleteAfterYears": 5
+      }
+    },
+    "training": {
+      "enabled": true,
+      "retentionPolicy": {
+        "deleteCompletedAfterDays": 30
+      }
+    },
+    "gpu": {
+      "enabled": true,
+      "retentionPolicy": {
+        "deleteStaleWorkersAfterDays": 7
+      }
+    }
+  },
+  "schedule": {
+    "description": "Monthly cleanup on 1st at 06:00 UTC (03:00 Brasília)",
+    "timezone": "America/Sao_Paulo",
+    "runs": [
+      {
+        "frequency": "monthly",
+        "dayOfMonth": 1,
+        "hour": 3,
+        "minute": 0,
+        "modules": ["conversations", "training", "files", "gpu", "agents"]
+      }
+    ]
+  }
+}
+```
+
+---
+
+### PATCH `/api/admin/lifecycle-policies`
+
+Atualizar configuração de políticas de lifecycle (permite updates parciais).
+
+#### Request
+
+```json
+{
+  "globalDefaults": {
+    "retentionYears": 7,
+    "dryRun": false
+  },
+  "modules": {
+    "conversations": {
+      "enabled": true,
+      "retentionPolicy": {
+        "archiveAfterMonths": 24
+      }
+    }
+  }
+}
+```
+
+#### Response (200)
+
+```json
+{
+  "success": true,
+  "policy": {
+    "version": "1.0",
+    "globalDefaults": {
+      "retentionYears": 7,
+      ...
+    },
+    ...
+  }
+}
+```
+
+#### Validation Errors (400)
+
+```json
+{
+  "error": "Invalid lifecycle policy data",
+  "details": {
+    "globalDefaults": {
+      "retentionYears": {
+        "_errors": ["Number must be greater than or equal to 1"]
+      }
+    }
+  }
+}
+```
+
+**Nota**: Endpoint usa validação Zod que permite updates parciais. Apenas campos fornecidos são atualizados.
+
+---
+
 ## 📦 Dataset Management
 
 ### GET `/api/training/datasets`
