@@ -437,7 +437,7 @@ export default function AdminDashboard() {
               </CardTitle>
               <div className="text-2xl sm:text-3xl font-bold gradient-text-vibrant">
                 {costHistory ? (
-                  `$${(costHistory.totalCost || 0).toFixed(4)}`
+                  `$${(costHistory?.overallTotal || 0).toFixed(4)}`
                 ) : (
                   <span className="animate-pulse">...</span>
                 )}

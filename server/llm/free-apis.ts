@@ -6,6 +6,7 @@
 
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getProviderQuotas } from '../monitoring/token-tracker';
 
 // ============================================================================
 // TYPES
@@ -328,6 +329,10 @@ export async function generateWithFreeAPIs(
 
   resetDailyCountsIfNeeded();
   
+  // 🔥 FIX: Read quotas from DATABASE to avoid restart issues
+  const quotasFromDB = await getProviderQuotas();
+  const quotaMap = new Map(quotasFromDB.map(q => [q.provider, q]));
+  
   // Get all enabled providers sorted by priority
   const sortedProviders = FREE_APIS
     .filter(p => p.enabled)
@@ -335,12 +340,13 @@ export async function generateWithFreeAPIs(
 
   // Try each provider ONCE in priority order
   for (const provider of sortedProviders) {
-    // Skip if already failed or over limit
+    // Skip if already failed
     if (failedProviders.has(provider.name)) continue;
     
-    const stats = usageStats[provider.name as keyof typeof usageStats];
-    if (stats.today >= provider.dailyLimit * 0.8) {
-      console.log(`[FREE-APIs] ${provider.name} over limit (${stats.today}/${provider.dailyLimit})`);
+    // 🔥 FIX: Check quota from DATABASE (not in-memory stats)
+    const quota = quotaMap.get(provider.name);
+    if (quota && quota.used >= quota.dailyLimit * 0.8) {
+      console.log(`[FREE-APIs] ${provider.name} over 80% quota (${quota.used}/${quota.dailyLimit}) - skipping`);
       continue;
     }
 
