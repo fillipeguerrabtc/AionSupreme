@@ -1279,7 +1279,6 @@ export const agentRelationships = pgTable("agent_relationships", {
   }>(),
   namespaceSuffix: varchar("namespace_suffix", { length: 256 }), // Append to parent namespace (e.g., "/linux" → "tech/linux/*")
   
-  enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
