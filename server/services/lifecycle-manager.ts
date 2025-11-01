@@ -14,7 +14,6 @@ import {
 } from '@shared/schema';
 import { eq, and, lt, sql, inArray } from 'drizzle-orm';
 import { curationStore } from '../curation/store';
-import { FileCleanup } from '../cleanup/file-cleanup';
 
 interface LifecyclePolicy {
   version: string;
@@ -78,10 +77,8 @@ interface CleanupResult {
 
 export class LifecycleManager {
   private policy: LifecyclePolicy | null = null;
-  private fileCleanup: FileCleanup;
 
   constructor() {
-    this.fileCleanup = new FileCleanup();
   }
 
   /**

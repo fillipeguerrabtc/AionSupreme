@@ -9,6 +9,7 @@ import { storage } from "../storage";
 import fs from "fs/promises";
 import { cleanupOldTokenData } from "../monitoring/token-tracker";
 import { curationStore } from "../curation/store";
+import { lifecycleManager } from "../services/lifecycle-manager";
 
 export class FileCleanup {
   private intervalId: NodeJS.Timeout | null = null;
@@ -140,6 +141,17 @@ export class FileCleanup {
         executed = true;
       } else {
         console.log(`[Data Retention] ○ Curation - no old data to clean`);
+      }
+
+      // Run comprehensive lifecycle cleanup pass
+      console.log(`[Data Retention] Running lifecycle cleanup pass for all modules...`);
+      const lifecycleResults = await lifecycleManager.runLifecyclePass();
+      const totalDeleted = lifecycleResults.reduce((sum, r) => sum + r.recordsDeleted, 0);
+      if (totalDeleted > 0) {
+        console.log(`[Data Retention] ✓ Lifecycle - deleted ${totalDeleted} records across ${lifecycleResults.length} modules`);
+        executed = true;
+      } else {
+        console.log(`[Data Retention] ○ Lifecycle - no old data to clean`);
       }
 
       if (!executed) {

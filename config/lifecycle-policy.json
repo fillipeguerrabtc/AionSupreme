@@ -457,7 +457,7 @@
       {
         "frequency": "monthly",
         "dayOfMonth": 1,
-        "hour": 6,
+        "hour": 3,
         "minute": 0,
         "modules": ["conversations", "trainingData", "datasets", "knowledgeBase", "gpu", "agents", "namespaces", "curation", "tokens"]
       },
