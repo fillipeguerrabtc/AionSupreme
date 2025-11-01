@@ -1262,6 +1262,64 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // POST /api/admin/learn-from-youtube - Extract YouTube video transcript
+  // HITL: Transcript goes through curation queue for human review
+  app.post("/api/admin/learn-from-youtube", async (req, res) => {
+    try {
+      const { url, namespace, title } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "YouTube URL is required" });
+      }
+
+      console.log(`[API] 📹 YouTube transcript requested: ${url}`);
+
+      // Import YouTube service
+      const { fetchYouTubeTranscript, isYouTubeUrl } = await import("./learn/youtube-transcript-service");
+
+      // Validate YouTube URL
+      if (!isYouTubeUrl(url)) {
+        return res.status(400).json({ error: "Invalid YouTube URL" });
+      }
+
+      // Fetch transcript
+      const videoInfo = await fetchYouTubeTranscript(url);
+
+      // Import curation store
+      const { curationStore } = await import("./curation/store");
+
+      // Add to curation queue
+      const item = await curationStore.addToCuration({
+        title: title || `YouTube Video: ${videoInfo.videoId}`,
+        content: videoInfo.transcript,
+        suggestedNamespaces: [namespace || "kb/youtube"],
+        tags: ["youtube", videoInfo.videoId, url],
+        submittedBy: "youtube-import",
+      });
+
+      console.log(`[API] ✅ YouTube transcript submitted to curation queue:`, {
+        videoId: videoInfo.videoId,
+        wordCount: videoInfo.wordCount,
+        curationId: item.id,
+      });
+
+      res.json({
+        success: true,
+        message: `YouTube transcript submitted to curation queue for human review (${videoInfo.wordCount} words)`,
+        videoId: videoInfo.videoId,
+        curationId: item.id,
+        stats: {
+          wordCount: videoInfo.wordCount,
+          duration: videoInfo.duration,
+        },
+        status: "pending_approval"
+      });
+    } catch (error: any) {
+      console.error("[API] ❌ Erro ao processar YouTube:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // POST /api/admin/web-search-learn - Search web and learn
   // HITL FIX: All web search results go through curation queue
   app.post("/api/admin/web-search-learn", async (req, res) => {

@@ -29,7 +29,8 @@ import {
   Save,
   X,
   Plus,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Youtube
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/i18n";
@@ -43,10 +44,14 @@ export default function KnowledgeBaseTab() {
   const { t } = useLanguage();
   const [showAddText, setShowAddText] = useState(false);
   const [showAddUrl, setShowAddUrl] = useState(false);
+  const [showAddYoutube, setShowAddYoutube] = useState(false);
   const [showWebSearch, setShowWebSearch] = useState(false);
   const [newTextTitle, setNewTextTitle] = useState("");
   const [newTextContent, setNewTextContent] = useState("");
   const [urlToLearn, setUrlToLearn] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [youtubeTitle, setYoutubeTitle] = useState("");
+  const [youtubeNamespace, setYoutubeNamespace] = useState<string[]>(["kb/youtube"]);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingDoc, setEditingDoc] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -159,6 +164,33 @@ export default function KnowledgeBaseTab() {
     },
   });
 
+  const learnFromYoutubeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("/api/admin/learn-from-youtube", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: youtubeUrl,
+          namespace: youtubeNamespace[0] || "kb/youtube",
+          title: youtubeTitle || undefined,
+        }),
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/curation"] });
+      setShowAddYoutube(false);
+      setYoutubeUrl("");
+      setYoutubeTitle("");
+      setYoutubeNamespace(["kb/youtube"]);
+      toast({ 
+        title: "Transcrição do YouTube enviada para curadoria!",
+        description: `${data.stats?.wordCount || 0} palavras extraídas do vídeo`,
+      });
+    },
+  });
+
   const updateDocMutation = useMutation({
     mutationFn: async ({ id, title, content, namespaces }: { id: number; title: string; content: string; namespaces?: string[] }) => {
       const res = await apiRequest(`/api/admin/documents/${id}`, {
@@ -235,7 +267,7 @@ export default function KnowledgeBaseTab() {
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Action Buttons */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <Button
           onClick={() => setShowAddText(!showAddText)}
           className="bg-gradient-to-r from-primary to-accent hover:scale-105 active:scale-95 transition-all duration-300"
@@ -253,6 +285,16 @@ export default function KnowledgeBaseTab() {
         >
           <LinkIcon className="w-4 h-4 mr-2" />
           {t.admin.knowledgeBase.actions.learnFromUrl}
+        </Button>
+
+        <Button
+          onClick={() => setShowAddYoutube(!showAddYoutube)}
+          variant="secondary"
+          className="hover:scale-105 active:scale-95 transition-all duration-300 bg-red-600/10 hover:bg-red-600/20 text-red-600 dark:text-red-400 border-red-600/30"
+          data-testid="button-learn-youtube"
+        >
+          <Youtube className="w-4 h-4 mr-2" />
+          YouTube
         </Button>
 
         <Button
@@ -414,6 +456,59 @@ export default function KnowledgeBaseTab() {
             >
               <LinkIcon className="w-4 h-4 mr-2" />
               {learnFromUrlMutation.isPending ? t.admin.knowledgeBase.forms.learnUrl.learning : t.admin.knowledgeBase.forms.learnUrl.learnFromThisUrl}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Learn from YouTube Form */}
+      {showAddYoutube && (
+        <Card className="glass-premium border-red-600/20 animate-slide-up">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Youtube className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <span className="gradient-text-vibrant">Aprender de Vídeo do YouTube</span>
+              </span>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setShowAddYoutube(false)}
+                data-testid="button-close-learn-youtube"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </CardTitle>
+            <CardDescription>
+              Extrai a transcrição do vídeo e envia para fila de curadoria (HITL)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              placeholder="https://www.youtube.com/watch?v=..."
+              value={youtubeUrl}
+              onChange={(e) => setYoutubeUrl(e.target.value)}
+              data-testid="input-youtube-url"
+            />
+            <Input
+              placeholder="Título do vídeo (opcional - detectado automaticamente)"
+              value={youtubeTitle}
+              onChange={(e) => setYoutubeTitle(e.target.value)}
+              data-testid="input-youtube-title"
+            />
+            <NamespaceSelector
+              value={youtubeNamespace}
+              onChange={setYoutubeNamespace}
+              allowWildcard={false}
+            />
+            <Button
+              onClick={() => learnFromYoutubeMutation.mutate()}
+              disabled={!youtubeUrl || learnFromYoutubeMutation.isPending}
+              className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600"
+              data-testid="button-start-learn-youtube"
+            >
+              <Youtube className="w-4 h-4 mr-2" />
+              {learnFromYoutubeMutation.isPending ? "Extraindo transcrição..." : "Extrair Transcrição"}
             </Button>
           </CardContent>
         </Card>
