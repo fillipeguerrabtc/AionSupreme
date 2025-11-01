@@ -33,6 +33,7 @@ import { AdminSidebar } from "@/components/AdminSidebar";
 import AgentsPage from "./AgentsPage";
 import CurationQueuePage from "./CurationQueuePage";
 import NamespacesPage from "./NamespacesPage";
+import ImagesGalleryPage from "./ImagesGalleryPage";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -753,6 +754,12 @@ export default function AdminDashboard() {
               {activeTab === "curation" && (
                 <div className="space-y-6">
                   <CurationQueuePage />
+                </div>
+              )}
+
+              {activeTab === "images" && (
+                <div className="space-y-6">
+                  <ImagesGalleryPage />
                 </div>
               )}
 

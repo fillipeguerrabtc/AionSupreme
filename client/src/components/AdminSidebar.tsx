@@ -12,6 +12,7 @@ import {
   Users,
   ClipboardCheck,
   FolderTree,
+  Image,
 } from "lucide-react";
 import {
   Sidebar,
@@ -100,6 +101,12 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: ClipboardCheck,
       value: "curation",
       testId: "nav-curation",
+    },
+    {
+      title: "Galeria de Imagens",
+      icon: Image,
+      value: "images",
+      testId: "nav-images",
     },
     {
       title: "Namespaces",

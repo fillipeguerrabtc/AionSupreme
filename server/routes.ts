@@ -794,6 +794,57 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // POST /api/admin/kb/reset - Clear ALL Knowledge Base data (for testing)
+  app.post("/api/admin/kb/reset", async (req, res) => {
+    try {
+      const { documents, embeddings, curationQueue } = await import("@shared/schema");
+      
+      console.log("[KB Reset] ⚠️ INICIANDO RESET COMPLETO DA KB...");
+      
+      // 1. Delete all embeddings
+      const deletedEmbeddings = await db.delete(embeddings);
+      console.log("[KB Reset] ✓ Embeddings deletados");
+      
+      // 2. Delete all documents
+      const deletedDocs = await db.delete(documents);
+      console.log("[KB Reset] ✓ Documentos deletados");
+      
+      // 3. Clear curation queue (optional - user can decide)
+      if (req.body.clearCurationQueue) {
+        const deletedCuration = await db.delete(curationQueue);
+        console.log("[KB Reset] ✓ Fila de curadoria limpa");
+      }
+      
+      // 4. Delete learned images if requested
+      if (req.body.clearImages) {
+        const learnedImagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
+        if (fsSync.existsSync(learnedImagesDir)) {
+          const files = fsSync.readdirSync(learnedImagesDir);
+          files.forEach(file => {
+            fsSync.unlinkSync(path.join(learnedImagesDir, file));
+          });
+          console.log(`[KB Reset] ✓ ${files.length} imagens deletadas`);
+        }
+      }
+      
+      console.log("[KB Reset] ✅ RESET COMPLETO - KB está VAZIA");
+      
+      res.json({ 
+        success: true,
+        message: "Knowledge Base completamente resetada",
+        cleared: {
+          documents: true,
+          embeddings: true,
+          curationQueue: req.body.clearCurationQueue || false,
+          images: req.body.clearImages || false
+        }
+      });
+    } catch (error: any) {
+      console.error("[KB Reset] ❌ Erro ao resetar KB:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /api/admin/images - List all learned images
   app.get("/api/admin/images", async (req, res) => {
     try {
@@ -824,6 +875,100 @@ export function registerRoutes(app: Express): Server {
 
       res.json(images);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // GET /api/admin/images/all - Get ALL images from ALL sources
+  app.get("/api/admin/images/all", async (req, res) => {
+    try {
+      const allImages: any[] = [];
+
+      // 1. Learned images (from crawler)
+      const learnedImagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
+      if (fsSync.existsSync(learnedImagesDir)) {
+        const learnedFiles = fsSync.readdirSync(learnedImagesDir);
+        learnedFiles
+          .filter((f: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(f))
+          .forEach((filename: string) => {
+            const filepath = path.join(learnedImagesDir, filename);
+            const stats = fsSync.statSync(filepath);
+            allImages.push({
+              id: `learned-${filename}`,
+              filename,
+              url: `/images/${filename}`,
+              source: 'crawler',
+              size: stats.size,
+              createdAt: stats.birthtime,
+              mimeType: filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)?.[0].substring(1) || 'image'
+            });
+          });
+      }
+
+      // 2. Chat images (from user uploads)
+      const chatImagesDir = path.join(process.cwd(), 'attached_assets', 'chat_images');
+      if (fsSync.existsSync(chatImagesDir)) {
+        const chatFiles = fsSync.readdirSync(chatImagesDir);
+        chatFiles
+          .filter((f: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(f))
+          .forEach((filename: string) => {
+            const filepath = path.join(chatImagesDir, filename);
+            const stats = fsSync.statSync(filepath);
+            allImages.push({
+              id: `chat-${filename}`,
+              filename,
+              url: `/attached_assets/chat_images/${filename}`,
+              source: 'chat',
+              size: stats.size,
+              createdAt: stats.birthtime,
+              mimeType: filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)?.[0].substring(1) || 'image'
+            });
+          });
+      }
+
+      // 3. Images from approved documents (KB)
+      const { documents } = await import("@shared/schema");
+      const docsWithImages = await db
+        .select()
+        .from(documents)
+        .where(sql`status = 'indexed' AND attachments IS NOT NULL`);
+      
+      docsWithImages.forEach((doc: any) => {
+        if (doc.attachments && Array.isArray(doc.attachments)) {
+          doc.attachments
+            .filter((att: any) => att.type === 'image')
+            .forEach((img: any, idx: number) => {
+              allImages.push({
+                id: `doc-${doc.id}-${idx}`,
+                filename: img.filename,
+                url: img.url,
+                source: 'document',
+                size: img.size,
+                mimeType: img.mimeType,
+                description: img.description,
+                createdAt: doc.createdAt,
+                documentId: doc.id,
+                documentTitle: doc.title,
+                namespace: doc.namespace
+              });
+            });
+        }
+      });
+
+      // Sort by creation date (newest first)
+      allImages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      res.json({
+        total: allImages.length,
+        sources: {
+          crawler: allImages.filter(i => i.source === 'crawler').length,
+          chat: allImages.filter(i => i.source === 'chat').length,
+          document: allImages.filter(i => i.source === 'document').length
+        },
+        images: allImages
+      });
+    } catch (error: any) {
+      console.error("[API] Error fetching all images:", error);
       res.status(500).json({ error: error.message });
     }
   });

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock } from "lucide-react";
+import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,14 @@ interface CurationItem {
   reviewedBy?: string;
   reviewedAt?: string;
   note?: string;
+  attachments?: Array<{
+    type: "image" | "video" | "audio" | "document";
+    url: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+    description?: string;
+  }>;
 }
 
 export default function CurationQueuePage() {
@@ -492,6 +500,47 @@ export default function CurationQueuePage() {
                   <p className="text-sm text-muted-foreground line-clamp-3">{item.content}</p>
                 </div>
 
+                {/* Image Preview Gallery */}
+                {item.attachments && item.attachments.filter(a => a.type === "image").length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">
+                        Imagens ({item.attachments.filter(a => a.type === "image").length})
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {item.attachments.filter(a => a.type === "image").map((img, idx) => (
+                        <div key={idx} className="relative group rounded-md overflow-hidden border border-border hover-elevate" data-testid={`image-preview-${idx}`}>
+                          <img 
+                            src={img.url} 
+                            alt={img.description || img.filename}
+                            className="w-full h-32 object-cover"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <a 
+                              href={img.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-white text-xs flex items-center gap-1 hover:underline"
+                              data-testid={`link-image-${idx}`}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Ver original
+                            </a>
+                          </div>
+                          {img.description && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 line-clamp-2">
+                              {img.description}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <div>
                     <span className="text-sm font-medium">Namespaces:</span>
@@ -567,6 +616,32 @@ export default function CurationQueuePage() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Verifique se todo o conteúdo do link (incluindo sublinks) foi extraído corretamente
+                </p>
+              </div>
+            )}
+
+            {/* Image Preview in Edit Dialog */}
+            {selectedItem?.attachments && selectedItem.attachments.filter(a => a.type === "image").length > 0 && (
+              <div className="space-y-2">
+                <Label>Imagens Anexadas ({selectedItem.attachments.filter(a => a.type === "image").length})</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {selectedItem.attachments.filter(a => a.type === "image").map((img, idx) => (
+                    <div key={idx} className="relative group rounded-md overflow-hidden border border-border">
+                      <img 
+                        src={img.url} 
+                        alt={img.description || img.filename}
+                        className="w-full h-24 object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1">
+                        <p className="truncate">{img.filename}</p>
+                        <p className="text-[10px] opacity-70">{(img.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Todas as imagens serão indexadas junto com o conteúdo após aprovação
                 </p>
               </div>
             )}
