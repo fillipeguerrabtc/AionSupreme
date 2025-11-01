@@ -141,7 +141,6 @@ export async function seedCompleteSystem() {
           slug: tool.slug,
           type: tool.type,
           config: tool.config,
-          enabled: true,
         })
         .onConflictDoUpdate({
           target: tools.id,
