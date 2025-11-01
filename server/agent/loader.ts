@@ -12,13 +12,12 @@ export async function loadAgentsFromDatabase(): Promise<void> {
   console.log(`[AgentLoader] Loading agents...`);
   
   try {
-    // Fetch all enabled agents
+    // Fetch all agents (if exists in DB, it's active)
     const dbAgents = await agentsStorage.listAgents();
-    const enabledAgents = dbAgents.filter(a => a.enabled);
     
-    console.log(`[AgentLoader] Found ${enabledAgents.length} enabled agents`);
+    console.log(`[AgentLoader] Found ${dbAgents.length} agents`);
     
-    for (const dbAgent of enabledAgents) {
+    for (const dbAgent of dbAgents) {
       try {
         // Fetch tools for this agent
         const agentTools = await agentsStorage.getAgentTools(dbAgent.id);
@@ -32,7 +31,6 @@ export async function loadAgentsFromDatabase(): Promise<void> {
           type: (dbAgent.type || "specialist") as "specialist" | "generalist" | "router-only",
           description: dbAgent.description || undefined,
           systemPrompt: dbAgent.systemPrompt || undefined,
-          enabled: dbAgent.enabled,
           ragNamespaces: dbAgent.ragNamespaces || [],
           allowedTools: toolNames,
           policy: dbAgent.policy || {},
@@ -74,13 +72,6 @@ export async function reloadAgent(agentId: string): Promise<void> {
     return;
   }
   
-  if (!dbAgent.enabled) {
-    // Unregister if disabled
-    agentRegistry.unregisterAgent(agentId);
-    console.log(`[AgentLoader] Unregistered disabled agent: ${agentId}`);
-    return;
-  }
-  
   // Fetch tools
   const agentTools = await agentsStorage.getAgentTools(agentId);
   const toolNames = agentTools.map(t => t.name);
@@ -93,7 +84,6 @@ export async function reloadAgent(agentId: string): Promise<void> {
     type: (dbAgent.type || "specialist") as "specialist" | "generalist" | "router-only",
     description: dbAgent.description || undefined,
     systemPrompt: dbAgent.systemPrompt || undefined,
-    enabled: dbAgent.enabled,
     ragNamespaces: dbAgent.ragNamespaces || [],
     allowedTools: toolNames,
     policy: dbAgent.policy || {},

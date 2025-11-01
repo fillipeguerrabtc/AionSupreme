@@ -38,7 +38,6 @@ export interface Agent {
   type: "specialist" | "generalist" | "router-only";
   description?: string;
   systemPrompt?: string;
-  enabled: boolean;
   ragNamespaces: string[];
   allowedTools: string[];
   policy: any;

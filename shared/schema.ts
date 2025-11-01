@@ -1223,8 +1223,6 @@ export const agents = pgTable("agents", {
   budgetLimit: real("budget_limit"), // Optional per-agent budget limit in USD
   escalationAgent: varchar("escalation_agent", { length: 120 }), // Optional agent ID to escalate to
   metadata: jsonb("metadata"), // Optional metadata for custom agent properties
-  enabled: boolean("enabled").notNull().default(true),
-  disabledAt: timestamp("disabled_at"), // Timestamp when agent was soft-deleted (for lifecycle GC)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -1233,7 +1231,6 @@ export const insertAgentSchema = createInsertSchema(agents).omit({
   id: true, 
   createdAt: true, 
   updatedAt: true,
-  disabledAt: true,
 }).extend({
   // Enhanced validations for agent tier and namespace assignment
   agentTier: z.enum(["agent", "subagent"]).default("agent"),
@@ -1424,8 +1421,6 @@ export const namespaces = pgTable("namespaces", {
   relatedNamespaces: jsonb("related_namespaces").$type<string[]>().default([]), // Array of related namespace names
   icon: varchar("icon", { length: 50 }), // Lucide icon name
   category: varchar("category", { length: 100 }), // Category for grouping
-  enabled: boolean("enabled").notNull().default(true),
-  disabledAt: timestamp("disabled_at"), // Timestamp when namespace was soft-deleted (for lifecycle GC)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -1437,7 +1432,6 @@ export const insertNamespaceSchema = createInsertSchema(namespaces).omit({
   id: true, 
   createdAt: true, 
   updatedAt: true,
-  disabledAt: true,
 });
 export type InsertNamespace = z.infer<typeof insertNamespaceSchema>;
 export type Namespace = typeof namespaces.$inferSelect;

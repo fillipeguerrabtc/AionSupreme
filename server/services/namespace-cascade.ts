@@ -1,6 +1,8 @@
 import { db } from "../db";
-import { namespaces, agents } from "@shared/schema";
+import { namespaces, agents, documents, embeddings } from "@shared/schema";
 import { eq, like, inArray } from "drizzle-orm";
+import * as fs from "fs";
+import * as path from "path";
 
 /**
  * Cascade Delete Service for Namespaces
@@ -16,6 +18,9 @@ import { eq, like, inArray } from "drizzle-orm";
 export interface CascadeDeleteResult {
   deletedNamespaces: string[];
   deletedAgents: string[];
+  deletedDocuments: number;
+  deletedEmbeddings: number;
+  deletedFiles: number;
   totalDeleted: number;
 }
 
@@ -61,6 +66,9 @@ async function findAgentsByNamespace(namespaceName: string): Promise<string[]> {
 export async function cascadeDeleteNamespace(namespaceName: string): Promise<CascadeDeleteResult> {
   const deletedNamespaces: string[] = [];
   const deletedAgents: string[] = [];
+  let deletedDocuments = 0;
+  let deletedEmbeddings = 0;
+  let deletedFiles = 0;
 
   // CRITICAL: Wrap in transaction for atomicity
   await db.transaction(async (tx) => {
@@ -71,11 +79,53 @@ export async function cascadeDeleteNamespace(namespaceName: string): Promise<Cas
       .where(like(namespaces.name, `${namespaceName}/%`))
       .then((rows) => rows.map((ns) => ns.name));
     
-    // Step 2: Delete all agents/subagents for THIS namespace and all children
+    // Step 2: Collect all namespaces to delete (parent + children)
     const namespacesToDelete = [namespaceName, ...children];
     
+    // Step 3: Delete KB documents and embeddings for all namespaces
     for (const ns of namespacesToDelete) {
-      // Find ALL agents (enabled + disabled) to prevent orphans
+      // Find documents in this namespace
+      const docsInNamespace = await tx
+        .select()
+        .from(documents)
+        .where(eq(documents.namespace, ns));
+      
+      if (docsInNamespace.length > 0) {
+        const docIds = docsInNamespace.map(d => d.id);
+        
+        // Delete embeddings first (foreign key constraint)
+        const deletedEmbeddingsResult = await tx
+          .delete(embeddings)
+          .where(inArray(embeddings.documentId, docIds));
+        
+        deletedEmbeddings += deletedEmbeddingsResult.rowCount || 0;
+        
+        // Delete physical files
+        for (const doc of docsInNamespace) {
+          if (doc.filePath) {
+            try {
+              const fullPath = path.isAbsolute(doc.filePath) 
+                ? doc.filePath 
+                : path.join(process.cwd(), doc.filePath);
+              
+              if (fs.existsSync(fullPath)) {
+                fs.unlinkSync(fullPath);
+                deletedFiles++;
+              }
+            } catch (error: any) {
+              console.warn(`[Cascade] Could not delete file ${doc.filePath}:`, error.message);
+            }
+          }
+        }
+        
+        // Delete documents
+        await tx.delete(documents).where(inArray(documents.id, docIds));
+        deletedDocuments += docsInNamespace.length;
+      }
+    }
+    
+    // Step 4: Delete all agents/subagents for these namespaces
+    for (const ns of namespacesToDelete) {
       const matchingAgents = await tx
         .select()
         .from(agents)
@@ -85,27 +135,31 @@ export async function cascadeDeleteNamespace(namespaceName: string): Promise<Cas
       
       const agentIds = matchingAgents.map((a) => a.id);
       
-      // Delete agents (hard delete for cascade) - batch operation
       if (agentIds.length > 0) {
         await tx.delete(agents).where(inArray(agents.id, agentIds));
         deletedAgents.push(...agentIds);
       }
     }
 
-    // Step 3: Delete all child namespaces (batch)
+    // Step 5: Delete all child namespaces (batch)
     if (children.length > 0) {
       await tx.delete(namespaces).where(inArray(namespaces.name, children));
       deletedNamespaces.push(...children);
     }
 
-    // Step 4: Delete the parent namespace itself
+    // Step 6: Delete the parent namespace itself
     await tx.delete(namespaces).where(eq(namespaces.name, namespaceName));
     deletedNamespaces.push(namespaceName);
   });
 
+  console.log(`[Cascade] Deleted namespace "${namespaceName}": ${deletedNamespaces.length} namespaces, ${deletedAgents.length} agents, ${deletedDocuments} documents, ${deletedEmbeddings} embeddings, ${deletedFiles} files`);
+
   return {
     deletedNamespaces,
     deletedAgents,
-    totalDeleted: deletedNamespaces.length + deletedAgents.length,
+    deletedDocuments,
+    deletedEmbeddings,
+    deletedFiles,
+    totalDeleted: deletedNamespaces.length + deletedAgents.length + deletedDocuments,
   };
 }
