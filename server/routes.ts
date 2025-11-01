@@ -973,6 +973,88 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // DELETE /api/admin/images - Delete multiple images
+  app.delete("/api/admin/images", async (req, res) => {
+    try {
+      const { imageIds } = req.body;
+      
+      if (!Array.isArray(imageIds) || imageIds.length === 0) {
+        return res.status(400).json({ error: "imageIds must be a non-empty array" });
+      }
+
+      console.log(`[DELETE Images] Deleting ${imageIds.length} images...`);
+      
+      let deletedCount = 0;
+      const errors: string[] = [];
+
+      for (const imageId of imageIds) {
+        try {
+          // Parse image ID format: "source-filename" or "doc-docId-idx"
+          const parts = imageId.split('-');
+          const source = parts[0];
+
+          if (source === 'learned') {
+            // Delete from learned_images
+            const filename = parts.slice(1).join('-');
+            const filepath = path.join(process.cwd(), 'attached_assets', 'learned_images', filename);
+            
+            if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+              errors.push(`Invalid filename: ${filename}`);
+              continue;
+            }
+
+            if (fsSync.existsSync(filepath)) {
+              fsSync.unlinkSync(filepath);
+              deletedCount++;
+              console.log(`[DELETE Images] ✓ Deleted: ${filename}`);
+            } else {
+              errors.push(`File not found: ${filename}`);
+            }
+          } else if (source === 'chat') {
+            // Delete from chat_images
+            const filename = parts.slice(1).join('-');
+            const filepath = path.join(process.cwd(), 'attached_assets', 'chat_images', filename);
+            
+            if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+              errors.push(`Invalid filename: ${filename}`);
+              continue;
+            }
+
+            if (fsSync.existsSync(filepath)) {
+              fsSync.unlinkSync(filepath);
+              deletedCount++;
+              console.log(`[DELETE Images] ✓ Deleted: ${filename}`);
+            } else {
+              errors.push(`File not found: ${filename}`);
+            }
+          } else if (source === 'doc') {
+            // Images from documents - don't delete (managed by document lifecycle)
+            errors.push(`Cannot delete document images directly - delete the document instead`);
+          } else {
+            errors.push(`Unknown source: ${source}`);
+          }
+        } catch (err: any) {
+          console.error(`[DELETE Images] Error deleting ${imageId}:`, err);
+          errors.push(`${imageId}: ${err.message}`);
+        }
+      }
+
+      console.log(`[DELETE Images] ✅ Deleted ${deletedCount} images`);
+      if (errors.length > 0) {
+        console.log(`[DELETE Images] ⚠️ Errors:`, errors);
+      }
+
+      res.json({ 
+        success: true,
+        deleted: deletedCount,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error: any) {
+      console.error("[DELETE Images] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // DELETE /api/admin/images/:filename - Delete learned image
   app.delete("/api/admin/images/:filename", async (req, res) => {
     try {
