@@ -16,6 +16,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 1, 2025)
 
+### 🔗 Hierarchical Sub-Agent Orchestration System
+- **Agent Relationships Schema**: New `agent_relationships` table with parent/child delegation, budget sharing (0-1 decimal), delegation modes (always/dynamic/fallback), max depth limits, and soft-delete support
+- **Hierarchical Orchestrator**: Recursive delegation engine with confidence-weighted aggregation, budget normalization (prevents cost overruns), cycle detection (BFS), and trace logging for parent→child workflows
+- **Admin UI - Hierarchy Management**: 
+  - Tabs interface (Agentes vs Hierarquia) in AgentsPage
+  - Create relationships: parent/child dropdowns with filtering (no self-loops), budget slider (10-100% → 0.4 normalized), delegation mode selector, max depth input
+  - List relationships: Table with parent/child names (Drizzle double-alias), budget %, mode, depth, status badges, delete actions
+  - Budget display fix: Handles both legacy (>1) and normalized (0-1) values
+- **Backend Storage (server/storage.agent-relationships.ts)**:
+  - Distinct Drizzle aliases: `alias(agents, "parent_agents")` + `alias(agents, "child_agents")` for proper JOIN hydration
+  - Soft-delete filtering: `.where(eq(agentRelationships.enabled, true))` in listAll()
+  - Cycle prevention: BFS traversal blocks circular delegations
+- **E2E Testing**: Playwright smoke test passed (create → list → delete flow verified, budget normalization correct, soft-delete filtering applied)
+- **Location**: `server/agent/hierarchy-orchestrator.ts`, `server/storage.agent-relationships.ts`, `server/routes/agent-relationships.ts`, `client/src/components/agents/AgentHierarchyManager.tsx`, `shared/schema.ts`
+
 ### 🌱 Complete Multi-Agent System Seed
 - **Database-Driven Architecture**: All namespaces, tools, and agents now stored in PostgreSQL (zero hardcode)
 - **50 Namespaces**: Migrated all NAMESPACE_CATEGORIES to DB with hierarchical organization (curation, finance, tech, tourism, auto, management, calendar, marketing, general)
