@@ -37,6 +37,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Users } from "lucide-react";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { getNamespaceLabel } from "@shared/namespaces";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AgentHierarchyManager } from "@/components/agents/AgentHierarchyManager";
 
 type Agent = {
   id: string;
@@ -179,12 +181,23 @@ export default function AgentsPage() {
         <div className="flex-1 min-w-0">
           <h1 className="text-3xl font-semibold flex items-center gap-2 break-words">
             <Users className="w-8 h-8 shrink-0" />
-            Agentes Especialistas
+            Agentes & Hierarquia
           </h1>
           <p className="text-muted-foreground mt-1 break-words">
-            Gerencie agentes com conhecimento especializado em domínios verticais
+            Gerencie agentes especializados e delegação hierárquica multi-camada
           </p>
         </div>
+      </div>
+
+      <Tabs defaultValue="agents" className="w-full">
+        <TabsList>
+          <TabsTrigger value="agents" data-testid="tab-agents">Agentes</TabsTrigger>
+          <TabsTrigger value="hierarchy" data-testid="tab-hierarchy">Hierarquia</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="agents" className="space-y-4 mt-4">
+          <div className="flex items-center justify-end">
+        
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button data-testid="button-create-agent" className="shrink-0">
@@ -353,6 +366,12 @@ export default function AgentsPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="hierarchy" className="mt-4">
+          <AgentHierarchyManager />
+        </TabsContent>
+      </Tabs>
 
       {/* Edit Agent Dialog */}
       <Dialog open={selectedAgent !== null} onOpenChange={(open) => !open && setSelectedAgent(null)}>

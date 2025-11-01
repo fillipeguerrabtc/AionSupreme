@@ -35,6 +35,7 @@ import { db } from "./db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { trainingDataCollection, datasets, trainingJobs } from "../shared/schema";
 import { registerAgentRoutes } from "./routes/agents";
+import { registerAgentRelationshipRoutes } from "./routes/agent-relationships";
 import { registerCurationRoutes } from "./routes/curation";
 import { registerKbPromoteRoutes } from "./routes/kb_promote";
 import { registerNamespaceRoutes } from "./routes/namespaces";
@@ -56,6 +57,7 @@ export function registerRoutes(app: Express): Server {
 
   // Register multi-agent routes
   registerAgentRoutes(app);
+  registerAgentRelationshipRoutes(app);
   
   // Register curation routes (HITL)
   registerCurationRoutes(app);
