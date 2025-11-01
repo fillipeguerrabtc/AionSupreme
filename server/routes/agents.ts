@@ -2,6 +2,7 @@
 import type { Express } from "express";
 import { agentsStorage } from "../storage.agents";
 import { publishEvent } from "../events";
+import { validateNamespaceAssignment } from "../agent/namespace-validators";
 
 export function registerAgentRoutes(app: Express) {
   app.get("/api/agents", async (req, res) => {
@@ -15,6 +16,15 @@ export function registerAgentRoutes(app: Express) {
 
   app.post("/api/agents", async (req, res) => {
     try {
+      // Validate namespace assignment based on agentTier
+      const agentTier = req.body.agentTier || "agent";
+      const assignedNamespaces = req.body.assignedNamespaces || [];
+      
+      const validation = validateNamespaceAssignment(agentTier, assignedNamespaces);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+      }
+
       const created = await agentsStorage.createAgent(req.body);
       await publishEvent("AGENT_CREATED", { agentId: created.id });
       res.status(201).json(created);
@@ -35,6 +45,23 @@ export function registerAgentRoutes(app: Express) {
 
   app.patch("/api/agents/:id", async (req, res) => {
     try {
+      // Validate namespace assignment if being updated
+      if (req.body.agentTier || req.body.assignedNamespaces) {
+        // Get existing agent to merge with updates
+        const existing = await agentsStorage.getAgent(req.params.id);
+        if (!existing) {
+          return res.status(404).json({ error: "Agent not found" });
+        }
+
+        const agentTier = req.body.agentTier || existing.agentTier || "agent";
+        const assignedNamespaces = req.body.assignedNamespaces || existing.assignedNamespaces || [];
+        
+        const validation = validateNamespaceAssignment(agentTier, assignedNamespaces);
+        if (!validation.valid) {
+          return res.status(400).json({ error: validation.error });
+        }
+      }
+
       const updated = await agentsStorage.updateAgent(req.params.id, req.body);
       await publishEvent("AGENT_UPDATED", { agentId: req.params.id, namespacesChanged: true, namespaces: updated?.ragNamespaces || [] });
       res.json(updated);

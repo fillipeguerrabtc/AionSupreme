@@ -39,12 +39,16 @@ import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { getNamespaceLabel } from "@shared/namespaces";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentHierarchyManager } from "@/components/agents/AgentHierarchyManager";
+import { CreateAgentForm } from "@/components/agents/CreateAgentForm";
+import { CreateSubAgentForm } from "@/components/agents/CreateSubAgentForm";
 
 type Agent = {
   id: string;
   name: string;
   slug: string;
   type: string;
+  agentTier?: "agent" | "subagent";
+  assignedNamespaces?: string[];
   description?: string;
   systemPrompt?: string;
   enabled: boolean;
@@ -189,13 +193,15 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="agents" className="w-full">
-        <TabsList>
-          <TabsTrigger value="agents" data-testid="tab-agents">Agentes</TabsTrigger>
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="list" data-testid="tab-agents-list">Lista</TabsTrigger>
+          <TabsTrigger value="create-agent" data-testid="tab-create-agent">Criar Agent</TabsTrigger>
+          <TabsTrigger value="create-subagent" data-testid="tab-create-subagent">Criar SubAgent</TabsTrigger>
           <TabsTrigger value="hierarchy" data-testid="tab-hierarchy">Hierarquia</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="agents" className="space-y-4 mt-4">
+        <TabsContent value="list" className="space-y-4 mt-4">
           <div className="flex items-center justify-end">
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -366,6 +372,14 @@ export default function AgentsPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="create-agent" className="mt-4">
+          <CreateAgentForm />
+        </TabsContent>
+
+        <TabsContent value="create-subagent" className="mt-4">
+          <CreateSubAgentForm />
         </TabsContent>
 
         <TabsContent value="hierarchy" className="mt-4">

@@ -1124,6 +1124,15 @@ export const agents = pgTable("agents", {
   name: varchar("name", { length: 120 }).notNull(),
   slug: varchar("slug", { length: 120 }).notNull(),
   type: varchar("type", { length: 32 }).notNull().default("specialist"), // specialist|generalist|router-only
+  
+  // NEW: Agent tier for hierarchical organization (aligned with namespaces)
+  agentTier: varchar("agent_tier", { length: 16 }).notNull().default("agent"), // "agent" | "subagent"
+  
+  // NEW: Assigned namespaces for automatic hierarchy inference
+  // - Agents: 1 namespace (root, e.g., "financas")
+  // - SubAgents: N subnamespaces with same prefix (e.g., ["financas/investimentos", "financas/impostos"])
+  assignedNamespaces: jsonb("assigned_namespaces").$type<string[]>().default([]),
+  
   description: text("description"),
   systemPrompt: text("system_prompt"),
   inferenceConfig: jsonb("inference_config").$type<{
@@ -1144,7 +1153,7 @@ export const agents = pgTable("agents", {
       negativeSentiment?: boolean;
     };
   }>(),
-  ragNamespaces: jsonb("rag_namespaces").$type<string[]>(), // Scoped KB namespaces
+  ragNamespaces: jsonb("rag_namespaces").$type<string[]>(), // LEGACY: Use assignedNamespaces instead
   budgetLimit: real("budget_limit"), // Optional per-agent budget limit in USD
   escalationAgent: varchar("escalation_agent", { length: 120 }), // Optional agent ID to escalate to
   metadata: jsonb("metadata"), // Optional metadata for custom agent properties
@@ -1157,7 +1166,28 @@ export const insertAgentSchema = createInsertSchema(agents).omit({
   id: true, 
   createdAt: true, 
   updatedAt: true 
+}).extend({
+  // Enhanced validations for agent tier and namespace assignment
+  agentTier: z.enum(["agent", "subagent"]).default("agent"),
+  assignedNamespaces: z.array(z.string()).default([]).refine(
+    (namespaces) => {
+      if (namespaces.length === 0) return true; // Allow empty for now
+      
+      // For subagents: all namespaces must have same prefix (e.g., "financas/investimentos", "financas/impostos")
+      if (namespaces.some(ns => ns.includes("/"))) {
+        const prefixes = namespaces.map(ns => ns.split("/")[0]);
+        const uniquePrefixes = new Set(prefixes);
+        return uniquePrefixes.size === 1; // All must share same root namespace
+      }
+      
+      return true;
+    },
+    {
+      message: "SubAgent namespaces must all belong to the same parent namespace (e.g., 'financas/investimentos', 'financas/impostos')"
+    }
+  ),
 });
+
 export type InsertAgent = z.infer<typeof insertAgentSchema>;
 export type Agent = typeof agents.$inferSelect;
 
