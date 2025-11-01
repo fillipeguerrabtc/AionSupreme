@@ -147,7 +147,36 @@ export class WebsiteCrawlerService {
       submittedBy: "website-crawler"
     } as any);
 
-    console.log(`   ✓ Enviado para curadoria: "${page.title}" (${attachments.length} imagens)`);
+    console.log(`   ✓ Enviado para curadoria: "${page.title}" (${attachments.length} imagens anexas)`);
+
+    // NOVO: Cria item de curadoria INDIVIDUAL para CADA imagem
+    // Isso permite aprovação/rejeição granular de cada imagem
+    for (const img of page.images.filter(i => i.localPath)) {
+      try {
+        const imageAttachment = {
+          type: 'image' as const,
+          url: `/${img.localPath}`,
+          filename: img.filename || img.localPath?.split('/').pop() || 'image.jpg',
+          mimeType: img.mimeType || 'image/jpeg',
+          size: img.size || 0,
+          description: img.description
+        };
+
+        await db.insert(curationQueue).values({
+          title: `[IMAGEM] ${img.filename || img.alt || 'Imagem sem título'}`,
+          content: `**Fonte:** ${page.title || page.url}\n**URL Original:** ${img.url}\n\n**Descrição AI:** ${img.description || 'Sem descrição'}\n\n**Alt Text:** ${img.alt || 'Sem alt text'}`,
+          suggestedNamespaces: namespace ? [namespace, 'kb/images'] : ['kb/images'],
+          tags: ['imagem', 'crawler', page.url, img.mimeType || 'image/jpeg'],
+          attachments: [imageAttachment],
+          status: "pending",
+          submittedBy: "image-crawler"
+        } as any);
+
+        console.log(`   🖼️ Imagem enviada para curadoria: "${img.filename}"`);
+      } catch (error: any) {
+        console.error(`   ⚠️ Erro ao enviar imagem ${img.filename} para curadoria:`, error.message);
+      }
+    }
   }
 
   /**
@@ -210,6 +239,36 @@ export class WebsiteCrawlerService {
           description: img.description
         }))
     );
+
+    // NOVO: Cria item de curadoria INDIVIDUAL para CADA imagem (modo consolidado)
+    for (const page of pages) {
+      for (const img of page.images.filter(i => i.localPath)) {
+        try {
+          const imageAttachment = {
+            type: 'image' as const,
+            url: `/${img.localPath}`,
+            filename: img.filename || img.localPath?.split('/').pop() || 'image.jpg',
+            mimeType: img.mimeType || 'image/jpeg',
+            size: img.size || 0,
+            description: img.description
+          };
+
+          await db.insert(curationQueue).values({
+            title: `[IMAGEM] ${img.filename || img.alt || 'Imagem sem título'}`,
+            content: `**Fonte:** ${page.title || page.url}\n**URL Original:** ${img.url}\n\n**Descrição AI:** ${img.description || 'Sem descrição'}\n\n**Alt Text:** ${img.alt || 'Sem alt text'}`,
+            suggestedNamespaces: namespace ? [namespace, 'kb/images'] : ['kb/images'],
+            tags: ['imagem', 'crawler-consolidado', page.url, img.mimeType || 'image/jpeg'],
+            attachments: [imageAttachment],
+            status: "pending",
+            submittedBy: "image-crawler-consolidated"
+          } as any);
+
+          console.log(`   🖼️ Imagem enviada para curadoria: "${img.filename}"`);
+        } catch (error: any) {
+          console.error(`   ⚠️ Erro ao enviar imagem ${img.filename} para curadoria:`, error.message);
+        }
+      }
+    }
 
     // Tags automáticas
     const tags = [

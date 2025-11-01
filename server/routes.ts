@@ -351,7 +351,7 @@ export function registerRoutes(app: Express): Server {
     const parsedData = JSON.parse(req.body.data || "{}");
     
     try {
-      const { messages } = parsedData;
+      const { messages, conversationId } = parsedData;
       const files = req.files as Express.Multer.File[];
       
       metricsCollector.recordRequest();
@@ -361,11 +361,65 @@ export function registerRoutes(app: Express): Server {
       
       // Process all uploaded files
       let attachmentsContext = "";
+      const imageAttachments = [];
+      
       if (files && files.length > 0) {
+        const { curationStore } = await import("./curation/store");
+        const imagesDir = path.join(process.cwd(), "attached_assets", "chat_images");
+        
+        // Ensure chat images directory exists
+        if (!fsSync.existsSync(imagesDir)) {
+          fsSync.mkdirSync(imagesDir, { recursive: true });
+        }
+        
         const processedFiles = await Promise.all(
           files.map(async (file) => {
             const mimeType = fileProcessor.detectMimeType(file.originalname);
             const processed = await fileProcessor.processFile(file.path, mimeType);
+            
+            // NOVO: Se é imagem, salva permanentemente e envia para curadoria
+            if (mimeType.startsWith('image/')) {
+              try {
+                // Copia imagem de /tmp para pasta permanente
+                const ext = path.extname(file.originalname);
+                const filename = `chat_${Date.now()}_${Math.random().toString(36).substring(7)}${ext}`;
+                const permanentPath = path.join(imagesDir, filename);
+                
+                await fs.copyFile(file.path, permanentPath);
+                const stats = await fs.stat(permanentPath);
+                const relativePath = path.relative(process.cwd(), permanentPath);
+                
+                const imageAttachment = {
+                  type: 'image' as const,
+                  url: `/${relativePath}`,
+                  filename: filename,
+                  mimeType: mimeType,
+                  size: stats.size,
+                  description: processed.extractedText || 'Imagem enviada pelo usuário no chat'
+                };
+                
+                imageAttachments.push(imageAttachment);
+                
+                // Envia para curadoria (usando db.insert direto para incluir attachments)
+                const { curationQueue } = await import("@shared/schema");
+                const { db: dbConn } = await import("./db");
+                
+                await dbConn.insert(curationQueue).values({
+                  title: `[CHAT IMAGEM] ${file.originalname}`,
+                  content: `**Enviado no chat**\n**Conversa ID:** ${conversationId || 'desconhecida'}\n\n**Descrição AI:** ${processed.extractedText || 'Sem descrição'}\n\n**Arquivo original:** ${file.originalname}`,
+                  suggestedNamespaces: ['kb/chat', 'kb/images'],
+                  tags: ['imagem', 'chat', 'usuario', mimeType],
+                  attachments: [imageAttachment],
+                  status: "pending",
+                  submittedBy: 'chat-user'
+                } as any);
+                
+                console.log(`[Chat] 🖼️ Imagem enviada para curadoria: ${filename}`);
+              } catch (error: any) {
+                console.error(`[Chat] ⚠️ Erro ao processar imagem ${file.originalname}:`, error.message);
+              }
+            }
+            
             return `[${file.originalname}]: ${processed.extractedText}`;
           })
         );
@@ -3483,9 +3537,13 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Serve learned images statically
+  // Serve learned images statically (from crawler)
   const learnedImagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
   app.use('/images', express.static(learnedImagesDir));
+  
+  // Serve chat images statically (from user uploads in chat)
+  const chatImagesDir = path.join(process.cwd(), 'attached_assets', 'chat_images');
+  app.use('/attached_assets/chat_images', express.static(chatImagesDir));
 
   const httpServer = createServer(app);
   return httpServer;
