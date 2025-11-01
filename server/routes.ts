@@ -1278,6 +1278,44 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // ===== ADMIN: Orphan Detection =====
+  
+  // GET /api/admin/orphans - Detect orphaned agents
+  app.get("/api/admin/orphans", async (req: Request, res: Response) => {
+    try {
+      const { detectOrphanedAgents } = await import("./services/orphan-detection");
+      const result = await detectOrphanedAgents();
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error detecting orphans:", error);
+      res.status(500).json({
+        error: "Failed to detect orphans",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  // POST /api/admin/orphans/auto-fix - Auto-fix agents with invalid namespaces (SAFE)
+  app.post("/api/admin/orphans/auto-fix", async (req: Request, res: Response) => {
+    try {
+      const { autoFixOrphanedAgents } = await import("./services/orphan-detection");
+      const result = await autoFixOrphanedAgents();
+
+      res.json({
+        success: true,
+        message: `Auto-fixed ${result.fixed} agent(s), ${result.skipped} require manual review`,
+        ...result,
+      });
+    } catch (error) {
+      console.error("Error auto-fixing orphans:", error);
+      res.status(500).json({
+        error: "Failed to auto-fix orphans",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
   // POST /api/admin/crawl-website - Deep crawl entire website
   // Crawls all sublinks, extracts text + images with Vision API descriptions
   // Sends everything to curation queue (HITL)
