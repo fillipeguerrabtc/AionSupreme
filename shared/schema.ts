@@ -1174,7 +1174,7 @@ export const agentRelationships = pgTable("agent_relationships", {
   
   // Delegation configuration
   delegationMode: varchar("delegation_mode", { length: 32 }).notNull().default("dynamic"), // "always" | "dynamic" | "fallback"
-  budgetSharePercent: real("budget_share_percent").notNull().default(0.4), // Child gets 40% by default
+  budgetSharePercent: real("budget_share_percent").notNull().default(0.4), // IMPORTANT: 0.0-1.0 range (0.4 = 40%, NOT 40)
   maxDepth: integer("max_depth").notNull().default(3), // Max recursion depth
   
   // Tool & namespace overrides

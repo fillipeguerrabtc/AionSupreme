@@ -66,3 +66,43 @@ export async function loadAgents(): Promise<Agent[]> {
   // Returns all agents from registry (tenantless)
   return agentRegistry.getAllAgents();
 }
+
+/**
+ * Load child agents for a given parent agent (hierarchical orchestration)
+ * Returns agent relationships from DB
+ */
+export async function loadAgentChildren(parentAgentId: string): Promise<any[]> {
+  try {
+    const { db } = await import("../db");
+    const { agentRelationships, agents } = await import("@shared/schema");
+    const { eq, and } = await import("drizzle-orm");
+    
+    const relationships = await db
+      .select({
+        relationship: agentRelationships,
+        childAgent: agents,
+      })
+      .from(agentRelationships)
+      .innerJoin(agents, eq(agents.id, agentRelationships.childAgentId))
+      .where(
+        and(
+          eq(agentRelationships.parentAgentId, parentAgentId),
+          eq(agentRelationships.enabled, true),
+          eq(agents.enabled, true)
+        )
+      );
+    
+    return relationships;
+  } catch (error: any) {
+    console.error(`[Registry] Error loading children for agent ${parentAgentId}:`, error.message);
+    return [];
+  }
+}
+
+/**
+ * Check if an agent has sub-agents configured
+ */
+export async function hasChildren(agentId: string): Promise<boolean> {
+  const children = await loadAgentChildren(agentId);
+  return children.length > 0;
+}

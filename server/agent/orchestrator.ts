@@ -6,6 +6,8 @@
 
 import { route } from "./router";
 import { getAgentById } from "./runtime";
+import { executeWithHierarchy } from "./hierarchy-orchestrator";
+import { hasChildren } from "./registry";
 import type { AgentInput, AgentOutput, AgentRunContext } from "./types";
 
 interface OrchestratorResult {
@@ -76,14 +78,30 @@ export async function orchestrateAgents(
     const agentResults = await Promise.all(
       selectedAgents.map(async (choice) => {
         try {
-          const executor = await getAgentById(choice.agentId);
-          const result = await executor.run(agentInput, agentContext);
-          return {
-            agentId: choice.agentId,
-            agentName: executor.name,
-            score: choice.score,
-            result,
-          };
+          // Check if agent has hierarchical sub-agents
+          const agentHasChildren = await hasChildren(choice.agentId);
+          
+          if (agentHasChildren) {
+            // Use hierarchical orchestrator for parent agents
+            console.log(`[Orchestrator] Agent ${choice.agentId} has children, using hierarchical execution`);
+            const hierarchicalResult = await executeWithHierarchy(choice.agentId, agentInput, agentContext);
+            return {
+              agentId: choice.agentId,
+              agentName: hierarchicalResult.agentName,
+              score: choice.score,
+              result: hierarchicalResult,
+            };
+          } else {
+            // Standard execution for leaf agents
+            const executor = await getAgentById(choice.agentId);
+            const result = await executor.run(agentInput, agentContext);
+            return {
+              agentId: choice.agentId,
+              agentName: executor.name,
+              score: choice.score,
+              result,
+            };
+          }
         } catch (error: any) {
           console.error(`[Orchestrator] Error executing agent ${choice.agentId}:`, error.message);
           return null;

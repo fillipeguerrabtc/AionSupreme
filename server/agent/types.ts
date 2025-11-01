@@ -5,6 +5,10 @@ export interface AgentRunContext {
   budgetUSD: number;
   namespaces?: string[];
   tools?: string[];
+  // Hierarchical orchestration
+  parentAgentId?: string;
+  depth?: number;
+  traceId?: string;
 }
 export interface AgentInput {
   query: string;
