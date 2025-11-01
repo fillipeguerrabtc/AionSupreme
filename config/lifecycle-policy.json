@@ -1,0 +1,497 @@
+{
+  "version": "1.0.0",
+  "description": "AION Lifecycle Management Policy - Comprehensive data retention and garbage collection for all system modules (LGPD compliance: 5-year retention limit)",
+  
+  "globalDefaults": {
+    "retentionYears": 5,
+    "retentionDays": 1825,
+    "timezone": "America/Sao_Paulo",
+    "auditLogEnabled": true,
+    "dryRun": false
+  },
+
+  "modules": {
+    "conversations": {
+      "enabled": true,
+      "description": "Chat conversations with users",
+      "policies": [
+        {
+          "name": "archive_inactive",
+          "enabled": true,
+          "action": "archive",
+          "condition": {
+            "field": "lastActivityAt",
+            "operator": "older_than",
+            "value": 18,
+            "unit": "months"
+          },
+          "preserveIf": {
+            "description": "Preserve conversations linked to training data (auto-evolution)",
+            "linkedToTrainingData": true
+          },
+          "effect": {
+            "setField": "archivedAt",
+            "setValue": "current_timestamp"
+          }
+        },
+        {
+          "name": "purge_old",
+          "enabled": true,
+          "action": "delete",
+          "condition": {
+            "field": "createdAt",
+            "operator": "older_than",
+            "value": 5,
+            "unit": "years"
+          },
+          "preserveIf": {
+            "description": "Never delete if linked to active training datasets",
+            "linkedToTrainingData": true
+          },
+          "cascadeDelete": {
+            "messages": true,
+            "attachments": true
+          }
+        }
+      ]
+    },
+
+    "trainingData": {
+      "enabled": true,
+      "description": "Training datasets and job artifacts",
+      "policies": [
+        {
+          "name": "cleanup_stale_jobs",
+          "enabled": true,
+          "action": "delete",
+          "condition": {
+            "allOf": [
+              {
+                "field": "status",
+                "operator": "in",
+                "values": ["completed", "failed", "cancelled"]
+              },
+              {
+                "field": "completedAt",
+                "operator": "older_than",
+                "value": 30,
+                "unit": "days"
+              }
+            ]
+          },
+          "preserveIf": {
+            "description": "Preserve if model checkpoint is actively used by agents",
+            "activeModelCheckpoint": true
+          },
+          "effect": {
+            "deleteJobRecord": true,
+            "preserveCheckpoint": true,
+            "preserveMetrics": true
+          }
+        },
+        {
+          "name": "cleanup_orphaned_collections",
+          "enabled": true,
+          "action": "delete",
+          "description": "Training data collections referencing deleted conversations",
+          "condition": {
+            "field": "conversationId",
+            "operator": "null_reference",
+            "checkTable": "conversations"
+          },
+          "effect": {
+            "deleteRecord": true
+          }
+        }
+      ]
+    },
+
+    "datasets": {
+      "enabled": true,
+      "description": "Dataset files and physical storage",
+      "policies": [
+        {
+          "name": "cleanup_orphaned_files",
+          "enabled": true,
+          "action": "flag_for_review",
+          "description": "Flag dataset files without DB entries (detected by platform orphan scan)",
+          "condition": {
+            "field": "storagePath",
+            "operator": "not_in_db",
+            "checkTable": "datasets"
+          },
+          "effect": {
+            "flagOnly": true,
+            "autoDelete": false,
+            "requireManualApproval": true
+          }
+        },
+        {
+          "name": "cleanup_old_datasets",
+          "enabled": false,
+          "description": "Optional: Delete datasets older than retention period (DISABLED by default - user must explicitly enable)",
+          "condition": {
+            "field": "createdAt",
+            "operator": "older_than",
+            "value": 5,
+            "unit": "years"
+          },
+          "effect": {
+            "deleteRecord": true,
+            "deletePhysicalFile": true
+          }
+        }
+      ]
+    },
+
+    "knowledgeBase": {
+      "enabled": true,
+      "description": "KB documents and embeddings",
+      "policies": [
+        {
+          "name": "cleanup_old_documents",
+          "enabled": true,
+          "action": "delete",
+          "description": "5-year retention for KB documents (LGPD compliance)",
+          "condition": {
+            "field": "createdAt",
+            "operator": "older_than",
+            "value": 5,
+            "unit": "years"
+          },
+          "preserveIf": {
+            "description": "Preserve if referenced by active training datasets",
+            "referencedByDataset": true
+          },
+          "effect": {
+            "deleteDocument": true,
+            "cascadeDeleteEmbeddings": true,
+            "deletePhysicalFiles": true
+          }
+        },
+        {
+          "name": "cleanup_orphaned_embeddings",
+          "enabled": true,
+          "action": "delete",
+          "description": "Cleanup embeddings without parent documents",
+          "condition": {
+            "field": "documentId",
+            "operator": "null_reference",
+            "checkTable": "documents"
+          },
+          "effect": {
+            "deleteEmbeddings": true
+          }
+        }
+      ]
+    },
+
+    "gpu": {
+      "enabled": true,
+      "description": "GPU workers and training jobs",
+      "policies": [
+        {
+          "name": "cleanup_stale_workers",
+          "enabled": true,
+          "action": "delete",
+          "condition": {
+            "allOf": [
+              {
+                "field": "status",
+                "operator": "in",
+                "values": ["offline", "error"]
+              },
+              {
+                "field": "lastUsedAt",
+                "operator": "older_than",
+                "value": 7,
+                "unit": "days"
+              }
+            ]
+          },
+          "effect": {
+            "deleteWorkerRecord": true,
+            "notifyAdmin": false
+          }
+        },
+        {
+          "name": "cleanup_finalized_jobs",
+          "enabled": true,
+          "action": "delete",
+          "condition": {
+            "allOf": [
+              {
+                "field": "status",
+                "operator": "in",
+                "values": ["completed", "failed"]
+              },
+              {
+                "field": "updatedAt",
+                "operator": "older_than",
+                "value": 30,
+                "unit": "days"
+              }
+            ]
+          },
+          "preserveIf": {
+            "description": "Preserve if checkpoint is referenced by active model",
+            "activeCheckpoint": true
+          },
+          "effect": {
+            "deleteJobLogs": true,
+            "preserveCheckpoint": true,
+            "deletePhysicalArtifacts": false
+          }
+        }
+      ]
+    },
+
+    "agents": {
+      "enabled": true,
+      "description": "Soft-deleted agents and namespaces",
+      "policies": [
+        {
+          "name": "gc_disabled_agents",
+          "enabled": true,
+          "action": "delete",
+          "description": "Garbage collect agents soft-deleted >90 days ago",
+          "condition": {
+            "allOf": [
+              {
+                "field": "enabled",
+                "operator": "equals",
+                "value": false
+              },
+              {
+                "field": "disabledAt",
+                "operator": "older_than",
+                "value": 90,
+                "unit": "days"
+              }
+            ]
+          },
+          "effect": {
+            "deleteAgentRecord": true,
+            "preserveAuditLog": true,
+            "auditLogFields": ["id", "name", "slug", "disabledAt", "createdAt"]
+          }
+        }
+      ]
+    },
+
+    "namespaces": {
+      "enabled": true,
+      "description": "Soft-deleted namespaces",
+      "policies": [
+        {
+          "name": "gc_disabled_namespaces",
+          "enabled": true,
+          "action": "delete",
+          "description": "Garbage collect namespaces soft-deleted >90 days ago",
+          "condition": {
+            "allOf": [
+              {
+                "field": "enabled",
+                "operator": "equals",
+                "value": false
+              },
+              {
+                "field": "disabledAt",
+                "operator": "older_than",
+                "value": 90,
+                "unit": "days"
+              }
+            ]
+          },
+          "effect": {
+            "deleteNamespaceRecord": true,
+            "preserveAuditLog": true,
+            "auditLogFields": ["id", "name", "disabledAt", "createdAt"]
+          }
+        }
+      ]
+    },
+
+    "curation": {
+      "enabled": true,
+      "description": "Curation queue items - HITL content approval workflow",
+      "policies": [
+        {
+          "name": "cleanup_rejected_expired",
+          "enabled": true,
+          "action": "delete",
+          "description": "Delete rejected items after 30 days (GDPR data minimization)",
+          "condition": {
+            "allOf": [
+              {
+                "field": "status",
+                "operator": "equals",
+                "value": "rejected"
+              },
+              {
+                "field": "expiresAt",
+                "operator": "before",
+                "value": "current_timestamp"
+              }
+            ]
+          },
+          "effect": {
+            "deleteRecord": true,
+            "deletePhysicalFiles": false
+          },
+          "implementation": "curationStore.cleanupExpiredRejectedItems()"
+        },
+        {
+          "name": "cleanup_old_finalized",
+          "enabled": true,
+          "action": "delete",
+          "description": "5-year retention for approved/rejected items (LGPD compliance)",
+          "condition": {
+            "allOf": [
+              {
+                "field": "status",
+                "operator": "in",
+                "values": ["approved", "rejected"]
+              },
+              {
+                "field": "createdAt",
+                "operator": "older_than",
+                "value": 5,
+                "unit": "years"
+              }
+            ]
+          },
+          "effect": {
+            "deleteRecord": true
+          },
+          "implementation": "curationStore.cleanupOldCurationData()"
+        }
+      ]
+    },
+
+    "files": {
+      "enabled": true,
+      "description": "Generated files and video assets",
+      "policies": [
+        {
+          "name": "cleanup_expired_generated",
+          "enabled": true,
+          "action": "delete",
+          "description": "Delete generated files after expiration (1 hour TTL)",
+          "condition": {
+            "field": "expiresAt",
+            "operator": "before",
+            "value": "current_timestamp"
+          },
+          "effect": {
+            "deleteRecord": true,
+            "deletePhysicalFile": true
+          },
+          "implementation": "FileCleanup.cleanupExpiredFiles()"
+        },
+        {
+          "name": "cleanup_expired_videos",
+          "enabled": true,
+          "action": "delete",
+          "description": "Delete video assets after expiration (TTL varies by job)",
+          "condition": {
+            "field": "expiresAt",
+            "operator": "before",
+            "value": "current_timestamp"
+          },
+          "effect": {
+            "deleteRecord": true,
+            "deletePhysicalFile": true,
+            "deleteThumbnails": true,
+            "deleteSubtitles": true
+          },
+          "implementation": "FileCleanup.cleanupExpiredFiles()"
+        }
+      ]
+    },
+
+    "tokens": {
+      "enabled": true,
+      "description": "Token usage metrics and alerts",
+      "policies": [
+        {
+          "name": "cleanup_old_usage_metrics",
+          "enabled": true,
+          "action": "delete",
+          "description": "5-year retention for token usage metrics (LGPD compliance)",
+          "condition": {
+            "field": "createdAt",
+            "operator": "older_than",
+            "value": 5,
+            "unit": "years"
+          },
+          "effect": {
+            "deleteTokenUsageRecords": true
+          },
+          "implementation": "FileCleanup.cleanupOldTokens()"
+        },
+        {
+          "name": "cleanup_old_alerts",
+          "enabled": true,
+          "action": "delete",
+          "description": "5-year retention for token alerts (LGPD compliance)",
+          "condition": {
+            "field": "createdAt",
+            "operator": "older_than",
+            "value": 5,
+            "unit": "years"
+          },
+          "effect": {
+            "deleteTokenAlerts": true
+          },
+          "implementation": "FileCleanup.cleanupOldTokens()"
+        }
+      ]
+    }
+  },
+
+  "schedule": {
+    "description": "Lifecycle cleanup execution schedule",
+    "timezone": "America/Sao_Paulo",
+    "runs": [
+      {
+        "frequency": "monthly",
+        "dayOfMonth": 1,
+        "hour": 6,
+        "minute": 0,
+        "modules": ["conversations", "trainingData", "datasets", "knowledgeBase", "gpu", "agents", "namespaces", "curation", "tokens"]
+      },
+      {
+        "frequency": "hourly",
+        "modules": ["files"]
+      }
+    ]
+  },
+
+  "auditLog": {
+    "enabled": true,
+    "destination": "console",
+    "format": "json",
+    "includeFields": [
+      "timestamp",
+      "module",
+      "policy",
+      "action",
+      "recordsAffected",
+      "preservedCount",
+      "errors"
+    ]
+  },
+
+  "notifications": {
+    "enabled": false,
+    "channels": [],
+    "triggers": [
+      {
+        "event": "large_deletion",
+        "threshold": 1000,
+        "description": "Notify admin if >1000 records deleted in single run"
+      }
+    ]
+  }
+}
