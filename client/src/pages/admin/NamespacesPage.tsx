@@ -389,14 +389,38 @@ export default function NamespacesPage() {
             Organize e gerencie os namespaces da Knowledge Base
           </p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-create-namespace" className="shrink-0">
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Namespace
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
+        <div className="flex gap-2 shrink-0">
+          <Button 
+            data-testid="button-create-namespace-root" 
+            variant="default"
+            onClick={() => {
+              setCreateMode("root");
+              setIsCreateOpen(true);
+            }}
+          >
+            <FolderTree className="h-4 w-4 mr-2" />
+            Criar Namespace Raiz
+          </Button>
+          <Button 
+            data-testid="button-create-namespace-sub" 
+            variant="outline"
+            onClick={() => {
+              setCreateMode("sub");
+              setIsCreateOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Criar Sub-namespace
+          </Button>
+        </div>
+      </div>
+
+      {/* Create Dialog */}
+      <Dialog open={isCreateOpen} onOpenChange={(open) => {
+        setIsCreateOpen(open);
+        if (!open) resetCreateForm();
+      }}>
+            <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Criar Novo Namespace</DialogTitle>
               <DialogDescription>
@@ -568,7 +592,6 @@ export default function NamespacesPage() {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
 
       <Card>
         <CardHeader>
