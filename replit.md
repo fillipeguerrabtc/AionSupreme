@@ -14,6 +14,39 @@ Preferred communication style: Simple, everyday language.
 5. Fluxo obrigatório: Responder → Completar tarefas atuais → Iniciar novas tarefas
 6. **NUNCA comece tarefas novas antes de terminar as antigas**
 
+## Recent Changes (November 1, 2025)
+
+### Training Data Validation System
+- **ValidationError Class**: Structured error propagation with errors, warnings, and corrections extraction from backend responses
+- **Real-time Inline Validation**: useEffect-based validation with character counters and comprehensive feedback
+- **8 Validation Types**: Empty fields, length limits, whitespace normalization, duplicate detection, placeholder text, JSON syntax, code formatting, and message structure validation
+- **Location**: `server/training/training-data-validator.ts`, `client/src/lib/queryClient.ts`
+
+### Knowledge Base Reorganization
+- **Dedicated Tabs System**: Separate views for Documents and Images using Shadcn Tabs component
+- **Clean Separation**: Replaced bottom-positioned images with proper tab-based organization
+- **Location**: `client/src/pages/admin/KnowledgeBaseTab.tsx`
+
+### Image Multi-Select & Bulk Operations
+- **Checkbox Selection**: Visual ring indicators for selected images
+- **Bulk Delete**: Proper mutation with correct array passing, count return, and dialog closing
+- **Race Condition Fixes**: Comprehensive state management and cache invalidation
+- **Location**: `client/src/pages/admin/KnowledgeBaseTab.tsx`
+
+### Vision Parsing for Curation Queue
+- **VisionCascade Integration**: POST `/api/curation/:id/generate-descriptions` endpoint
+- **UI Button**: "🤖 Gerar Descrições AI" in EditDialog with loading state
+- **Badge Feedback**: Green "✓ Descrição AI" indicator for processed images
+- **Race-Condition-Free**: Backend returns full updated item; frontend validates ID before state update
+- **Performance**: Optimized to avoid unnecessary refetches
+- **5-Tier Cascade**: Gemini → GPT-4V → Claude 3.5 → HuggingFace → OpenAI (2,300+ req/day free tier)
+- **Location**: `server/routes/curation.ts`, `client/src/pages/admin/CurationQueuePage.tsx`, `server/learn/vision-cascade.ts`
+
+### Enhanced Error Handling
+- **Structured Validation**: ValidationError class extracts errors, warnings, and corrections from API responses
+- **Clear User Feedback**: Detailed error messages with actionable suggestions
+- **Location**: `client/src/lib/queryClient.ts`
+
 ## System Architecture
 
 ### Core System Design
