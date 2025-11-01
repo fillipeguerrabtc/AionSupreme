@@ -34,13 +34,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Users, Search } from "lucide-react";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { getNamespaceLabel } from "@shared/namespaces";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentHierarchyManager } from "@/components/agents/AgentHierarchyManager";
 import { CreateAgentForm } from "@/components/agents/CreateAgentForm";
 import { CreateSubAgentForm } from "@/components/agents/CreateSubAgentForm";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Agent = {
   id: string;
@@ -61,6 +62,8 @@ export default function AgentsPage() {
   const [activeTab, setActiveTab] = useState("list");
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [deleteAgentId, setDeleteAgentId] = useState<string | null>(null);
+  const [showOrphanScanDialog, setShowOrphanScanDialog] = useState(false);
+  const [orphanScanResult, setOrphanScanResult] = useState<any>(null);
   
   // Edit form state
   const [editName, setEditName] = useState("");
@@ -111,6 +114,29 @@ export default function AgentsPage() {
     },
   });
 
+  // Platform orphan scan mutation
+  const orphanScanMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("/api/admin/orphans/platform-scan");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setOrphanScanResult(data);
+      setShowOrphanScanDialog(true);
+      toast({ 
+        title: "Scan completo", 
+        description: `${data.report.totalOrphans} orphans detectados` 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ 
+        title: "Erro ao executar scan", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    },
+  });
+
   const handleEdit = (agent: Agent) => {
     setSelectedAgent(agent);
     setEditName(agent.name);
@@ -157,7 +183,16 @@ export default function AgentsPage() {
         </TabsList>
 
         <TabsContent value="list" className="space-y-4 mt-4">
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-end gap-2 flex-wrap">
+            <Button 
+              data-testid="button-scan-orphans" 
+              variant="outline"
+              onClick={() => orphanScanMutation.mutate()}
+              disabled={orphanScanMutation.isPending}
+            >
+              <Search className="w-4 h-4 mr-2" />
+              {orphanScanMutation.isPending ? "Scanning..." : "Scan Platform Orphans"}
+            </Button>
             <Button 
               data-testid="button-create-agent" 
               variant="default"
@@ -379,6 +414,89 @@ export default function AgentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Platform Orphan Scan Results Dialog */}
+      <Dialog open={showOrphanScanDialog} onOpenChange={setShowOrphanScanDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Platform Orphan Scan Results</DialogTitle>
+            <DialogDescription>
+              Detected orphaned resources across all modules
+            </DialogDescription>
+          </DialogHeader>
+          
+          {orphanScanResult && (
+            <ScrollArea className="h-[60vh]">
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-destructive">{orphanScanResult.report.summary.high}</div>
+                      <p className="text-xs text-muted-foreground">High Severity</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-yellow-600">{orphanScanResult.report.summary.medium}</div>
+                      <p className="text-xs text-muted-foreground">Medium Severity</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="text-2xl font-bold text-green-600">{orphanScanResult.report.summary.low}</div>
+                      <p className="text-xs text-muted-foreground">Low Severity</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {orphanScanResult.report.modules.map((module: any) => (
+                  module.totalOrphans > 0 && (
+                    <Card key={module.module}>
+                      <CardHeader>
+                        <CardTitle className="text-lg flex items-center justify-between">
+                          <span>📦 {module.module}</span>
+                          <Badge variant="secondary">{module.totalOrphans} orphans</Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {module.orphans.map((orphan: any, idx: number) => (
+                            <div key={idx} className="border-l-4 pl-3 py-2" style={{
+                              borderColor: orphan.severity === 'high' ? 'rgb(239, 68, 68)' : 
+                                          orphan.severity === 'medium' ? 'rgb(234, 179, 8)' : 
+                                          'rgb(34, 197, 94)'
+                            }}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="outline" className="text-xs">{orphan.type}</Badge>
+                                <span className="text-xs text-muted-foreground">ID: {orphan.id}</span>
+                              </div>
+                              <p className="text-sm">{orphan.reason}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                <strong>Action:</strong> {orphan.suggestedAction}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                ))}
+
+                {orphanScanResult.report.totalOrphans === 0 && (
+                  <Card>
+                    <CardContent className="pt-6 text-center">
+                      <p className="text-lg text-green-600 font-semibold">✅ No orphans detected</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        All platform modules are healthy!
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </ScrollArea>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

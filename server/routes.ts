@@ -1374,6 +1374,26 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // GET /api/admin/orphans/platform-scan - Scan ALL modules for orphans
+  app.get("/api/admin/orphans/platform-scan", async (req: Request, res: Response) => {
+    try {
+      const { platformOrphanScanner } = await import("./services/platform-orphan-scan");
+      const report = await platformOrphanScanner.scanAll();
+
+      res.json({
+        success: true,
+        report,
+        formatted: platformOrphanScanner.formatReport(report),
+      });
+    } catch (error) {
+      console.error("Error scanning platform orphans:", error);
+      res.status(500).json({
+        error: "Failed to scan platform orphans",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
   // POST /api/admin/crawl-website - Deep crawl entire website
   // Crawls all sublinks, extracts text + images with Vision API descriptions
   // Sends everything to curation queue (HITL)

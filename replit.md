@@ -16,7 +16,44 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 1, 2025)
 
-### 🔗 Hierarchical Sub-Agent Orchestration System
+### 🏗️ Agent Tier System & Namespace Hierarchy (Tasks 8a-8e)
+- **NEW Schema** (`shared/schema.ts`): Added `agentTier` ('agent' | 'subagent') and `assignedNamespaces` (string[]) to agents table
+- **Validation Rules** (`server/storage.ts`):
+  - Agents: MUST have exactly 1 namespace assignment
+  - SubAgents: MUST have N namespaces with matching parent prefix (e.g., `tech/` for all namespaces)
+  - Fail-fast on invalid configurations (prevents orphans)
+- **Runtime Hierarchy Inference**: Parent-child relationships automatically detected via namespace prefix matching (no explicit parent_id)
+- **UI Separation** (`client/src/pages/admin/AgentsPage.tsx`):
+  - Separate "Create Agent" / "Create SubAgent" buttons with visual distinction (default vs outline variants)
+  - Tab-based navigation for Agents vs SubAgents lists
+  - Compliance forms guide user through tier-specific requirements
+- **Migration**: Deprecated old `agent_relationships` table, migrated to new model
+- **Location**: `shared/schema.ts`, `server/storage.ts`, `client/src/pages/admin/AgentsPage.tsx`
+
+### 🗑️ Cascade Delete & Orphan Detection (Tasks 9a-9d, 10a)
+- **Namespace Cascade** (`server/services/namespace-cascade.ts`):
+  - Delete Namespace → auto-deletes all child Subnamespaces + Agents + SubAgents
+  - Atomic transactions prevent partial deletes
+  - Result schema: `{ namespacesDeleted, subNamespacesDeleted, agentsDeleted, subAgentsDeleted }`
+- **Orphan Detection** (`server/services/orphan-detection.ts`):
+  - Scans for Agents/SubAgents with zero valid namespace assignments
+  - **Safe Auto-Fix**: Only applies if at least 1 valid namespace remains (prevents deletion of all assignments)
+  - **Manual Review Required**: Flags agents with 0 valid namespaces (no auto-delete to prevent race conditions)
+  - Result schema: `{ totalOrphans, autoFixed, requiresManualReview[] }`
+- **KB Cascade** (`server/services/kb-cascade.ts`):
+  - Delete Document → auto-deletes embeddings (RAG vectors) via FK CASCADE + physical files (storageUrl, attachments)
+  - **Dataset Protection**: Warns if doc was used for training (no auto-delete to prevent data loss)
+  - Single + Bulk endpoints: DELETE `/api/admin/documents/:id`, DELETE `/api/admin/documents/bulk`
+  - Result schema: `{ documentsDeleted, embeddingsDeleted, filesDeleted[], warnings[] }`
+- **UI Integration**:
+  - Separate buttons for Create/Edit/Delete Namespaces and Subnamespaces (NamespacesTab)
+  - Separate buttons for Create/Edit/Delete Agents and SubAgents (AgentsPage)
+  - Delete confirmation dialogs with cascade warnings
+  - Existing KB delete UI (Trash2 icon) already functional
+- **BUG FIX** (`server/curation/store.ts`): Implemented missing `cleanupOldCurationData()` for 5-year retention (LGPD compliance)
+- **Location**: `server/services/namespace-cascade.ts`, `server/services/orphan-detection.ts`, `server/services/kb-cascade.ts`, `server/curation/store.ts`
+
+### 🔗 [DEPRECATED] Hierarchical Sub-Agent Orchestration System
 - **Agent Relationships Schema**: New `agent_relationships` table with parent/child delegation, budget sharing (0-1 decimal), delegation modes (always/dynamic/fallback), max depth limits, and soft-delete support
 - **Hierarchical Orchestrator**: Recursive delegation engine with confidence-weighted aggregation, budget normalization (prevents cost overruns), cycle detection (BFS), and trace logging for parent→child workflows
 - **Admin UI - Hierarchy Management**: 
