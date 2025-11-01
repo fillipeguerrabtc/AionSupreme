@@ -885,6 +885,45 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // POST /api/admin/seed-system - Seeds complete system (Namespaces, Tools, Agents)
+  // ADMIN ONLY - Protected endpoint with admin allowlist
+  app.post("/api/admin/seed-system", async (req, res) => {
+    const user = req.user as Express.User | undefined;
+    
+    // 1. Authentication check
+    if (!req.isAuthenticated() || !user?.claims?.sub) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    // 2. Authorization check - admin allowlist
+    const adminAllowlist = (process.env.ADMIN_ALLOWED_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
+    const userSub = user.claims.sub;
+    
+    // In development, allow any authenticated user if allowlist is empty
+    const isProduction = process.env.NODE_ENV === "production";
+    const isAuthorized = !isProduction && adminAllowlist.length === 0 ? true : adminAllowlist.includes(userSub);
+    
+    if (!isAuthorized) {
+      console.warn(`[Seed] Unauthorized access attempt by user: ${userSub}`);
+      return res.status(403).json({ 
+        error: "Forbidden: Admin access required. Contact system administrator." 
+      });
+    }
+    
+    try {
+      const { seedCompleteSystem } = await import("./seeds/complete-system.seed");
+      const result = await seedCompleteSystem();
+      
+      res.json({
+        ...result,
+        message: "AION Complete System seeded successfully",
+      });
+    } catch (error: any) {
+      console.error("[Seed] Error:", error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /api/admin/images - List all learned images
   app.get("/api/admin/images", async (req, res) => {
     try {

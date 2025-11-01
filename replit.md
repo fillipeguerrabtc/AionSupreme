@@ -16,6 +16,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 1, 2025)
 
+### 🌱 Complete Multi-Agent System Seed
+- **Database-Driven Architecture**: All namespaces, tools, and agents now stored in PostgreSQL (zero hardcode)
+- **50 Namespaces**: Migrated all NAMESPACE_CATEGORIES to DB with hierarchical organization (curation, finance, tech, tourism, auto, management, calendar, marketing, general)
+  - **Consistent Prefixes**: All parent/child namespaces use matching prefixes (e.g., `tech` + `tech/*`)
+- **7 Core Tools**: kb_search, web_search, deepweb_search, vision_cascade, calculator, crawler, youtube_transcript
+- **5 Specialized Agents**: 
+  - Curator (namespace: *, tools: kb_search, web_search, vision_cascade, budget: $10/day)
+  - Financial Specialist (namespace: financas/*, tools: kb_search, web_search, calculator, budget: $5/day)
+  - Tech Support (namespace: tech/*, tools: kb_search, web_search, crawler, budget: $5/day)
+  - Customer Service (namespace: atendimento/*, tools: kb_search, budget: $3/day)
+  - Generalist (namespace: geral/*, tools: kb_search, web_search, calculator, vision_cascade, budget: $5/day)
+- **14 Agent-Tool Associations**: Many-to-many mapping in `agent_tools` table
+- **Seed Endpoint**: POST `/api/admin/seed-system` executes complete system initialization
+  - **Security**: Admin allowlist via `ADMIN_ALLOWED_SUBS` env var (comma-separated list of Replit user IDs)
+  - **Development Mode**: Allows any authenticated user if allowlist is empty
+  - **Production Mode**: Requires user.claims.sub to be in allowlist
+- **Location**: `server/seeds/complete-system.seed.ts`, `server/routes.ts`
+
 ### Training Data Validation System
 - **ValidationError Class**: Structured error propagation with errors, warnings, and corrections extraction from backend responses
 - **Real-time Inline Validation**: useEffect-based validation with character counters and comprehensive feedback
