@@ -19,7 +19,8 @@ export const agentRelationshipsStorage = {
       })
       .from(agentRelationships)
       .leftJoin(parentAgents, eq(agentRelationships.parentAgentId, parentAgents.id))
-      .leftJoin(childAgents, eq(agentRelationships.childAgentId, childAgents.id));
+      .leftJoin(childAgents, eq(agentRelationships.childAgentId, childAgents.id))
+      .where(eq(agentRelationships.enabled, true)); // Only return active relationships
   },
 
   async getByParent(parentAgentId: string) {
