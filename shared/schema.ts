@@ -1162,6 +1162,125 @@ export type InsertAgent = z.infer<typeof insertAgentSchema>;
 export type Agent = typeof agents.$inferSelect;
 
 /**
+ * Agent Relationships - Hierarchical parent-child agent orchestration
+ * Parent agents can delegate to specialized sub-agents
+ * Based on SOTA 2024-2025 research: HALO, Puppeteer, MoA architectures
+ */
+export const agentRelationships = pgTable("agent_relationships", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
+  parentAgentId: varchar("parent_agent_id", { length: 120 }).notNull().references(() => agents.id),
+  childAgentId: varchar("child_agent_id", { length: 120 }).notNull().references(() => agents.id),
+  
+  // Delegation configuration
+  delegationMode: varchar("delegation_mode", { length: 32 }).notNull().default("dynamic"), // "always" | "dynamic" | "fallback"
+  budgetSharePercent: real("budget_share_percent").notNull().default(0.4), // Child gets 40% by default
+  maxDepth: integer("max_depth").notNull().default(3), // Max recursion depth
+  
+  // Tool & namespace overrides
+  toolDelta: jsonb("tool_delta").$type<{
+    add?: string[]; // Additional tools for child
+    remove?: string[]; // Tools to exclude from inheritance
+  }>(),
+  namespaceSuffix: varchar("namespace_suffix", { length: 256 }), // Append to parent namespace (e.g., "/linux" → "tech/linux/*")
+  
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  parentIdx: index("agent_relationships_parent_idx").on(table.parentAgentId),
+  childIdx: index("agent_relationships_child_idx").on(table.childAgentId),
+}));
+
+export const insertAgentRelationshipSchema = createInsertSchema(agentRelationships).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+export type InsertAgentRelationship = z.infer<typeof insertAgentRelationshipSchema>;
+export type AgentRelationship = typeof agentRelationships.$inferSelect;
+
+/**
+ * Agent Budget Snapshots - Track budget consumption per agent/session
+ * Enables dynamic budget allocation and cost monitoring
+ */
+export const agentBudgets = pgTable("agent_budgets", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
+  agentId: varchar("agent_id", { length: 120 }).notNull().references(() => agents.id),
+  sessionId: varchar("session_id", { length: 256 }).notNull(),
+  
+  // Budget tracking
+  allocatedUSD: real("allocated_usd").notNull(),
+  consumedUSD: real("consumed_usd").notNull().default(0),
+  remainingUSD: real("remaining_usd").notNull(),
+  
+  // Metrics
+  requestCount: integer("request_count").notNull().default(0),
+  tokenCount: integer("token_count").notNull().default(0),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  agentSessionIdx: index("agent_budgets_agent_session_idx").on(table.agentId, table.sessionId),
+}));
+
+export const insertAgentBudgetSchema = createInsertSchema(agentBudgets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+export type InsertAgentBudget = z.infer<typeof insertAgentBudgetSchema>;
+export type AgentBudget = typeof agentBudgets.$inferSelect;
+
+/**
+ * Agent Traces - Detailed parent→child delegation chain tracking
+ * Enables observability, debugging, and performance optimization
+ */
+export const agentTraces = pgTable("agent_traces", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
+  sessionId: varchar("session_id", { length: 256 }).notNull(),
+  traceId: varchar("trace_id", { length: 256 }).notNull(),
+  
+  // Agent chain
+  parentAgentId: varchar("parent_agent_id", { length: 120 }).references(() => agents.id),
+  currentAgentId: varchar("current_agent_id", { length: 120 }).notNull().references(() => agents.id),
+  depth: integer("depth").notNull().default(0), // 0 = root, 1 = child, 2 = grandchild, etc
+  
+  // Execution details
+  query: text("query").notNull(),
+  result: text("result"),
+  confidence: real("confidence"), // 0-1 confidence score from agent
+  
+  // Performance metrics
+  latencyMs: integer("latency_ms"),
+  tokensUsed: integer("tokens_used"),
+  costUSD: real("cost_usd"),
+  
+  // Metadata
+  metadata: jsonb("metadata").$type<{
+    toolsUsed?: string[];
+    namespace?: string;
+    model?: string;
+    error?: string;
+  }>(),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  sessionIdx: index("agent_traces_session_idx").on(table.sessionId),
+  traceIdx: index("agent_traces_trace_idx").on(table.traceId),
+  agentIdx: index("agent_traces_agent_idx").on(table.currentAgentId),
+}));
+
+export const insertAgentTraceSchema = createInsertSchema(agentTraces).omit({
+  id: true,
+  createdAt: true
+});
+export type InsertAgentTrace = z.infer<typeof insertAgentTraceSchema>;
+export type AgentTrace = typeof agentTraces.$inferSelect;
+
+/**
  * Tools - External integrations and capabilities
  * Tools can be assigned to specific agents
  */
