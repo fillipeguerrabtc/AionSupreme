@@ -58,16 +58,9 @@ type Agent = {
 
 export default function AgentsPage() {
   const { toast } = useToast();
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("list");
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [deleteAgentId, setDeleteAgentId] = useState<string | null>(null);
-  
-  // Create form state
-  const [createName, setCreateName] = useState("");
-  const [createSlug, setCreateSlug] = useState("");
-  const [createDescription, setCreateDescription] = useState("");
-  const [createPrompt, setCreatePrompt] = useState("");
-  const [createNamespaces, setCreateNamespaces] = useState<string[]>([]);
   
   // Edit form state
   const [editName, setEditName] = useState("");
@@ -79,31 +72,6 @@ export default function AgentsPage() {
   // Fetch agents
   const { data: agents = [], isLoading } = useQuery<Agent[]>({
     queryKey: ["/api/agents"],
-  });
-
-  // Create agent mutation
-  const createMutation = useMutation({
-    mutationFn: async (data: Partial<Agent>) => {
-      const res = await apiRequest("/api/agents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
-      toast({ title: "Agente criado com sucesso!" });
-      setIsCreateOpen(false);
-      setCreateName("");
-      setCreateSlug("");
-      setCreateDescription("");
-      setCreatePrompt("");
-      setCreateNamespaces([]);
-    },
-    onError: (error: Error) => {
-      toast({ title: "Erro ao criar agente", description: error.message, variant: "destructive" });
-    },
   });
 
   // Update agent mutation
@@ -143,19 +111,6 @@ export default function AgentsPage() {
     },
   });
 
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate({
-      name: createName,
-      slug: createSlug,
-      type: "specialist",
-      description: createDescription || undefined,
-      systemPrompt: createPrompt || undefined,
-      ragNamespaces: createNamespaces,
-      enabled: true,
-    });
-  };
-
   const handleEdit = (agent: Agent) => {
     setSelectedAgent(agent);
     setEditName(agent.name);
@@ -193,7 +148,7 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="list" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="list" data-testid="tab-agents-list">Lista</TabsTrigger>
           <TabsTrigger value="create-agent" data-testid="tab-create-agent">Criar Agent</TabsTrigger>
@@ -202,97 +157,26 @@ export default function AgentsPage() {
         </TabsList>
 
         <TabsContent value="list" className="space-y-4 mt-4">
-          <div className="flex items-center justify-end">
-        
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-create-agent" className="shrink-0">
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Agente
+          <div className="flex items-center justify-end gap-2">
+            <Button 
+              data-testid="button-create-agent" 
+              variant="default"
+              onClick={() => setActiveTab("create-agent")}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Criar Agent
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Criar Novo Agente</DialogTitle>
-              <DialogDescription>
-                Configure um agente especialista com prompts e namespaces dedicados
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Nome do Agente</Label>
-                  <Input 
-                    id="name" 
-                    value={createName}
-                    onChange={(e) => setCreateName(e.target.value)}
-                    required 
-                    placeholder="Ex: Especialista em Finanças"
-                    data-testid="input-agent-name" 
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="slug">
-                    Slug (identificador único)
-                    <span className="text-muted-foreground text-xs ml-2">Ex: financas-empresa-x</span>
-                  </Label>
-                  <Input 
-                    id="slug" 
-                    value={createSlug}
-                    onChange={(e) => setCreateSlug(e.target.value)}
-                    required 
-                    placeholder="identificador-unico"
-                    data-testid="input-agent-slug" 
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="description">Descrição</Label>
-                <Input 
-                  id="description" 
-                  value={createDescription}
-                  onChange={(e) => setCreateDescription(e.target.value)}
-                  placeholder="Breve descrição do agente"
-                  data-testid="input-agent-description" 
-                />
-              </div>
-              <div>
-                <Label htmlFor="systemPrompt">System Prompt</Label>
-                <Textarea
-                  id="systemPrompt"
-                  value={createPrompt}
-                  onChange={(e) => setCreatePrompt(e.target.value)}
-                  rows={5}
-                  placeholder="Instruções e personalidade do agente..."
-                  data-testid="input-agent-prompt"
-                />
-              </div>
-              <div>
-                <Label>Namespaces (áreas de conhecimento)</Label>
-                <NamespaceSelector 
-                  value={createNamespaces} 
-                  onChange={setCreateNamespaces}
-                  placeholder="Selecione ou crie namespaces customizados"
-                  allowCustom={true}
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Selecione namespaces existentes ou crie novos no formato: categoria/subcategoria
-                </p>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={createMutation.isPending} data-testid="button-save-agent">
-                  {createMutation.isPending ? "Criando..." : "Criar Agente"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <Button 
+              data-testid="button-create-subagent" 
+              variant="outline"
+              onClick={() => setActiveTab("create-subagent")}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Criar SubAgent
+            </Button>
+          </div>
 
-      <Card>
+          <Card>
         <CardHeader>
           <CardTitle>Agentes Ativos</CardTitle>
           <CardDescription>
