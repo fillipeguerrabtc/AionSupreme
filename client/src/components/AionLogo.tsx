@@ -1,4 +1,4 @@
-import logoImage from "@assets/generated_images/AION_AI_logo_icon_95efc0b3.png";
+const logoImage = "/aion-logo-official.png";
 
 interface AionLogoProps {
   size?: "sm" | "md" | "lg" | "xl";
