@@ -783,6 +783,46 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // PATCH /api/admin/documents/:id/attachments/:index - Update attachment description
+  app.patch("/api/admin/documents/:id/attachments/:index", async (req, res) => {
+    try {
+      const docId = parseInt(req.params.id);
+      const attachmentIndex = parseInt(req.params.index);
+      const { description } = req.body;
+
+      if (description === undefined) {
+        return res.status(400).json({ error: "Description is required" });
+      }
+
+      const doc = await storage.getDocument(docId);
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      if (!doc.attachments || !doc.attachments[attachmentIndex]) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
+
+      const updatedAttachments = [...doc.attachments];
+      updatedAttachments[attachmentIndex] = {
+        ...updatedAttachments[attachmentIndex],
+        description,
+      };
+
+      const updated = await storage.updateDocument(docId, {
+        attachments: updatedAttachments as any,
+      });
+
+      res.json({
+        success: true,
+        attachment: updatedAttachments[attachmentIndex],
+        document: updated,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // DELETE /api/admin/documents/:id - Delete document
   app.delete("/api/admin/documents/:id", async (req, res) => {
     try {

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Image as ImageIcon, Download, ExternalLink, Filter, Grid3x3, List, Trash2, CheckSquare, Square } from "lucide-react";
+import { Image as ImageIcon, Download, ExternalLink, Filter, Grid3x3, List, Trash2, CheckSquare, Square, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -83,6 +85,8 @@ export default function ImagesGalleryPage() {
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [namespaceFilter, setNamespaceFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingImage, setEditingImage] = useState<ImageItem | null>(null);
+  const [editDescription, setEditDescription] = useState('');
   const [selectedTab, setSelectedTab] = useState<'images' | 'kb'>('images');
   
   // Multi-select state
@@ -115,6 +119,41 @@ export default function ImagesGalleryPage() {
 
   // Filter KB documents (only indexed ones)
   const kbDocuments = documentsData?.filter(doc => doc.status === 'indexed') || [];
+
+  const updateDescriptionMutation = useMutation({
+    mutationFn: async ({ img, description }: { img: ImageItem; description: string }) => {
+      const docId = img.documentId;
+      const attachmentIndex = img.id.split('-').pop();
+      
+      const response = await apiRequest(`/api/admin/documents/${docId}/attachments/${attachmentIndex}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Erro ao atualizar descrição');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Descrição atualizada",
+        description: "A descrição da imagem foi atualizada com sucesso",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/images/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
+      setEditingImage(null);
+      setEditDescription('');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao atualizar",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (imageIds: string[]) => {
@@ -475,6 +514,20 @@ export default function ImagesGalleryPage() {
                         <p className="text-sm text-muted-foreground whitespace-nowrap">
                           {(img.size / 1024).toFixed(1)} KB
                         </p>
+                        {img.documentId && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingImage(img);
+                              setEditDescription(img.description || '');
+                            }}
+                            data-testid={`button-edit-description-${img.id}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -643,6 +696,52 @@ export default function ImagesGalleryPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Description Dialog */}
+      <Dialog open={!!editingImage} onOpenChange={() => setEditingImage(null)}>
+        <DialogContent data-testid="dialog-edit-description">
+          <DialogHeader>
+            <DialogTitle>Editar Descrição</DialogTitle>
+            <DialogDescription>
+              Edite a descrição gerada por IA para esta imagem
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Descrição</Label>
+              <Textarea
+                id="edit-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Digite a nova descrição da imagem..."
+                rows={4}
+                data-testid="textarea-edit-description"
+              />
+            </div>
+            
+            <div className="flex gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setEditingImage(null)}
+                data-testid="button-cancel-edit"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => editingImage && updateDescriptionMutation.mutate({ 
+                  img: editingImage, 
+                  description: editDescription 
+                })}
+                disabled={updateDescriptionMutation.isPending}
+                data-testid="button-save-description"
+              >
+                {updateDescriptionMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
