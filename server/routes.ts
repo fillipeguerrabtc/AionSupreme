@@ -34,6 +34,7 @@ import { DatasetValidator } from "./training/datasets/dataset-validator";
 import { db } from "./db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { trainingDataCollection, datasets, trainingJobs } from "../shared/schema";
+import { lifecyclePolicyUpdateSchema } from "./validation/lifecycle-policy-schema";
 import { registerAgentRoutes } from "./routes/agents";
 import { registerAgentRelationshipRoutes } from "./routes/agent-relationships";
 import { registerCurationRoutes } from "./routes/curation";
@@ -696,11 +697,16 @@ export function registerRoutes(app: Express): Server {
     try {
       const policyPath = path.join(process.cwd(), "config", "lifecycle-policy.json");
       
-      // Validate input (basic structure check)
-      const updates = req.body;
-      if (!updates || typeof updates !== 'object') {
-        return res.status(400).json({ error: "Invalid policy data" });
+      // Validate input using Zod schema
+      const validationResult = lifecyclePolicyUpdateSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Invalid lifecycle policy data",
+          details: validationResult.error.format()
+        });
       }
+      
+      const updates = validationResult.data;
 
       // Read current policy
       const currentContent = await fs.readFile(policyPath, "utf-8");
