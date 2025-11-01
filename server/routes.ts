@@ -492,8 +492,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET/POST /api/admin/policies/:tenant_id
-  app.get("/api/admin/policies/:tenant_id", async (req, res) => {
+  // GET/POST /api/admin/policies
+  app.get("/api/admin/policies", async (req, res) => {
     try {
       const policy = await storage.getActivePolicy();
       res.json(policy || {});
@@ -502,7 +502,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/admin/policies/:tenant_id", async (req, res) => {
+  app.post("/api/admin/policies", async (req, res) => {
     try {
       const existing = await storage.getActivePolicy();
       
@@ -518,18 +518,18 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/admin/settings/timezone/:tenant_id - Get tenant timezone
-  app.get("/api/admin/settings/timezone/:tenant_id", async (req, res) => {
+  // GET /api/admin/settings/timezone - Get system timezone
+  app.get("/api/admin/settings/timezone", async (req, res) => {
     try {
-      // Always return default timezone (tenant concept removed)
+      // Always return default timezone (single-tenant)
       res.json({ timezone: "America/Sao_Paulo" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  // POST /api/admin/settings/timezone/:tenant_id - Update tenant timezone
-  app.post("/api/admin/settings/timezone/:tenant_id", async (req, res) => {
+  // POST /api/admin/settings/timezone - Update system timezone
+  app.post("/api/admin/settings/timezone", async (req, res) => {
     try {
       const { timezone } = req.body;
       
@@ -544,7 +544,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Invalid IANA timezone" });
       }
       
-      // Timezone setting is no longer persisted (tenant concept removed)
+      // Timezone setting is no longer persisted (single-tenant)
       res.json({ timezone, success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -644,10 +644,9 @@ export function registerRoutes(app: Express): Server {
   // KNOWLEDGE BASE MANAGEMENT
   // ============================================================================
 
-  // GET /api/admin/documents/:tenant_id - List APPROVED documents
+  // GET /api/admin/documents - List APPROVED documents
   // HITL FIX: Only show documents that passed human approval (status='indexed')
-  // Note: tenant_id path param preserved for compatibility but not used internally
-  app.get("/api/admin/documents/:tenant_id", async (req, res) => {
+  app.get("/api/admin/documents", async (req, res) => {
     try {
       const allDocs = await storage.getDocuments(1000);
       
@@ -665,7 +664,7 @@ export function registerRoutes(app: Express): Server {
   // HITL FIX: All manual KB feeding goes through curation queue
   app.post("/api/admin/documents", async (req, res) => {
     try {
-      const { tenant_id, title, content, source } = req.body;
+      const { title, content, source } = req.body;
       
       if (!title || !content) {
         return res.status(400).json({ error: "Title and content are required" });
@@ -675,7 +674,7 @@ export function registerRoutes(app: Express): Server {
       const { curationStore } = await import("./curation/store");
       
       // Add to curation queue instead of direct KB publish
-      const item = await curationStore.addToCuration(tenant_id || 1, {
+      const item = await curationStore.addToCuration({
         title,
         content,
         suggestedNamespaces: ["kb/general"],
@@ -744,7 +743,7 @@ export function registerRoutes(app: Express): Server {
   // Sends everything to curation queue (HITL)
   app.post("/api/admin/crawl-website", async (req, res) => {
     try {
-      const { tenant_id, url, namespace, maxDepth, maxPages, consolidatePages } = req.body;
+      const { url, namespace, maxDepth, maxPages, consolidatePages } = req.body;
 
       if (!url) {
         return res.status(400).json({ error: "URL is required" });
@@ -785,7 +784,7 @@ export function registerRoutes(app: Express): Server {
   // UPGRADE: Now uses WebsiteCrawlerService for COMPLETE site crawling
   app.post("/api/admin/learn-from-url", async (req, res) => {
     try {
-      const { tenant_id, url, namespace, maxDepth, maxPages } = req.body;
+      const { url, namespace, maxDepth, maxPages } = req.body;
 
       if (!url) {
         return res.status(400).json({ error: "URL is required" });
@@ -833,7 +832,6 @@ export function registerRoutes(app: Express): Server {
   // HITL FIX: All uploaded files go through curation queue
   app.post("/api/admin/upload-files", upload.array("files", 20), async (req, res) => {
     try {
-      const { tenant_id } = req.body;
       const files = req.files as Express.Multer.File[];
 
       if (!files || files.length === 0) {
@@ -887,7 +885,7 @@ export function registerRoutes(app: Express): Server {
           console.log(`  - Pages: ${processed.metadata?.pages || 'N/A'}`);
 
           // Add to curation queue instead of direct KB publish
-          const item = await curationStore.addToCuration(tenant_id || 1, {
+          const item = await curationStore.addToCuration({
             title: file.originalname,
             content: processed.extractedText,
             suggestedNamespaces: ["kb/uploads"],
@@ -928,7 +926,7 @@ export function registerRoutes(app: Express): Server {
   // HITL FIX: All web search results go through curation queue
   app.post("/api/admin/web-search-learn", async (req, res) => {
     try {
-      const { tenant_id, query } = req.body;
+      const { query } = req.body;
 
       if (!query) {
         return res.status(400).json({ error: "Search query is required" });
@@ -960,7 +958,7 @@ export function registerRoutes(app: Express): Server {
             const finalContent = content.length > 1000000 ? content.substring(0, 1000000) : content;
             
             // Add to curation queue instead of direct KB publish
-            const item = await curationStore.addToCuration(tenant_id || 1, {
+            const item = await curationStore.addToCuration({
               title: result.title,
               content: finalContent,
               suggestedNamespaces: ["kb/web-search"],
@@ -2239,7 +2237,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/training/datasets - List all datasets for tenant
+  // GET /api/training/datasets - List all datasets
   app.get("/api/training/datasets", async (req, res) => {
     try {
       const { db } = await import("./db");

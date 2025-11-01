@@ -72,9 +72,7 @@ export default function CurationQueuePage() {
   const { data: items, isLoading } = useQuery<CurationItem[]>({
     queryKey: ["/api/curation/pending"],
     queryFn: async () => {
-      const res = await fetch("/api/curation/pending", {
-        headers: { "x-tenant-id": "1" },
-      });
+      const res = await fetch("/api/curation/pending");
       if (!res.ok) throw new Error("Falha ao carregar fila de curadoria");
       return res.json();
     },
@@ -84,9 +82,7 @@ export default function CurationQueuePage() {
   const { data: historyItems, isLoading: historyLoading } = useQuery<CurationItem[]>({
     queryKey: ["/api/curation/history"],
     queryFn: async () => {
-      const res = await fetch("/api/curation/history", {
-        headers: { "x-tenant-id": "1" },
-      });
+      const res = await fetch("/api/curation/history");
       if (!res.ok) throw new Error("Falha ao carregar histórico");
       return res.json();
     },
@@ -97,7 +93,7 @@ export default function CurationQueuePage() {
     mutationFn: async (data: { id: string; title: string; tags: string[]; suggestedNamespaces: string[]; note: string }) => {
       const res = await apiRequest("/api/curation/edit", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
       return res.json();
@@ -118,7 +114,7 @@ export default function CurationQueuePage() {
     mutationFn: async (id: string) => {
       const res = await apiRequest("/api/curation/approve", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, reviewedBy: "admin" }),
       });
       return res.json();
@@ -140,7 +136,7 @@ export default function CurationQueuePage() {
     mutationFn: async (ids: string[]) => {
       const res = await apiRequest("/api/curation/bulk-approve", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids, reviewedBy: "admin" }),
       });
       return res.json();
@@ -166,7 +162,7 @@ export default function CurationQueuePage() {
     mutationFn: async () => {
       const res = await apiRequest("/api/curation/approve-all", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reviewedBy: "admin" }),
       });
       return res.json();
@@ -191,7 +187,7 @@ export default function CurationQueuePage() {
     mutationFn: async (data: { ids: string[]; note: string }) => {
       const res = await apiRequest("/api/curation/bulk-reject", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: data.ids, reviewedBy: "admin", note: data.note }),
       });
       return res.json();
@@ -217,7 +213,7 @@ export default function CurationQueuePage() {
     mutationFn: async (note: string) => {
       const res = await apiRequest("/api/curation/reject-all", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reviewedBy: "admin", note }),
       });
       return res.json();
@@ -242,7 +238,7 @@ export default function CurationQueuePage() {
     mutationFn: async (data: { id: string; note: string }) => {
       const res = await apiRequest("/api/curation/reject", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-tenant-id": "1" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: data.id, reviewedBy: "admin", note: data.note }),
       });
       return res.json();

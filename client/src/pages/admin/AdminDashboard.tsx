@@ -108,8 +108,8 @@ export default function AdminDashboard() {
     },
   });
 
-  // Fetch tenant timezone
-  const { data: tenantTimezone } = useQuery({
+  // Fetch system timezone
+  const { data: systemTimezone } = useQuery({
     queryKey: ["/api/admin/settings/timezone"],
     queryFn: async () => {
       const res = await fetch(`/api/admin/settings/timezone`);
@@ -209,10 +209,10 @@ export default function AdminDashboard() {
 
   // Initialize timezone from backend
   useEffect(() => {
-    if (tenantTimezone?.timezone) {
-      setSelectedTimezone(tenantTimezone.timezone);
+    if (systemTimezone?.timezone) {
+      setSelectedTimezone(systemTimezone.timezone);
     }
-  }, [tenantTimezone]);
+  }, [systemTimezone]);
 
   // Update current time every second
   useEffect(() => {
