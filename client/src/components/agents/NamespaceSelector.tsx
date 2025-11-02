@@ -5,19 +5,9 @@ import {
   ChevronsUpDown, 
   X, 
   Plus,
-  Settings,
-  Headphones,
-  DollarSign,
-  Laptop,
-  Globe,
-  Car,
-  BarChart3,
-  Calendar,
-  Megaphone,
-  BookOpen,
   FolderTree,
-  LucideIcon
 } from "lucide-react";
+import { ICON_MAP } from "@/lib/icon-map";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -39,20 +29,6 @@ import { cn } from "@/lib/utils";
 
 // Wildcard namespace for curator (full access)
 const WILDCARD_NAMESPACE = "*";
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  Settings,
-  Headphones,
-  DollarSign,
-  Laptop,
-  Globe,
-  Car,
-  BarChart3,
-  Calendar,
-  Megaphone,
-  BookOpen,
-  FolderTree,
-};
 
 interface NamespaceSelectorProps {
   value: string[];
@@ -256,26 +232,30 @@ export function NamespaceSelector({
                   </CommandGroup>
                 )}
                 <CommandGroup heading="Namespaces Disponíveis">
-                  {filteredNamespaces.map((ns) => (
-                    <CommandItem
-                      key={ns.name}
-                      onSelect={() => toggleNamespace(ns.name)}
-                      data-testid={`namespace-option-${ns.name}`}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          value.includes(ns.name) ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      <div className="flex flex-col">
-                        <span className="font-medium">{ns.name}</span>
-                        {ns.description && (
-                          <span className="text-xs text-muted-foreground">{ns.description}</span>
-                        )}
-                      </div>
-                    </CommandItem>
-                  ))}
+                  {filteredNamespaces.map((ns) => {
+                    const Icon = ns.icon && ICON_MAP[ns.icon] ? ICON_MAP[ns.icon] : FolderTree;
+                    return (
+                      <CommandItem
+                        key={ns.name}
+                        onSelect={() => toggleNamespace(ns.name)}
+                        data-testid={`namespace-option-${ns.name}`}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            value.includes(ns.name) ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <Icon className="mr-2 h-4 w-4 text-primary" />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{ns.name}</span>
+                          {ns.description && (
+                            <span className="text-xs text-muted-foreground">{ns.description}</span>
+                          )}
+                        </div>
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
             </CommandList>
           </Command>

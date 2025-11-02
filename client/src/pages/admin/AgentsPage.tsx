@@ -36,6 +36,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Users, Search } from "lucide-react";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
+import { NamespaceIconDisplay } from "@/components/agents/NamespaceIconDisplay";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentHierarchyManager } from "@/components/agents/AgentHierarchyManager";
 import { CreateAgentForm } from "@/components/agents/CreateAgentForm";
@@ -214,6 +215,7 @@ export default function AgentsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Ícones</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Slug</TableHead>
                   <TableHead>Tipo</TableHead>
@@ -225,6 +227,12 @@ export default function AgentsPage() {
               <TableBody>
                 {agents.map((agent) => (
                   <TableRow key={agent.id} data-testid={`row-agent-${agent.id}`}>
+                    <TableCell>
+                      <NamespaceIconDisplay 
+                        namespaces={agent.ragNamespaces || []} 
+                        size="md"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{agent.name}</TableCell>
                     <TableCell>
                       <code className="text-xs bg-muted px-2 py-1 rounded">{agent.slug}</code>
