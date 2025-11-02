@@ -576,8 +576,13 @@ export default function ChatPage() {
               data-testid={`message-${msg.role}-${idx}`}
             >
               {msg.role === "assistant" && (
-                <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center">
-                  <span className="text-2xl" data-testid="icon-bot">🐈</span>
+                <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                  <img 
+                    src="https://media.giphy.com/media/oe6yqdxordUV5lKIDX/giphy.gif" 
+                    alt="Gatinho"
+                    className="w-8 h-8 object-cover"
+                    data-testid="icon-bot"
+                  />
                 </div>
               )}
               
@@ -609,8 +614,12 @@ export default function ChatPage() {
           
           {sendMutation.isPending && (
             <div className="flex gap-4 animate-slide-up">
-              <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center animate-pulse">
-                <span className="text-2xl">🐈</span>
+              <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center overflow-hidden animate-pulse">
+                <img 
+                  src="https://media.giphy.com/media/oe6yqdxordUV5lKIDX/giphy.gif" 
+                  alt="Gatinho"
+                  className="w-8 h-8 object-cover"
+                />
               </div>
               <div className="bg-muted px-5 py-4 rounded-xl rounded-bl-sm border border-transparent">
                 <div className="flex gap-2">
@@ -782,8 +791,13 @@ export default function ChatPage() {
               data-testid={`message-${msg.role}-${idx}`}
             >
               {msg.role === "assistant" && (
-                <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center">
-                  <span className="text-2xl" data-testid="icon-bot">🐈</span>
+                <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                  <img 
+                    src="https://media.giphy.com/media/oe6yqdxordUV5lKIDX/giphy.gif" 
+                    alt="Gatinho"
+                    className="w-8 h-8 object-cover"
+                    data-testid="icon-bot"
+                  />
                 </div>
               )}
               
@@ -815,8 +829,12 @@ export default function ChatPage() {
           
           {sendMutation.isPending && (
             <div className="flex gap-4 animate-slide-up">
-              <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center animate-pulse">
-                <span className="text-2xl">🐈</span>
+              <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center overflow-hidden animate-pulse">
+                <img 
+                  src="https://media.giphy.com/media/oe6yqdxordUV5lKIDX/giphy.gif" 
+                  alt="Gatinho"
+                  className="w-8 h-8 object-cover"
+                />
               </div>
               <div className="bg-muted px-5 py-4 rounded-xl rounded-bl-sm border border-transparent">
                 <div className="flex gap-2">
