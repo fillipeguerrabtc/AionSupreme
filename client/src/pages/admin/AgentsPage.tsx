@@ -366,11 +366,10 @@ export default function AgentsPage() {
                   </p>
                   <NamespaceSelector 
                     value={editNamespaces} 
-                    onChange={setEditNamespaces}
+                    onChange={(namespaces) => setEditNamespaces(namespaces.slice(0, 1))}
                     placeholder="Selecione 1 namespace raiz"
                     allowCustom={false}
                     allowWildcard={false}
-                    maxSelections={1}
                   />
                 </div>
               ) : (

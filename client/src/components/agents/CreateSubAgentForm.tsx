@@ -99,7 +99,6 @@ export function CreateSubAgentForm() {
       agentTier: "subagent",
       assignedNamespaces: [],
       type: "specialist",
-      enabled: true,
       tenantId: 1,
     },
   });

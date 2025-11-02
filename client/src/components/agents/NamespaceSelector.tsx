@@ -122,12 +122,6 @@ export function NamespaceSelector({
     onChange([]);
   };
 
-  const selectAll = () => {
-    // Coletar todos os namespaces disponíveis filtrados (sem wildcard)
-    const allNamespaces = filteredNamespaces.map(ns => ns.name);
-    onChange(allNamespaces);
-  };
-
   const addCustomNamespace = () => {
     const trimmed = customNamespace.trim();
     if (!trimmed) return;
@@ -169,18 +163,6 @@ export function NamespaceSelector({
           <Command shouldFilter={true}>
             <CommandInput placeholder="Buscar namespaces..." data-testid="input-search-namespaces" />
             <CommandList className="max-h-[300px]" style={{ overflowY: 'auto' }}>
-              {/* Botão Selecionar Todos no topo */}
-              <CommandGroup>
-                <CommandItem
-                  onSelect={selectAll}
-                  data-testid="button-select-all-namespaces"
-                  className="font-semibold bg-primary/5"
-                >
-                  <Check className="mr-2 h-4 w-4 opacity-100" />
-                  <span>✅ Selecionar TODOS os namespaces</span>
-                </CommandItem>
-              </CommandGroup>
-              
               <CommandEmpty>
                 <div className="p-4 text-center text-sm text-muted-foreground">
                   Nenhum namespace encontrado.
