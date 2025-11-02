@@ -41,6 +41,7 @@ import { AgentHierarchyManager } from "@/components/agents/AgentHierarchyManager
 import { CreateAgentForm } from "@/components/agents/CreateAgentForm";
 import { CreateSubAgentForm } from "@/components/agents/CreateSubAgentForm";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useLanguage } from "@/lib/i18n";
 
 type Agent = {
   id: string;
@@ -57,6 +58,7 @@ type Agent = {
 };
 
 export default function AgentsPage() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("list");
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
@@ -88,11 +90,11 @@ export default function AgentsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
-      toast({ title: "Agente atualizado com sucesso!" });
+      toast({ title: t.admin.agents.toast.updated });
       setSelectedAgent(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao atualizar agente", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -106,10 +108,10 @@ export default function AgentsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
-      toast({ title: "Agente desabilitado com sucesso!" });
+      toast({ title: t.admin.agents.toast.deleted });
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao desabilitar agente", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -164,10 +166,10 @@ export default function AgentsPage() {
         <div className="flex-1 min-w-0">
           <h1 className="text-3xl font-semibold flex items-center gap-2 break-words">
             <Users className="w-8 h-8 shrink-0" />
-            Agentes & Hierarquia
+            {t.admin.agents.title}
           </h1>
           <p className="text-muted-foreground mt-1 break-words">
-            Gerencie agentes especializados e delegação hierárquica multi-camada
+            {t.admin.agents.subtitle}
           </p>
         </div>
       </div>

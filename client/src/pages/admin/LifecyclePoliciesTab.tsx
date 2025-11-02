@@ -10,8 +10,10 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Save, AlertTriangle, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useLanguage } from "@/lib/i18n";
 
 export default function LifecyclePoliciesTab() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [pendingChanges, setPendingChanges] = useState<any>(null);
 
@@ -42,13 +44,12 @@ export default function LifecyclePoliciesTab() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/lifecycle-policies"] });
       setPendingChanges(null);
       toast({
-        title: "✅ Políticas atualizadas",
-        description: "Configurações de retenção salvas com sucesso",
+        title: t.admin.lifecycle.saved,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "❌ Erro ao atualizar",
+        title: "Error",
         description: error.message,
         variant: "destructive",
       });
@@ -125,27 +126,27 @@ export default function LifecyclePoliciesTab() {
   const hasChanges = pendingChanges && policy && JSON.stringify(pendingChanges) !== JSON.stringify(policy);
 
   if (isLoading || !pendingChanges) {
-    return <div className="p-4" data-testid="loading-lifecycle-policies">Carregando políticas...</div>;
+    return <div className="p-4" data-testid="loading-lifecycle-policies">{t.admin.lifecycle.title}...</div>;
   }
 
   if (!policy) {
-    return <div className="p-4" data-testid="error-lifecycle-policies">Erro ao carregar políticas</div>;
+    return <div className="p-4" data-testid="error-lifecycle-policies">Error</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold" data-testid="title-lifecycle-policies">Políticas de Retenção e Limpeza</h2>
+          <h2 className="text-2xl font-bold" data-testid="title-lifecycle-policies">{t.admin.lifecycle.title}</h2>
           <p className="text-sm text-muted-foreground">
-            Configure períodos de retenção e limpeza automática para cada módulo do sistema
+            {t.admin.lifecycle.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-3">
           {hasChanges && (
             <Badge variant="outline" className="gap-2" data-testid="badge-unsaved-changes">
               <AlertTriangle className="w-3 h-3" />
-              Mudanças não salvas
+              {t.admin.lifecycle.unsavedChanges}
             </Badge>
           )}
           <Button 
@@ -154,7 +155,7 @@ export default function LifecyclePoliciesTab() {
             data-testid="button-save-policies"
           >
             <Save className="w-4 h-4 mr-2" />
-            {updatePolicyMutation.isPending ? "Salvando..." : "Salvar Mudanças"}
+            {updatePolicyMutation.isPending ? t.admin.lifecycle.saving : t.admin.lifecycle.save}
           </Button>
         </div>
       </div>
