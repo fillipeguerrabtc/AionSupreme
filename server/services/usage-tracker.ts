@@ -45,9 +45,26 @@ interface TimeSeriesData {
   count: number;
 }
 
+interface NamespaceRelevanceRecord {
+  namespace: string;
+  timestamp: number;
+  avgRelevanceScore: number; // 0-1 (cosine similarity)
+  resultCount: number;
+}
+
+interface NamespaceQualityStats {
+  namespace: string;
+  searchCount: number;
+  avgRelevance: number; // Real average relevance from search results
+  minRelevance: number;
+  maxRelevance: number;
+}
+
 class UsageTracker {
   private records: UsageRecord[] = [];
+  private relevanceRecords: NamespaceRelevanceRecord[] = [];
   private readonly maxRecords = 10000; // Últimos 10k registros em memória
+  private readonly maxRelevanceRecords = 5000; // Últimos 5k registros de relevância
   
   /**
    * Registra uso de um agente (com hierarquia)
@@ -96,6 +113,67 @@ class UsageTracker {
       isRootNamespace,
       parentNamespace,
     });
+  }
+  
+  /**
+   * Registra qualidade de resultados de busca RAG (PRODUCTION-READY)
+   * Rastreia scores reais de relevância retornados pelo VectorStore
+   */
+  trackNamespaceSearchQuality(
+    namespace: string,
+    relevanceScores: number[] // Array de cosine similarities (0-1) dos resultados
+  ): void {
+    if (relevanceScores.length === 0) return;
+    
+    const avgRelevanceScore = relevanceScores.reduce((sum, score) => sum + score, 0) / relevanceScores.length;
+    
+    const record: NamespaceRelevanceRecord = {
+      namespace,
+      timestamp: Date.now(),
+      avgRelevanceScore,
+      resultCount: relevanceScores.length,
+    };
+    
+    this.relevanceRecords.push(record);
+    
+    // Remove registros antigos se exceder limite
+    if (this.relevanceRecords.length > this.maxRelevanceRecords) {
+      this.relevanceRecords = this.relevanceRecords.slice(-this.maxRelevanceRecords);
+    }
+  }
+  
+  /**
+   * Retorna estatísticas de qualidade por namespace (PRODUCTION-READY)
+   * Calcula média REAL de relevance scores
+   */
+  getNamespaceQualityStats(): NamespaceQualityStats[] {
+    const grouped = new Map<string, number[]>();
+    
+    // Agrupar scores por namespace
+    for (const record of this.relevanceRecords) {
+      const existing = grouped.get(record.namespace) || [];
+      existing.push(record.avgRelevanceScore);
+      grouped.set(record.namespace, existing);
+    }
+    
+    // Calcular estatísticas por namespace
+    const stats: NamespaceQualityStats[] = [];
+    
+    for (const [namespace, scores] of Array.from(grouped.entries())) {
+      const avgRelevance = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+      const minRelevance = Math.min(...scores);
+      const maxRelevance = Math.max(...scores);
+      
+      stats.push({
+        namespace,
+        searchCount: scores.length,
+        avgRelevance,
+        minRelevance,
+        maxRelevance,
+      });
+    }
+    
+    return stats.sort((a, b) => b.avgRelevance - a.avgRelevance);
   }
   
   /**

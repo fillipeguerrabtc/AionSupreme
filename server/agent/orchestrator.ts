@@ -10,6 +10,7 @@ import { executeWithHierarchy } from "./hierarchy-orchestrator";
 import { hasChildren } from "./registry";
 import type { AgentInput, AgentOutput, AgentRunContext } from "./types";
 import { usageTracker } from "../services/usage-tracker";
+import { queryMonitor } from "../services/query-monitor";
 
 interface OrchestratorResult {
   content: string;
@@ -95,13 +96,22 @@ export async function orchestrateAgents(
           } else {
             // Standard execution for leaf agents
             const executor = await getAgentById(choice.agentId);
-            const result = await executor.run(agentInput, agentContext);
-            return {
-              agentId: choice.agentId,
-              agentName: executor.name,
-              score: choice.score,
-              result,
-            };
+            const execStartTime = Date.now();
+            try {
+              const result = await executor.run(agentInput, agentContext);
+              const execLatency = Date.now() - execStartTime;
+              queryMonitor.trackAgentQuerySuccess(choice.agentId, execLatency);
+              return {
+                agentId: choice.agentId,
+                agentName: executor.name,
+                score: choice.score,
+                result,
+              };
+            } catch (execError: any) {
+              const execLatency = Date.now() - execStartTime;
+              queryMonitor.trackAgentQueryError(choice.agentId, execError.name || "UnknownError", execLatency);
+              throw execError; // Re-throw to be caught by outer catch
+            }
           }
         } catch (error: any) {
           console.error(`[Orchestrator] Error executing agent ${choice.agentId}:`, error.message);

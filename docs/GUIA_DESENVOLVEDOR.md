@@ -1958,6 +1958,250 @@ const translations = {
 
 ---
 
+## 🔄 Autonomous Learning Loop - Sistema de Aprendizado Autônomo
+
+### Visão Geral
+
+O **Autonomous Learning Loop** é um sistema de **feedback automático** que analisa padrões de uso da telemetria e alimenta o Training Data Collector com insights para melhorar continuamente o modelo. Este sistema fecha o ciclo de auto-evolução do AION.
+
+**Fluxo do Autonomous Learning Loop:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 AUTONOMOUS LEARNING LOOP                     │
+│                                                               │
+│  1. Telemetria rastreia uso → UsageTracker                  │
+│     ↓                                                         │
+│  2. PatternAnalyzer analisa padrões (2h)                     │
+│     • Agentes mais efetivos                                  │
+│     • Namespaces com melhor qualidade                        │
+│     • Effectiveness Score (success + latency + usage)        │
+│     ↓                                                         │
+│  3. Gera insights automáticos                                 │
+│     • Top performing agents                                   │
+│     • Underperforming agents                                  │
+│     • High-quality namespaces                                 │
+│     ↓                                                         │
+│  4. Alimenta Training Data Collector                          │
+│     • Gera TrainingExamples baseados em padrões             │
+│     • Retro-alimenta sistema de treino                       │
+│     ↓                                                         │
+│  5. Modelo melhora continuamente ♾️                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### PatternAnalyzer Service
+
+**Localização:** `server/services/pattern-analyzer.ts`
+
+**Responsabilidades:**
+- Analisa efetividade de agentes (success rate, latência, uso)
+- Analisa qualidade de namespaces (relevância, frequência)
+- Gera insights automáticos para training
+- Cria TrainingExamples baseados em padrões de sucesso
+
+**Estrutura de Dados:**
+
+```typescript
+interface EffectivenessMetrics {
+  agentId: string;
+  agentName: string;
+  successRate: number;      // 0-1 (95% = 0.95)
+  avgLatency: number;        // ms
+  usageCount: number;        // total de execuções
+  effectivenessScore: number; // 0-1 (composto)
+}
+
+interface NamespaceQuality {
+  namespaceName: string;
+  searchCount: number;       // total de buscas
+  avgRelevance: number;      // 0-1 (85% = 0.85)
+  qualityScore: number;      // 0-1 (composto)
+}
+```
+
+**Algoritmo de Effectiveness Score:**
+
+```typescript
+effectivenessScore = 
+  (successRate * 0.5) +           // 50% peso em sucesso
+  (normalizedLatency * 0.3) +     // 30% peso em velocidade
+  (normalizedUsage * 0.2)         // 20% peso em popularidade
+
+// Normalização de latência: quanto menor, melhor
+normalizedLatency = max(0, 1 - avgLatency / 5000)
+
+// Normalização de uso: cap em 100 execuções
+normalizedUsage = min(usageCount / 100, 1)
+```
+
+**Integração no Auto-Evolution:**
+
+```typescript
+// server/training/init-auto-evolution.ts
+
+import { patternAnalyzer } from "../services/pattern-analyzer";
+
+export function initAutoEvolution(): void {
+  // ...
+  
+  // COMPONENTE 9: Pattern Analyzer
+  console.log("🔍 [9/9] Pattern Analyzer - Autonomous Learning Loop...");
+  const PATTERN_ANALYSIS_INTERVAL = 2 * 60 * 60 * 1000; // 2 horas
+  
+  setInterval(async () => {
+    console.log("\n[PatternAnalyzer] 🤖 Executando análise automática...");
+    await patternAnalyzer.feedbackToTrainingCollector();
+  }, PATTERN_ANALYSIS_INTERVAL);
+  
+  console.log("   ✅ ATIVO - Análise de padrões (intervalo: 2h)");
+  console.log("   → Feedback loop: Telemetria → Insights → Training\n");
+}
+```
+
+### Métodos Principais
+
+**1. analyzeAgentEffectiveness()**
+
+Retorna lista de agentes ordenados por effectiveness score:
+
+```typescript
+const metrics = patternAnalyzer.analyzeAgentEffectiveness();
+// Retorna top 3 agentes mais efetivos:
+// [
+//   {
+//     agentId: "uuid-1",
+//     agentName: "Agente Tech",
+//     successRate: 0.95,
+//     avgLatency: 450,
+//     usageCount: 127,
+//     effectivenessScore: 0.87
+//   },
+//   ...
+// ]
+```
+
+**2. analyzeNamespaceQuality()**
+
+Retorna lista de namespaces ordenados por quality score:
+
+```typescript
+const quality = patternAnalyzer.analyzeNamespaceQuality();
+// Retorna top 3 namespaces de melhor qualidade:
+// [
+//   {
+//     namespaceName: "tecnologia",
+//     searchCount: 89,
+//     avgRelevance: 0.85,
+//     qualityScore: 0.78
+//   },
+//   ...
+// ]
+```
+
+**3. generateInsightsForTraining()**
+
+Gera insights em linguagem natural:
+
+```typescript
+const insights = patternAnalyzer.generateInsightsForTraining();
+// Retorna:
+// [
+//   "Top performing agents: Agente Tech, Agente Finanças (effectiveness: 0.87)",
+//   "Agents needing improvement: Agente Legacy (effectiveness: 0.45)",
+//   "High-quality namespaces: tecnologia, financas (quality: 0.78)"
+// ]
+```
+
+**4. feedbackToTrainingCollector()**
+
+Executa análise completa e loga insights:
+
+```typescript
+await patternAnalyzer.feedbackToTrainingCollector();
+// Console output:
+// [PatternAnalyzer] 🔍 Análise de padrões de uso:
+// [PatternAnalyzer]   ✓ Top performing agents: Agente Tech (0.87)
+// [PatternAnalyzer]   ✓ High-quality namespaces: tecnologia (0.78)
+// [PatternAnalyzer] ✅ Insights gerados para Training Data Collector
+// [PatternAnalyzer] 🔄 Feedback loop: Telemetria → Padrões → Training
+```
+
+**5. generateTrainingDataFromPatterns()**
+
+Cria TrainingExamples baseados em padrões:
+
+```typescript
+const trainingData = patternAnalyzer.generateTrainingDataFromPatterns();
+// Retorna:
+// [
+//   {
+//     instruction: "Como agente especialista Agente Tech, responda efetivamente",
+//     input: "Agente com 127 execuções e 95.0% de sucesso",
+//     output: "Modelo de resposta baseado em padrões de sucesso do Agente Tech",
+//     metadata: { timestamp: Date }
+//   },
+//   ...
+// ]
+```
+
+### Threshold de Análise
+
+**MIN_USAGE_FOR_ANALYSIS = 5**
+
+- Agentes/namespaces com menos de 5 usos são ignorados
+- Garante que análise seja baseada em dados estatisticamente relevantes
+- Evita ruído de entidades recém-criadas
+
+### Limitações (MVP) - Transparência Total
+
+⚠️ **Métricas Parcialmente Sintéticas:**
+
+**O que é REAL (do QueryMonitor):**
+- ✅ `avgLatency` por agent - média global real de latência
+
+**O que é SINTÉTICO (heurísticas):**
+- ⚠️ `successRate` = `totalUses/(totalUses+1)` clamped [0.5-0.95]
+  - **Não rastreia erros reais** - apenas assume "mais uso = melhor"
+  - **Futuro:** Rastrear success/error por agent no QueryMonitor
+- ⚠️ `namespace.avgRelevance` = constante `0.85`
+  - **Não usa scores de busca RAG** - apenas placeholder
+  - **Futuro:** RAG retornar relevance scores reais por documento
+
+**Implicação:**
+- Loop funciona (salva TrainingExamples), mas insights são baseados em **heurísticas** + latency real
+- Não é "100% telemetria real" ainda - é MVP funcional com limitações documentadas
+
+⚠️ **In-Memory Storage:**
+- Dados de telemetria são armazenados em memória (ring buffers)
+- **Restart = perda de dados** de análise
+- **Futuro:** Persistir em PostgreSQL/Redis
+
+✅ **Loop Funcional (com limitações acima):**
+- TrainingExamples são salvos via `trainingDataCollector.exportToJSONL()`
+- Arquivos salvos em `./training/data/pattern_insights_*.jsonl`
+- Feedback loop PARCIAL: Latency Real + Heurísticas → Insights → Training Data
+
+### Roadmap Futuro
+
+1. **Integração com Query Monitor Real**
+   - Usar métricas reais de success rate por agente
+   - Usar latência real de execução
+
+2. **Persistência de Insights**
+   - Salvar análises históricas em PostgreSQL
+   - Trend analysis (agentes melhorando/piorando ao longo do tempo)
+
+3. **Auto-Tuning de Threshold**
+   - Ajustar EFFECTIVENESS_THRESHOLD dinamicamente
+   - Baseado em distribuição dos scores
+
+4. **Alertas Automáticos**
+   - Notificar quando agente cai abaixo de threshold
+   - Sugerir revisão de prompts/tools
+
+---
+
 ## 🧑‍💻 Guia de Desenvolvimento
 
 ### Adicionar Nova Feature (End-to-End)

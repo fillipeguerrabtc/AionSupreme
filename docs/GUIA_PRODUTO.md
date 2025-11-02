@@ -444,6 +444,52 @@ Você decide:
 
 ---
 
+### 9.1. 🔄 Aprendizado Autônomo (Autonomous Learning Loop)
+
+**O que é:** Sistema inteligente que aprende com os padrões de uso do AION para melhorar continuamente.
+
+**Como funciona:**
+
+1. **Telemetria monitora tudo**: Quais agentes são mais usados, quanto tempo levam para responder
+2. **Análise automática (a cada 2h)**: Sistema identifica:
+   - Agentes mais rápidos e populares
+   - Assuntos mais procurados
+   - Padrões de uso
+3. **Gera insights**: Descobre o que funciona bem
+4. **Alimenta treinamento**: Usa esses padrões para melhorar o modelo
+5. **Modelo fica melhor**: AION aprende sozinho, sem intervenção
+
+**Exemplo prático:**
+
+- Sistema detecta que "Agente Tech" é muito usado e responde rápido (450ms)
+- Identifica que assunto "tecnologia" é muito procurado
+- Gera dados de treinamento baseados nesses padrões de sucesso
+- Modelo aprende a responder melhor sobre tecnologia
+- Próxima pergunta sobre tech → Resposta ainda melhor!
+
+**Benefício:** AION melhora continuamente sozinho, quanto mais é usado, mais inteligente fica.
+
+**Algoritmo de Efetividade:**
+
+```
+Pontuação do Agente = 
+  (Popularidade × 50%) + 
+  (Velocidade × 30%) + 
+  (Uso Recente × 20%)
+```
+
+**Threshold:** Apenas agentes/assuntos com 5+ usos são analisados (evita ruído).
+
+**⚠️ Status Atual (MVP):**
+- ✅ **Velocidade real:** Sistema mede tempo de resposta verdadeiro
+- ⚠️ **Taxa de sucesso estimada:** Calcula baseado em popularidade (quanto mais usado, melhor assumido)
+- ⚠️ **Qualidade de assunto:** Usa valor fixo inicial (será melhorado com feedback real)
+- ✅ **Loop funcional:** Sistema salva dados e aprende, mas com métricas parciais
+
+**Próximos passos:** Adicionar rastreamento de erros reais e feedback de usuários para métricas 100% precisas.
+
+---
+
 ### 10. 🩺 Diagnóstico de Saúde
 
 **O que é:** Verificação de problemas no sistema.

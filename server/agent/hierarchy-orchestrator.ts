@@ -11,6 +11,7 @@ import { loadAgentChildren, hasChildren } from "./registry";
 import { getAgentById } from "./runtime";
 import type { AgentInput, AgentOutput, AgentRunContext } from "./types";
 import { nanoid } from "nanoid";
+import { queryMonitor } from "../services/query-monitor";
 
 const MAX_HIERARCHY_DEPTH = 3; // Safeguard: prevent infinite recursion
 
@@ -48,8 +49,17 @@ export async function executeWithHierarchy(
   if (depth >= MAX_HIERARCHY_DEPTH) {
     console.warn(`[Hierarchy] Max depth ${MAX_HIERARCHY_DEPTH} reached for agent ${agentId}`);
     const executor = await getAgentById(agentId);
-    const result = await executor.run(input, ctx);
-    return { ...result, agentId, agentName: executor.name, depth };
+    const startTime = Date.now();
+    try {
+      const result = await executor.run(input, ctx);
+      const latency = Date.now() - startTime;
+      queryMonitor.trackAgentQuerySuccess(agentId, latency);
+      return { ...result, agentId, agentName: executor.name, depth };
+    } catch (error: any) {
+      const latency = Date.now() - startTime;
+      queryMonitor.trackAgentQueryError(agentId, error.name || "UnknownError", latency);
+      throw error;
+    }
   }
   
   // Load agent executor
@@ -61,8 +71,17 @@ export async function executeWithHierarchy(
   if (!childrenAvailable) {
     // No children - execute normally
     console.log(`[Hierarchy] Agent ${executor.name} has no children, executing directly`);
-    const result = await executor.run(input, ctx);
-    return { ...result, agentId, agentName: executor.name, depth };
+    const startTime = Date.now();
+    try {
+      const result = await executor.run(input, ctx);
+      const latency = Date.now() - startTime;
+      queryMonitor.trackAgentQuerySuccess(agentId, latency);
+      return { ...result, agentId, agentName: executor.name, depth };
+    } catch (error: any) {
+      const latency = Date.now() - startTime;
+      queryMonitor.trackAgentQueryError(agentId, error.name || "UnknownError", latency);
+      throw error;
+    }
   }
   
   // HIERARCHICAL EXECUTION: Parent → Children → Aggregation
@@ -74,8 +93,17 @@ export async function executeWithHierarchy(
   if (!delegation.shouldDelegate) {
     // Parent handles directly (delegation not beneficial)
     console.log(`[Hierarchy] ${executor.name} handling directly: ${delegation.reason}`);
-    const result = await executor.run(input, ctx);
-    return { ...result, agentId, agentName: executor.name, depth };
+    const startTime = Date.now();
+    try {
+      const result = await executor.run(input, ctx);
+      const latency = Date.now() - startTime;
+      queryMonitor.trackAgentQuerySuccess(agentId, latency);
+      return { ...result, agentId, agentName: executor.name, depth };
+    } catch (error: any) {
+      const latency = Date.now() - startTime;
+      queryMonitor.trackAgentQueryError(agentId, error.name || "UnknownError", latency);
+      throw error;
+    }
   }
   
   // STEP 2: Delegate to selected children
@@ -137,8 +165,17 @@ export async function executeWithHierarchy(
   if (validChildResults.length === 0) {
     // All children failed - parent fallback
     console.warn(`[Hierarchy] All children failed, parent ${executor.name} falling back`);
-    const result = await executor.run(input, ctx);
-    return { ...result, agentId, agentName: executor.name, depth };
+    const startTime = Date.now();
+    try {
+      const result = await executor.run(input, ctx);
+      const latency = Date.now() - startTime;
+      queryMonitor.trackAgentQuerySuccess(agentId, latency);
+      return { ...result, agentId, agentName: executor.name, depth };
+    } catch (error: any) {
+      const latency = Date.now() - startTime;
+      queryMonitor.trackAgentQueryError(agentId, error.name || "UnknownError", latency);
+      throw error;
+    }
   }
   
   // STEP 3: Aggregate child results (confidence-weighted)

@@ -36,9 +36,29 @@ interface QueryStats {
   };
 }
 
+interface AgentQueryResult {
+  agentId: string;
+  timestamp: number;
+  success: boolean;
+  errorType?: string;
+  latencyMs: number;
+}
+
+interface AgentStats {
+  agentId: string;
+  totalQueries: number;
+  successCount: number;
+  errorCount: number;
+  successRate: number;
+  avgLatency: number;
+  errorsByType: Record<string, number>;
+}
+
 class QueryMonitor {
   private metrics: QueryMetric[] = [];
+  private agentResults: AgentQueryResult[] = [];
   private readonly maxMetrics = 1000; // Últimas 1000 queries
+  private readonly maxAgentResults = 5000; // Últimas 5000 agent queries
 
   /**
    * Registra uma nova métrica de query
@@ -137,6 +157,95 @@ class QueryMonitor {
    */
   getSlowQueries(thresholdMs: number = 1000): QueryMetric[] {
     return this.metrics.filter((m) => m.latencyMs >= thresholdMs);
+  }
+
+  /**
+   * Registra sucesso de query de agent
+   */
+  trackAgentQuerySuccess(agentId: string, latencyMs: number): void {
+    const result: AgentQueryResult = {
+      agentId,
+      timestamp: Date.now(),
+      success: true,
+      latencyMs,
+    };
+
+    this.agentResults.push(result);
+
+    // Remove resultados antigos se exceder o limite
+    if (this.agentResults.length > this.maxAgentResults) {
+      this.agentResults = this.agentResults.slice(-this.maxAgentResults);
+    }
+  }
+
+  /**
+   * Registra erro de query de agent
+   */
+  trackAgentQueryError(agentId: string, errorType: string, latencyMs: number = 0): void {
+    const result: AgentQueryResult = {
+      agentId,
+      timestamp: Date.now(),
+      success: false,
+      errorType,
+      latencyMs,
+    };
+
+    this.agentResults.push(result);
+
+    // Remove resultados antigos se exceder o limite
+    if (this.agentResults.length > this.maxAgentResults) {
+      this.agentResults = this.agentResults.slice(-this.maxAgentResults);
+    }
+  }
+
+  /**
+   * Retorna estatísticas de um agent específico
+   */
+  getAgentStats(agentId: string): AgentStats {
+    const agentQueries = this.agentResults.filter((r) => r.agentId === agentId);
+
+    if (agentQueries.length === 0) {
+      return {
+        agentId,
+        totalQueries: 0,
+        successCount: 0,
+        errorCount: 0,
+        successRate: 0,
+        avgLatency: 0,
+        errorsByType: {},
+      };
+    }
+
+    const successQueries = agentQueries.filter((r) => r.success);
+    const errorQueries = agentQueries.filter((r) => !r.success);
+
+    const avgLatency =
+      agentQueries.reduce((sum, r) => sum + r.latencyMs, 0) / agentQueries.length;
+
+    const errorsByType: Record<string, number> = {};
+    errorQueries.forEach((r) => {
+      if (r.errorType) {
+        errorsByType[r.errorType] = (errorsByType[r.errorType] || 0) + 1;
+      }
+    });
+
+    return {
+      agentId,
+      totalQueries: agentQueries.length,
+      successCount: successQueries.length,
+      errorCount: errorQueries.length,
+      successRate: (successQueries.length / agentQueries.length) * 100,
+      avgLatency: Math.round(avgLatency),
+      errorsByType,
+    };
+  }
+
+  /**
+   * Retorna estatísticas de todos os agents
+   */
+  getAllAgentStats(): AgentStats[] {
+    const agentIds = [...new Set(this.agentResults.map((r) => r.agentId))];
+    return agentIds.map((agentId) => this.getAgentStats(agentId));
   }
 }
 

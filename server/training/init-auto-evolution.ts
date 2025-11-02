@@ -10,9 +10,11 @@
  * 6. ChatIngestion - Coleta conversas de qualidade
  * 7. AgentLearning - Aprendizado contínuo de agentes
  * 8. GradientAggregation - Coordena FedAvg entre workers
+ * 9. PatternAnalyzer - Autonomous Learning Loop (Telemetria → Insights → Training)
  * 
  * CICLO COMPLETO:
  * Pergunta → Resposta → Auto-Index → Dataset → Treino → FedAvg → Modelo melhor → ♾️
+ * + Telemetria → PatternAnalyzer → Insights → Training Data → Modelo melhor
  */
 
 import { autoIndexer } from "./auto-indexer";
@@ -22,6 +24,7 @@ import { autoTrainingTrigger } from "./auto-training-trigger";
 import { chatIngestionService } from "../learn/chat-ingestion";
 import { agentContinuousLearning } from "../learn/agent-continuous-learning";
 import { gradientAggregationCoordinator } from "../federated/gradient-aggregation-coordinator";
+import { patternAnalyzer } from "../services/pattern-analyzer";
 
 export function initAutoEvolution(): void {
   console.log("\n╔════════════════════════════════════════════════════════════════╗");
@@ -29,50 +32,60 @@ export function initAutoEvolution(): void {
   console.log("╚════════════════════════════════════════════════════════════════╝\n");
 
   // COMPONENTE 1: AutoIndexer
-  console.log("📝 [1/8] AutoIndexer...");
+  console.log("📝 [1/9] AutoIndexer...");
   autoIndexer.setEnabled(true);
   console.log("   ✅ ATIVO - Indexação automática de conhecimento\n");
 
   // COMPONENTE 2: AutoLearningListener
-  console.log("👂 [2/8] AutoLearningListener...");
+  console.log("👂 [2/9] AutoLearningListener...");
   autoLearningListener.start();
   autoLearningListener.setEnabled(true);
   console.log("   ✅ ATIVO - Escutando TODAS as fontes de dados\n");
 
   // COMPONENTE 3: DatasetGenerator
-  console.log("📦 [3/8] DatasetGenerator...");
+  console.log("📦 [3/9] DatasetGenerator...");
   datasetGenerator.setEnabled(true);
   datasetGenerator.setMinExamples(100); // 100 exemplos para disparar
   console.log("   ✅ ATIVO - Geração automática de datasets (threshold: 100)\n");
 
   // COMPONENTE 4: AutoTrainingTrigger
-  console.log("🔄 [4/8] AutoTrainingTrigger...");
+  console.log("🔄 [4/9] AutoTrainingTrigger...");
   autoTrainingTrigger.setEnabled(true);
   autoTrainingTrigger.setThreshold(100); // 100 exemplos mínimo
   autoTrainingTrigger.start(); // Verifica a cada 30min
   console.log("   ✅ ATIVO - Monitor automático de treino (check: 30min)\n");
 
   // COMPONENTE 5: GPUPool
-  console.log("🎮 [5/8] GPUPool...");
+  console.log("🎮 [5/9] GPUPool...");
   console.log("   ✅ ATIVO - Balanceamento inteligente de carga");
   console.log("   ⚡ Sistema de PREEMPÇÃO configurado");
   console.log("   → Inferência pausa treino automaticamente\n");
 
   // COMPONENTE 6: Chat Ingestion
-  console.log("💬 [6/8] Chat Ingestion...");
+  console.log("💬 [6/9] Chat Ingestion...");
   chatIngestionService.startAutoCollection(60 * 60 * 1000); // 1 hora
   console.log("   ✅ ATIVO - Coleta automática de conversas (intervalo: 1h)\n");
 
   // COMPONENTE 7: Agent Continuous Learning
-  console.log("🧠 [7/8] Agent Continuous Learning...");
+  console.log("🧠 [7/9] Agent Continuous Learning...");
   agentContinuousLearning.start();
   console.log("   ✅ ATIVO - Aprendizado contínuo de agentes (intervalo: 1h)\n");
 
   // COMPONENTE 8: Gradient Aggregation Coordinator
-  console.log("🔄 [8/8] Gradient Aggregation Coordinator...");
+  console.log("🔄 [8/9] Gradient Aggregation Coordinator...");
   gradientAggregationCoordinator.start();
   console.log("   ✅ ATIVO - Monitoramento de workers federados (check: 30s)");
   console.log("   → Agrega gradientes (FedAvg) quando todos workers completarem\n");
+
+  // COMPONENTE 9: Pattern Analyzer (Autonomous Learning Loop)
+  console.log("🔍 [9/9] Pattern Analyzer - Autonomous Learning Loop...");
+  const PATTERN_ANALYSIS_INTERVAL = 2 * 60 * 60 * 1000; // 2 horas
+  setInterval(async () => {
+    console.log("\n[PatternAnalyzer] 🤖 Executando análise automática de padrões...");
+    await patternAnalyzer.feedbackToTrainingCollector();
+  }, PATTERN_ANALYSIS_INTERVAL);
+  console.log("   ✅ ATIVO - Análise de padrões de uso (intervalo: 2h)");
+  console.log("   → Feedback loop: Telemetria → Insights → Training Data\n");
 
   // RESUMO DO SISTEMA
   console.log("╔════════════════════════════════════════════════════════════════╗");
