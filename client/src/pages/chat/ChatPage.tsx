@@ -576,12 +576,15 @@ export default function ChatPage() {
               data-testid={`message-${msg.role}-${idx}`}
             >
               {msg.role === "assistant" && (
-                <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                <div className="bg-white p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center border border-border">
                   <img 
-                    src="https://media.giphy.com/media/oe6yqdxordUV5lKIDX/giphy.gif" 
+                    src="https://media.tenor.com/images/f3f7e5f5e5f5e5f5e5f5e5f5e5f5e5f5/tenor.gif" 
                     alt="Gatinho"
-                    className="w-8 h-8 object-cover"
+                    className="w-7 h-7 object-contain"
                     data-testid="icon-bot"
+                    onError={(e) => {
+                      e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E@keyframes tail%7B0%25,100%25%7Btransform:rotate(0)%7D50%25%7Btransform:rotate(20deg)%7D%7D%3C/style%3E%3Cg fill='%23000'%3E%3Ccircle cx='50' cy='35' r='15'/%3E%3Cellipse cx='50' cy='55' rx='18' ry='22'/%3E%3Cpath d='M35,25 L30,15 L35,20 Z'/%3E%3Cpath d='M65,25 L70,15 L65,20 Z'/%3E%3Cg transform-origin='68 58' style='animation:tail 1s ease-in-out infinite'%3E%3Cpath d='M68,58 Q75,50 80,45 Q82,43 80,48 Q75,55 68,60 Z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E";
+                    }}
                   />
                 </div>
               )}
@@ -614,11 +617,11 @@ export default function ChatPage() {
           
           {sendMutation.isPending && (
             <div className="flex gap-4 animate-slide-up">
-              <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center overflow-hidden animate-pulse">
+              <div className="bg-white p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center border border-border animate-pulse">
                 <img 
-                  src="https://media.giphy.com/media/oe6yqdxordUV5lKIDX/giphy.gif" 
+                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E@keyframes tail%7B0%25,100%25%7Btransform:rotate(0)%7D50%25%7Btransform:rotate(20deg)%7D%7D%3C/style%3E%3Cg fill='%23000'%3E%3Ccircle cx='50' cy='35' r='15'/%3E%3Cellipse cx='50' cy='55' rx='18' ry='22'/%3E%3Cpath d='M35,25 L30,15 L35,20 Z'/%3E%3Cpath d='M65,25 L70,15 L65,20 Z'/%3E%3Cg transform-origin='68 58' style='animation:tail 1s ease-in-out infinite'%3E%3Cpath d='M68,58 Q75,50 80,45 Q82,43 80,48 Q75,55 68,60 Z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E" 
                   alt="Gatinho"
-                  className="w-8 h-8 object-cover"
+                  className="w-7 h-7 object-contain"
                 />
               </div>
               <div className="bg-muted px-5 py-4 rounded-xl rounded-bl-sm border border-transparent">
@@ -791,12 +794,15 @@ export default function ChatPage() {
               data-testid={`message-${msg.role}-${idx}`}
             >
               {msg.role === "assistant" && (
-                <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                <div className="bg-white p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center border border-border">
                   <img 
-                    src="https://media.giphy.com/media/oe6yqdxordUV5lKIDX/giphy.gif" 
+                    src="https://media.tenor.com/images/f3f7e5f5e5f5e5f5e5f5e5f5e5f5e5f5/tenor.gif" 
                     alt="Gatinho"
-                    className="w-8 h-8 object-cover"
+                    className="w-7 h-7 object-contain"
                     data-testid="icon-bot"
+                    onError={(e) => {
+                      e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E@keyframes tail%7B0%25,100%25%7Btransform:rotate(0)%7D50%25%7Btransform:rotate(20deg)%7D%7D%3C/style%3E%3Cg fill='%23000'%3E%3Ccircle cx='50' cy='35' r='15'/%3E%3Cellipse cx='50' cy='55' rx='18' ry='22'/%3E%3Cpath d='M35,25 L30,15 L35,20 Z'/%3E%3Cpath d='M65,25 L70,15 L65,20 Z'/%3E%3Cg transform-origin='68 58' style='animation:tail 1s ease-in-out infinite'%3E%3Cpath d='M68,58 Q75,50 80,45 Q82,43 80,48 Q75,55 68,60 Z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E";
+                    }}
                   />
                 </div>
               )}
@@ -829,11 +835,11 @@ export default function ChatPage() {
           
           {sendMutation.isPending && (
             <div className="flex gap-4 animate-slide-up">
-              <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center overflow-hidden animate-pulse">
+              <div className="bg-white p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center border border-border animate-pulse">
                 <img 
-                  src="https://media.giphy.com/media/oe6yqdxordUV5lKIDX/giphy.gif" 
+                  src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cstyle%3E@keyframes tail%7B0%25,100%25%7Btransform:rotate(0)%7D50%25%7Btransform:rotate(20deg)%7D%7D%3C/style%3E%3Cg fill='%23000'%3E%3Ccircle cx='50' cy='35' r='15'/%3E%3Cellipse cx='50' cy='55' rx='18' ry='22'/%3E%3Cpath d='M35,25 L30,15 L35,20 Z'/%3E%3Cpath d='M65,25 L70,15 L65,20 Z'/%3E%3Cg transform-origin='68 58' style='animation:tail 1s ease-in-out infinite'%3E%3Cpath d='M68,58 Q75,50 80,45 Q82,43 80,48 Q75,55 68,60 Z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E" 
                   alt="Gatinho"
-                  className="w-8 h-8 object-cover"
+                  className="w-7 h-7 object-contain"
                 />
               </div>
               <div className="bg-muted px-5 py-4 rounded-xl rounded-bl-sm border border-transparent">
