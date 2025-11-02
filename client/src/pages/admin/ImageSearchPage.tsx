@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Search, Image as ImageIcon, Trash2, ExternalLink, FileImage } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { AionLogo } from "@/components/AionLogo";
 
 interface ImageSearchResult {
   id: number;
@@ -92,14 +91,11 @@ export default function ImageSearchPage() {
     <div className="flex flex-col h-full gap-4 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <AionLogo className="w-8 h-8" />
-          <div>
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">Busca de Imagens</h1>
-            <p className="text-sm text-muted-foreground">
-              Busca semântica usando descrições geradas pelo Vision AI
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">Busca de Imagens</h1>
+          <p className="text-sm text-muted-foreground">
+            Busca semântica usando descrições geradas pelo Vision AI
+          </p>
         </div>
         <Badge variant="secondary" data-testid="badge-total-images">
           {allImages?.total || 0} imagens indexadas
