@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Search, Image as ImageIcon, Trash2, ExternalLink, FileImage } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/lib/i18n";
 
 interface ImageSearchResult {
   id: number;
@@ -21,6 +22,7 @@ interface ImageSearchResult {
 }
 
 export default function ImageSearchPage() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ImageSearchResult[]>([]);
@@ -51,14 +53,14 @@ export default function ImageSearchPage() {
       setSearchResults(data.data.results);
       setIsSearching(false);
       toast({
-        title: `${data.data.results.length} imagens encontradas`,
-        description: `Busca: "${searchQuery}"`,
+        title: `${data.data.results.length} ${t.admin.imageSearch.imagesFound} "${searchQuery}"`,
+        description: `${t.admin.imageSearch.search}: "${searchQuery}"`,
       });
     },
     onError: (error: any) => {
       setIsSearching(false);
       toast({
-        title: "Erro na busca",
+        title: t.admin.imageSearch.searchError,
         description: error.message,
         variant: "destructive",
       });
@@ -75,7 +77,7 @@ export default function ImageSearchPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/kb/images"] });
-      toast({ title: "Imagem removida com sucesso" });
+      toast({ title: t.admin.imageSearch.removed });
     },
   });
 
@@ -92,13 +94,13 @@ export default function ImageSearchPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Busca de Imagens</h1>
+          <h1 className="text-2xl font-bold" data-testid="text-page-title">{t.admin.imageSearch.title}</h1>
           <p className="text-sm text-muted-foreground">
-            Busca semântica usando descrições geradas pelo Vision AI
+            {t.admin.imageSearch.subtitle}
           </p>
         </div>
         <Badge variant="secondary" data-testid="badge-total-images">
-          {allImages?.total || 0} imagens indexadas
+          {allImages?.total || 0} {t.admin.imageSearch.imagesIndexed}
         </Badge>
       </div>
 
@@ -109,7 +111,7 @@ export default function ImageSearchPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Descreva o que procura (ex: 'logo azul', 'pessoa sorrindo', 'paisagem natural')..."
+                placeholder={t.admin.imageSearch.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -122,7 +124,7 @@ export default function ImageSearchPage() {
               disabled={!searchQuery.trim() || isSearching}
               data-testid="button-search-images"
             >
-              {isSearching ? "Buscando..." : "Buscar"}
+              {isSearching ? t.admin.imageSearch.searching : t.admin.imageSearch.search}
             </Button>
             {searchResults.length > 0 && (
               <Button
@@ -133,7 +135,7 @@ export default function ImageSearchPage() {
                 }}
                 data-testid="button-clear-search"
               >
-                Limpar
+                {t.admin.imageSearch.clear}
               </Button>
             )}
           </div>
@@ -145,28 +147,28 @@ export default function ImageSearchPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ImageIcon className="w-5 h-5" />
-            {searchResults.length > 0 ? "Resultados da Busca" : "Todas as Imagens"}
+            {searchResults.length > 0 ? t.admin.imageSearch.results : t.admin.imageSearch.allImages}
           </CardTitle>
           <CardDescription>
             {searchResults.length > 0
-              ? `${searchResults.length} imagens encontradas para "${searchQuery}"`
-              : `${allImages?.total || 0} imagens na base de conhecimento`}
+              ? `${searchResults.length} ${t.admin.imageSearch.imagesFound} "${searchQuery}"`
+              : `${allImages?.total || 0} ${t.admin.imageSearch.imagesInKb}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[600px]">
             {isLoadingAll ? (
               <div className="flex items-center justify-center py-8">
-                <p className="text-muted-foreground">Carregando imagens...</p>
+                <p className="text-muted-foreground">{t.admin.imageSearch.loading}</p>
               </div>
             ) : displayImages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <FileImage className="w-16 h-16 text-muted-foreground mb-4" />
-                <p className="text-lg font-medium">Nenhuma imagem encontrada</p>
+                <p className="text-lg font-medium">{t.admin.imageSearch.noImages}</p>
                 <p className="text-sm text-muted-foreground mt-2">
                   {searchQuery
-                    ? "Tente usar termos diferentes na busca"
-                    : "Faça upload de imagens através da página de Knowledge Base"}
+                    ? t.admin.imageSearch.noImagesDesc
+                    : t.admin.imageSearch.uploadPrompt}
                 </p>
               </div>
             ) : (
@@ -217,7 +219,7 @@ export default function ImageSearchPage() {
                               size="icon"
                               variant="ghost"
                               onClick={() => {
-                                if (confirm("Remover esta imagem da KB?")) {
+                                if (confirm(t.admin.imageSearch.confirmRemove)) {
                                   deleteMutation.mutate(image.id);
                                 }
                               }}
