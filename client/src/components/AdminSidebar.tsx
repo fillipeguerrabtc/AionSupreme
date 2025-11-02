@@ -26,6 +26,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useLanguage } from "@/lib/i18n";
 
@@ -36,6 +37,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
   const { t } = useLanguage();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   const menuItems = [
     {
@@ -152,7 +154,10 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.value}>
                   <SidebarMenuButton
-                    onClick={() => onTabChange(item.value)}
+                    onClick={() => {
+                      onTabChange(item.value);
+                      if (isMobile) setOpenMobile(false);
+                    }}
                     isActive={activeTab === item.value}
                     data-testid={item.testId}
                     tooltip={item.title}
