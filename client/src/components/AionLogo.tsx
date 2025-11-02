@@ -8,10 +8,10 @@ interface AionLogoProps {
 
 export function AionLogo({ size = "md", showText = true, className = "" }: AionLogoProps) {
   const sizeClasses = {
-    sm: "w-6 h-6",
-    md: "w-8 h-8",
-    lg: "w-12 h-12",
-    xl: "w-16 h-16",
+    sm: "w-10 h-10",
+    md: "w-14 h-14",
+    lg: "w-20 h-20",
+    xl: "w-28 h-28",
   };
 
   const textSizeClasses = {

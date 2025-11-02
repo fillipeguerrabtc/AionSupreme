@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Send, Bot, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video } from "lucide-react";
+import { Send, Bot, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video, LogIn } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage, detectMessageLanguage } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { login } from "@/lib/authUtils";
 import { VideoPreview } from "@/components/VideoPreview";
 import { ImagePreview } from "@/components/ImagePreview";
 import { AttachmentsRenderer } from "@/components/AttachmentsRenderer";
@@ -518,28 +519,47 @@ export default function ChatPage() {
   return (
     <SidebarProvider style={sidebarStyle as React.CSSProperties}>
       <div className="flex h-screen w-full">
-        <AppSidebar
-          currentConversationId={conversationId}
-          onSelectConversation={handleSelectConversation}
-          onNewConversation={handleNewConversation}
-        />
+        {isAuthenticated && (
+          <AppSidebar
+            currentConversationId={conversationId}
+            onSelectConversation={handleSelectConversation}
+            onNewConversation={handleNewConversation}
+          />
+        )}
         
         <div className="flex flex-col flex-1 bg-gradient-to-b from-background via-background to-primary/5">
           {/* Modern Minimal Header */}
           <header className="glass sticky top-0 z-50 border-b border-white/10">
-            <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-3">
-              <SidebarTrigger data-testid="button-sidebar-toggle" className="mr-2" />
-              <button 
-                onClick={() => navigate("/")} 
-                className="flex items-center gap-3 hover-elevate rounded-lg px-2 py-1 -mx-2 transition-all bg-transparent border-0 cursor-pointer" 
-                data-testid="link-logo-home"
-              >
-                <AionLogo showText={false} size="md" />
-                <div>
-                  <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
-                  <p className="text-xs text-muted-foreground">Chat</p>
-                </div>
-              </button>
+            <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                {isAuthenticated && (
+                  <SidebarTrigger data-testid="button-sidebar-toggle" className="mr-2" />
+                )}
+                <button 
+                  onClick={() => navigate("/")} 
+                  className="flex items-center gap-3 hover-elevate rounded-lg px-2 py-1 -mx-2 transition-all bg-transparent border-0 cursor-pointer" 
+                  data-testid="link-logo-home"
+                >
+                  <AionLogo showText={false} size="md" />
+                  <div>
+                    <h1 className="text-xl font-bold gradient-text">{t.chat.title}</h1>
+                    <p className="text-xs text-muted-foreground">Chat</p>
+                  </div>
+                </button>
+              </div>
+              
+              {!isAuthenticated && (
+                <Button
+                  onClick={login}
+                  variant="ghost"
+                  size="sm"
+                  className="text-sm"
+                  data-testid="button-login-header"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Login
+                </Button>
+              )}
             </div>
           </header>
 
