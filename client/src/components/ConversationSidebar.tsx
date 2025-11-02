@@ -6,6 +6,7 @@ import { Plus, MessageSquare, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Conversation } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface ConversationSidebarProps {
   currentConversationId: number | null;
@@ -22,6 +23,7 @@ export function ConversationSidebar({
 }: ConversationSidebarProps) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   const { data: allConversations = [], isLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
@@ -84,7 +86,10 @@ export function ConversationSidebar({
     <div className="flex flex-col h-full">
       <div className="p-4 border-b border-white/10">
         <Button
-          onClick={onNewConversation}
+          onClick={() => {
+            onNewConversation();
+            if (isMobile) setOpenMobile(false);
+          }}
           className="w-full"
           variant="default"
           data-testid="button-new-conversation"
@@ -117,7 +122,10 @@ export function ConversationSidebar({
                       : "hover-elevate"
                   }
                 `}
-                onClick={() => onSelectConversation(conversation.id)}
+                onClick={() => {
+                  onSelectConversation(conversation.id);
+                  if (isMobile) setOpenMobile(false);
+                }}
                 data-testid={`conversation-item-${conversation.id}`}
               >
                 <MessageSquare className="w-4 h-4 flex-shrink-0 text-muted-foreground" />

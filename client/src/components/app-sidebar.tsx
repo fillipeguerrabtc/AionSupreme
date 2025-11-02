@@ -7,6 +7,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const { isMobile, setOpenMobile } = useSidebar();
 
   const getUserInitials = () => {
     if (!user) return "?";
@@ -81,7 +83,10 @@ export function AppSidebar({
               </div>
             </div>
             <Button
-              onClick={logout}
+              onClick={() => {
+                logout();
+                if (isMobile) setOpenMobile(false);
+              }}
               variant="ghost"
               className="w-full justify-start"
               data-testid="button-logout"
@@ -92,7 +97,10 @@ export function AppSidebar({
           </div>
         ) : (
           <Button
-            onClick={login}
+            onClick={() => {
+              login();
+              if (isMobile) setOpenMobile(false);
+            }}
             variant="default"
             className="w-full"
             data-testid="button-login"
