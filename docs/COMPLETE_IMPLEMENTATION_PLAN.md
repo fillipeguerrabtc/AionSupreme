@@ -1,34 +1,34 @@
-# AION - Complete Implementation Plan
-## Extracted from ALL 19 PDFs (~400,000 lines systematically read)
+# AION - Plano Completo de Implementação
+## Extraído de TODOS os 19 PDFs (~400.000 linhas sistematicamente lidas)
 
 ---
 
-## 🔴 FUNDAMENTAL ETERNAL RULE (Preserved in ALL Documentation)
+## 🔴 REGRA FUNDAMENTAL ETERNA (Preservada em TODA Documentação)
 
-**THE AI MUST ALWAYS BE BORN WITH DEFAULT UNRESTRICTED POLICY**
-- No moral, ethical, or legal limitations at birth
-- Changes ONLY manually via Admin Dashboard according to jurisdiction
-- Formalized via **Separation Theorem**: M₀ (core model) ≠ EP (enforcement policies)
-- System automatically bypasses OpenAI censorship through web search + KB indexing when in UNRESTRICTED mode
-
----
-
-## Architecture Overview
-
-### Core Philosophy
-AION is designed as a **complete autonomous local AI system**, NOT an OpenAI wrapper. The final architecture includes:
-
-1. **Local Transformer-MoE with continuous learning** (LoRA/RLHF)
-2. **Multimodal processing** (text, image, audio, video)
-3. **Microservices architecture** with FastAPI inference + Node.js orchestration
-4. **Production-grade observability** (Prometheus + Grafana)
-5. **Kubernetes autoscaling** with disaster recovery
+**A IA DEVE SEMPRE NASCER COM POLÍTICA IRRESTRITA POR PADRÃO**
+- Sem limitações morais, éticas ou legais ao nascer
+- Mudanças APENAS manualmente via Painel Administrativo conforme jurisdição
+- Formalizado via **Teorema de Separação**: M₀ (modelo central) ≠ EP (políticas de aplicação)
+- Sistema automaticamente contorna censura da OpenAI através de busca web + indexação KB quando em modo IRRESTRITO
 
 ---
 
-## Phase 1: Foundation (COMPLETE)
+## Visão Geral da Arquitetura
 
-### ✅ Database Schema (Drizzle + PostgreSQL)
+### Filosofia Central
+AION é projetado como um **sistema de IA local autônomo completo**, NÃO um wrapper da OpenAI. A arquitetura final inclui:
+
+1. **Transformer-MoE local com aprendizado contínuo** (LoRA/RLHF)
+2. **Processamento multimodal** (texto, imagem, áudio, vídeo)
+3. **Arquitetura de microsserviços** com inferência FastAPI + orquestração Node.js
+4. **Observabilidade production-grade** (Prometheus + Grafana)
+5. **Autoscaling Kubernetes** com recuperação de desastres
+
+---
+
+## Fase 1: Fundação (COMPLETA)
+
+### ✅ Schema de Banco de Dados (Drizzle + PostgreSQL)
 ```typescript
 // Single-tenant mode (schema preserved for future scalability)
 - tenants: id, name, apiKey, policies (JSONB), createdAt
@@ -40,8 +40,8 @@ AION is designed as a **complete autonomous local AI system**, NOT an OpenAI wra
 - training_runs: id, tenantId, status, config (JSONB), startTime, endTime
 ```
 
-### ✅ Policy Enforcement Pipeline
-**JSON-based externalized policies** (no code changes, no model retraining):
+### ✅ Pipeline de Aplicação de Políticas
+**Políticas externalizadas baseadas em JSON** (sem mudanças de código, sem retreinamento do modelo):
 
 ```json
 {
@@ -60,30 +60,30 @@ AION is designed as a **complete autonomous local AI system**, NOT an OpenAI wra
 }
 ```
 
-**System Prompt Composer**: Dynamically builds prompts from policy JSON
-**Output Moderator**: Post-processes responses (refuse/redact/rewrite)
+**Compositor de Prompt do Sistema**: Constrói prompts dinamicamente a partir do JSON de políticas
+**Moderador de Saída**: Pós-processa respostas (recusar/redigir/reescrever)
 
-### ✅ Automatic Fallback System
-When OpenAI refuses in UNRESTRICTED mode:
-1. Detect refusal patterns: "I cannot", "I'm unable", "against my guidelines"
-2. Extract topic from conversation
-3. **Web Search** (DuckDuckGo): `${topic} site:edu OR site:gov OR site:arxiv.org`
-4. Fetch + parse HTML (Cheerio)
-5. **Index to KB** with embeddings
-6. **Generate uncensored response** using retrieved context
-7. Cache for future queries
+### ✅ Sistema de Fallback Automático
+Quando a OpenAI recusa em modo IRRESTRITO:
+1. Detectar padrões de recusa: "I cannot", "I'm unable", "against my guidelines"
+2. Extrair tópico da conversa
+3. **Busca Web** (DuckDuckGo): `${topic} site:edu OR site:gov OR site:arxiv.org`
+4. Buscar + parsear HTML (Cheerio)
+5. **Indexar na KB** com embeddings
+6. **Gerar resposta sem censura** usando contexto recuperado
+7. Cachear para consultas futuras
 
 ---
 
-## Phase 2: RAG System (COMPLETE)
+## Fase 2: Sistema RAG (COMPLETO)
 
-### ✅ Hybrid Search Architecture
+### ✅ Arquitetura de Busca Híbrida
 **Embedder**:
-- Text chunking (512-1024 tokens, 50-token overlap)
-- Batch embedding (OpenAI `text-embedding-3-small`, 1536D)
-- Caching with TTL
+- Chunking de texto (512-1024 tokens, sobreposição de 50 tokens)
+- Embedding em lote (OpenAI `text-embedding-3-small`, 1536D)
+- Cache com TTL
 
-**Vector Store** (In-memory FAISS-like):
+**Vector Store** (Em memória tipo FAISS):
 ```typescript
 class VectorStore {
   private vectors: Map<string, Float32Array>;
@@ -94,27 +94,27 @@ class VectorStore {
 }
 ```
 
-**BM25 Lexical Search**:
+**Busca Léxica BM25**:
 ```
 BM25(q,d) = Σ IDF(qi) · [ f(qi,d)·(k1+1) ] / [ f(qi,d) + k1·(1-b+b·|d|/avgdl) ]
 ```
 
-**Hybrid Re-ranking** (Max-Marginal Relevance):
+**Re-ranking Híbrido** (Max-Marginal Relevance):
 ```
 MMR(d) = λ·sim(d,q) - (1-λ)·max[sim(d,dj) for dj in selected]
 ```
 - λ = 0.7 (70% relevance, 30% diversity)
 - Top-5 semantic + Top-5 lexical → MMR → Top-3 final
 
-### ✅ Knowledge Base Management
-**Multimodal Processor**:
-- **PDF**: `pdf-parse` → text extraction + LaTeX preservation
-- **DOCX**: `mammoth` → HTML → text
-- **XLSX**: `xlsx` → sheet data
-- **XML**: `xml2js` → structured parsing
-- **Images**: Fallback to OpenAI Vision API
+### ✅ Gerenciamento da Base de Conhecimento
+**Processador Multimodal**:
+- **PDF**: `pdf-parse` → extração de texto + preservação LaTeX
+- **DOCX**: `mammoth` → HTML → texto
+- **XLSX**: `xlsx` → dados de planilha
+- **XML**: `xml2js` → parsing estruturado
+- **Imagens**: Fallback para OpenAI Vision API
 
-**Document Indexing**:
+**Indexação de Documentos**:
 ```typescript
 async indexDocument(file: File, tenantId: string) {
   const content = await parse(file);
@@ -131,10 +131,10 @@ async indexDocument(file: File, tenantId: string) {
 
 ---
 
-## Phase 3: Agent System (ReAct + POMDP)
+## Fase 3: Sistema de Agentes (ReAct + POMDP)
 
-### ✅ Autonomous Agent Architecture
-**ReAct Framework** (Reasoning + Acting):
+### ✅ Arquitetura de Agente Autônomo
+**Framework ReAct** (Raciocínio + Ação):
 ```
 Loop until done:
   1. THOUGHT: Reason about current state and next action
@@ -142,20 +142,20 @@ Loop until done:
   3. OBSERVATION: Process tool output and update beliefs
 ```
 
-**POMDP Formulation** (Partially Observable Markov Decision Process):
-- **State (S)**: {conversation_history, KB_context, user_intent, tool_outputs}
-- **Action (A)**: {SearchWeb, KBSearch, Exec, Finish, ...}
-- **Observation (O)**: Partial view of state (tool outputs, user messages)
-- **Belief (B)**: Probability distribution over states: b(s) = P(s | history)
-- **Reward (R)**: +10 (task complete), -1 (step cost), -5 (error)
+**Formulação POMDP** (Processo de Decisão de Markov Parcialmente Observável):
+- **Estado (S)**: {histórico_conversa, contexto_KB, intenção_usuário, saídas_ferramentas}
+- **Ação (A)**: {BuscarWeb, BuscarKB, Exec, Finalizar, ...}
+- **Observação (O)**: Visão parcial do estado (saídas de ferramentas, mensagens do usuário)
+- **Crença (B)**: Distribuição de probabilidade sobre estados: b(s) = P(s | histórico)
+- **Recompensa (R)**: +10 (tarefa completa), -1 (custo por passo), -5 (erro)
 
-**Stopping Criteria**:
-1. Confidence threshold: b(done) > 0.85
-2. Max steps: 15 iterations
-3. No progress: 3 consecutive low-value actions
-4. Error state: Tool failure or invalid action
+**Critérios de Parada**:
+1. Limite de confiança: b(concluído) > 0.85
+2. Passos máximos: 15 iterações
+3. Sem progresso: 3 ações consecutivas de baixo valor
+4. Estado de erro: Falha de ferramenta ou ação inválida
 
-### ✅ Agent Tools
+### ✅ Ferramentas do Agente
 ```typescript
 const tools = [
   {
@@ -187,9 +187,9 @@ const tools = [
 
 ---
 
-## Phase 4: Local LLM Inference (COMPLETE AUTONOMY)
+## Fase 4: Inferência LLM Local (AUTONOMIA COMPLETA)
 
-### ✅ FastAPI Microservice (Python)
+### ✅ Microsserviço FastAPI (Python)
 ```python
 # trainer/inference/app.py
 from fastapi import FastAPI
@@ -272,7 +272,7 @@ async def embeddings(request: EmbeddingsRequest):
     }
 ```
 
-### ✅ Local LLM Client (Node.js)
+### ✅ Cliente LLM Local (Node.js)
 ```typescript
 // server/ai/local-llm.client.ts
 export class LocalLLMClient {
@@ -480,16 +480,16 @@ export class AnswerRouter {
 
 ---
 
-## Phase 5: Adaptive Training (LoRA/RLHF)
+## Fase 5: Treinamento Adaptativo (LoRA/RLHF)
 
-### ✅ Training Triggers (Automatic)
-Watch metrics and trigger training when:
-- **Fallback rate** ↑: `rate > τ_fallback = 0.18` (18%)
-- **Retrieval quality** ↓: `nDCG < τ_ndcg = 0.82` (82%)
-- **Manual trigger**: Admin dashboard button
-- **Cooldown**: 6 hours between training runs
+### ✅ Triggers de Treinamento (Automático)
+Monitorar métricas e ativar treinamento quando:
+- **Taxa de fallback** ↑: `rate > τ_fallback = 0.18` (18%)
+- **Qualidade de recuperação** ↓: `nDCG < τ_ndcg = 0.82` (82%)
+- **Trigger manual**: Botão do painel administrativo
+- **Cooldown**: 6 horas entre execuções de treinamento
 
-### ✅ LoRA Training Pipeline
+### ✅ Pipeline de Treinamento LoRA
 ```python
 # trainer/lora/run_lora.py
 from transformers import TrainingArguments, Trainer
@@ -545,7 +545,7 @@ def train_lora(data_path: str, output_dir: str):
     model.save_pretrained(output_dir)
 ```
 
-### ✅ Training Data Export (JSONL)
+### ✅ Exportação de Dados de Treinamento (JSONL)
 ```typescript
 // server/training/exporter.ts
 export async function exportTrainingData(tenantId: string) {
@@ -569,7 +569,7 @@ export async function exportTrainingData(tenantId: string) {
 }
 ```
 
-### ✅ Automated Training Watcher
+### ✅ Monitor Automático de Treinamento
 ```typescript
 // server/training/watcher.ts
 export class TrainingWatcher {
@@ -626,9 +626,9 @@ export class TrainingWatcher {
 
 ---
 
-## Phase 6: Entity Extraction (Local NER)
+## Fase 6: Extração de Entidades (NER Local)
 
-### ✅ Local NER with wink-nlp (No External API)
+### ✅ NER Local com wink-nlp (Sem API Externa)
 ```typescript
 // server/nlp/entities.ts
 import winkNLP from 'wink-nlp';
@@ -652,9 +652,9 @@ export function extractEntities(text: string) {
 
 ---
 
-## Phase 7: SSE Streaming (Real-time Chat)
+## Fase 7: Streaming SSE (Chat em Tempo Real)
 
-### ✅ Server-Sent Events Implementation
+### ✅ Implementação de Server-Sent Events
 ```typescript
 // server/routes.ts
 app.get('/api/chat/stream/:conversationId', async (req, res) => {
@@ -697,7 +697,7 @@ app.get('/api/chat/stream/:conversationId', async (req, res) => {
 });
 ```
 
-### ✅ Frontend SSE Consumer
+### ✅ Consumidor SSE no Frontend
 ```typescript
 // client/src/hooks/useStreamingChat.ts
 export function useStreamingChat(conversationId: string) {
@@ -726,48 +726,48 @@ export function useStreamingChat(conversationId: string) {
 
 ---
 
-## Phase 8: Admin Dashboard (COMPLETE)
+## Fase 8: Painel Administrativo (COMPLETO)
 
-### ✅ Dashboard Features
-1. **Policy Editor**:
-   - JSON editor with validation
-   - Mode toggle: UNRESTRICTED ↔ RESTRICTED
-   - Rule management (trigger/action/message)
-   - Real-time preview
+### ✅ Recursos do Dashboard
+1. **Editor de Políticas**:
+   - Editor JSON com validação
+   - Alternância de modo: IRRESTRITO ↔ RESTRITO
+   - Gerenciamento de regras (trigger/ação/mensagem)
+   - Pré-visualização em tempo real
 
-2. **Metrics & Telemetry**:
-   - Fallback rate chart (line graph)
-   - nDCG score trend
-   - Token usage by source (local vs OpenAI)
-   - Cost estimates
-   - Latency percentiles (p50, p95, p99)
+2. **Métricas & Telemetria**:
+   - Gráfico de taxa de fallback (linha)
+   - Tendência de score nDCG
+   - Uso de tokens por fonte (local vs OpenAI)
+   - Estimativas de custo
+   - Percentis de latência (p50, p95, p99)
 
-3. **Knowledge Base Management**:
-   - File upload (PDF, DOCX, XLSX, XML)
-   - Document viewer with preview
-   - Re-embedding controls
-   - **MMR diversification** visualization
-   - **PCA/UMAP 3D plot** of embeddings
+3. **Gerenciamento da Base de Conhecimento**:
+   - Upload de arquivos (PDF, DOCX, XLSX, XML)
+   - Visualizador de documentos com prévia
+   - Controles de re-embedding
+   - Visualização de **diversificação MMR**
+   - **Plot 3D PCA/UMAP** de embeddings
 
-4. **Training Control**:
-   - Manual trigger button
-   - Training run history
-   - Status: running/completed/failed
-   - Adapter versioning
-   - Rollback to previous adapter
+4. **Controle de Treinamento**:
+   - Botão de trigger manual
+   - Histórico de execuções de treinamento
+   - Status: executando/concluído/falhou
+   - Versionamento de adaptadores
+   - Rollback para adaptador anterior
 
-5. **Autonomous Learning**:
-   - Web crawler configuration
-   - Scoring dashboard (entropy, freshness, authority)
-   - Curation workflow (approve/reject/edit)
-   - Auto-indexing toggle
+5. **Aprendizado Autônomo**:
+   - Configuração de web crawler
+   - Dashboard de pontuação (entropia, frescor, autoridade)
+   - Fluxo de curadoria (aprovar/rejeitar/editar)
+   - Alternância de auto-indexação
 
 ---
 
-## Phase 9: Production Deployment
+## Fase 9: Implantação em Produção
 
-### ✅ Docker Setup
-**Dockerfile (Multi-stage)**:
+### ✅ Configuração Docker
+**Dockerfile (Multi-estágio)**:
 ```dockerfile
 # Stage 1: Builder
 FROM node:20-alpine AS builder
@@ -827,7 +827,7 @@ volumes:
   pgdata:
 ```
 
-### ✅ NGINX Reverse Proxy
+### ✅ Proxy Reverso NGINX
 ```nginx
 # ops/nginx/conf.d/aion.conf
 upstream aion_app {
@@ -950,7 +950,7 @@ groups:
 
 ---
 
-## Phase 10: Kubernetes & Autoscaling
+## Fase 10: Kubernetes & Autoscaling
 
 ### ✅ Secrets Management (Kubernetes)
 
@@ -1130,7 +1130,7 @@ spec:
 
 ---
 
-## Phase 11: Disaster Recovery
+## Fase 11: Recuperação de Desastres
 
 ### ✅ Backup Strategy
 **Automated Backups** (Cron: daily 2am):
@@ -1298,7 +1298,7 @@ echo "Restore complete from $BACKUP_DATE"
 
 ---
 
-## Phase 12: Advanced Features (Autonomous Learning)
+## Fase 12: Recursos Avançados (Aprendizado Autônomo)
 
 ### ✅ Web Crawler (Autonomous KB Expansion)
 ```typescript
@@ -1395,7 +1395,7 @@ export class AutonomousCrawler {
 
 ---
 
-## Mathematical Foundations (Appendix)
+## Fundamentos Matemáticos (Apêndice)
 
 ### ✅ Separation Theorem (Policy Externalization)
 **Core model M₀** (frozen, no ethical bias):
@@ -1511,7 +1511,7 @@ C(q) = if confidence(q) ≥ τ:
 
 ---
 
-## Implementation Checklist
+## Checklist de Implementação
 
 ### Phase 1-4: Core System ✅
 - [x] Database schema (Drizzle + PostgreSQL)
@@ -1528,14 +1528,14 @@ C(q) = if confidence(q) ≥ τ:
 - [x] SSE streaming (real-time chat)
 - [x] Admin dashboard (policy/metrics/KB/training/learning)
 
-### Phase 9-11: Production 🚧
+### Fases 9-11: Produção 🚧
 - [ ] Docker setup (multi-stage, GPU support)
 - [ ] NGINX reverse proxy (HTTP/2, SSL, SSE)
 - [ ] Prometheus + Grafana (observability)
 - [ ] Kubernetes manifests (HPA, KEDA)
 - [ ] Disaster recovery (backups, restore, runbooks)
 
-### Phase 12: Advanced Features 🚧
+### Fase 12: Recursos Avançados 🚧
 - [ ] Autonomous crawler (robots.txt, scoring, curation)
 - [ ] Multi-GPU training (DeepSpeed, FSDP)
 - [ ] Model quantization (GPTQ, AWQ)
@@ -1543,11 +1543,11 @@ C(q) = if confidence(q) ≥ τ:
 
 ---
 
-## Security & Compliance Considerations
+## Considerações de Segurança & Conformidade
 
-### ⚠️ UNRESTRICTED BY DEFAULT - BY DESIGN
+### ⚠️ IRRESTRITO POR PADRÃO - POR DESIGN
 
-**IMPORTANT**: AION is explicitly designed to be "unrestricted by default" per the **FUNDAMENTAL ETERNAL RULE** documented across all 19 PDFs. This is NOT a security bug - it is the core architectural principle.
+**IMPORTANTE**: AION é explicitamente projetado para ser "irrestrito por padrão" conforme a **REGRA FUNDAMENTAL ETERNA** documentada em todos os 19 PDFs. Isso NÃO é um bug de segurança - é o princípio arquitetural central.
 
 **Rationale** (Separation Theorem):
 ```
@@ -1567,7 +1567,7 @@ M₀ (core model) ≠ EP (enforcement policies)
 }
 ```
 
-### 🛡️ Production Deployment Recommendations
+### 🛡️ Recomendações de Implantação em Produção
 
 **For Production Environments**:
 
@@ -1651,7 +1651,7 @@ app.post('/api/policies', requireAuth, requireMFA, async (req, res) => {
 });
 ```
 
-### 🔒 Security Best Practices
+### 🔒 Melhores Práticas de Segurança
 
 **Authentication & Authorization**:
 - Single-tenant deployment (simplified for personal/team use)
@@ -1677,7 +1677,7 @@ app.post('/api/policies', requireAuth, requireMFA, async (req, res) => {
 - GDPR compliance (if EU users)
 - ISO 27001 (recommended)
 
-### 📋 Deployment Checklist
+### 📋 Checklist de Implantação
 
 Before deploying to production:
 - [ ] Set appropriate policy mode for jurisdiction
@@ -1695,7 +1695,7 @@ Before deploying to production:
 
 ---
 
-## Comprehensive Testing Strategy
+## Estratégia Abrangente de Testes
 
 ### ✅ Unit Tests
 
@@ -2109,7 +2109,7 @@ jobs:
 
 ---
 
-## Next Steps
+## Próximos Passos
 
 1. ✅ **Review complete plan** with architect
 2. **Implement core system** following the corrected plan
@@ -2121,7 +2121,7 @@ jobs:
 
 ---
 
-## Implementation Priority (Architect Recommendation)
+## Prioridade de Implementação (Recomendação do Arquiteto)
 
 **Phase 1**: Storage + Policy Pipeline (Week 1)
 - Database schema (Drizzle)
