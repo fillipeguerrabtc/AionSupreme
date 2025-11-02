@@ -513,6 +513,184 @@ interface Translations {
       };
     };
     
+    // Agents Page
+    agents: {
+      title: string;
+      subtitle: string;
+      createAgent: string;
+      createSubAgent: string;
+      noAgents: string;
+      noAgentsDesc: string;
+      loading: string;
+      name: string;
+      description: string;
+      namespace: string;
+      tier: string;
+      agent: string;
+      subAgent: string;
+      actions: string;
+      edit: string;
+      delete: string;
+      confirmDelete: string;
+      confirmDeleteDesc: string;
+      cancel: string;
+      createDialog: {
+        title: string;
+        subtitle: string;
+        namePlaceholder: string;
+        descriptionPlaceholder: string;
+        create: string;
+        creating: string;
+      };
+      editDialog: {
+        title: string;
+        subtitle: string;
+        save: string;
+        saving: string;
+      };
+      toast: {
+        created: string;
+        updated: string;
+        deleted: string;
+      };
+    };
+    
+    // Curation Page
+    curation: {
+      title: string;
+      subtitle: string;
+      pending: string;
+      approved: string;
+      rejected: string;
+      history: string;
+      noPending: string;
+      noPendingDesc: string;
+      review: string;
+      approve: string;
+      reject: string;
+      bulkApprove: string;
+      bulkReject: string;
+      selectedItems: string;
+      approveAll: string;
+      rejectAll: string;
+      confirmApprove: string;
+      confirmReject: string;
+      rejectNote: string;
+      rejectNotePlaceholder: string;
+      submittedBy: string;
+      reviewedBy: string;
+      note: string;
+      attachments: string;
+      viewAttachment: string;
+    };
+    
+    // Image Search Page
+    imageSearch: {
+      title: string;
+      subtitle: string;
+      searchPlaceholder: string;
+      search: string;
+      searching: string;
+      clear: string;
+      results: string;
+      allImages: string;
+      imagesIndexed: string;
+      imagesFound: string;
+      imagesInKb: string;
+      noImages: string;
+      noImagesDesc: string;
+      uploadPrompt: string;
+      remove: string;
+      confirmRemove: string;
+      removed: string;
+      searchError: string;
+      loading: string;
+    };
+    
+    // Vision System Page
+    vision: {
+      title: string;
+      subtitle: string;
+      quotaMonitoring: string;
+      quotaDesc: string;
+      providers: string;
+      providersDesc: string;
+      usage: string;
+      limit: string;
+      available: string;
+      unavailable: string;
+      active: string;
+      missingKey: string;
+      totalRequests: string;
+      successRate: string;
+      tier: string;
+      priority: string;
+      features: string;
+      model: string;
+      dailyLimit: string;
+      unlimited: string;
+      loading: string;
+    };
+    
+    // Namespaces Page
+    namespaces: {
+      title: string;
+      subtitle: string;
+      createRoot: string;
+      createSub: string;
+      noNamespaces: string;
+      noNamespacesDesc: string;
+      name: string;
+      displayName: string;
+      description: string;
+      type: string;
+      root: string;
+      sub: string;
+      parent: string;
+      actions: string;
+      edit: string;
+      delete: string;
+      confirmDelete: string;
+      cancel: string;
+      create: string;
+      creating: string;
+      save: string;
+      saving: string;
+      namePlaceholder: string;
+      displayNamePlaceholder: string;
+      descriptionPlaceholder: string;
+      selectParent: string;
+      toast: {
+        created: string;
+        updated: string;
+        deleted: string;
+      };
+    };
+    
+    // Lifecycle Policies Page
+    lifecycle: {
+      title: string;
+      subtitle: string;
+      conversations: string;
+      conversationsDesc: string;
+      training: string;
+      trainingDesc: string;
+      gpu: string;
+      gpuDesc: string;
+      enabled: string;
+      disabled: string;
+      archive: string;
+      purge: string;
+      retention: string;
+      months: string;
+      years: string;
+      days: string;
+      save: string;
+      saving: string;
+      saved: string;
+      unsavedChanges: string;
+    };
+    
     // Messages
     messages: {
       policyUpdated: string;
@@ -1013,6 +1191,178 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      agents: {
+        title: "Agentes Especialistas",
+        subtitle: "Gerencie agentes e sub-agentes especializados",
+        createAgent: "Criar Agente",
+        createSubAgent: "Criar Sub-Agente",
+        noAgents: "Nenhum agente cadastrado",
+        noAgentsDesc: "Crie seu primeiro agente especializado",
+        loading: "Carregando agentes...",
+        name: "Nome",
+        description: "Descrição",
+        namespace: "Namespace",
+        tier: "Tipo",
+        agent: "Agente",
+        subAgent: "Sub-Agente",
+        actions: "Ações",
+        edit: "Editar",
+        delete: "Deletar",
+        confirmDelete: "Deletar agente?",
+        confirmDeleteDesc: "Esta ação não pode ser desfeita.",
+        cancel: "Cancelar",
+        createDialog: {
+          title: "Criar Novo Agente",
+          subtitle: "Preencha apenas nome e descrição. O sistema gera o slug automaticamente.",
+          namePlaceholder: "Nome do agente (ex: Analista Financeiro)",
+          descriptionPlaceholder: "Descrição das responsabilidades...",
+          create: "Criar",
+          creating: "Criando...",
+        },
+        editDialog: {
+          title: "Editar Agente",
+          subtitle: "Atualize as informações do agente",
+          save: "Salvar",
+          saving: "Salvando...",
+        },
+        toast: {
+          created: "Agente criado com sucesso!",
+          updated: "Agente atualizado!",
+          deleted: "Agente removido!",
+        },
+      },
+      
+      curation: {
+        title: "Fila de Curadoria",
+        subtitle: "Revise e aprove conteúdo antes da indexação",
+        pending: "Pendente",
+        approved: "Aprovado",
+        rejected: "Rejeitado",
+        history: "Histórico",
+        noPending: "Nenhum item pendente",
+        noPendingDesc: "Todos os itens foram revisados",
+        review: "Revisar",
+        approve: "Aprovar",
+        reject: "Rejeitar",
+        bulkApprove: "Aprovar Selecionados",
+        bulkReject: "Rejeitar Selecionados",
+        selectedItems: "itens selecionados",
+        approveAll: "Aprovar Todos",
+        rejectAll: "Rejeitar Todos",
+        confirmApprove: "Aprovar este item?",
+        confirmReject: "Rejeitar este item?",
+        rejectNote: "Motivo da rejeição",
+        rejectNotePlaceholder: "Por que este conteúdo foi rejeitado?",
+        submittedBy: "Enviado por",
+        reviewedBy: "Revisado por",
+        note: "Nota",
+        attachments: "Anexos",
+        viewAttachment: "Ver anexo",
+      },
+      
+      imageSearch: {
+        title: "Busca de Imagens",
+        subtitle: "Busca semântica usando descrições geradas pelo Vision AI",
+        searchPlaceholder: "Descreva o que procura (ex: 'logo azul', 'pessoa sorrindo', 'paisagem natural')...",
+        search: "Buscar",
+        searching: "Buscando...",
+        clear: "Limpar",
+        results: "Resultados da Busca",
+        allImages: "Todas as Imagens",
+        imagesIndexed: "imagens indexadas",
+        imagesFound: "imagens encontradas para",
+        imagesInKb: "imagens na base de conhecimento",
+        noImages: "Nenhuma imagem encontrada",
+        noImagesDesc: "Tente usar termos diferentes na busca",
+        uploadPrompt: "Faça upload de imagens através da página de Knowledge Base",
+        remove: "Remover",
+        confirmRemove: "Remover esta imagem da KB?",
+        removed: "Imagem removida com sucesso",
+        searchError: "Erro na busca",
+        loading: "Carregando imagens...",
+      },
+      
+      vision: {
+        title: "Vision System",
+        subtitle: "Monitoramento de quota em tempo real através de 5 provedores",
+        quotaMonitoring: "Monitoramento de Quota",
+        quotaDesc: "Status de uso em tempo real dos provedores de visão",
+        providers: "Provedores Configurados",
+        providersDesc: "Informações e status dos provedores de Vision AI",
+        usage: "Uso",
+        limit: "Limite",
+        available: "Disponível",
+        unavailable: "Indisponível",
+        active: "Ativo",
+        missingKey: "Chave Ausente",
+        totalRequests: "Total de Requisições",
+        successRate: "Taxa de Sucesso",
+        tier: "Tier",
+        priority: "Prioridade",
+        features: "Recursos",
+        model: "Modelo",
+        dailyLimit: "Limite Diário",
+        unlimited: "Ilimitado",
+        loading: "Carregando status...",
+      },
+      
+      namespaces: {
+        title: "Namespaces",
+        subtitle: "Gerencie a hierarquia de namespaces da base de conhecimento",
+        createRoot: "Criar Namespace Raiz",
+        createSub: "Criar Sub-namespace",
+        noNamespaces: "Nenhum namespace encontrado",
+        noNamespacesDesc: "Crie seu primeiro namespace",
+        name: "Nome",
+        displayName: "Nome de Exibição",
+        description: "Descrição",
+        type: "Tipo",
+        root: "Raiz",
+        sub: "Sub",
+        parent: "Pai",
+        actions: "Ações",
+        edit: "Editar",
+        delete: "Deletar",
+        confirmDelete: "Deletar namespace?",
+        cancel: "Cancelar",
+        create: "Criar",
+        creating: "Criando...",
+        save: "Salvar",
+        saving: "Salvando...",
+        namePlaceholder: "ex: tech.ai.ml",
+        displayNamePlaceholder: "ex: Machine Learning",
+        descriptionPlaceholder: "Descrição do namespace...",
+        selectParent: "Selecionar namespace pai",
+        toast: {
+          created: "Namespace criado!",
+          updated: "Namespace atualizado!",
+          deleted: "Namespace removido!",
+        },
+      },
+      
+      lifecycle: {
+        title: "Lifecycle Policies",
+        subtitle: "Políticas de retenção e limpeza automática de dados",
+        conversations: "Conversas",
+        conversationsDesc: "Políticas de retenção para conversas do chat",
+        training: "Training Data",
+        trainingDesc: "Políticas de retenção para dados de treinamento",
+        gpu: "GPU Workers",
+        gpuDesc: "Políticas de limpeza para workers GPU obsoletos",
+        enabled: "Habilitado",
+        disabled: "Desabilitado",
+        archive: "Arquivo",
+        purge: "Purga",
+        retention: "Retenção",
+        months: "meses",
+        years: "anos",
+        days: "dias",
+        save: "Salvar Alterações",
+        saving: "Salvando...",
+        saved: "Políticas atualizadas",
+        unsavedChanges: "Você tem alterações não salvas",
+      },
+      
       messages: {
         policyUpdated: "Política atualizada com sucesso!",
         pdfsIndexed: "PDFs indexados com sucesso!",
@@ -1511,6 +1861,178 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      agents: {
+        title: "Specialist Agents",
+        subtitle: "Manage specialized agents and sub-agents",
+        createAgent: "Create Agent",
+        createSubAgent: "Create Sub-Agent",
+        noAgents: "No agents found",
+        noAgentsDesc: "Create your first specialist agent",
+        loading: "Loading agents...",
+        name: "Name",
+        description: "Description",
+        namespace: "Namespace",
+        tier: "Tier",
+        agent: "Agent",
+        subAgent: "Sub-Agent",
+        actions: "Actions",
+        edit: "Edit",
+        delete: "Delete",
+        confirmDelete: "Delete agent?",
+        confirmDeleteDesc: "This action cannot be undone.",
+        cancel: "Cancel",
+        createDialog: {
+          title: "Create New Agent",
+          subtitle: "Fill in only name and description. System generates slug automatically.",
+          namePlaceholder: "Agent name (e.g., Financial Analyst)",
+          descriptionPlaceholder: "Description of responsibilities...",
+          create: "Create",
+          creating: "Creating...",
+        },
+        editDialog: {
+          title: "Edit Agent",
+          subtitle: "Update agent information",
+          save: "Save",
+          saving: "Saving...",
+        },
+        toast: {
+          created: "Agent created successfully!",
+          updated: "Agent updated!",
+          deleted: "Agent removed!",
+        },
+      },
+      
+      curation: {
+        title: "Curation Queue",
+        subtitle: "Review and approve content before indexing",
+        pending: "Pending",
+        approved: "Approved",
+        rejected: "Rejected",
+        history: "History",
+        noPending: "No pending items",
+        noPendingDesc: "All items have been reviewed",
+        review: "Review",
+        approve: "Approve",
+        reject: "Reject",
+        bulkApprove: "Approve Selected",
+        bulkReject: "Reject Selected",
+        selectedItems: "selected items",
+        approveAll: "Approve All",
+        rejectAll: "Reject All",
+        confirmApprove: "Approve this item?",
+        confirmReject: "Reject this item?",
+        rejectNote: "Rejection reason",
+        rejectNotePlaceholder: "Why was this content rejected?",
+        submittedBy: "Submitted by",
+        reviewedBy: "Reviewed by",
+        note: "Note",
+        attachments: "Attachments",
+        viewAttachment: "View attachment",
+      },
+      
+      imageSearch: {
+        title: "Image Search",
+        subtitle: "Semantic search using descriptions generated by Vision AI",
+        searchPlaceholder: "Describe what you're looking for (e.g., 'blue logo', 'smiling person', 'natural landscape')...",
+        search: "Search",
+        searching: "Searching...",
+        clear: "Clear",
+        results: "Search Results",
+        allImages: "All Images",
+        imagesIndexed: "images indexed",
+        imagesFound: "images found for",
+        imagesInKb: "images in knowledge base",
+        noImages: "No images found",
+        noImagesDesc: "Try using different search terms",
+        uploadPrompt: "Upload images through the Knowledge Base page",
+        remove: "Remove",
+        confirmRemove: "Remove this image from KB?",
+        removed: "Image removed successfully",
+        searchError: "Search error",
+        loading: "Loading images...",
+      },
+      
+      vision: {
+        title: "Vision System",
+        subtitle: "Real-time quota monitoring across 5 providers",
+        quotaMonitoring: "Quota Monitoring",
+        quotaDesc: "Real-time usage status of vision providers",
+        providers: "Configured Providers",
+        providersDesc: "Vision AI provider information and status",
+        usage: "Usage",
+        limit: "Limit",
+        available: "Available",
+        unavailable: "Unavailable",
+        active: "Active",
+        missingKey: "Missing Key",
+        totalRequests: "Total Requests",
+        successRate: "Success Rate",
+        tier: "Tier",
+        priority: "Priority",
+        features: "Features",
+        model: "Model",
+        dailyLimit: "Daily Limit",
+        unlimited: "Unlimited",
+        loading: "Loading status...",
+      },
+      
+      namespaces: {
+        title: "Namespaces",
+        subtitle: "Manage knowledge base namespace hierarchy",
+        createRoot: "Create Root Namespace",
+        createSub: "Create Sub-namespace",
+        noNamespaces: "No namespaces found",
+        noNamespacesDesc: "Create your first namespace",
+        name: "Name",
+        displayName: "Display Name",
+        description: "Description",
+        type: "Type",
+        root: "Root",
+        sub: "Sub",
+        parent: "Parent",
+        actions: "Actions",
+        edit: "Edit",
+        delete: "Delete",
+        confirmDelete: "Delete namespace?",
+        cancel: "Cancel",
+        create: "Create",
+        creating: "Creating...",
+        save: "Save",
+        saving: "Saving...",
+        namePlaceholder: "e.g., tech.ai.ml",
+        displayNamePlaceholder: "e.g., Machine Learning",
+        descriptionPlaceholder: "Namespace description...",
+        selectParent: "Select parent namespace",
+        toast: {
+          created: "Namespace created!",
+          updated: "Namespace updated!",
+          deleted: "Namespace removed!",
+        },
+      },
+      
+      lifecycle: {
+        title: "Lifecycle Policies",
+        subtitle: "Data retention and automatic cleanup policies",
+        conversations: "Conversations",
+        conversationsDesc: "Retention policies for chat conversations",
+        training: "Training Data",
+        trainingDesc: "Retention policies for training data",
+        gpu: "GPU Workers",
+        gpuDesc: "Cleanup policies for obsolete GPU workers",
+        enabled: "Enabled",
+        disabled: "Disabled",
+        archive: "Archive",
+        purge: "Purge",
+        retention: "Retention",
+        months: "months",
+        years: "years",
+        days: "days",
+        save: "Save Changes",
+        saving: "Saving...",
+        saved: "Policies updated",
+        unsavedChanges: "You have unsaved changes",
+      },
+      
       messages: {
         policyUpdated: "Policy updated successfully!",
         pdfsIndexed: "PDFs indexed successfully!",
@@ -2007,6 +2529,178 @@ const translations: Record<Language, Translations> = {
           saved: "¡Zona horaria guardada con éxito!",
           saveError: "Error al guardar zona horaria",
         },
+      },
+      
+      agents: {
+        title: "Agentes Especialistas",
+        subtitle: "Gestiona agentes y sub-agentes especializados",
+        createAgent: "Crear Agente",
+        createSubAgent: "Crear Sub-Agente",
+        noAgents: "No hay agentes registrados",
+        noAgentsDesc: "Crea tu primer agente especialista",
+        loading: "Cargando agentes...",
+        name: "Nombre",
+        description: "Descripción",
+        namespace: "Namespace",
+        tier: "Tipo",
+        agent: "Agente",
+        subAgent: "Sub-Agente",
+        actions: "Acciones",
+        edit: "Editar",
+        delete: "Eliminar",
+        confirmDelete: "¿Eliminar agente?",
+        confirmDeleteDesc: "Esta acción no se puede deshacer.",
+        cancel: "Cancelar",
+        createDialog: {
+          title: "Crear Nuevo Agente",
+          subtitle: "Completa solo nombre y descripción. El sistema genera el slug automáticamente.",
+          namePlaceholder: "Nombre del agente (ej: Analista Financiero)",
+          descriptionPlaceholder: "Descripción de responsabilidades...",
+          create: "Crear",
+          creating: "Creando...",
+        },
+        editDialog: {
+          title: "Editar Agente",
+          subtitle: "Actualiza la información del agente",
+          save: "Guardar",
+          saving: "Guardando...",
+        },
+        toast: {
+          created: "¡Agente creado con éxito!",
+          updated: "¡Agente actualizado!",
+          deleted: "¡Agente eliminado!",
+        },
+      },
+      
+      curation: {
+        title: "Cola de Curaduría",
+        subtitle: "Revisa y aprueba contenido antes de indexar",
+        pending: "Pendiente",
+        approved: "Aprobado",
+        rejected: "Rechazado",
+        history: "Historial",
+        noPending: "No hay items pendientes",
+        noPendingDesc: "Todos los items han sido revisados",
+        review: "Revisar",
+        approve: "Aprobar",
+        reject: "Rechazar",
+        bulkApprove: "Aprobar Seleccionados",
+        bulkReject: "Rechazar Seleccionados",
+        selectedItems: "items seleccionados",
+        approveAll: "Aprobar Todos",
+        rejectAll: "Rechazar Todos",
+        confirmApprove: "¿Aprobar este item?",
+        confirmReject: "¿Rechazar este item?",
+        rejectNote: "Motivo del rechazo",
+        rejectNotePlaceholder: "¿Por qué se rechazó este contenido?",
+        submittedBy: "Enviado por",
+        reviewedBy: "Revisado por",
+        note: "Nota",
+        attachments: "Adjuntos",
+        viewAttachment: "Ver adjunto",
+      },
+      
+      imageSearch: {
+        title: "Búsqueda de Imágenes",
+        subtitle: "Búsqueda semántica usando descripciones generadas por Vision AI",
+        searchPlaceholder: "Describe lo que buscas (ej: 'logo azul', 'persona sonriendo', 'paisaje natural')...",
+        search: "Buscar",
+        searching: "Buscando...",
+        clear: "Limpiar",
+        results: "Resultados de Búsqueda",
+        allImages: "Todas las Imágenes",
+        imagesIndexed: "imágenes indexadas",
+        imagesFound: "imágenes encontradas para",
+        imagesInKb: "imágenes en la base de conocimiento",
+        noImages: "No se encontraron imágenes",
+        noImagesDesc: "Intenta usar términos de búsqueda diferentes",
+        uploadPrompt: "Sube imágenes a través de la página de Knowledge Base",
+        remove: "Eliminar",
+        confirmRemove: "¿Eliminar esta imagen de KB?",
+        removed: "Imagen eliminada con éxito",
+        searchError: "Error en la búsqueda",
+        loading: "Cargando imágenes...",
+      },
+      
+      vision: {
+        title: "Vision System",
+        subtitle: "Monitoreo de cuota en tiempo real a través de 5 proveedores",
+        quotaMonitoring: "Monitoreo de Cuota",
+        quotaDesc: "Estado de uso en tiempo real de proveedores de visión",
+        providers: "Proveedores Configurados",
+        providersDesc: "Información y estado de proveedores de Vision AI",
+        usage: "Uso",
+        limit: "Límite",
+        available: "Disponible",
+        unavailable: "No disponible",
+        active: "Activo",
+        missingKey: "Clave Faltante",
+        totalRequests: "Total de Solicitudes",
+        successRate: "Tasa de Éxito",
+        tier: "Tier",
+        priority: "Prioridad",
+        features: "Características",
+        model: "Modelo",
+        dailyLimit: "Límite Diario",
+        unlimited: "Ilimitado",
+        loading: "Cargando estado...",
+      },
+      
+      namespaces: {
+        title: "Namespaces",
+        subtitle: "Gestiona la jerarquía de namespaces de la base de conocimiento",
+        createRoot: "Crear Namespace Raíz",
+        createSub: "Crear Sub-namespace",
+        noNamespaces: "No se encontraron namespaces",
+        noNamespacesDesc: "Crea tu primer namespace",
+        name: "Nombre",
+        displayName: "Nombre de Visualización",
+        description: "Descripción",
+        type: "Tipo",
+        root: "Raíz",
+        sub: "Sub",
+        parent: "Padre",
+        actions: "Acciones",
+        edit: "Editar",
+        delete: "Eliminar",
+        confirmDelete: "¿Eliminar namespace?",
+        cancel: "Cancelar",
+        create: "Crear",
+        creating: "Creando...",
+        save: "Guardar",
+        saving: "Guardando...",
+        namePlaceholder: "ej: tech.ai.ml",
+        displayNamePlaceholder: "ej: Machine Learning",
+        descriptionPlaceholder: "Descripción del namespace...",
+        selectParent: "Seleccionar namespace padre",
+        toast: {
+          created: "¡Namespace creado!",
+          updated: "¡Namespace actualizado!",
+          deleted: "¡Namespace eliminado!",
+        },
+      },
+      
+      lifecycle: {
+        title: "Lifecycle Policies",
+        subtitle: "Políticas de retención y limpieza automática de datos",
+        conversations: "Conversaciones",
+        conversationsDesc: "Políticas de retención para conversaciones de chat",
+        training: "Training Data",
+        trainingDesc: "Políticas de retención para datos de entrenamiento",
+        gpu: "GPU Workers",
+        gpuDesc: "Políticas de limpieza para workers GPU obsoletos",
+        enabled: "Habilitado",
+        disabled: "Deshabilitado",
+        archive: "Archivo",
+        purge: "Purga",
+        retention: "Retención",
+        months: "meses",
+        years: "años",
+        days: "días",
+        save: "Guardar Cambios",
+        saving: "Guardando...",
+        saved: "Políticas actualizadas",
+        unsavedChanges: "Tienes cambios sin guardar",
       },
       
       messages: {
