@@ -21,10 +21,13 @@ export function registerTelemetryRoutes(app: Express) {
       
       // Converter schema para match com frontend (usageCount, lastUsed como ISO string)
       const formattedStats = stats.map(stat => ({
-        agentId: stat.agentId,
-        agentName: stat.agentName,
+        agentId: stat.entityId,
+        agentName: stat.entityName,
         usageCount: stat.totalUses,
         lastUsed: new Date(stat.lastUsed).toISOString(),
+        agentTier: stat.agentTier,
+        parentAgentId: stat.parentAgentId,
+        subEntitiesCount: stat.subEntitiesCount,
       }));
       
       res.json(formattedStats);
@@ -128,10 +131,13 @@ export function registerTelemetryRoutes(app: Express) {
       
       // Converter schema para match com frontend (usageCount, lastUsed como ISO string)
       const formattedStats = stats.map(stat => ({
-        namespaceId: stat.namespaceId,
-        namespaceName: stat.namespaceName,
+        namespaceId: stat.entityId,
+        namespaceName: stat.entityName,
         usageCount: stat.totalUses,
         lastUsed: new Date(stat.lastUsed).toISOString(),
+        isRootNamespace: stat.isRootNamespace,
+        parentNamespace: stat.parentNamespace,
+        subEntitiesCount: stat.subEntitiesCount,
       }));
       
       res.json(formattedStats);
@@ -302,6 +308,99 @@ export function registerTelemetryRoutes(app: Express) {
       console.error("Error fetching telemetry overview:", error);
       res.status(500).json({
         error: "Failed to fetch telemetry overview",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/admin/telemetry/agents/:id/sub-agents
+   * Retorna sub-agents de um agent pai
+   */
+  app.get("/api/admin/telemetry/agents/:id/sub-agents", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const subAgents = usageTracker.getSubAgents(id);
+      res.json(subAgents);
+    } catch (error) {
+      console.error("Error fetching sub-agents:", error);
+      res.status(500).json({
+        error: "Failed to fetch sub-agents",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/admin/telemetry/namespaces/:namespace/sub-namespaces
+   * Retorna sub-namespaces de um namespace pai
+   */
+  app.get("/api/admin/telemetry/namespaces/:namespace/sub-namespaces", async (req: Request, res: Response) => {
+    try {
+      const { namespace } = req.params;
+      const subNamespaces = usageTracker.getSubNamespaces(namespace);
+      res.json(subNamespaces);
+    } catch (error) {
+      console.error("Error fetching sub-namespaces:", error);
+      res.status(500).json({
+        error: "Failed to fetch sub-namespaces",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/admin/telemetry/agents/by-tier/:tier
+   * Retorna agents filtrados por tier (agent ou subagent)
+   */
+  app.get("/api/admin/telemetry/agents/by-tier/:tier", async (req: Request, res: Response) => {
+    try {
+      const { tier } = req.params;
+      
+      if (tier !== "agent" && tier !== "subagent") {
+        return res.status(400).json({ error: "Invalid tier. Must be 'agent' or 'subagent'" });
+      }
+      
+      const agents = usageTracker.getAgentsByTier(tier);
+      res.json(agents);
+    } catch (error) {
+      console.error("Error fetching agents by tier:", error);
+      res.status(500).json({
+        error: "Failed to fetch agents by tier",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/admin/telemetry/namespaces/root
+   * Retorna apenas namespaces raiz (sem "/")
+   */
+  app.get("/api/admin/telemetry/namespaces/root", async (req: Request, res: Response) => {
+    try {
+      const rootNamespaces = usageTracker.getRootNamespaces();
+      res.json(rootNamespaces);
+    } catch (error) {
+      console.error("Error fetching root namespaces:", error);
+      res.status(500).json({
+        error: "Failed to fetch root namespaces",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/admin/telemetry/hierarchical-overview
+   * Retorna overview separado por hierarquia (root agents vs sub-agents, root namespaces vs sub-namespaces)
+   */
+  app.get("/api/admin/telemetry/hierarchical-overview", async (req: Request, res: Response) => {
+    try {
+      const overview = usageTracker.getHierarchicalOverview();
+      res.json(overview);
+    } catch (error) {
+      console.error("Error fetching hierarchical overview:", error);
+      res.status(500).json({
+        error: "Failed to fetch hierarchical overview",
         message: error instanceof Error ? error.message : String(error),
       });
     }

@@ -15,6 +15,12 @@ interface UsageRecord {
   timestamp: number;
   operation: "query" | "search" | "generation" | "tool_use";
   metadata?: Record<string, any>;
+  
+  // Hierarquia (novo)
+  agentTier?: "agent" | "subagent"; // Para rastreamento granular de agents
+  parentAgentId?: string; // ID do agent pai (se subagent)
+  isRootNamespace?: boolean; // true se namespace não tem "/" (root), false se é sub-namespace
+  parentNamespace?: string; // Namespace pai inferido (ex: "financas" para "financas/investimentos")
 }
 
 interface UsageStats {
@@ -25,6 +31,13 @@ interface UsageStats {
   uses24h: number;
   uses7d: number;
   uses30d: number;
+  
+  // Hierarquia (novo)
+  agentTier?: "agent" | "subagent";
+  parentAgentId?: string;
+  isRootNamespace?: boolean;
+  parentNamespace?: string;
+  subEntitiesCount?: number; // Quantidade de sub-agentes ou sub-namespaces
 }
 
 interface TimeSeriesData {
@@ -37,13 +50,15 @@ class UsageTracker {
   private readonly maxRecords = 10000; // Últimos 10k registros em memória
   
   /**
-   * Registra uso de um agente
+   * Registra uso de um agente (com hierarquia)
    */
   trackAgentUse(
     agentId: string,
     agentName: string,
     operation: UsageRecord["operation"],
-    metadata?: Record<string, any>
+    metadata?: Record<string, any>,
+    agentTier?: "agent" | "subagent",
+    parentAgentId?: string
   ): void {
     this.addRecord({
       entityType: "agent",
@@ -52,17 +67,25 @@ class UsageTracker {
       timestamp: Date.now(),
       operation,
       metadata,
+      agentTier,
+      parentAgentId,
     });
   }
   
   /**
-   * Registra busca em namespace
+   * Registra busca em namespace (com hierarquia)
    */
   trackNamespaceSearch(
     namespaceId: string,
     namespaceName: string,
     metadata?: Record<string, any>
   ): void {
+    // Inferir hierarquia do namespace pelo nome
+    const isRootNamespace = !namespaceName.includes("/");
+    const parentNamespace = isRootNamespace
+      ? undefined
+      : namespaceName.split("/")[0];
+    
     this.addRecord({
       entityType: "namespace",
       entityId: namespaceId,
@@ -70,6 +93,8 @@ class UsageTracker {
       timestamp: Date.now(),
       operation: "search",
       metadata,
+      isRootNamespace,
+      parentNamespace,
     });
   }
   
@@ -100,7 +125,7 @@ class UsageTracker {
   }
   
   /**
-   * Calcula estatísticas agregadas
+   * Calcula estatísticas agregadas (com hierarquia)
    */
   private calculateStats(entityType: "agent" | "namespace"): UsageStats[] {
     const filtered = this.records.filter((r) => r.entityType === entityType);
@@ -122,15 +147,40 @@ class UsageTracker {
     for (const [entityId, records] of Array.from(grouped.entries())) {
       const sortedRecords = records.sort((a: UsageRecord, b: UsageRecord) => b.timestamp - a.timestamp);
       const lastUsed = sortedRecords[0]?.timestamp || 0;
+      const mostRecent = sortedRecords[0];
+      
+      // Contar sub-entidades (se for agent pai ou namespace raiz)
+      let subEntitiesCount = 0;
+      
+      if (entityType === "agent" && mostRecent.agentTier === "agent") {
+        // Contar quantos sub-agents existem com este parentAgentId
+        const subAgentIds = new Set(
+          filtered.filter(r => r.parentAgentId === entityId).map(r => r.entityId)
+        );
+        subEntitiesCount = subAgentIds.size;
+      } else if (entityType === "namespace" && mostRecent.isRootNamespace) {
+        // Contar quantos sub-namespaces existem com este parent
+        const subNamespaceIds = new Set(
+          filtered.filter(r => r.parentNamespace === mostRecent.entityName).map(r => r.entityId)
+        );
+        subEntitiesCount = subNamespaceIds.size;
+      }
       
       stats.push({
         entityId,
-        entityName: sortedRecords[0]?.entityName || entityId,
+        entityName: mostRecent?.entityName || entityId,
         totalUses: records.length,
         lastUsed,
         uses24h: records.filter((r: UsageRecord) => now - r.timestamp < day).length,
         uses7d: records.filter((r: UsageRecord) => now - r.timestamp < 7 * day).length,
         uses30d: records.filter((r: UsageRecord) => now - r.timestamp < 30 * day).length,
+        
+        // Hierarquia
+        agentTier: mostRecent.agentTier,
+        parentAgentId: mostRecent.parentAgentId,
+        isRootNamespace: mostRecent.isRootNamespace,
+        parentNamespace: mostRecent.parentNamespace,
+        subEntitiesCount,
       });
     }
     
@@ -239,6 +289,85 @@ class UsageTracker {
   getLeastUsedNamespaces(limit: number = 10): UsageStats[] {
     const stats = this.getNamespaceStats();
     return stats.slice(Math.max(0, stats.length - limit)).reverse();
+  }
+  
+  /**
+   * Retorna estatísticas de sub-agents de um agent pai
+   */
+  getSubAgents(parentAgentId: string): UsageStats[] {
+    const allStats = this.getAgentStats();
+    return allStats
+      .filter((stat) => stat.parentAgentId === parentAgentId)
+      .sort((a, b) => b.totalUses - a.totalUses);
+  }
+  
+  /**
+   * Retorna estatísticas de sub-namespaces de um namespace pai
+   */
+  getSubNamespaces(parentNamespace: string): UsageStats[] {
+    const allStats = this.getNamespaceStats();
+    return allStats
+      .filter((stat) => stat.parentNamespace === parentNamespace)
+      .sort((a, b) => b.totalUses - a.totalUses);
+  }
+  
+  /**
+   * Retorna estatísticas de agents por tier
+   */
+  getAgentsByTier(tier: "agent" | "subagent"): UsageStats[] {
+    const allStats = this.getAgentStats();
+    return allStats.filter((stat) => stat.agentTier === tier);
+  }
+  
+  /**
+   * Retorna apenas namespaces raiz (sem "/")
+   */
+  getRootNamespaces(): UsageStats[] {
+    const allStats = this.getNamespaceStats();
+    return allStats.filter((stat) => stat.isRootNamespace === true);
+  }
+  
+  /**
+   * Retorna overview com separação de hierarquia
+   */
+  getHierarchicalOverview(): {
+    agents: {
+      rootAgents: number;
+      subAgents: number;
+      totalUses: number;
+      uses24h: number;
+    };
+    namespaces: {
+      rootNamespaces: number;
+      subNamespaces: number;
+      totalSearches: number;
+      searches24h: number;
+    };
+  } {
+    const agentStats = this.getAgentStats();
+    const namespaceStats = this.getNamespaceStats();
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    
+    const rootAgents = agentStats.filter((s) => s.agentTier === "agent");
+    const subAgents = agentStats.filter((s) => s.agentTier === "subagent");
+    const rootNamespaces = namespaceStats.filter((s) => s.isRootNamespace === true);
+    const subNamespaces = namespaceStats.filter((s) => s.isRootNamespace === false);
+    
+    return {
+      agents: {
+        rootAgents: rootAgents.length,
+        subAgents: subAgents.length,
+        totalUses: agentStats.reduce((sum, s) => sum + s.totalUses, 0),
+        uses24h: agentStats.reduce((sum, s) => sum + s.uses24h, 0),
+      },
+      namespaces: {
+        rootNamespaces: rootNamespaces.length,
+        subNamespaces: subNamespaces.length,
+        totalSearches: namespaceStats.reduce((sum, s) => sum + s.totalUses, 0),
+        searches24h: namespaceStats.reduce((sum, s) => sum + s.uses24h, 0),
+      },
+    };
   }
   
   /**
