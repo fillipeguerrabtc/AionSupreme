@@ -617,6 +617,9 @@ interface Translations {
       note: string;
       attachments: string;
       viewAttachment: string;
+      all: string;
+      pages: string;
+      images: string;
     };
     
     // Image Search Page
@@ -1326,6 +1329,9 @@ const translations: Record<Language, Translations> = {
         note: "Nota",
         attachments: "Anexos",
         viewAttachment: "Ver anexo",
+        all: "Todos",
+        pages: "Páginas",
+        images: "Imagens",
       },
       
       imageSearch: {
@@ -2029,6 +2035,9 @@ const translations: Record<Language, Translations> = {
         note: "Note",
         attachments: "Attachments",
         viewAttachment: "View attachment",
+        all: "All",
+        pages: "Pages",
+        images: "Images",
       },
       
       imageSearch: {
@@ -2732,6 +2741,9 @@ const translations: Record<Language, Translations> = {
         note: "Nota",
         attachments: "Adjuntos",
         viewAttachment: "Ver adjunto",
+        all: "Todos",
+        pages: "Páginas",
+        images: "Imágenes",
       },
       
       imageSearch: {

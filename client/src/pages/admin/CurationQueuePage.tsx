@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink } from "lucide-react";
+import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink, Scan } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,9 @@ interface CurationItem {
   reviewedBy?: string;
   reviewedAt?: string;
   note?: string;
+  duplicationStatus?: "unique" | "exact" | "near" | null;
+  similarityScore?: number | null;
+  duplicateOfId?: number | null;
   attachments?: Array<{
     type: "image" | "video" | "audio" | "document";
     url: string;
@@ -63,6 +66,9 @@ export default function CurationQueuePage() {
   
   // Content filter state (to separate pages from images)
   const [contentFilter, setContentFilter] = useState<"all" | "pages" | "images">("all");
+  
+  // Duplication filter state
+  const [duplicationFilter, setDuplicationFilter] = useState<"all" | "unique" | "exact" | "near" | "unscanned">("all");
   
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -101,31 +107,43 @@ export default function CurationQueuePage() {
     },
   });
 
-  // Filter items based on content type
+  // Filter items based on content type and duplication status
   const filterItems = (items: CurationItem[] | undefined) => {
     if (!items) return [];
     
-    if (contentFilter === "all") return items;
+    let filtered = items;
     
-    if (contentFilter === "pages") {
-      // Pages are from website-crawler or website-crawler-consolidated
-      return items.filter(item => 
-        item.submittedBy === "website-crawler" || 
-        item.submittedBy === "website-crawler-consolidated" ||
-        item.submittedBy === "api" ||
-        (!item.submittedBy?.includes("image-crawler"))
-      );
+    // Apply content filter
+    if (contentFilter !== "all") {
+      if (contentFilter === "pages") {
+        // Pages are from website-crawler or website-crawler-consolidated
+        filtered = filtered.filter(item => 
+          item.submittedBy === "website-crawler" || 
+          item.submittedBy === "website-crawler-consolidated" ||
+          item.submittedBy === "api" ||
+          (!item.submittedBy?.includes("image-crawler"))
+        );
+      }
+      
+      if (contentFilter === "images") {
+        // Images are from image-crawler or image-crawler-consolidated
+        filtered = filtered.filter(item => 
+          item.submittedBy === "image-crawler" || 
+          item.submittedBy === "image-crawler-consolidated"
+        );
+      }
     }
     
-    if (contentFilter === "images") {
-      // Images are from image-crawler or image-crawler-consolidated
-      return items.filter(item => 
-        item.submittedBy === "image-crawler" || 
-        item.submittedBy === "image-crawler-consolidated"
-      );
+    // Apply duplication filter
+    if (duplicationFilter !== "all") {
+      if (duplicationFilter === "unscanned") {
+        filtered = filtered.filter(item => !item.duplicationStatus);
+      } else {
+        filtered = filtered.filter(item => item.duplicationStatus === duplicationFilter);
+      }
     }
     
-    return items;
+    return filtered;
   };
 
   const filteredItems = filterItems(items);
@@ -223,6 +241,30 @@ export default function CurationQueuePage() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao gerar descrições",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Scan duplicates mutation (semantic deduplication)
+  const scanDuplicatesMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("/api/curation/scan-duplicates", {
+        method: "POST",
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      toast({
+        title: "Scan de duplicatas concluído!",
+        description: `${data.scanned} itens analisados. ${data.duplicatesFound} duplicatas detectadas.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao escanear duplicatas",
         description: error.message,
         variant: "destructive",
       });
@@ -418,31 +460,98 @@ export default function CurationQueuePage() {
       </div>
 
       {/* Content Type Filter */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={contentFilter === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setContentFilter("all")}
-          data-testid="filter-all"
-        >
-          {t.admin.curation.all} ({items?.length || 0})
-        </Button>
-        <Button
-          variant={contentFilter === "pages" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setContentFilter("pages")}
-          data-testid="filter-pages"
-        >
-          {t.admin.curation.pages} ({(items?.filter(i => i.submittedBy !== "image-crawler" && i.submittedBy !== "image-crawler-consolidated") || []).length})
-        </Button>
-        <Button
-          variant={contentFilter === "images" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setContentFilter("images")}
-          data-testid="filter-images"
-        >
-          {t.admin.curation.images} ({(items?.filter(i => i.submittedBy === "image-crawler" || i.submittedBy === "image-crawler-consolidated") || []).length})
-        </Button>
+      <div className="space-y-3">
+        <div>
+          <Label className="text-sm font-medium mb-2 block">Tipo de Conteúdo</Label>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={contentFilter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setContentFilter("all")}
+              data-testid="filter-all"
+            >
+              {t.admin.curation.all} ({items?.length || 0})
+            </Button>
+            <Button
+              variant={contentFilter === "pages" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setContentFilter("pages")}
+              data-testid="filter-pages"
+            >
+              {t.admin.curation.pages} ({(items?.filter(i => i.submittedBy !== "image-crawler" && i.submittedBy !== "image-crawler-consolidated") || []).length})
+            </Button>
+            <Button
+              variant={contentFilter === "images" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setContentFilter("images")}
+              data-testid="filter-images"
+            >
+              {t.admin.curation.images} ({(items?.filter(i => i.submittedBy === "image-crawler" || i.submittedBy === "image-crawler-consolidated") || []).length})
+            </Button>
+          </div>
+        </div>
+
+        {/* Duplication Status Filter */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-sm font-medium">Status de Duplicação</Label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => scanDuplicatesMutation.mutate()}
+              disabled={scanDuplicatesMutation.isPending}
+              data-testid="button-scan-duplicates"
+            >
+              <Scan className="h-4 w-4 mr-2" />
+              {scanDuplicatesMutation.isPending ? "Escaneando..." : "Escanear Duplicatas"}
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={duplicationFilter === "all" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDuplicationFilter("all")}
+              data-testid="filter-dup-all"
+            >
+              Todos ({items?.length || 0})
+            </Button>
+            <Button
+              variant={duplicationFilter === "unscanned" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDuplicationFilter("unscanned")}
+              data-testid="filter-dup-unscanned"
+            >
+              Não Escaneados ({(items?.filter(i => !i.duplicationStatus) || []).length})
+            </Button>
+            <Button
+              variant={duplicationFilter === "unique" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDuplicationFilter("unique")}
+              data-testid="filter-dup-unique"
+              className="text-green-600 hover:text-green-700"
+            >
+              Únicos ({(items?.filter(i => i.duplicationStatus === "unique") || []).length})
+            </Button>
+            <Button
+              variant={duplicationFilter === "near" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDuplicationFilter("near")}
+              data-testid="filter-dup-near"
+              className="text-yellow-600 hover:text-yellow-700"
+            >
+              Similares ({(items?.filter(i => i.duplicationStatus === "near") || []).length})
+            </Button>
+            <Button
+              variant={duplicationFilter === "exact" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDuplicationFilter("exact")}
+              data-testid="filter-dup-exact"
+              className="text-red-600 hover:text-red-700"
+            >
+              Duplicatas Exatas ({(items?.filter(i => i.duplicationStatus === "exact") || []).length})
+            </Button>
+          </div>
+        </div>
       </div>
 
       <Tabs defaultValue="pending" className="w-full">
@@ -537,7 +646,25 @@ export default function CurationQueuePage() {
                     />
                     <div className="flex items-start justify-between flex-1">
                       <div className="space-y-1 flex-1">
-                        <CardTitle>{item.title}</CardTitle>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CardTitle>{item.title}</CardTitle>
+                          {/* Duplication Status Badge */}
+                          {item.duplicationStatus === "exact" && (
+                            <Badge variant="destructive" data-testid={`badge-dup-exact-${item.id}`}>
+                              Duplicata Exata {item.similarityScore ? `(${Math.round(item.similarityScore * 100)}%)` : ""}
+                            </Badge>
+                          )}
+                          {item.duplicationStatus === "near" && (
+                            <Badge className="bg-yellow-500 hover:bg-yellow-600" data-testid={`badge-dup-near-${item.id}`}>
+                              Similar {item.similarityScore ? `(${Math.round(item.similarityScore * 100)}%)` : ""}
+                            </Badge>
+                          )}
+                          {item.duplicationStatus === "unique" && (
+                            <Badge className="bg-green-500 hover:bg-green-600" data-testid={`badge-dup-unique-${item.id}`}>
+                              Único
+                            </Badge>
+                          )}
+                        </div>
                         <CardDescription className="space-y-1">
                           <div className="flex items-center gap-2">
                             Enviado por {item.submittedBy || "Desconhecido"}
