@@ -8,6 +8,8 @@ import { ImageProcessor } from "../learn/image-processor";
 import { db } from "../db";
 import { deduplicationService } from "../services/deduplication-service";
 import { generateContentHash, normalizeContent } from "../utils/deduplication";
+import { curationQueue, documents } from "../../shared/schema";
+import { eq } from "drizzle-orm";
 
 export function registerCurationRoutes(app: Express) {
   /**

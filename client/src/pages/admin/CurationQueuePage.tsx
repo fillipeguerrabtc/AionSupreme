@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink, Scan } from "lucide-react";
+import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink, Scan, ArrowDownToLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -266,6 +266,30 @@ export default function CurationQueuePage() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao escanear duplicatas",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Absorb partial content mutation (for near-duplicates)
+  const absorbPartialMutation = useMutation({
+    mutationFn: async (itemId: string) => {
+      const res = await apiRequest(`/api/curation/absorb-partial/${itemId}`, {
+        method: "POST",
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      toast({
+        title: "Absorção parcial concluída!",
+        description: `Conteúdo reduzido de ${data.analysis.originalLength} para ${data.analysis.extractedLength} caracteres (${data.analysis.reductionPercent}% de redução). Duplicado de: "${data.duplicateTitle}"`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao absorver conteúdo",
         description: error.message,
         variant: "destructive",
       });
@@ -683,7 +707,7 @@ export default function CurationQueuePage() {
                           </div>
                         </CardDescription>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button
                           variant="outline"
                           size="sm"
@@ -693,6 +717,21 @@ export default function CurationQueuePage() {
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
                         </Button>
+                        {/* Absorb Partial button - only for near-duplicates with KB duplicate */}
+                        {item.duplicationStatus === "near" && item.duplicateOfId && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => absorbPartialMutation.mutate(item.id)}
+                            disabled={absorbPartialMutation.isPending}
+                            className="text-orange-600 hover:text-orange-700"
+                            data-testid={`button-absorb-${item.id}`}
+                            title="Extrair apenas conteúdo novo desta duplicata parcial"
+                          >
+                            <ArrowDownToLine className="h-4 w-4 mr-2" />
+                            {absorbPartialMutation.isPending ? "Absorvendo..." : "Absorver Parcial"}
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"

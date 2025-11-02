@@ -94,109 +94,156 @@ export function isValidHash(hash: string): boolean {
 
 /**
  * PARTIAL CONTENT ABSORPTION UTILITIES
- * Extract new content from partially duplicated submissions
+ * Simple sentence-based diff approach - preserves original formatting
+ * Production-safe: no memory issues, preserves data integrity
  */
 
 /**
- * Finds the longest common substring between two texts
- * Uses dynamic programming (O(n*m) complexity)
- * 
- * @param text1 - First text
- * @param text2 - Second text
- * @returns Object with common substring and its positions
+ * Semantic unit with type metadata for structure-preserving reconstruction
  */
-export function findLongestCommonSubstring(text1: string, text2: string): {
-  common: string;
-  start1: number;
-  start2: number;
-  length: number;
-} {
-  const normalized1 = normalizeContent(text1);
-  const normalized2 = normalizeContent(text2);
+interface SemanticUnit {
+  text: string;
+  type: 'paragraph_start' | 'bullet' | 'sentence' | 'sentence_in_list';
+}
+
+/**
+ * Splits text into semantic units (sentences, bullets, headings, paragraphs)
+ * PRODUCTION-READY: Handles Markdown, lists, paragraphs, numbered items
+ * Preserves original formatting and punctuation WITH metadata for reconstruction
+ * 
+ * Split hierarchy:
+ * 1. Paragraphs (double newlines) → marked as paragraph_start
+ * 2. Bullets/numbers → marked as bullet
+ * 3. Sentences in bullets → marked as sentence_in_list
+ * 4. Regular sentences → marked as sentence
+ */
+function splitIntoSemanticUnits(text: string): SemanticUnit[] {
+  const units: SemanticUnit[] = [];
   
-  const m = normalized1.length;
-  const n = normalized2.length;
+  // Step 1: Split by double newlines (paragraphs)
+  const paragraphs = text.split(/\n\n+/).map(p => p.trim()).filter(p => p);
   
-  let maxLength = 0;
-  let endIndex1 = 0;
-  
-  // DP table for LCS
-  const dp: number[][] = Array(m + 1).fill(0).map(() => Array(n + 1).fill(0));
-  
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (normalized1[i - 1] === normalized2[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1] + 1;
-        if (dp[i][j] > maxLength) {
-          maxLength = dp[i][j];
-          endIndex1 = i;
+  for (let pi = 0; pi < paragraphs.length; pi++) {
+    const para = paragraphs[pi];
+    const isFirstUnit = units.length === 0;
+    
+    // Step 2: Split by single newlines (may contain bullets/numbered lists)
+    const lines = para.split(/\n/).map(l => l.trim()).filter(l => l);
+    
+    for (let li = 0; li < lines.length; li++) {
+      const line = lines[li];
+      const isFirstInParagraph = li === 0;
+      
+      // Check if line is a bullet/numbered list item
+      const isBulletOrNumber = /^(\*|-|\+|\d+\.|\d+\))\s/.test(line);
+      
+      if (isBulletOrNumber) {
+        // Mark first bullet in paragraph as paragraph_start if new paragraph
+        const type: SemanticUnit['type'] = (isFirstInParagraph && !isFirstUnit && pi > 0) 
+          ? 'paragraph_start' 
+          : 'bullet';
+        units.push({ text: line, type });
+      } else {
+        // Split on sentence endings: . ! ? : ; followed by space/end
+        const sentences = line
+          .split(/(?<=[.!?:;])\s+/)
+          .map(s => s.trim())
+          .filter(s => s);
+        
+        for (let si = 0; si < sentences.length; si++) {
+          const sent = sentences[si];
+          const isFirstSentence = si === 0;
+          
+          // Mark appropriately based on context
+          let type: SemanticUnit['type'];
+          if (isFirstSentence && isFirstInParagraph && !isFirstUnit && pi > 0) {
+            type = 'paragraph_start'; // New paragraph boundary
+          } else {
+            type = 'sentence';
+          }
+          
+          units.push({ text: sent, type });
         }
       }
     }
   }
   
-  if (maxLength === 0) {
-    return { common: '', start1: -1, start2: -1, length: 0 };
-  }
-  
-  const start1 = endIndex1 - maxLength;
-  const common = normalized1.substring(start1, endIndex1);
-  const start2 = normalized2.indexOf(common);
-  
-  return { common, start1, start2, length: maxLength };
+  return units;
 }
 
 /**
- * Extracts new/unique content from a partially duplicated text
- * 
- * @param newText - New submission (potentially partially duplicate)
- * @param existingText - Existing content in KB or queue
- * @returns Object with extracted new content and metadata
+ * Reconstructs text from semantic units preserving structure
+ * Adds appropriate delimiters based on unit type metadata
  */
-export function extractNewContent(newText: string, existingText: string): {
-  hasNewContent: boolean;
-  newParts: string[];
-  commonPart: string;
-  mergedContent: string;
-  absorptionWorthwhile: boolean;
-} {
-  const { common, start1, length } = findLongestCommonSubstring(newText, existingText);
+function reconstructText(units: SemanticUnit[]): string {
+  if (units.length === 0) return '';
   
-  // No significant common part = completely unique
-  if (length < 20) { // Minimum 20 chars to consider as duplicate
-    return {
-      hasNewContent: true,
-      newParts: [newText],
-      commonPart: '',
-      mergedContent: newText,
-      absorptionWorthwhile: false // Not a partial duplicate, it's unique
-    };
+  const result: string[] = [];
+  
+  for (let i = 0; i < units.length; i++) {
+    const unit = units[i];
+    const prevUnit = i > 0 ? units[i - 1] : null;
+    
+    // Add appropriate delimiter before this unit
+    if (i > 0) {
+      if (unit.type === 'paragraph_start') {
+        result.push('\n\n'); // Paragraph break
+      } else if (unit.type === 'bullet') {
+        result.push('\n'); // Newline before bullet
+      } else if (prevUnit?.type === 'bullet' && unit.type === 'sentence') {
+        result.push('\n'); // Newline after bullet before sentence
+      } else {
+        result.push(' '); // Regular space between sentences
+      }
+    }
+    
+    result.push(unit.text);
   }
   
-  const normalized = normalizeContent(newText);
+  return result.join('');
+}
+
+/**
+ * Finds semantic units that are unique to newText (not in existingText)
+ * Uses exact matching on normalized text but PRESERVES original formatting + structure
+ * 
+ * @param newText - New submission
+ * @param existingText - Existing content in KB
+ * @returns Object with unique units (with metadata for reconstruction)
+ */
+export function extractUniqueSentences(newText: string, existingText: string): {
+  uniqueSentences: SemanticUnit[];
+  commonSentences: SemanticUnit[];
+  totalOriginalSentences: number;
+} {
+  const newUnits = splitIntoSemanticUnits(newText);
+  const existingUnits = splitIntoSemanticUnits(existingText);
   
-  // Extract parts before and after common substring
-  const partBefore = normalized.substring(0, start1).trim();
-  const partAfter = normalized.substring(start1 + length).trim();
+  // Normalize for comparison (but keep original units with metadata)
+  const existingNormalized = new Set(existingUnits.map(u => normalizeContent(u.text)));
   
-  const newParts = [partBefore, partAfter].filter(p => p.length > 0);
+  const uniqueSentences: SemanticUnit[] = [];
+  const commonSentences: SemanticUnit[] = [];
   
-  // Calculate if absorption is worthwhile
-  // Only worth if new content is at least 10% of original and > 10 chars
-  const totalNewLength = newParts.join(' ').length;
-  const absorptionWorthwhile = totalNewLength >= 10 && totalNewLength >= length * 0.1;
+  for (const unit of newUnits) {
+    const normalized = normalizeContent(unit.text);
+    if (existingNormalized.has(normalized)) {
+      commonSentences.push(unit);
+    } else {
+      uniqueSentences.push(unit); // Keep original formatting + structure metadata!
+    }
+  }
   
   return {
-    hasNewContent: newParts.length > 0,
-    newParts,
-    commonPart: common,
-    mergedContent: newParts.join(' '),
-    absorptionWorthwhile
+    uniqueSentences,
+    commonSentences,
+    totalOriginalSentences: newUnits.length
   };
 }
 
 /**
- * Analyzes partial duplication and suggests absorption
+ * Analyzes partial duplication with sentence-level diff
+ * PRODUCTION-SAFE: Preserves original formatting, no memory issues
  * 
  * @param candidateText - New submission to analyze
  * @param existingText - Existing content
@@ -216,7 +263,7 @@ export function analyzePartialDuplication(
   extractedLength: number;
   reason: string;
 } {
-  // Only analyze near-duplicates (85-98% similar)
+  // Only process near-duplicates (85-98% similar)
   if (similarityScore < 0.85 || similarityScore > 0.98) {
     return {
       isDuplicate: similarityScore > 0.98,
@@ -231,9 +278,42 @@ export function analyzePartialDuplication(
     };
   }
   
-  const extraction = extractNewContent(candidateText, existingText);
+  // Performance limit: max 50KB per document
+  if (candidateText.length > 50000 || existingText.length > 50000) {
+    return {
+      isDuplicate: false,
+      isPartialDuplicate: false,
+      shouldAbsorb: false,
+      extractedContent: candidateText,
+      originalLength: candidateText.length,
+      extractedLength: candidateText.length,
+      reason: 'Document too large for absorption (max 50KB). Please review manually.'
+    };
+  }
   
-  if (!extraction.absorptionWorthwhile) {
+  const extraction = extractUniqueSentences(candidateText, existingText);
+  
+  // No unique sentences = full duplicate
+  if (extraction.uniqueSentences.length === 0) {
+    return {
+      isDuplicate: true,
+      isPartialDuplicate: false,
+      shouldAbsorb: false,
+      extractedContent: candidateText,
+      originalLength: candidateText.length,
+      extractedLength: candidateText.length,
+      reason: 'All sentences are duplicated - nothing new to extract'
+    };
+  }
+  
+  // Reconstruct from unique units (preserves original formatting + structure!)
+  const mergedContent = reconstructText(extraction.uniqueSentences);
+  
+  // Only absorb if at least 10% is new content AND min 50 chars
+  const absorptionRatio = extraction.uniqueSentences.length / extraction.totalOriginalSentences;
+  const absorptionWorthwhile = mergedContent.length >= 50 && absorptionRatio >= 0.1;
+  
+  if (!absorptionWorthwhile) {
     return {
       isDuplicate: false,
       isPartialDuplicate: true,
@@ -241,7 +321,7 @@ export function analyzePartialDuplication(
       extractedContent: candidateText,
       originalLength: candidateText.length,
       extractedLength: candidateText.length,
-      reason: 'New content too small to justify absorption'
+      reason: `Only ${extraction.uniqueSentences.length} of ${extraction.totalOriginalSentences} sentences are new (${Math.round(absorptionRatio * 100)}%). Too small to justify absorption.`
     };
   }
   
@@ -249,9 +329,9 @@ export function analyzePartialDuplication(
     isDuplicate: false,
     isPartialDuplicate: true,
     shouldAbsorb: true,
-    extractedContent: extraction.mergedContent,
+    extractedContent: mergedContent,
     originalLength: candidateText.length,
-    extractedLength: extraction.mergedContent.length,
-    reason: `Absorbed ${extraction.newParts.length} new part(s) from partial duplicate`
+    extractedLength: mergedContent.length,
+    reason: `Extracted ${extraction.uniqueSentences.length} unique sentences out of ${extraction.totalOriginalSentences} total (${Math.round(absorptionRatio * 100)}% new content)`
   };
 }
