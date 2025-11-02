@@ -62,6 +62,10 @@ app.use((req, res, next) => {
   
   const server = await registerRoutes(app);
 
+  // Initialize RBAC system (permissions, roles, admin user)
+  const { seedRBAC } = await import("./seed-rbac");
+  await seedRBAC();
+  
   // Carregar sistema multi-agente do banco de dados
   const { loadAgentsFromDatabase } = await import("./agent/loader");
   await loadAgentsFromDatabase(); // Modo single-tenant

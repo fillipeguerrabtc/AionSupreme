@@ -1568,3 +1568,150 @@ export const insertRateLimitSchema = createInsertSchema(rateLimits).omit({
 });
 export type InsertRateLimit = z.infer<typeof insertRateLimitSchema>;
 export type RateLimit = typeof rateLimits.$inferSelect;
+
+// ============================================================================
+// RBAC - Enterprise Role-Based Access Control System
+// PRODUCTION-READY: Granular permissions for ALL modules and sub-modules
+// ============================================================================
+
+/**
+ * ROLES - User roles (Admin, Manager, Editor, Viewer, etc.)
+ * 
+ * Built-in roles that come pre-configured:
+ * - Super Admin: Full access to everything
+ * - Admin: Full access except system settings
+ * - Manager: Can manage content and users (no system settings)
+ * - Editor: Can create/edit content (no deletion or user management)
+ * - Viewer: Read-only access to all content
+ * - Chat User: Can only use chat interface (no admin access)
+ * 
+ * Custom roles can be created dynamically via UI
+ */
+export const roles = pgTable("roles", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  isSystemRole: boolean("is_system_role").notNull().default(false), // Cannot be deleted if true
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertRoleSchema = createInsertSchema(roles).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertRole = z.infer<typeof insertRoleSchema>;
+export type Role = typeof roles.$inferSelect;
+
+/**
+ * PERMISSIONS - Granular permissions for ALL platform modules
+ * 
+ * Permission format: "module:submodule:action"
+ * 
+ * MODULES:
+ * - dashboard: Admin dashboard overview
+ * - kb: Knowledge Base (documents + images)
+ * - agents: Specialist agents management
+ * - curation: HITL curation queue
+ * - namespaces: Knowledge namespace management
+ * - gpu: GPU pool management
+ * - vision: Vision system (image processing)
+ * - telemetry: Analytics and metrics
+ * - training: Training jobs and datasets
+ * - settings: System settings
+ * - users: User management
+ * - chat: Chat interface
+ * 
+ * ACTIONS:
+ * - read: View/list items
+ * - create: Create new items
+ * - update: Edit existing items
+ * - delete: Delete items
+ * - manage: Advanced management (approve/reject, assign roles, etc.)
+ * - execute: Execute operations (GPU jobs, training, etc.)
+ * 
+ * Examples:
+ * - "dashboard:overview:read" - View dashboard
+ * - "kb:documents:create" - Create documents in KB
+ * - "kb:documents:update" - Edit KB documents
+ * - "kb:documents:delete" - Delete KB documents
+ * - "kb:images:read" - View KB images
+ * - "agents:list:read" - List agents
+ * - "agents:create:create" - Create new agents
+ * - "curation:queue:read" - View curation queue
+ * - "curation:queue:manage" - Approve/reject items in queue
+ * - "users:list:read" - List users
+ * - "users:create:create" - Create new users
+ * - "users:roles:manage" - Assign roles to users
+ * - "settings:timezone:update" - Update timezone settings
+ * - "gpu:pool:execute" - Execute GPU operations
+ * - "training:jobs:execute" - Start training jobs
+ * - "chat:messages:create" - Send chat messages
+ */
+export const permissions = pgTable("permissions", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 255 }).notNull().unique(), // Format: "module:submodule:action"
+  module: varchar("module", { length: 50 }).notNull(), // e.g., "kb", "agents", "users"
+  submodule: varchar("submodule", { length: 50 }).notNull(), // e.g., "documents", "images", "list"
+  action: varchar("action", { length: 50 }).notNull(), // e.g., "read", "create", "update", "delete", "manage"
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  moduleIdx: index("permissions_module_idx").on(table.module),
+  codeIdx: index("permissions_code_idx").on(table.code),
+}));
+
+export const insertPermissionSchema = createInsertSchema(permissions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertPermission = z.infer<typeof insertPermissionSchema>;
+export type Permission = typeof permissions.$inferSelect;
+
+/**
+ * USER_ROLES - Many-to-Many relationship between users and roles
+ * 
+ * A user can have multiple roles (e.g., Editor + Manager)
+ */
+export const userRoles = pgTable("user_roles", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  roleId: integer("role_id").notNull().references(() => roles.id, { onDelete: 'cascade' }),
+  assignedBy: varchar("assigned_by").references(() => users.id), // Who assigned this role
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+}, (table) => ({
+  userRoleUnique: unique("user_roles_user_role_unique").on(table.userId, table.roleId),
+  userIdx: index("user_roles_user_idx").on(table.userId),
+  roleIdx: index("user_roles_role_idx").on(table.roleId),
+}));
+
+export const insertUserRoleSchema = createInsertSchema(userRoles).omit({ 
+  id: true, 
+  assignedAt: true 
+});
+export type InsertUserRole = z.infer<typeof insertUserRoleSchema>;
+export type UserRole = typeof userRoles.$inferSelect;
+
+/**
+ * ROLE_PERMISSIONS - Many-to-Many relationship between roles and permissions
+ * 
+ * Defines which permissions each role has
+ */
+export const rolePermissions = pgTable("role_permissions", {
+  id: serial("id").primaryKey(),
+  roleId: integer("role_id").notNull().references(() => roles.id, { onDelete: 'cascade' }),
+  permissionId: integer("permission_id").notNull().references(() => permissions.id, { onDelete: 'cascade' }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  rolePermUnique: unique("role_permissions_role_perm_unique").on(table.roleId, table.permissionId),
+  roleIdx: index("role_permissions_role_idx").on(table.roleId),
+  permIdx: index("role_permissions_perm_idx").on(table.permissionId),
+}));
+
+export const insertRolePermissionSchema = createInsertSchema(rolePermissions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
+export type RolePermission = typeof rolePermissions.$inferSelect;
