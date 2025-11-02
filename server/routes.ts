@@ -214,6 +214,45 @@ export function registerRoutes(app: Express): Server {
   });
 
   // ========================================
+  // ENDPOINTS DE CHECKPOINT DOWNLOAD (Federated Learning)
+  // ========================================
+  
+  // Download de checkpoint global (modelo agregado via FedAvg)
+  // GET /api/training/jobs/:jobId/checkpoint
+  app.get("/api/training/jobs/:jobId/checkpoint", async (req, res) => {
+    try {
+      const { resolve } = await import("path");
+      const jobId = parseInt(req.params.jobId);
+
+      // Buscar job para pegar caminho do checkpoint
+      const job = await db.query.trainingJobs.findFirst({
+        where: eq(trainingJobs.id, jobId),
+      });
+
+      if (!job) {
+        return res.status(404).json({ error: "Job não encontrado" });
+      }
+
+      if (!job.latestCheckpoint) {
+        return res.status(404).json({ 
+          error: "Checkpoint ainda não disponível - treino em andamento" 
+        });
+      }
+
+      // Resolver caminho absoluto
+      const absolutePath = resolve(job.latestCheckpoint);
+
+      // Servir arquivo de checkpoint
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("Content-Disposition", `attachment; filename="checkpoint-job-${jobId}.safetensors"`);
+      res.sendFile(absolutePath);
+    } catch (error: any) {
+      console.error("[Checkpoint Download] Erro:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================
   // ENDPOINTS DE HEALTH CHECK (para implantação multi-cloud)
   // ========================================
   
