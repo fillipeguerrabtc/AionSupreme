@@ -538,8 +538,13 @@ interface Translations {
     agents: {
       title: string;
       subtitle: string;
+      list: string;
       createAgent: string;
       createSubAgent: string;
+      createSubagent: string;
+      hierarchy: string;
+      activeAgents: string;
+      agentsInSystem: string;
       noAgents: string;
       noAgentsDesc: string;
       loading: string;
@@ -1240,8 +1245,13 @@ const translations: Record<Language, Translations> = {
       agents: {
         title: "Agentes Especialistas",
         subtitle: "Gerencie agentes e sub-agentes especializados",
+        list: "Lista",
         createAgent: "Criar Agente",
         createSubAgent: "Criar Sub-Agente",
+        createSubagent: "Criar Sub-Agente",
+        hierarchy: "Hierarquia",
+        activeAgents: "Agentes Ativos",
+        agentsInSystem: "agentes no sistema",
         noAgents: "Nenhum agente cadastrado",
         noAgentsDesc: "Crie seu primeiro agente especializado",
         loading: "Carregando agentes...",
@@ -1934,8 +1944,13 @@ const translations: Record<Language, Translations> = {
       agents: {
         title: "Specialist Agents",
         subtitle: "Manage specialized agents and sub-agents",
+        list: "List",
         createAgent: "Create Agent",
         createSubAgent: "Create Sub-Agent",
+        createSubagent: "Create Sub-Agent",
+        hierarchy: "Hierarchy",
+        activeAgents: "Active Agents",
+        agentsInSystem: "agents in system",
         noAgents: "No agents found",
         noAgentsDesc: "Create your first specialist agent",
         loading: "Loading agents...",
@@ -2628,8 +2643,13 @@ const translations: Record<Language, Translations> = {
       agents: {
         title: "Agentes Especialistas",
         subtitle: "Gestiona agentes y sub-agentes especializados",
+        list: "Lista",
         createAgent: "Crear Agente",
         createSubAgent: "Crear Sub-Agente",
+        createSubagent: "Crear Sub-Agente",
+        hierarchy: "Jerarquía",
+        activeAgents: "Agentes Activos",
+        agentsInSystem: "agentes en el sistema",
         noAgents: "No hay agentes registrados",
         noAgentsDesc: "Crea tu primer agente especialista",
         loading: "Cargando agentes...",

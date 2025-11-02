@@ -194,22 +194,6 @@ export default function AgentsPage() {
               <Search className="w-4 h-4 mr-2" />
               {orphanScanMutation.isPending ? "Escaneando..." : "Diagnosticar Integridade"}
             </Button>
-            <Button 
-              data-testid="button-create-agent" 
-              variant="default"
-              onClick={() => setActiveTab("create-agent")}
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Criar Agent
-            </Button>
-            <Button 
-              data-testid="button-create-subagent" 
-              variant="outline"
-              onClick={() => setActiveTab("create-subagent")}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Criar SubAgent
-            </Button>
           </div>
 
           <Card>
