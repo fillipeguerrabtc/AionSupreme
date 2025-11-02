@@ -21,6 +21,7 @@ export class EnforcementPipeline {
     // Return default policy
     return {
       id: 0, // Virtual policy, not stored
+      tenantId: 1,
       policyName: "Default Policy",
       rules: {
         hate_speech: false,
