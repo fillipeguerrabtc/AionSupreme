@@ -270,6 +270,9 @@ export const documents = pgTable("documents", {
   status: text("status").notNull().default("indexed"), // "pending" | "processing" | "indexed" | "failed"
   errorMessage: text("error_message"),
   
+  // Deduplication fields (for faster lookup during curation)
+  contentHash: varchar("content_hash", { length: 64 }), // SHA256 hash for O(1) duplicate detection
+  
   // Metadata from file
   metadata: jsonb("metadata").$type<{
     author?: string;
@@ -299,6 +302,7 @@ export const documents = pgTable("documents", {
   tenantIdx: index("documents_tenant_idx").on(table.tenantId),
   statusIdx: index("documents_status_idx").on(table.status),
   sourceIdx: index("documents_source_idx").on(table.source),
+  contentHashIdx: index("documents_content_hash_idx").on(table.contentHash), // Index for O(1) duplicate lookup during curation
 }));
 
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1466,6 +1470,15 @@ export const curationQueue = pgTable("curation_queue", {
   expiresAt: timestamp("expires_at"), // Auto-deletion timestamp for rejected items (30 days after rejection)
   note: text("note"), // Admin notes (reason for rejection, etc.)
   publishedId: varchar("published_id", { length: 50 }), // Document ID after approval
+  
+  // Deduplication fields
+  contentHash: varchar("content_hash", { length: 64 }), // SHA256 hash for exact duplicate detection
+  normalizedContent: text("normalized_content"), // Lowercased, trimmed content for fuzzy matching
+  embedding: jsonb("embedding").$type<number[]>(), // OpenAI embedding for semantic similarity
+  duplicationStatus: varchar("duplication_status", { length: 20 }), // "unique" | "exact" | "near" | null
+  similarityScore: real("similarity_score"), // Cosine similarity score (0-1) if near-duplicate
+  duplicateOfId: varchar("duplicate_of_id", { length: 50 }), // Reference to original KB document if duplicate
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -1474,6 +1487,8 @@ export const curationQueue = pgTable("curation_queue", {
   submittedAtIdx: index("curation_queue_submitted_at_idx").on(table.submittedAt),
   statusChangedAtIdx: index("curation_queue_status_changed_at_idx").on(table.statusChangedAt),
   expiresAtIdx: index("curation_queue_expires_at_idx").on(table.expiresAt), // Index for daily cleanup job
+  contentHashIdx: index("curation_queue_content_hash_idx").on(table.contentHash), // Index for O(1) duplicate lookup
+  duplicationStatusIdx: index("curation_queue_duplication_status_idx").on(table.duplicationStatus), // Index for filtering by dedup status
 }));
 
 export const insertCurationQueueSchema = createInsertSchema(curationQueue).omit({ 
