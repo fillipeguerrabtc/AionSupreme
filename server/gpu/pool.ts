@@ -309,4 +309,213 @@ export class GPUPool {
     
     return started;
   }
+
+  /**
+   * FEDERATED LEARNING - Dispatch chunk específico para worker
+   * Usado em multi-round training
+   */
+  static async dispatchFederatedChunk(
+    workerId: number,
+    jobId: number,
+    chunkIndex: number,
+    checkpointUrl?: string
+  ): Promise<boolean> {
+    try {
+      console.log(`\n🔄 [GPUPool] Dispatching chunk ${chunkIndex} para Worker #${workerId}...`);
+
+      // Buscar worker
+      const worker = await db.query.gpuWorkers.findFirst({
+        where: eq(gpuWorkers.id, workerId),
+      });
+
+      if (!worker || worker.status !== "online") {
+        console.log("   ❌ Worker não disponível");
+        return false;
+      }
+
+      // Construir URL pública base
+      let baseUrl: string;
+      
+      if (process.env.PUBLIC_BASE_URL) {
+        baseUrl = process.env.PUBLIC_BASE_URL;
+      } else if (process.env.REPLIT_DEV_DOMAIN) {
+        baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      } else if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+        baseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      } else {
+        baseUrl = "http://localhost:5000";
+      }
+
+      // URLs para chunk e checkpoint
+      const chunkUrl = `${baseUrl}/api/datasets/chunks/${jobId}/${chunkIndex}/download`;
+      const checkpointDownloadUrl = checkpointUrl || `${baseUrl}/api/training/jobs/${jobId}/checkpoint`;
+
+      console.log(`   📦 Chunk URL: ${chunkUrl}`);
+      if (checkpointUrl) {
+        console.log(`   📁 Checkpoint URL: ${checkpointDownloadUrl}`);
+      }
+
+      // Enviar task federada
+      const response = await axios.post(
+        `${worker.ngrokUrl}/federated/train`,
+        {
+          jobId,
+          chunkIndex,
+          chunkUrl,
+          checkpointUrl: checkpointDownloadUrl,
+          callbackUrl: `${baseUrl}/api/training/gradients/submit`,
+        },
+        {
+          timeout: 60000, // 1min timeout
+        }
+      );
+
+      console.log(`   ✅ Chunk dispatched: ${response.data.status}`);
+
+      // Atualizar worker no banco
+      await db.update(gpuWorkers)
+        .set({ status: "training" })
+        .where(eq(gpuWorkers.id, workerId));
+
+      return true;
+    } catch (error: any) {
+      console.error(`[GPUPool] ❌ Erro ao dispatch chunk:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * CHECKPOINT BROADCAST - Notifica todos workers sobre novo checkpoint
+   * Workers baixam automaticamente e iniciam próxima rodada
+   */
+  static async broadcastCheckpoint(
+    jobId: number,
+    checkpointPath: string,
+    round: number
+  ): Promise<{ notified: number; failed: number }> {
+    try {
+      console.log(`\n📢 [GPUPool] Broadcasting checkpoint - Rodada ${round}`);
+      console.log(`   📁 Checkpoint: ${checkpointPath}`);
+
+      // Buscar workers ONLINE (não apenas trainers)
+      const workers = await this.getOnlineWorkers();
+
+      if (workers.length === 0) {
+        console.log("   ⚠️  Nenhuma GPU online para broadcast");
+        return { notified: 0, failed: 0 };
+      }
+
+      // Construir URL pública
+      let baseUrl: string;
+      
+      if (process.env.PUBLIC_BASE_URL) {
+        baseUrl = process.env.PUBLIC_BASE_URL;
+      } else if (process.env.REPLIT_DEV_DOMAIN) {
+        baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      } else if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+        baseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      } else {
+        baseUrl = "http://localhost:5000";
+      }
+
+      const checkpointUrl = `${baseUrl}/api/training/jobs/${jobId}/checkpoint`;
+
+      let notified = 0;
+      let failed = 0;
+
+      // Notificar cada worker
+      for (const worker of workers) {
+        try {
+          await axios.post(
+            `${worker.ngrokUrl}/federated/checkpoint`,
+            {
+              jobId,
+              round,
+              checkpointUrl,
+              action: "download_and_prepare",
+            },
+            {
+              timeout: 30000, // 30s timeout
+            }
+          );
+          
+          notified++;
+          console.log(`   ✅ Worker #${worker.id} notificado`);
+        } catch (error: any) {
+          failed++;
+          console.error(`   ❌ Worker #${worker.id} falhou: ${error.message}`);
+        }
+      }
+
+      console.log(`\n📊 Broadcast completo:`);
+      console.log(`   ✅ Notificados: ${notified}`);
+      console.log(`   ❌ Falhas: ${failed}`);
+
+      return { notified, failed };
+    } catch (error: any) {
+      console.error(`[GPUPool] ❌ Erro no broadcast:`, error.message);
+      return { notified: 0, failed: 0 };
+    }
+  }
+
+  /**
+   * Re-dispatch workers para próxima rodada federada
+   * Após FedAvg, workers precisam recomeçar com checkpoint atualizado
+   */
+  static async redispatchFederatedWorkers(
+    jobId: number,
+    checkpointUrl: string
+  ): Promise<number> {
+    try {
+      console.log(`\n🔄 [GPUPool] Re-dispatching workers para próxima rodada...`);
+      
+      // Buscar workers assigned para este job
+      const { trainingWorkers } = await import("../../shared/schema");
+      const { and } = await import("drizzle-orm");
+
+      const assignedWorkers = await db.query.trainingWorkers.findMany({
+        where: and(
+          eq(trainingWorkers.jobId, jobId),
+          eq(trainingWorkers.status, "assigned")
+        ),
+      });
+
+      if (assignedWorkers.length === 0) {
+        console.log("   ⚠️  Nenhum worker assigned para re-dispatch");
+        return 0;
+      }
+
+      console.log(`   📊 Workers para re-dispatch: ${assignedWorkers.length}`);
+
+      let dispatched = 0;
+
+      for (const worker of assignedWorkers) {
+        const success = await this.dispatchFederatedChunk(
+          worker.workerId,
+          jobId,
+          worker.assignedChunk,
+          checkpointUrl
+        );
+
+        if (success) {
+          dispatched++;
+          
+          // Atualizar status para training
+          await db.update(trainingWorkers)
+            .set({ 
+              status: "training",
+              startedAt: new Date(),
+            })
+            .where(eq(trainingWorkers.id, worker.id));
+        }
+      }
+
+      console.log(`   ✅ ${dispatched}/${assignedWorkers.length} workers re-dispatched`);
+
+      return dispatched;
+    } catch (error: any) {
+      console.error(`[GPUPool] ❌ Erro ao re-dispatch:`, error.message);
+      return 0;
+    }
+  }
 }

@@ -21,6 +21,10 @@ class GradientAggregationCoordinator {
   private pollingInterval: NodeJS.Timeout | null = null;
   private isRunning = false;
   private checkIntervalMs = 30000; // 30 segundos
+  private gradientTimeoutMs = 5 * 60 * 1000; // 5 minutos timeout para gradientes
+  
+  // Tracking de timeout por job
+  private jobTimeouts = new Map<number, number>(); // jobId -> timestamp primeiro check
 
   /**
    * Inicia monitoramento de jobs ativos
@@ -105,19 +109,96 @@ class GradientAggregationCoordinator {
 
       if (allCompleted) {
         console.log(`   ✅ Job ${jobId}: Todos ${workers.length} workers completaram!`);
+        
+        // Limpar timeout tracking
+        this.jobTimeouts.delete(jobId);
+        
         await this.triggerAggregation(jobId, workers.length);
       } else if (allFailed) {
         console.log(`   ❌ Job ${jobId}: Todos workers falharam - marcando job como failed`);
+        
+        // Limpar timeout tracking
+        this.jobTimeouts.delete(jobId);
+        
         await db.update(trainingJobs)
           .set({ status: "failed" })
           .where(eq(trainingJobs.id, jobId));
       } else {
-        // Ainda treinando
+        // Ainda treinando - verificar timeout
         const completedCount = workers.filter(w => w.status === "completed").length;
         console.log(`   ⏳ Job ${jobId}: ${completedCount}/${workers.length} workers completaram`);
+        
+        // Verificar se há workers travados há muito tempo
+        await this.checkWorkersTimeout(jobId, workers);
       }
     } catch (error: any) {
       console.error(`[GradAgg] Erro ao verificar job ${jobId}:`, error);
+    }
+  }
+
+  /**
+   * Verifica timeout de workers e falha workers travados
+   */
+  private async checkWorkersTimeout(jobId: number, workers: any[]) {
+    try {
+      const now = Date.now();
+      
+      // Workers que ainda estão training mas não completaram
+      const trainingWorkers = workers.filter(w => w.status === "training");
+      
+      if (trainingWorkers.length === 0) return;
+      
+      // Verificar se job está esperando há muito tempo
+      if (!this.jobTimeouts.has(jobId)) {
+        // Primeira vez vendo workers training - iniciar timer
+        this.jobTimeouts.set(jobId, now);
+        return;
+      }
+      
+      const firstCheckTime = this.jobTimeouts.get(jobId)!;
+      const elapsedMs = now - firstCheckTime;
+      
+      if (elapsedMs > this.gradientTimeoutMs) {
+        console.log(`\n⚠️  [TIMEOUT] Job ${jobId} esperando gradientes há ${Math.round(elapsedMs/1000)}s`);
+        console.log(`   ⏱️  Limite: ${this.gradientTimeoutMs/1000}s`);
+        console.log(`   📊 Workers travados: ${trainingWorkers.length}`);
+        
+        // Falhar workers que não completaram
+        for (const worker of trainingWorkers) {
+          console.log(`   ❌ Falhando worker ${worker.id} por timeout`);
+          
+          await db.update(trainingWorkers)
+            .set({ 
+              status: "failed",
+              errorMessage: `Timeout: Não enviou gradientes em ${this.gradientTimeoutMs/1000}s`,
+            })
+            .where(eq(trainingWorkers.id, worker.id));
+        }
+        
+        // Verificar se ainda há workers suficientes
+        const remainingWorkers = workers.filter(w => w.status === "completed");
+        const minWorkers = 1; // Mínimo 1 worker para continuar
+        
+        if (remainingWorkers.length >= minWorkers) {
+          console.log(`   ✅ ${remainingWorkers.length} workers OK - continuando com parcial`);
+          // Disparar agregação com workers que completaram
+          this.jobTimeouts.delete(jobId);
+          await this.triggerAggregation(jobId, remainingWorkers.length);
+        } else {
+          console.log(`   ❌ Insuficiente workers (${remainingWorkers.length}) - falhando job`);
+          
+          this.jobTimeouts.delete(jobId);
+          
+          await db.update(trainingJobs)
+            .set({ 
+              status: "failed",
+              completedAt: new Date(),
+            })
+            .where(eq(trainingJobs.id, jobId));
+        }
+      }
+    } catch (error: any) {
+      console.error(`[GradAgg] Erro ao verificar timeout:`, error);
     }
   }
 
@@ -199,15 +280,38 @@ class GradientAggregationCoordinator {
         console.log(`   📁 Checkpoint intermediário: ${aggregationResult.checkpointPath}`);
         console.log(`   🔄 Próxima rodada: ${currentStep + 1}/${totalSteps}`);
         
-        // TODO: Broadcast checkpoint para workers iniciarem próxima rodada
-        console.log(`   ⚠️  TODO: Implementar broadcast de checkpoint para workers`);
+        // 1. Broadcast checkpoint para workers
+        console.log(`\n📢 Broadcasting checkpoint para workers...`);
+        const broadcastResult = await GPUPool.broadcastCheckpoint(
+          jobId,
+          aggregationResult.checkpointPath,
+          currentStep + 1
+        );
         
-        // Resetar workers para próxima rodada
+        console.log(`   ✅ Broadcast completo: ${broadcastResult.notified} workers notificados`);
+        
+        // 2. Resetar workers para assigned (prontos para re-dispatch)
         await db.update(trainingWorkers)
-          .set({ status: "assigned" })
+          .set({ 
+            status: "assigned",
+            currentStep: 0,
+            localLoss: null,
+          })
           .where(eq(trainingWorkers.jobId, jobId));
         
         console.log(`   ✅ Workers resetados para rodada ${currentStep + 1}`);
+        
+        // 3. Re-dispatch workers com checkpoint atualizado
+        console.log(`\n🔄 Re-dispatching workers...`);
+        const redispatchCount = await GPUPool.redispatchFederatedWorkers(
+          jobId,
+          aggregationResult.checkpointPath
+        );
+        
+        console.log(`   ✅ ${redispatchCount} workers re-dispatched com checkpoint atualizado`);
+        
+        // Resetar timeout tracking para próxima rodada
+        this.jobTimeouts.delete(jobId);
       }
 
     } catch (error: any) {
