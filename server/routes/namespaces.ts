@@ -1,7 +1,7 @@
 import { Express, Request, Response } from "express";
 import { db } from "../db";
 import { namespaces, insertNamespaceSchema, type Namespace, type InsertNamespace } from "@shared/schema";
-import { eq, and, desc, or, like, sql } from "drizzle-orm";
+import { eq, and, desc, or, like, ilike, sql } from "drizzle-orm";
 import { z } from "zod";
 import { curationStore } from "../curation/store";
 import { namespaceClassifier } from "../services/namespace-classifier";
@@ -282,7 +282,13 @@ export function registerNamespaceRoutes(app: Express) {
   /**
    * GET /api/namespaces/search?q=<query>
    * 
-   * Busca namespaces similares por nome
+   * Busca namespaces similares por nome e descrição
+   * 
+   * PERFORMANCE: Usa ilike nativo do PostgreSQL para case-insensitive search
+   * otimizado. ilike é mais performático que LIKE + LOWER() pois:
+   * - Processamento nativo no PostgreSQL (não precisa converter texto)
+   * - Pode usar índices GIN/GIST se configurados (futuro)
+   * - Código mais simples e legível ("Simples é Sofisticado")
    * 
    * Returns: Array<{
    *   id: string,
@@ -299,14 +305,15 @@ export function registerNamespaceRoutes(app: Express) {
         return res.status(400).json({ error: "Query parameter 'q' is required" });
       }
 
-      // Buscar namespaces por nome (case-insensitive LIKE search)
+      // OTIMIZAÇÃO: ilike nativo do PostgreSQL (case-insensitive sem LOWER())
+      // Busca tanto em name quanto em description para máxima flexibilidade
       const results = await db
         .select()
         .from(namespaces)
         .where(
           or(
-            like(namespaces.name, `%${q.toLowerCase()}%`),
-            like(sql`LOWER(${namespaces.description})`, `%${q.toLowerCase()}%`)
+            ilike(namespaces.name, `%${q}%`),
+            ilike(namespaces.description, `%${q}%`)
           )
         )
         .limit(20);
