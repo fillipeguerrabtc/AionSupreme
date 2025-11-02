@@ -29,6 +29,60 @@ export function registerNamespaceRoutes(app: Express) {
     }
   });
 
+  /**
+   * GET /api/namespaces/search?q=<query>
+   * 
+   * IMPORTANTE: Esta rota DEVE vir ANTES de /api/namespaces/:id
+   * caso contrário "search" será interpretado como um ID!
+   * 
+   * Busca namespaces similares por nome e descrição
+   * 
+   * PERFORMANCE: Usa ilike nativo do PostgreSQL para case-insensitive search
+   * otimizado. ilike é mais performático que LIKE + LOWER() pois:
+   * - Processamento nativo no PostgreSQL (não precisa converter texto)
+   * - Pode usar índices GIN/GIST se configurados (futuro)
+   * - Código mais simples e legível ("Simples é Sofisticado")
+   * 
+   * Returns: Array<{
+   *   id: string,
+   *   name: string,
+   *   description: string,
+   *   icon: string | null
+   * }>
+   */
+  app.get("/api/namespaces/search", async (req: Request, res: Response) => {
+    try {
+      const { q } = req.query;
+
+      if (!q || typeof q !== "string") {
+        return res.status(400).json({ error: "Query parameter 'q' is required" });
+      }
+
+      // OTIMIZAÇÃO: ilike nativo do PostgreSQL (case-insensitive sem LOWER())
+      // Busca tanto em name quanto em description para máxima flexibilidade
+      const results = await db
+        .select()
+        .from(namespaces)
+        .where(
+          or(
+            ilike(namespaces.name, `%${q}%`),
+            ilike(namespaces.description, `%${q}%`)
+          )
+        )
+        .limit(20);
+
+      console.log(`[Namespaces] Search for "${q}" → found ${results.length} matches`);
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error searching namespaces:", error);
+      res.status(500).json({ 
+        error: "Failed to search namespaces",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // GET /api/namespaces/:id - Get single namespace by ID
   app.get("/api/namespaces/:id", async (req: Request, res: Response) => {
     try {
@@ -274,57 +328,6 @@ export function registerNamespaceRoutes(app: Express) {
       console.error("Error classifying content:", error);
       res.status(500).json({ 
         error: "Failed to classify content",
-        message: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  /**
-   * GET /api/namespaces/search?q=<query>
-   * 
-   * Busca namespaces similares por nome e descrição
-   * 
-   * PERFORMANCE: Usa ilike nativo do PostgreSQL para case-insensitive search
-   * otimizado. ilike é mais performático que LIKE + LOWER() pois:
-   * - Processamento nativo no PostgreSQL (não precisa converter texto)
-   * - Pode usar índices GIN/GIST se configurados (futuro)
-   * - Código mais simples e legível ("Simples é Sofisticado")
-   * 
-   * Returns: Array<{
-   *   id: string,
-   *   name: string,
-   *   description: string,
-   *   icon: string | null
-   * }>
-   */
-  app.get("/api/namespaces/search", async (req: Request, res: Response) => {
-    try {
-      const { q } = req.query;
-
-      if (!q || typeof q !== "string") {
-        return res.status(400).json({ error: "Query parameter 'q' is required" });
-      }
-
-      // OTIMIZAÇÃO: ilike nativo do PostgreSQL (case-insensitive sem LOWER())
-      // Busca tanto em name quanto em description para máxima flexibilidade
-      const results = await db
-        .select()
-        .from(namespaces)
-        .where(
-          or(
-            ilike(namespaces.name, `%${q}%`),
-            ilike(namespaces.description, `%${q}%`)
-          )
-        )
-        .limit(20);
-
-      console.log(`[Namespaces] Search for "${q}" → found ${results.length} matches`);
-
-      res.json(results);
-    } catch (error) {
-      console.error("Error searching namespaces:", error);
-      res.status(500).json({ 
-        error: "Failed to search namespaces",
         message: error instanceof Error ? error.message : String(error)
       });
     }
