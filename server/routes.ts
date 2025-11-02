@@ -64,12 +64,15 @@ export function registerRoutes(app: Express): Server {
   // Aplicar rate limiting APENAS para rotas API (não assets estáticos)
   app.use("/api", rateLimitMiddleware);
   
-  // SECURITY FIX: Protect ALL admin/management routes with authentication
+  // SECURITY FIX: Protect ALL admin/management routes with Replit Auth
   // Whitelist for public endpoints that don't require auth
   const publicEndpoints = [
-    "/api/chat", // Chat endpoint is public (can be rate-limited)
-    "/api/health", // Health check endpoint
-    "/api/auth", // Authentication endpoints
+    "/api/chat",      // Chat endpoint is public (can be rate-limited)
+    "/api/health",    // Health check endpoint
+    "/api/login",     // Login endpoint
+    "/api/callback",  // OAuth callback endpoint
+    "/api/logout",    // Logout endpoint
+    "/api/auth/user", // Auth status check endpoint
   ];
   
   app.use("/api", (req, res, next) => {
@@ -78,8 +81,15 @@ export function registerRoutes(app: Express): Server {
       return next();
     }
     
-    // Require auth for all other /api/* routes
-    return requireAuth(req, res, next);
+    // PRODUCTION-READY: Check if user is authenticated via Passport session
+    if (!req.isAuthenticated || !req.isAuthenticated()) {
+      return res.status(401).json({ 
+        error: "Unauthorized",
+        message: "Authentication required. Please log in at /api/login"
+      });
+    }
+    
+    next();
   });
   
   // Popular banco de dados na inicialização
