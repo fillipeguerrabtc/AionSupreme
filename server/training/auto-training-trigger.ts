@@ -17,6 +17,8 @@ import { GPUPool } from "../gpu/pool";
 import { db } from "../db";
 import { trainingJobs } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
+import { datasetSplitter } from "../federated/dataset-splitter";
+import { gradientAggregator } from "../federated/gradient-aggregator";
 
 interface TrainingConfig {
   model: string;
@@ -169,30 +171,112 @@ export class AutoTrainingTrigger {
 
       console.log(`   ✅ Job criado: ID ${job.id}`);
 
-      // STEP 3: Distribuir para GPU disponível
-      console.log("\n   🎮 [3/3] Distribuindo para GPU...");
+      // STEP 3: Verificar quantas GPUs disponíveis
+      console.log("\n   🎮 [3/5] Verificando GPUs disponíveis...");
+      const availableWorkers = await GPUPool.getAvailableWorkersForTraining();
       
-      const worker = await GPUPool.selectWorkerForTraining();
-      
-      if (!worker) {
-        console.log("   ❌ Nenhuma GPU disponível agora");
+      if (availableWorkers.length === 0) {
+        console.log("   ❌ Nenhuma GPU disponível");
         return;
       }
 
-      console.log(`   ✅ GPU selecionada: Worker #${worker.id} (${worker.provider})`);
+      console.log(`   ✅ ${availableWorkers.length} GPU(s) disponível(is)`);
 
-      // Iniciar treino no worker
-      await GPUPool.startTraining(worker.id, job.id, {
-        datasetPath: String(dataset.datasetId), // Passar ID em vez de filepath
-        modelName: this.defaultConfig.model,
-        loraConfig: this.defaultConfig.lora,
-        trainingArgs: this.defaultConfig.training,
-      });
+      // STEP 4: Distribuir treino (Federated ou Single)
+      if (availableWorkers.length > 1 && dataset.examplesCount >= 100) {
+        // FEDERATED LEARNING - Múltiplas GPUs
+        console.log("\n   🌐 [4/5] MODO FEDERADO - Dividindo dataset...");
+        
+        // Buscar dataset real do banco para pegar storagePath
+        const datasetRecord = await db.query.datasets.findFirst({
+          where: eq((await import("../../shared/schema")).datasets.id, dataset.datasetId),
+        });
 
-      console.log("\n   🚀 AUTO-TREINO INICIADO COM SUCESSO!");
-      console.log(`   📊 Dataset: ${dataset.examplesCount} exemplos`);
-      console.log(`   🎮 GPU: Worker #${worker.id}`);
-      console.log(`   📝 Job ID: ${job.id}`);
+        if (!datasetRecord?.storagePath) {
+          console.log("   ❌ Dataset storagePath não encontrado");
+          return;
+        }
+
+        // Dividir dataset em chunks (1 chunk por GPU)
+        const splitResult = await datasetSplitter.splitDataset(
+          datasetRecord.storagePath,
+          availableWorkers.length,
+          job.id
+        );
+
+        console.log(`   ✅ Dataset dividido em ${splitResult.totalChunks} chunks`);
+        console.log(`   📊 ~${splitResult.avgChunkSize} exemplos por GPU`);
+
+        // STEP 5: Iniciar treino em TODAS as GPUs em paralelo
+        console.log("\n   🚀 [5/5] Iniciando treino DISTRIBUÍDO...");
+
+        // Construir URL base pública (com fallback para desenvolvimento local)
+        let baseUrl: string;
+        if (process.env.PUBLIC_BASE_URL) {
+          // Prioridade 1: Env var configurável
+          baseUrl = process.env.PUBLIC_BASE_URL;
+        } else if (process.env.REPLIT_DEV_DOMAIN) {
+          // Prioridade 2: Replit deployment/dev
+          baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+        } else if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+          // Prioridade 3: Replit formato antigo
+          baseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+        } else {
+          // Fallback: localhost (desenvolvimento local)
+          const port = process.env.PORT || '5000';
+          baseUrl = `http://localhost:${port}`;
+          console.log(`   ⚠️  Usando localhost - workers remotos NÃO conseguirão baixar chunks!`);
+          console.log(`   💡 Configure PUBLIC_BASE_URL env var com sua URL pública`);
+        }
+
+        const trainingPromises = splitResult.chunks.map(async (chunk, idx) => {
+          const worker = availableWorkers[idx];
+          
+          // ✅ CORREÇÃO: Passar URL downloadable em vez de file path local
+          const chunkUrl = `${baseUrl}/api/datasets/chunks/${job.id}/${chunk.chunkIndex}/download`;
+          
+          return GPUPool.startTraining(worker.id, job.id, {
+            datasetPath: chunkUrl, // URL que workers remotos podem baixar
+            modelName: this.defaultConfig.model,
+            loraConfig: this.defaultConfig.lora,
+            trainingArgs: this.defaultConfig.training,
+          });
+        });
+
+        const results = await Promise.all(trainingPromises);
+        const successCount = results.filter(r => r === true).length;
+
+        console.log("\n   🎉 TREINO FEDERADO INICIADO!");
+        console.log(`   📊 Dataset: ${dataset.examplesCount} exemplos`);
+        console.log(`   🎮 GPUs ativas: ${successCount}/${availableWorkers.length}`);
+        console.log(`   🌐 Modo: FEDERATED LEARNING (FedAvg)`);
+        console.log(`   📝 Job ID: ${job.id}`);
+
+        // TODO: IMPLEMENTAR GRADIENT AGGREGATION LOOP
+        // - Monitorar workers (polling ou webhooks)
+        // - Quando todos completarem: gradientAggregator.aggregate(job.id, step)
+        // - Atualizar modelo global
+        // - Broadcast novo checkpoint para workers
+        console.log("\n   ⚠️  PENDING: Gradient aggregation loop não implementado");
+        console.log("   → Workers treinarão mas modelo global não será agregado ainda");
+      } else {
+        // SINGLE GPU - Treino tradicional
+        console.log("\n   💻 [4/5] MODO SINGLE-GPU...");
+        
+        const worker = availableWorkers[0];
+        
+        await GPUPool.startTraining(worker.id, job.id, {
+          datasetPath: String(dataset.datasetId),
+          modelName: this.defaultConfig.model,
+          loraConfig: this.defaultConfig.lora,
+          trainingArgs: this.defaultConfig.training,
+        });
+
+        console.log("\n   🚀 AUTO-TREINO INICIADO!");
+        console.log(`   📊 Dataset: ${dataset.examplesCount} exemplos`);
+        console.log(`   🎮 GPU: Worker #${worker.id} (${worker.provider})`);
+        console.log(`   📝 Job ID: ${job.id}`);
+      }
     } catch (error: any) {
       console.error(`[AutoTrain] ❌ Erro ao disparar treino:`, error.message);
     }

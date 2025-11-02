@@ -28,6 +28,33 @@ O backend usa Node.js e TypeScript com Express.js e PostgreSQL via Drizzle ORM (
 ### Escolhas de Design do Sistema
 Decisões-chave incluem uma arquitetura single-tenant, configurações comportamentais JSON externalizadas para atualizações dinâmicas e separação do modelo central das configurações de aplicação. A observabilidade inclui métricas para latência, throughput, taxas de acerto de cache, estimativas de custo e uso de tokens em tempo real.
 
+## Estratégia de GPU Pool (14 GPUs Gratuitas)
+
+### Configuração Real Testada
+- **7x Google Colab T4** (12h/sessão, reconecta automático via keepalive)
+- **7x Kaggle T4x2** (30h/semana, dual-GPU)
+- **Status**: ✅ Workers conectados (heartbeat funcionando no dashboard)
+
+### Keepalive System (Manter Colab Ativo 24/7)
+**Método JavaScript Console** (executa no browser do usuário):
+```javascript
+function ClickConnect() {
+  console.log('AION Keep-Alive Active');
+  document.querySelector("colab-connect-button")?.shadowRoot.querySelector("#connect")?.click();
+}
+setInterval(ClickConnect, 60000); // Clica a cada 60s
+```
+
+**Limitações**:
+- Timeout absoluto: 12h (free) / 24h (Pro)
+- CAPTCHAs aparecem aleatoriamente (requer intervenção manual)
+- UI do Colab muda (seletores podem quebrar)
+
+**Solução Automation** (próximo passo):
+- Selenium headless browser rodando em servidor
+- Auto-reconexão quando sessão expira
+- Rotação entre 7 Colab notebooks diferentes
+
 ## Dependências Externas
 
 ### Serviços de Terceiros
@@ -37,7 +64,7 @@ Decisões-chave incluem uma arquitetura single-tenant, configurações comportam
 - **AWS Fargate**: Plataforma de implantação backup.
 - **DuckDuckGo**: Busca web.
 - **OpenRouter, Groq, Gemini, HuggingFace**: Provedores de API LLM gratuitos.
-- **Google Colab, Kaggle, Modal**: Recursos GPU gratuitos para fine-tuning.
+- **Google Colab, Kaggle, Modal**: Recursos GPU gratuitos para fine-tuning (14 GPUs total).
 - **RunPod/Modal**: Workers GPU para geração de vídeo.
 - **Replit**: Ambiente de desenvolvimento e autenticação.
 - **GitHub Actions**: Pipeline CI/CD.

@@ -16,6 +16,8 @@ import { autoIndexer } from "./auto-indexer";
 import { autoLearningListener } from "../events/auto-learning-listener";
 import { datasetGenerator } from "./dataset-generator";
 import { autoTrainingTrigger } from "./auto-training-trigger";
+import { chatIngestionService } from "../learn/chat-ingestion";
+import { agentContinuousLearning } from "../learn/agent-continuous-learning";
 
 export function initAutoEvolution(): void {
   console.log("\n╔════════════════════════════════════════════════════════════════╗");
@@ -47,10 +49,20 @@ export function initAutoEvolution(): void {
   console.log("   ✅ ATIVO - Monitor automático de treino (check: 30min)\n");
 
   // COMPONENTE 5: GPUPool
-  console.log("🎮 [5/5] GPUPool...");
+  console.log("🎮 [5/7] GPUPool...");
   console.log("   ✅ ATIVO - Balanceamento inteligente de carga");
   console.log("   ⚡ Sistema de PREEMPÇÃO configurado");
   console.log("   → Inferência pausa treino automaticamente\n");
+
+  // COMPONENTE 6: Chat Ingestion
+  console.log("💬 [6/7] Chat Ingestion...");
+  chatIngestionService.startAutoCollection(60 * 60 * 1000); // 1 hora
+  console.log("   ✅ ATIVO - Coleta automática de conversas (intervalo: 1h)\n");
+
+  // COMPONENTE 7: Agent Continuous Learning
+  console.log("🧠 [7/7] Agent Continuous Learning...");
+  agentContinuousLearning.start();
+  console.log("   ✅ ATIVO - Aprendizado contínuo de agentes (intervalo: 1h)\n");
 
   // RESUMO DO SISTEMA
   console.log("╔════════════════════════════════════════════════════════════════╗");
@@ -101,6 +113,7 @@ export function stopAutoEvolution(): void {
   datasetGenerator.setEnabled(false);
   autoTrainingTrigger.stop();
   autoTrainingTrigger.setEnabled(false);
+  agentContinuousLearning.stop();
   
   console.log("✅ Sistema de auto-evolução parado\n");
 }

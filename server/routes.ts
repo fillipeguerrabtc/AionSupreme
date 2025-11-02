@@ -80,8 +80,92 @@ export function registerRoutes(app: Express): Server {
   registerKbImagesRoutes(app);
 
   // ========================================
-  // ENDPOINT DE DOWNLOAD DE DATASET
+  // ENDPOINTS DE INGESTÃO DE DADOS (Links + Chats)
   // ========================================
+  
+  // POST /api/learn/ingest-link - Ingerir dados de URL para treino
+  app.post("/api/learn/ingest-link", async (req, res) => {
+    try {
+      const { linkIngestionService } = await import("./learn/link-ingestion");
+      const { url, userId } = req.body;
+
+      if (!url) {
+        return res.status(400).json({ error: "URL é obrigatória" });
+      }
+
+      const result = await linkIngestionService.ingestFromLink(url, userId);
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        title: result.title,
+        wordCount: result.wordCount,
+        curationId: result.curationId,
+        message: "Conteúdo enviado para curadoria com sucesso",
+      });
+    } catch (error: any) {
+      console.error("[Link Ingestion] Erro:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/learn/ingest-batch - Ingerir múltiplas URLs
+  app.post("/api/learn/ingest-batch", async (req, res) => {
+    try {
+      const { linkIngestionService } = await import("./learn/link-ingestion");
+      const { urls, userId } = req.body;
+
+      if (!urls || !Array.isArray(urls) || urls.length === 0) {
+        return res.status(400).json({ error: "Array de URLs é obrigatório" });
+      }
+
+      const results = await linkIngestionService.ingestBatch(urls, userId);
+
+      const successful = results.filter(r => r.success).length;
+      const failed = results.filter(r => !r.success).length;
+
+      res.json({
+        total: results.length,
+        successful,
+        failed,
+        results,
+      });
+    } catch (error: any) {
+      console.error("[Batch Ingestion] Erro:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/learn/collect-chats - Coletar conversas de alta qualidade
+  app.post("/api/learn/collect-chats", async (req, res) => {
+    try {
+      const { chatIngestionService } = await import("./learn/chat-ingestion");
+      const { limit = 50, autoSubmit = true } = req.body;
+
+      const collected = await chatIngestionService.collectHighQualityConversations({
+        limit,
+        autoSubmit,
+      });
+
+      res.json({
+        success: true,
+        collected,
+        message: `${collected} conversas enviadas para curadoria`,
+      });
+    } catch (error: any) {
+      console.error("[Chat Collection] Erro:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================
+  // ENDPOINTS DE DOWNLOAD DE DATASET
+  // ========================================
+  
+  // Download dataset completo
   app.get("/api/datasets/:id/download", async (req, res) => {
     try {
       const datasetId = parseInt(req.params.id);
@@ -102,6 +186,29 @@ export function registerRoutes(app: Express): Server {
       res.sendFile(absolutePath);
     } catch (error: any) {
       console.error("[Dataset Download] Erro:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Download de CHUNK específico (Federated Learning)
+  // GET /api/datasets/chunks/:jobId/:chunkIndex/download
+  app.get("/api/datasets/chunks/:jobId/:chunkIndex/download", async (req, res) => {
+    try {
+      const { datasetSplitter } = await import("./federated/dataset-splitter");
+      const { resolve } = await import("path");
+      const jobId = parseInt(req.params.jobId);
+      const chunkIndex = parseInt(req.params.chunkIndex);
+
+      // Obter caminho do chunk
+      const chunkPath = datasetSplitter.getChunkPath(jobId, chunkIndex);
+      const absolutePath = resolve(chunkPath);
+
+      // Enviar chunk
+      res.setHeader("Content-Type", "application/jsonl");
+      res.setHeader("Content-Disposition", `attachment; filename="chunk-${chunkIndex}.jsonl"`);
+      res.sendFile(absolutePath);
+    } catch (error: any) {
+      console.error("[Chunk Download] Erro:", error);
       res.status(500).json({ error: error.message });
     }
   });
