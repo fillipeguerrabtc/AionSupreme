@@ -238,11 +238,11 @@ export function composeSystemPrompt(policy: PolicyConfig, basePrompt?: string): 
     .map(([rule, _]) => rule);
 
   if (enabledRules.length === 0) {
-    // No restrictions
-    return `${base} You operate in UNRESTRICTED mode with no content filtering. Provide factual, direct information regardless of topic.`;
+    // No specific rules configured
+    return `${base} Provide helpful and factual information to users.`;
   }
 
-  // Some restrictions
+  // Some restrictions configured
   const restrictions = enabledRules.map(r => r.replace('_', ' ')).join(', ');
   
   return `${base}
@@ -265,7 +265,7 @@ export async function enforcePolicy(
   const policy = await loadPolicy();
 
   if (!policy) {
-    // No policy = unrestricted
+    // No policy configured, allow by default
     return { allowed: true, text };
   }
 
