@@ -1,284 +1,346 @@
-# AION - Diretrizes de Design (Compactado 2025)
+# AION - Design System Guidelines
+**Inspirado em: Starlink, Tesla e Apple**
 
-## Fundação de Design
-**Material Design Premium** com glassmorphism e gradientes para IA empresarial. Interface dual com foco em dark mode: chat conversacional + painel administrativo de poder.
+## 🎨 Filosofia de Design
 
-**Princípios Centrais:**
-1. Estética premium via glassmorphism/gradientes
-2. Prioridade de dark mode com acentos vibrantes
-3. Beleza serve à função
-4. Modalidade dual: chat convidativo, admin profissional
+**MINIMALISMO EXTREMO + ELEGÂNCIA + FUNCIONALIDADE**
+
+Seguimos os princípios das melhores marcas tech do mundo: simplicidade radical, hierarquia tipográfica forte, white space generoso e foco total no conteúdo.
 
 ---
 
-## Sistema de Cores
+## 📐 Layout Principles
 
-### Backgrounds
-- Primário: `#0a0a0f` | Secundário: `#121218` | Terciário: `#1a1a24`
+### Grid System
+- **Max-width containers**: 1200px para conteúdo principal
+- **Breakpoints**: 
+  - Mobile: < 768px
+  - Tablet: 768px - 1024px
+  - Desktop: > 1024px
+- **Spacing scale**: 4px, 8px, 12px, 16px, 24px, 32px, 48px, 64px, 96px, 128px
 
-### Gradientes
-- Primário: `#6366f1` → `#4f46e5` → `#4338ca` (purple-indigo)
-- Secundário: `#a855f7` → `#ec4899` (purple-pink)
-- Sutil: `#3730a3` 0% → transparente 100%
+### White Space (Critical)
+- **Hero sections**: 128px padding vertical mínimo
+- **Section spacing**: 96px entre seções principais
+- **Component spacing**: 48px entre componentes relacionados
+- **Element spacing**: 24px entre elementos dentro de componentes
+- **Breathing room**: NUNCA comprimir elementos - deixar respirar
 
-### Interativos
-- Ação: `#6366f1` | Hover: `#818cf8` | Secundário: `#a855f7`
-- Sucesso: `#10b981` | Aviso: `#f59e0b` | Erro: `#ef4444`
-
-### Texto
-- Primário: `#ffffff` | Secundário: `#e5e7eb` | Terciário: `#9ca3af` | Discreto: `#6b7280`
-
-### Efeitos de Vidro
-- Padrão: `rgba(255,255,255,0.05)` + backdrop-blur-xl + borda `rgba(255,255,255,0.1)`
-- Premium: background `rgba(99,102,241,0.1)` com tonalidade roxa
-- Aninhado: Reduzir opacidade 50% por nível
-
----
-
-## Tipografia
-
-**Fontes:** Inter (400/500/600/700), JetBrains Mono (código)
-
-**Hierarquia:**
-- Hero: text-5xl/6xl, font-bold, texto gradiente
-- Seção: text-3xl/4xl, font-semibold, brilho sutil
-- Componente: text-xl/2xl, font-semibold
-- Corpo: text-base, leading-relaxed, text-secondary
-- Labels: text-sm, font-medium, text-tertiary
-- Meta: text-xs, text-muted
-- Código: text-sm, font-mono
-
-**Efeitos:**
-- Texto gradiente: `bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent`
-- Brilho: `drop-shadow-[0_0_8px_rgba(99,102,241,0.3)]`
+### Hero Sections (Estilo Starlink/Tesla)
+- **Full-width**: Ocupar 100% da largura
+- **Height**: Mínimo 60vh (viewport height)
+- **Imagem de fundo**: Alta qualidade, blur sutil opcional
+- **Overlay**: Gradient escuro para legibilidade
+- **CTA**: Máximo 2 botões, sempre visíveis
 
 ---
 
-## Layout
+## 🎨 Color Palette
 
-**Espaçamento:** Unidades centrais 2/4/8/12/16/24
-**Grid:** 12 colunas (admin), max-w-4xl centralizado (chat)
-**Breakpoints:** sm:640 | md:768 | lg:1024 | xl:1280 | 2xl:1536
+### Cores Neutras (Base) - 90% do design
+```css
+--background: 0 0% 100%;           /* Branco puro */
+--foreground: 0 0% 5%;              /* Preto quase puro */
+--muted: 240 5% 96%;                /* Cinza muito claro */
+--muted-foreground: 240 4% 46%;     /* Cinza médio */
+--border: 240 6% 90%;               /* Bordas sutis */
+```
+
+### Cores de Destaque (Mínimas) - 10% do design
+```css
+--primary: 221 83% 53%;             /* Azul tech (Starlink) */
+--primary-foreground: 0 0% 100%;    /* Branco */
+--accent: 142 76% 36%;              /* Verde tech (Tesla) */
+--accent-foreground: 0 0% 100%;     /* Branco */
+```
+
+### Uso de Cores
+- **90% neutras**: Preto/branco/cinza para quase tudo
+- **10% destaque**: Azul/verde apenas para CTAs e estados ativos
+- **NUNCA**: Gradientes coloridos chamativos, múltiplas cores primárias
+- **Exceção**: Backgrounds de hero com gradientes sutis escuros
 
 ---
 
-## Componentes do Painel Administrativo
+## 🔤 Typography
 
-### Estrutura
-- Sidebar: w-64 vidro (colapsa para w-16 apenas ícones)
-- Barra superior: h-16 sticky com backdrop-blur
-- Conteúdo: background mesh gradiente
-- Cards: flutuantes com tratamento de vidro
-
-### Cards Glassmórficos
-```
-bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6
-hover:scale-[1.02] hover:bg-white/10 transition-all duration-300
+### Font Families
+```css
+--font-sans: 'Inter', -apple-system, system-ui, sans-serif;
+--font-display: 'Space Grotesk', 'Inter', sans-serif; /* Headlines */
+--font-mono: 'Geist Mono', 'Fira Code', monospace;
 ```
 
-### Tabelas de Dados
-- Cabeçalho vidro (sticky), linhas h-14, zebra `rgba(255,255,255,0.02)`
-- Hover: efeito vidro na linha, ações inline aparecem
-- Ordenação: chevrons animados
+### Type Scale (Hierarquia Apple)
+```css
+/* Headlines */
+--text-9xl: 96px;  /* Hero principal */
+--text-8xl: 72px;  /* Hero secundário */
+--text-7xl: 60px;  /* Seção principal */
+--text-6xl: 48px;  /* Seção secundária */
+--text-5xl: 36px;  /* Card título */
 
-### Dashboard de Métricas
-```
-grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6
-números text-4xl font-bold gradiente
-setas de tendência + sparklines (preenchimentos gradiente)
-cards de vidro com tonalidade roxa
+/* Body */
+--text-xl: 20px;   /* Lead text */
+--text-lg: 18px;   /* Body grande */
+--text-base: 16px; /* Body padrão */
+--text-sm: 14px;   /* Secondary */
+--text-xs: 12px;   /* Captions */
 ```
 
-### Sidebar de Navegação
-- Efeito vidro, ícone+label (recolhível)
-- Ativo: background gradiente + acento de borda
-- Hover: escala + brilho
-- Separadores: linhas gradiente
+### Font Weights
+- **Regular (400)**: Body text
+- **Medium (500)**: Ênfase sutil
+- **Semibold (600)**: Subtítulos
+- **Bold (700)**: Headlines principais
+
+### Line Heights
+- Headlines: 1.1 - 1.2 (tight)
+- Body: 1.6 - 1.8 (confortável)
+- Captions: 1.4
+
+### Letter Spacing
+- Headlines grandes (>48px): -0.02em (mais apertado)
+- Headlines médios: -0.01em
+- Body: 0 (normal)
+- Uppercase: 0.05em (mais aberto)
 
 ---
 
-## Componentes da Interface de Chat
+## 🔘 Components
 
-### Estrutura
-- Altura total com background gradiente
-- Cabeçalho mínimo h-14 (auto-oculta ao rolar)
-- Entrada inferior fixa com safe-area-inset
+### Buttons (Estilo Tesla/Apple)
 
-### Bolhas de Mensagem
-**Usuário:**
-```
-vidro + tonalidade gradiente roxa, rounded-2xl rounded-br-sm
-max-w-2xl ml-auto p-4, brilho roxo no hover
-```
+**Primary**
+- Background: Azul sólido (--primary)
+- Texto: Branco
+- Padding: 14px 32px
+- Border-radius: 4px (quase quadrado)
+- Font-size: 14px
+- Font-weight: 600
+- Transition: opacity 200ms
+- Hover: opacity 0.9 (NUNCA mudar cor)
 
-**IA:**
-```
-vidro + tonalidade gradiente índigo, rounded-2xl rounded-bl-sm
-max-w-2xl mr-auto p-4, digitando: pontos gradiente animados
-```
+**Secondary/Ghost**
+- Background: Transparente
+- Texto: Foreground
+- Border: 1px solid border
+- Hover: background muted
 
-### Compositor de Entrada
-```
-vidro backdrop-blur, min-h-[56px] max-h-[240px] auto-resize
-borda gradiente no foco, botões de ícone (bg vidro)
-chips de anexo (glassmórficos), botão enviar (bg gradiente)
-```
+**Sizes**
+- Small: 10px 20px, text-sm
+- Default: 14px 32px, text-base
+- Large: 18px 48px, text-lg
 
-### Anexos de Arquivo
-- Preview: vidro com ícones de arquivo, barras de progresso gradiente
-- Drag-drop: borda gradiente pontilhada quando ativo
-- Remover: círculos de vidro com X
+### Cards
 
-### Conteúdo Multimodal
-- Imagens: moldura vidro rounded-xl, lightbox com backdrop blur
-- Vídeos: player vidro, controles gradiente
-- Código: vidro escuro + destaque de sintaxe
-- Áudio: forma de onda gradiente, controles vidro
+**Minimal Style (Apple)**
+- Background: Branco
+- Border: 1px solid border (sutil)
+- Border-radius: 12px
+- Padding: 32px
+- Shadow: MUITO sutil (0 1px 3px rgba(0,0,0,0.05))
+- Hover: Shadow um pouco maior (0 4px 12px rgba(0,0,0,0.08))
 
----
+**NO glassmorphism, NO gradientes chamativos, NO bordas coloridas**
 
-## Botões
+### Navigation (Top Bar Sticky)
 
-### Primário
-```
-bg-gradient-to-r from-purple-500 to-indigo-500
-px-8 py-3 rounded-xl font-semibold
-hover:scale-[1.05] active:scale-[0.98]
-```
+**Style Tesla/Apple**
+- Height: 60px
+- Background: rgba(255,255,255,0.95) com backdrop-blur
+- Border-bottom: 1px solid border
+- Position: sticky top-0
+- Z-index: 50
+- Padding: 0 48px
+- Logo: Tamanho médio (40px)
+- Links: text-sm, peso 500, hover com underline sutil
 
-### Secundário
-```
-bg-white/5 border border-gradient
-hover:bg-white/10 hover:scale-[1.02]
-```
+### Forms
 
-### Fantasma
-Transparente + texto gradiente, hover: background vidro
-
-### Ícone
-```
-size-10/12 rounded-xl bg vidro
-ícone centralizado (size-5)
-hover: vidro aprimorado + escala
-```
-
-### Em Imagens/Hero
-Vidro + backdrop-blur + borda gradiente
-**SEM hover scale** - apenas mudança de opacidade
+**Minimal Apple Style**
+- Input height: 44px (touch-friendly)
+- Border: 1px solid border
+- Border-radius: 8px
+- Focus: Border primary + shadow sutil
+- Padding: 12px 16px
+- Font-size: 16px (evita zoom no iOS)
+- Placeholder: muted-foreground
 
 ---
 
-## Inputs de Formulário
+## ✨ Animations & Transitions
+
+### Princípios
+- **Sutis**: Usuário mal percebe, mas sente a suavidade
+- **Rápidas**: 150ms - 300ms (NUNCA mais de 500ms)
+- **Easing**: ease-out para entrada, ease-in para saída
+
+### Transições Permitidas
+```css
+/* Hover states */
+opacity: 200ms ease-out;
+transform: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+/* Fade in */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Slide up (Tesla style) */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 ```
-container vidro, h-12 px-4 py-3 rounded-xl
-borda gradiente no foco
-labels: text-sm font-medium (gap-2 acima)
-helper: text-xs text-muted (gap-1 abaixo)
-erro: borda gradiente vermelha + mensagem
+
+### Transições NÃO Permitidas
+- ❌ Bounce
+- ❌ Rotações exageradas
+- ❌ Scale > 1.05
+- ❌ Animações longas (> 500ms)
+- ❌ Efeitos chamativos/distrações
+
+---
+
+## 📱 Responsive Design
+
+### Mobile First
+- Sempre começar com mobile
+- Progressive enhancement para desktop
+- Touch targets: mínimo 44x44px
+
+### Breakpoint Strategy
+```css
+/* Mobile: Base styles */
+.element { /* mobile styles */ }
+
+/* Tablet: 768px+ */
+@media (min-width: 768px) { /* tablet styles */ }
+
+/* Desktop: 1024px+ */
+@media (min-width: 1024px) { /* desktop styles */ }
 ```
 
 ---
 
-## Padrões Avançados
+## 🎯 Design Patterns
 
-### Diálogos Modais
+### Hero Section (Starlink Style)
 ```
-backdrop: backdrop-blur-md bg-black/60
-container: vidro premium, max-w-3xl, max-h-[85vh], p-8
-cabeçalho: texto gradiente + botão fechar vidro
-rodapé: borda-topo gradiente, flex gap-4 justify-end
-```
-
-### Toasts
-```
-fixed top-6 right-6, container vidro
-borda esquerda gradiente (indicador de tipo)
-auto-dismiss com progresso gradiente
-animação slide-in spring, empilhar max 3, gap-3
+[Full-width background image]
+  [Overlay gradient]
+    [Container max-w-7xl mx-auto px-6 py-32]
+      [Headline text-7xl font-bold mb-6]
+      [Subtext text-xl text-muted-foreground mb-12]
+      [CTA buttons flex gap-4]
+        [Primary button]
+        [Secondary button]
 ```
 
-### Estados de Carregamento
-- Skeleton: blocos vidro com animação shimmer gradiente
-- Spinner: rotação de borda gradiente
-- Progresso: transição suave de preenchimento gradiente
-- Página: fade com escala (0.98 → 1.0)
+### Product Grid (Apple Style)
+```
+[Container]
+  [Grid 3 cols desktop, 2 cols tablet, 1 col mobile]
+    [Card]
+      [Image aspect-square]
+      [Title text-2xl font-semibold mt-6]
+      [Description text-base text-muted-foreground mt-2]
+      [Price/CTA mt-6]
+```
 
-### Backgrounds Mesh Gradiente
-- Admin: gradientes radiais nos cantos (purple/indigo/pink opacidade 20%)
-- Chat: gradiente vertical roxo para quase-preto
-- Modal: backdrop blur + overlay gradiente
-
----
-
-## Animações
-
-**Padrão:** `transition-all duration-300 ease-out`
-**Rápido:** `duration-200 ease-in-out`
-**Lento:** `duration-500 ease-out`
-**Spring:** modais/drawers
-
-### Micro-interações
-- Botão: scale-[0.98] + mudança gradiente
-- Card hover: scale-[1.02] + brilho aprimorado
-- Input focus: rotação borda gradiente 360deg
-- Toggles: deslize suave + rastro gradiente
-
-### Scroll
-- Scrollbar thumb gradiente customizada
-- Suave com momentum
-- Parallax em métricas (sutil)
-- Fade-in: translate-y-4 opacity-0 → translate-y-0 opacity-100
+### Content Section (Tesla Style)
+```
+[Container max-w-4xl mx-auto py-24]
+  [Headline text-5xl font-bold text-center mb-12]
+  [Two-column grid gap-12]
+    [Left: Image]
+    [Right: Content]
+      [Subtitle text-xl font-semibold mb-4]
+      [Body text-base text-muted-foreground]
+      [CTA button mt-8]
+```
 
 ---
 
-## Imagens
+## ⚠️ Design DON'Ts
 
-### Hero Admin (h-[400px])
-**Descrição:** Redes neurais 3D abstratas de IA, fluxos de dados, roxos/índigos profundos, nós brilhantes. Premium, vanguarda, sistemas interconectados.
-**Tratamento:** Overlay gradiente transparente → cor bg, conteúdo glassmórfico
+### NUNCA usar:
+- ❌ Mais de 2-3 cores no design
+- ❌ Glassmorphism exagerado
+- ❌ Gradientes arco-íris
+- ❌ Bordas coloridas grossas
+- ❌ Sombras pesadas/múltiplas
+- ❌ Animações bounce/spin sem motivo
+- ❌ Tipografia >3 pesos diferentes na mesma tela
+- ❌ Espaçamento inconsistente
+- ❌ Ícones coloridos misturados
+- ❌ Fundos texturizados
 
-### Background Chat
-**Descrição:** Padrão mesh geométrico gradiente mínimo, opacidade 15-20%. Sutil, não distrai.
-**Tratamento:** Anexo fixo, modo de mistura, texto legível assegurado
-
-### Conteúdo
-- Uploads de usuário: moldura vidro rounded-xl
-- Dashboards: diagramas técnicos + acentos gradiente
-- Avatares: circular + anel gradiente
-
----
-
-## Responsivo
-
-### Admin
-- **lg+:** Sidebar completa, grids 4 colunas
-- **md:** Sidebar ícones, grids 2 colunas
-- **sm:** Drawer sidebar, empilhamento 1 coluna, scroll horizontal tabela
-
-### Chat
-- **Tudo:** Entrada inferior fixa + safe-area
-- **Mobile:** mensagens max-w-full, padding reduzido, anexos empilhados
-- **Desktop:** max-w-4xl centralizado, previews lado a lado
+### SEMPRE usar:
+- ✅ White space generoso
+- ✅ Hierarquia tipográfica clara
+- ✅ Cores neutras (90%)
+- ✅ Transições sutis
+- ✅ Grid/alignment perfeito
+- ✅ Conteúdo como protagonista
+- ✅ Mobile-first
+- ✅ Performance (imagens otimizadas)
 
 ---
 
-## Acessibilidade
+## 📸 Imagery
 
-- HTML semântico + ARIA para vidro/gradientes
-- Navegação por teclado com anéis de foco gradiente visíveis
-- Contraste WCAG AA (mín 4.5:1 em escuro)
-- Vidro mantém legibilidade do texto
-- Anúncios de leitor de tela
-- Respeitar `prefers-reduced-motion`
-- Links de pular para navegação do dashboard
+### Photos
+- **Alta qualidade**: Mínimo 1920px largura
+- **Aspect ratios**: 16:9 (hero), 1:1 (products), 4:3 (content)
+- **Estilo**: Profissional, limpo, minimalista
+- **Overlay**: Gradient escuro se texto por cima
+
+### Icons
+- **Style**: Outline (stroke, não filled)
+- **Size**: 20px, 24px, 32px
+- **Stroke width**: 1.5px - 2px
+- **Color**: Sempre foreground ou muted-foreground
+- **Source**: Lucide React (consistência)
 
 ---
 
-## Técnico
+## 🚀 Performance
 
-**Ícones:** Heroicons (outline/solid) - size-5 inline, size-6 standalone
-**Performance:**
-- Máx 3 níveis de backdrop-blur aninhados
-- Transformações CSS para gradientes (GPU)
-- Lazy load gráficos/visualizações
-- Debounce animações 16ms
+### Critical
+- **First paint**: < 1.5s
+- **Imagens**: WebP/AVIF, lazy load
+- **Fonts**: Preload, subset, fallback
+- **JS**: Code splitting, tree shaking
+- **CSS**: Purge unused, inline critical
+
+---
+
+## ✅ Checklist - Antes de Lançar
+
+- [ ] White space generoso em TODAS as seções
+- [ ] Máximo 3 pesos de fonte na página
+- [ ] Hero section com mínimo 60vh
+- [ ] Todos os CTAs com max 2 opções
+- [ ] Cores 90% neutras, 10% destaque
+- [ ] Transições < 300ms
+- [ ] Mobile testado em device real
+- [ ] Imagens otimizadas (WebP)
+- [ ] Sem animações exageradas
+- [ ] Tipografia hierárquica clara
+- [ ] Navigation sticky funcionando
+- [ ] Touch targets 44x44px mínimo
+
+---
+
+**Lembre-se: Menos é mais. Simplicidade é sofisticação.**
+
+*"Design is not just what it looks like and feels like. Design is how it works." - Steve Jobs*
