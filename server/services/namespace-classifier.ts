@@ -105,7 +105,11 @@ export class NamespaceClassifier {
     return results.map(ns => {
       // Detectar subnamespace pela presença de "." no nome
       const isSubnamespace = ns.name.includes('.');
-      const parentNamespace = isSubnamespace ? ns.name.split('.')[0] : null;
+      // FIX: Pegar todos segmentos exceto o último para parent namespace correto
+      // Ex: "educacao.matematica.geometria" → parent: "educacao.matematica" (não "educacao")
+      const parentNamespace = isSubnamespace 
+        ? ns.name.split('.').slice(0, -1).join('.') 
+        : null;
 
       return {
         id: ns.id,

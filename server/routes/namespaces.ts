@@ -1,7 +1,7 @@
 import { Express, Request, Response } from "express";
 import { db } from "../db";
 import { namespaces, insertNamespaceSchema, type Namespace, type InsertNamespace } from "@shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, or, like, sql } from "drizzle-orm";
 import { z } from "zod";
 import { curationStore } from "../curation/store";
 import { namespaceClassifier } from "../services/namespace-classifier";
@@ -188,10 +188,10 @@ export function registerNamespaceRoutes(app: Express) {
 
       // Add content to curation queue for human approval (HITL workflow)
       const curationItem = await curationStore.addToCuration({
-        title: title || `Conteúdo do namespace ${namespace.displayName || namespace.name}`,
+        title: title || `Conteúdo do namespace ${namespace.name}`,
         content,
         suggestedNamespaces: [namespace.name],
-        tags: ["namespace_ingestion", namespace.category || "general"],
+        tags: ["namespace_ingestion", "general"],
         submittedBy: `Namespace Management (${namespace.name})`,
       });
 
@@ -247,7 +247,8 @@ export function registerNamespaceRoutes(app: Express) {
       }
 
       // Classificar via LLM
-      const result = await namespaceClassifier.classifyContent(content, title, 1); // tenantId 1
+      // FIX: Ordem correta dos parâmetros: (title, content, tenantId)
+      const result = await namespaceClassifier.classifyContent(title ?? "", content, 1); // tenantId 1
 
       console.log(`[Namespaces] Classified content → suggested: "${result.suggestedNamespace}" (${result.confidence}% confidence)`);
 
@@ -281,16 +282,12 @@ export function registerNamespaceRoutes(app: Express) {
   /**
    * GET /api/namespaces/search?q=<query>
    * 
-   * Busca namespaces similares usando múltiplas métricas:
-   * - Levenshtein distance (nome)
-   * - Palavra em comum
-   * - Similaridade semântica (descrição)
+   * Busca namespaces similares por nome
    * 
    * Returns: Array<{
    *   id: string,
    *   name: string,
    *   description: string,
-   *   similarity: number,  // 0-100
    *   icon: string | null
    * }>
    */
@@ -302,12 +299,21 @@ export function registerNamespaceRoutes(app: Express) {
         return res.status(400).json({ error: "Query parameter 'q' is required" });
       }
 
-      // Buscar similares (threshold 40%)
-      const similarNamespaces = await namespaceClassifier.findSimilarNamespaces(q, 1, 40);
+      // Buscar namespaces por nome (case-insensitive LIKE search)
+      const results = await db
+        .select()
+        .from(namespaces)
+        .where(
+          or(
+            like(namespaces.name, `%${q.toLowerCase()}%`),
+            like(sql`LOWER(${namespaces.description})`, `%${q.toLowerCase()}%`)
+          )
+        )
+        .limit(20);
 
-      console.log(`[Namespaces] Search for "${q}" → found ${similarNamespaces.length} matches`);
+      console.log(`[Namespaces] Search for "${q}" → found ${results.length} matches`);
 
-      res.json(similarNamespaces);
+      res.json(results);
     } catch (error) {
       console.error("Error searching namespaces:", error);
       res.status(500).json({ 
