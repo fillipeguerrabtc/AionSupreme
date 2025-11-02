@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,8 +9,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, Upload, Image as ImageIcon } from "lucide-react";
 import { ICON_MAP } from "@/lib/icon-map";
+import { useToast } from "@/hooks/use-toast";
 
 const ICON_CATEGORIES = {
   "📁 Geral": ["Database", "FileText", "Folder", "FolderTree", "BookOpen", "File", "Files", "Archive", "Inbox"],
@@ -50,12 +52,77 @@ interface IconPickerProps {
 export function IconPicker({ value, onChange }: IconPickerProps) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const filteredIcons = Object.keys(ICON_MAP).filter(name =>
     name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const SelectedIcon = value && ICON_MAP[value] ? ICON_MAP[value] : FileText;
+  // Verifica se é uma imagem customizada (URL)
+  const isCustomImage = value && value.startsWith('/');
+  const SelectedIcon = !isCustomImage && value && ICON_MAP[value] ? ICON_MAP[value] : FileText;
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Erro",
+        description: "Formato inválido. Use PNG, JPEG, GIF ou WEBP.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar tamanho (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Erro",
+        description: "Imagem muito grande. Máximo 2MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('icon', file);
+
+      // Usar fetch direto para FormData (não pode ter Content-Type manual)
+      const res = await fetch('/api/icons/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Upload falhou');
+      }
+
+      const data = await res.json();
+      onChange(data.url);
+      setOpen(false);
+      toast({
+        title: "Sucesso",
+        description: "Ícone customizado enviado!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message || "Falha ao enviar imagem. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -65,7 +132,25 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
           className="w-full justify-start gap-2"
           data-testid="button-icon-picker"
         >
-          <SelectedIcon className="h-5 w-5" />
+          {isCustomImage ? (
+            <img 
+              src={value} 
+              alt="Custom icon" 
+              className="h-5 w-5 object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const parent = target.parentElement;
+                if (parent && !parent.querySelector('svg')) {
+                  const fallback = document.createElement('div');
+                  fallback.innerHTML = `<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 2H8.6c-.4 0-.8.2-1.1.5-.3.3-.5.7-.5 1.1v12.8c0 .4.2.8.5 1.1.3.3.7.5 1.1.5h9.8c.4 0 .8-.2 1.1-.5.3-.3.5-.7.5-1.1V6.5L15.5 2z"/><path d="M15 2v5h5"/></svg>`;
+                  parent.appendChild(fallback.firstChild!);
+                }
+              }}
+            />
+          ) : (
+            <SelectedIcon className="h-5 w-5" />
+          )}
           <span className="flex-1 text-left">
             {value || "Selecionar ícone..."}
           </span>
@@ -75,16 +160,27 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
         <DialogHeader>
           <DialogTitle>Selecionar Ícone</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <Input
-            placeholder="Buscar ícone..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-9"
-            data-testid="input-icon-search"
-          />
-          
-          <ScrollArea className="h-[550px] pr-4">
+        
+        <Tabs defaultValue="library" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="library" data-testid="tab-icon-library">
+              📚 Biblioteca
+            </TabsTrigger>
+            <TabsTrigger value="custom" data-testid="tab-icon-custom">
+              🎨 Customizado
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="library" className="space-y-4">
+            <Input
+              placeholder="Buscar ícone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9"
+              data-testid="input-icon-search"
+            />
+            
+            <ScrollArea className="h-[550px] pr-4">
             {search ? (
               <div className="grid grid-cols-6 gap-3">
                 {filteredIcons.map((name) => {
@@ -139,20 +235,67 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                 ))}
               </div>
             )}
-          </ScrollArea>
+            </ScrollArea>
 
-          <div className="text-xs text-muted-foreground text-center pt-2 border-t">
-            Mais ícones em{" "}
-            <a
-              href="https://lucide.dev/icons"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              lucide.dev
-            </a>
-          </div>
-        </div>
+            <div className="text-xs text-muted-foreground text-center pt-2 border-t">
+              Mais ícones em{" "}
+              <a
+                href="https://lucide.dev/icons"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                lucide.dev
+              </a>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="custom" className="space-y-4">
+            <div className="border-2 border-dashed rounded-lg p-8 text-center space-y-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                onChange={handleFileUpload}
+                className="hidden"
+                data-testid="input-icon-file"
+              />
+              
+              <div className="flex flex-col items-center gap-3">
+                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                </div>
+                
+                <div className="space-y-1">
+                  <h4 className="text-sm font-medium">Upload de Ícone Customizado</h4>
+                  <p className="text-xs text-muted-foreground">
+                    PNG, JPEG, GIF ou WEBP (max 2MB)
+                  </p>
+                </div>
+                
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  variant="outline"
+                  className="gap-2"
+                  data-testid="button-upload-icon"
+                >
+                  <Upload className="h-4 w-4" />
+                  {uploading ? "Enviando..." : "Escolher Arquivo"}
+                </Button>
+              </div>
+
+              <div className="pt-4 border-t space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  💡 <strong>Dica:</strong> Use imagens quadradas (ex: 512x512px) para melhor resultado
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ✨ GIFs animados são suportados!
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

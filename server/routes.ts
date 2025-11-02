@@ -45,7 +45,12 @@ import { registerGpuRoutes } from "./routes/gpu";
 import { registerVisionRoutes } from "./routes/vision";
 import { registerKbImagesRoutes } from "./routes/kb-images";
 
-const upload = multer({ dest: "/tmp/uploads/" });
+const upload = multer({ 
+  dest: "/tmp/uploads/",
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB max
+  }
+});
 
 const startupTime = Date.now();
 
@@ -78,6 +83,71 @@ export function registerRoutes(app: Express): Server {
   
   // Registrar rotas de KB Images (busca semântica de imagens na base de conhecimento)
   registerKbImagesRoutes(app);
+
+  // ========================================
+  // ENDPOINTS DE ÍCONES CUSTOMIZADOS
+  // ========================================
+  
+  // POST /api/icons/upload - Upload de ícone customizado
+  app.post("/api/icons/upload", upload.single("icon"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Nenhum arquivo enviado" });
+      }
+
+      const file = req.file;
+      
+      // Validar tamanho no backend (double-check além do multer)
+      if (file.size > 2 * 1024 * 1024) {
+        await fs.unlink(file.path);
+        return res.status(400).json({ error: "Arquivo muito grande. Máximo 2MB." });
+      }
+      
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+      
+      if (!allowedTypes.includes(file.mimetype)) {
+        await fs.unlink(file.path);
+        return res.status(400).json({ error: "Formato inválido. Use PNG, JPEG, GIF ou WEBP." });
+      }
+
+      // Criar diretório de ícones customizados se não existir
+      const iconsDir = path.join(process.cwd(), "attached_assets", "custom_icons");
+      if (!fsSync.existsSync(iconsDir)) {
+        await fs.mkdir(iconsDir, { recursive: true });
+      }
+
+      // Gerar nome único para o arquivo
+      const timestamp = Date.now();
+      const ext = path.extname(file.originalname);
+      const filename = `icon_${timestamp}${ext}`;
+      const destPath = path.join(iconsDir, filename);
+
+      // Mover arquivo do temp para destino final
+      await fs.rename(file.path, destPath);
+
+      // Retornar URL pública do ícone
+      const publicUrl = `/attached_assets/custom_icons/${filename}`;
+      
+      res.json({ 
+        success: true,
+        url: publicUrl,
+        filename 
+      });
+    } catch (error: any) {
+      console.error("[Icon Upload] Erro:", error);
+      
+      // Limpar arquivo temporário em caso de erro
+      if (req.file?.path) {
+        try {
+          await fs.unlink(req.file.path);
+        } catch (cleanupError) {
+          console.error("[Icon Upload] Erro ao limpar temp file:", cleanupError);
+        }
+      }
+      
+      res.status(500).json({ error: "Falha ao processar upload" });
+    }
+  });
 
   // ========================================
   // ENDPOINTS DE INGESTÃO DE DADOS (Links + Chats)
@@ -1620,7 +1690,7 @@ export function registerRoutes(app: Express): Server {
   // ===== ADMIN: Orphan Detection =====
   
   // GET /api/admin/orphans - Detect orphaned agents
-  app.get("/api/admin/orphans", async (req: Request, res: Response) => {
+  app.get("/api/admin/orphans", async (req, res) => {
     try {
       const { detectOrphanedAgents } = await import("./services/orphan-detection");
       const result = await detectOrphanedAgents();
@@ -1636,7 +1706,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/admin/orphans/auto-fix - Auto-fix agents with invalid namespaces (SAFE)
-  app.post("/api/admin/orphans/auto-fix", async (req: Request, res: Response) => {
+  app.post("/api/admin/orphans/auto-fix", async (req, res) => {
     try {
       const { autoFixOrphanedAgents } = await import("./services/orphan-detection");
       const result = await autoFixOrphanedAgents();
@@ -1656,7 +1726,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/admin/orphans/platform-scan - Scan ALL modules for orphans
-  app.get("/api/admin/orphans/platform-scan", async (req: Request, res: Response) => {
+  app.get("/api/admin/orphans/platform-scan", async (req, res) => {
     try {
       const { platformOrphanScanner } = await import("./services/platform-orphan-scan");
       const report = await platformOrphanScanner.scanAll();

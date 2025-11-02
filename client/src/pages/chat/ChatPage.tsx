@@ -618,8 +618,8 @@ export default function ChatPage() {
               </div>
               
               {msg.role === "user" && (
-                <div className="bg-primary/10 border border-primary/20 p-2 rounded-full h-10 w-10 flex-shrink-0">
-                  <User className="w-6 h-6 text-primary" data-testid="icon-user" />
+                <div className="bg-primary/10 border border-primary/20 p-2 rounded-full h-12 w-12 flex-shrink-0">
+                  <User className="w-7 h-7 text-primary" data-testid="icon-user" />
                 </div>
               )}
             </div>
@@ -820,8 +820,8 @@ export default function ChatPage() {
               </div>
               
               {msg.role === "user" && (
-                <div className="bg-primary/10 border border-primary/20 p-2 rounded-full h-10 w-10 flex-shrink-0">
-                  <User className="w-6 h-6 text-primary" data-testid="icon-user" />
+                <div className="bg-primary/10 border border-primary/20 p-2 rounded-full h-12 w-12 flex-shrink-0">
+                  <User className="w-7 h-7 text-primary" data-testid="icon-user" />
                 </div>
               )}
             </div>
