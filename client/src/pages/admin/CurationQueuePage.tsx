@@ -30,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { useLanguage } from "@/lib/i18n";
+import { AbsorptionPreviewModal } from "@/components/AbsorptionPreviewModal";
 
 interface CurationItem {
   id: string;
@@ -63,6 +64,9 @@ export default function CurationQueuePage() {
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
+  
+  // Absorption preview state (hybrid UI)
+  const [absorptionPreviewItem, setAbsorptionPreviewItem] = useState<{ id: string; title: string } | null>(null);
   
   // Content filter state (to separate pages from images)
   const [contentFilter, setContentFilter] = useState<"all" | "pages" | "images">("all");
@@ -722,14 +726,13 @@ export default function CurationQueuePage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => absorbPartialMutation.mutate(item.id)}
-                            disabled={absorbPartialMutation.isPending}
+                            onClick={() => setAbsorptionPreviewItem({ id: item.id, title: item.title })}
                             className="text-orange-600 hover:text-orange-700"
                             data-testid={`button-absorb-${item.id}`}
-                            title="Extrair apenas conteúdo novo desta duplicata parcial"
+                            title="Preview da absorção inteligente - extrair apenas conteúdo novo"
                           >
                             <ArrowDownToLine className="h-4 w-4 mr-2" />
-                            {absorbPartialMutation.isPending ? "Absorvendo..." : "Absorver Parcial"}
+                            Preview Absorção
                           </Button>
                         )}
                         <Button
@@ -1221,6 +1224,13 @@ export default function CurationQueuePage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Absorption Preview Modal (Hybrid UI) */}
+      <AbsorptionPreviewModal
+        itemId={absorptionPreviewItem?.id || null}
+        itemTitle={absorptionPreviewItem?.title || ""}
+        onClose={() => setAbsorptionPreviewItem(null)}
+      />
     </div>
   );
 }
