@@ -660,6 +660,129 @@ export function registerCurationRoutes(app: Express) {
   });
 
   /**
+   * POST /api/curation/absorb-partial/:id
+   * PARTIAL CONTENT ABSORPTION: Extract and save only new content from near-duplicates
+   * Requires manual HITL approval via UI button
+   * 
+   * Process:
+   * 1. Identify duplicate content (KB or queue)
+   * 2. Extract only unique/new parts
+   * 3. Update item with extracted content
+   * 4. Return preview for curator review
+   */
+  app.post("/api/curation/absorb-partial/:id", async (req, res) => {
+    try {
+      const itemId = req.params.id;
+      
+      // Get curation item
+      const [item] = await db
+        .select()
+        .from(curationQueue)
+        .where(eq(curationQueue.id, itemId))
+        .limit(1);
+
+      if (!item) {
+        return res.status(404).json({ error: "Curation item not found" });
+      }
+
+      // Only absorb from "near" duplicates
+      if (item.duplicationStatus !== 'near') {
+        return res.status(400).json({ 
+          error: "Can only absorb from near-duplicates (85-98% similar)",
+          currentStatus: item.duplicationStatus 
+        });
+      }
+
+      // Find the duplicate content
+      let duplicateContent = '';
+      let duplicateTitle = '';
+
+      if (item.duplicateOfId) {
+        // Duplicate is in KB
+        const [doc] = await db
+          .select()
+          .from(documents)
+          .where(eq(documents.id, parseInt(item.duplicateOfId)))
+          .limit(1);
+        
+        if (doc) {
+          duplicateContent = doc.content;
+          duplicateTitle = doc.title;
+        }
+      } else {
+        // Duplicate is in curation queue - find by comparing embeddings
+        // This is a simplified approach - in production you'd store the queue duplicate ID
+        console.log('[Curation] ⚠️ Duplicate is in queue, using heuristic to find match');
+        
+        // For now, we'll use the original content as is
+        // In a full implementation, you'd store which queue item it duplicates
+        return res.status(501).json({ 
+          error: "Absorption from queue duplicates not yet implemented. Please approve or reject the duplicate manually." 
+        });
+      }
+
+      if (!duplicateContent) {
+        return res.status(404).json({ error: "Duplicate content not found" });
+      }
+
+      // Analyze and extract new content
+      const { analyzePartialDuplication } = await import('../utils/deduplication');
+      const analysis = analyzePartialDuplication(
+        item.content,
+        duplicateContent,
+        item.similarityScore || 0.9
+      );
+
+      if (!analysis.shouldAbsorb) {
+        return res.status(400).json({ 
+          error: "Absorption not recommended",
+          reason: analysis.reason,
+          analysis
+        });
+      }
+
+      // Update item with extracted content
+      const updatedContent = analysis.extractedContent;
+      const updatedHash = generateContentHash(updatedContent);
+      const updatedNormalized = normalizeContent(updatedContent);
+
+      await db
+        .update(curationQueue)
+        .set({
+          content: updatedContent,
+          contentHash: updatedHash,
+          normalizedContent: updatedNormalized,
+          duplicationStatus: 'unique', // Mark as unique after absorption
+          note: (item.note || '') + `\n\n---\n🔄 **Absorção Parcial Aplicada**\n` +
+                `- Conteúdo original: ${analysis.originalLength} caracteres\n` +
+                `- Conteúdo extraído: ${analysis.extractedLength} caracteres\n` +
+                `- Duplicado de: "${duplicateTitle}"\n` +
+                `- Motivo: ${analysis.reason}`,
+          updatedAt: new Date()
+        })
+        .where(eq(curationQueue.id, itemId));
+
+      console.log(`[Curation] ✅ Partial absorption complete for "${item.title}": ${analysis.originalLength} → ${analysis.extractedLength} chars`);
+
+      res.json({
+        success: true,
+        message: "Partial content absorbed successfully",
+        analysis: {
+          originalLength: analysis.originalLength,
+          extractedLength: analysis.extractedLength,
+          reductionPercent: Math.round((1 - analysis.extractedLength / analysis.originalLength) * 100),
+          reason: analysis.reason
+        },
+        updatedContent,
+        duplicateTitle
+      });
+    } catch (error: any) {
+      console.error('[Curation] Absorb partial error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * DELETE /api/curation/:id
    * Remove item da fila (apenas para testes)
    */
