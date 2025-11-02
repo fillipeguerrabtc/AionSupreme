@@ -1,16 +1,16 @@
 /**
- * LLM Client - OpenAI API Integration
+ * LLM Client - Integração OpenAI API
  * 
- * As per PDFs: This wraps LLM APIs (OpenAI/Anthropic) since we can't train
- * Transformer-MoE from scratch in Replit. The mathematical architecture from
- * the PDFs is conceptually implemented via API calls.
+ * Conforme PDFs: Encapsula APIs LLM (OpenAI/Anthropic) já que não podemos treinar
+ * Transformer-MoE do zero no Replit. A arquitetura matemática dos PDFs é
+ * implementada conceitualmente via chamadas de API.
  * 
- * Features:
- * - Streaming support for real-time responses
- * - Tool calling (for ReAct agent)
- * - Rate limiting and retry logic
- * - Response caching
- * - Metrics tracking (latency, tokens, cost)
+ * Funcionalidades:
+ * - Suporte streaming para respostas em tempo real
+ * - Tool calling (para agente ReAct)
+ * - Rate limiting e lógica de retry
+ * - Cache de respostas
+ * - Rastreamento de métricas (latência, tokens, custo)
  */
 
 import OpenAI from "openai";
@@ -78,9 +78,9 @@ export interface ChatCompletionResult {
   costUsd: number;
 }
 
-// Response cache (simple in-memory, could be moved to Redis)
+// Cache de respostas (simples em memória, poderia ser movido para Redis)
 const responseCache = new Map<string, { result: ChatCompletionResult; timestamp: number }>();
-const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
 
 // Rate limiting (simple token bucket)
 class RateLimiter {
@@ -123,48 +123,48 @@ export class LLMClient {
   private rateLimiter: RateLimiter;
 
   constructor() {
-    // Initialize OpenAI client
-    // Uses OPENAI_API_KEY from Replit Secrets (user-provided key)
+    // Inicializar cliente OpenAI
+    // Usa OPENAI_API_KEY do Replit Secrets (chave fornecida pelo usuário)
     const apiKey = process.env.OPENAI_API_KEY || "";
     if (!apiKey) {
-      console.warn("[LLM] ⚠️  No OPENAI_API_KEY found in environment - chat will fail");
+      console.warn("[LLM] ⚠️  Nenhuma OPENAI_API_KEY encontrada no ambiente - chat falhará");
     } else {
-      console.log("[LLM] ✓ OPENAI_API_KEY loaded successfully");
+      console.log("[LLM] ✓ OPENAI_API_KEY carregada com sucesso");
     }
     this.openai = new OpenAI({ apiKey });
     
-    // Single global rate limiter (system is single-tenant)
-    // Default: 60 requests per minute = 1 request per second
+    // Rate limiter global único (sistema é single-tenant)
+    // Padrão: 60 requisições por minuto = 1 requisição por segundo
     this.rateLimiter = new RateLimiter(60, 1);
   }
 
   /**
-   * Generate cache key for request deduplication
-   * IMPORTANT: Includes FULL message history to avoid returning stale responses
+   * Gerar chave de cache para deduplicação de requisições
+   * IMPORTANTE: Inclui histórico COMPLETO de mensagens para evitar retornar respostas obsoletas
    */
   private getCacheKey(options: ChatCompletionOptions): string {
     const { messages, model, temperature, topP } = options;
-    // Include FULL message array to ensure uniqueness
+    // Incluir array COMPLETO de mensagens para garantir unicidade
     const keyData = JSON.stringify({ 
       messages, 
       model, 
       temperature, 
       topP,
-      // Add timestamp component to ensure fresh responses in conversations
+      // Adicionar componente de timestamp para garantir respostas frescas em conversas
       messageCount: messages.length 
     });
-    // Use full hash instead of sliced version for better uniqueness
+    // Usar hash completo ao invés de versão cortada para melhor unicidade
     return Buffer.from(keyData).toString("base64");
   }
 
   /**
-   * Check cache for existing response
+   * Verificar cache para resposta existente
    */
   private checkCache(key: string): ChatCompletionResult | null {
     const cached = responseCache.get(key);
     if (!cached) return null;
     
-    // Check if expired
+    // Verificar se expirou
     if (Date.now() - cached.timestamp > CACHE_TTL_MS) {
       responseCache.delete(key);
       return null;

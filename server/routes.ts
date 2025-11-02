@@ -839,7 +839,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/admin/index-pdfs (index all 7 technical PDFs)
+  // POST /api/admin/index-pdfs (indexar todos os 7 PDFs técnicos)
   app.post("/api/admin/index-pdfs", async (req, res) => {
     try {
       const documentIds = await knowledgeIndexer.indexAllPDFs();
@@ -850,16 +850,16 @@ export function registerRoutes(app: Express): Server {
   });
 
   // ============================================================================
-  // KNOWLEDGE BASE MANAGEMENT
+  // GERENCIAMENTO DA BASE DE CONHECIMENTO
   // ============================================================================
 
-  // GET /api/admin/documents - List APPROVED documents
-  // HITL FIX: Only show documents that passed human approval (status='indexed')
+  // GET /api/admin/documents - Listar documentos APROVADOS
+  // HITL FIX: Apenas mostrar documentos que passaram por aprovação humana (status='indexed')
   app.get("/api/admin/documents", async (req, res) => {
     try {
       const allDocs = await storage.getDocuments(1000);
       
-      // Filter to show ONLY approved documents (status='indexed')
+      // Filtrar para mostrar APENAS documentos aprovados (status='indexed')
       const approvedDocs = allDocs.filter(doc => doc.status === 'indexed');
       
       console.log(`[KB API] Returning ${approvedDocs.length} approved docs (filtered from ${allDocs.length} total)`);
@@ -869,27 +869,27 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/admin/documents - Add new document (manual text)
-  // HITL FIX: All manual KB feeding goes through curation queue
+  // POST /api/admin/documents - Adicionar novo documento (texto manual)
+  // HITL FIX: Toda alimentação manual da KB passa pela fila de curadoria
   app.post("/api/admin/documents", async (req, res) => {
     try {
       const { title, content, source } = req.body;
       
       if (!title || !content) {
-        return res.status(400).json({ error: "Title and content are required" });
+        return res.status(400).json({ error: "Título e conteúdo são obrigatórios" });
       }
 
-      // DEDUPLICATION: Check if content is duplicate
+      // DEDUPLICAÇÃO: Verificar se conteúdo é duplicado
       const { deduplicationService } = await import("./services/deduplication-service");
       const dupCheck = await deduplicationService.checkDuplicate({
         text: content,
         tenantId: 1,
-        enableSemantic: true // Enable semantic check for text
+        enableSemantic: true // Habilitar verificação semântica para texto
       });
 
       if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
         return res.status(409).json({
-          error: "Duplicate content detected",
+          error: "Conteúdo duplicado detectado",
           duplicate: {
             id: dupCheck.duplicateOf.id,
             title: dupCheck.duplicateOf.title,
@@ -897,15 +897,15 @@ export function registerRoutes(app: Express): Server {
             similarity: dupCheck.duplicateOf.similarity
           },
           message: dupCheck.method === 'hash'
-            ? "Exact duplicate found in KB"
-            : `Similar content found (${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% match)`
+            ? "Duplicado exato encontrado na KB"
+            : `Conteúdo similar encontrado (${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% correspondência)`
         });
       }
 
-      // Import curation store
+      // Importar curation store
       const { curationStore } = await import("./curation/store");
       
-      // Add to curation queue instead of direct KB publish
+      // Adicionar à fila de curadoria ao invés de publicar direto na KB
       const item = await curationStore.addToCuration({
         title,
         content,
@@ -915,7 +915,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       res.json({ 
-        message: "Content submitted to curation queue for human review",
+        message: "Conteúdo submetido à fila de curadoria para revisão humana",
         curationId: item.id,
         status: "pending_approval"
       });
@@ -924,19 +924,19 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // PATCH /api/admin/documents/:id - Update document
+  // PATCH /api/admin/documents/:id - Atualizar documento
   app.patch("/api/admin/documents/:id", async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
       const { title, content, metadata } = req.body;
 
-      // Get existing document to merge metadata
+      // Obter documento existente para mesclar metadata
       const existingDoc = await storage.getDocument(docId);
       if (!existingDoc) {
-        return res.status(404).json({ error: "Document not found" });
+        return res.status(404).json({ error: "Documento não encontrado" });
       }
 
-      // Merge incoming metadata with existing metadata (preserve all fields)
+      // Mesclar metadata recebido com metadata existente (preservar todos os campos)
       const mergedMetadata = {
         ...(existingDoc.metadata || {}),
         ...(metadata || {}),
@@ -948,7 +948,7 @@ export function registerRoutes(app: Express): Server {
         metadata: mergedMetadata,
       });
       
-      // Re-index document
+      // Re-indexar documento
       if (content) {
         await knowledgeIndexer.reIndexDocument(docId);
       }
@@ -959,12 +959,12 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // DELETE /api/admin/documents/:id - Cascade delete KB document
+  // DELETE /api/admin/documents/:id - Deletar documento KB em cascata
   app.delete("/api/admin/documents/:id", async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
       
-      // Import cascade service
+      // Importar serviço de cascata
       const { kbCascadeService } = await import("./services/kb-cascade");
       
       const result = await kbCascadeService.deleteDocument(docId);
@@ -986,16 +986,16 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // DELETE /api/admin/documents/bulk - Bulk cascade delete KB documents
+  // DELETE /api/admin/documents/bulk - Deletar múltiplos documentos KB em cascata
   app.delete("/api/admin/documents/bulk", async (req, res) => {
     try {
       const { documentIds } = req.body;
       
       if (!documentIds || !Array.isArray(documentIds) || documentIds.length === 0) {
-        return res.status(400).json({ error: "documentIds array is required" });
+        return res.status(400).json({ error: "Array documentIds é obrigatório" });
       }
 
-      // Import cascade service
+      // Importar serviço de cascata
       const { kbCascadeService } = await import("./services/kb-cascade");
       
       const result = await kbCascadeService.deleteDocuments(documentIds);
@@ -1017,7 +1017,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // PATCH /api/admin/documents/:id/attachments/:index - Update attachment description
+  // PATCH /api/admin/documents/:id/attachments/:index - Atualizar descrição de anexo
   app.patch("/api/admin/documents/:id/attachments/:index", async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
@@ -1025,16 +1025,16 @@ export function registerRoutes(app: Express): Server {
       const { description } = req.body;
 
       if (description === undefined) {
-        return res.status(400).json({ error: "Description is required" });
+        return res.status(400).json({ error: "Descrição é obrigatória" });
       }
 
       const doc = await storage.getDocument(docId);
       if (!doc) {
-        return res.status(404).json({ error: "Document not found" });
+        return res.status(404).json({ error: "Documento não encontrado" });
       }
 
       if (!doc.attachments || !doc.attachments[attachmentIndex]) {
-        return res.status(404).json({ error: "Attachment not found" });
+        return res.status(404).json({ error: "Anexo não encontrado" });
       }
 
       const updatedAttachments = [...doc.attachments];
@@ -1057,7 +1057,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // DELETE /api/admin/documents/:id - Delete document
+  // DELETE /api/admin/documents/:id - Deletar documento
   app.delete("/api/admin/documents/:id", async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
@@ -1068,28 +1068,28 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/admin/kb/reset - Clear ALL Knowledge Base data (for testing)
+  // POST /api/admin/kb/reset - Limpar TODOS os dados da Knowledge Base (para testes)
   app.post("/api/admin/kb/reset", async (req, res) => {
     try {
       const { documents, embeddings, curationQueue } = await import("@shared/schema");
       
       console.log("[KB Reset] ⚠️ INICIANDO RESET COMPLETO DA KB...");
       
-      // 1. Delete all embeddings
+      // 1. Deletar todos os embeddings
       const deletedEmbeddings = await db.delete(embeddings);
       console.log("[KB Reset] ✓ Embeddings deletados");
       
-      // 2. Delete all documents
+      // 2. Deletar todos os documentos
       const deletedDocs = await db.delete(documents);
       console.log("[KB Reset] ✓ Documentos deletados");
       
-      // 3. Clear curation queue (optional - user can decide)
+      // 3. Limpar fila de curadoria (opcional - usuário pode decidir)
       if (req.body.clearCurationQueue) {
         const deletedCuration = await db.delete(curationQueue);
         console.log("[KB Reset] ✓ Fila de curadoria limpa");
       }
       
-      // 4. Delete learned images if requested
+      // 4. Deletar imagens aprendidas se solicitado
       if (req.body.clearImages) {
         const learnedImagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
         if (fsSync.existsSync(learnedImagesDir)) {
@@ -1119,21 +1119,21 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/admin/seed-system - Seeds complete system (Namespaces, Tools, Agents)
-  // ADMIN ONLY - Protected endpoint with admin allowlist
+  // POST /api/admin/seed-system - Popular sistema completo (Namespaces, Tools, Agents)
+  // ADMIN ONLY - Endpoint protegido com allowlist de admins
   app.post("/api/admin/seed-system", async (req, res) => {
-    const user = req.user as any; // Replit Auth user type
+    const user = req.user as any; // Tipo de usuário Replit Auth
     
-    // 1. Authentication check
+    // 1. Verificação de autenticação
     if (!req.isAuthenticated() || !user?.claims?.sub) {
-      return res.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: "Autenticação obrigatória" });
     }
     
-    // 2. Authorization check - admin allowlist
+    // 2. Verificação de autorização - allowlist de admins
     const adminAllowlist = (process.env.ADMIN_ALLOWED_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
     const userSub = user.claims.sub;
     
-    // In development, allow any authenticated user if allowlist is empty
+    // Em desenvolvimento, permitir qualquer usuário autenticado se allowlist estiver vazia
     const isProduction = process.env.NODE_ENV === "production";
     const isAuthorized = !isProduction && adminAllowlist.length === 0 ? true : adminAllowlist.includes(userSub);
     
@@ -1158,18 +1158,18 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/admin/migrate-agent-namespaces - Migrate existing agents to new namespace system
-  // ADMIN ONLY - Protected endpoint with admin allowlist
-  // Query params: ?dryRun=true for dry-run mode
+  // POST /api/admin/migrate-agent-namespaces - Migrar agentes existentes para novo sistema de namespaces
+  // ADMIN ONLY - Endpoint protegido com allowlist de admins
+  // Query params: ?dryRun=true para modo dry-run
   app.post("/api/admin/migrate-agent-namespaces", async (req, res) => {
     const user = req.user as any;
     
-    // 1. Authentication check
+    // 1. Verificação de autenticação
     if (!req.isAuthenticated() || !user?.claims?.sub) {
-      return res.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: "Autenticação obrigatória" });
     }
     
-    // 2. Authorization check - admin allowlist
+    // 2. Verificação de autorização - allowlist de admins
     const adminAllowlist = (process.env.ADMIN_ALLOWED_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
     const userSub = user.claims.sub;
     
@@ -1177,9 +1177,9 @@ export function registerRoutes(app: Express): Server {
     const isAuthorized = !isProduction && adminAllowlist.length === 0 ? true : adminAllowlist.includes(userSub);
     
     if (!isAuthorized) {
-      console.warn(`[Migration] Unauthorized access attempt by user: ${userSub}`);
+      console.warn(`[Migration] Tentativa de acesso não autorizado do usuário: ${userSub}`);
       return res.status(403).json({ 
-        error: "Forbidden: Admin access required." 
+        error: "Proibido: Acesso de admin necessário." 
       });
     }
     
@@ -1188,19 +1188,19 @@ export function registerRoutes(app: Express): Server {
       const { migrateAgentNamespaces } = await import("./migrations/migrate-agent-namespaces");
       const result = await migrateAgentNamespaces(dryRun);
       
-      // Fail with 500 if errors > 0 in production mode
+      // Falhar com 500 se erros > 0 em modo produção
       if (!dryRun && result.errors > 0) {
         return res.status(500).json({
           ...result,
-          message: `Migration failed with ${result.errors} errors`,
+          message: `Migração falhou com ${result.errors} erros`,
         });
       }
       
       res.json({
         ...result,
         message: dryRun 
-          ? "Dry-run completed (no changes made)"
-          : "Agent namespaces migration completed successfully",
+          ? "Dry-run completo (nenhuma mudança feita)"
+          : "Migração de namespaces de agentes completada com sucesso",
       });
     } catch (error: any) {
       console.error("[Migration] Error:", error.message);
@@ -1208,12 +1208,12 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/admin/images - List all learned images
+  // GET /api/admin/images - Listar todas as imagens aprendidas
   app.get("/api/admin/images", async (req, res) => {
     try {
       const imagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
       
-      // Create directory if it doesn't exist
+      // Criar diretório se não existir
       if (!fsSync.existsSync(imagesDir)) {
         fsSync.mkdirSync(imagesDir, { recursive: true });
         return res.json([]);
@@ -1242,12 +1242,12 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/admin/images/all - Get ALL images from ALL sources
+  // GET /api/admin/images/all - Obter TODAS as imagens de TODAS as fontes
   app.get("/api/admin/images/all", async (req, res) => {
     try {
       const allImages: any[] = [];
 
-      // 1. Learned images (from crawler)
+      // 1. Imagens aprendidas (do crawler)
       const learnedImagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
       if (fsSync.existsSync(learnedImagesDir)) {
         const learnedFiles = fsSync.readdirSync(learnedImagesDir);
@@ -1268,7 +1268,7 @@ export function registerRoutes(app: Express): Server {
           });
       }
 
-      // 2. Chat images (from user uploads)
+      // 2. Imagens do chat (uploads de usuário)
       const chatImagesDir = path.join(process.cwd(), 'attached_assets', 'chat_images');
       if (fsSync.existsSync(chatImagesDir)) {
         const chatFiles = fsSync.readdirSync(chatImagesDir);
@@ -1289,7 +1289,7 @@ export function registerRoutes(app: Express): Server {
           });
       }
 
-      // 3. Images from approved documents (KB)
+      // 3. Imagens de documentos aprovados (KB)
       const { documents } = await import("@shared/schema");
       const docsWithImages = await db
         .select()
@@ -1318,7 +1318,7 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      // Sort by creation date (newest first)
+      // Ordenar por data de criação (mais recente primeiro)
       allImages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
       res.json({

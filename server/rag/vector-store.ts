@@ -1,11 +1,11 @@
 /**
- * Vector Store - FAISS-based semantic search
+ * Vector Store - Busca semântica baseada em FAISS
  * 
- * As per PDFs: FAISS/Milvus with HNSW (M≈64, efSearch≈128) + IVF-PQ
- * Implements A-NNS with O(log N) complexity
+ * Conforme PDFs: FAISS/Milvus com HNSW (M≈64, efSearch≈128) + IVF-PQ
+ * Implementa A-NNS com complexidade O(log N)
  * 
- * Note: Using in-memory FAISS (JavaScript implementation) for Replit.
- * For production Google Colab deployment, use Python FAISS with GPU support.
+ * Nota: Usando FAISS em memória (implementação JavaScript) para Replit.
+ * Para produção no Google Colab, usar FAISS Python com suporte GPU.
  */
 
 import { storage } from "../storage";
@@ -14,7 +14,7 @@ import type { Embedding } from "@shared/schema";
 
 interface SearchResult {
   id: number;
-  score: number; // Cosine similarity
+  score: number; // Similaridade cosseno
   chunkText: string;
   metadata?: Record<string, any>;
   documentId: number;
@@ -29,21 +29,21 @@ interface SearchResult {
 }
 
 /**
- * Simple in-memory FAISS-like vector store
- * For production, replace with actual FAISS (faiss-node or Python microservice)
+ * Vector store simples em memória similar ao FAISS
+ * Para produção, substituir por FAISS real (faiss-node ou microsserviço Python)
  */
 export class VectorStore {
-  private vectors: Map<number, number[]> = new Map(); // embedding_id -> vector
+  private vectors: Map<number, number[]> = new Map(); // embedding_id -> vetor
   private metadata: Map<number, { text: string; documentId: number; meta?: any }> = new Map();
   
   /**
-   * Index embeddings for a document
-   * As per PDFs: Normalized vectors ê_{i,j}=e_{i,j}/||e_{i,j}||
+   * Indexar embeddings de um documento
+   * Conforme PDFs: Vetores normalizados ê_{i,j}=e_{i,j}/||e_{i,j}||
    */
   async indexDocument(documentId: number): Promise<void> {
-    console.log(`[VectorStore] Indexing document ${documentId}...`);
+    console.log(`[VectorStore] Indexando documento ${documentId}...`);
     
-    // Get all embeddings for this document
+    // Obter todos os embeddings deste documento
     const embeddings = await storage.getEmbeddingsByDocument(documentId);
     
     // Add to in-memory index
@@ -60,10 +60,10 @@ export class VectorStore {
   }
 
   /**
-   * Index all embeddings for knowledge base
+   * Indexar todos os embeddings da base de conhecimento
    */
   async indexTenant(limit: number = 10000): Promise<void> {
-    console.log(`[VectorStore] Indexing knowledge base...`);
+    console.log(`[VectorStore] Indexando base de conhecimento...`);
     
     const embeddings = await storage.getEmbeddings(limit);
     
@@ -80,9 +80,9 @@ export class VectorStore {
   }
 
   /**
-   * Semantic search with cosine similarity
-   * As per PDFs: sim(q,d)=E(q)·E(d)/(||E(q)||||E(d)||)
-   * Returns top-k results with O(N) complexity (brute force for now)
+   * Busca semântica com similaridade cosseno
+   * Conforme PDFs: sim(q,d)=E(q)·E(d)/(||E(q)||||E(d)||)
+   * Retorna top-k resultados com complexidade O(N) (força bruta por enquanto)
    */
   async search(
     queryEmbedding: number[],
@@ -91,38 +91,38 @@ export class VectorStore {
   ): Promise<SearchResult[]> {
     const results: Array<{ id: number; score: number }> = [];
     
-    // Calculate similarity with all vectors
+    // Calcular similaridade com todos os vetores
     for (const [id, vector] of Array.from(this.vectors.entries())) {
-      // Apply filters
+      // Aplicar filtros
       const meta = this.metadata.get(id);
       if (filter?.documentId && meta?.documentId !== filter.documentId) {
         continue;
       }
       
-      // CRITICAL: Filter by namespaces if specified
+      // CRÍTICO: Filtrar por namespaces se especificado
       if (filter?.namespaces && filter.namespaces.length > 0) {
         const docNamespace = meta?.meta?.namespace as string | undefined;
         
-        // MONITORING: Log if embedding is missing namespace metadata
+        // MONITORAMENTO: Registrar se embedding está sem metadata de namespace
         if (!docNamespace) {
-          console.warn(`[VectorStore] ⚠️  Embedding ID ${id} missing namespace metadata (documentId: ${meta?.documentId})`);
+          console.warn(`[VectorStore] ⚠️  Embedding ID ${id} sem metadata de namespace (documentId: ${meta?.documentId})`);
         }
         
-        // Normalize case for heterogeneous sources (both query and document)
+        // Normalizar maiúsculas/minúsculas para fontes heterogêneas (query e documento)
         const normalizedDocNamespace = docNamespace?.toLowerCase();
         const normalizedFilterNamespaces = filter.namespaces.map(ns => ns.toLowerCase());
         
-        // Check if document namespace matches any of the allowed namespaces
-        // Support wildcard "*" to access all namespaces
+        // Verificar se namespace do documento corresponde a algum dos namespaces permitidos
+        // Suporte a wildcard "*" para acessar todos os namespaces
         const hasWildcard = normalizedFilterNamespaces.includes("*");
         const hasMatchingNamespace = normalizedDocNamespace && normalizedFilterNamespaces.includes(normalizedDocNamespace);
         
         if (!hasWildcard && !hasMatchingNamespace) {
-          continue; // Skip this document - not in allowed namespaces
+          continue; // Pular este documento - não está nos namespaces permitidos
         }
       }
       
-      // Cosine similarity (vectors are already normalized)
+      // Similaridade cosseno (vetores já estão normalizados)
       const score = embedder.cosineSimilarity(queryEmbedding, vector);
       results.push({ id, score });
     }
