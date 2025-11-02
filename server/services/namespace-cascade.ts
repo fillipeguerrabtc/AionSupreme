@@ -125,7 +125,10 @@ export async function cascadeDeleteNamespace(namespaceName: string): Promise<Cas
       }
     }
     
-    // Step 4: Delete all agents/subagents for these namespaces
+    // Step 4: Handle agents/subagents with CASCADE DELETE logic
+    // CONDITIONAL LOGIC (Task 13):
+    // - If agent has ONLY this namespace → DELETE agent
+    // - If agent has MULTIPLE namespaces → REMOVE namespace from list (UPDATE)
     for (const ns of namespacesToDelete) {
       const matchingAgents = await tx
         .select()
@@ -134,11 +137,22 @@ export async function cascadeDeleteNamespace(namespaceName: string): Promise<Cas
           rows.filter((a) => a.assignedNamespaces?.includes(ns))
         );
       
-      const agentIds = matchingAgents.map((a) => a.id);
-      
-      if (agentIds.length > 0) {
-        await tx.delete(agents).where(inArray(agents.id, agentIds));
-        deletedAgents.push(...agentIds);
+      for (const agent of matchingAgents) {
+        const currentNamespaces = agent.assignedNamespaces || [];
+        const remainingNamespaces = currentNamespaces.filter((n) => n !== ns);
+        
+        if (remainingNamespaces.length === 0) {
+          // CASE A: Agent has ONLY this namespace → DELETE agent completely
+          await tx.delete(agents).where(eq(agents.id, agent.id));
+          deletedAgents.push(agent.id);
+        } else {
+          // CASE B: Agent has MULTIPLE namespaces → REMOVE this namespace from list
+          await tx
+            .update(agents)
+            .set({ assignedNamespaces: remainingNamespaces })
+            .where(eq(agents.id, agent.id));
+          // Note: Not tracking as "deleted" since agent still exists
+        }
       }
     }
 

@@ -183,10 +183,14 @@ export function registerNamespaceRoutes(app: Express) {
     }
   });
 
-  // DELETE /api/namespaces/:id - Cascade delete namespace
+  // DELETE /api/namespaces/:id - Delete namespace with orphan prevention
+  // BIDIRECTIONAL ORPHAN PREVENTION (Task 11):
+  // - By default: BLOCK delete if agents are using this namespace
+  // - With ?force=true: CASCADE delete (remove agents/subagents)
   app.delete("/api/namespaces/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      const force = req.query.force === "true";
 
       // Verify namespace exists
       const [existingNamespace] = await db
@@ -196,6 +200,33 @@ export function registerNamespaceRoutes(app: Express) {
 
       if (!existingNamespace) {
         return res.status(404).json({ error: "Namespace not found" });
+      }
+
+      // ORPHAN PREVENTION: Check if any agents are using this namespace
+      const { agents } = await import("@shared/schema");
+      
+      // Find all agents using this namespace (including children)
+      const allAgents = await db.select().from(agents);
+      const affectedAgents = allAgents.filter((agent) => {
+        if (!agent.assignedNamespaces) return false;
+        // Match exact namespace or children (e.g., "financas" matches "financas/investimentos")
+        return agent.assignedNamespaces.some(
+          (ns) => ns === existingNamespace.name || ns.startsWith(`${existingNamespace.name}/`)
+        );
+      });
+
+      // If agents exist and force=false, BLOCK delete
+      if (affectedAgents.length > 0 && !force) {
+        return res.status(409).json({
+          error: `Não é possível deletar namespace "${existingNamespace.name}" porque ${affectedAgents.length} agent(s) estão usando este namespace ou seus sub-namespaces.`,
+          affectedAgents: affectedAgents.map((a) => ({
+            id: a.id,
+            name: a.name,
+            slug: a.slug,
+            assignedNamespaces: a.assignedNamespaces,
+          })),
+          hint: "Use ?force=true para deletar o namespace e seus agents automaticamente (cascade delete).",
+        });
       }
 
       // Import cascade delete service
@@ -208,7 +239,9 @@ export function registerNamespaceRoutes(app: Express) {
 
       res.json({
         success: true,
-        message: `Namespace deleted successfully`,
+        message: force
+          ? `Namespace e ${result.deletedAgents.length} agent(s) deletados com sucesso`
+          : `Namespace deleted successfully`,
         ...result,
       });
     } catch (error) {
