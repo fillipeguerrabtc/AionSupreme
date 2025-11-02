@@ -50,37 +50,37 @@ const upload = multer({ dest: "/tmp/uploads/" });
 const startupTime = Date.now();
 
 export function registerRoutes(app: Express): Server {
-  // Apply audit middleware globally (lightweight)
+  // Aplicar middleware de auditoria globalmente (leve)
   app.use(auditMiddleware);
   
-  // Apply rate limiting ONLY to API routes (not static assets)
+  // Aplicar rate limiting APENAS para rotas API (não assets estáticos)
   app.use("/api", rateLimitMiddleware);
   
-  // Seed database on startup
+  // Popular banco de dados na inicialização
   seedDatabase().catch(console.error);
 
-  // Register multi-agent routes
+  // Registrar rotas multi-agente
   registerAgentRoutes(app);
   registerAgentRelationshipRoutes(app);
   
-  // Register curation routes (HITL)
+  // Registrar rotas de curadoria (HITL)
   registerCurationRoutes(app);
   registerKbPromoteRoutes(app);
   
-  // Register namespace management routes
+  // Registrar rotas de gerenciamento de namespaces
   registerNamespaceRoutes(app);
   
-  // Register GPU Pool routes (Plug&Play GPU workers)
+  // Registrar rotas do GPU Pool (workers GPU Plug&Play)
   registerGpuRoutes(app);
   
-  // Register Vision System routes (multimodal image understanding)
+  // Registrar rotas do Vision System (compreensão multimodal de imagens)
   registerVisionRoutes(app);
   
-  // Register KB Images routes (semantic image search in knowledge base)
+  // Registrar rotas de KB Images (busca semântica de imagens na base de conhecimento)
   registerKbImagesRoutes(app);
 
   // ========================================
-  // DATASET DOWNLOAD ENDPOINT
+  // ENDPOINT DE DOWNLOAD DE DATASET
   // ========================================
   app.get("/api/datasets/:id/download", async (req, res) => {
     try {
@@ -92,11 +92,11 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Dataset not found" });
       }
       
-      // Resolver path absoluto (sendFile exige path absoluto)
+      // Resolver caminho absoluto (sendFile exige caminho absoluto)
       const { resolve } = await import("path");
       const absolutePath = resolve(dataset.storagePath);
       
-      // Serve arquivo JSONL
+      // Servir arquivo JSONL
       res.setHeader("Content-Type", "application/jsonl");
       res.setHeader("Content-Disposition", `attachment; filename="${dataset.originalFilename}"`);
       res.sendFile(absolutePath);
@@ -107,13 +107,13 @@ export function registerRoutes(app: Express): Server {
   });
 
   // ========================================
-  // HEALTH CHECK ENDPOINTS (for multi-cloud deployment)
+  // ENDPOINTS DE HEALTH CHECK (para implantação multi-cloud)
   // ========================================
   
-  // GET /health - Basic health check (fast, for load balancers)
+  // GET /health - Health check básico (rápido, para load balancers)
   app.get("/health", async (req, res) => {
     try {
-      // Quick database ping
+      // Ping rápido no banco de dados
       const { pool } = await import("./db");
       await pool.query("SELECT 1");
       
@@ -131,7 +131,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
   
-  // GET /health/detailed - Detailed health check (for monitoring)
+  // GET /health/detailed - Health check detalhado (para monitoramento)
   app.get("/health/detailed", async (req, res) => {
     const checks: any = {
       timestamp: new Date().toISOString(),
@@ -143,7 +143,7 @@ export function registerRoutes(app: Express): Server {
     
     let allHealthy = true;
     
-    // Database check
+    // Verificação do banco de dados
     try {
       const { pool } = await import("./db");
       const start = Date.now();
@@ -162,7 +162,7 @@ export function registerRoutes(app: Express): Server {
       };
     }
     
-    // Free APIs check
+    // Verificação das APIs gratuitas
     try {
       const apiStatus = freeLLMProviders.getHealthStatus();
       checks.services.freeAPIs = {

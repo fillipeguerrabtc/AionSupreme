@@ -1,4 +1,4 @@
-// server/routes/agents.ts
+// Rotas de gerenciamento de agentes
 import type { Express } from "express";
 import { agentsStorage } from "../storage.agents";
 import { publishEvent } from "../events";
@@ -17,15 +17,15 @@ export function registerAgentRoutes(app: Express) {
 
   app.post("/api/agents", async (req, res) => {
     try {
-      // Validate name is provided
+      // Validar que o nome foi fornecido
       if (!req.body.name) {
         return res.status(400).json({ error: "Nome do agente é obrigatório" });
       }
 
-      // ALWAYS auto-generate slug from name (ignore any client-provided slug for security)
+      // SEMPRE auto-gera slug a partir do nome (ignora qualquer slug do cliente por segurança)
       req.body.slug = await generateUniqueSlug(req.body.name);
 
-      // Validate namespace assignment based on agentTier
+      // Validar atribuição de namespace baseado no agentTier
       const agentTier = req.body.agentTier || "agent";
       const assignedNamespaces = req.body.assignedNamespaces || [];
       
@@ -34,7 +34,7 @@ export function registerAgentRoutes(app: Express) {
         return res.status(400).json({ error: validation.error });
       }
 
-      // ADDITIONAL VALIDATION: For SubAgents, verify parent Agent exists
+      // VALIDAÇÃO ADICIONAL: Para SubAgents, verificar se o Agent pai existe
       if (agentTier === "subagent" && validation.rootNamespace) {
         const allAgents = await agentsStorage.listAgents();
         const parentAgents = allAgents.filter(
@@ -68,16 +68,16 @@ export function registerAgentRoutes(app: Express) {
 
   app.patch("/api/agents/:id", async (req, res) => {
     try {
-      // SECURITY: Slug is immutable - reject any attempt to change it
+      // SEGURANÇA: Slug é imutável - rejeitar qualquer tentativa de modificá-lo
       if (req.body.slug !== undefined) {
         return res.status(400).json({ 
           error: "Slug não pode ser modificado - é gerado automaticamente pelo sistema" 
         });
       }
 
-      // Validate namespace assignment if being updated
+      // Validar atribuição de namespace se estiver sendo atualizado
       if (req.body.agentTier || req.body.assignedNamespaces) {
-        // Get existing agent to merge with updates
+        // Buscar agente existente para mesclar com atualizações
         const existing = await agentsStorage.getAgent(req.params.id);
         if (!existing) {
           return res.status(404).json({ error: "Agent not found" });
@@ -91,7 +91,7 @@ export function registerAgentRoutes(app: Express) {
           return res.status(400).json({ error: validation.error });
         }
 
-        // ADDITIONAL VALIDATION: For SubAgents, verify parent Agent exists
+        // VALIDAÇÃO ADICIONAL: Para SubAgents, verificar se o Agent pai existe
         if (agentTier === "subagent" && validation.rootNamespace) {
           const allAgents = await agentsStorage.listAgents();
           const parentAgents = allAgents.filter(

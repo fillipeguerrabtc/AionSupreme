@@ -187,9 +187,10 @@ export default function AgentsPage() {
               variant="outline"
               onClick={() => orphanScanMutation.mutate()}
               disabled={orphanScanMutation.isPending}
+              title="Escaneia toda a plataforma em busca de dados órfãos (sem referências válidas) - apenas diagnóstico, não deleta nada"
             >
               <Search className="w-4 h-4 mr-2" />
-              {orphanScanMutation.isPending ? "Scanning..." : "Scan Platform Orphans"}
+              {orphanScanMutation.isPending ? "Escaneando..." : "Diagnosticar Integridade"}
             </Button>
             <Button 
               data-testid="button-create-agent" 
@@ -424,13 +425,13 @@ export default function AgentsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Platform Orphan Scan Results Dialog */}
+      {/* Diálogo de Resultados do Diagnóstico de Integridade */}
       <Dialog open={showOrphanScanDialog} onOpenChange={setShowOrphanScanDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>Platform Orphan Scan Results</DialogTitle>
+            <DialogTitle>Diagnóstico de Integridade da Plataforma</DialogTitle>
             <DialogDescription>
-              Detected orphaned resources across all modules
+              Recursos órfãos detectados em todos os módulos do sistema
             </DialogDescription>
           </DialogHeader>
           
@@ -441,19 +442,19 @@ export default function AgentsPage() {
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-destructive">{orphanScanResult.report.summary.high}</div>
-                      <p className="text-xs text-muted-foreground">High Severity</p>
+                      <p className="text-xs text-muted-foreground">Severidade Alta</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-yellow-600">{orphanScanResult.report.summary.medium}</div>
-                      <p className="text-xs text-muted-foreground">Medium Severity</p>
+                      <p className="text-xs text-muted-foreground">Severidade Média</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-green-600">{orphanScanResult.report.summary.low}</div>
-                      <p className="text-xs text-muted-foreground">Low Severity</p>
+                      <p className="text-xs text-muted-foreground">Severidade Baixa</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -464,7 +465,7 @@ export default function AgentsPage() {
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center justify-between">
                           <span>📦 {module.module}</span>
-                          <Badge variant="secondary">{module.totalOrphans} orphans</Badge>
+                          <Badge variant="secondary">{module.totalOrphans} órfãos</Badge>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -481,7 +482,7 @@ export default function AgentsPage() {
                               </div>
                               <p className="text-sm">{orphan.reason}</p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                <strong>Action:</strong> {orphan.suggestedAction}
+                                <strong>Ação Sugerida:</strong> {orphan.suggestedAction}
                               </p>
                             </div>
                           ))}
@@ -494,9 +495,9 @@ export default function AgentsPage() {
                 {orphanScanResult.report.totalOrphans === 0 && (
                   <Card>
                     <CardContent className="pt-6 text-center">
-                      <p className="text-lg text-green-600 font-semibold">✅ No orphans detected</p>
+                      <p className="text-lg text-green-600 font-semibold">✅ Nenhum órfão detectado</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        All platform modules are healthy!
+                        Todos os módulos da plataforma estão saudáveis!
                       </p>
                     </CardContent>
                   </Card>
