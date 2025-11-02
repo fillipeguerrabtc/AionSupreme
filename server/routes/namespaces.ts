@@ -251,7 +251,24 @@ export function registerNamespaceRoutes(app: Express) {
 
       console.log(`[Namespaces] Classified content → suggested: "${result.suggestedNamespace}" (${result.confidence}% confidence)`);
 
-      res.json(result);
+      // Transform backend format to frontend format
+      // Backend uses existingSimilar, frontend expects existingMatches
+      // CRITICAL: Always return empty array [] instead of undefined/null to prevent frontend crashes
+      const existingSimilar = Array.isArray(result.existingSimilar) ? result.existingSimilar : [];
+      
+      const response = {
+        suggestedNamespace: result.suggestedNamespace,
+        confidence: result.confidence,
+        reasoning: result.reasoning,
+        existingMatches: existingSimilar.map(similar => ({
+          id: similar.namespace,
+          name: similar.namespace,
+          similarity: similar.similarity,
+          description: similar.reason
+        }))
+      };
+
+      res.json(response);
     } catch (error) {
       console.error("Error classifying content:", error);
       res.status(500).json({ 
@@ -318,22 +335,22 @@ export function registerNamespaceRoutes(app: Express) {
    *   agent: Agent
    * }
    */
+  // Validation schema for namespace + agent creation
+  const createWithAgentSchema = z.object({
+    namespaceName: z.string().min(3).max(100).regex(/^[a-z0-9]+(\.[a-z0-9]+)*$/, {
+      message: "Invalid namespace format. Use lowercase letters, numbers, and dots only (e.g., 'educacao.matematica')"
+    }),
+    description: z.string().min(10).max(500),
+    agentName: z.string().min(3).max(100),
+    agentDescription: z.string().min(10).max(500),
+    icon: z.string().optional()
+  });
+
   app.post("/api/namespaces/create-with-agent", async (req: Request, res: Response) => {
     try {
-      const { namespaceName, description, agentName, agentDescription, icon } = req.body;
-
-      if (!namespaceName || !description || !agentName || !agentDescription) {
-        return res.status(400).json({ 
-          error: "Missing required fields: namespaceName, description, agentName, agentDescription" 
-        });
-      }
-
-      // Validar formato de namespace (flat, ex: "educacao.matematica")
-      if (!/^[a-z0-9]+(\.[a-z0-9]+)*$/.test(namespaceName)) {
-        return res.status(400).json({ 
-          error: "Invalid namespace format. Use lowercase letters, numbers, and dots only (e.g., 'educacao.matematica')" 
-        });
-      }
+      // Validate request body with Zod
+      const validatedData = createWithAgentSchema.parse(req.body);
+      const { namespaceName, description, agentName, agentDescription, icon } = validatedData;
 
       // Verificar se namespace já existe
       const [existing] = await db
@@ -358,19 +375,41 @@ export function registerNamespaceRoutes(app: Express) {
         } as InsertNamespace)
         .returning();
 
-      // Importar serviço de agentes dinamicamente
-      const { storage } = await import("../storage");
+      // Importar serviço de agentes
+      const { agentsStorage } = await import("../storage.agents");
+      const { agents: agentsTable } = await import("@shared/schema");
+
+      // Generate unique slug for agent
+      let baseSlug = namespaceName.replace(/\./g, '-');
+      let slug = baseSlug;
+      let suffix = 1;
+
+      // Check slug uniqueness and append suffix if needed
+      while (true) {
+        const existingAgent = await db
+          .select()
+          .from(agentsTable)
+          .where(eq(agentsTable.slug, slug))
+          .limit(1);
+
+        if (existingAgent.length === 0) {
+          break; // Slug is unique
+        }
+
+        // Slug collision detected, append suffix
+        slug = `${baseSlug}-${suffix}`;
+        suffix++;
+      }
 
       // Criar agente especialista automaticamente
-      const newAgent = await storage.createAgent({
+      const newAgent = await agentsStorage.createAgent({
         name: agentName,
-        description: agentDescription,
-        namespace: namespaceName,
-        config: {
-          tools: ["web_search", "calculator", "code_interpreter"],
-          budgetLimit: 1000,
-          escalationThreshold: 0.7,
-        },
+        slug,
+        type: 'specialist',
+        systemPrompt: `Você é um especialista em ${namespaceName}. ${agentDescription}`,
+        namespaces: [namespaceName],
+        tools: ["web_search", "calculator", "code_interpreter"],
+        policyId: null,
         tenantId: 1,
       });
 
@@ -383,6 +422,14 @@ export function registerNamespaceRoutes(app: Express) {
       });
     } catch (error) {
       console.error("Error creating namespace with agent:", error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: "Validation error",
+          details: error.errors
+        });
+      }
+
       res.status(500).json({ 
         error: "Failed to create namespace and agent",
         message: error instanceof Error ? error.message : String(error)

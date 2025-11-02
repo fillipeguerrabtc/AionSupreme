@@ -67,12 +67,18 @@ export function NamespaceClassifier({ content, title, onNamespaceSelected }: Nam
       return res.json() as Promise<ClassificationResult>;
     },
     onSuccess: (data) => {
-      setClassification(data);
-      setEditedNamespace(data.suggestedNamespace);
+      // Defensive fallback - ensure existingMatches is always an array
+      const safeData = {
+        ...data,
+        existingMatches: data.existingMatches || []
+      };
+      
+      setClassification(safeData);
+      setEditedNamespace(safeData.suggestedNamespace);
       setDialogOpen(true);
       
       // Auto-suggest agent name from namespace
-      const nameParts = data.suggestedNamespace.split('.');
+      const nameParts = safeData.suggestedNamespace.split('.');
       const suggestedAgentName = nameParts[nameParts.length - 1]
         .split(/[-_]/)
         .map(w => w.charAt(0).toUpperCase() + w.slice(1))

@@ -181,15 +181,14 @@ ${namespaceList || 'Nenhum namespace existe ainda'}
 }`;
 
     try {
-      const response = await llmClient.createCompletion({
+      const response = await llmClient.chatCompletion({
         model: 'gpt-4o-mini', // Mais barato para classificação
         messages: [
           { role: 'system', content: 'Você é um especialista em classificação de conhecimento. Responda APENAS em JSON válido.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.3, // Baixa temperatura para respostas consistentes
-        max_tokens: 500,
-        response_format: { type: 'json_object' }
+        maxTokens: 500
       });
 
       const result = JSON.parse(response.content);
