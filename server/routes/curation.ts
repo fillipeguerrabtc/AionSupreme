@@ -662,15 +662,113 @@ export function registerCurationRoutes(app: Express) {
   });
 
   /**
+   * GET /api/curation/preview-absorption/:id
+   * PREVIEW ONLY: Analyzes what would be extracted without executing
+   * Returns preview for hybrid UI (auto-suggest + manual fallback)
+   * 
+   * Returns:
+   * - extractedContent: What would be saved
+   * - stats: uniqueLines, totalLines, duplicateLines
+   * - recommendation: shouldAbsorb boolean
+   * - originalContent: Full original document
+   * - duplicateTitle: What it's duplicating
+   */
+  app.get("/api/curation/preview-absorption/:id", async (req, res) => {
+    try {
+      const itemId = req.params.id;
+      
+      // Get curation item
+      const [item] = await db
+        .select()
+        .from(curationQueue)
+        .where(eq(curationQueue.id, itemId))
+        .limit(1);
+
+      if (!item) {
+        return res.status(404).json({ error: "Curation item not found" });
+      }
+
+      // Only preview near-duplicates
+      if (item.duplicationStatus !== 'near') {
+        return res.status(400).json({ 
+          error: "Can only preview absorption for near-duplicates (85-98% similar)",
+          currentStatus: item.duplicationStatus 
+        });
+      }
+
+      // Find the duplicate content
+      let duplicateContent = '';
+      let duplicateTitle = '';
+
+      if (item.duplicateOfId) {
+        // Duplicate is in KB
+        const [doc] = await db
+          .select()
+          .from(documents)
+          .where(eq(documents.id, parseInt(item.duplicateOfId)))
+          .limit(1);
+        
+        if (doc) {
+          duplicateContent = doc.content;
+          duplicateTitle = doc.title;
+        }
+      } else {
+        // Duplicate is in curation queue
+        return res.status(501).json({ 
+          error: "Absorption from queue duplicates not yet implemented. Please approve or reject manually." 
+        });
+      }
+
+      if (!duplicateContent) {
+        return res.status(404).json({ error: "Duplicate content not found" });
+      }
+
+      // Analyze (PREVIEW ONLY - don't modify anything!)
+      const { analyzePartialDuplication } = await import('../utils/deduplication');
+      const analysis = analyzePartialDuplication(
+        item.content,
+        duplicateContent,
+        item.similarityScore || 0.9
+      );
+
+      // Return comprehensive preview
+      res.json({
+        success: true,
+        preview: {
+          shouldAbsorb: analysis.shouldAbsorb,
+          extractedContent: analysis.extractedContent,
+          originalContent: item.content,
+          duplicateTitle,
+          stats: {
+            originalLength: analysis.originalLength,
+            extractedLength: analysis.extractedLength,
+            uniqueLines: analysis.uniqueLinesCount || 0,
+            totalLines: analysis.totalLinesCount || 0,
+            duplicateLines: analysis.duplicateLinesCount || 0,
+            reductionPercent: Math.round((1 - analysis.extractedLength / analysis.originalLength) * 100),
+            newContentPercent: analysis.totalLinesCount 
+              ? Math.round((analysis.uniqueLinesCount || 0) / analysis.totalLinesCount * 100) 
+              : 0
+          },
+          reason: analysis.reason
+        }
+      });
+    } catch (error: any) {
+      console.error('[Curation] Preview absorption error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * POST /api/curation/absorb-partial/:id
-   * PARTIAL CONTENT ABSORPTION: Extract and save only new content from near-duplicates
+   * EXECUTE ABSORPTION: Extract and save only new content from near-duplicates
    * Requires manual HITL approval via UI button
    * 
    * Process:
    * 1. Identify duplicate content (KB or queue)
    * 2. Extract only unique/new parts
    * 3. Update item with extracted content
-   * 4. Return preview for curator review
+   * 4. Return confirmation
    */
   app.post("/api/curation/absorb-partial/:id", async (req, res) => {
     try {
