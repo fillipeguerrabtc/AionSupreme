@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { fileCleanup } from "./cleanup/file-cleanup";
 import { setupAuth } from "./replitAuth";
 import { autoRecovery } from "./federated/auto-recovery";
+import { queryMonitoringMiddleware } from "./middleware/query-monitoring";
 
 process.env.TZ = 'America/Sao_Paulo';
 console.log(`[Timezone] Configured to: ${process.env.TZ} (Brasília, Brazil)`);
@@ -21,6 +22,9 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: false }));
+
+// Middleware de monitoramento de latência de queries
+app.use(queryMonitoringMiddleware);
 
 app.use((req, res, next) => {
   const start = Date.now();

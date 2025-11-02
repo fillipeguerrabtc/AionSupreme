@@ -44,6 +44,8 @@ import { registerNamespaceRoutes } from "./routes/namespaces";
 import { registerGpuRoutes } from "./routes/gpu";
 import { registerVisionRoutes } from "./routes/vision";
 import { registerKbImagesRoutes } from "./routes/kb-images";
+import { registerQueryMetricsRoutes } from "./routes/query-metrics";
+import { registerTelemetryRoutes } from "./routes/telemetry";
 
 const upload = multer({ 
   dest: "/tmp/uploads/",
@@ -83,6 +85,12 @@ export function registerRoutes(app: Express): Server {
   
   // Registrar rotas de KB Images (busca semântica de imagens na base de conhecimento)
   registerKbImagesRoutes(app);
+  
+  // Registrar rotas de métricas de queries (monitoramento de performance)
+  registerQueryMetricsRoutes(app);
+  
+  // Registrar rotas de telemetria (analytics de agentes e namespaces)
+  registerTelemetryRoutes(app);
 
   // ========================================
   // ENDPOINTS DE ÍCONES CUSTOMIZADOS

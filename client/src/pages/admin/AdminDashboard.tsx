@@ -44,6 +44,7 @@ import ImagesGalleryPage from "./ImagesGalleryPage";
 import ImageSearchPage from "./ImageSearchPage";
 import LifecyclePoliciesTab from "./LifecyclePoliciesTab";
 import VisionPage from "./VisionPage";
+import TelemetriaPage from "./TelemetriaPage";
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -747,6 +748,13 @@ export default function AdminDashboard() {
           </Card>
         </div>
               </div>
+              )}
+
+              {/* Telemetria Tab */}
+              {activeTab === "telemetry" && (
+                <div className="space-y-6">
+                  <TelemetriaPage />
+                </div>
               )}
 
               {/* Token Monitoring Tab */}

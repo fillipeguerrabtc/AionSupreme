@@ -15,6 +15,7 @@ import {
   Image,
   Timer,
   Eye,
+  BarChart3,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,12 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: LayoutDashboard,
       value: "overview",
       testId: "nav-overview",
+    },
+    {
+      title: t.admin.tabs.telemetry,
+      icon: BarChart3,
+      value: "telemetry",
+      testId: "nav-telemetry",
     },
     {
       title: t.admin.tabs.tokenMonitoring,

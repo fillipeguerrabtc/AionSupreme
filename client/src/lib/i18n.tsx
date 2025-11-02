@@ -46,6 +46,7 @@ interface Translations {
     // Main Tabs
     tabs: {
       overview: string;
+      telemetry: string;
       tokenMonitoring: string;
       history: string;
       costHistory: string;
@@ -783,6 +784,7 @@ const translations: Record<Language, Translations> = {
       
       tabs: {
         overview: "Visão Geral",
+        telemetry: "Telemetria",
         tokenMonitoring: "Monitoramento de Tokens",
         history: "Histórico",
         costHistory: "Histórico de Custos",
@@ -1489,6 +1491,7 @@ const translations: Record<Language, Translations> = {
       
       tabs: {
         overview: "Overview",
+        telemetry: "Telemetry",
         tokenMonitoring: "Token Monitoring",
         history: "History",
         costHistory: "Cost History",
@@ -2195,6 +2198,7 @@ const translations: Record<Language, Translations> = {
       
       tabs: {
         overview: "Resumen",
+        telemetry: "Telemetría",
         tokenMonitoring: "Monitoreo de Tokens",
         history: "Historial",
         costHistory: "Historial de Costos",

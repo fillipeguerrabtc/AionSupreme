@@ -37,8 +37,15 @@ export function registerNamespaceRoutes(app: Express) {
    * 
    * Busca namespaces similares por nome e descrição (case-insensitive)
    * 
-   * NOTE: Usa ilike para simplicidade e legibilidade. Para otimização futura
-   * com grandes volumes, considere adicionar índice trigram (pg_trgm extension).
+   * PERFORMANCE OTIMIZADA: 
+   * - Usa operador ILIKE nativo do PostgreSQL
+   * - Índices GIN trigram (pg_trgm) instalados em 'name' e 'description'
+   * - Índices são usados automaticamente em tabelas grandes (>1000 registros)
+   * - Para tabelas pequenas, PostgreSQL usa seq scan (mais rápido)
+   * 
+   * Índices criados:
+   * - namespaces_name_trgm_idx (GIN)
+   * - namespaces_description_trgm_idx (GIN)
    * 
    * Returns: Array<{
    *   id: string,

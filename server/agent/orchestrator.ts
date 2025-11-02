@@ -9,6 +9,7 @@ import { getAgentById } from "./runtime";
 import { executeWithHierarchy } from "./hierarchy-orchestrator";
 import { hasChildren } from "./registry";
 import type { AgentInput, AgentOutput, AgentRunContext } from "./types";
+import { usageTracker } from "../services/usage-tracker";
 
 interface OrchestratorResult {
   content: string;
@@ -123,6 +124,18 @@ export async function orchestrateAgents(
     const totalCost = validResults.reduce((sum, r) => sum + (r!.result.costUSD || 0), 0);
 
     console.log(`[Orchestrator] Completed with ${validResults.length} agents in ${totalLatency}ms`);
+    
+    // Track agent usage for telemetry
+    for (const agentResult of validResults) {
+      if (agentResult) {
+        usageTracker.trackAgentUse(
+          agentResult.agentId,
+          agentResult.agentName,
+          "generation",
+          { query: query.substring(0, 100), score: agentResult.score }
+        );
+      }
+    }
 
     return {
       content: aggregatedContent,

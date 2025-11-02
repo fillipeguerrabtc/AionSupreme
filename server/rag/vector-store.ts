@@ -11,6 +11,7 @@
 import { storage } from "../storage";
 import { embedder } from "./embedder";
 import type { Embedding } from "@shared/schema";
+import { usageTracker } from "../services/usage-tracker";
 
 interface SearchResult {
   id: number;
@@ -302,6 +303,17 @@ export class RAGService {
     }));
     
     console.log(`[RAG] Search completed: ${results.length} results, ${documentAttachments.size} docs with attachments`);
+    
+    // Track namespace usage for telemetry
+    if (options.namespaces && options.namespaces.length > 0) {
+      for (const namespaceName of options.namespaces) {
+        usageTracker.trackNamespaceSearch(
+          namespaceName,
+          namespaceName,
+          { query, resultsCount: results.length }
+        );
+      }
+    }
     
     return enrichedResults;
   }
