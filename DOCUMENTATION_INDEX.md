@@ -33,6 +33,8 @@ Guia de referência rápida para toda documentação do projeto.
 
 ### Features Específicas
 - **[docs/AUTOMATIC_FALLBACK.md](./docs/AUTOMATIC_FALLBACK.md)** - Sistema de fallback automático
+- **[docs/NAMESPACE_CLASSIFICATION_GUIDE.md](./docs/NAMESPACE_CLASSIFICATION_GUIDE.md)** ⭐ **NOVO!** - Classificação automática de namespaces com GPT-4
+- **[docs/DEDUPLICATION_ABSORPTION_GUIDE.md](./docs/DEDUPLICATION_ABSORPTION_GUIDE.md)** ⭐ **NOVO!** - Deduplicação inteligente e absorção de conteúdo
 - **[docs/FREE_GPU_API_STRATEGY.md](./docs/FREE_GPU_API_STRATEGY.md)** - Estratégia de APIs e GPUs grátis
 - **[docs/API.md](./docs/API.md)** - Documentação da API REST
 

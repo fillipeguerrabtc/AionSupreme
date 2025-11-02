@@ -86,6 +86,8 @@ A aplicação estará disponível em `http://localhost:5000`.
 
 - [**Guia de Arquitetura**](./docs/ARCHITECTURE.md) - Design do sistema, componentes e decisões técnicas
 - [**Sistema de Fallback Automático**](./docs/AUTOMATIC_FALLBACK.md) - Detecção de recusa e busca web autônoma
+- [**Classificação Automática de Namespaces**](./docs/NAMESPACE_CLASSIFICATION_GUIDE.md) - Sistema LLM para classificação inteligente de conteúdo
+- [**Deduplicação e Absorção**](./docs/DEDUPLICATION_ABSORPTION_GUIDE.md) - Sistema inteligente de detecção e merge de conteúdo similar
 - [**Índice dos PDFs**](./docs/INDEX.md) - Guia completo para os 19 PDFs técnicos
 - [**Referência da API**](./docs/API.md) - Endpoints da API REST e uso
 - [**Guia de Setup GPU**](./SETUP_GPU_WORKERS.md) - Setup de GPU workers grátis (Google Colab + Kaggle)

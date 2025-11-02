@@ -35,13 +35,10 @@ export function registerNamespaceRoutes(app: Express) {
    * IMPORTANTE: Esta rota DEVE vir ANTES de /api/namespaces/:id
    * caso contrário "search" será interpretado como um ID!
    * 
-   * Busca namespaces similares por nome e descrição
+   * Busca namespaces similares por nome e descrição (case-insensitive)
    * 
-   * PERFORMANCE: Usa ilike nativo do PostgreSQL para case-insensitive search
-   * otimizado. ilike é mais performático que LIKE + LOWER() pois:
-   * - Processamento nativo no PostgreSQL (não precisa converter texto)
-   * - Pode usar índices GIN/GIST se configurados (futuro)
-   * - Código mais simples e legível ("Simples é Sofisticado")
+   * NOTE: Usa ilike para simplicidade e legibilidade. Para otimização futura
+   * com grandes volumes, considere adicionar índice trigram (pg_trgm extension).
    * 
    * Returns: Array<{
    *   id: string,
@@ -58,8 +55,6 @@ export function registerNamespaceRoutes(app: Express) {
         return res.status(400).json({ error: "Query parameter 'q' is required" });
       }
 
-      // OTIMIZAÇÃO: ilike nativo do PostgreSQL (case-insensitive sem LOWER())
-      // Busca tanto em name quanto em description para máxima flexibilidade
       const results = await db
         .select()
         .from(namespaces)
@@ -70,8 +65,6 @@ export function registerNamespaceRoutes(app: Express) {
           )
         )
         .limit(20);
-
-      console.log(`[Namespaces] Search for "${q}" → found ${results.length} matches`);
 
       res.json(results);
     } catch (error) {
