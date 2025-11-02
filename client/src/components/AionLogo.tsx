@@ -23,16 +23,11 @@ export function AionLogo({ size = "md", showText = true, className = "" }: AionL
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary to-accent rounded-xl blur-lg opacity-50 animate-pulse" />
-        <div className="relative glass-premium p-2 rounded-xl">
-          <img 
-            src={logoImage} 
-            alt="AION Logo" 
-            className={sizeClasses[size]}
-          />
-        </div>
-      </div>
+      <img 
+        src={logoImage} 
+        alt="AION Logo" 
+        className={sizeClasses[size]}
+      />
       {showText && (
         <h1 className={`${textSizeClasses[size]} font-bold gradient-text`}>AION</h1>
       )}
