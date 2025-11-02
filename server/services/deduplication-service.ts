@@ -330,7 +330,9 @@ export class DeduplicationService {
 
   /**
    * TIER 2 - Batch Semantic Scan (on-demand via "Scan Duplicates" button)
-   * Generates embeddings and compares with KB documents
+   * Generates embeddings and compares with:
+   * 1. KB documents (approved content)
+   * 2. Other curation queue items (to detect duplicates WITHIN the queue)
    * Expensive operation - only run when explicitly requested
    * 
    * @param itemId - Curation queue item ID
@@ -367,7 +369,8 @@ export class DeduplicationService {
       .select({
         documentId: embeddings.documentId,
         embedding: sql<number[]>`${embeddings.embedding}::jsonb`,
-        documentTitle: documents.title
+        documentTitle: documents.title,
+        source: sql<string>`'kb'` // Mark as KB source
       })
       .from(embeddings)
       .innerJoin(documents, eq(embeddings.documentId, documents.id))
@@ -379,24 +382,56 @@ export class DeduplicationService {
       )
       .limit(100);
 
-    // No KB content = unique
-    if (kbEmbeddings.length === 0) {
-      return { duplicationStatus: 'unique' };
+    // Get other curation queue items with embeddings (exclude current item)
+    const queueEmbeddings = await db
+      .select({
+        documentId: sql<number>`0`, // Placeholder (queue items don't have doc IDs yet)
+        embedding: sql<number[]>`${curationQueue.embedding}::jsonb`,
+        documentTitle: curationQueue.title,
+        source: sql<string>`'queue'`, // Mark as queue source
+        queueId: curationQueue.id // Keep track of queue ID
+      })
+      .from(curationQueue)
+      .where(
+        and(
+          eq(curationQueue.tenantId, tenantId),
+          eq(curationQueue.status, 'pending'),
+          sql`${curationQueue.embedding} IS NOT NULL`, // Only items already scanned
+          sql`${curationQueue.id} != ${itemId}` // Exclude current item
+        )
+      );
+
+    // Combine both sources
+    const allEmbeddings = [...kbEmbeddings, ...queueEmbeddings];
+
+    // If no content to compare = unique
+    if (allEmbeddings.length === 0) {
+      await db
+        .update(curationQueue)
+        .set({
+          duplicationStatus: 'unique',
+          similarityScore: 0,
+          duplicateOfId: null,
+          embedding: result.embedding
+        })
+        .where(eq(curationQueue.id, itemId));
+
+      return { duplicationStatus: 'unique', similarityScore: 0 };
     }
 
-    // Find most similar document
+    // Find most similar item (from KB or queue)
     let maxSimilarity = 0;
-    let bestMatch: typeof kbEmbeddings[0] | null = null;
+    let bestMatch: typeof allEmbeddings[0] | null = null;
 
-    for (const kbItem of kbEmbeddings) {
+    for (const candidate of allEmbeddings) {
       try {
-        if (!kbItem.embedding || !Array.isArray(kbItem.embedding)) continue;
+        if (!candidate.embedding || !Array.isArray(candidate.embedding)) continue;
 
-        const similarity = cosineSimilarity(result.embedding, kbItem.embedding);
+        const similarity = cosineSimilarity(result.embedding, candidate.embedding);
 
         if (similarity > maxSimilarity) {
           maxSimilarity = similarity;
-          bestMatch = kbItem;
+          bestMatch = candidate;
         }
       } catch (error) {
         console.warn('[Deduplication] Error comparing embeddings:', error);
@@ -413,12 +448,13 @@ export class DeduplicationService {
       .set({
         duplicationStatus: status,
         similarityScore: maxSimilarity,
-        duplicateOfId: bestMatch ? String(bestMatch.documentId) : null,
+        duplicateOfId: bestMatch && bestMatch.source === 'kb' ? String(bestMatch.documentId) : null,
         embedding: result.embedding
       })
       .where(eq(curationQueue.id, itemId));
 
-    console.log(`[Deduplication] Scan complete for "${item.title}": ${status} (${(maxSimilarity * 100).toFixed(1)}% similar)`);
+    const source = bestMatch?.source === 'queue' ? 'curation queue' : 'KB';
+    console.log(`[Deduplication] Scan complete for "${item.title}": ${status} (${(maxSimilarity * 100).toFixed(1)}% similar to "${bestMatch?.documentTitle}" in ${source})`);
 
     return {
       duplicationStatus: status,

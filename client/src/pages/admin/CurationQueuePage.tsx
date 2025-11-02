@@ -257,9 +257,10 @@ export default function CurationQueuePage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      const duplicatesFound = (data.stats?.exact || 0) + (data.stats?.near || 0);
       toast({
         title: "Scan de duplicatas concluído!",
-        description: `${data.scanned} itens analisados. ${data.duplicatesFound} duplicatas detectadas.`,
+        description: `${data.stats?.total || 0} itens analisados. ${duplicatesFound} duplicatas detectadas.`,
       });
     },
     onError: (error: Error) => {
