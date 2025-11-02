@@ -576,6 +576,12 @@ interface Translations {
       };
     };
     
+    // Datasets Page
+    datasets: {
+      title: string;
+      subtitle: string;
+    };
+    
     // Curation Page
     curation: {
       title: string;
@@ -1272,6 +1278,11 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      datasets: {
+        title: "Datasets de Treinamento",
+        subtitle: "Gerencie datasets compilados e dados de treinamento",
+      },
+      
       curation: {
         title: "Fila de Curadoria",
         subtitle: "Revise e aprove conteúdo antes da indexação",
@@ -1961,6 +1972,11 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      datasets: {
+        title: "Training Datasets",
+        subtitle: "Manage compiled datasets and training data",
+      },
+      
       curation: {
         title: "Curation Queue",
         subtitle: "Review and approve content before indexing",
@@ -2648,6 +2664,11 @@ const translations: Record<Language, Translations> = {
           updated: "¡Agente actualizado!",
           deleted: "¡Agente eliminado!",
         },
+      },
+      
+      datasets: {
+        title: "Datasets de Entrenamiento",
+        subtitle: "Gestiona datasets compilados y datos de entrenamiento",
       },
       
       curation: {
