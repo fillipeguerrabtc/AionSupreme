@@ -53,25 +53,25 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Setup Replit Auth before routes
+  // Configurar Replit Auth antes das rotas
   await setupAuth(app);
   
   const server = await registerRoutes(app);
 
-  // Load multi-agent system from database
+  // Carregar sistema multi-agente do banco de dados
   const { loadAgentsFromDatabase } = await import("./agent/loader");
-  await loadAgentsFromDatabase(); // Single-tenant mode
+  await loadAgentsFromDatabase(); // Modo single-tenant
 
-  // Start file cleanup service (runs every hour to delete expired files)
+  // Iniciar serviço de limpeza de arquivos (executa a cada hora para deletar arquivos expirados)
   fileCleanup.start();
   
-  // Start token retention cleanup service (runs monthly to enforce 5-year retention)
+  // Iniciar serviço de limpeza de retenção de tokens (executa mensalmente para aplicar retenção de 5 anos)
   fileCleanup.startTokenRetentionCleanup();
   
-  // Start federated learning auto-recovery system
+  // Iniciar sistema de auto-recuperação de treinamento federado
   autoRecovery.start();
   
-  // Start GPU heartbeat monitor (detects offline workers every 60s)
+  // Iniciar monitor de heartbeat de GPU (detecta workers offline a cada 60s)
   const { startHeartbeatMonitor } = await import("./gpu/heartbeat-monitor");
   startHeartbeatMonitor();
 
@@ -83,19 +83,19 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Importante: configurar Vite apenas em desenvolvimento e após
+  // configurar todas as outras rotas para que a rota catch-all
+  // não interfira com as outras rotas
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
+  // SEMPRE servir a aplicação na porta especificada na variável de ambiente PORT
+  // Outras portas são bloqueadas por firewall. Padrão é 5000 se não especificado.
+  // Isto serve tanto a API quanto o cliente.
+  // É a única porta que não é bloqueada por firewall.
   const port = parseInt(process.env.PORT || '5000', 10);
   server.listen({
     port,

@@ -21,10 +21,10 @@ import {
 } from "@shared/schema";
 
 // ============================================================================
-// STORAGE INTERFACE - Complete CRUD operations for all entities
+// INTERFACE DE STORAGE - Operações CRUD completas para todas as entidades
 // ============================================================================
 export interface IStorage {
-  // Users (required for Replit Auth + Local Auth)
+  // Usuários (necessário para Replit Auth + Local Auth)
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByVerificationToken(token: string): Promise<User | undefined>;
@@ -32,14 +32,14 @@ export interface IStorage {
   createUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, data: Partial<UpsertUser>): Promise<User>;
   
-  // Policies
+  // Políticas
   getPolicy(id: number): Promise<Policy | undefined>;
   getActivePolicy(): Promise<Policy | undefined>;
   createPolicy(policy: InsertPolicy): Promise<Policy>;
   updatePolicy(id: number, data: Partial<InsertPolicy>): Promise<Policy>;
   deletePolicy(id: number): Promise<void>;
   
-  // Conversations
+  // Conversas
   getConversation(id: number): Promise<Conversation | undefined>;
   getConversations(limit?: number): Promise<Conversation[]>;
   getConversationsByUser(userId: string, limit?: number): Promise<Conversation[]>;
@@ -48,14 +48,14 @@ export interface IStorage {
   updateConversation(id: number, data: Partial<InsertConversation>): Promise<Conversation>;
   deleteConversation(id: number): Promise<void>;
   
-  // Messages
+  // Mensagens
   getMessage(id: number): Promise<Message | undefined>;
   getMessagesByConversation(conversationId: number, limit?: number): Promise<Message[]>;
   countMessagesByConversation(conversationId: number): Promise<number>;
   createMessage(message: InsertMessage): Promise<Message>;
   updateMessage(id: number, data: Partial<InsertMessage>): Promise<Message>;
   
-  // Documents
+  // Documentos
   getDocument(id: number): Promise<Document | undefined>;
   getDocuments(limit?: number): Promise<Document[]>;
   createDocument(document: InsertDocument): Promise<Document>;
@@ -70,24 +70,24 @@ export interface IStorage {
   createEmbeddingsBatch(embeddings: InsertEmbedding[]): Promise<Embedding[]>;
   deleteEmbeddingsByDocument(documentId: number): Promise<void>;
   
-  // Tool Executions
+  // Execuções de Ferramentas
   getToolExecution(id: number): Promise<ToolExecution | undefined>;
   getToolExecutionsByConversation(conversationId: number): Promise<ToolExecution[]>;
   createToolExecution(execution: InsertToolExecution): Promise<ToolExecution>;
   
-  // Metrics
+  // Métricas
   getMetric(id: number): Promise<Metric | undefined>;
   getMetrics(metricType?: string, limit?: number): Promise<Metric[]>;
   getMetricsByTimeRange(startTime: Date, endTime: Date): Promise<Metric[]>;
   createMetric(metric: InsertMetric): Promise<Metric>;
   createMetricsBatch(metrics: InsertMetric[]): Promise<Metric[]>;
   
-  // Audit Logs
+  // Logs de Auditoria
   getAuditLog(id: number): Promise<AuditLog | undefined>;
   getAuditLogs(limit?: number): Promise<AuditLog[]>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
   
-  // Knowledge Sources
+  // Fontes de Conhecimento
   getKnowledgeSource(id: number): Promise<KnowledgeSource | undefined>;
   getKnowledgeSources(): Promise<KnowledgeSource[]>;
   getActiveKnowledgeSources(): Promise<KnowledgeSource[]>;
@@ -95,21 +95,21 @@ export interface IStorage {
   updateKnowledgeSource(id: number, data: Partial<InsertKnowledgeSource>): Promise<KnowledgeSource>;
   deleteKnowledgeSource(id: number): Promise<void>;
   
-  // Generated Files
+  // Arquivos Gerados
   getGeneratedFile(id: number): Promise<GeneratedFile | undefined>;
   getGeneratedFilesByConversation(conversationId: number): Promise<GeneratedFile[]>;
   createGeneratedFile(file: InsertGeneratedFile): Promise<GeneratedFile>;
   markFileAsDeleted(id: number): Promise<void>;
   getExpiredFiles(): Promise<GeneratedFile[]>;
   
-  // Video Jobs
+  // Jobs de Vídeo
   getVideoJob(id: number): Promise<VideoJob | undefined>;
   getVideoJobs(limit?: number): Promise<VideoJob[]>;
   getPendingVideoJobs(): Promise<VideoJob[]>;
   createVideoJob(job: InsertVideoJob): Promise<VideoJob>;
   updateVideoJob(id: number, data: Partial<InsertVideoJob>): Promise<VideoJob>;
   
-  // Video Assets
+  // Assets de Vídeo
   getVideoAsset(id: number): Promise<VideoAsset | undefined>;
   getVideoAssetByJobId(jobId: number): Promise<VideoAsset | undefined>;
   getVideoAssets(limit?: number): Promise<VideoAsset[]>;
@@ -117,7 +117,7 @@ export interface IStorage {
   markVideoAssetAsDeleted(id: number): Promise<void>;
   getExpiredVideoAssets(): Promise<VideoAsset[]>;
   
-  // Projects
+  // Projetos
   getProject(id: number): Promise<Project | undefined>;
   getProjectsByUser(userId: string): Promise<Project[]>;
   createProject(project: InsertProject): Promise<Project>;

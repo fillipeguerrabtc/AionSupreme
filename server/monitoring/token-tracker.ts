@@ -1,12 +1,12 @@
 /**
- * AION Supreme - Token Usage Tracking Service
- * Real-time monitoring of token consumption across all APIs
+ * AION Supreme - Serviço de Rastreamento de Uso de Tokens
+ * Monitoramento em tempo real do consumo de tokens através de todas as APIs
  * 
- * DATA RETENTION POLICY:
- * - Historical data retention: 5 YEARS (1,825 days)
- * - All token usage, web searches, KB searches are preserved for 5 years
- * - Automatic cleanup runs monthly to remove data older than 5 years
- * - This ensures comprehensive analytics while maintaining database performance
+ * POLÍTICA DE RETENÇÃO DE DADOS:
+ * - Retenção de dados históricos: 5 ANOS (1.825 dias)
+ * - Todo uso de tokens, buscas web, buscas KB são preservados por 5 anos
+ * - Limpeza automática executa mensalmente para remover dados com mais de 5 anos
+ * - Isto garante análises abrangentes mantendo performance do banco de dados
  */
 
 import { db } from '../db';
@@ -14,12 +14,12 @@ import { tokenUsage, tokenLimits, tokenAlerts, type InsertTokenUsage, type Inser
 import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
 
 // ============================================================================
-// TIMEZONE HELPERS (Brasília/São Paulo)
+// HELPERS DE TIMEZONE (Brasília/São Paulo)
 // ============================================================================
 
 /**
- * Get the start of today in local timezone (Brasília)
- * This ensures "today" matches the user's local time, not UTC
+ * Obter início do dia atual em timezone local (Brasília)
+ * Isto garante que "hoje" corresponde ao horário local do usuário, não UTC
  */
 function getLocalDayStart(date: Date = new Date()): Date {
   const localDate = new Date(date);
@@ -28,7 +28,7 @@ function getLocalDayStart(date: Date = new Date()): Date {
 }
 
 /**
- * Get the start of current month in local timezone (Brasília)
+ * Obter início do mês atual em timezone local (Brasília)
  */
 function getLocalMonthStart(date: Date = new Date()): Date {
   const localDate = new Date(date);
@@ -38,7 +38,7 @@ function getLocalMonthStart(date: Date = new Date()): Date {
 }
 
 // ============================================================================
-// TYPES
+// TIPOS
 // ============================================================================
 
 export interface WebSearchMetadata {
@@ -103,18 +103,18 @@ export interface ProviderQuota {
 }
 
 // ============================================================================
-// COST CALCULATION (OpenAI pricing)
+// CÁLCULO DE CUSTO (preços OpenAI)
 // ============================================================================
 
 const OPENAI_PRICING = {
-  'gpt-4o': { prompt: 0.005, completion: 0.015 }, // per 1K tokens
+  'gpt-4o': { prompt: 0.005, completion: 0.015 }, // por 1K tokens
   'gpt-4o-mini': { prompt: 0.00015, completion: 0.0006 },
   'gpt-4-turbo': { prompt: 0.01, completion: 0.03 },
   'gpt-3.5-turbo': { prompt: 0.0005, completion: 0.0015 },
   'text-embedding-3-small': { prompt: 0.00002, completion: 0 },
   'text-embedding-3-large': { prompt: 0.00013, completion: 0 },
-  'whisper-1': { prompt: 0, completion: 0.006 }, // per minute
-  'dall-e-3': { prompt: 0, completion: 0.04 } // per image
+  'whisper-1': { prompt: 0, completion: 0.006 }, // por minuto
+  'dall-e-3': { prompt: 0, completion: 0.04 } // por imagem
 };
 
 function calculateCost(provider: string, model: string, promptTokens: number, completionTokens: number): number {

@@ -1,4 +1,4 @@
-// Replit Auth integration - blueprint:javascript_log_in_with_replit
+// Integração Replit Auth - blueprint:javascript_log_in_with_replit
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
 import passport from "passport";
@@ -19,7 +19,7 @@ const getOidcConfig = memoize(
 );
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 semana
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
@@ -157,7 +157,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   }
 };
 
-// Optional auth - doesn't fail if not authenticated
+// Auth opcional - não falha se não autenticado
 export const optionalAuth: RequestHandler = (req, res, next) => {
   next();
 };
