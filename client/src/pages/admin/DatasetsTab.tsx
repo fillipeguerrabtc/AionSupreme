@@ -408,9 +408,9 @@ export default function DatasetsTab() {
   // Get status badge
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      ready: { icon: CheckCircle2, variant: "default" as const, label: "Pronto" },
-      processing: { icon: RefreshCw, variant: "secondary" as const, label: "Processando" },
-      failed: { icon: XCircle, variant: "destructive" as const, label: "Erro" },
+      ready: { icon: CheckCircle2, variant: "default" as const, label: t.common.status.ready },
+      processing: { icon: RefreshCw, variant: "secondary" as const, label: t.common.status.processing },
+      failed: { icon: XCircle, variant: "destructive" as const, label: t.common.status.failed },
     };
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.ready;
     const Icon = config.icon;

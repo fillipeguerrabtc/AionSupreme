@@ -3,6 +3,27 @@ import { createContext, useContext, useState, ReactNode } from "react";
 export type Language = "pt-BR" | "en-US" | "es-ES";
 
 interface Translations {
+  // Common UI strings
+  common: {
+    error: string;
+    success: string;
+    loading: string;
+    loadingError: string;
+    saveSuccess: string;
+    saveError: string;
+    deleteSuccess: string;
+    deleteError: string;
+    createSuccess: string;
+    createError: string;
+    updateSuccess: string;
+    updateError: string;
+    status: {
+      ready: string;
+      processing: string;
+      failed: string;
+    };
+  };
+
   // Chat Interface
   chat: {
     welcome: string;
@@ -708,6 +729,25 @@ interface Translations {
 
 const translations: Record<Language, Translations> = {
   "pt-BR": {
+    common: {
+      error: "Erro",
+      success: "Sucesso",
+      loading: "Carregando...",
+      loadingError: "Erro ao carregar dados",
+      saveSuccess: "Salvo com sucesso",
+      saveError: "Erro ao salvar",
+      deleteSuccess: "Excluído com sucesso",
+      deleteError: "Erro ao excluir",
+      createSuccess: "Criado com sucesso",
+      createError: "Erro ao criar",
+      updateSuccess: "Atualizado com sucesso",
+      updateError: "Erro ao atualizar",
+      status: {
+        ready: "Pronto",
+        processing: "Processando",
+        failed: "Falhou",
+      },
+    },
     chat: {
       welcome: "Bem-vindo ao AION",
       welcomeDesc: "Sistema de IA autônomo com capacidades ilimitadas. Pergunte qualquer coisa.",
@@ -1378,6 +1418,25 @@ const translations: Record<Language, Translations> = {
   },
   
   "en-US": {
+    common: {
+      error: "Error",
+      success: "Success",
+      loading: "Loading...",
+      loadingError: "Error loading data",
+      saveSuccess: "Saved successfully",
+      saveError: "Error saving",
+      deleteSuccess: "Deleted successfully",
+      deleteError: "Error deleting",
+      createSuccess: "Created successfully",
+      createError: "Error creating",
+      updateSuccess: "Updated successfully",
+      updateError: "Error updating",
+      status: {
+        ready: "Ready",
+        processing: "Processing",
+        failed: "Failed",
+      },
+    },
     chat: {
       welcome: "Welcome to AION",
       welcomeDesc: "Autonomous AI system with unlimited capabilities. Ask anything.",
@@ -2048,6 +2107,25 @@ const translations: Record<Language, Translations> = {
   },
   
   "es-ES": {
+    common: {
+      error: "Error",
+      success: "Éxito",
+      loading: "Cargando...",
+      loadingError: "Error al cargar datos",
+      saveSuccess: "Guardado exitosamente",
+      saveError: "Error al guardar",
+      deleteSuccess: "Eliminado exitosamente",
+      deleteError: "Error al eliminar",
+      createSuccess: "Creado exitosamente",
+      createError: "Error al crear",
+      updateSuccess: "Actualizado exitosamente",
+      updateError: "Error al actualizar",
+      status: {
+        ready: "Listo",
+        processing: "Procesando",
+        failed: "Fallado",
+      },
+    },
     chat: {
       welcome: "Bienvenido a AION",
       welcomeDesc: "Sistema de IA autónomo con capacidades ilimitadas. Pregunta cualquier cosa.",

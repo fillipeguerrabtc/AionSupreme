@@ -98,7 +98,7 @@ export default function NamespacesPage() {
       resetCreateForm();
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t.common.error, description: error.message, variant: "destructive" });
     },
   });
 
@@ -118,7 +118,7 @@ export default function NamespacesPage() {
       setSelectedNamespace(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t.common.error, description: error.message, variant: "destructive" });
     },
   });
 
@@ -134,7 +134,7 @@ export default function NamespacesPage() {
       toast({ title: t.admin.namespaces.deleted });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t.common.error, description: error.message, variant: "destructive" });
     },
   });
 

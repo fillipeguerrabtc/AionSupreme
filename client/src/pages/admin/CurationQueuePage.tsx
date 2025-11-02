@@ -86,7 +86,7 @@ export default function CurationQueuePage() {
     queryKey: ["/api/curation/pending"],
     queryFn: async () => {
       const res = await fetch("/api/curation/pending");
-      if (!res.ok) throw new Error("Falha ao carregar fila de curadoria");
+      if (!res.ok) throw new Error(t.common.loadingError);
       return res.json();
     },
   });
@@ -96,7 +96,7 @@ export default function CurationQueuePage() {
     queryKey: ["/api/curation/history"],
     queryFn: async () => {
       const res = await fetch("/api/curation/history");
-      if (!res.ok) throw new Error("Falha ao carregar histórico");
+      if (!res.ok) throw new Error(t.common.loadingError);
       return res.json();
     },
   });

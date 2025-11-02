@@ -94,7 +94,7 @@ export default function AgentsPage() {
       setSelectedAgent(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t.common.error, description: error.message, variant: "destructive" });
     },
   });
 
@@ -111,7 +111,7 @@ export default function AgentsPage() {
       toast({ title: t.admin.agents.toast.deleted });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: t.common.error, description: error.message, variant: "destructive" });
     },
   });
 
