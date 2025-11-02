@@ -3,6 +3,7 @@ import type { Express } from "express";
 import { agentsStorage } from "../storage.agents";
 import { publishEvent } from "../events";
 import { validateNamespaceAssignment } from "../agent/namespace-validators";
+import { generateUniqueSlug } from "../utils/slug-generator";
 
 export function registerAgentRoutes(app: Express) {
   app.get("/api/agents", async (req, res) => {
@@ -16,6 +17,16 @@ export function registerAgentRoutes(app: Express) {
 
   app.post("/api/agents", async (req, res) => {
     try {
+      // Auto-generate slug from name if not provided
+      if (!req.body.slug && req.body.name) {
+        req.body.slug = await generateUniqueSlug(req.body.name);
+      }
+
+      // Validate name is provided
+      if (!req.body.name) {
+        return res.status(400).json({ error: "Nome do agente é obrigatório" });
+      }
+
       // Validate namespace assignment based on agentTier
       const agentTier = req.body.agentTier || "agent";
       const assignedNamespaces = req.body.assignedNamespaces || [];

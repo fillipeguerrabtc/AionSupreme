@@ -30,10 +30,9 @@ interface Namespace {
 
 const createAgentFormSchema = insertAgentSchema.extend({
   name: z.string().min(1, "Nome é obrigatório"),
-  slug: z.string().min(1, "Slug é obrigatório"),
   agentTier: z.literal("agent"),
   assignedNamespaces: z.array(z.string()).length(1, "Agents devem ter exatamente 1 namespace raiz"),
-});
+}).omit({ slug: true });
 
 type CreateAgentFormValues = z.infer<typeof createAgentFormSchema>;
 
@@ -50,7 +49,6 @@ export function CreateAgentForm() {
     resolver: zodResolver(createAgentFormSchema),
     defaultValues: {
       name: "",
-      slug: "",
       description: "",
       systemPrompt: "",
       agentTier: "agent",
@@ -110,24 +108,6 @@ export function CreateAgentForm() {
                     />
                   </FormControl>
                   <FormMessage data-testid="error-agent-name" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="slug"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Slug (identificador único) *</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Ex: coordenador-financeiro"
-                      data-testid="input-agent-slug"
-                    />
-                  </FormControl>
-                  <FormMessage data-testid="error-agent-slug" />
                 </FormItem>
               )}
             />

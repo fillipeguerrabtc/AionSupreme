@@ -151,7 +151,6 @@ export default function AgentsPage() {
       id: selectedAgent.id,
       data: {
         name: editName,
-        slug: editSlug,
         description: editDescription || undefined,
         systemPrompt: editPrompt || undefined,
         ragNamespaces: editNamespaces,
@@ -316,27 +315,24 @@ export default function AgentsPage() {
           </DialogHeader>
           {selectedAgent && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-name">Nome do Agente</Label>
-                  <Input 
-                    id="edit-name" 
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    required 
-                    data-testid="input-agent-name" 
-                  />
+              <div>
+                <Label htmlFor="edit-name">Nome do Agente</Label>
+                <Input 
+                  id="edit-name" 
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required 
+                  data-testid="input-agent-name" 
+                />
+              </div>
+              <div>
+                <Label>Identificador (Slug)</Label>
+                <div className="px-3 py-2 bg-muted rounded-md">
+                  <code className="text-sm font-mono">{editSlug}</code>
                 </div>
-                <div>
-                  <Label htmlFor="edit-slug">Slug (identificador único)</Label>
-                  <Input 
-                    id="edit-slug" 
-                    value={editSlug}
-                    onChange={(e) => setEditSlug(e.target.value)}
-                    required 
-                    data-testid="input-agent-slug" 
-                  />
-                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Gerado automaticamente pelo sistema - não editável
+                </p>
               </div>
               <div>
                 <Label htmlFor="edit-description">Descrição</Label>

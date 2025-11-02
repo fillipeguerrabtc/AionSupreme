@@ -48,12 +48,11 @@ interface Agent {
 
 const createSubAgentFormSchema = insertAgentSchema.extend({
   name: z.string().min(1, "Nome é obrigatório"),
-  slug: z.string().min(1, "Slug é obrigatório"),
   agentTier: z.literal("subagent"),
   assignedNamespaces: z
     .array(z.string())
     .min(1, "SubAgents devem ter pelo menos 1 subnamespace"),
-});
+}).omit({ slug: true });
 
 type CreateSubAgentFormValues = z.infer<typeof createSubAgentFormSchema>;
 
@@ -93,7 +92,6 @@ export function CreateSubAgentForm() {
     resolver: zodResolver(createSubAgentFormSchema),
     defaultValues: {
       name: "",
-      slug: "",
       description: "",
       systemPrompt: "",
       agentTier: "subagent",
@@ -153,24 +151,6 @@ export function CreateSubAgentForm() {
                     />
                   </FormControl>
                   <FormMessage data-testid="error-subagent-name" />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="slug"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Slug (identificador único) *</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Ex: especialista-investimentos"
-                      data-testid="input-subagent-slug"
-                    />
-                  </FormControl>
-                  <FormMessage data-testid="error-subagent-slug" />
                 </FormItem>
               )}
             />
