@@ -1050,7 +1050,7 @@ export default function AdminDashboard() {
                     data-testid="button-view-full-prompt"
                   >
                     <Eye className="w-4 h-4 mr-2" />
-                    Ver Prompt Completo
+                    {t.admin.behavior.viewFullPrompt}
                   </Button>
                 </div>
               </CardContent>
@@ -1129,16 +1129,15 @@ export default function AdminDashboard() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-primary" />
-              Prompt Completo (Enviado para as IAs)
+              {t.admin.behavior.previewModal.title}
             </DialogTitle>
             <DialogDescription>
-              Este é o prompt REAL que o AION envia para OpenAI, Groq, Gemini e outras APIs.
-              Inclui suas configurações customizadas + as 7 características do equalizador.
+              {t.admin.behavior.previewModal.description}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto">
             <Textarea
-              value={fullPromptData?.fullPrompt || "Carregando..."}
+              value={fullPromptData?.fullPrompt || t.admin.behavior.previewModal.loading}
               readOnly
               className="bg-muted border-border font-mono text-xs min-h-[500px] w-full resize-none"
               data-testid="textarea-full-prompt-preview"
@@ -1146,14 +1145,14 @@ export default function AdminDashboard() {
           </div>
           <div className="flex justify-between items-center pt-4 border-t">
             <div className="text-sm text-muted-foreground">
-              {fullPromptData?.fullPrompt ? `${fullPromptData.fullPrompt.length} caracteres` : ''}
+              {fullPromptData?.fullPrompt ? `${fullPromptData.fullPrompt.length} ${t.admin.behavior.previewModal.characters}` : ''}
             </div>
             <Button
               onClick={() => setShowFullPrompt(false)}
               variant="outline"
               data-testid="button-close-full-prompt"
             >
-              Fechar
+              {t.admin.behavior.previewModal.close}
             </Button>
           </div>
         </DialogContent>

@@ -511,6 +511,14 @@ interface Translations {
       systemPrompt: string;
       systemPromptDesc: string;
       systemPromptPlaceholder: string;
+      viewFullPrompt: string;
+      previewModal: {
+        title: string;
+        description: string;
+        loading: string;
+        close: string;
+        characters: string;
+      };
     };
     
     // Settings
@@ -1216,6 +1224,14 @@ const translations: Record<Language, Translations> = {
         systemPrompt: "System Prompt",
         systemPromptDesc: "Instruções base para o comportamento da IA",
         systemPromptPlaceholder: "Digite o system prompt...",
+        viewFullPrompt: "Ver Prompt Completo",
+        previewModal: {
+          title: "Prompt Completo (Enviado para as IAs)",
+          description: "Este é o prompt REAL que o AION envia para OpenAI, Groq, Gemini e outras APIs. Inclui suas configurações customizadas + as 7 características do equalizador.",
+          loading: "Carregando...",
+          close: "Fechar",
+          characters: "caracteres",
+        },
       },
       
       settings: {
@@ -1911,6 +1927,14 @@ const translations: Record<Language, Translations> = {
         systemPrompt: "System Prompt",
         systemPromptDesc: "Base instructions for AI behavior",
         systemPromptPlaceholder: "Enter system prompt...",
+        viewFullPrompt: "View Full Prompt",
+        previewModal: {
+          title: "Full Prompt (Sent to AI APIs)",
+          description: "This is the REAL prompt that AION sends to OpenAI, Groq, Gemini and other APIs. Includes your custom settings + the 7 equalizer characteristics.",
+          loading: "Loading...",
+          close: "Close",
+          characters: "characters",
+        },
       },
       
       settings: {
@@ -2606,6 +2630,14 @@ const translations: Record<Language, Translations> = {
         systemPrompt: "System Prompt",
         systemPromptDesc: "Instrucciones base para el comportamiento de la IA",
         systemPromptPlaceholder: "Introduce el system prompt...",
+        viewFullPrompt: "Ver Prompt Completo",
+        previewModal: {
+          title: "Prompt Completo (Enviado a las IAs)",
+          description: "Este es el prompt REAL que AION envía a OpenAI, Groq, Gemini y otras APIs. Incluye tus configuraciones personalizadas + las 7 características del ecualizador.",
+          loading: "Cargando...",
+          close: "Cerrar",
+          characters: "caracteres",
+        },
       },
       
       settings: {
