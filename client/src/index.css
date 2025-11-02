@@ -6,10 +6,10 @@
   :root {
     /* AION - Minimal Design System (Starlink/Tesla/Apple inspired) */
     /* 90% Neutral Colors - Base */
-    --background: 0 0% 100%;           /* Pure white */
+    --background: 0 0% 98%;            /* Off-white (less eye strain) */
     --foreground: 0 0% 5%;              /* Almost black */
     
-    --card: 0 0% 100%;                  /* White cards */
+    --card: 0 0% 100%;                  /* Pure white for cards (contrast) */
     --card-foreground: 0 0% 5%;
     
     --popover: 0 0% 100%;
@@ -180,5 +180,18 @@
   .backdrop-glass {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+  }
+  
+  /* Modern Glassmorphism for Admin - Elegant transparency */
+  .glass-modern {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  
+  .dark .glass-modern {
+    background: rgba(18, 18, 18, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 }

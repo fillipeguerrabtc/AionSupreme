@@ -39,12 +39,15 @@ Seguimos os princípios das melhores marcas tech do mundo: simplicidade radical,
 
 ### Cores Neutras (Base) - 90% do design
 ```css
---background: 0 0% 100%;           /* Branco puro */
+--background: 0 0% 98%;            /* Off-white (menos cansativo) */
 --foreground: 0 0% 5%;              /* Preto quase puro */
+--card: 0 0% 100%;                  /* Branco puro para cards (contraste) */
 --muted: 240 5% 96%;                /* Cinza muito claro */
 --muted-foreground: 240 4% 46%;     /* Cinza médio */
 --border: 240 6% 90%;               /* Bordas sutis */
 ```
+
+**IMPORTANTE**: Background usa off-white (98%) ao invés de branco puro para reduzir fadiga visual durante uso prolongado.
 
 ### Cores de Destaque (Mínimas) - 10% do design
 ```css
@@ -108,6 +111,14 @@ Seguimos os princípios das melhores marcas tech do mundo: simplicidade radical,
 ---
 
 ## 🔘 Components
+
+### Cards & Glassmorphism
+
+**ATUALIZAÇÃO (Nov 2024): Glassmorphism Moderno Aprovado**
+- **Admin Dashboard**: Usa glassmorphism elegante nos cards para sofisticação
+- **Estilo**: Transparência sutil (70%) + blur(16px) + saturação(180%)
+- **Aplicação**: `.glass-modern` class - background translúcido com backdrop-filter
+- **Evitar**: Glassmorphism exagerado - deve ser elegante e discreto
 
 ### Buttons (Estilo Tesla/Apple)
 

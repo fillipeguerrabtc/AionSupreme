@@ -559,13 +559,10 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-4xl mx-auto space-y-6">
           {messages.length === 0 && (
-            <div className="text-center py-32 space-y-8 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-muted">
-                <Bot className="w-12 h-12 text-foreground" />
-              </div>
-              <div className="space-y-3">
-                <h2 className="text-5xl font-bold text-foreground tracking-tight">{t.chat.welcome}</h2>
-                <p className="text-muted-foreground max-w-md mx-auto leading-relaxed text-lg">
+            <div className="text-center py-32 space-y-6 animate-fade-in">
+              <div className="space-y-4">
+                <h2 className="text-3xl font-semibold text-foreground tracking-tight font-[Plus_Jakarta_Sans]">{t.chat.welcome}</h2>
+                <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed text-base">
                   {t.chat.welcomeDesc}
                 </p>
               </div>
@@ -768,13 +765,10 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-4xl mx-auto space-y-6">
           {messages.length === 0 && (
-            <div className="text-center py-32 space-y-8 animate-fade-in">
-              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-muted">
-                <Bot className="w-12 h-12 text-foreground" />
-              </div>
-              <div className="space-y-3">
-                <h2 className="text-5xl font-bold text-foreground tracking-tight">{t.chat.welcome}</h2>
-                <p className="text-muted-foreground max-w-md mx-auto leading-relaxed text-lg">
+            <div className="text-center py-32 space-y-6 animate-fade-in">
+              <div className="space-y-4">
+                <h2 className="text-3xl font-semibold text-foreground tracking-tight font-[Plus_Jakarta_Sans]">{t.chat.welcome}</h2>
+                <p className="text-muted-foreground max-w-lg mx-auto leading-relaxed text-base">
                   {t.chat.welcomeDesc}
                 </p>
               </div>

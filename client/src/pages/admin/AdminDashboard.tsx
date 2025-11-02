@@ -398,7 +398,7 @@ export default function AdminDashboard() {
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* Card 1: Total Tokens → Token Monitoring (Overview) */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('overview');
               setActiveTab("tokens");
@@ -428,7 +428,7 @@ export default function AdminDashboard() {
 
           {/* Card 2: Total Cost → Cost History Tab */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("cost")}
             data-testid="card-total-cost"
           >
@@ -452,7 +452,7 @@ export default function AdminDashboard() {
 
           {/* Card 3: KB Searches → Token Monitoring (KB subtab) */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('kb');
               setActiveTab("tokens");
@@ -479,7 +479,7 @@ export default function AdminDashboard() {
 
           {/* Card 4: Free APIs → Token Monitoring (Free APIs subtab) */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('free-apis');
               setActiveTab("tokens");
@@ -517,7 +517,7 @@ export default function AdminDashboard() {
 
           {/* Card 5: OpenAI → Token Monitoring (OpenAI subtab) */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('openai');
               setActiveTab("tokens");
@@ -547,7 +547,7 @@ export default function AdminDashboard() {
 
           {/* Card 6: Web Searches → Token Monitoring (Web subtab) */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('web');
               setActiveTab("tokens");
@@ -574,7 +574,7 @@ export default function AdminDashboard() {
 
           {/* Card 7: DeepWeb Searches → Token Monitoring (DeepWeb subtab) */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('deepweb');
               setActiveTab("tokens");
@@ -601,7 +601,7 @@ export default function AdminDashboard() {
 
           {/* Card 8: KB Documents → Knowledge Base Tab */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("knowledge")}
             data-testid="card-kb-documents"
           >
@@ -621,7 +621,7 @@ export default function AdminDashboard() {
 
           {/* Card 9: GPU Workers → GPU Management Tab */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("gpu")}
             data-testid="card-gpu-workers"
           >
@@ -661,7 +661,7 @@ export default function AdminDashboard() {
 
           {/* Card 10: Federated Training Jobs → Federated Training Tab */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("federated")}
             data-testid="card-federated-jobs"
           >
@@ -685,7 +685,7 @@ export default function AdminDashboard() {
 
           {/* Card 11: Auto-Evolution → Auto-Evolution Tab */}
           <Card 
-            className="bg-card border hover-elevate cursor-pointer transition-all duration-200" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("evolution")}
             data-testid="card-auto-evolution"
           >
@@ -830,7 +830,7 @@ export default function AdminDashboard() {
             {/* Policy Controls Grid */}
             <div className="grid gap-6 md:grid-cols-2">
               {/* Moral/Ética/Legal */}
-              <Card className="bg-card border animate-slide-up overflow-visible">
+              <Card className="glass-modern animate-slide-up overflow-visible">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Shield className="w-5 h-5 text-primary" />
@@ -863,7 +863,7 @@ export default function AdminDashboard() {
               </Card>
 
               {/* Comportamento da IA */}
-              <Card className="bg-card border hover-elevate animate-slide-up" style={{ animationDelay: "100ms" }}>
+              <Card className="glass-modern hover-elevate animate-slide-up" style={{ animationDelay: "100ms" }}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-accent" />
@@ -909,7 +909,7 @@ export default function AdminDashboard() {
 
             {/* Save Button */}
             {hasUnsavedChanges && (
-              <Card className="bg-card border hover-elevate animate-slide-up">
+              <Card className="glass-modern hover-elevate animate-slide-up">
                 <CardContent className="py-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
@@ -931,7 +931,7 @@ export default function AdminDashboard() {
             )}
 
             {/* System Prompt */}
-            <Card className="bg-card border hover-elevate animate-slide-up" style={{ animationDelay: "200ms" }}>
+            <Card className="glass-modern hover-elevate animate-slide-up" style={{ animationDelay: "200ms" }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-primary" />
@@ -962,7 +962,7 @@ export default function AdminDashboard() {
             </Card>
 
             {/* Timezone Selector */}
-            <Card className="bg-card border hover-elevate animate-slide-up" style={{ animationDelay: "300ms" }}>
+            <Card className="glass-modern hover-elevate animate-slide-up" style={{ animationDelay: "300ms" }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
