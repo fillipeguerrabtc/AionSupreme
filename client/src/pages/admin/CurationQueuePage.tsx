@@ -31,6 +31,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { useLanguage } from "@/lib/i18n";
 import { AbsorptionPreviewModal } from "@/components/AbsorptionPreviewModal";
+import { NamespaceClassifier } from "@/components/NamespaceClassifier";
 
 interface CurationItem {
   id: string;
@@ -721,6 +722,24 @@ export default function CurationQueuePage() {
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
                         </Button>
+                        
+                        {/* Namespace Classification - LLM-powered intelligent categorization */}
+                        <NamespaceClassifier 
+                          content={item.content}
+                          title={item.title}
+                          onNamespaceSelected={(namespace) => {
+                            // Update item's suggested namespaces
+                            editMutation.mutate({
+                              id: item.id,
+                              title: item.title,
+                              content: item.content,
+                              tags: item.tags,
+                              suggestedNamespaces: [...item.suggestedNamespaces, namespace],
+                              note: item.note || ""
+                            });
+                          }}
+                        />
+                        
                         {/* Absorb Partial button - only for near-duplicates with KB duplicate */}
                         {item.duplicationStatus === "near" && item.duplicateOfId && (
                           <Button
