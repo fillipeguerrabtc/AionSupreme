@@ -839,14 +839,33 @@ export default function AdminDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-3">
+                {/* 1. Verbosity */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    {t.admin.behavior.verbosity}: {(((pendingBehavior || policy?.behavior)?.verbosity || 0.7) * 100).toFixed(0)}%
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{t.admin.behavior.verbosityDesc}</p>
+                  <Slider
+                    value={[((pendingBehavior || policy?.behavior)?.verbosity || 0.7) * 100]}
+                    onValueChange={([value]) => {
+                      setPendingBehavior({ ...(pendingBehavior || policy?.behavior), verbosity: value / 100 });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="bg-muted p-2 rounded-xl"
+                    data-testid="slider-verbosity"
+                  />
+                </div>
+
+                {/* 2. Formality */}
+                <div className="space-y-2">
                   <Label className="text-sm font-medium">
                     {t.admin.behavior.formality}: {(((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100).toFixed(0)}%
                   </Label>
+                  <p className="text-xs text-muted-foreground">{t.admin.behavior.formalityDesc}</p>
                   <Slider
                     value={[((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100]}
                     onValueChange={([value]) => {
-                      setPendingBehavior({ ...pendingBehavior, formality: value / 100 });
+                      setPendingBehavior({ ...(pendingBehavior || policy?.behavior), formality: value / 100 });
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
@@ -854,18 +873,88 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                <div className="space-y-3">
+                {/* 3. Creativity */}
+                <div className="space-y-2">
                   <Label className="text-sm font-medium">
                     {t.admin.behavior.creativity}: {(((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100).toFixed(0)}%
                   </Label>
+                  <p className="text-xs text-muted-foreground">{t.admin.behavior.creativityDesc}</p>
                   <Slider
                     value={[((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100]}
                     onValueChange={([value]) => {
-                      setPendingBehavior({ ...pendingBehavior, creativity: value / 100 });
+                      setPendingBehavior({ ...(pendingBehavior || policy?.behavior), creativity: value / 100 });
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
                     data-testid="slider-creativity"
+                  />
+                </div>
+
+                {/* 4. Precision */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    {t.admin.behavior.precision}: {(((pendingBehavior || policy?.behavior)?.precision || 0.8) * 100).toFixed(0)}%
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{t.admin.behavior.precisionDesc}</p>
+                  <Slider
+                    value={[((pendingBehavior || policy?.behavior)?.precision || 0.8) * 100]}
+                    onValueChange={([value]) => {
+                      setPendingBehavior({ ...(pendingBehavior || policy?.behavior), precision: value / 100 });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="bg-muted p-2 rounded-xl"
+                    data-testid="slider-precision"
+                  />
+                </div>
+
+                {/* 5. Persuasiveness */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    {t.admin.behavior.persuasiveness}: {(((pendingBehavior || policy?.behavior)?.persuasiveness || 0.5) * 100).toFixed(0)}%
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{t.admin.behavior.persuasivenessDesc}</p>
+                  <Slider
+                    value={[((pendingBehavior || policy?.behavior)?.persuasiveness || 0.5) * 100]}
+                    onValueChange={([value]) => {
+                      setPendingBehavior({ ...(pendingBehavior || policy?.behavior), persuasiveness: value / 100 });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="bg-muted p-2 rounded-xl"
+                    data-testid="slider-persuasiveness"
+                  />
+                </div>
+
+                {/* 6. Empathy */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    {t.admin.behavior.empathy}: {(((pendingBehavior || policy?.behavior)?.empathy || 0.7) * 100).toFixed(0)}%
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{t.admin.behavior.empathyDesc}</p>
+                  <Slider
+                    value={[((pendingBehavior || policy?.behavior)?.empathy || 0.7) * 100]}
+                    onValueChange={([value]) => {
+                      setPendingBehavior({ ...(pendingBehavior || policy?.behavior), empathy: value / 100 });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="bg-muted p-2 rounded-xl"
+                    data-testid="slider-empathy"
+                  />
+                </div>
+
+                {/* 7. Enthusiasm */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    {t.admin.behavior.enthusiasm}: {(((pendingBehavior || policy?.behavior)?.enthusiasm || 0.6) * 100).toFixed(0)}%
+                  </Label>
+                  <p className="text-xs text-muted-foreground">{t.admin.behavior.enthusiasmDesc}</p>
+                  <Slider
+                    value={[((pendingBehavior || policy?.behavior)?.enthusiasm || 0.6) * 100]}
+                    onValueChange={([value]) => {
+                      setPendingBehavior({ ...(pendingBehavior || policy?.behavior), enthusiasm: value / 100 });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="bg-muted p-2 rounded-xl"
+                    data-testid="slider-enthusiasm"
                   />
                 </div>
               </CardContent>

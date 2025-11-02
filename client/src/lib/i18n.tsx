@@ -494,8 +494,20 @@ interface Translations {
     behavior: {
       title: string;
       description: string;
+      verbosity: string;
+      verbosityDesc: string;
       formality: string;
+      formalityDesc: string;
       creativity: string;
+      creativityDesc: string;
+      precision: string;
+      precisionDesc: string;
+      persuasiveness: string;
+      persuasivenessDesc: string;
+      empathy: string;
+      empathyDesc: string;
+      enthusiasm: string;
+      enthusiasmDesc: string;
       systemPrompt: string;
       systemPromptDesc: string;
       systemPromptPlaceholder: string;
@@ -1186,9 +1198,21 @@ const translations: Record<Language, Translations> = {
       
       behavior: {
         title: "Comportamento da IA",
-        description: "Ajuste a personalidade e estilo de resposta",
+        description: "Ajuste a personalidade e estilo de resposta com 7 características configuráveis",
+        verbosity: "Verbosidade",
+        verbosityDesc: "0% = Respostas curtas (1-2 frases) | 100% = Respostas detalhadas e completas",
         formality: "Formalidade",
+        formalityDesc: "0% = Casual e amigável | 100% = Formal e profissional",
         creativity: "Criatividade",
+        creativityDesc: "0% = Somente fatos objetivos | 100% = Usa metáforas, analogias e linguagem criativa",
+        precision: "Precisão",
+        precisionDesc: "0% = Números aproximados e estimativas | 100% = Números exatos e fontes citadas",
+        persuasiveness: "Persuasão",
+        persuasivenessDesc: "0% = Apresenta fatos neutros | 100% = Usa técnicas persuasivas e argumentos fortes",
+        empathy: "Empatia",
+        empathyDesc: "0% = Objetivo e factual | 100% = Mostra empatia e consideração emocional",
+        enthusiasm: "Entusiasmo",
+        enthusiasmDesc: "0% = Tom calmo e reservado | 100% = Energia alta e linguagem expressiva!",
         systemPrompt: "System Prompt",
         systemPromptDesc: "Instruções base para o comportamento da IA",
         systemPromptPlaceholder: "Digite o system prompt...",
@@ -1869,9 +1893,21 @@ const translations: Record<Language, Translations> = {
       
       behavior: {
         title: "AI Behavior",
-        description: "Adjust personality and response style",
+        description: "Adjust personality and response style with 7 configurable traits",
+        verbosity: "Verbosity",
+        verbosityDesc: "0% = Short answers (1-2 sentences) | 100% = Detailed and comprehensive responses",
         formality: "Formality",
+        formalityDesc: "0% = Casual and friendly | 100% = Formal and professional",
         creativity: "Creativity",
+        creativityDesc: "0% = Only objective facts | 100% = Uses metaphors, analogies and creative language",
+        precision: "Precision",
+        precisionDesc: "0% = Approximate numbers and estimates | 100% = Exact numbers and cited sources",
+        persuasiveness: "Persuasiveness",
+        persuasivenessDesc: "0% = Presents neutral facts | 100% = Uses persuasive techniques and strong arguments",
+        empathy: "Empathy",
+        empathyDesc: "0% = Objective and factual | 100% = Shows empathy and emotional consideration",
+        enthusiasm: "Enthusiasm",
+        enthusiasmDesc: "0% = Calm and reserved tone | 100% = High energy and expressive language!",
         systemPrompt: "System Prompt",
         systemPromptDesc: "Base instructions for AI behavior",
         systemPromptPlaceholder: "Enter system prompt...",
@@ -2552,9 +2588,21 @@ const translations: Record<Language, Translations> = {
       
       behavior: {
         title: "Comportamiento de la IA",
-        description: "Ajusta la personalidad y estilo de respuesta",
+        description: "Ajusta la personalidad y estilo de respuesta con 7 características configurables",
+        verbosity: "Verbosidad",
+        verbosityDesc: "0% = Respuestas cortas (1-2 frases) | 100% = Respuestas detalladas y completas",
         formality: "Formalidad",
+        formalityDesc: "0% = Casual y amigable | 100% = Formal y profesional",
         creativity: "Creatividad",
+        creativityDesc: "0% = Solo hechos objetivos | 100% = Usa metáforas, analogías y lenguaje creativo",
+        precision: "Precisión",
+        precisionDesc: "0% = Números aproximados y estimaciones | 100% = Números exactos y fuentes citadas",
+        persuasiveness: "Persuasión",
+        persuasivenessDesc: "0% = Presenta hechos neutrales | 100% = Usa técnicas persuasivas y argumentos fuertes",
+        empathy: "Empatía",
+        empathyDesc: "0% = Objetivo y factual | 100% = Muestra empatía y consideración emocional",
+        enthusiasm: "Entusiasmo",
+        enthusiasmDesc: "0% = Tono calmado y reservado | 100% = Alta energía y lenguaje expresivo!",
         systemPrompt: "System Prompt",
         systemPromptDesc: "Instrucciones base para el comportamiento de la IA",
         systemPromptPlaceholder: "Introduce el system prompt...",
