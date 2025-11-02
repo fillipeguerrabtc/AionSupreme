@@ -89,7 +89,7 @@ export function registerRoutes(app: Express): Server {
       const [dataset] = await db.select().from(datasets).where(eq(datasets.id, datasetId)).limit(1);
       
       if (!dataset) {
-        return res.status(404).json({ error: "Dataset not found" });
+        return res.status(404).json({ error: "Dataset não encontrado" });
       }
       
       // Resolver caminho absoluto (sendFile exige caminho absoluto)
@@ -101,7 +101,7 @@ export function registerRoutes(app: Express): Server {
       res.setHeader("Content-Disposition", `attachment; filename="${dataset.originalFilename}"`);
       res.sendFile(absolutePath);
     } catch (error: any) {
-      console.error("[Dataset Download] Error:", error);
+      console.error("[Dataset Download] Erro:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -118,13 +118,13 @@ export function registerRoutes(app: Express): Server {
       await pool.query("SELECT 1");
       
       res.status(200).json({
-        status: "healthy",
+        status: "saudável",
         timestamp: new Date().toISOString(),
         uptime: Math.floor((Date.now() - startupTime) / 1000),
       });
     } catch (error: any) {
       res.status(503).json({
-        status: "unhealthy",
+        status: "indisponível",
         error: error.message,
         timestamp: new Date().toISOString(),
       });
@@ -151,13 +151,13 @@ export function registerRoutes(app: Express): Server {
       const latency = Date.now() - start;
       
       checks.services.database = {
-        status: "healthy",
+        status: "saudável",
         latency: `${latency}ms`,
       };
     } catch (error: any) {
       allHealthy = false;
       checks.services.database = {
-        status: "unhealthy",
+        status: "indisponível",
         error: error.message,
       };
     }
@@ -166,12 +166,12 @@ export function registerRoutes(app: Express): Server {
     try {
       const apiStatus = freeLLMProviders.getHealthStatus();
       checks.services.freeAPIs = {
-        status: "healthy",
+        status: "saudável",
         providers: apiStatus,
       };
     } catch (error: any) {
       checks.services.freeAPIs = {
-        status: "degraded",
+        status: "degradado",
         error: error.message,
       };
     }
@@ -280,7 +280,7 @@ export function registerRoutes(app: Express): Server {
             const historyWithoutLastTurn = messages.slice(0, -1);
             
             const agentResult = await orchestrateAgents(lastUserMessage, {
-              history: historyWithoutLastTurn, // Previous turns only, current query added separately
+              history: historyWithoutLastTurn, // Apenas turnos anteriores, consulta atual adicionada separadamente
               budgetUSD: 1.0,
               tenantId: 1,
               sessionId: "chat-session",
@@ -299,7 +299,7 @@ export function registerRoutes(app: Express): Server {
                 finish_reason: "stop"
               }],
               usage: {
-                totalTokens: 0, // Multi-agent usa APIs gratuitas
+                totalTokens: 0, // Multi-agente usa APIs gratuitas
               },
               metadata: {
                 ...agentResult.metadata,
@@ -307,15 +307,15 @@ export function registerRoutes(app: Express): Server {
               }
             });
           } else {
-            console.log(`[Chat API] No agents available, falling back to priority orchestrator`);
+            console.log(`[Chat API] Nenhum agente disponível, usando orquestrador de prioridade como fallback`);
           }
         } catch (multiAgentError: any) {
-          console.warn(`[Chat API] Multi-agent failed, falling back:`, multiAgentError.message);
+          console.warn(`[Chat API] Multi-agente falhou, usando fallback:`, multiAgentError.message);
         }
       }
       
       // FALLBACK: Usar orquestrador de prioridade original
-      console.log(`[Chat API] Using fallback Priority Orchestrator`);
+      console.log(`[Chat API] Usando orquestrador de prioridade como fallback`);
       
       // Obter política ou usar PADRÃO SEM RESTRIÇÕES (todas as regras = false)
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
@@ -349,7 +349,7 @@ export function registerRoutes(app: Express): Server {
         
         // Fire and forget - não bloquear resposta
         autoLearningListener.onChatCompleted({
-          conversationId: null, // No conversation ID for standalone chats
+          conversationId: null, // Sem ID de conversa para chats standalone
           userMessage,
           assistantResponse: result.content,
           source: result.source as any,
@@ -368,7 +368,7 @@ export function registerRoutes(app: Express): Server {
           message: { 
             role: "assistant", 
             content: result.content,
-            attachments: result.attachments  // MULTIMODAL: Passar attachments para frontend
+            attachments: result.attachments  // MULTIMODAL: Passar anexos para frontend
           }, 
           finish_reason: "stop"
         }],
@@ -386,15 +386,15 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/v1/transcribe (Whisper audio transcription)
+  // POST /api/v1/transcribe (transcrição de áudio Whisper)
   app.post("/api/v1/transcribe", upload.single("audio"), async (req, res) => {
     const startTime = Date.now();
     try {
-      if (!req.file) throw new Error("No audio file uploaded");
+      if (!req.file) throw new Error("Nenhum arquivo de áudio enviado");
       
       metricsCollector.recordRequest();
       
-      // Call OpenAI Whisper API
+      // Chamar API OpenAI Whisper
       const transcription = await llmClient.transcribeAudio(req.file.path);
       
       const latency = Date.now() - startTime;
@@ -407,7 +407,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/v1/chat/multimodal (Chat with file attachments)
+  // POST /api/v1/chat/multimodal (Chat com anexos de arquivo)
   app.post("/api/v1/chat/multimodal", upload.array("files", 5), async (req, res) => {
     const startTime = Date.now();
     const parsedData = JSON.parse(req.body.data || "{}");
@@ -418,10 +418,10 @@ export function registerRoutes(app: Express): Server {
       
       metricsCollector.recordRequest();
       
-      // Get policy or use DEFAULT UNRESTRICTED (all rules = false)
+      // Obter política ou usar PADRÃO SEM RESTRIÇÕES (todas as regras = false)
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
       
-      // Process all uploaded files
+      // Processar todos os arquivos enviados
       let attachmentsContext = "";
       const imageAttachments = [];
       
@@ -429,7 +429,7 @@ export function registerRoutes(app: Express): Server {
         const { curationStore } = await import("./curation/store");
         const imagesDir = path.join(process.cwd(), "attached_assets", "chat_images");
         
-        // Ensure chat images directory exists
+        // Garantir que diretório de imagens do chat existe
         if (!fsSync.existsSync(imagesDir)) {
           fsSync.mkdirSync(imagesDir, { recursive: true });
         }
@@ -485,10 +485,10 @@ export function registerRoutes(app: Express): Server {
             return `[${file.originalname}]: ${processed.extractedText}`;
           })
         );
-        attachmentsContext = "\n\nAttached files:\n" + processedFiles.join("\n\n");
+        attachmentsContext = "\n\nArquivos anexados:\n" + processedFiles.join("\n\n");
       }
       
-      // Append file context to last user message
+      // Adicionar contexto de arquivos à última mensagem do usuário
       const enrichedMessages = [...messages];
       if (enrichedMessages.length > 0 && attachmentsContext) {
         const lastMsg = enrichedMessages[enrichedMessages.length - 1];
@@ -497,7 +497,7 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      // Get last user message for language detection (normalize to string)
+      // Obter última mensagem do usuário para detecção de idioma (normalizar para string)
       const lastUserContent2 = messages[messages.length - 1]?.content || '';
       const lastUserMessage = extractTextContent(lastUserContent2);
       const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage);
@@ -511,8 +511,8 @@ export function registerRoutes(app: Express): Server {
       
       const moderated = await enforcementPipeline.moderateOutput(result.content, policy);
       
-      // ⚡ AUTOMATIC FALLBACK: If OpenAI refused and system is UNRESTRICTED,
-      // search web, index in KB, and respond without censorship
+      // ⚡ FALLBACK AUTOMÁTICO: Se OpenAI recusou e sistema está SEM RESTRIÇÕES,
+      // buscar na web, indexar na KB e responder sem censura
       const userMessageContent = messages[messages.length - 1]?.content || '';
       const userMessage = extractTextContent(userMessageContent);
       const fallbackResult = await autoFallback.checkAndExecuteFallback(
@@ -549,30 +549,30 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/kb/ingest
-  // HITL FIX: KB file ingestion goes through curation queue
+  // HITL FIX: Ingestão de arquivos KB passa pela fila de curadoria
   app.post("/api/kb/ingest", upload.single("file"), async (req, res) => {
     try {
-      if (!req.file) throw new Error("No file uploaded");
+      if (!req.file) throw new Error("Nenhum arquivo enviado");
       
       const mimeType = fileProcessor.detectMimeType(req.file.originalname);
       
       const processed = await fileProcessor.processFile(req.file.path, mimeType);
 
-      // DEDUPLICATION: Check if file is duplicate
+      // DEDUPLICAÇÃO: Verificar se arquivo é duplicado
       const { deduplicationService } = await import("./services/deduplication-service");
       const dupCheck = await deduplicationService.checkDuplicate({
         filePath: req.file.path,
         text: processed.extractedText,
         tenantId: 1,
-        enableSemantic: processed.extractedText.length >= 100 // Only semantic if enough text
+        enableSemantic: processed.extractedText.length >= 100 // Apenas semântico se texto suficiente
       });
 
       if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
-        // Clean up temp file
+        // Limpar arquivo temporário
         await fs.unlink(req.file.path).catch(() => {});
         
         return res.status(409).json({
-          error: "Duplicate file detected",
+          error: "Arquivo duplicado detectado",
           duplicate: {
             id: dupCheck.duplicateOf.id,
             title: dupCheck.duplicateOf.title,
@@ -580,15 +580,15 @@ export function registerRoutes(app: Express): Server {
             similarity: dupCheck.duplicateOf.similarity
           },
           message: dupCheck.method === 'hash'
-            ? "Exact duplicate file found in KB"
-            : `Similar content found (${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% match)`
+            ? "Arquivo duplicado exato encontrado na KB"
+            : `Conteúdo similar encontrado (${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% correspondência)`
         });
       }
       
-      // Import curation store
+      // Importar curation store
       const { curationStore } = await import("./curation/store");
       
-      // Add to curation queue instead of direct KB publish
+      // Adicionar à fila de curadoria ao invés de publicar direto na KB
       const item = await curationStore.addToCuration({
         title: req.file.originalname,
         content: processed.extractedText,
@@ -597,13 +597,13 @@ export function registerRoutes(app: Express): Server {
         submittedBy: "api",
       });
       
-      // Clean up temp file
+      // Limpar arquivo temporário
       await fs.unlink(req.file.path).catch(() => {});
       
       res.json({ 
         ok: true, 
         curationId: item.id,
-        message: "File submitted to curation queue for human review",
+        message: "Arquivo submetido à fila de curadoria para revisão humana",
         status: "pending_approval"
       });
     } catch (error: any) {
@@ -665,17 +665,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/admin/settings/timezone - Get system timezone
+  // GET /api/admin/settings/timezone - Obter timezone do sistema
   app.get("/api/admin/settings/timezone", async (req, res) => {
     try {
-      // Always return default timezone (single-tenant)
+      // Sempre retornar timezone padrão (single-tenant)
       res.json({ timezone: "America/Sao_Paulo" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });
 
-  // POST /api/admin/settings/timezone - Update system timezone
+  // POST /api/admin/settings/timezone - Atualizar timezone do sistema
   app.post("/api/admin/settings/timezone", async (req, res) => {
     try {
       const { timezone } = req.body;
