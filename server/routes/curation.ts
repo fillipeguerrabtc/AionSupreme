@@ -6,6 +6,8 @@ import { curationStore } from "../curation/store";
 import { publishEvent } from "../events";
 import { ImageProcessor } from "../learn/image-processor";
 import { db } from "../db";
+import { deduplicationService } from "../services/deduplication-service";
+import { generateContentHash, normalizeContent } from "../utils/deduplication";
 
 export function registerCurationRoutes(app: Express) {
   /**
@@ -40,6 +42,7 @@ export function registerCurationRoutes(app: Express) {
   /**
    * POST /api/curation/add
    * Adiciona item à fila de curadoria
+   * TIER 1 DEDUPLICATION: Hash-based realtime duplicate check (<1ms)
    */
   app.post("/api/curation/add", async (req, res) => {
     try {
@@ -51,12 +54,38 @@ export function registerCurationRoutes(app: Express) {
         });
       }
 
+      // 🔥 TIER 1: Realtime hash-based duplicate detection
+      const duplicateCheck = await deduplicationService.checkCurationRealtimeDuplicate(content);
+      
+      if (duplicateCheck) {
+        const location = duplicateCheck.isPending ? 'curation queue' : 'Knowledge Base';
+        console.log(`[Curation] ❌ Exact duplicate detected in ${location}: "${duplicateCheck.documentTitle}"`);
+        return res.status(409).json({ 
+          error: "Duplicate content detected",
+          isDuplicate: true,
+          isPending: duplicateCheck.isPending,
+          duplicateOf: {
+            id: duplicateCheck.documentId,
+            title: duplicateCheck.documentTitle
+          },
+          message: duplicateCheck.isPending 
+            ? `This content is already pending approval in the curation queue as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`
+            : `This content already exists in the Knowledge Base as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`
+        });
+      }
+
+      // Generate hash and normalized content for storage
+      const contentHash = generateContentHash(content);
+      const normalizedContent = normalizeContent(content);
+
       const item = await curationStore.addToCuration({
         title,
         content,
         suggestedNamespaces,
         tags,
         submittedBy,
+        contentHash, // Store for future dedup checks
+        normalizedContent, // Store for fuzzy matching
       });
 
       // Emitir evento para indexador (opcional)
@@ -64,6 +93,8 @@ export function registerCurationRoutes(app: Express) {
         docId: item.id,
         namespaces: ["curation/pending"],
       });
+
+      console.log(`[Curation] ✅ Added to queue: "${title}" (unique content, hash: ${contentHash.substring(0, 8)}...)`);
 
       res.status(201).json(item);
     } catch (error: any) {
@@ -595,6 +626,35 @@ export function registerCurationRoutes(app: Express) {
         deletedCount: result.curationItemsDeleted,
       });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/curation/scan-duplicates
+   * TIER 2 DEDUPLICATION: Semantic similarity batch scan (on-demand)
+   * Scans all pending items and marks near-duplicates
+   * Expensive operation - generates embeddings via OpenAI
+   */
+  app.post("/api/curation/scan-duplicates", async (req, res) => {
+    try {
+      console.log('[Curation] 🔍 Starting duplicate scan...');
+      
+      const results = await deduplicationService.scanAllPendingCurationItems();
+      
+      res.json({
+        success: true,
+        message: `Scanned ${results.total} items`,
+        stats: {
+          total: results.total,
+          unique: results.unique,
+          exact: results.exact,
+          near: results.near,
+          errors: results.errors
+        }
+      });
+    } catch (error: any) {
+      console.error('[Curation] Scan duplicates error:', error);
       res.status(500).json({ error: error.message });
     }
   });

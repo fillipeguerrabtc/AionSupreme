@@ -20,6 +20,8 @@ export const curationStore = {
       suggestedNamespaces: string[];
       tags?: string[];
       submittedBy?: string;
+      contentHash?: string; // For deduplication
+      normalizedContent?: string; // For fuzzy matching
     }
   ): Promise<CurationItem> {
     // STEP 1: Inserir na fila de curadoria
@@ -30,6 +32,8 @@ export const curationStore = {
       tags: data.tags || [],
       status: "pending",
       submittedBy: data.submittedBy,
+      contentHash: data.contentHash, // Store for O(1) dedup lookups
+      normalizedContent: data.normalizedContent, // Store for fuzzy matching
     }).returning();
 
     // STEP 2: Tentar análise automática em background (não bloqueia)

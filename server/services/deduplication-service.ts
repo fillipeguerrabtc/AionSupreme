@@ -10,10 +10,11 @@
 
 import * as crypto from 'crypto';
 import { db } from '../db';
-import { documents, embeddings } from '../../shared/schema';
+import { documents, embeddings, curationQueue } from '../../shared/schema';
 import { eq, sql, and } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import { embedder } from '../rag/embedder';
+import { normalizeContent, generateContentHash, cosineSimilarity, getDuplicationStatus } from '../utils/deduplication';
 
 export interface DeduplicationResult {
   isDuplicate: boolean;
@@ -248,6 +249,234 @@ export class DeduplicationService {
 
       console.log(`[Deduplication] Stored hash for document ${documentId}`);
     }
+  }
+
+  // ============================================================================
+  // CURATION QUEUE DEDUPLICATION (Hybrid approach)
+  // ============================================================================
+
+  /**
+   * TIER 1 - Realtime Hash Check (used when submitting to curation)
+   * Checks if content hash exists in KB documents OR pending curation queue
+   * <1ms execution time - suitable for realtime blocking
+   * 
+   * @param content - Raw text content
+   * @param tenantId - Tenant ID
+   * @returns Duplicate info if found, null otherwise
+   */
+  async checkCurationRealtimeDuplicate(
+    content: string,
+    tenantId: number = 1
+  ): Promise<{ isDuplicate: boolean; documentId?: number; documentTitle?: string; isPending?: boolean } | null> {
+    // Generate hash
+    const hash = generateContentHash(content);
+
+    // CRITICAL: Check BOTH documents (approved KB) AND curationQueue (pending items)
+
+    // 1. Check if hash exists in KB documents (approved content)
+    const existingDoc = await db
+      .select({
+        id: documents.id,
+        title: documents.title,
+      })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.tenantId, tenantId),
+          eq(documents.contentHash, hash)
+        )
+      )
+      .limit(1);
+
+    if (existingDoc.length > 0) {
+      console.log(`[Deduplication] ❌ Exact duplicate found in KB: "${existingDoc[0].title}" (ID: ${existingDoc[0].id})`);
+      return {
+        isDuplicate: true,
+        documentId: existingDoc[0].id,
+        documentTitle: existingDoc[0].title,
+        isPending: false
+      };
+    }
+
+    // 2. Check if hash exists in curation queue (pending/approved items)
+    const existingQueue = await db
+      .select({
+        id: curationQueue.id,
+        title: curationQueue.title,
+        status: curationQueue.status
+      })
+      .from(curationQueue)
+      .where(
+        and(
+          eq(curationQueue.tenantId, tenantId),
+          eq(curationQueue.contentHash, hash),
+          sql`${curationQueue.status} IN ('pending', 'approved')` // Don't block if rejected
+        )
+      )
+      .limit(1);
+
+    if (existingQueue.length > 0) {
+      console.log(`[Deduplication] ❌ Exact duplicate found in curation queue: "${existingQueue[0].title}" (ID: ${existingQueue[0].id}, status: ${existingQueue[0].status})`);
+      return {
+        isDuplicate: true,
+        documentId: undefined, // No doc ID yet (still in queue)
+        documentTitle: existingQueue[0].title,
+        isPending: true
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * TIER 2 - Batch Semantic Scan (on-demand via "Scan Duplicates" button)
+   * Generates embeddings and compares with KB documents
+   * Expensive operation - only run when explicitly requested
+   * 
+   * @param itemId - Curation queue item ID
+   * @param tenantId - Tenant ID
+   * @returns Duplication result with similarity score
+   */
+  async scanCurationItemSemanticDuplicates(
+    itemId: string,
+    tenantId: number = 1
+  ): Promise<{
+    duplicationStatus: 'unique' | 'exact' | 'near';
+    similarityScore?: number;
+    duplicateOfId?: number;
+    duplicateOfTitle?: string;
+  }> {
+    // Get curation item
+    const [item] = await db
+      .select()
+      .from(curationQueue)
+      .where(eq(curationQueue.id, itemId))
+      .limit(1);
+
+    if (!item) {
+      throw new Error(`Curation item ${itemId} not found`);
+    }
+
+    // Generate embedding for item content
+    const [result] = await embedder.generateEmbeddings([
+      { text: item.content, index: 0, tokens: Math.ceil(item.content.length / 4) }
+    ]);
+
+    // Get all KB document embeddings
+    const kbEmbeddings = await db
+      .select({
+        documentId: embeddings.documentId,
+        embedding: sql<number[]>`${embeddings.embedding}::jsonb`,
+        documentTitle: documents.title
+      })
+      .from(embeddings)
+      .innerJoin(documents, eq(embeddings.documentId, documents.id))
+      .where(
+        and(
+          eq(embeddings.tenantId, tenantId),
+          eq(documents.status, 'indexed')
+        )
+      )
+      .limit(100);
+
+    // No KB content = unique
+    if (kbEmbeddings.length === 0) {
+      return { duplicationStatus: 'unique' };
+    }
+
+    // Find most similar document
+    let maxSimilarity = 0;
+    let bestMatch: typeof kbEmbeddings[0] | null = null;
+
+    for (const kbItem of kbEmbeddings) {
+      try {
+        if (!kbItem.embedding || !Array.isArray(kbItem.embedding)) continue;
+
+        const similarity = cosineSimilarity(result.embedding, kbItem.embedding);
+
+        if (similarity > maxSimilarity) {
+          maxSimilarity = similarity;
+          bestMatch = kbItem;
+        }
+      } catch (error) {
+        console.warn('[Deduplication] Error comparing embeddings:', error);
+        continue;
+      }
+    }
+
+    // Determine status based on similarity
+    const status = getDuplicationStatus(maxSimilarity);
+
+    // Update curation queue item with results
+    await db
+      .update(curationQueue)
+      .set({
+        duplicationStatus: status,
+        similarityScore: maxSimilarity,
+        duplicateOfId: bestMatch ? String(bestMatch.documentId) : null,
+        embedding: result.embedding
+      })
+      .where(eq(curationQueue.id, itemId));
+
+    console.log(`[Deduplication] Scan complete for "${item.title}": ${status} (${(maxSimilarity * 100).toFixed(1)}% similar)`);
+
+    return {
+      duplicationStatus: status,
+      similarityScore: maxSimilarity,
+      duplicateOfId: bestMatch?.documentId,
+      duplicateOfTitle: bestMatch?.documentTitle
+    };
+  }
+
+  /**
+   * Scan ALL pending curation items for duplicates
+   * Batch operation - runs in background
+   * 
+   * @param tenantId - Tenant ID
+   * @returns Summary of scan results
+   */
+  async scanAllPendingCurationItems(tenantId: number = 1): Promise<{
+    total: number;
+    unique: number;
+    exact: number;
+    near: number;
+    errors: number;
+  }> {
+    console.log('[Deduplication] Starting batch scan of pending curation items...');
+
+    const pendingItems = await db
+      .select()
+      .from(curationQueue)
+      .where(
+        and(
+          eq(curationQueue.tenantId, tenantId),
+          eq(curationQueue.status, 'pending')
+        )
+      );
+
+    const results = {
+      total: pendingItems.length,
+      unique: 0,
+      exact: 0,
+      near: 0,
+      errors: 0
+    };
+
+    for (const item of pendingItems) {
+      try {
+        const scanResult = await this.scanCurationItemSemanticDuplicates(item.id, tenantId);
+        
+        if (scanResult.duplicationStatus === 'unique') results.unique++;
+        else if (scanResult.duplicationStatus === 'exact') results.exact++;
+        else if (scanResult.duplicationStatus === 'near') results.near++;
+      } catch (error) {
+        console.error(`[Deduplication] Error scanning item ${item.id}:`, error);
+        results.errors++;
+      }
+    }
+
+    console.log('[Deduplication] Batch scan complete:', results);
+    return results;
   }
 }
 
