@@ -201,6 +201,10 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
 
   /**
    * Aprova e publica item - integrado com Knowledge Base
+   * 🔥 VERIFICAÇÃO UNIVERSAL DE DUPLICAÇÃO: 
+   * - SEMPRE verifica KB completa antes de aprovar
+   * - SEMPRE extrai e salva SOMENTE conteúdo novo
+   * - NUNCA duplica conteúdo existente
    */
   async approveAndPublish(
     id: string,
@@ -211,11 +215,74 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       throw new Error("Item not found or already processed");
     }
 
+    // 🔥 VERIFICAÇÃO UNIVERSAL DE DUPLICAÇÃO
+    // SEMPRE verifica KB completa, independente de duplicationStatus
+    let contentToSave = item.content;
+    let isAbsorption = false;
+    let duplicateDocId: number | null = null;
+
+    try {
+      // Se já tem duplicateOfId marcado, usa direto
+      if (item.duplicateOfId) {
+        duplicateDocId = parseInt(item.duplicateOfId);
+      } else {
+        // Caso contrário, FORÇA scan completo da KB agora
+        console.log(`[Curation] 🔍 Verificando duplicação na KB para "${item.title}"...`);
+        
+        const { deduplicationService } = await import("../services/deduplication-service");
+        const dupCheck = await deduplicationService.checkDuplicate({
+          text: item.content,
+          tenantId: 1,
+          enableSemantic: true
+        });
+
+        if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
+          duplicateDocId = dupCheck.duplicateOf.id;
+          console.log(`[Curation] ⚠️ Duplicata detectada: ${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% similar a "${dupCheck.duplicateOf.title}" (ID: ${duplicateDocId})`);
+        }
+      }
+
+      // Se encontrou duplicata, tenta absorver só o novo
+      if (duplicateDocId) {
+        const [originalDoc] = await db
+          .select()
+          .from(documents)
+          .where(eq(documents.id, duplicateDocId))
+          .limit(1);
+
+        if (originalDoc) {
+          const { analyzeAbsorption } = await import("../utils/absorption");
+          const analysis = analyzeAbsorption(originalDoc.content, item.content);
+
+          if (analysis.shouldAbsorb) {
+            // ✅ ABSORVER SÓ O NOVO
+            contentToSave = analysis.extractedContent;
+            isAbsorption = true;
+            
+            console.log(`[Curation] 🔥 AUTO-ABSORÇÃO ativada para "${item.title}":
+  Original: ${analysis.stats.originalLength} chars
+  Extraído: ${analysis.stats.extractedLength} chars
+  Redução: ${analysis.stats.reductionPercent}%
+  Novo: ${analysis.stats.newContentPercent}%
+  Duplicado de: "${originalDoc.title}" (ID: ${originalDoc.id})`);
+          } else {
+            // Se não vale absorver (<10% novo), rejeita automaticamente
+            throw new Error(`Conteúdo duplicado detectado (${analysis.stats.newContentPercent}% novo, mínimo 10%). ${analysis.reason}`);
+          }
+        }
+      } else {
+        console.log(`[Curation] ✅ Conteúdo único detectado para "${item.title}", aprovando normalmente`);
+      }
+    } catch (verificationError: any) {
+      // Se erro crítico na verificação, aborta aprovação
+      throw new Error(`Falha na verificação de duplicação: ${verificationError.message}`);
+    }
+
     // Create document record in database WITH ATTACHMENTS (tenantId defaults to 1 in schema)
     const [newDoc] = await db.insert(documents).values({
       title: item.title,
-      content: item.content,
-      source: "curation_approved",
+      content: contentToSave, // ← SÓ CONTEÚDO NOVO se near-duplicate!
+      source: isAbsorption ? "curation_absorption" : "curation_approved",
       status: "indexed",
       attachments: item.attachments || undefined, // Preserve multimodal attachments!
       metadata: {
@@ -223,6 +290,8 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
         tags: item.tags,
         curationId: item.id,
         reviewedBy,
+        isAbsorption, // Flag para indicar que foi absorção
+        ...(isAbsorption && item.duplicateOfId ? { absorbedFrom: item.duplicateOfId } : {})
       } as any,
     } as any).returning();
 
