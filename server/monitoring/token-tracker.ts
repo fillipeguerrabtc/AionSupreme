@@ -106,17 +106,28 @@ export interface ProviderQuota {
 // CÁLCULO DE CUSTO (preços OpenAI)
 // ============================================================================
 
+/**
+ * BUG FIX (Nov 2024): Preços corrigidos para valores reais da OpenAI
+ * Source: https://openai.com/api/pricing/
+ * 
+ * Prices in USD per 1K tokens (NOT cents!)
+ * Database stores costs in dollars for precision
+ */
 const OPENAI_PRICING = {
-  'gpt-4o': { prompt: 0.005, completion: 0.015 }, // por 1K tokens
-  'gpt-4o-mini': { prompt: 0.00015, completion: 0.0006 },
-  'gpt-4-turbo': { prompt: 0.01, completion: 0.03 },
-  'gpt-3.5-turbo': { prompt: 0.0005, completion: 0.0015 },
-  'text-embedding-3-small': { prompt: 0.00002, completion: 0 },
-  'text-embedding-3-large': { prompt: 0.00013, completion: 0 },
-  'whisper-1': { prompt: 0, completion: 0.006 }, // por minuto
-  'dall-e-3': { prompt: 0, completion: 0.04 } // por imagem
+  'gpt-4o': { prompt: 0.0025, completion: 0.01 }, // $2.50 / $10.00 por 1M tokens (FIX: era 0.005/0.015)
+  'gpt-4o-mini': { prompt: 0.00015, completion: 0.0006 }, // $0.150 / $0.600 por 1M tokens
+  'gpt-4-turbo': { prompt: 0.01, completion: 0.03 }, // $10.00 / $30.00 por 1M tokens
+  'gpt-3.5-turbo': { prompt: 0.0005, completion: 0.0015 }, // $0.50 / $1.50 por 1M tokens
+  'text-embedding-3-small': { prompt: 0.00002, completion: 0 }, // $0.020 por 1M tokens
+  'text-embedding-3-large': { prompt: 0.00013, completion: 0 }, // $0.130 por 1M tokens
+  'whisper-1': { prompt: 0, completion: 0.006 }, // $0.006 por minuto
+  'dall-e-3': { prompt: 0, completion: 0.04 } // $0.04 por imagem
 };
 
+/**
+ * Calculate cost in USD (dollars, not cents!)
+ * Returns cost like 0.01 = $0.01 (one cent)
+ */
 function calculateCost(provider: string, model: string, promptTokens: number, completionTokens: number): number {
   if (provider !== 'openai') return 0;
   
@@ -126,6 +137,7 @@ function calculateCost(provider: string, model: string, promptTokens: number, co
   const promptCost = (promptTokens / 1000) * pricing.prompt;
   const completionCost = (completionTokens / 1000) * pricing.completion;
   
+  // Return in dollars (e.g., 0.01 = 1 cent USD)
   return promptCost + completionCost;
 }
 

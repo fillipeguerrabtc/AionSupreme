@@ -102,10 +102,28 @@ export async function semanticSearch(
   // Step 5: Get metadata if needed
   if (includeMetadata && filtered.length > 0) {
     const docIds = Array.from(new Set(filtered.map(r => r.documentId)));
+    
+    // SECURITY FIX: Use parameterized query instead of sql.raw() to prevent SQL injection
+    // Convert IDs to numbers and validate (preserves metadata for string IDs like "123")
+    const validDocIds = docIds
+      .map(id => typeof id === 'number' ? id : Number(id))
+      .filter(id => Number.isInteger(id) && !isNaN(id));
+    
+    if (validDocIds.length === 0) {
+      return filtered.slice(0, limit).map(r => ({
+        documentId: r.documentId,
+        chunkId: r.chunkId,
+        chunkText: r.chunkText,
+        score: r.score,
+      }));
+    }
+    
+    // Use Drizzle's inArray for safe parameterized queries
+    const { inArray } = await import('drizzle-orm');
     const docs = await db
       .select()
       .from(documents)
-      .where(sql`${documents.id} IN ${sql.raw(`(${docIds.join(',')})`)}`);
+      .where(inArray(documents.id, validDocIds));
 
     const docMap = new Map(docs.map(d => [d.id, d]));
 

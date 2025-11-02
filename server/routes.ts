@@ -30,6 +30,7 @@ import * as fsSync from "fs";
 import path from "path";
 import express from "express";
 import { optionalAuth } from "./replitAuth";
+import { requireAuth } from "./middleware/auth"; // SECURITY FIX: Protect admin routes
 import { DatasetProcessor } from "./training/datasets/dataset-processor";
 import { DatasetValidator } from "./training/datasets/dataset-validator";
 import { db } from "./db";
@@ -62,6 +63,24 @@ export function registerRoutes(app: Express): Server {
   
   // Aplicar rate limiting APENAS para rotas API (não assets estáticos)
   app.use("/api", rateLimitMiddleware);
+  
+  // SECURITY FIX: Protect ALL admin/management routes with authentication
+  // Whitelist for public endpoints that don't require auth
+  const publicEndpoints = [
+    "/api/chat", // Chat endpoint is public (can be rate-limited)
+    "/api/health", // Health check endpoint
+    "/api/auth", // Authentication endpoints
+  ];
+  
+  app.use("/api", (req, res, next) => {
+    // Skip auth for public endpoints
+    if (publicEndpoints.some(endpoint => req.path.startsWith(endpoint))) {
+      return next();
+    }
+    
+    // Require auth for all other /api/* routes
+    return requireAuth(req, res, next);
+  });
   
   // Popular banco de dados na inicialização
   seedDatabase().catch(console.error);
@@ -105,17 +124,13 @@ export function registerRoutes(app: Express): Server {
 
       const file = req.file;
       
-      // Validar tamanho no backend (double-check além do multer)
-      if (file.size > 2 * 1024 * 1024) {
-        await fs.unlink(file.path);
-        return res.status(400).json({ error: "Arquivo muito grande. Máximo 2MB." });
-      }
+      // SECURITY: Validate file using magic bytes (cannot be spoofed)
+      const { validateIconUpload } = await import("./utils/file-validation");
+      const validation = await validateIconUpload(file.path);
       
-      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-      
-      if (!allowedTypes.includes(file.mimetype)) {
+      if (!validation.valid) {
         await fs.unlink(file.path);
-        return res.status(400).json({ error: "Formato inválido. Use PNG, JPEG, GIF ou WEBP." });
+        return res.status(400).json({ error: validation.error });
       }
 
       // Criar diretório de ícones customizados se não existir

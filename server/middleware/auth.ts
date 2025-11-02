@@ -148,3 +148,36 @@ export function verifyJWT(token: string, secret: string): boolean {
     return false;
   }
 }
+
+/**
+ * SECURITY FIX: Require Replit Authentication Middleware
+ * 
+ * Prevents unauthorized access to protected routes.
+ * All admin/management routes MUST use this middleware.
+ * 
+ * Usage:
+ * app.get("/api/admin/users", requireAuth, async (req, res) => { ... });
+ * 
+ * Returns 401 Unauthorized if user is not authenticated via Replit Auth
+ */
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
+    return res.status(401).json({ 
+      error: "Unauthorized",
+      message: "Authentication required to access this resource"
+    });
+  }
+  
+  next();
+}
+
+/**
+ * Optional authentication middleware
+ * 
+ * Allows access but sets req.user if authenticated
+ * Useful for routes that show different content based on auth status
+ */
+export function optionalAuth(req: Request, res: Response, next: NextFunction) {
+  // Just pass through, req.user will be set if authenticated
+  next();
+}

@@ -1,13 +1,18 @@
 /**
- * Rate Limiting Middleware - Per-tenant and per-IP limits
+ * SECURITY FIX: Rate Limiting Middleware - Persistent PostgreSQL storage
  * 
- * As per PDFs: Configurable rate limits to prevent abuse
- * - Requests per minute/hour/day
- * - Token limits per day
- * - Concurrent request limits
+ * Hybrid approach:
+ * - In-memory cache for performance (fast reads)
+ * - PostgreSQL for persistence (survives restarts)
+ * - Periodic sync to DB every 10 seconds
+ * 
+ * Prevents rate limit bypass via server restart.
  */
 
 import { type Request, type Response, type NextFunction } from "express";
+import { db } from "../db";
+import { rateLimits } from "@shared/schema";
+import { eq, and, lt, sql } from "drizzle-orm";
 
 interface RateLimitConfig {
   requestsPerMinute: number;
@@ -20,6 +25,7 @@ interface RateLimitEntry {
   count: number;
   resetAt: number;
   tokens: number;
+  dirty: boolean; // Needs sync to DB
 }
 
 class RateLimiter {
@@ -31,19 +37,119 @@ class RateLimiter {
     requestsPerDay: parseInt(process.env.RATE_LIMIT_PER_DAY || "") || 50000,
     tokensPerDay: parseInt(process.env.RATE_LIMIT_TOKENS || "") || 1000000,
   };
+  private syncInProgress = false;
+
+  /**
+   * SECURITY FIX: Load rate limits from PostgreSQL on startup
+   */
+  async loadFromDB(): Promise<void> {
+    try {
+      const now = new Date();
+      const records = await db
+        .select()
+        .from(rateLimits)
+        .where(sql`${rateLimits.resetAt} > ${now}`);
+
+      for (const record of records) {
+        const mapKey = `${record.key}:${record.window}`;
+        this.limits.set(mapKey, {
+          count: record.count,
+          resetAt: record.resetAt.getTime(),
+          tokens: record.tokens,
+          dirty: false,
+        });
+      }
+      
+      console.log(`[RateLimiter] Loaded ${records.length} active rate limits from DB`);
+    } catch (error) {
+      console.error('[RateLimiter] Failed to load from DB:', error);
+    }
+  }
+
+  /**
+   * SECURITY FIX: Sync dirty entries to PostgreSQL
+   */
+  async syncToDB(): Promise<void> {
+    if (this.syncInProgress) return;
+    this.syncInProgress = true;
+
+    try {
+      const dirtyEntries = Array.from(this.limits.entries())
+        .filter(([_, entry]) => entry.dirty);
+
+      if (dirtyEntries.length === 0) {
+        this.syncInProgress = false;
+        return;
+      }
+
+      for (const [mapKey, entry] of dirtyEntries) {
+        // SECURITY FIX: Use lastIndexOf to handle IPv6 addresses with colons
+        // mapKey format: "system:192.168.1.1:minute" or "system:::ffff:172.31.0.2:hour"
+        const lastColonIndex = mapKey.lastIndexOf(':');
+        const key = mapKey.substring(0, lastColonIndex);
+        const window = mapKey.substring(lastColonIndex + 1);
+        
+        // DEBUG: Log what we're trying to insert
+        if (window.length > 10) {
+          console.error(`[RateLimiter DEBUG] Invalid window length: "${window}" (${window.length} chars) from mapKey: "${mapKey}"`);
+          console.error(`[RateLimiter DEBUG] key="${key}" (${key.length} chars)`);
+          continue; // Skip invalid entries
+        }
+        
+        // Manual upsert: Check if exists, then UPDATE or INSERT
+        const existing = await db
+          .select()
+          .from(rateLimits)
+          .where(and(eq(rateLimits.key, key), eq(rateLimits.window, window)))
+          .limit(1);
+
+        if (existing.length > 0) {
+          // UPDATE existing record
+          await db
+            .update(rateLimits)
+            .set({
+              count: entry.count,
+              tokens: entry.tokens,
+              resetAt: new Date(entry.resetAt),
+              updatedAt: new Date(),
+            })
+            .where(and(eq(rateLimits.key, key), eq(rateLimits.window, window)));
+        } else {
+          // INSERT new record
+          await db.insert(rateLimits).values({
+            key,
+            window,
+            count: entry.count,
+            tokens: entry.tokens,
+            resetAt: new Date(entry.resetAt),
+          });
+        }
+
+        entry.dirty = false;
+      }
+
+      console.log(`[RateLimiter] Synced ${dirtyEntries.length} entries to DB`);
+    } catch (error) {
+      console.error('[RateLimiter] Failed to sync to DB:', error);
+    } finally {
+      this.syncInProgress = false;
+    }
+  }
 
   /**
    * Check if request should be rate limited
    */
   shouldLimit(key: string, window: "minute" | "hour" | "day"): boolean {
     const now = Date.now();
-    const entry = this.limits.get(key);
+    const mapKey = `${key}:${window}`;
+    const entry = this.limits.get(mapKey);
 
     if (!entry) {
-      this.limits.set(key, {
+      this.limits.set(mapKey, {
         count: 1,
         resetAt: this.getResetTime(window),
         tokens: 0,
+        dirty: true, // Mark for DB sync
       });
       return false;
     }
@@ -53,6 +159,7 @@ class RateLimiter {
       entry.count = 1;
       entry.resetAt = this.getResetTime(window);
       entry.tokens = 0;
+      entry.dirty = true;
       return false;
     }
 
@@ -63,6 +170,7 @@ class RateLimiter {
     }
 
     entry.count++;
+    entry.dirty = true; // Mark for DB sync
     return false;
   }
 
@@ -70,14 +178,17 @@ class RateLimiter {
    * Track tokens used (for LLM calls)
    */
   trackTokens(key: string, tokens: number): boolean {
-    const entry = this.limits.get(key) || {
+    const mapKey = `${key}:day`;
+    const entry = this.limits.get(mapKey) || {
       count: 0,
       resetAt: this.getResetTime("day"),
       tokens: 0,
+      dirty: false,
     };
 
     entry.tokens += tokens;
-    this.limits.set(key, entry);
+    entry.dirty = true; // Mark for DB sync
+    this.limits.set(mapKey, entry);
 
     return entry.tokens > this.config.tokensPerDay;
   }
@@ -86,7 +197,8 @@ class RateLimiter {
    * Get remaining quota
    */
   getRemaining(key: string, window: "minute" | "hour" | "day"): number {
-    const entry = this.limits.get(key);
+    const mapKey = `${key}:${window}`;
+    const entry = this.limits.get(mapKey);
     if (!entry) return this.getLimit(window);
 
     const now = Date.now();
@@ -119,22 +231,51 @@ class RateLimiter {
   }
 
   /**
-   * Clean up expired entries (call periodically)
+   * SECURITY FIX: Clean up expired entries in memory AND PostgreSQL
    */
-  cleanup() {
+  async cleanup() {
     const now = Date.now();
+    
+    // Clean memory cache
     for (const [key, entry] of Array.from(this.limits.entries())) {
       if (now >= entry.resetAt) {
         this.limits.delete(key);
       }
+    }
+    
+    // Clean PostgreSQL
+    try {
+      await db
+        .delete(rateLimits)
+        .where(lt(rateLimits.resetAt, new Date()));
+      
+      console.log('[RateLimiter] Cleaned up expired entries from DB');
+    } catch (error) {
+      console.error('[RateLimiter] Failed to cleanup DB:', error);
     }
   }
 }
 
 const rateLimiter = new RateLimiter();
 
-// Cleanup every 5 minutes
-setInterval(() => rateLimiter.cleanup(), 5 * 60 * 1000);
+// SECURITY FIX: Load from PostgreSQL on startup
+rateLimiter.loadFromDB().catch((err) => {
+  console.error('[RateLimiter] Failed to load from DB on startup:', err);
+});
+
+// SECURITY FIX: Sync to PostgreSQL every 10 seconds
+setInterval(() => {
+  rateLimiter.syncToDB().catch((err) => {
+    console.error('[RateLimiter] Failed to sync to DB:', err);
+  });
+}, 10 * 1000);
+
+// SECURITY FIX: Cleanup expired entries every 5 minutes
+setInterval(() => {
+  rateLimiter.cleanup().catch((err) => {
+    console.error('[RateLimiter] Failed to cleanup:', err);
+  });
+}, 5 * 60 * 1000);
 
 /**
  * Rate limiting middleware

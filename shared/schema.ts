@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from 'drizzle-orm';
@@ -1535,3 +1535,36 @@ export const insertTraceSchema = createInsertSchema(traces).omit({
 });
 export type InsertTrace = z.infer<typeof insertTraceSchema>;
 export type Trace = typeof traces.$inferSelect;
+
+/**
+ * SECURITY FIX: Rate Limits - Persistent rate limiting storage
+ * 
+ * Stores rate limit counters in PostgreSQL for persistence across restarts.
+ * Prevents memory-based rate limiting bypass via server restart.
+ * 
+ * Key: IP address or user identifier
+ * Window: "minute" | "hour" | "day"
+ */
+export const rateLimits = pgTable("rate_limits", {
+  id: serial("id").primaryKey(),
+  key: varchar("key", { length: 255 }).notNull(), // IP or user ID
+  window: varchar("window", { length: 10 }).notNull(), // "minute" | "hour" | "day"
+  count: integer("count").notNull().default(0),
+  tokens: integer("tokens").notNull().default(0), // Token usage tracking
+  resetAt: timestamp("reset_at").notNull(), // When counter resets
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  // UNIQUE constraint for upsert operations (Drizzle syntax)
+  keyWindowUnique: unique("rate_limits_key_window_unique").on(table.key, table.window),
+  // Index for cleanup queries
+  resetAtIdx: index("rate_limits_reset_at_idx").on(table.resetAt),
+}));
+
+export const insertRateLimitSchema = createInsertSchema(rateLimits).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertRateLimit = z.infer<typeof insertRateLimitSchema>;
+export type RateLimit = typeof rateLimits.$inferSelect;

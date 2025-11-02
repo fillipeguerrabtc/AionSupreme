@@ -20,7 +20,8 @@
 10. [Guia de Desenvolvimento](#guia-de-desenvolvimento)
 11. [Deploy em Produção](#deploy-em-produção)
 12. [Troubleshooting](#troubleshooting)
-13. [Referências Técnicas](#referências-técnicas)
+13. **[Segurança Enterprise](#segurança-enterprise)** ⭐ **NOVO**
+14. [Referências Técnicas](#referências-técnicas)
 
 ---
 
@@ -2850,6 +2851,439 @@ npm run build
 1. **Import de módulo não encontrado**: Verificar aliases no `vite.config.ts` e `tsconfig.json`
 2. **Type errors**: Garantir que todos tipos estão exportados de `shared/schema.ts`
 3. **Environment variables**: Prefixar com `VITE_` para acesso no frontend
+
+---
+
+## 🔐 Segurança Enterprise
+
+**Atualizado**: 2 de Novembro de 2025  
+**Status**: Production-Ready Security Hardening Completo
+
+AION implementa **segurança em camadas (Defense in Depth)** com múltiplos níveis de proteção para garantir operação segura em ambiente de produção.
+
+### Visão Geral de Segurança
+
+| Componente | Status | Última Revisão |
+|-----------|--------|----------------|
+| Autenticação & Autorização | ✅ Production-Ready | Nov 2, 2025 |
+| Validação de Input & Sanitização | ✅ Production-Ready | Nov 2, 2025 |
+| Rate Limiting & Proteção DDoS | ✅ Production-Ready | Nov 2, 2025 |
+| Proteção SQL Injection | ✅ Production-Ready | Nov 2, 2025 |
+| Proteção CSRF | ✅ Production-Ready | Nov 2, 2025 |
+| Gerenciamento de Secrets | ✅ Production-Ready | Nov 2, 2025 |
+| Validação de Upload de Arquivos | ⚠️ Parcial (ícones validados) | Nov 2, 2025 |
+| RCE (Remote Code Execution) | ✅ Desabilitado (execSandbox off) | Nov 2, 2025 |
+
+### Correções de Segurança Implementadas (Nov 2025)
+
+#### 1. **CRÍTICO: Desabilitar execSandbox Tool**
+**Vulnerabilidade:** Remote Code Execution (RCE)  
+**Status:** ✅ Corrigido  
+**Arquivo:** `server/agent/tools/exec-sandbox.ts`
+
+```typescript
+// ANTES (VULNERÁVEL - RCE):
+export const execSandboxTool = {
+  name: "ExecSandbox",
+  handler: async (args) => {
+    const result = await execCode(args.code); // PERIGOSO!
+    return result;
+  }
+};
+
+// DEPOIS (SEGURO - DESABILITADO):
+export const execSandboxTool = {
+  name: "ExecSandbox",
+  handler: async () => {
+    throw new Error("SECURITY: ExecSandbox disabled for safety");
+  }
+};
+```
+
+**Impacto:** Previne execução arbitrária de código no servidor.
+
+#### 2. **CRÍTICO: Remover Logging de Secrets**
+**Vulnerabilidade:** Vazamento de API keys em logs  
+**Status:** ✅ Corrigido  
+**Arquivos:** `server/ai/llm-client.ts`, `server/model/free-llm-providers.ts`
+
+```typescript
+// ANTES (VULNERÁVEL):
+console.log("OpenAI API Key:", process.env.OPENAI_API_KEY); // NUNCA FAÇA ISSO!
+
+// DEPOIS (SEGURO):
+console.log("OpenAI API Key:", process.env.OPENAI_API_KEY ? "✓ Loaded" : "✗ Missing");
+```
+
+**Regra de Ouro:** **NUNCA** logue secrets, API keys, passwords, tokens, etc.
+
+#### 3. **ALTO: Corrigir Proteção CSRF**
+**Vulnerabilidade:** Cross-Site Request Forgery  
+**Status:** ✅ Corrigido  
+**Arquivo:** `server/replitAuth.ts`
+
+```typescript
+// ANTES (VULNERÁVEL):
+cookie: {
+  httpOnly: true,
+  secure: true,
+  // sameSite AUSENTE = vulnerável a CSRF
+}
+
+// DEPOIS (SEGURO):
+cookie: {
+  httpOnly: true,
+  secure: true,
+  sameSite: 'lax', // Protege contra CSRF
+  maxAge: 30 * 24 * 60 * 60 * 1000 // 30 dias
+}
+```
+
+**Impacto:** Previne ataques CSRF de sites maliciosos.
+
+#### 4. **ALTO: Corrigir Auth Bypass**
+**Vulnerabilidade:** Rotas sensíveis sem autenticação  
+**Status:** ✅ Corrigido  
+**Arquivo:** `server/routes.ts`
+
+```typescript
+// ANTES (VULNERÁVEL):
+app.post("/api/admin/namespaces", async (req, res) => {
+  // QUALQUER PESSOA pode criar namespaces!
+});
+
+// DEPOIS (SEGURO):
+app.post("/api/admin/namespaces", requireAuth, async (req, res) => {
+  // Apenas usuários autenticados
+});
+```
+
+**Middleware `requireAuth`:**
+```typescript
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+```
+
+#### 5. **ALTO: Corrigir Vulnerabilidade do PDF Parser**
+**Vulnerabilidade:** Exploração de PDFs maliciosos  
+**Status:** ✅ Corrigido  
+**Arquivo:** `server/utils/file-validation.ts`
+
+```typescript
+// Validação de magic bytes ANTES de processar
+const magicBytes = buffer.slice(0, 4).toString('hex');
+if (!ALLOWED_MAGIC_BYTES.pdf.includes(magicBytes)) {
+  throw new Error("Invalid PDF file");
+}
+```
+
+**Impacto:** Previne execução de payloads maliciosos via PDF.
+
+#### 6. **MÉDIO: Proteção SQL Injection**
+**Vulnerabilidade:** SQL injection via `sql.raw()`  
+**Status:** ✅ Corrigido  
+**Arquivo:** `server/ai/rag-service.ts`
+
+```typescript
+// ANTES (VULNERÁVEL):
+const docs = await db
+  .select()
+  .from(documents)
+  .where(sql`${documents.id} IN ${sql.raw(`(${docIds.join(',')}`)}`); // PERIGOSO!
+
+// DEPOIS (SEGURO - Parametrizado):
+const validDocIds = docIds.filter(id => Number.isInteger(id));
+const { inArray } = await import('drizzle-orm');
+const docs = await db
+  .select()
+  .from(documents)
+  .where(inArray(documents.id, validDocIds)); // Seguro!
+```
+
+**Regra de Ouro:** **SEMPRE** use queries parametrizadas. **NUNCA** concatene strings SQL.
+
+#### 7. **MÉDIO: Rate Limiting Persistente**
+**Vulnerabilidade:** Bypass de rate limiting via restart do servidor  
+**Status:** ✅ Corrigido  
+**Arquivo:** `server/middleware/rate-limit.ts`
+
+**ANTES (VULNERÁVEL):**
+- Rate limits armazenados em memória (`Map`)
+- Reiniciar servidor = zera contadores = bypass
+
+**DEPOIS (SEGURO):**
+- Rate limits persistidos em PostgreSQL
+- Cache híbrido (memória + banco)
+- Sincronização a cada 10 segundos
+- Sobrevive a restarts do servidor
+
+```typescript
+// Schema PostgreSQL
+export const rateLimits = pgTable("rate_limits", {
+  id: serial("id").primaryKey(),
+  key: varchar("key", { length: 255 }).notNull(),
+  window: varchar("window", { length: 10 }).notNull(),
+  count: integer("count").notNull().default(0),
+  tokens: integer("tokens").notNull().default(0),
+  resetAt: timestamp("reset_at").notNull(),
+});
+```
+
+**Limites Configuráveis (via .env):**
+```env
+RATE_LIMIT_PER_MINUTE=300     # Padrão: 300 req/min
+RATE_LIMIT_PER_HOUR=5000      # Padrão: 5.000 req/hora
+RATE_LIMIT_PER_DAY=50000      # Padrão: 50.000 req/dia
+RATE_LIMIT_TOKENS=1000000     # Padrão: 1M tokens/dia
+```
+
+#### 8. **MÉDIO: Validação de Upload de Arquivos (Parcial)**
+**Status:** ⚠️ Parcial (ícones validados, outros tipos pendentes)
+
+**Implementado:**
+- ✅ Validação de magic bytes para ícones
+- ✅ Limite de tamanho (5MB para ícones)
+- ✅ Nomes de arquivo únicos (nanoid)
+- ✅ MIME type validation
+
+```typescript
+// Exemplo: Validação de ícone
+const ALLOWED_MAGIC_BYTES = {
+  'image/png': ['89504e47'],
+  'image/jpeg': ['ffd8ffe0', 'ffd8ffe1'],
+  'image/svg+xml': ['3c3f786d', '3c737667']
+};
+
+const buffer = await file.arrayBuffer();
+const magicBytes = Buffer.from(buffer).slice(0, 4).toString('hex');
+if (!isValidMagicBytes(magicBytes, file.type)) {
+  throw new Error("Invalid file type");
+}
+```
+
+**Pendente:** Aplicar validação completa para todos tipos de arquivo (PDF, DOCX, XLSX, etc.).
+
+### Arquitetura de Segurança em Camadas
+
+```
+┌─────────────────────────────────────────────┐
+│  Camada 1: Rede (HTTPS, Firewall)          │
+├─────────────────────────────────────────────┤
+│  Camada 2: Rate Limiting (PostgreSQL)      │
+├─────────────────────────────────────────────┤
+│  Camada 3: Autenticação (Replit Auth)      │
+├─────────────────────────────────────────────┤
+│  Camada 4: Autorização (requireAuth)       │
+├─────────────────────────────────────────────┤
+│  Camada 5: Validação de Input (Zod)        │
+├─────────────────────────────────────────────┤
+│  Camada 6: Acesso a Dados (Drizzle ORM)    │
+├─────────────────────────────────────────────┤
+│  Camada 7: Audit Logging (PostgreSQL)      │
+└─────────────────────────────────────────────┘
+```
+
+### Best Practices de Desenvolvimento Seguro
+
+#### 1. **Input Validation (Frontend + Backend)**
+
+**Frontend (React Hook Form + Zod):**
+```typescript
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+const schema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  age: z.number().min(0).max(150)
+});
+
+const form = useForm({
+  resolver: zodResolver(schema),
+  defaultValues: { name: "", email: "", age: 0 }
+});
+```
+
+**Backend (Zod Validation):**
+```typescript
+import { insertNamespaceSchema } from "@shared/schema";
+
+app.post("/api/namespaces", requireAuth, async (req, res) => {
+  try {
+    const validated = insertNamespaceSchema.parse(req.body); // Valida!
+    const result = await db.insert(namespaces).values(validated);
+    res.json(result);
+  } catch (error) {
+    res.status(400).json({ error: "Invalid input" });
+  }
+});
+```
+
+#### 2. **Secrets Management**
+
+**Regras:**
+- ✅ **SIM**: Usar variáveis de ambiente (`.env`)
+- ✅ **SIM**: Logar apenas presença (`"✓ Loaded"` ou `"✗ Missing"`)
+- ❌ **NÃO**: Hardcode de secrets no código
+- ❌ **NÃO**: Commit de `.env` no Git (use `.env.example`)
+- ❌ **NÃO**: Log de valores de secrets
+
+**Exemplo Correto:**
+```typescript
+// BOM:
+const apiKey = process.env.OPENAI_API_KEY;
+if (!apiKey) {
+  console.error("OPENAI_API_KEY não configurada");
+  throw new Error("Missing API key");
+}
+console.log("OpenAI API Key: ✓ Loaded");
+
+// RUIM:
+console.log("API Key:", process.env.OPENAI_API_KEY); // NUNCA!
+```
+
+#### 3. **Queries Seguras (Drizzle ORM)**
+
+**SEMPRE use queries parametrizadas:**
+```typescript
+// ✅ BOM (Parametrizado):
+const users = await db
+  .select()
+  .from(users)
+  .where(eq(users.email, userEmail));
+
+// ✅ BOM (inArray para listas):
+const docs = await db
+  .select()
+  .from(documents)
+  .where(inArray(documents.id, validIds));
+
+// ❌ RUIM (Concatenação de strings - SQL Injection):
+const query = `SELECT * FROM users WHERE email = '${userEmail}'`; // PERIGOSO!
+```
+
+#### 4. **File Upload Security**
+
+**Checklist:**
+- [ ] Validar magic bytes (não confiar apenas em extensão)
+- [ ] Limitar tamanho do arquivo (ex: 5MB para ícones)
+- [ ] Gerar nomes de arquivo únicos (nanoid)
+- [ ] Armazenar fora do diretório público
+- [ ] Validar MIME type
+- [ ] Scanear vírus (se possível, via ClamAV ou similar)
+
+**Exemplo:**
+```typescript
+const ALLOWED_MAGIC_BYTES = {
+  'image/png': ['89504e47'],
+  'image/jpeg': ['ffd8ffe0', 'ffd8ffe1', 'ffd8ffe2'],
+};
+
+function validateFile(buffer: Buffer, mimeType: string): boolean {
+  const magicBytes = buffer.slice(0, 4).toString('hex');
+  const allowed = ALLOWED_MAGIC_BYTES[mimeType] || [];
+  return allowed.includes(magicBytes);
+}
+```
+
+### Checklist de Deploy Seguro
+
+Antes de fazer deploy para produção, verificar:
+
+- [ ] Todas rotas admin têm `requireAuth` middleware
+- [ ] Rate limiting está ativado e persistido (PostgreSQL)
+- [ ] File uploads validam magic bytes
+- [ ] Secrets **NÃO** são logados
+- [ ] execSandbox está **desabilitado**
+- [ ] CSRF protection ativa (`sameSite: 'lax'`)
+- [ ] HTTPS forçado (via reverse proxy)
+- [ ] SQL queries usam parametrização (Drizzle ORM)
+- [ ] Audit logs configurados
+- [ ] Backups automáticos do banco de dados
+
+### Monitoramento de Segurança
+
+**Métricas a Monitorar:**
+
+1. **Rate Limit Violations:**
+   - Alertar se IP ultrapassar limite 3x em 1 hora
+   - Bloquear automaticamente IPs maliciosos
+
+2. **Authentication Failures:**
+   - Monitorar tentativas de login falhas
+   - Implementar bloqueio temporário após 5 falhas
+
+3. **Upload Anomalies:**
+   - Detectar uploads de arquivos grandes (>100MB)
+   - Flaggar tipos de arquivo incomuns
+
+4. **SQL Query Latency:**
+   - Detectar queries lentas (>5 segundos)
+   - Alertar sobre possíveis ataques de DoS via queries complexas
+
+### Incident Response
+
+Em caso de incidente de segurança:
+
+1. **Contenção Imediata:**
+   - Desabilitar endpoint afetado
+   - Rotacionar secrets comprometidos (OpenAI API key)
+   - Bloquear IPs maliciosos
+
+2. **Investigação:**
+   - Revisar audit logs (`auditLogs`, `lifecycleAuditLogs`)
+   - Verificar telemetria (token usage, query monitoring)
+   - Identificar escopo do ataque
+
+3. **Remediação:**
+   - Aplicar patches de segurança
+   - Atualizar dependências vulneráveis (`npm audit fix`)
+   - Restaurar backups se necessário
+
+4. **Documentação:**
+   - Registrar timeline do incidente
+   - Atualizar `docs/SECURITY.md`
+   - Implementar medidas preventivas
+
+### Compliance & Privacidade
+
+**GDPR/CCPA:**
+- ✅ Direito de acesso (export de dados do usuário)
+- ✅ Direito de exclusão (cascade delete implementado)
+- ⚠️ Direito de portabilidade (export manual necessário)
+- ⚠️ Gerenciamento de consentimento (implementar se processar dados sensíveis)
+
+**Data Retention:**
+- Configurável via políticas de lifecycle (padrão: 5 anos)
+- Limpeza automática mensal (1º de cada mês às 03:00 Brasília)
+
+### Recursos Adicionais
+
+- **Documentação Completa:** `docs/SECURITY.md`
+- **Threat Model:** Análise STRIDE completa
+- **Vulnerability Reporting:** [Adicionar contato de segurança]
+- **Security Updates Log:** Histórico de patches aplicados
+
+### Ferramentas Recomendadas
+
+**SAST (Static Analysis):**
+```bash
+npm audit              # Verifica vulnerabilidades conhecidas
+npm audit fix          # Corrige vulnerabilidades automaticamente
+npx snyk test          # Scan de dependências (Snyk)
+```
+
+**Dependency Management:**
+- Dependabot (GitHub) - Atualizações automáticas de segurança
+- Renovate - Gerenciamento de dependências
+
+**Runtime Protection:**
+- OWASP ZAP - Testes de penetração
+- Burp Suite - Scan de vulnerabilidades web
 
 ---
 
