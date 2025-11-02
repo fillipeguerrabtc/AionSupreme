@@ -43,6 +43,7 @@ export default function ChatPage() {
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Create or load conversation on mount
   useEffect(() => {
@@ -269,6 +270,11 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sendMutation.isPending]);
 
+  // Scroll to top on page load (mobile fix)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const handleSend = async () => {
     if ((!input.trim() && attachedFiles.length === 0) || sendMutation.isPending || !conversationId) return;
     
@@ -335,6 +341,12 @@ export default function ChatPage() {
     }
     
     setInput("");
+    
+    // Close keyboard on mobile after sending (only on mobile, not desktop)
+    if (textareaRef.current && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      textareaRef.current.blur();
+    }
+    
     sendMutation.mutate({ userMessage, files: attachedFiles });
   };
 
@@ -519,7 +531,7 @@ export default function ChatPage() {
   // Render without sidebar when not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col h-screen w-full bg-background">
+      <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
           {/* Minimal Header - Apple/Tesla Style */}
           <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-glass">
             <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
@@ -708,6 +720,7 @@ export default function ChatPage() {
 
             {/* Text Input */}
             <Textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -742,7 +755,7 @@ export default function ChatPage() {
   // Render with sidebar when authenticated
   return (
     <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full overflow-hidden">
         <AppSidebar
           currentConversationId={conversationId}
           onSelectConversation={handleSelectConversation}
@@ -923,6 +936,7 @@ export default function ChatPage() {
 
             {/* Text Input */}
             <Textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
