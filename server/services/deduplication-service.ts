@@ -80,7 +80,7 @@ export class DeduplicationService {
 
   /**
    * Check if text is semantically duplicate (>95% similarity)
-   * Uses RAG semantic search
+   * 🔥 VERIFICAÇÃO UNIVERSAL: KB + CURADORIA
    */
   async checkSemanticDuplicate(
     text: string,
@@ -98,13 +98,14 @@ export class DeduplicationService {
         { text, index: 0, tokens: Math.ceil(text.length / 4) }
       ]);
 
-      // Search for similar content
-      const similar = await db
+      // 🔥 VERIFICAÇÃO 1: KB aprovada (documents + embeddings)
+      const similarKB = await db
         .select({
           documentId: embeddings.documentId,
           chunkText: embeddings.chunkText,
           embedding: sql<number[]>`${embeddings.embedding}::jsonb`,
-          documentTitle: documents.title
+          documentTitle: documents.title,
+          source: sql<string>`'kb'`
         })
         .from(embeddings)
         .innerJoin(documents, eq(embeddings.documentId, documents.id))
@@ -114,7 +115,29 @@ export class DeduplicationService {
             eq(documents.status, 'indexed')
           )
         )
-        .limit(100); // Sample for similarity check
+        .limit(100);
+
+      // 🔥 VERIFICAÇÃO 2: Fila de curadoria (curationQueue com embeddings)
+      const similarCuration = await db
+        .select({
+          documentId: sql<number>`CAST(${curationQueue.id} AS INTEGER)`, // Usar ID como string
+          chunkText: curationQueue.content,
+          embedding: sql<number[]>`${curationQueue.embedding}::jsonb`,
+          documentTitle: curationQueue.title,
+          source: sql<string>`'curation'`
+        })
+        .from(curationQueue)
+        .where(
+          and(
+            eq(curationQueue.tenantId, tenantId),
+            eq(curationQueue.status, 'pending'),
+            sql`${curationQueue.embedding} IS NOT NULL`
+          )
+        )
+        .limit(100);
+
+      // Combinar resultados
+      const similar = [...similarKB, ...similarCuration];
 
       // If no embeddings found, KB is empty - no duplicates possible
       if (similar.length === 0) {

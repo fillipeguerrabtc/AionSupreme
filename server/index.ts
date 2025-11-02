@@ -68,6 +68,9 @@ app.use((req, res, next) => {
   // Iniciar serviço de limpeza de retenção de tokens (executa mensalmente para aplicar retenção de 5 anos)
   fileCleanup.startTokenRetentionCleanup();
   
+  // Iniciar scan semanal de duplicados na KB (executa todo domingo às 02:00 UTC)
+  fileCleanup.startKBDeduplicationScan();
+  
   // Iniciar sistema de auto-recuperação de treinamento federado
   autoRecovery.start();
   

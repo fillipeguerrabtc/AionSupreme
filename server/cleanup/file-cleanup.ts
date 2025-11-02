@@ -14,6 +14,7 @@ import { lifecycleManager } from "../services/lifecycle-manager";
 export class FileCleanup {
   private intervalId: NodeJS.Timeout | null = null;
   private tokenCleanupIntervalId: NodeJS.Timeout | null = null;
+  private kbDeduplicationScanIntervalId: NodeJS.Timeout | null = null;
 
   /**
    * Start the cleanup service (runs every hour)
@@ -168,6 +169,72 @@ export class FileCleanup {
   }
 
   /**
+   * Start KB deduplication scan (runs weekly)
+   * Scans entire KB for duplicate documents
+   * 
+   * Runs every Sunday at 02:00 UTC (23:00 Saturday Brasília time)
+   */
+  startKBDeduplicationScan(): void {
+    if (this.kbDeduplicationScanIntervalId) {
+      console.log("[KB Dedup] Scan service already running");
+      return;
+    }
+
+    console.log("[KB Dedup] Starting weekly KB deduplication scan (every Sunday at 02:00 UTC / 23:00 Brasília Saturday)");
+
+    let lastExecutionDate: string | null = null; // Track "YYYY-WW" to prevent duplicate runs
+
+    const checkAndRunScan = () => {
+      const now = new Date();
+      const isSunday = now.getUTCDay() === 0; // 0 = Sunday
+      const isCorrectHour = now.getUTCHours() === 2; // 02:00 UTC
+      const weekId = `${now.getUTCFullYear()}-W${String(Math.ceil(now.getUTCDate() / 7)).padStart(2, '0')}`;
+
+      if (isSunday && isCorrectHour && lastExecutionDate !== weekId) {
+        console.log(`[KB Dedup] Weekly scan triggered on ${now.toISOString()}`);
+        
+        this.scanKBDuplicates().then(executed => {
+          if (executed) {
+            lastExecutionDate = weekId;
+            console.log(`[KB Dedup] Week ${weekId} marked as scanned`);
+          }
+        });
+      }
+    };
+
+    // Check every hour
+    this.kbDeduplicationScanIntervalId = setInterval(checkAndRunScan, 60 * 60 * 1000);
+    
+    // Run check immediately
+    checkAndRunScan();
+  }
+
+  /**
+   * Scan KB for duplicates
+   */
+  private async scanKBDuplicates(): Promise<boolean> {
+    try {
+      console.log("[KB Dedup] 🔍 Starting automated weekly KB duplicate scan...");
+      
+      const { kbDeduplicationScanner } = await import("../services/kb-deduplication-scanner");
+      const report = await kbDeduplicationScanner.scanKB();
+
+      console.log(kbDeduplicationScanner.formatReport(report));
+
+      if (report.duplicatesFound > 0) {
+        console.log(`[KB Dedup] ⚠️ Found ${report.duplicatesFound} duplicates in KB - manual review recommended`);
+      } else {
+        console.log(`[KB Dedup] ✅ KB is clean - no duplicates found`);
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error("[KB Dedup] ❌ Scan error:", error.message);
+      return false;
+    }
+  }
+
+  /**
    * Stop the cleanup service
    */
   stop(): void {
@@ -180,6 +247,11 @@ export class FileCleanup {
       clearTimeout(this.tokenCleanupIntervalId);
       this.tokenCleanupIntervalId = null;
       console.log("[Data Retention] Stopped data retention cleanup service");
+    }
+    if (this.kbDeduplicationScanIntervalId) {
+      clearInterval(this.kbDeduplicationScanIntervalId);
+      this.kbDeduplicationScanIntervalId = null;
+      console.log("[KB Dedup] Stopped weekly KB deduplication scan");
     }
   }
 

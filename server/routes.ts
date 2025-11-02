@@ -1314,6 +1314,27 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // POST /api/admin/kb/scan-duplicates - Scan KB for duplicates (manual trigger)
+  app.post("/api/admin/kb/scan-duplicates", async (req, res) => {
+    try {
+      console.log('[KB Dedup] Manual scan triggered via API');
+      
+      const { kbDeduplicationScanner } = await import("./services/kb-deduplication-scanner");
+      const report = await kbDeduplicationScanner.scanKB();
+      
+      console.log(kbDeduplicationScanner.formatReport(report));
+      
+      res.json({
+        success: true,
+        report,
+        formatted: kbDeduplicationScanner.formatReport(report),
+      });
+    } catch (error: any) {
+      console.error('[KB Dedup] Scan error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // POST /api/admin/kb/reset - Limpar TODOS os dados da Knowledge Base (para testes)
   app.post("/api/admin/kb/reset", async (req, res) => {
     try {
