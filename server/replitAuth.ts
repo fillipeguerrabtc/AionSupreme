@@ -35,6 +35,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: true,
+      sameSite: 'lax', // SECURITY: Prevent CSRF attacks. Use 'strict' for higher security or 'lax' for better UX
       maxAge: sessionTtl,
     },
   });

@@ -108,23 +108,19 @@ export class FileProcessor {
    */
   private async processPDF(filePath: string): Promise<{ text: string; metadata: Record<string, any> }> {
     try {
-      const { PDFParse } = require("pdf-parse");
+      // SECURITY FIX: Use correct pdf-parse API (default export, not named export)
+      const pdfParse = require("pdf-parse");
       const dataBuffer = await fs.readFile(filePath);
-      const uint8Array = new Uint8Array(dataBuffer);
       
-      const parser = new PDFParse(uint8Array);
-      await parser.load();
-      
-      const info = await parser.getInfo();
-      const textResult = await parser.getText();
-      
-      const fullText = textResult.pages.map((page: any) => page.text).join('\n\n');
+      // pdf-parse expects Buffer directly, returns Promise<{text, numpages, info, ...}>
+      const data = await pdfParse(dataBuffer);
       
       return {
-        text: fullText,
+        text: data.text,
         metadata: {
-          pages: info.total,
-          info: info.info,
+          pages: data.numpages,
+          info: data.info,
+          version: data.version,
         },
       };
     } catch (error: any) {

