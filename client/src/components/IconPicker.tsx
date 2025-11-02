@@ -84,9 +84,9 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
             data-testid="input-icon-search"
           />
           
-          <ScrollArea className="h-[500px] pr-4">
+          <ScrollArea className="h-[550px] pr-4">
             {search ? (
-              <div className="grid grid-cols-8 gap-2">
+              <div className="grid grid-cols-6 gap-3">
                 {filteredIcons.map((name) => {
                   const Icon = ICON_MAP[name];
                   return (
@@ -94,7 +94,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                       key={name}
                       variant={value === name ? "default" : "ghost"}
                       size="icon"
-                      className="h-12 w-12"
+                      className="h-14 w-14"
                       onClick={() => {
                         onChange(name);
                         setOpen(false);
@@ -102,19 +102,19 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                       title={name}
                       data-testid={`button-icon-${name.toLowerCase()}`}
                     >
-                      <Icon className="h-6 w-6" />
+                      <Icon className="h-7 w-7" />
                     </Button>
                   );
                 })}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {Object.entries(ICON_CATEGORIES).map(([category, icons]) => (
-                  <div key={category} className="space-y-2">
-                    <h4 className="text-sm font-medium text-muted-foreground">
+                  <div key={category} className="space-y-3">
+                    <h4 className="text-sm font-semibold text-muted-foreground sticky top-0 bg-background py-1 z-10">
                       {category}
                     </h4>
-                    <div className="grid grid-cols-8 gap-2">
+                    <div className="grid grid-cols-6 gap-3">
                       {icons.map((name) => {
                         const Icon = ICON_MAP[name];
                         return (
@@ -122,7 +122,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                             key={name}
                             variant={value === name ? "default" : "ghost"}
                             size="icon"
-                            className="h-12 w-12"
+                            className="h-14 w-14"
                             onClick={() => {
                               onChange(name);
                               setOpen(false);
@@ -130,7 +130,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                             title={name}
                             data-testid={`button-icon-${name.toLowerCase()}`}
                           >
-                            <Icon className="h-6 w-6" />
+                            <Icon className="h-7 w-7" />
                           </Button>
                         );
                       })}
