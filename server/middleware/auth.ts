@@ -19,7 +19,12 @@ interface AuthenticatedRequest extends Request {
 /**
  * API Key Authentication Middleware
  * Validates API key from Authorization header
- * SINGLE-TENANT: No tenant validation needed
+ * 
+ * SECURITY FIX: Removed automatic bypass - now requires valid API key or explicit disable
+ * 
+ * SINGLE-TENANT: Uses single API key from environment variable
+ * Set SYSTEM_API_KEY in environment to enable API key authentication
+ * Set DISABLE_API_KEY_AUTH=true to completely disable (NOT recommended for production)
  */
 export async function authenticateApiKey(
   req: AuthenticatedRequest,
@@ -27,20 +32,22 @@ export async function authenticateApiKey(
   next: NextFunction
 ) {
   try {
+    // SECURITY: Allow disabling API key auth ONLY if explicitly set
+    // This should NEVER be used in production
+    if (process.env.DISABLE_API_KEY_AUTH === "true") {
+      console.warn("[Auth] ⚠️  API Key authentication is DISABLED - this is insecure!");
+      return next();
+    }
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      // For development, allow requests without auth on certain routes
-      if (process.env.NODE_ENV === "development" && req.path.startsWith("/api/")) {
-        return next();
-      }
-
       return res.status(401).json({ error: "Missing or invalid authorization header" });
     }
 
     const apiKey = authHeader.substring(7); // Remove "Bearer "
 
-    // Validate API key (single-tenant: always valid in dev)
+    // Validate API key against environment variable or database
     const isValid = await validateApiKey(apiKey);
 
     if (!isValid) {
@@ -58,11 +65,30 @@ export async function authenticateApiKey(
 
 /**
  * Validate API key (SINGLE-TENANT MODE)
- * NOTE: Always returns true since AION is single-tenant
+ * 
+ * SECURITY FIX: Now validates against SYSTEM_API_KEY environment variable
+ * Or falls back to database validation for multi-tenant future compatibility
  */
 async function validateApiKey(apiKey: string): Promise<boolean> {
-  // Single-tenant: always valid
-  return true;
+  // Validate against environment variable (single-tenant mode)
+  const systemApiKey = process.env.SYSTEM_API_KEY;
+  
+  if (systemApiKey) {
+    // Use timing-safe comparison to prevent timing attacks
+    return crypto.timingSafeEqual(
+      Buffer.from(apiKey),
+      Buffer.from(systemApiKey)
+    );
+  }
+  
+  // Future: validate against database for multi-tenant support
+  // const tenant = await storage.getTenantByApiKey(apiKey);
+  // return !!tenant;
+  
+  // If no SYSTEM_API_KEY is set and database validation is not implemented,
+  // reject all API key attempts
+  console.warn("[Auth] No SYSTEM_API_KEY configured and database validation not implemented");
+  return false;
 }
 
 /**
