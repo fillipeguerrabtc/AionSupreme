@@ -35,7 +35,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, FolderTree, FileText, Upload } from "lucide-react";
-import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { IconPicker } from "@/components/IconPicker";
 import { type Namespace } from "@shared/schema";
 import { useMemo } from "react";
@@ -58,7 +57,6 @@ export default function NamespacesPage() {
   const [createDescription, setCreateDescription] = useState("");
   const [createIcon, setCreateIcon] = useState("");
   const [createCategory, setCreateCategory] = useState("");
-  const [createRelatedNamespaces, setCreateRelatedNamespaces] = useState<string[]>([]);
   const [createContent, setCreateContent] = useState("");
   
   // Edit form state
@@ -67,7 +65,6 @@ export default function NamespacesPage() {
   const [editDescription, setEditDescription] = useState("");
   const [editIcon, setEditIcon] = useState("");
   const [editCategory, setEditCategory] = useState("");
-  const [editRelatedNamespaces, setEditRelatedNamespaces] = useState<string[]>([]);
   const [editContent, setEditContent] = useState("");
   
   // Fetch ALL namespaces from database (unified approach)
@@ -93,7 +90,7 @@ export default function NamespacesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/namespaces"] });
-      toast({ title: t.admin.namespaces.created });
+      toast({ title: t.admin.namespaces.toast.created });
       setIsCreateOpen(false);
       resetCreateForm();
     },
@@ -114,7 +111,7 @@ export default function NamespacesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/namespaces"] });
-      toast({ title: t.admin.namespaces.updated });
+      toast({ title: t.admin.namespaces.toast.updated });
       setSelectedNamespace(null);
     },
     onError: (error: Error) => {
@@ -131,7 +128,7 @@ export default function NamespacesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/namespaces"] });
-      toast({ title: t.admin.namespaces.deleted });
+      toast({ title: t.admin.namespaces.toast.deleted });
     },
     onError: (error: Error) => {
       toast({ title: t.common.error, description: error.message, variant: "destructive" });
@@ -146,7 +143,6 @@ export default function NamespacesPage() {
       setEditDescription(selectedNamespace.description || "");
       setEditIcon(selectedNamespace.icon || "");
       setEditCategory(selectedNamespace.category || "");
-      setEditRelatedNamespaces(selectedNamespace.relatedNamespaces || []);
       setEditContent("");
     }
   }, [selectedNamespace]);
@@ -159,7 +155,6 @@ export default function NamespacesPage() {
     setCreateDescription("");
     setCreateIcon("");
     setCreateCategory("");
-    setCreateRelatedNamespaces([]);
     setCreateContent("");
   };
 
@@ -219,7 +214,6 @@ export default function NamespacesPage() {
       description: createDescription,
       icon: createIcon,
       category: createCategory,
-      relatedNamespaces: createRelatedNamespaces,
     }, {
       onSuccess: async (newNamespace) => {
         // If content was provided, ingest it into the namespace
@@ -263,8 +257,6 @@ export default function NamespacesPage() {
         description: editDescription,
         icon: editIcon,
         category: editCategory,
-        relatedNamespaces: editRelatedNamespaces,
-        enabled: true,
       }, {
         onSuccess: async (newNamespace) => {
           toast({ 
@@ -308,7 +300,6 @@ export default function NamespacesPage() {
           description: editDescription,
           icon: editIcon,
           category: editCategory,
-          relatedNamespaces: editRelatedNamespaces,
         },
       }, {
         onSuccess: async () => {
@@ -391,9 +382,11 @@ export default function NamespacesPage() {
       }}>
             <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{t.admin.namespaces.createTitle}</DialogTitle>
+              <DialogTitle>{createMode === "root" ? t.admin.namespaces.createRoot : t.admin.namespaces.createSub}</DialogTitle>
               <DialogDescription>
-                {t.admin.namespaces.createDesc}
+                {createMode === "root" 
+                  ? "Crie um novo namespace raiz para organizar conhecimento por área" 
+                  : "Crie um sub-namespace dentro de uma área existente"}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
@@ -434,23 +427,22 @@ export default function NamespacesPage() {
               {createMode === "sub" && (
                 <div className="space-y-2">
                   <Label htmlFor="parent-namespace">Namespace Pai *</Label>
-                  <NamespaceSelector
-                    value={parentNamespace ? [parentNamespace] : []}
-                    onChange={(values) => {
-                      const parent = values[0] || "";
+                  <Input
+                    id="parent-namespace"
+                    placeholder="Ex: atendimento, financas"
+                    value={parentNamespace}
+                    onChange={(e) => {
+                      const parent = e.target.value.trim();
                       setParentNamespace(parent);
                       // Auto-fill name with parent prefix
                       if (parent && !createName.startsWith(parent + "/")) {
                         setCreateName(parent + "/");
                       }
                     }}
-                    placeholder="Selecione o namespace pai..."
-                    allowCustom={false}
-                    allowWildcard={false}
-                    rootOnly={true}
+                    data-testid="input-parent-namespace"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Escolha o namespace existente onde este será criado
+                    Digite o nome do namespace raiz (sem o "/" no final)
                   </p>
                 </div>
               )}
@@ -515,17 +507,6 @@ export default function NamespacesPage() {
                 <p className="text-xs text-muted-foreground">
                   Opcional. Escolha um ícone visual para identificar este namespace
                 </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Namespaces Relacionados</Label>
-                <NamespaceSelector
-                  value={createRelatedNamespaces}
-                  onChange={setCreateRelatedNamespaces}
-                  placeholder="Selecione namespaces relacionados..."
-                  allowCustom={false}
-                  allowWildcard={false}
-                />
               </div>
 
               <div className="space-y-2">
@@ -708,17 +689,6 @@ export default function NamespacesPage() {
                   data-testid="input-edit-namespace-category"
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Namespaces Relacionados</Label>
-              <NamespaceSelector
-                value={editRelatedNamespaces}
-                onChange={setEditRelatedNamespaces}
-                placeholder="Selecione namespaces relacionados..."
-                allowCustom={false}
-                allowWildcard={false}
-              />
             </div>
 
             <div className="space-y-2">

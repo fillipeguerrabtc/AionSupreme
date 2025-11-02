@@ -1412,7 +1412,7 @@ export const agentTools = pgTable("agent_tools", {
 // ============================================================================
 // NAMESPACES - Knowledge base namespace management
 // Allows admins to create, edit, and organize KB namespaces
-// Each namespace can have a name, description, related namespaces, and content
+// Hierarchy is AUTOMATIC via naming (e.g., "financas" → "financas/investimentos")
 // ============================================================================
 export const namespaces = pgTable("namespaces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1420,7 +1420,6 @@ export const namespaces = pgTable("namespaces", {
   name: varchar("name", { length: 255 }).notNull().unique(), // e.g., "financas/investimentos"
   displayName: varchar("display_name", { length: 255 }), // Friendly name for UI
   description: text("description"),
-  relatedNamespaces: jsonb("related_namespaces").$type<string[]>().default([]), // Array of related namespace names
   icon: varchar("icon", { length: 50 }), // Lucide icon name
   category: varchar("category", { length: 100 }), // Category for grouping
   createdAt: timestamp("created_at").notNull().defaultNow(),
