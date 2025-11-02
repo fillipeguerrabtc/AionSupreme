@@ -589,7 +589,7 @@ export default function ChatPage() {
               data-testid={`message-${msg.role}-${idx}`}
             >
               {msg.role === "assistant" && (
-                <div className="rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
+                <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
                   <img 
                     src="/cat.gif" 
                     alt="Gatinho"
@@ -618,8 +618,8 @@ export default function ChatPage() {
               </div>
               
               {msg.role === "user" && (
-                <div className="bg-primary/10 border border-primary/20 p-2 rounded-full h-12 w-12 flex-shrink-0">
-                  <User className="w-7 h-7 text-primary" data-testid="icon-user" />
+                <div className="bg-primary/10 border border-primary/20 p-3 rounded-full h-16 w-16 flex-shrink-0">
+                  <User className="w-10 h-10 text-primary" data-testid="icon-user" />
                 </div>
               )}
             </div>
@@ -627,7 +627,7 @@ export default function ChatPage() {
           
           {sendMutation.isPending && (
             <div className="flex gap-4 animate-slide-up">
-              <div className="rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
+              <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
                 <img 
                   src="/cat.gif" 
                   alt="Gatinho"
@@ -791,7 +791,7 @@ export default function ChatPage() {
               data-testid={`message-${msg.role}-${idx}`}
             >
               {msg.role === "assistant" && (
-                <div className="rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
+                <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
                   <img 
                     src="/cat.gif" 
                     alt="Gatinho"
@@ -820,8 +820,8 @@ export default function ChatPage() {
               </div>
               
               {msg.role === "user" && (
-                <div className="bg-primary/10 border border-primary/20 p-2 rounded-full h-12 w-12 flex-shrink-0">
-                  <User className="w-7 h-7 text-primary" data-testid="icon-user" />
+                <div className="bg-primary/10 border border-primary/20 p-3 rounded-full h-16 w-16 flex-shrink-0">
+                  <User className="w-10 h-10 text-primary" data-testid="icon-user" />
                 </div>
               )}
             </div>
@@ -829,7 +829,7 @@ export default function ChatPage() {
           
           {sendMutation.isPending && (
             <div className="flex gap-4 animate-slide-up">
-              <div className="rounded-full h-12 w-12 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
+              <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
                 <img 
                   src="/cat.gif" 
                   alt="Gatinho"
