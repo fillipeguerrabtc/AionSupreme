@@ -56,6 +56,9 @@ interface AgentStats {
   agentName: string;
   usageCount: number;
   lastUsed: string;
+  agentTier?: "agent" | "subagent"; // Hierarquia
+  parentAgentId?: string;
+  subEntitiesCount?: number; // Quantidade de sub-agents
 }
 
 interface NamespaceStats {
@@ -63,6 +66,24 @@ interface NamespaceStats {
   namespaceName: string;
   usageCount: number;
   lastUsed: string;
+  isRootNamespace?: boolean; // true se não tem "/"
+  parentNamespace?: string;
+  subEntitiesCount?: number; // Quantidade de sub-namespaces
+}
+
+interface HierarchicalOverview {
+  agents: {
+    rootAgents: number;
+    subAgents: number;
+    totalUses: number;
+    uses24h: number;
+  };
+  namespaces: {
+    rootNamespaces: number;
+    subNamespaces: number;
+    totalSearches: number;
+    searches24h: number;
+  };
 }
 
 export default function TelemetriaPage() {
@@ -108,6 +129,12 @@ export default function TelemetriaPage() {
   const { data: namespaceHistory } = useQuery<any[]>({
     queryKey: ["/api/admin/telemetry/namespaces/history"],
     refetchInterval: 30000,
+  });
+
+  // Fetch hierarchical overview
+  const { data: hierarchicalOverview } = useQuery<HierarchicalOverview>({
+    queryKey: ["/api/admin/telemetry/hierarchical-overview"],
+    refetchInterval: 10000,
   });
 
   // Chart colors
@@ -310,7 +337,7 @@ export default function TelemetriaPage() {
         {/* TAB 2: Analytics KB/Chat */}
         <TabsContent value="analytics" className="space-y-6">
           {/* Overview Cards */}
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {/* Total Agent Uses */}
             <Card className="glass-modern" data-testid="card-agent-uses">
               <CardHeader className="pb-3">
@@ -319,10 +346,15 @@ export default function TelemetriaPage() {
                   Execuções de Agentes
                 </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
-                  {agentStats ? agentStats.reduce((sum, a) => sum + a.usageCount, 0).toLocaleString() : "..."}
+                  {hierarchicalOverview ? hierarchicalOverview.agents.totalUses.toLocaleString() : "..."}
                 </div>
-                <CardDescription className="text-xs">
-                  {agentStats ? `${agentStats.length} agentes ativos` : "..."}
+                <CardDescription className="text-xs flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px]">
+                    {hierarchicalOverview?.agents.rootAgents || 0} Agents
+                  </Badge>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {hierarchicalOverview?.agents.subAgents || 0} Sub-Agents
+                  </Badge>
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -335,10 +367,15 @@ export default function TelemetriaPage() {
                   Buscas em Namespaces
                 </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
-                  {namespaceStats ? namespaceStats.reduce((sum, n) => sum + n.usageCount, 0).toLocaleString() : "..."}
+                  {hierarchicalOverview ? hierarchicalOverview.namespaces.totalSearches.toLocaleString() : "..."}
                 </div>
-                <CardDescription className="text-xs">
-                  {namespaceStats ? `${namespaceStats.length} namespaces ativos` : "..."}
+                <CardDescription className="text-xs flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px]">
+                    {hierarchicalOverview?.namespaces.rootNamespaces || 0} Root
+                  </Badge>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {hierarchicalOverview?.namespaces.subNamespaces || 0} Sub
+                  </Badge>
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -355,11 +392,36 @@ export default function TelemetriaPage() {
                     ? agentStats[0].agentName 
                     : "..."}
                 </div>
-                <CardDescription className="text-xs">
+                <CardDescription className="text-xs flex items-center gap-2">
                   {agentStats && agentStats.length > 0 
                     ? `${agentStats[0].usageCount} execuções` 
                     : "..."}
+                  {agentStats && agentStats.length > 0 && agentStats[0].agentTier && (
+                    <Badge variant={agentStats[0].agentTier === "agent" ? "outline" : "secondary"} className="text-[9px]">
+                      {agentStats[0].agentTier === "agent" ? "Agent" : "Sub"}
+                    </Badge>
+                  )}
                 </CardDescription>
+              </CardHeader>
+            </Card>
+
+            {/* Hierarchical Distribution */}
+            <Card className="glass-modern" data-testid="card-hierarchy">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Distribuição Hierárquica
+                </CardTitle>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Agents Raiz</span>
+                    <span className="font-bold">{hierarchicalOverview?.agents.rootAgents || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Sub-Agents</span>
+                    <span className="font-bold">{hierarchicalOverview?.agents.subAgents || 0}</span>
+                  </div>
+                </div>
               </CardHeader>
             </Card>
           </div>
@@ -372,29 +434,46 @@ export default function TelemetriaPage() {
                 Uso de Agentes Especialistas
               </CardTitle>
               <CardDescription>
-                Top 10 agentes mais executados
+                Top 10 agentes mais executados (hierarquia visível)
               </CardDescription>
             </CardHeader>
             <CardContent>
               {agentStats && agentStats.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={agentStats.slice(0, 10)} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                    <XAxis type="number" tick={{ fontSize: 12 }} />
-                    <YAxis 
-                      dataKey="agentName" 
-                      type="category" 
-                      width={150}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip />
-                    <Bar 
-                      dataKey="usageCount" 
-                      fill="hsl(var(--primary))"
-                      name="Execuções"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-3">
+                  {agentStats.slice(0, 10).map((agent, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex items-center gap-3 p-3 rounded-md bg-card/30 hover-elevate cursor-pointer"
+                      data-testid={`agent-item-${idx}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">{agent.agentName}</span>
+                          {agent.agentTier && (
+                            <Badge 
+                              variant={agent.agentTier === "agent" ? "outline" : "secondary"} 
+                              className="text-[9px] shrink-0"
+                            >
+                              {agent.agentTier === "agent" ? "Agent" : "Sub-Agent"}
+                            </Badge>
+                          )}
+                          {agent.subEntitiesCount !== undefined && agent.subEntitiesCount > 0 && (
+                            <Badge variant="default" className="text-[9px] shrink-0">
+                              {agent.subEntitiesCount} subs
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-1">
+                          <Progress value={(agent.usageCount / agentStats[0].usageCount) * 100} className="h-2" />
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-lg font-bold">{agent.usageCount}</div>
+                        <p className="text-xs text-muted-foreground">execuções</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                   Nenhum dado de agentes disponível
@@ -411,29 +490,46 @@ export default function TelemetriaPage() {
                 Uso de Namespaces
               </CardTitle>
               <CardDescription>
-                Top 10 namespaces mais consultados
+                Top 10 namespaces mais consultados (hierarquia visível)
               </CardDescription>
             </CardHeader>
             <CardContent>
               {namespaceStats && namespaceStats.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={namespaceStats.slice(0, 10)} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                    <XAxis type="number" tick={{ fontSize: 12 }} />
-                    <YAxis 
-                      dataKey="namespaceName" 
-                      type="category" 
-                      width={150}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip />
-                    <Bar 
-                      dataKey="usageCount" 
-                      fill="hsl(var(--accent))"
-                      name="Buscas"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <div className="space-y-3">
+                  {namespaceStats.slice(0, 10).map((namespace, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex items-center gap-3 p-3 rounded-md bg-card/30 hover-elevate cursor-pointer"
+                      data-testid={`namespace-item-${idx}`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">{namespace.namespaceName}</span>
+                          {namespace.isRootNamespace !== undefined && (
+                            <Badge 
+                              variant={namespace.isRootNamespace ? "outline" : "secondary"} 
+                              className="text-[9px] shrink-0"
+                            >
+                              {namespace.isRootNamespace ? "Root" : "Sub"}
+                            </Badge>
+                          )}
+                          {namespace.subEntitiesCount !== undefined && namespace.subEntitiesCount > 0 && (
+                            <Badge variant="default" className="text-[9px] shrink-0">
+                              {namespace.subEntitiesCount} subs
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-1">
+                          <Progress value={(namespace.usageCount / namespaceStats[0].usageCount) * 100} className="h-2" />
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-lg font-bold">{namespace.usageCount}</div>
+                        <p className="text-xs text-muted-foreground">buscas</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                   Nenhum dado de namespaces disponível
