@@ -192,8 +192,9 @@
       "policies": [
         {
           "name": "cleanup_stale_workers",
-          "enabled": true,
-          "action": "delete",
+          "enabled": false,
+          "action": "flag_only",
+          "description": "DISABLED - Workers offline should remain registered until manually removed by user",
           "condition": {
             "allOf": [
               {
@@ -204,14 +205,15 @@
               {
                 "field": "lastUsedAt",
                 "operator": "older_than",
-                "value": 7,
+                "value": 90,
                 "unit": "days"
               }
             ]
           },
           "effect": {
-            "deleteWorkerRecord": true,
-            "notifyAdmin": false
+            "deleteWorkerRecord": false,
+            "flagOnly": true,
+            "notifyAdmin": true
           }
         },
         {
