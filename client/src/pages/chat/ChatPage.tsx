@@ -289,9 +289,10 @@ export default function ChatPage() {
     
     // Create attachment metadata for user's uploaded files
     const userAttachments = attachedFiles.map(file => {
-      const type = file.type.startsWith('image/') ? 'image' : 
-                   file.type.startsWith('video/') ? 'video' :
-                   file.type.startsWith('audio/') ? 'audio' : 'document';
+      const type: "image" | "video" | "audio" | "document" = 
+        file.type.startsWith('image/') ? 'image' : 
+        file.type.startsWith('video/') ? 'video' :
+        file.type.startsWith('audio/') ? 'audio' : 'document';
       
       return {
         type,
