@@ -15,6 +15,7 @@ import { login } from "@/lib/authUtils";
 import { VideoPreview } from "@/components/VideoPreview";
 import { ImagePreview } from "@/components/ImagePreview";
 import { AttachmentsRenderer } from "@/components/AttachmentsRenderer";
+import { AttachmentThumbnail } from "@/components/AttachmentThumbnail";
 
 interface Message {
   id?: number;
@@ -651,31 +652,17 @@ export default function ChatPage() {
       {/* Minimal Input Composer */}
       <div className="bg-background border-t p-4">
         <div className="max-w-4xl mx-auto space-y-3">
-          {/* Attached Files Preview */}
+          {/* Attached Files Preview - Thumbnail Grid */}
           {attachedFiles.length > 0 && (
-            <div className="flex flex-wrap gap-2" data-testid="files-preview">
+            <div className="flex flex-wrap gap-3" data-testid="files-preview">
               {attachedFiles.map((file, idx) => (
-                <div
+                <AttachmentThumbnail
                   key={idx}
-                  className="bg-muted border px-3 py-2 rounded-lg flex items-center gap-2 text-sm hover-elevate"
-                  data-testid={`file-preview-${idx}`}
-                >
-                  {file.type.startsWith("image/") ? (
-                    <ImageIcon className="w-4 h-4 text-primary" />
-                  ) : file.type.startsWith("video/") ? (
-                    <Video className="w-4 h-4 text-primary" />
-                  ) : (
-                    <FileText className="w-4 h-4 text-primary" />
-                  )}
-                  <span className="max-w-[200px] truncate">{file.name}</span>
-                  <button
-                    onClick={() => removeFile(idx)}
-                    className="ml-1 hover:text-destructive transition-colors"
-                    data-testid={`button-remove-file-${idx}`}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
+                  file={file}
+                  onRemove={() => removeFile(idx)}
+                  showRemove={true}
+                  testId={`file-preview-${idx}`}
+                />
               ))}
             </div>
           )}
@@ -867,31 +854,17 @@ export default function ChatPage() {
       {/* Minimal Input Composer */}
       <div className="bg-background border-t p-4">
         <div className="max-w-4xl mx-auto space-y-3">
-          {/* Attached Files Preview */}
+          {/* Attached Files Preview - Thumbnail Grid */}
           {attachedFiles.length > 0 && (
-            <div className="flex flex-wrap gap-2" data-testid="files-preview">
+            <div className="flex flex-wrap gap-3" data-testid="files-preview">
               {attachedFiles.map((file, idx) => (
-                <div
+                <AttachmentThumbnail
                   key={idx}
-                  className="bg-muted border px-3 py-2 rounded-lg flex items-center gap-2 text-sm hover-elevate"
-                  data-testid={`file-preview-${idx}`}
-                >
-                  {file.type.startsWith("image/") ? (
-                    <ImageIcon className="w-4 h-4 text-primary" />
-                  ) : file.type.startsWith("video/") ? (
-                    <Video className="w-4 h-4 text-primary" />
-                  ) : (
-                    <FileText className="w-4 h-4 text-primary" />
-                  )}
-                  <span className="max-w-[200px] truncate">{file.name}</span>
-                  <button
-                    onClick={() => removeFile(idx)}
-                    className="ml-1 hover:text-destructive transition-colors"
-                    data-testid={`button-remove-file-${idx}`}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
+                  file={file}
+                  onRemove={() => removeFile(idx)}
+                  showRemove={true}
+                  testId={`file-preview-${idx}`}
+                />
               ))}
             </div>
           )}
