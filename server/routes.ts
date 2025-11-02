@@ -650,20 +650,28 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Preview the FULL system prompt (custom + generated parts)
-  app.get("/api/admin/policies/preview-prompt", async (req, res) => {
+  // Accepts POST with temporary behavior values for live preview
+  app.post("/api/admin/policies/preview-prompt", async (req, res) => {
     try {
       const policy = await storage.getActivePolicy();
       if (!policy) {
         return res.status(404).json({ error: "No active policy found" });
       }
 
+      // Use temporary behavior from request if provided, otherwise use saved
+      const previewPolicy = {
+        ...policy,
+        behavior: req.body.behavior || policy.behavior,
+        systemPrompt: req.body.systemPrompt !== undefined ? req.body.systemPrompt : policy.systemPrompt
+      };
+
       // Generate the COMPLETE system prompt (same as what AI receives)
-      const fullPrompt = await enforcementPipeline.composeSystemPrompt(policy);
+      const fullPrompt = await enforcementPipeline.composeSystemPrompt(previewPolicy);
 
       res.json({ 
-        customPart: policy.systemPrompt || "",
+        customPart: previewPolicy.systemPrompt || "",
         fullPrompt: fullPrompt,
-        behavior: policy.behavior
+        behavior: previewPolicy.behavior
       });
     } catch (error: any) {
       console.error("Error generating prompt preview:", error);

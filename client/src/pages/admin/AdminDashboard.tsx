@@ -73,14 +73,21 @@ export default function AdminDashboard() {
     },
   });
 
-  // Fetch the FULL system prompt (what AI actually receives)
-  const { data: fullPromptData } = useQuery({
-    queryKey: ["/api/admin/policies/preview-prompt"],
+  // Fetch the FULL system prompt preview with current (unsaved) values
+  const { data: fullPromptData, refetch: refetchPrompt } = useQuery({
+    queryKey: ["/api/admin/policies/preview-prompt", pendingBehavior, systemPromptValue],
     queryFn: async () => {
-      const res = await fetch("/api/admin/policies/preview-prompt");
+      const res = await apiRequest("/api/admin/policies/preview-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          behavior: pendingBehavior || policy?.behavior,
+          systemPrompt: systemPromptValue
+        })
+      });
       return res.json();
     },
-    refetchInterval: 5000, // Atualiza a cada 5s
+    enabled: !!policy, // Só executa quando policy estiver carregada
   });
 
   // Fetch documents count for Knowledge Base stats
@@ -1034,7 +1041,10 @@ export default function AdminDashboard() {
                     {updatePolicy.isPending ? "Salvando..." : "Salvar"}
                   </Button>
                   <Button
-                    onClick={() => setShowFullPrompt(true)}
+                    onClick={() => {
+                      refetchPrompt(); // Atualiza preview antes de abrir
+                      setShowFullPrompt(true);
+                    }}
                     variant="outline"
                     className="hover-elevate active-elevate-2"
                     data-testid="button-view-full-prompt"
