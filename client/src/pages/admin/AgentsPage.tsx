@@ -53,7 +53,6 @@ type Agent = {
   assignedNamespaces?: string[];
   description?: string;
   systemPrompt?: string;
-  enabled: boolean;
   ragNamespaces?: string[];
   policy?: any;
 };
@@ -220,7 +219,6 @@ export default function AgentsPage() {
                   <TableHead>Slug</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Namespaces</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -251,11 +249,6 @@ export default function AgentsPage() {
                           </Badge>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={agent.enabled ? "default" : "secondary"}>
-                        {agent.enabled ? "Ativo" : "Inativo"}
-                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">

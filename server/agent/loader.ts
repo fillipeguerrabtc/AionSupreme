@@ -5,14 +5,17 @@ import { agentRegistry } from "./registry";
 import type { Agent } from "./types";
 
 /**
- * Load all enabled agents from database and register them
+ * Load all agents from database and register them
  * Converts DB records into executable Agent objects with tools, budgets, prompts
+ * 
+ * NOTE: All agents in DB are active. There is no "inactive" or "orphan" status.
+ * If an agent exists in the database, it is loaded and registered.
  */
 export async function loadAgentsFromDatabase(): Promise<void> {
   console.log(`[AgentLoader] Loading agents...`);
   
   try {
-    // Fetch all agents (if exists in DB, it's active)
+    // Fetch all agents from database
     const dbAgents = await agentsStorage.listAgents();
     
     console.log(`[AgentLoader] Found ${dbAgents.length} agents`);

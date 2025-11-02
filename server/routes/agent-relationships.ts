@@ -78,7 +78,7 @@ export function registerAgentRelationshipRoutes(app: Express) {
   // PATCH /api/agent-relationships/:id - Update relationship
   app.patch("/api/agent-relationships/:id", async (req, res) => {
     try {
-      const { budgetSharePercent, delegationMode, maxDepth, toolDelta, namespaceSuffix, enabled } = req.body;
+      const { budgetSharePercent, delegationMode, maxDepth, toolDelta, namespaceSuffix } = req.body;
 
       // Normalize budgetSharePercent if provided
       let normalizedBudget = budgetSharePercent;
@@ -92,7 +92,6 @@ export function registerAgentRelationshipRoutes(app: Express) {
         maxDepth,
         toolDelta,
         namespaceSuffix,
-        enabled,
       });
 
       res.json(updated);

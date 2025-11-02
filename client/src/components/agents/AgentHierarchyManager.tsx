@@ -47,7 +47,6 @@ type Relationship = {
     budgetSharePercent: number;
     delegationMode: string;
     maxDepth: number;
-    enabled: boolean;
   };
   childAgent?: Agent;
   parentAgent?: Agent;
@@ -320,7 +319,6 @@ export function AgentHierarchyManager() {
                   <TableHead>Budget Share</TableHead>
                   <TableHead>Modo</TableHead>
                   <TableHead>Max Depth</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -345,11 +343,6 @@ export function AgentHierarchyManager() {
                       <Badge variant="secondary">{relationship.delegationMode}</Badge>
                     </TableCell>
                     <TableCell>{relationship.maxDepth}</TableCell>
-                    <TableCell>
-                      <Badge variant={relationship.enabled ? "default" : "secondary"}>
-                        {relationship.enabled ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         size="sm"
