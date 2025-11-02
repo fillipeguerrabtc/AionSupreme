@@ -348,5 +348,37 @@ export function registerGpuRoutes(app: Express) {
     }
   });
 
-  console.log("[GPU Routes] ✅ 10 GPU Pool routes registered successfully");
+  /**
+   * DELETE /api/gpu/:id
+   * MANUAL deletion of GPU worker by user
+   * NO automatic lifecycle - user controls when to remove workers
+   */
+  app.delete("/api/gpu/:id", async (req: Request, res: Response) => {
+    try {
+      const workerId = parseInt(req.params.id);
+
+      const [worker] = await db
+        .select()
+        .from(gpuWorkers)
+        .where(eq(gpuWorkers.id, workerId))
+        .limit(1);
+
+      if (!worker) {
+        return res.status(404).json({ error: "Worker not found" });
+      }
+
+      await db
+        .delete(gpuWorkers)
+        .where(eq(gpuWorkers.id, workerId));
+
+      console.log(`[GPU Pool] 🗑️ Worker manually deleted by user: ID ${workerId} (${worker.provider})`);
+
+      res.json({ success: true, message: "GPU worker deleted successfully" });
+    } catch (error: any) {
+      console.error("[GPU Delete] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  console.log("[GPU Routes] ✅ 11 GPU Pool routes registered successfully");
 }

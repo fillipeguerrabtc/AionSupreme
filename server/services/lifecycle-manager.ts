@@ -585,41 +585,18 @@ export class LifecycleManager {
 
   /**
    * Cleanup GPU resources based on policy
+   * DISABLED - GPU workers should NEVER be automatically deleted
+   * Workers offline/error are kept until manually removed by user
    */
   private async cleanupGPU(policy: Policy): Promise<CleanupResult> {
     const now = new Date();
-    let recordsDeleted = 0;
-
-    if (policy.name === 'cleanup_stale_workers') {
-      const threshold = new Date();
-      threshold.setDate(threshold.getDate() - 7);
-
-      const staleWorkers = await db
-        .select()
-        .from(gpuWorkers)
-        .where(
-          and(
-            inArray(gpuWorkers.status, ['offline', 'error']),
-            sql`${gpuWorkers.lastUsedAt} IS NOT NULL`,
-            lt(gpuWorkers.lastUsedAt, threshold)
-          )
-        );
-
-      for (const worker of staleWorkers) {
-        await db
-          .delete(gpuWorkers)
-          .where(eq(gpuWorkers.id, worker.id));
-        
-        recordsDeleted++;
-      }
-
-      console.log(`[LifecycleManager]     Deleted ${recordsDeleted} stale GPU workers`);
-    }
+    
+    console.log(`[LifecycleManager]     Skipped - GPU workers are NEVER auto-deleted (user must manually remove)`);
 
     return {
       module: 'gpu',
       policy: policy.name,
-      recordsDeleted,
+      recordsDeleted: 0,
       recordsPreserved: 0,
       errors: [],
       timestamp: now,
