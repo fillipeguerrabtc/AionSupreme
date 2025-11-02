@@ -38,14 +38,25 @@ export interface KBDuplicationScanReport {
 
 export class KBDeduplicationScanner {
   /**
-   * Scan entire KB for duplicates
-   * Compares all documents against each other using embeddings
+   * Scan KB for duplicates
+   * ⚡ PERFORMANCE: Limited to top 500 most recent docs to avoid O(n²) explosion
+   * 
+   * NOTE: Para KB >1000 docs, implementar:
+   * - Clustering batch (LSH/MinHash)
+   * - pgvector approximate search
+   * - Background job queue
    */
   async scanKB(tenantId: number = 1): Promise<KBDuplicationScanReport> {
     console.log('[KB Dedup] Starting KB-wide duplicate scan...');
     const startTime = Date.now();
 
-    // Get all indexed documents with embeddings
+    // ⚡ PERFORMANCE FIX: Limit to 500 most recent docs to avoid O(n²) explosion
+    // 500 docs = 125k comparisons (acceptable)
+    // 1000 docs = 500k comparisons (slow)
+    // 5000 docs = 12.5M comparisons (timeout)
+    const MAX_DOCS = 500;
+
+    // Get top N most recent indexed documents with embeddings
     const docsWithEmbeddings = await db
       .select({
         docId: documents.id,
@@ -61,9 +72,11 @@ export class KBDeduplicationScanner {
           eq(documents.status, 'indexed'),
           sql`${embeddings.embedding} IS NOT NULL`
         )
-      );
+      )
+      .orderBy(sql`${documents.id} DESC`) // Mais recentes primeiro
+      .limit(MAX_DOCS);
 
-    console.log(`[KB Dedup] Found ${docsWithEmbeddings.length} documents with embeddings`);
+    console.log(`[KB Dedup] Scanning ${docsWithEmbeddings.length} most recent documents (max ${MAX_DOCS})`);
 
     const duplicates: KBDuplicateResult[] = [];
     const processedPairs = new Set<string>(); // Track pairs to avoid duplicates

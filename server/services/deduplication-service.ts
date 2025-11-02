@@ -80,7 +80,10 @@ export class DeduplicationService {
 
   /**
    * Check if text is semantically duplicate (>95% similarity)
-   * 🔥 VERIFICAÇÃO UNIVERSAL: KB + CURADORIA
+   * ⚡ PERFORMANCE: Top-200 limit para evitar scan massivo
+   * 🔥 VERIFICAÇÃO: KB + CURADORIA (100 cada)
+   * 
+   * NOTE: Para produção com KB grande (>10k docs), usar pgvector com índices IVFFlat/HNSW
    */
   async checkSemanticDuplicate(
     text: string,
@@ -98,7 +101,10 @@ export class DeduplicationService {
         { text, index: 0, tokens: Math.ceil(text.length / 4) }
       ]);
 
-      // 🔥 VERIFICAÇÃO 1: KB aprovada (documents + embeddings)
+      // ⚡ PERFORMANCE FIX: Limitar a 100 embeddings de cada fonte
+      // TODO: Implementar pgvector + IVFFlat index para top-k otimizado em KB grande
+
+      // 🔥 VERIFICAÇÃO 1: KB aprovada (top 100 mais recentes)
       const similarKB = await db
         .select({
           documentId: embeddings.documentId,
@@ -115,12 +121,13 @@ export class DeduplicationService {
             eq(documents.status, 'indexed')
           )
         )
+        .orderBy(sql`${embeddings.id} DESC`) // Mais recentes primeiro
         .limit(100);
 
-      // 🔥 VERIFICAÇÃO 2: Fila de curadoria (curationQueue com embeddings)
+      // 🔥 VERIFICAÇÃO 2: Fila de curadoria (top 100 pendentes)
       const similarCuration = await db
         .select({
-          documentId: sql<number>`CAST(${curationQueue.id} AS INTEGER)`, // Usar ID como string
+          documentId: sql<number>`CAST(${curationQueue.id} AS INTEGER)`,
           chunkText: curationQueue.content,
           embedding: sql<number[]>`${curationQueue.embedding}::jsonb`,
           documentTitle: curationQueue.title,
@@ -134,9 +141,10 @@ export class DeduplicationService {
             sql`${curationQueue.embedding} IS NOT NULL`
           )
         )
+        .orderBy(sql`${curationQueue.id} DESC`) // Mais recentes primeiro
         .limit(100);
 
-      // Combinar resultados
+      // Combinar resultados (máx 200 comparações)
       const similar = [...similarKB, ...similarCuration];
 
       // If no embeddings found, KB is empty - no duplicates possible
