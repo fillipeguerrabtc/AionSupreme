@@ -34,6 +34,9 @@ export async function seedDatabase() {
         formality: 0.5,
         creativity: 0.8,
         precision: 0.9,
+        persuasiveness: 0.5,
+        empathy: 0.7,
+        enthusiasm: 0.6,
       },
       
       // LLM parameters (balanced for production)

@@ -86,10 +86,13 @@ export const policies = pgTable("policies", {
   humor: text("humor").notNull().default("neutral"), // "formal" | "casual" | "technical" | "creative" | "empathetic"
   tone: text("tone").notNull().default("professional"), // "professional" | "friendly" | "direct" | "educational"
   behavior: jsonb("behavior").notNull().$type<{
-    verbosity: number; // 0-1
-    formality: number; // 0-1
-    creativity: number; // 0-1
-    precision: number; // 0-1
+    verbosity: number; // 0-1 (concise vs detailed)
+    formality: number; // 0-1 (casual vs formal)
+    creativity: number; // 0-1 (factual vs creative)
+    precision: number; // 0-1 (approximate vs precise)
+    persuasiveness: number; // 0-1 (neutral vs persuasive)
+    empathy: number; // 0-1 (objective vs empathetic)
+    enthusiasm: number; // 0-1 (calm vs enthusiastic)
   }>(),
   
   // LLM parameters

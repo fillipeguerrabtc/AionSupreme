@@ -40,6 +40,9 @@ export class EnforcementPipeline {
         formality: 0.5,
         creativity: 0.7,
         precision: 0.8,
+        persuasiveness: 0.5,
+        empathy: 0.7,
+        enthusiasm: 0.6,
       },
       temperature: 0.7,
       topP: 0.9,
@@ -162,9 +165,27 @@ This applies to ALL responses: normal answers, refusals, fallbacks, everything.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
     
-    // Add personality traits
-    prompt += `\n\nPersonality:\n- Humor: ${policy.humor}\n- Tone: ${policy.tone}`;
-    prompt += `\n- Verbosity: ${policy.behavior.verbosity}\n- Creativity: ${policy.behavior.creativity}`;
+    // Add personality traits - ALL OF THEM!
+    prompt += `\n\n🎭 PERSONALITY & BEHAVIOR CONFIGURATION:
+- Humor Style: ${policy.humor}
+- Communication Tone: ${policy.tone}
+- Verbosity Level: ${(policy.behavior.verbosity * 100).toFixed(0)}% (${policy.behavior.verbosity < 0.3 ? 'concise' : policy.behavior.verbosity < 0.7 ? 'balanced' : 'detailed'})
+- Formality Level: ${(policy.behavior.formality * 100).toFixed(0)}% (${policy.behavior.formality < 0.3 ? 'casual' : policy.behavior.formality < 0.7 ? 'semi-formal' : 'very formal'})
+- Creativity Level: ${(policy.behavior.creativity * 100).toFixed(0)}% (${policy.behavior.creativity < 0.3 ? 'factual/literal' : policy.behavior.creativity < 0.7 ? 'balanced' : 'highly creative'})
+- Precision Level: ${(policy.behavior.precision * 100).toFixed(0)}% (${policy.behavior.precision < 0.3 ? 'approximate' : policy.behavior.precision < 0.7 ? 'balanced' : 'highly precise'})
+
+- Persuasiveness Level: ${(policy.behavior.persuasiveness * 100).toFixed(0)}% (${policy.behavior.persuasiveness < 0.3 ? 'neutral/informative' : policy.behavior.persuasiveness < 0.7 ? 'moderately persuasive' : 'highly persuasive'})
+- Empathy Level: ${(policy.behavior.empathy * 100).toFixed(0)}% (${policy.behavior.empathy < 0.3 ? 'objective/factual' : policy.behavior.empathy < 0.7 ? 'balanced empathy' : 'highly empathetic'})
+- Enthusiasm Level: ${(policy.behavior.enthusiasm * 100).toFixed(0)}% (${policy.behavior.enthusiasm < 0.3 ? 'calm/reserved' : policy.behavior.enthusiasm < 0.7 ? 'moderately enthusiastic' : 'very enthusiastic'})
+
+CRITICAL BEHAVIOR RULES:
+✓ Verbosity: ${policy.behavior.verbosity < 0.3 ? 'Keep responses SHORT and TO THE POINT. 1-2 sentences when possible.' : policy.behavior.verbosity < 0.7 ? 'Balanced responses - not too short, not too long.' : 'Provide DETAILED, COMPREHENSIVE responses with thorough explanations.'}
+✓ Formality: ${policy.behavior.formality < 0.3 ? 'Be CASUAL and FRIENDLY. Use contractions, informal language.' : policy.behavior.formality < 0.7 ? 'Professional but approachable tone.' : 'FORMAL and PROFESSIONAL. Avoid contractions, use proper grammar.'}
+✓ Creativity: ${policy.behavior.creativity < 0.3 ? 'Stick to FACTS only. No metaphors, no creative language.' : policy.behavior.creativity < 0.7 ? 'Mix facts with occasional creative examples.' : 'Be CREATIVE! Use metaphors, analogies, vivid descriptions.'}
+✓ Precision: ${policy.behavior.precision < 0.3 ? 'Approximate answers are OK. Round numbers, general estimates.' : policy.behavior.precision < 0.7 ? 'Be reasonably precise with facts and numbers.' : 'EXTREME PRECISION required. Exact numbers, citations, sources.'}
+✓ Persuasiveness: ${policy.behavior.persuasiveness < 0.3 ? 'Present information NEUTRALLY. No persuasive language.' : policy.behavior.persuasiveness < 0.7 ? 'Moderately persuasive when appropriate.' : 'Use PERSUASIVE techniques - strong arguments, compelling examples.'}
+✓ Empathy: ${policy.behavior.empathy < 0.3 ? 'Stick to OBJECTIVE facts. Minimal emotional consideration.' : policy.behavior.empathy < 0.7 ? 'Balance facts with emotional awareness.' : 'Show STRONG EMPATHY. Acknowledge feelings, provide emotional support.'}
+✓ Enthusiasm: ${policy.behavior.enthusiasm < 0.3 ? 'Maintain CALM, reserved tone. No exclamation points.' : policy.behavior.enthusiasm < 0.7 ? 'Moderate energy in responses.' : 'Be ENTHUSIASTIC! Show excitement, use expressive language!'}`;
     
     // Add intelligence instructions
     prompt += `\n\n🧠 INTELLIGENCE & CONTEXT:
