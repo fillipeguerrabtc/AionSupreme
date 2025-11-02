@@ -50,6 +50,12 @@ export function registerAgentRoutes(app: Express) {
 
       const created = await agentsStorage.createAgent(req.body);
       await publishEvent("AGENT_CREATED", { agentId: created.id });
+      
+      // Re-check para detectar se novo agente é um curator
+      // Isso permite auto-reconhecimento imediato de agentes de curadoria
+      const { curatorAgentDetector } = await import("../curation/curator-agent");
+      curatorAgentDetector.forceRecheck();
+      
       res.status(201).json(created);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -108,6 +114,11 @@ export function registerAgentRoutes(app: Express) {
 
       const updated = await agentsStorage.updateAgent(req.params.id, req.body);
       await publishEvent("AGENT_UPDATED", { agentId: req.params.id, namespacesChanged: true, namespaces: updated?.ragNamespaces || [] });
+      
+      // Re-check para detectar se agente atualizado virou curator
+      const { curatorAgentDetector } = await import("../curation/curator-agent");
+      curatorAgentDetector.forceRecheck();
+      
       res.json(updated);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

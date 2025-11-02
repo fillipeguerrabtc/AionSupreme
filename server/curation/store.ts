@@ -4,13 +4,14 @@ import { knowledgeIndexer } from "../rag/knowledge-indexer";
 import { db } from "../db";
 import { documents, curationQueue as curationQueueTable, CurationQueue, InsertDocument } from "@shared/schema";
 import { sql, eq, and, desc } from "drizzle-orm";
+import { curatorAgentDetector } from "./curator-agent";
 
 // Type alias for compatibility with existing code
 export type CurationItem = CurationQueue;
 
 export const curationStore = {
   /**
-   * Adiciona item à fila de curadoria
+   * Adiciona item à fila de curadoria com análise automática (se agente disponível)
    */
   async addToCuration(
     data: {
@@ -21,6 +22,7 @@ export const curationStore = {
       submittedBy?: string;
     }
   ): Promise<CurationItem> {
+    // STEP 1: Inserir na fila de curadoria
     const [item] = await db.insert(curationQueueTable).values({
       title: data.title,
       content: data.content,
@@ -30,7 +32,78 @@ export const curationStore = {
       submittedBy: data.submittedBy,
     }).returning();
 
+    // STEP 2: Tentar análise automática em background (não bloqueia)
+    // Isso roda de forma assíncrona e atualiza o item depois
+    this.runAutoAnalysis(item.id, data).catch(error => {
+      console.error(`[Curation] ❌ Erro na análise automática do item ${item.id}:`, error.message);
+    });
+
     return item;
+  },
+
+  /**
+   * Executa análise automática usando agente de curadoria (se disponível)
+   * Atualiza o campo 'note' com a recomendação do agente
+   */
+  async runAutoAnalysis(
+    itemId: string,
+    data: {
+      title: string;
+      content: string;
+      suggestedNamespaces: string[];
+      tags?: string[];
+      submittedBy?: string;
+    }
+  ): Promise<void> {
+    try {
+      console.log(`[Curation] 🤖 Iniciando análise automática do item ${itemId}...`);
+
+      const analysis = await curatorAgentDetector.analyzeCurationItem(
+        data.title,
+        data.content,
+        data.suggestedNamespaces,
+        data.tags || [],
+        data.submittedBy
+      );
+
+      // Formatar nota com análise automática
+      const autoNote = `🤖 ANÁLISE AUTOMÁTICA (Agente de Curadoria):
+
+📊 **Recomendação:** ${analysis.recommended === 'approve' ? '✅ APROVAR' : analysis.recommended === 'reject' ? '❌ REJEITAR' : '⚠️ REVISAR MANUALMENTE'}
+🎯 **Score de Qualidade:** ${analysis.score}/100
+
+📝 **Raciocínio:**
+${analysis.reasoning}
+
+${analysis.suggestedEdits ? `
+✏️ **Sugestões de Edição:**
+${analysis.suggestedEdits.title ? `- Título: "${analysis.suggestedEdits.title}"\n` : ''}${analysis.suggestedEdits.namespaces ? `- Namespaces: ${analysis.suggestedEdits.namespaces.join(', ')}\n` : ''}${analysis.suggestedEdits.tags ? `- Tags: ${analysis.suggestedEdits.tags.join(', ')}\n` : ''}
+` : ''}${analysis.concerns && analysis.concerns.length > 0 ? `
+⚠️ **Preocupações:**
+${analysis.concerns.map(c => `- ${c}`).join('\n')}
+` : ''}
+---
+*Análise automática gerada pelo agente de curadoria. A decisão final é humana.*`;
+
+      // Atualizar item com análise automática
+      await db
+        .update(curationQueueTable)
+        .set({
+          note: autoNote,
+          updatedAt: new Date(),
+        })
+        .where(eq(curationQueueTable.id, itemId));
+
+      console.log(`[Curation] ✅ Análise automática concluída para item ${itemId}: ${analysis.recommended} (score: ${analysis.score})`);
+
+      // Se o agente recomendou edições, podemos aplicá-las automaticamente (opcional)
+      if (analysis.suggestedEdits && analysis.score >= 70) {
+        console.log(`[Curation] 💡 Agente sugeriu edições (score alto: ${analysis.score}), mas mantendo valores originais para revisão humana`);
+      }
+    } catch (error: any) {
+      console.error(`[Curation] ❌ Falha na análise automática:`, error.message);
+      // Não propagar erro - análise automática é opcional
+    }
   },
 
   /**
