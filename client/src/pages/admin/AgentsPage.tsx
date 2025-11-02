@@ -357,22 +357,37 @@ export default function AgentsPage() {
                   data-testid="input-agent-prompt"
                 />
               </div>
-              <div>
-                <Label>Namespaces (áreas de conhecimento)</Label>
-                <NamespaceSelector 
-                  value={editNamespaces} 
-                  onChange={setEditNamespaces}
-                  placeholder="Selecione ou crie namespaces customizados"
-                  allowCustom={true}
-                  allowWildcard={editSlug.includes("curador")}
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  {editSlug.includes("curador") 
-                    ? "Curadores podem ter acesso total (*) a todos os namespaces"
-                    : "Selecione namespaces existentes ou crie novos no formato: categoria/subcategoria"
-                  }
-                </p>
-              </div>
+              {/* Namespace selection - conditional based on agent tier */}
+              {selectedAgent.agentTier === "agent" ? (
+                <div>
+                  <Label htmlFor="edit-namespace">Namespace Raiz</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Agents trabalham em 1 namespace raiz (ex: "financas", "tech")
+                  </p>
+                  <NamespaceSelector 
+                    value={editNamespaces} 
+                    onChange={setEditNamespaces}
+                    placeholder="Selecione 1 namespace raiz"
+                    allowCustom={false}
+                    allowWildcard={false}
+                    maxSelections={1}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="edit-namespaces">Subnamespaces</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    SubAgents podem ter múltiplos subnamespaces do mesmo namespace pai
+                  </p>
+                  <NamespaceSelector 
+                    value={editNamespaces} 
+                    onChange={setEditNamespaces}
+                    placeholder="Selecione subnamespaces"
+                    allowCustom={false}
+                    allowWildcard={false}
+                  />
+                </div>
+              )}
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setSelectedAgent(null)}>
                   Cancelar
