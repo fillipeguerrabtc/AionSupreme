@@ -17,15 +17,13 @@ export function registerAgentRoutes(app: Express) {
 
   app.post("/api/agents", async (req, res) => {
     try {
-      // Auto-generate slug from name if not provided
-      if (!req.body.slug && req.body.name) {
-        req.body.slug = await generateUniqueSlug(req.body.name);
-      }
-
       // Validate name is provided
       if (!req.body.name) {
         return res.status(400).json({ error: "Nome do agente é obrigatório" });
       }
+
+      // ALWAYS auto-generate slug from name (ignore any client-provided slug for security)
+      req.body.slug = await generateUniqueSlug(req.body.name);
 
       // Validate namespace assignment based on agentTier
       const agentTier = req.body.agentTier || "agent";
@@ -70,6 +68,13 @@ export function registerAgentRoutes(app: Express) {
 
   app.patch("/api/agents/:id", async (req, res) => {
     try {
+      // SECURITY: Slug is immutable - reject any attempt to change it
+      if (req.body.slug !== undefined) {
+        return res.status(400).json({ 
+          error: "Slug não pode ser modificado - é gerado automaticamente pelo sistema" 
+        });
+      }
+
       // Validate namespace assignment if being updated
       if (req.body.agentTier || req.body.assignedNamespaces) {
         // Get existing agent to merge with updates
