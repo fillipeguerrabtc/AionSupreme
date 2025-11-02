@@ -176,7 +176,7 @@ export function registerRoutes(app: Express): Server {
       };
     }
     
-    // OpenAI check
+    // Verificação do OpenAI
     try {
       const hasOpenAI = !!process.env.OPENAI_API_KEY;
       checks.services.openai = {
@@ -190,7 +190,7 @@ export function registerRoutes(app: Express): Server {
       };
     }
     
-    // GPU Pool check
+    // Verificação do GPU Pool
     try {
       const gpuStatus = gpuOrchestrator.getStatus();
       const activeWorkers = gpuStatus.endpoints.filter(e => e.status === 'online').length;
@@ -211,7 +211,7 @@ export function registerRoutes(app: Express): Server {
     res.status(allHealthy ? 200 : 503).json(checks);
   });
   
-  // GET /health/ready - Readiness probe (for Kubernetes/Cloud Run)
+  // GET /health/ready - Readiness probe (para Kubernetes/Cloud Run)
   app.get("/health/ready", async (req, res) => {
     try {
       const { pool } = await import("./db");
@@ -222,12 +222,12 @@ export function registerRoutes(app: Express): Server {
     }
   });
   
-  // GET /health/live - Liveness probe (for Kubernetes/Cloud Run)
+  // GET /health/live - Liveness probe (para Kubernetes/Cloud Run)
   app.get("/health/live", (req, res) => {
     res.status(200).json({ alive: true });
   });
   
-  // GET /health/multi-cloud - Multi-cloud status (for monitoring)
+  // GET /health/multi-cloud - Status multi-cloud (para monitoramento)
   app.get("/health/multi-cloud", (req, res) => {
     try {
       const { multiCloudSync } = require("../deployment/multi-cloud-sync");
@@ -242,15 +242,15 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/v1/chat/completions
-  // 🎯 MULTI-AGENT SYSTEM with automatic routing
-  // Priority: Multi-Agent (MoE) → KB → Free APIs → Web → OpenAI
+  // 🎯 SISTEMA MULTI-AGENTE com roteamento automático
+  // Prioridade: Multi-Agent (MoE) → KB → Free APIs → Web → OpenAI
   app.post("/api/v1/chat/completions", async (req, res) => {
     const startTime = Date.now();
     
     try {
-      const { messages, useMultiAgent = true } = req.body; // Enable multi-agent by default
+      const { messages, useMultiAgent = true } = req.body; // Habilitar multi-agent por padrão
       
-      // DEBUG: Log message history length
+      // DEBUG: Logar tamanho do histórico de mensagens
       console.log(`[Chat API] Recebidas ${messages.length} mensagens no histórico`);
       console.log(`[Chat API] Multi-Agent Mode: ${useMultiAgent ? 'ENABLED' : 'DISABLED'}`);
       console.log(`[Chat API] Últimas 3 mensagens:`, messages.slice(-3).map((m: any) => ({
@@ -258,14 +258,14 @@ export function registerRoutes(app: Express): Server {
         preview: m.content?.substring(0, 50)
       })));
       
-      // Record request metrics
+      // Registrar métricas da requisição
       metricsCollector.recordRequest();
       
-      // Get last user message (normalized to string)
+      // Obter última mensagem do usuário (normalizada para string)
       const lastUserContent = messages[messages.length - 1]?.content || '';
       const lastUserMessage = extractTextContent(lastUserContent);
       
-      // 🤖 TRY MULTI-AGENT SYSTEM FIRST (if enabled and available)
+      // 🤖 TENTAR SISTEMA MULTI-AGENTE PRIMEIRO (se habilitado e disponível)
       if (useMultiAgent) {
         try {
           const { orchestrateAgents } = await import("./agent/orchestrator");
@@ -276,7 +276,7 @@ export function registerRoutes(app: Express): Server {
           if (availableAgents.length > 0) {
             console.log(`[Chat API] 🤖 Using Multi-Agent System (${availableAgents.length} agents available)`);
             
-            // Pass history EXCLUDING the last user message (to avoid duplication)
+            // Passar histórico EXCLUINDO a última mensagem do usuário (para evitar duplicação)
             const historyWithoutLastTurn = messages.slice(0, -1);
             
             const agentResult = await orchestrateAgents(lastUserMessage, {
@@ -299,7 +299,7 @@ export function registerRoutes(app: Express): Server {
                 finish_reason: "stop"
               }],
               usage: {
-                totalTokens: 0, // Multi-agent uses free APIs
+                totalTokens: 0, // Multi-agent usa APIs gratuitas
               },
               metadata: {
                 ...agentResult.metadata,
@@ -314,15 +314,15 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      // FALLBACK: Use original priority orchestrator
+      // FALLBACK: Usar orquestrador de prioridade original
       console.log(`[Chat API] Using fallback Priority Orchestrator`);
       
-      // Get policy or use DEFAULT UNRESTRICTED (all rules = false)
+      // Obter política ou usar PADRÃO SEM RESTRIÇÕES (todas as regras = false)
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
       const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...messages];
       
-      // Check if system is UNRESTRICTED (all rules = false)
+      // Verificar se sistema está SEM RESTRIÇÕES (todas as regras = false)
       const activeRules = Object.values(policy.rules).filter(v => v === true);
       const isUnrestricted = activeRules.length === 0;
       
@@ -330,24 +330,24 @@ export function registerRoutes(app: Express): Server {
         messages: fullMessages,
         temperature: policy.temperature,
         topP: policy.topP,
-        unrestricted: isUnrestricted  // Auto-fallback when true
+        unrestricted: isUnrestricted  // Auto-fallback quando true
       });
       
-      // Record metrics
+      // Registrar métricas
       const latency = Date.now() - startTime;
       metricsCollector.recordLatency(latency);
       if (result.usage) {
         metricsCollector.recordTokens(result.usage.totalTokens);
       }
       
-      // 🧠 AUTO-EVOLUTION: Trigger auto-learning system
-      // This creates the infinite learning loop: Chat → KB → Dataset → Training → Better Model
+      // 🧠 AUTO-EVOLUÇÃO: Acionar sistema de auto-aprendizado
+      // Isso cria o loop infinito de aprendizado: Chat → KB → Dataset → Treino → Modelo Melhor
       try {
         const { autoLearningListener } = await import('./events/auto-learning-listener');
         const userMessageContent2 = messages[messages.length - 1]?.content || '';
         const userMessage = extractTextContent(userMessageContent2);
         
-        // Fire and forget - don't block response
+        // Fire and forget - não bloquear resposta
         autoLearningListener.onChatCompleted({
           conversationId: null, // No conversation ID for standalone chats
           userMessage,
@@ -359,7 +359,7 @@ export function registerRoutes(app: Express): Server {
         });
         
       } catch (autoLearnError: any) {
-        // Don't fail the request if auto-learning fails
+        // Não falhar a requisição se auto-aprendizado falhar
         console.error('[AutoLearning] System unavailable:', autoLearnError.message);
       }
       
@@ -368,7 +368,7 @@ export function registerRoutes(app: Express): Server {
           message: { 
             role: "assistant", 
             content: result.content,
-            attachments: result.attachments  // MULTIMODAL: Pass attachments to frontend
+            attachments: result.attachments  // MULTIMODAL: Passar attachments para frontend
           }, 
           finish_reason: "stop"
         }],
