@@ -36,9 +36,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, FolderTree, FileText, Upload } from "lucide-react";
 import { IconPicker } from "@/components/IconPicker";
+import { ICON_MAP } from "@/lib/icon-map";
 import { type Namespace } from "@shared/schema";
 import { useMemo } from "react";
 import { useLanguage } from "@/lib/i18n";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function NamespacesPage() {
   const { t } = useLanguage();
@@ -538,14 +540,41 @@ export default function NamespacesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12"></TableHead>
                     <TableHead className="whitespace-nowrap">Nome</TableHead>
                     <TableHead className="whitespace-nowrap">Descrição</TableHead>
                     <TableHead className="text-right whitespace-nowrap">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedNamespaces.map((namespace, index) => (
+                  {sortedNamespaces.map((namespace, index) => {
+                    const Icon = namespace.icon && ICON_MAP[namespace.icon] ? ICON_MAP[namespace.icon] : FolderTree;
+                    return (
                     <TableRow key={namespace.id || namespace.name} data-testid={`row-namespace-${namespace.name}`}>
+                      <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div 
+                                className="flex items-center justify-center cursor-pointer hover-elevate active-elevate-2 rounded-md p-1"
+                                data-testid={`icon-namespace-${namespace.name}`}
+                              >
+                                <Icon className="h-5 w-5" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <div className="text-sm">
+                                <div className="font-semibold">{namespace.name}</div>
+                                {namespace.description && (
+                                  <div className="text-xs text-muted-foreground mt-1 max-w-xs">
+                                    {namespace.description}
+                                  </div>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
                       <TableCell className="min-w-0">
                         <div className="max-w-[300px]">
                           <div className="font-medium truncate">{namespace.name}</div>
@@ -577,7 +606,8 @@ export default function NamespacesPage() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  );
+                  })}
                 </TableBody>
               </Table>
             </div>

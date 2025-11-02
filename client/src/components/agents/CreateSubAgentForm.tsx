@@ -29,7 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
+import { ICON_MAP } from "@/lib/icon-map";
+import { FolderTree } from "lucide-react";
 import type { Namespace } from "@shared/schema";
 
 interface Agent {
@@ -231,10 +232,14 @@ export function CreateSubAgentForm() {
                               />
                               <label
                                 htmlFor={`ns-${ns.id}`}
-                                className="text-sm cursor-pointer flex-1"
+                                className="text-sm cursor-pointer flex-1 flex items-center gap-2"
                                 data-testid={`label-namespace-${ns.name}`}
                               >
-                                {ns.icon} {ns.name}
+                                {(() => {
+                                  const Icon = ns.icon && ICON_MAP[ns.icon] ? ICON_MAP[ns.icon] : FolderTree;
+                                  return <Icon className="h-4 w-4" />;
+                                })()}
+                                <span>{ns.name}</span>
                               </label>
                             </div>
                           ))}
@@ -270,6 +275,7 @@ export function CreateSubAgentForm() {
                   <FormControl>
                     <Textarea
                       {...field}
+                      value={field.value || ""}
                       placeholder="Descreva as especializações deste SubAgent"
                       rows={3}
                       data-testid="textarea-subagent-description"
@@ -289,6 +295,7 @@ export function CreateSubAgentForm() {
                   <FormControl>
                     <Textarea
                       {...field}
+                      value={field.value || ""}
                       placeholder="Instruções para o SubAgent (opcional)"
                       rows={4}
                       data-testid="textarea-subagent-prompt"

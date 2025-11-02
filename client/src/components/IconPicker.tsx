@@ -65,7 +65,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
           className="w-full justify-start gap-2"
           data-testid="button-icon-picker"
         >
-          <SelectedIcon className="h-4 w-4" />
+          <SelectedIcon className="h-5 w-5" />
           <span className="flex-1 text-left">
             {value || "Selecionar ícone..."}
           </span>
@@ -94,7 +94,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                       key={name}
                       variant={value === name ? "default" : "ghost"}
                       size="icon"
-                      className="h-10 w-10"
+                      className="h-12 w-12"
                       onClick={() => {
                         onChange(name);
                         setOpen(false);
@@ -102,7 +102,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                       title={name}
                       data-testid={`button-icon-${name.toLowerCase()}`}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className="h-6 w-6" />
                     </Button>
                   );
                 })}
@@ -122,7 +122,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                             key={name}
                             variant={value === name ? "default" : "ghost"}
                             size="icon"
-                            className="h-10 w-10"
+                            className="h-12 w-12"
                             onClick={() => {
                               onChange(name);
                               setOpen(false);
@@ -130,7 +130,7 @@ export function IconPicker({ value, onChange }: IconPickerProps) {
                             title={name}
                             data-testid={`button-icon-${name.toLowerCase()}`}
                           >
-                            <Icon className="h-5 w-5" />
+                            <Icon className="h-6 w-6" />
                           </Button>
                         );
                       })}

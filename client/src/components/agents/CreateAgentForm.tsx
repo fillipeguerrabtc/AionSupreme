@@ -19,6 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ICON_MAP } from "@/lib/icon-map";
+import { FolderTree } from "lucide-react";
 import type { Namespace } from "@shared/schema";
 
 const createAgentFormSchema = insertAgentSchema.extend({
@@ -121,15 +123,21 @@ export function CreateAgentForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {rootNamespaces.map((ns) => (
+                      {rootNamespaces.map((ns) => {
+                        const Icon = ns.icon && ICON_MAP[ns.icon] ? ICON_MAP[ns.icon] : FolderTree;
+                        return (
                         <SelectItem
                           key={ns.id}
                           value={ns.name}
                           data-testid={`option-namespace-${ns.name}`}
                         >
-                          {ns.icon} {ns.name}
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-4 w-4" />
+                            <span>{ns.name}</span>
+                          </div>
                         </SelectItem>
-                      ))}
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   <FormDescription data-testid="desc-agent-namespace">
@@ -149,6 +157,7 @@ export function CreateAgentForm() {
                   <FormControl>
                     <Textarea
                       {...field}
+                      value={field.value || ""}
                       placeholder="Descreva as responsabilidades deste Agent"
                       rows={3}
                       data-testid="textarea-agent-description"
@@ -168,6 +177,7 @@ export function CreateAgentForm() {
                   <FormControl>
                     <Textarea
                       {...field}
+                      value={field.value || ""}
                       placeholder="Instruções para o Agent (opcional)"
                       rows={4}
                       data-testid="textarea-agent-prompt"
