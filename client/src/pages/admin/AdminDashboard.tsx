@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap, Server, Cpu, Clock } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap, Server, Cpu, Clock, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
@@ -28,6 +28,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
 import AgentsPage from "./AgentsPage";
@@ -52,6 +59,10 @@ export default function AdminDashboard() {
   const [pendingRules, setPendingRules] = useState<any>(null);
   const [pendingBehavior, setPendingBehavior] = useState<any>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // State for full prompt preview
+  const [showFullPrompt, setShowFullPrompt] = useState(false);
+  const [fullPrompt, setFullPrompt] = useState("");
 
   const { data: policy, error, isLoading } = useQuery({
     queryKey: ["/api/admin/policies"],
@@ -60,6 +71,16 @@ export default function AdminDashboard() {
       const data = await res.json();
       return data;
     },
+  });
+
+  // Fetch the FULL system prompt (what AI actually receives)
+  const { data: fullPromptData } = useQuery({
+    queryKey: ["/api/admin/policies/preview-prompt"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/policies/preview-prompt");
+      return res.json();
+    },
+    refetchInterval: 5000, // Atualiza a cada 5s
   });
 
   // Fetch documents count for Knowledge Base stats
@@ -1002,15 +1023,26 @@ export default function AdminDashboard() {
                   placeholder={t.admin.behavior.systemPromptPlaceholder}
                   data-testid="textarea-system-prompt"
                 />
-                <Button
-                  onClick={() => updatePolicy.mutate({ systemPrompt: systemPromptValue })}
-                  disabled={updatePolicy.isPending}
-                  className="bg-primary hover-elevate active-elevate-2"
-                  data-testid="button-save-system-prompt"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {updatePolicy.isPending ? "Salvando..." : "Salvar"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => updatePolicy.mutate({ systemPrompt: systemPromptValue })}
+                    disabled={updatePolicy.isPending}
+                    className="bg-primary hover-elevate active-elevate-2"
+                    data-testid="button-save-system-prompt"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {updatePolicy.isPending ? "Salvando..." : "Salvar"}
+                  </Button>
+                  <Button
+                    onClick={() => setShowFullPrompt(true)}
+                    variant="outline"
+                    className="hover-elevate active-elevate-2"
+                    data-testid="button-view-full-prompt"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Ver Prompt Completo
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -1080,6 +1112,42 @@ export default function AdminDashboard() {
           </main>
         </SidebarInset>
       </div>
+
+      {/* Modal: Ver Prompt Completo */}
+      <Dialog open={showFullPrompt} onOpenChange={setShowFullPrompt}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-5 h-5 text-primary" />
+              Prompt Completo (Enviado para as IAs)
+            </DialogTitle>
+            <DialogDescription>
+              Este é o prompt REAL que o AION envia para OpenAI, Groq, Gemini e outras APIs.
+              Inclui suas configurações customizadas + as 7 características do equalizador.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            <Textarea
+              value={fullPromptData?.fullPrompt || "Carregando..."}
+              readOnly
+              className="bg-muted border-border font-mono text-xs min-h-[500px] w-full resize-none"
+              data-testid="textarea-full-prompt-preview"
+            />
+          </div>
+          <div className="flex justify-between items-center pt-4 border-t">
+            <div className="text-sm text-muted-foreground">
+              {fullPromptData?.fullPrompt ? `${fullPromptData.fullPrompt.length} caracteres` : ''}
+            </div>
+            <Button
+              onClick={() => setShowFullPrompt(false)}
+              variant="outline"
+              data-testid="button-close-full-prompt"
+            >
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

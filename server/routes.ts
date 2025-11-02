@@ -649,6 +649,28 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Preview the FULL system prompt (custom + generated parts)
+  app.get("/api/admin/policies/preview-prompt", async (req, res) => {
+    try {
+      const policy = await storage.getActivePolicy();
+      if (!policy) {
+        return res.status(404).json({ error: "No active policy found" });
+      }
+
+      // Generate the COMPLETE system prompt (same as what AI receives)
+      const fullPrompt = await enforcementPipeline.composeSystemPrompt(policy);
+
+      res.json({ 
+        customPart: policy.systemPrompt || "",
+        fullPrompt: fullPrompt,
+        behavior: policy.behavior
+      });
+    } catch (error: any) {
+      console.error("Error generating prompt preview:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/admin/policies", async (req, res) => {
     try {
       const existing = await storage.getActivePolicy();
