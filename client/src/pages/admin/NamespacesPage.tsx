@@ -53,18 +53,14 @@ export default function NamespacesPage() {
   
   // Create form state
   const [createName, setCreateName] = useState("");
-  const [createDisplayName, setCreateDisplayName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
   const [createIcon, setCreateIcon] = useState("");
-  const [createCategory, setCreateCategory] = useState("");
   const [createContent, setCreateContent] = useState("");
   
   // Edit form state
   const [editName, setEditName] = useState("");
-  const [editDisplayName, setEditDisplayName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editIcon, setEditIcon] = useState("");
-  const [editCategory, setEditCategory] = useState("");
   const [editContent, setEditContent] = useState("");
   
   // Fetch ALL namespaces from database (unified approach)
@@ -139,10 +135,8 @@ export default function NamespacesPage() {
   useEffect(() => {
     if (selectedNamespace) {
       setEditName(selectedNamespace.name);
-      setEditDisplayName(selectedNamespace.displayName || "");
       setEditDescription(selectedNamespace.description || "");
       setEditIcon(selectedNamespace.icon || "");
-      setEditCategory(selectedNamespace.category || "");
       setEditContent("");
     }
   }, [selectedNamespace]);
@@ -151,10 +145,8 @@ export default function NamespacesPage() {
     setCreateMode("sub");
     setParentNamespace("");
     setCreateName("");
-    setCreateDisplayName("");
     setCreateDescription("");
     setCreateIcon("");
-    setCreateCategory("");
     setCreateContent("");
   };
 
@@ -210,10 +202,8 @@ export default function NamespacesPage() {
 
     createMutation.mutate({
       name: createName,
-      displayName: createDisplayName || createName,
       description: createDescription,
       icon: createIcon,
-      category: createCategory,
     }, {
       onSuccess: async (newNamespace) => {
         // If content was provided, ingest it into the namespace
@@ -253,15 +243,13 @@ export default function NamespacesPage() {
       // Create a new custom namespace based on the predefined one
       createMutation.mutate({
         name: editName,
-        displayName: editDisplayName || editName,
         description: editDescription,
         icon: editIcon,
-        category: editCategory,
       }, {
         onSuccess: async (newNamespace) => {
           toast({ 
             title: "Versão customizada criada!", 
-            description: `Namespace "${editDisplayName}" foi criado baseado no namespace de sistema.` 
+            description: `Namespace "${editName}" foi criado baseado no namespace de sistema.` 
           });
           
           // If content was provided, ingest it into the new namespace
@@ -296,10 +284,9 @@ export default function NamespacesPage() {
       updateMutation.mutate({
         id: selectedNamespace.id,
         data: {
-          displayName: editDisplayName || editName,
+          name: editName,
           description: editDescription,
           icon: editIcon,
-          category: editCategory,
         },
       }, {
         onSuccess: async () => {
@@ -473,17 +460,6 @@ export default function NamespacesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-display-name">Nome de Exibição</Label>
-                <Input
-                  id="create-display-name"
-                  placeholder="Nome amigável para exibição"
-                  value={createDisplayName}
-                  onChange={(e) => setCreateDisplayName(e.target.value)}
-                  data-testid="input-create-namespace-display-name"
-                />
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="create-description">Descrição</Label>
                 <Textarea
                   id="create-description"
@@ -564,7 +540,6 @@ export default function NamespacesPage() {
                   <TableRow>
                     <TableHead className="whitespace-nowrap">Nome</TableHead>
                     <TableHead className="whitespace-nowrap">Descrição</TableHead>
-                    <TableHead className="whitespace-nowrap">Categoria</TableHead>
                     <TableHead className="text-right whitespace-nowrap">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -572,18 +547,14 @@ export default function NamespacesPage() {
                   {sortedNamespaces.map((namespace, index) => (
                     <TableRow key={namespace.id || namespace.name} data-testid={`row-namespace-${namespace.name}`}>
                       <TableCell className="min-w-0">
-                        <div className="max-w-[250px]">
-                          <div className="font-medium truncate">{namespace.displayName}</div>
-                          <div className="text-sm text-muted-foreground truncate font-mono">{namespace.name}</div>
+                        <div className="max-w-[300px]">
+                          <div className="font-medium truncate">{namespace.name}</div>
                         </div>
                       </TableCell>
                       <TableCell className="min-w-0">
-                        <div className="max-w-[300px] truncate">
+                        <div className="max-w-[400px] truncate">
                           {namespace.description || <span className="text-muted-foreground italic">Sem descrição</span>}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="whitespace-nowrap">{namespace.category || namespace.name.split("/")[0]}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2 shrink-0">
@@ -632,27 +603,17 @@ export default function NamespacesPage() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label>Nome do Namespace</Label>
+              <Label htmlFor="edit-name">Nome do Namespace *</Label>
               <Input
+                id="edit-name"
                 value={editName}
-                disabled
-                className="bg-muted"
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Ex: atendimento, financas/impostos"
                 data-testid="input-edit-namespace-name"
               />
               <p className="text-xs text-muted-foreground">
-                O nome não pode ser alterado
+                Nome único que identifica o namespace
               </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-display-name">Nome de Exibição</Label>
-              <Input
-                id="edit-display-name"
-                placeholder="Nome amigável para exibição"
-                value={editDisplayName}
-                onChange={(e) => setEditDisplayName(e.target.value)}
-                data-testid="input-edit-namespace-display-name"
-              />
             </div>
 
             <div className="space-y-2">
@@ -667,28 +628,15 @@ export default function NamespacesPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-icon">Ícone (lucide-react)</Label>
-                <Input
-                  id="edit-icon"
-                  placeholder="DollarSign, Laptop, etc."
-                  value={editIcon}
-                  onChange={(e) => setEditIcon(e.target.value)}
-                  data-testid="input-edit-namespace-icon"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-category">Categoria</Label>
-                <Input
-                  id="edit-category"
-                  placeholder="Categoria principal"
-                  value={editCategory}
-                  onChange={(e) => setEditCategory(e.target.value)}
-                  data-testid="input-edit-namespace-category"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-icon">Ícone</Label>
+              <IconPicker
+                value={editIcon}
+                onChange={setEditIcon}
+              />
+              <p className="text-xs text-muted-foreground">
+                Opcional. Escolha um ícone visual para identificar este namespace
+              </p>
             </div>
 
             <div className="space-y-2">

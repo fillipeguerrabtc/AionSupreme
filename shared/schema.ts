@@ -1417,11 +1417,9 @@ export const agentTools = pgTable("agent_tools", {
 export const namespaces = pgTable("namespaces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: integer("tenant_id").notNull().default(1),
-  name: varchar("name", { length: 255 }).notNull().unique(), // e.g., "financas/investimentos"
-  displayName: varchar("display_name", { length: 255 }), // Friendly name for UI
+  name: varchar("name", { length: 255 }).notNull().unique(), // e.g., "financas/investimentos" (serve como ID e nome de exibição)
   description: text("description"),
   icon: varchar("icon", { length: 50 }), // Lucide icon name
-  category: varchar("category", { length: 100 }), // Category for grouping
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
