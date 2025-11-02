@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Send, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video, LogIn, Cat } from "lucide-react";
+import { Send, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video, LogIn } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage, detectMessageLanguage } from "@/lib/i18n";
@@ -577,7 +577,7 @@ export default function ChatPage() {
             >
               {msg.role === "assistant" && (
                 <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center">
-                  <Cat className="w-6 h-6 text-foreground" data-testid="icon-bot" />
+                  <span className="text-2xl" data-testid="icon-bot">🐈</span>
                 </div>
               )}
               
@@ -610,7 +610,7 @@ export default function ChatPage() {
           {sendMutation.isPending && (
             <div className="flex gap-4 animate-slide-up">
               <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center animate-pulse">
-                <Cat className="w-6 h-6 text-foreground" />
+                <span className="text-2xl">🐈</span>
               </div>
               <div className="bg-muted px-5 py-4 rounded-xl rounded-bl-sm border border-transparent">
                 <div className="flex gap-2">
@@ -783,7 +783,7 @@ export default function ChatPage() {
             >
               {msg.role === "assistant" && (
                 <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center">
-                  <Cat className="w-6 h-6 text-foreground" data-testid="icon-bot" />
+                  <span className="text-2xl" data-testid="icon-bot">🐈</span>
                 </div>
               )}
               
@@ -816,7 +816,7 @@ export default function ChatPage() {
           {sendMutation.isPending && (
             <div className="flex gap-4 animate-slide-up">
               <div className="bg-muted p-2 rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center animate-pulse">
-                <Cat className="w-6 h-6 text-foreground" />
+                <span className="text-2xl">🐈</span>
               </div>
               <div className="bg-muted px-5 py-4 rounded-xl rounded-bl-sm border border-transparent">
                 <div className="flex gap-2">
