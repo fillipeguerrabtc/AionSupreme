@@ -36,9 +36,11 @@ export interface Agent {
   name: string;
   slug: string;
   type: "specialist" | "generalist" | "router-only";
+  agentTier?: "agent" | "subagent"; // Hierarquia: agent (pai) ou subagent (filho)
+  assignedNamespaces?: string[]; // Namespaces atribuídos (usado para inferência de hierarquia)
   description?: string;
   systemPrompt?: string;
-  ragNamespaces: string[];
+  ragNamespaces: string[]; // LEGACY: usar assignedNamespaces
   allowedTools: string[];
   policy: any;
   budgetLimit?: number;

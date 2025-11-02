@@ -125,15 +125,28 @@ export async function orchestrateAgents(
 
     console.log(`[Orchestrator] Completed with ${validResults.length} agents in ${totalLatency}ms`);
     
-    // Track agent usage for telemetry
+    // Track agent usage for telemetry (com hierarquia)
     for (const agentResult of validResults) {
       if (agentResult) {
-        usageTracker.trackAgentUse(
-          agentResult.agentId,
-          agentResult.agentName,
-          "generation",
-          { query: query.substring(0, 100), score: agentResult.score }
-        );
+        try {
+          const executor = await getAgentById(agentResult.agentId);
+          usageTracker.trackAgentUse(
+            agentResult.agentId,
+            agentResult.agentName,
+            "generation",
+            { query: query.substring(0, 100), score: agentResult.score },
+            executor.agentTier,    // Hierarquia: "agent" ou "subagent"
+            undefined              // parentAgentId não disponível no root orchestrator
+          );
+        } catch (error) {
+          // Fallback se agente não encontrado
+          usageTracker.trackAgentUse(
+            agentResult.agentId,
+            agentResult.agentName,
+            "generation",
+            { query: query.substring(0, 100), score: agentResult.score }
+          );
+        }
       }
     }
 
