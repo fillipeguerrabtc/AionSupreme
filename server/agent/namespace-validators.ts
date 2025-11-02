@@ -152,3 +152,51 @@ export function findGoverningAgents(
     )
     .map((agent) => agent.id);
 }
+
+/**
+ * ORPHAN PREVENTION: Validate that all namespaces exist in the database
+ * 
+ * Rules:
+ * - All namespaces in assignedNamespaces MUST exist in the namespaces table
+ * - Returns validation result with list of missing namespaces
+ * 
+ * Examples:
+ * ✅ ["financas"] → valid (if exists)
+ * ✅ ["financas/investimentos"] → valid (if exists)
+ * ❌ ["nonexistent"] → invalid (namespace not found in DB)
+ * ❌ ["financas", "fake"] → invalid (fake not found)
+ * 
+ * @param namespaces - Array of namespace names to validate
+ * @returns Validation result with list of missing namespaces
+ */
+export async function validateNamespacesExist(
+  namespaces: string[]
+): Promise<NamespaceValidationResult & { missingNamespaces?: string[] }> {
+  if (namespaces.length === 0) {
+    return { valid: true };
+  }
+
+  // Import db and schema
+  const { db } = await import("../db");
+  const { namespaces: namespacesTable } = await import("../../shared/schema");
+  const { inArray, eq } = await import("drizzle-orm");
+
+  // Query DB for all specified namespaces
+  const existingNamespaces = await db
+    .select({ name: namespacesTable.name })
+    .from(namespacesTable)
+    .where(inArray(namespacesTable.name, namespaces));
+
+  const existingNames = new Set(existingNamespaces.map((ns) => ns.name));
+  const missingNamespaces = namespaces.filter((ns) => !existingNames.has(ns));
+
+  if (missingNamespaces.length > 0) {
+    return {
+      valid: false,
+      error: `Os seguintes namespaces não existem no banco de dados: ${missingNamespaces.join(", ")}. Crie os namespaces primeiro antes de atribuí-los ao agente.`,
+      missingNamespaces,
+    };
+  }
+
+  return { valid: true };
+}

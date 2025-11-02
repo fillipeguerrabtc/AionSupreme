@@ -2,7 +2,7 @@
 import type { Express } from "express";
 import { agentsStorage } from "../storage.agents";
 import { publishEvent } from "../events";
-import { validateNamespaceAssignment } from "../agent/namespace-validators";
+import { validateNamespaceAssignment, validateNamespacesExist } from "../agent/namespace-validators";
 import { generateUniqueSlug } from "../utils/slug-generator";
 
 export function registerAgentRoutes(app: Express) {
@@ -32,6 +32,12 @@ export function registerAgentRoutes(app: Express) {
       const validation = validateNamespaceAssignment(agentTier, assignedNamespaces);
       if (!validation.valid) {
         return res.status(400).json({ error: validation.error });
+      }
+
+      // ORPHAN PREVENTION: Validar que todos os namespaces existem no banco de dados
+      const existenceValidation = await validateNamespacesExist(assignedNamespaces);
+      if (!existenceValidation.valid) {
+        return res.status(400).json({ error: existenceValidation.error });
       }
 
       // VALIDAÇÃO ADICIONAL: Para SubAgents, verificar se o Agent pai existe
@@ -95,6 +101,12 @@ export function registerAgentRoutes(app: Express) {
         const validation = validateNamespaceAssignment(agentTier, assignedNamespaces);
         if (!validation.valid) {
           return res.status(400).json({ error: validation.error });
+        }
+
+        // ORPHAN PREVENTION: Validar que todos os namespaces existem no banco de dados
+        const existenceValidation = await validateNamespacesExist(assignedNamespaces);
+        if (!existenceValidation.valid) {
+          return res.status(400).json({ error: existenceValidation.error });
         }
 
         // VALIDAÇÃO ADICIONAL: Para SubAgents, verificar se o Agent pai existe
