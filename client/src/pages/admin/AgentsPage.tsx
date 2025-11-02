@@ -176,10 +176,10 @@ export default function AgentsPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="list" data-testid="tab-agents-list">Lista</TabsTrigger>
-          <TabsTrigger value="create-agent" data-testid="tab-create-agent">Criar Agent</TabsTrigger>
-          <TabsTrigger value="create-subagent" data-testid="tab-create-subagent">Criar SubAgent</TabsTrigger>
-          <TabsTrigger value="hierarchy" data-testid="tab-hierarchy">Hierarquia</TabsTrigger>
+          <TabsTrigger value="list" data-testid="tab-agents-list">{t.admin.agents.list}</TabsTrigger>
+          <TabsTrigger value="create-agent" data-testid="tab-create-agent">{t.admin.agents.createAgent}</TabsTrigger>
+          <TabsTrigger value="create-subagent" data-testid="tab-create-subagent">{t.admin.agents.createSubagent}</TabsTrigger>
+          <TabsTrigger value="hierarchy" data-testid="tab-hierarchy">{t.admin.agents.hierarchy}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-4 mt-4">
@@ -214,9 +214,9 @@ export default function AgentsPage() {
 
           <Card>
         <CardHeader>
-          <CardTitle>Agentes Ativos</CardTitle>
+          <CardTitle>{t.admin.agents.activeAgents}</CardTitle>
           <CardDescription>
-            {agents.length} agentes configurados no sistema
+            {agents.length} {t.admin.agents.agentsInSystem}
           </CardDescription>
         </CardHeader>
         <CardContent>

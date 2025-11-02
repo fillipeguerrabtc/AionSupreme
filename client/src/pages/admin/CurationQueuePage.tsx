@@ -29,6 +29,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
+import { useLanguage } from "@/lib/i18n";
 
 interface CurationItem {
   id: string;
@@ -53,6 +54,7 @@ interface CurationItem {
 }
 
 export default function CurationQueuePage() {
+  const { t } = useLanguage();
   const [selectedItem, setSelectedItem] = useState<CurationItem | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
@@ -403,15 +405,15 @@ export default function CurationQueuePage() {
   };
 
   if (isLoading) {
-    return <div className="p-6">Carregando fila de curadoria...</div>;
+    return <div className="p-6">{t.admin.curation.title}...</div>;
   }
 
   return (
     <div className="p-6 space-y-6 max-w-full overflow-x-hidden">
       <div>
-        <h1 className="text-3xl font-bold break-words">Fila de Curadoria</h1>
+        <h1 className="text-3xl font-bold break-words">{t.admin.curation.title}</h1>
         <p className="text-muted-foreground mt-2 break-words">
-          Revise e aprove conteúdo antes da publicação na Knowledge Base
+          {t.admin.curation.subtitle}
         </p>
       </div>
 
@@ -423,7 +425,7 @@ export default function CurationQueuePage() {
           onClick={() => setContentFilter("all")}
           data-testid="filter-all"
         >
-          Todos ({items?.length || 0})
+          {t.admin.curation.all} ({items?.length || 0})
         </Button>
         <Button
           variant={contentFilter === "pages" ? "default" : "outline"}
@@ -431,7 +433,7 @@ export default function CurationQueuePage() {
           onClick={() => setContentFilter("pages")}
           data-testid="filter-pages"
         >
-          Páginas ({(items?.filter(i => i.submittedBy !== "image-crawler" && i.submittedBy !== "image-crawler-consolidated") || []).length})
+          {t.admin.curation.pages} ({(items?.filter(i => i.submittedBy !== "image-crawler" && i.submittedBy !== "image-crawler-consolidated") || []).length})
         </Button>
         <Button
           variant={contentFilter === "images" ? "default" : "outline"}
@@ -439,18 +441,18 @@ export default function CurationQueuePage() {
           onClick={() => setContentFilter("images")}
           data-testid="filter-images"
         >
-          Imagens ({(items?.filter(i => i.submittedBy === "image-crawler" || i.submittedBy === "image-crawler-consolidated") || []).length})
+          {t.admin.curation.images} ({(items?.filter(i => i.submittedBy === "image-crawler" || i.submittedBy === "image-crawler-consolidated") || []).length})
         </Button>
       </div>
 
       <Tabs defaultValue="pending" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="pending" data-testid="tab-pending">
-            Pendentes ({filteredItems?.length || 0})
+            {t.admin.curation.pending} ({filteredItems?.length || 0})
           </TabsTrigger>
           <TabsTrigger value="history" data-testid="tab-history">
             <HistoryIcon className="h-4 w-4 mr-2" />
-            Histórico ({filteredHistoryItems?.length || 0})
+            {t.admin.curation.history} ({filteredHistoryItems?.length || 0})
           </TabsTrigger>
         </TabsList>
 
@@ -458,7 +460,7 @@ export default function CurationQueuePage() {
           {!filteredItems || filteredItems.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
-            <p className="text-muted-foreground">Nenhum item {contentFilter !== "all" ? `(filtro: ${contentFilter === "pages" ? "páginas" : "imagens"})` : ""} pendente de curadoria.</p>
+            <p className="text-muted-foreground">{t.admin.curation.noPending}</p>
           </CardContent>
         </Card>
       ) : (

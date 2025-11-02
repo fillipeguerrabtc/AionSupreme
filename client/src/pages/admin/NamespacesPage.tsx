@@ -39,8 +39,10 @@ import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { IconPicker } from "@/components/IconPicker";
 import { type Namespace } from "@shared/schema";
 import { useMemo } from "react";
+import { useLanguage } from "@/lib/i18n";
 
 export default function NamespacesPage() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedNamespace, setSelectedNamespace] = useState<Namespace | null>(null);
@@ -91,12 +93,12 @@ export default function NamespacesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/namespaces"] });
-      toast({ title: "Namespace criado com sucesso!" });
+      toast({ title: t.admin.namespaces.created });
       setIsCreateOpen(false);
       resetCreateForm();
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao criar namespace", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -112,11 +114,11 @@ export default function NamespacesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/namespaces"] });
-      toast({ title: "Namespace atualizado com sucesso!" });
+      toast({ title: t.admin.namespaces.updated });
       setSelectedNamespace(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao atualizar namespace", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -129,10 +131,10 @@ export default function NamespacesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/namespaces"] });
-      toast({ title: "Namespace excluído com sucesso!" });
+      toast({ title: t.admin.namespaces.deleted });
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao excluir namespace", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -350,10 +352,10 @@ export default function NamespacesPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex-1 min-w-0">
           <h2 className="text-3xl font-bold break-words" data-testid="text-namespaces-title">
-            Gerenciamento de Namespaces
+            {t.admin.namespaces.title}
           </h2>
           <p className="text-muted-foreground mt-1 break-words">
-            Organize e gerencie os namespaces da Knowledge Base
+            {t.admin.namespaces.subtitle}
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
@@ -366,7 +368,7 @@ export default function NamespacesPage() {
             }}
           >
             <FolderTree className="h-4 w-4 mr-2" />
-            Criar Namespace Raiz
+            {t.admin.namespaces.createRoot}
           </Button>
           <Button 
             data-testid="button-create-namespace-sub" 
@@ -377,7 +379,7 @@ export default function NamespacesPage() {
             }}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Criar Sub-namespace
+            {t.admin.namespaces.createSub}
           </Button>
         </div>
       </div>
@@ -389,9 +391,9 @@ export default function NamespacesPage() {
       }}>
             <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Criar Novo Namespace</DialogTitle>
+              <DialogTitle>{t.admin.namespaces.createTitle}</DialogTitle>
               <DialogDescription>
-                Organize o conhecimento criando um namespace raiz ou sub-namespace
+                {t.admin.namespaces.createDesc}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">

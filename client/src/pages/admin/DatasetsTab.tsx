@@ -463,8 +463,8 @@ export default function DatasetsTab() {
     <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold gradient-text">Datasets</h2>
-        <p className="text-muted-foreground">Gerenciamento avançado de datasets de treinamento</p>
+        <h2 className="text-3xl font-bold gradient-text">{t.admin.datasets.title}</h2>
+        <p className="text-muted-foreground">{t.admin.datasets.subtitle}</p>
       </div>
 
       {/* Statistics Cards */}

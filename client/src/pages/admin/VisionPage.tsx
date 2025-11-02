@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Eye, CheckCircle2, XCircle, Clock, TrendingUp, Zap, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/lib/i18n";
 
 interface QuotaStatus {
   used: number;
@@ -35,6 +36,7 @@ interface UsageStats {
 }
 
 export default function VisionPage() {
+  const { t } = useLanguage();
   const { data: quotaStatus, isLoading: quotaLoading } = useQuery<{
     success: boolean;
     data: {
@@ -92,10 +94,10 @@ export default function VisionPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="title-vision">
             <Eye className="h-8 w-8" />
-            Vision System
+            {t.admin.vision.title}
           </h1>
           <p className="text-muted-foreground mt-1">
-            Monitoramento e configuração dos modelos de visão multimodal
+            {t.admin.vision.subtitle}
           </p>
         </div>
       </div>
@@ -106,12 +108,12 @@ export default function VisionPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertCircle className="w-5 h-5" />
-              Erro ao Carregar Provedores
+              {t.admin.vision.errorLoading}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              Não foi possível carregar a configuração dos provedores de visão.
+              {t.admin.vision.errorLoadingDesc}
             </p>
             <p className="text-xs font-mono bg-muted p-2 rounded">
               {providerError instanceof Error ? providerError.message : String(providerError)}
@@ -154,7 +156,7 @@ export default function VisionPage() {
                   data-testid="progress-gemini"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {quotaStatus?.data.gemini.percentage.toFixed(1)}% utilizado
+                  {quotaStatus?.data.gemini.percentage.toFixed(1)}% {t.admin.vision.used}
                 </p>
               </CardContent>
             </Card>
@@ -177,7 +179,7 @@ export default function VisionPage() {
                   data-testid="progress-gpt4v"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {quotaStatus?.data.gpt4vOpenRouter.percentage.toFixed(1)}% utilizado
+                  {quotaStatus?.data.gpt4vOpenRouter.percentage.toFixed(1)}% {t.admin.vision.used}
                 </p>
               </CardContent>
             </Card>
@@ -200,7 +202,7 @@ export default function VisionPage() {
                   data-testid="progress-claude3"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {quotaStatus?.data.claude3OpenRouter.percentage.toFixed(1)}% utilizado
+                  {quotaStatus?.data.claude3OpenRouter.percentage.toFixed(1)}% {t.admin.vision.used}
                 </p>
               </CardContent>
             </Card>
@@ -223,7 +225,7 @@ export default function VisionPage() {
                   data-testid="progress-hf"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {quotaStatus?.data.huggingface.percentage.toFixed(1)}% utilizado
+                  {quotaStatus?.data.huggingface.percentage.toFixed(1)}% {t.admin.vision.used}
                 </p>
               </CardContent>
             </Card>
@@ -236,10 +238,10 @@ export default function VisionPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5" />
-            Provedores Configurados
+            {t.admin.vision.providersTitle}
           </CardTitle>
           <CardDescription>
-            Cascade de modelos de visão multimodal (ordem de prioridade)
+            {t.admin.vision.providersDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -264,21 +266,21 @@ export default function VisionPage() {
                       {provider.status === "active" ? (
                         <Badge variant="outline" className="gap-1">
                           <CheckCircle2 className="h-3 w-3" />
-                          Ativo
+                          {t.admin.vision.active}
                         </Badge>
                       ) : (
                         <Badge variant="destructive" className="gap-1">
                           <XCircle className="h-3 w-3" />
-                          API Key Missing
+                          {t.admin.vision.missingKey}
                         </Badge>
                       )}
                       <Badge variant="secondary" className="gap-1">
                         <Clock className="h-3 w-3" />
-                        Prioridade {provider.priority}
+                        {t.admin.vision.priority} {provider.priority}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Modelo: <code className="text-xs">{provider.model}</code>
+                      {t.admin.vision.model}: <code className="text-xs">{provider.model}</code>
                     </p>
                     <div className="flex gap-2 flex-wrap">
                       {provider.features.map((feature) => (
@@ -292,10 +294,10 @@ export default function VisionPage() {
                     {provider.dailyLimit ? (
                       <>
                         <div className="text-2xl font-bold">{provider.dailyLimit}</div>
-                        <p className="text-xs text-muted-foreground">req/dia</p>
+                        <p className="text-xs text-muted-foreground">{t.admin.vision.reqPerDay}</p>
                       </>
                     ) : (
-                      <Badge variant="secondary">Ilimitado</Badge>
+                      <Badge variant="secondary">{t.admin.vision.unlimited}</Badge>
                     )}
                   </div>
                 </div>
@@ -310,10 +312,10 @@ export default function VisionPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Estatísticas de Uso (Últimos 7 Dias)
+            {t.admin.vision.statsTitle}
           </CardTitle>
           <CardDescription>
-            Histórico de requisições e performance dos provedores
+            {t.admin.vision.statsDesc}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -325,7 +327,7 @@ export default function VisionPage() {
             </div>
           ) : Object.keys(quotaHistory?.data.providers || {}).length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum dado de uso nos últimos 7 dias
+              {t.admin.vision.noData}
             </div>
           ) : (
             <div className="space-y-4">
@@ -339,19 +341,19 @@ export default function VisionPage() {
                     <div className="font-medium mb-1 capitalize">{stat.provider}</div>
                     <div className="flex gap-4 text-sm">
                       <span>
-                        <span className="text-muted-foreground">Total:</span>{" "}
+                        <span className="text-muted-foreground">{t.admin.vision.total}:</span>{" "}
                         <span className="font-medium">{stat.totalRequests}</span>
                       </span>
                       <span>
-                        <span className="text-muted-foreground">Sucesso:</span>{" "}
+                        <span className="text-muted-foreground">{t.admin.vision.success}:</span>{" "}
                         <span className="font-medium text-green-600">{stat.successfulRequests}</span>
                       </span>
                       <span>
-                        <span className="text-muted-foreground">Falha:</span>{" "}
+                        <span className="text-muted-foreground">{t.admin.vision.failed}:</span>{" "}
                         <span className="font-medium text-red-600">{stat.failedRequests}</span>
                       </span>
                       <span>
-                        <span className="text-muted-foreground">Taxa:</span>{" "}
+                        <span className="text-muted-foreground">{t.admin.vision.rate}:</span>{" "}
                         <span className="font-medium">{stat.successRate.toFixed(1)}%</span>
                       </span>
                     </div>
