@@ -490,23 +490,6 @@ interface Translations {
       };
     };
     
-    // Policies
-    policies: {
-      title: string;
-      description: string;
-      moralEthicalLegal: string;
-      configureRestrictions: string;
-      rules: {
-        selfHarm: string;
-        hateSpeech: string;
-        illicitHowto: string;
-        mildProfanity: string;
-        minorViolence: string;
-        explicitSexual: string;
-        politicalExtremism: string;
-      };
-    };
-    
     // Behavior
     behavior: {
       title: string;
@@ -1201,22 +1184,6 @@ const translations: Record<Language, Translations> = {
         },
       },
       
-      policies: {
-        title: "Políticas",
-        description: "Configure restrições de conteúdo",
-        moralEthicalLegal: "Políticas Moral/Ética/Legal",
-        configureRestrictions: "Configure restrições de conteúdo (sistema nasce 100% livre)",
-        rules: {
-          selfHarm: "Auto-Lesão",
-          hateSpeech: "Discurso de Ódio",
-          illicitHowto: "Atividades Ilícitas",
-          mildProfanity: "Linguagem Imprópria",
-          minorViolence: "Violência Menor",
-          explicitSexual: "Conteúdo Sexual Explícito",
-          politicalExtremism: "Extremismo Político",
-        },
-      },
-      
       behavior: {
         title: "Comportamento da IA",
         description: "Ajuste a personalidade e estilo de resposta",
@@ -1900,22 +1867,6 @@ const translations: Record<Language, Translations> = {
         },
       },
       
-      policies: {
-        title: "Policies",
-        description: "Configure content restrictions",
-        moralEthicalLegal: "Moral/Ethical/Legal Policies",
-        configureRestrictions: "Configure content restrictions (system born 100% free)",
-        rules: {
-          selfHarm: "Self-Harm",
-          hateSpeech: "Hate Speech",
-          illicitHowto: "Illicit Activities",
-          mildProfanity: "Inappropriate Language",
-          minorViolence: "Minor Violence",
-          explicitSexual: "Explicit Sexual Content",
-          politicalExtremism: "Political Extremism",
-        },
-      },
-      
       behavior: {
         title: "AI Behavior",
         description: "Adjust personality and response style",
@@ -2596,22 +2547,6 @@ const translations: Record<Language, Translations> = {
           completed: "Completado",
           failed: "Fallido",
           paused: "Pausado",
-        },
-      },
-      
-      policies: {
-        title: "Políticas",
-        description: "Configura restricciones de contenido",
-        moralEthicalLegal: "Políticas Moral/Ética/Legal",
-        configureRestrictions: "Configura restricciones de contenido (sistema nace 100% libre)",
-        rules: {
-          selfHarm: "Autolesión",
-          hateSpeech: "Discurso de Odio",
-          illicitHowto: "Actividades Ilícitas",
-          mildProfanity: "Lenguaje Inapropiado",
-          minorViolence: "Violencia Menor",
-          explicitSexual: "Contenido Sexual Explícito",
-          politicalExtremism: "Extremismo Político",
         },
       },
       

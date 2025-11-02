@@ -827,85 +827,49 @@ export default function AdminDashboard() {
               <p className="text-muted-foreground">{t.admin.settings.subtitle}</p>
             </div>
 
-            {/* Policy Controls Grid */}
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* Moral/Ética/Legal */}
-              <Card className="glass-modern animate-slide-up overflow-visible">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-primary" />
-                    <span className="text-foreground font-semibold">{t.admin.policies.title}</span>
-                  </CardTitle>
-                  <CardDescription>
-                    {t.admin.policies.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 overflow-visible">
-                  {Object.entries(pendingRules || policy?.rules || {}).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between gap-4 p-3 rounded-xl bg-card/50 border border-border/50">
-                      <Label htmlFor={key} className="text-sm font-medium cursor-pointer flex-1">
-                        {t.admin.policies.rules[key as keyof typeof t.admin.policies.rules] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </Label>
-                      <div className="flex-shrink-0 w-11 relative z-10">
-                        <Switch
-                          id={key}
-                          checked={value as boolean}
-                          onCheckedChange={(checked) => {
-                            setPendingRules({ ...pendingRules, [key]: checked });
-                            setHasUnsavedChanges(true);
-                          }}
-                          data-testid={`switch-${key}`}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+            {/* Comportamento da IA */}
+            <Card className="glass-modern hover-elevate animate-slide-up max-w-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-accent" />
+                  <span className="text-foreground font-semibold">{t.admin.behavior.title}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t.admin.behavior.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">
+                    {t.admin.behavior.formality}: {(((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100).toFixed(0)}%
+                  </Label>
+                  <Slider
+                    value={[((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100]}
+                    onValueChange={([value]) => {
+                      setPendingBehavior({ ...pendingBehavior, formality: value / 100 });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="bg-muted p-2 rounded-xl"
+                    data-testid="slider-formality"
+                  />
+                </div>
 
-              {/* Comportamento da IA */}
-              <Card className="glass-modern hover-elevate animate-slide-up" style={{ animationDelay: "100ms" }}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-accent" />
-                    <span className="text-foreground font-semibold">{t.admin.behavior.title}</span>
-                  </CardTitle>
-                  <CardDescription>
-                    {t.admin.behavior.description}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">
-                      {t.admin.behavior.formality}: {(((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100).toFixed(0)}%
-                    </Label>
-                    <Slider
-                      value={[((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100]}
-                      onValueChange={([value]) => {
-                        setPendingBehavior({ ...pendingBehavior, formality: value / 100 });
-                        setHasUnsavedChanges(true);
-                      }}
-                      className="bg-muted p-2 rounded-xl"
-                      data-testid="slider-formality"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">
-                      {t.admin.behavior.creativity}: {(((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100).toFixed(0)}%
-                    </Label>
-                    <Slider
-                      value={[((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100]}
-                      onValueChange={([value]) => {
-                        setPendingBehavior({ ...pendingBehavior, creativity: value / 100 });
-                        setHasUnsavedChanges(true);
-                      }}
-                      className="bg-muted p-2 rounded-xl"
-                      data-testid="slider-creativity"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">
+                    {t.admin.behavior.creativity}: {(((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100).toFixed(0)}%
+                  </Label>
+                  <Slider
+                    value={[((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100]}
+                    onValueChange={([value]) => {
+                      setPendingBehavior({ ...pendingBehavior, creativity: value / 100 });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="bg-muted p-2 rounded-xl"
+                    data-testid="slider-creativity"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Save Button */}
             {hasUnsavedChanges && (
