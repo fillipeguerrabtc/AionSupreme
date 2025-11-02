@@ -71,12 +71,7 @@ interface Document {
   attachments?: any[];
 }
 
-interface Namespace {
-  id: string;
-  name: string;
-  displayName: string | null;
-  description: string | null;
-}
+import type { Namespace } from "@shared/schema";
 
 export default function ImagesGalleryPage() {
   const { toast } = useToast();
@@ -102,7 +97,7 @@ export default function ImagesGalleryPage() {
   });
 
   const { data: namespacesData } = useQuery<Namespace[]>({
-    queryKey: ["/api/admin/namespaces"],
+    queryKey: ["/api/namespaces"],
   });
 
   // Filtered images
@@ -319,7 +314,7 @@ export default function ImagesGalleryPage() {
                         <SelectItem value="all">Todos os namespaces</SelectItem>
                         {namespacesData?.map(ns => (
                           <SelectItem key={ns.id} value={ns.name}>
-                            {ns.displayName || ns.name}
+                            {ns.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

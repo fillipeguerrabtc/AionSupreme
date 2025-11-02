@@ -269,13 +269,10 @@ export function NamespaceSelector({
                         )}
                       />
                       <div className="flex flex-col">
-                        <span className="font-medium">{ns.displayName || ns.name}</span>
+                        <span className="font-medium">{ns.name}</span>
                         {ns.description && (
                           <span className="text-xs text-muted-foreground">{ns.description}</span>
                         )}
-                        <span className="text-xs font-mono text-muted-foreground mt-0.5">
-                          {ns.name}
-                        </span>
                       </div>
                     </CommandItem>
                   ))}
@@ -297,7 +294,7 @@ export function NamespaceSelector({
                   className="gap-1"
                   data-testid={`badge-namespace-${namespace}`}
                 >
-                  <span className="text-xs font-mono">{ns?.displayName || namespace}</span>
+                  <span className="text-xs font-mono">{namespace}</span>
                   <button
                     type="button"
                     onClick={() => removeNamespace(namespace)}

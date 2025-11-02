@@ -30,13 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface Namespace {
-  id: number;
-  namespace: string;
-  parentNamespace: string | null;
-  icon: string | null;
-  description: string | null;
-}
+import type { Namespace } from "@shared/schema";
 
 interface Agent {
   id: string;
@@ -73,16 +67,16 @@ export function CreateSubAgentForm() {
   const parentNamespace = selectedParent?.assignedNamespaces?.[0]; // Agent has exactly 1 namespace
 
   const { data: namespaces = [] } = useQuery<Namespace[]>({
-    queryKey: ["/api/admin/namespaces"],
+    queryKey: ["/api/namespaces"],
   });
 
   // Filter subnamespaces based on selected parent's namespace
   const availableSubNamespaces = parentNamespace
-    ? namespaces.filter((ns) => ns.namespace.startsWith(parentNamespace + "/"))
+    ? namespaces.filter((ns) => ns.name.startsWith(parentNamespace + "/"))
     : [];
 
   const groupedSubNamespaces = availableSubNamespaces.reduce((acc, ns) => {
-    const root = ns.namespace.split("/")[0];
+    const root = ns.name.split("/")[0];
     if (!acc[root]) acc[root] = [];
     acc[root].push(ns);
     return acc;
@@ -222,25 +216,25 @@ export function CreateSubAgentForm() {
                             <div
                               key={ns.id}
                               className="flex items-center space-x-2 ml-4"
-                              data-testid={`namespace-item-${ns.namespace}`}
+                              data-testid={`namespace-item-${ns.name}`}
                             >
                               <Checkbox
                                 id={`ns-${ns.id}`}
-                                data-testid={`checkbox-namespace-${ns.namespace}`}
-                                checked={field.value?.includes(ns.namespace)}
+                                data-testid={`checkbox-namespace-${ns.name}`}
+                                checked={field.value?.includes(ns.name)}
                                 onCheckedChange={(checked) => {
                                   const updated = checked
-                                    ? [...(field.value || []), ns.namespace]
-                                    : (field.value || []).filter((v) => v !== ns.namespace);
+                                    ? [...(field.value || []), ns.name]
+                                    : (field.value || []).filter((v) => v !== ns.name);
                                   field.onChange(updated);
                                 }}
                               />
                               <label
                                 htmlFor={`ns-${ns.id}`}
                                 className="text-sm cursor-pointer flex-1"
-                                data-testid={`label-namespace-${ns.namespace}`}
+                                data-testid={`label-namespace-${ns.name}`}
                               >
-                                {ns.icon} {ns.namespace}
+                                {ns.icon} {ns.name}
                               </label>
                             </div>
                           ))}

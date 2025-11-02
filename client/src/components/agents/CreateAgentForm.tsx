@@ -19,14 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface Namespace {
-  id: number;
-  namespace: string;
-  parentNamespace: string | null;
-  icon: string | null;
-  description: string | null;
-}
+import type { Namespace } from "@shared/schema";
 
 const createAgentFormSchema = insertAgentSchema.extend({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -40,10 +33,10 @@ export function CreateAgentForm() {
   const { toast } = useToast();
 
   const { data: namespaces = [] } = useQuery<Namespace[]>({
-    queryKey: ["/api/admin/namespaces"],
+    queryKey: ["/api/namespaces"],
   });
 
-  const rootNamespaces = namespaces.filter((ns) => !ns.namespace.includes("/"));
+  const rootNamespaces = namespaces.filter((ns) => !ns.name.includes("/"));
 
   const form = useForm<CreateAgentFormValues>({
     resolver: zodResolver(createAgentFormSchema),
@@ -131,10 +124,10 @@ export function CreateAgentForm() {
                       {rootNamespaces.map((ns) => (
                         <SelectItem
                           key={ns.id}
-                          value={ns.namespace}
-                          data-testid={`option-namespace-${ns.namespace}`}
+                          value={ns.name}
+                          data-testid={`option-namespace-${ns.name}`}
                         >
-                          {ns.icon} {ns.namespace}
+                          {ns.icon} {ns.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
