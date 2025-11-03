@@ -12,7 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { login, logout } from "@/lib/authUtils";
+import { login, logoutChat } from "@/lib/authUtils";
 import { LogIn, LogOut } from "lucide-react";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
 import { ProjectsSidebar } from "@/components/ProjectsSidebar";
@@ -84,7 +84,7 @@ export function AppSidebar({
             </div>
             <Button
               onClick={() => {
-                logout();
+                logoutChat();
                 if (isMobile) setOpenMobile(false);
               }}
               variant="ghost"

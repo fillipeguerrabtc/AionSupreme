@@ -35,7 +35,7 @@ import {
 import { useLanguage } from "@/lib/i18n";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
-import { logout } from "@/lib/authUtils";
+import { logoutAdmin } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -261,7 +261,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
             </div>
             <Button
               onClick={() => {
-                logout();
+                logoutAdmin();
                 if (isMobile) setOpenMobile(false);
               }}
               variant="ghost"
