@@ -67,7 +67,7 @@ export default function NamespacesPage() {
   
   // Fetch ALL namespaces from database (unified approach)
   const { data: allNamespaces = [], isLoading } = useQuery<Namespace[]>({
-    queryKey: ["/api/namespaces"],
+    queryKey: ["/api/admin/namespaces"],
   });
 
   // Sort namespaces alphabetically
@@ -79,7 +79,7 @@ export default function NamespacesPage() {
   // Create namespace mutation
   const createMutation = useMutation({
     mutationFn: async (data: Partial<Namespace>) => {
-      const res = await apiRequest("/api/namespaces", {
+      const res = await apiRequest("/api/admin/namespaces", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -87,7 +87,7 @@ export default function NamespacesPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/namespaces"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/namespaces"] });
       toast({ title: t.admin.namespaces.toast.created });
       setIsCreateOpen(false);
       resetCreateForm();
@@ -100,7 +100,7 @@ export default function NamespacesPage() {
   // Update namespace mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Namespace> }) => {
-      const res = await apiRequest(`/api/namespaces/${id}`, {
+      const res = await apiRequest(`/api/admin/namespaces/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -108,7 +108,7 @@ export default function NamespacesPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/namespaces"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/namespaces"] });
       toast({ title: t.admin.namespaces.toast.updated });
       setSelectedNamespace(null);
     },
@@ -120,12 +120,12 @@ export default function NamespacesPage() {
   // Delete namespace mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest(`/api/namespaces/${id}`, {
+      await apiRequest(`/api/admin/namespaces/${id}`, {
         method: "DELETE",
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/namespaces"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/namespaces"] });
       toast({ title: t.admin.namespaces.toast.deleted });
     },
     onError: (error: Error) => {
@@ -211,7 +211,7 @@ export default function NamespacesPage() {
         // If content was provided, ingest it into the namespace
         if (createContent.trim()) {
           try {
-            await apiRequest(`/api/namespaces/${newNamespace.id}/ingest`, {
+            await apiRequest(`/api/admin/namespaces/${newNamespace.id}/ingest`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -257,7 +257,7 @@ export default function NamespacesPage() {
           // If content was provided, ingest it into the new namespace
           if (editContent.trim()) {
             try {
-              await apiRequest(`/api/namespaces/${newNamespace.id}/ingest`, {
+              await apiRequest(`/api/admin/namespaces/${newNamespace.id}/ingest`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -295,7 +295,7 @@ export default function NamespacesPage() {
           // If content was provided, ingest it into the namespace
           if (editContent.trim()) {
             try {
-              await apiRequest(`/api/namespaces/${selectedNamespace.id}/ingest`, {
+              await apiRequest(`/api/admin/namespaces/${selectedNamespace.id}/ingest`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

@@ -75,13 +75,13 @@ export default function AgentsPage() {
   
   // Fetch agents
   const { data: agents = [], isLoading } = useQuery<Agent[]>({
-    queryKey: ["/api/agents"],
+    queryKey: ["/api/admin/agents"],
   });
 
   // Update agent mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Agent> }) => {
-      const res = await apiRequest(`/api/agents/${id}`, {
+      const res = await apiRequest(`/api/admin/agents/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -89,7 +89,7 @@ export default function AgentsPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/agents"] });
       toast({ title: t.admin.agents.toast.updated });
       setSelectedAgent(null);
     },
@@ -101,13 +101,13 @@ export default function AgentsPage() {
   // Delete agent mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await apiRequest(`/api/agents/${id}`, {
+      const res = await apiRequest(`/api/admin/agents/${id}`, {
         method: "DELETE",
       });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/agents"] });
       toast({ title: t.admin.agents.toast.deleted });
     },
     onError: (error: Error) => {

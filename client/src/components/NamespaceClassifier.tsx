@@ -59,7 +59,7 @@ export function NamespaceClassifier({ content, title, onNamespaceSelected }: Nam
   // Classify mutation
   const classifyMutation = useMutation({
     mutationFn: async (data: { content: string; title?: string }) => {
-      const res = await apiRequest("/api/namespaces/classify", {
+      const res = await apiRequest("/api/admin/namespaces/classify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -102,7 +102,7 @@ export function NamespaceClassifier({ content, title, onNamespaceSelected }: Nam
       agentName: string;
       agentDescription: string;
     }) => {
-      const res = await apiRequest("/api/namespaces/create-with-agent", {
+      const res = await apiRequest("/api/admin/namespaces/create-with-agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

@@ -57,7 +57,7 @@ export function CreateSubAgentForm() {
 
   // Fetch all agents (we'll filter to get parent agents)
   const { data: allAgents = [] } = useQuery<Agent[]>({
-    queryKey: ["/api/agents"],
+    queryKey: ["/api/admin/agents"],
   });
 
   // Filter to get only tier="agent" (potential parents)
@@ -68,7 +68,7 @@ export function CreateSubAgentForm() {
   const parentNamespace = selectedParent?.assignedNamespaces?.[0]; // Agent has exactly 1 namespace
 
   const { data: namespaces = [] } = useQuery<Namespace[]>({
-    queryKey: ["/api/namespaces"],
+    queryKey: ["/api/admin/namespaces"],
   });
 
   // Filter subnamespaces based on selected parent's namespace
@@ -98,7 +98,7 @@ export function CreateSubAgentForm() {
 
   async function onSubmit(values: CreateSubAgentFormValues) {
     try {
-      const res = await apiRequest("/api/agents", {
+      const res = await apiRequest("/api/admin/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -109,7 +109,7 @@ export function CreateSubAgentForm() {
         throw new Error(error.error || "Erro ao criar SubAgent");
       }
 
-      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/agents"] });
       toast({ title: "SubAgent criado com sucesso!" });
       form.reset();
     } catch (error: any) {

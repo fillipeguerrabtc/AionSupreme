@@ -63,7 +63,7 @@ export function AgentHierarchyManager() {
 
   // Fetch all agents
   const { data: agents = [] } = useQuery<Agent[]>({
-    queryKey: ["/api/agents"],
+    queryKey: ["/api/admin/agents"],
   });
 
   // Fetch all relationships

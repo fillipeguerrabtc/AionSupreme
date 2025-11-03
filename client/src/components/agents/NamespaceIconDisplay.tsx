@@ -26,7 +26,7 @@ export function NamespaceIconDisplay({
 
   // Fetch all namespaces from API
   const { data: allNamespaces = [] } = useQuery<Namespace[]>({
-    queryKey: ["/api/namespaces"],
+    queryKey: ["/api/admin/namespaces"],
   });
 
   // Get namespace objects for the provided namespace names

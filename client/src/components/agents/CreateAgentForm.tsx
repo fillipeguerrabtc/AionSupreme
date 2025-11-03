@@ -35,7 +35,7 @@ export function CreateAgentForm() {
   const { toast } = useToast();
 
   const { data: namespaces = [] } = useQuery<Namespace[]>({
-    queryKey: ["/api/namespaces"],
+    queryKey: ["/api/admin/namespaces"],
   });
 
   const rootNamespaces = namespaces.filter((ns) => !ns.name.includes("/"));
@@ -55,7 +55,7 @@ export function CreateAgentForm() {
 
   async function onSubmit(values: CreateAgentFormValues) {
     try {
-      const res = await apiRequest("/api/agents", {
+      const res = await apiRequest("/api/admin/agents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -66,7 +66,7 @@ export function CreateAgentForm() {
         throw new Error(error.error || "Erro ao criar Agent");
       }
 
-      queryClient.invalidateQueries({ queryKey: ["/api/agents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/agents"] });
       toast({ title: "Agent criado com sucesso!" });
       form.reset();
     } catch (error: any) {

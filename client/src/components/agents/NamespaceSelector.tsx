@@ -59,7 +59,7 @@ export function NamespaceSelector({
 
   // Fetch ALL namespaces from database (unified approach)
   const { data: dbNamespaces = [] } = useQuery<Namespace[]>({
-    queryKey: ["/api/namespaces"],
+    queryKey: ["/api/admin/namespaces"],
   });
 
   // Filtrar namespaces baseado em props
