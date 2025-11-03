@@ -8,11 +8,11 @@
  * - DELETE /api/admin/query-metrics - Limpa histórico
  */
 
-import { Express, Request, Response } from "express";
+import { Router, Request, Response } from "express";
 import { queryMonitor } from "../services/query-monitor";
 import { storage } from "../storage";
 
-export function registerQueryMetricsRoutes(app: Express) {
+export function registerQueryMetricsRoutes(app: Router) {
   /**
    * GET /api/admin/query-metrics
    * Retorna todas as métricas de queries registradas

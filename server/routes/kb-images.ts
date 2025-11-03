@@ -3,14 +3,14 @@
  * API para busca semântica de imagens indexadas na KB
  */
 
-import type { Express, Request, Response } from "express";
+import type { Router, Request, Response } from "express";
 import { db } from "../db";
 import { documents, embeddings } from "../../shared/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { embedder } from "../rag/embedder";
 import { rateLimitMiddleware } from "../middleware/rate-limit";
 
-export function registerKbImagesRoutes(app: Express) {
+export function registerKbImagesRoutes(app: Router) {
   console.log("[KB Images Routes] Registering KB Image Search routes...");
   
   // REMOVED: Rate limiting already applied globally in routes.ts via app.use("/api", ...)

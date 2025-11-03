@@ -262,3 +262,82 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     });
   }
 }
+
+/**
+ * GRANULAR PERMISSION MIDDLEWARE FACTORY
+ * 
+ * Creates a middleware that checks if the authenticated user has a specific permission.
+ * This allows fine-grained access control beyond simple admin/non-admin roles.
+ * 
+ * @param requiredPermission - Permission code in format "module:submodule:action"
+ *                            (e.g., "kb:documents:create", "agents:list:read")
+ * 
+ * Usage:
+ * app.post("/api/kb/documents", requirePermission("kb:documents:create"), async (req, res) => { ... });
+ * app.get("/api/agents", requirePermission("agents:list:read"), async (req, res) => { ... });
+ * 
+ * @returns Express middleware function
+ */
+export function requirePermission(requiredPermission: string) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // First check if authenticated
+    if (!req.isAuthenticated || !req.isAuthenticated()) {
+      return res.status(401).json({ 
+        error: "Unauthorized",
+        message: "Authentication required to access this resource"
+      });
+    }
+    
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ 
+          error: "Unauthorized",
+          message: "Unable to identify user"
+        });
+      }
+      
+      // Get all permissions for this user (combines permissions from all their roles)
+      const userPermissions = await storage.getUserPermissions(userId);
+      
+      // Check if user has the required permission
+      const hasPermission = userPermissions.some(
+        permission => permission.code === requiredPermission
+      );
+      
+      if (!hasPermission) {
+        return res.status(403).json({ 
+          error: "Forbidden",
+          message: `Permission required: ${requiredPermission}`
+        });
+      }
+      
+      next();
+    } catch (error) {
+      console.error('[Auth] Error checking user permission:', error);
+      return res.status(500).json({ 
+        error: "Internal Server Error",
+        message: "Failed to verify user permissions"
+      });
+    }
+  };
+}
+
+/**
+ * HELPER: Get all permissions for a user
+ * 
+ * Useful for frontend to determine what UI elements to show/hide
+ * This is exported so it can be used in routes that need to check permissions programmatically
+ * 
+ * @param userId - User ID
+ * @returns Array of permission codes (e.g., ["kb:documents:read", "kb:documents:create"])
+ */
+export async function getUserPermissionCodes(userId: string): Promise<string[]> {
+  try {
+    const permissions = await storage.getUserPermissions(userId);
+    return permissions.map(p => p.code);
+  } catch (error) {
+    console.error('[Auth] Error fetching user permissions:', error);
+    return [];
+  }
+}

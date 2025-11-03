@@ -49,6 +49,7 @@ import { registerKbImagesRoutes } from "./routes/kb-images";
 import { registerQueryMetricsRoutes } from "./routes/query-metrics";
 import { registerTelemetryRoutes } from "./routes/telemetry";
 import { registerUserRoutes } from "./routes/users";
+import { registerPermissionsRoutes } from "./routes/permissions";
 
 const upload = multer({ 
   dest: "/tmp/uploads/",
@@ -86,6 +87,9 @@ export function registerRoutes(app: Express): Server {
   
   // Registrar rotas de gerenciamento de usuários
   registerUserRoutes(adminSubRouter);
+  
+  // Registrar rotas de RBAC (Roles & Permissions)
+  registerPermissionsRoutes(adminSubRouter);
   
   // Registrar rotas multi-agente
   registerAgentRoutes(adminSubRouter);

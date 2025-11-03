@@ -1,8 +1,8 @@
 // server/routes/agent-relationships.ts
-import type { Express } from "express";
+import type { Router } from "express";
 import { agentRelationshipsStorage } from "../storage.agent-relationships";
 
-export function registerAgentRelationshipRoutes(app: Express) {
+export function registerAgentRelationshipRoutes(app: Router) {
   // GET /api/agent-relationships - List all relationships
   app.get("/agent-relationships", async (req, res) => {
     try {

@@ -1,7 +1,7 @@
 // server/routes/curation.ts
 // Rotas para sistema de curadoria com HITL
 
-import type { Express } from "express";
+import type { Router } from "express";
 import { curationStore } from "../curation/store";
 import { publishEvent } from "../events";
 import { ImageProcessor } from "../learn/image-processor";
@@ -11,7 +11,7 @@ import { generateContentHash, normalizeContent } from "../utils/deduplication";
 import { curationQueue, documents } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 
-export function registerCurationRoutes(app: Express) {
+export function registerCurationRoutes(app: Router) {
   /**
    * GET /api/curation/pending
    * Lista itens pendentes de curadoria

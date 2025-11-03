@@ -7,10 +7,10 @@
  * - Integração com query-metrics para métricas de sistema
  */
 
-import { Express, Request, Response } from "express";
+import { Router, Request, Response } from "express";
 import { usageTracker } from "../services/usage-tracker";
 
-export function registerTelemetryRoutes(app: Express) {
+export function registerTelemetryRoutes(app: Router) {
   /**
    * GET /api/telemetry/agents/stats
    * Retorna estatísticas de uso de todos os agentes

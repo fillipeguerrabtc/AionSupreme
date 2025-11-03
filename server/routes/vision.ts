@@ -3,7 +3,7 @@
  * API para monitoramento e configuração do Vision Cascade
  */
 
-import type { Express, Request, Response } from "express";
+import type { Router, Request, Response } from "express";
 import { VisionCascade } from "../learn/vision-cascade";
 import { db } from "../db";
 import { tokenUsage } from "../../shared/schema";
@@ -12,7 +12,7 @@ import { rateLimitMiddleware } from "../middleware/rate-limit";
 
 const visionCascade = new VisionCascade();
 
-export function registerVisionRoutes(app: Express) {
+export function registerVisionRoutes(app: Router) {
   console.log("[Vision Routes] Registering Vision System API routes...");
   
   // REMOVED: Rate limiting already applied globally in routes.ts via app.use("/api", ...)

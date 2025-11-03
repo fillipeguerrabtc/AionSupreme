@@ -3,7 +3,7 @@
  * Gerenciamento completo de usuários para administradores
  */
 
-import type { Express, Request, Response } from "express";
+import type { Router, Request, Response } from "express";
 import { storage } from "../storage";
 import { db } from "../db";
 import { users, userRoles, roles } from "@shared/schema";
@@ -25,7 +25,7 @@ function sanitizeUser<T extends { password?: string | null; resetToken?: string 
   return safeUser;
 }
 
-export function registerUserRoutes(app: Express) {
+export function registerUserRoutes(app: Router) {
   /**
    * GET /api/admin/users
    * Lista todos os usuários do sistema

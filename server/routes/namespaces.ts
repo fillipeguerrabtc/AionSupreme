@@ -1,4 +1,4 @@
-import { Express, Request, Response } from "express";
+import { Router, Request, Response } from "express";
 import { db } from "../db";
 import { namespaces, insertNamespaceSchema, type Namespace, type InsertNamespace } from "@shared/schema";
 import { eq, and, desc, or, like, ilike, sql } from "drizzle-orm";
@@ -10,7 +10,7 @@ import { namespaceClassifier } from "../services/namespace-classifier";
  * Namespace Management Routes
  * Full CRUD operations for KB namespaces
  */
-export function registerNamespaceRoutes(app: Express) {
+export function registerNamespaceRoutes(app: Router) {
   // GET /api/namespaces - List all namespaces
   app.get("/namespaces", async (req: Request, res: Response) => {
     try {

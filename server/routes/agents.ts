@@ -1,11 +1,11 @@
 // Rotas de gerenciamento de agentes
-import type { Express } from "express";
+import type { Router } from "express";
 import { agentsStorage } from "../storage.agents";
 import { publishEvent } from "../events";
 import { validateNamespaceAssignment, validateNamespacesExist } from "../agent/namespace-validators";
 import { generateUniqueSlug } from "../utils/slug-generator";
 
-export function registerAgentRoutes(app: Express) {
+export function registerAgentRoutes(app: Router) {
   app.get("/agents", async (req, res) => {
     try {
       const rows = await agentsStorage.listAgents();

@@ -1,11 +1,11 @@
 // server/routes/kb_promote.ts
 // Rota para promover respostas/conteúdo à Knowledge Base
 
-import type { Express } from "express";
+import type { Router } from "express";
 import { curationStore } from "../curation/store";
 import { publishEvent } from "../events";
 
-export function registerKbPromoteRoutes(app: Express) {
+export function registerKbPromoteRoutes(app: Router) {
   /**
    * POST /api/kb/promote
    * Promove resposta ou conteúdo para a KB (envia para fila de curadoria)

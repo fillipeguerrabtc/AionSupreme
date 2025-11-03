@@ -3,14 +3,14 @@
  * WITH INTELLIGENT QUOTA MANAGEMENT (uses only 70% of quota for safety!)
  */
 
-import type { Express } from "express";
+import type { Router } from "express";
 import type { Request, Response } from "express";
 import { db } from "../db";
 import { gpuWorkers } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { quotaManager } from "../gpu/quota-manager";
 
-export function registerGpuRoutes(app: Express) {
+export function registerGpuRoutes(app: Router) {
   console.log("[GPU Routes] Registering GPU Pool API routes...");
 
   /**
