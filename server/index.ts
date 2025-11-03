@@ -122,5 +122,18 @@ app.use((req, res, next) => {
     } catch (err) {
       console.error('⚠️ Failed to initialize auto-evolution:', err);
     }
+    
+    // 💰 Initialize Billing Sync Services (fetch REAL costs from provider APIs)
+    try {
+      const { openAIBillingSync } = await import('./services/openai-billing-sync');
+      const { openRouterBillingSync } = await import('./services/openrouter-billing-sync');
+      const { geminiBillingSync } = await import('./services/gemini-billing-sync');
+      
+      openAIBillingSync.startAutoSync();
+      openRouterBillingSync.startAutoSync();
+      geminiBillingSync.startAutoSync();
+    } catch (err) {
+      console.error('⚠️ Failed to initialize billing sync:', err);
+    }
   });
 })();

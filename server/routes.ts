@@ -4668,6 +4668,37 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // GET /api/tokens/openai-real-cost - Get REAL OpenAI costs from Costs API (NOT calculated!)
+  app.get("/api/tokens/openai-real-cost", async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const { openAIBillingSync } = await import("./services/openai-billing-sync");
+      
+      const totalCost = await openAIBillingSync.getTotalCost(days);
+      res.json({ 
+        totalCost, 
+        days, 
+        source: "openai_costs_api",
+        note: "Real data from OpenAI invoice, NOT calculated from tokens" 
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/tokens/openai-sync - Manually trigger OpenAI billing sync
+  app.post("/api/tokens/openai-sync", async (req, res) => {
+    try {
+      const days = parseInt(req.body.days as string) || 30;
+      const { openAIBillingSync } = await import("./services/openai-billing-sync");
+      
+      await openAIBillingSync.syncBillingData(days);
+      res.json({ success: true, message: `Synced last ${days} days from OpenAI Costs API` });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // GET /api/tokens/free-apis-history - Get Free APIs usage history
   app.get("/api/tokens/free-apis-history", async (req, res) => {
     try {

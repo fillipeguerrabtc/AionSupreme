@@ -758,6 +758,42 @@ export type InsertTokenAlert = z.infer<typeof insertTokenAlertSchema>;
 export type TokenAlert = typeof tokenAlerts.$inferSelect;
 
 // ============================================================================
+// OPENAI_BILLING_SYNC - Real billing data from OpenAI Costs API
+// ============================================================================
+export const openai_billing_sync = pgTable("openai_billing_sync", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
+  
+  // Time period (from OpenAI Costs API)
+  startTime: timestamp("start_time").notNull(), // Unix timestamp converted to timestamp
+  endTime: timestamp("end_time").notNull(),
+  
+  // Cost breakdown (REAL data from OpenAI invoice)
+  totalCost: real("total_cost").notNull(), // USD - valor REAL faturado
+  lineItems: jsonb("line_items").$type<Array<{
+    name: string; // "GPT-4 usage", "Embeddings", etc
+    cost: number; // USD
+    project_id?: string;
+    line_item?: string;
+  }>>(),
+  
+  // Metadata
+  syncedAt: timestamp("synced_at").notNull().defaultNow(), // When we fetched this data
+  source: text("source").notNull().default("openai_costs_api"), // Always "openai_costs_api"
+  
+  // Deduplication: ensure we don't sync the same period twice
+  periodKey: text("period_key").notNull().unique(), // Format: "YYYY-MM-DD" for daily buckets
+}, (table) => ({
+  tenantIdx: index("openai_billing_tenant_idx").on(table.tenantId),
+  periodKeyIdx: index("openai_billing_period_key_idx").on(table.periodKey),
+  startTimeIdx: index("openai_billing_start_time_idx").on(table.startTime),
+}));
+
+export const insertOpenAIBillingSyncSchema = createInsertSchema(openai_billing_sync).omit({ id: true, syncedAt: true });
+export type InsertOpenAIBillingSync = z.infer<typeof insertOpenAIBillingSyncSchema>;
+export type OpenAIBillingSync = typeof openai_billing_sync.$inferSelect;
+
+// ============================================================================
 // GPU WORKERS - Multi-GPU pool management for load balancing and fallback
 // ============================================================================
 export const gpuWorkers = pgTable("gpu_workers", {
