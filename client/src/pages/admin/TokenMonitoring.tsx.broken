@@ -507,9 +507,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
           <Globe className="w-4 h-4 mr-2" />
           {t.admin.tokenMonitoring.tabs.webSearches}
         </TabsTrigger>
-          <Search className="w-4 h-4 mr-2" />
-          {t.admin.tokenMonitoring.tabs.deepWeb}
-        </TabsTrigger>
         <TabsTrigger value="limits" data-testid="tab-limits">
           <Settings className="w-4 h-4 mr-2" />
           {t.admin.tokenMonitoring.tabs.limitsAlerts}

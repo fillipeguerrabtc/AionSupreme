@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
 import { COMMON_TIMEZONES, getCurrentDateTimeInTimezone } from "@/lib/datetime";
-import TokenMonitoring from "./TokenMonitoring";
+// import TokenMonitoring from "./TokenMonitoring"; // TEMPORARILY DISABLED - FIXING JSX ERRORS
 import KnowledgeBaseTab from "./KnowledgeBaseTab";
 import TokenHistoryTab from "./TokenHistoryTab";
 import CostHistoryTab from "./CostHistoryTab";
@@ -54,7 +54,7 @@ export default function AdminDashboard() {
   const [, navigate] = useLocation();
   const [systemPromptValue, setSystemPromptValue] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
-  const [tokenSubtab, setTokenSubtab] = useState<'overview' | 'kb' | 'free-apis' | 'openai' | 'web' | 'deepweb' | 'limits'>('overview');
+  const [tokenSubtab, setTokenSubtab] = useState<'overview' | 'kb' | 'free-apis' | 'openai' | 'web' | 'limits'>('overview');
   const [selectedTimezone, setSelectedTimezone] = useState("America/Sao_Paulo");
   const [currentTime, setCurrentTime] = useState(getCurrentDateTimeInTimezone(selectedTimezone));
   
@@ -760,12 +760,12 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* Token Monitoring Tab */}
-              {activeTab === "tokens" && (
+              {/* Token Monitoring Tab - TEMPORARILY DISABLED */}
+              {/* {activeTab === "tokens" && (
                 <div className="space-y-6">
                   <TokenMonitoring initialTab={tokenSubtab} />
                 </div>
-              )}
+              )} */}
 
               {/* Token History Tab */}
               {activeTab === "history" && (

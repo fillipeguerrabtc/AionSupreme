@@ -3095,7 +3095,7 @@ export function registerRoutes(app: Express): Server {
             conversationId: null,
             userMessage: explicitRequest.cleanQuery || lastUserMessage,
             assistantResponse: orchestratorResult.content,
-            source: explicitRequest.source,
+            source: explicitRequest.source === 'free-apis' ? 'free-api' : explicitRequest.source,
             provider: orchestratorResult.provider,
           }).catch((err: any) => {
             console.error('[HITL] Failed to send explicit request to curation:', err.message);
@@ -3207,7 +3207,7 @@ export function registerRoutes(app: Express): Server {
           conversationId: null, // Sem ID de conversa para chats standalone
           userMessage: lastUserMessage,
           assistantResponse: finalContent,
-          source: fallbackResult.usedFallback ? 'web' : 'react-agent',
+          source: fallbackResult.usedFallback ? 'web' : 'openai',
           provider: fallbackResult.usedFallback ? 'automatic-fallback' : 'react-agent',
         }).catch((err: any) => {
           console.error('[HITL] Failed to send to curation queue:', err.message);
