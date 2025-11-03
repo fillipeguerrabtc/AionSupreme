@@ -6,7 +6,7 @@ import { validateNamespaceAssignment, validateNamespacesExist } from "../agent/n
 import { generateUniqueSlug } from "../utils/slug-generator";
 
 export function registerAgentRoutes(app: Express) {
-  app.get("/api/agents", async (req, res) => {
+  app.get("/agents", async (req, res) => {
     try {
       const rows = await agentsStorage.listAgents();
       res.json(rows);
@@ -15,7 +15,7 @@ export function registerAgentRoutes(app: Express) {
     }
   });
 
-  app.post("/api/agents", async (req, res) => {
+  app.post("/agents", async (req, res) => {
     try {
       // Validar que o nome foi fornecido
       if (!req.body.name) {
@@ -68,7 +68,7 @@ export function registerAgentRoutes(app: Express) {
     }
   });
 
-  app.get("/api/agents/:id", async (req, res) => {
+  app.get("/agents/:id", async (req, res) => {
     try {
       const row = await agentsStorage.getAgent(req.params.id);
       if (!row) return res.status(404).json({ error: "not found" });
@@ -78,7 +78,7 @@ export function registerAgentRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/agents/:id", async (req, res) => {
+  app.patch("/agents/:id", async (req, res) => {
     try {
       // SEGURANÇA: Slug é imutável - rejeitar qualquer tentativa de modificá-lo
       if (req.body.slug !== undefined) {
@@ -137,7 +137,7 @@ export function registerAgentRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/agents/:id", async (req, res) => {
+  app.delete("/agents/:id", async (req, res) => {
     try {
       const deleted = await agentsStorage.deleteAgent(req.params.id);
       await publishEvent("AGENT_DELETED", { agentId: req.params.id });

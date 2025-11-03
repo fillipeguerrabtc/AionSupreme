@@ -10,7 +10,7 @@ export function registerKbPromoteRoutes(app: Express) {
    * POST /api/kb/promote
    * Promove resposta ou conteúdo para a KB (envia para fila de curadoria)
    */
-  app.post("/api/kb/promote", async (req, res) => {
+  app.post("/kb/promote", async (req, res) => {
     try {
       // SINGLE-TENANT: System operates with tenantId = 1
       const { text, suggestedNamespaces, title, submittedBy } = req.body;

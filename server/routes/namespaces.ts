@@ -12,7 +12,7 @@ import { namespaceClassifier } from "../services/namespace-classifier";
  */
 export function registerNamespaceRoutes(app: Express) {
   // GET /api/namespaces - List all namespaces
-  app.get("/api/namespaces", async (req: Request, res: Response) => {
+  app.get("/namespaces", async (req: Request, res: Response) => {
     try {
       const allNamespaces = await db
         .select()
@@ -54,7 +54,7 @@ export function registerNamespaceRoutes(app: Express) {
    *   icon: string | null
    * }>
    */
-  app.get("/api/namespaces/search", async (req: Request, res: Response) => {
+  app.get("/namespaces/search", async (req: Request, res: Response) => {
     try {
       const { q } = req.query;
 
@@ -84,7 +84,7 @@ export function registerNamespaceRoutes(app: Express) {
   });
 
   // GET /api/namespaces/:id - Get single namespace by ID
-  app.get("/api/namespaces/:id", async (req: Request, res: Response) => {
+  app.get("/namespaces/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -108,7 +108,7 @@ export function registerNamespaceRoutes(app: Express) {
   });
 
   // POST /api/namespaces - Create new namespace
-  app.post("/api/namespaces", async (req: Request, res: Response) => {
+  app.post("/namespaces", async (req: Request, res: Response) => {
     try {
       const validatedData = insertNamespaceSchema.parse(req.body);
 
@@ -136,7 +136,7 @@ export function registerNamespaceRoutes(app: Express) {
   });
 
   // PATCH /api/namespaces/:id - Update namespace
-  app.patch("/api/namespaces/:id", async (req: Request, res: Response) => {
+  app.patch("/namespaces/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -187,7 +187,7 @@ export function registerNamespaceRoutes(app: Express) {
   // BIDIRECTIONAL ORPHAN PREVENTION (Task 11):
   // - By default: BLOCK delete if agents are using this namespace
   // - With ?force=true: CASCADE delete (remove agents/subagents)
-  app.delete("/api/namespaces/:id", async (req: Request, res: Response) => {
+  app.delete("/namespaces/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const force = req.query.force === "true";
@@ -254,7 +254,7 @@ export function registerNamespaceRoutes(app: Express) {
   });
 
   // POST /api/namespaces/:id/ingest - Ingest content into namespace curation queue
-  app.post("/api/namespaces/:id/ingest", async (req: Request, res: Response) => {
+  app.post("/namespaces/:id/ingest", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { content, title } = req.body;
@@ -325,7 +325,7 @@ export function registerNamespaceRoutes(app: Express) {
    *   }>
    * }
    */
-  app.post("/api/namespaces/classify", async (req: Request, res: Response) => {
+  app.post("/namespaces/classify", async (req: Request, res: Response) => {
     try {
       const { content, title } = req.body;
 
@@ -395,7 +395,7 @@ export function registerNamespaceRoutes(app: Express) {
     icon: z.string().optional()
   });
 
-  app.post("/api/namespaces/create-with-agent", async (req: Request, res: Response) => {
+  app.post("/namespaces/create-with-agent", async (req: Request, res: Response) => {
     try {
       // Validate request body with Zod
       const validatedData = createWithAgentSchema.parse(req.body);

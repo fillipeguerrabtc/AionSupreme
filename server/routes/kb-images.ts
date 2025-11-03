@@ -20,7 +20,7 @@ export function registerKbImagesRoutes(app: Express) {
    * GET /api/kb/images
    * Lista todas as imagens indexadas na KB
    */
-  app.get("/api/kb/images", async (req: Request, res: Response) => {
+  app.get("/kb/images", async (req: Request, res: Response) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
@@ -69,7 +69,7 @@ export function registerKbImagesRoutes(app: Express) {
    * POST /api/kb/images/search
    * Busca semântica de imagens usando descrições geradas pelo Vision
    */
-  app.post("/api/kb/images/search", async (req: Request, res: Response) => {
+  app.post("/kb/images/search", async (req: Request, res: Response) => {
     try {
       const { query, limit = 10, namespaces = [] } = req.body;
 
@@ -166,7 +166,7 @@ export function registerKbImagesRoutes(app: Express) {
    * GET /api/kb/images/:id
    * Retorna detalhes de uma imagem específica
    */
-  app.get("/api/kb/images/:id", async (req: Request, res: Response) => {
+  app.get("/kb/images/:id", async (req: Request, res: Response) => {
     try {
       const imageId = parseInt(req.params.id);
 
@@ -199,7 +199,7 @@ export function registerKbImagesRoutes(app: Express) {
    * DELETE /api/kb/images/:id
    * Remove uma imagem da KB (cascade delete)
    */
-  app.delete("/api/kb/images/:id", async (req: Request, res: Response) => {
+  app.delete("/kb/images/:id", async (req: Request, res: Response) => {
     try {
       const imageId = parseInt(req.params.id);
 

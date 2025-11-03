@@ -17,7 +17,7 @@ export function registerGpuRoutes(app: Express) {
    * POST /api/gpu/register
    * Register a new GPU worker from Colab/Kaggle notebook
    */
-  app.post("/api/gpu/register", async (req: Request, res: Response) => {
+  app.post("/gpu/register", async (req: Request, res: Response) => {
     console.log("[GPU Register] ✅ Worker registration request:", req.body);
     try {
       const { 
@@ -74,7 +74,7 @@ export function registerGpuRoutes(app: Express) {
   /**
    * POST /api/gpu/workers/register (legacy endpoint for compatibility)
    */
-  app.post("/api/gpu/workers/register", async (req: Request, res: Response) => {
+  app.post("/gpu/workers/register", async (req: Request, res: Response) => {
     console.log("[GPU Register] ✅ REQUEST RECEIVED:", req.method, req.path, req.body);
     try {
       const { provider, accountId, ngrokUrl, capabilities } = req.body;
@@ -109,7 +109,7 @@ export function registerGpuRoutes(app: Express) {
    * POST /api/gpu/workers/heartbeat
    * Worker sends heartbeat to stay online + runtime info
    */
-  app.post("/api/gpu/workers/heartbeat", async (req: Request, res: Response) => {
+  app.post("/gpu/workers/heartbeat", async (req: Request, res: Response) => {
     try {
       const { workerId, sessionRuntimeHours, maxSessionHours, status } = req.body;
 
@@ -195,7 +195,7 @@ export function registerGpuRoutes(app: Express) {
    * Dashboard status - reads from database
    * Note: Heartbeat timeout detection is handled by background monitor (server/gpu/heartbeat-monitor.ts)
    */
-  app.get("/api/gpu/status", async (req: Request, res: Response) => {
+  app.get("/gpu/status", async (req: Request, res: Response) => {
     try {
       const workers = await db
         .select()
@@ -228,7 +228,7 @@ export function registerGpuRoutes(app: Express) {
    * GET /api/gpu/workers
    * List all GPU workers
    */
-  app.get("/api/gpu/workers", async (req: Request, res: Response) => {
+  app.get("/gpu/workers", async (req: Request, res: Response) => {
     try {
       const workers = await db
         .select()
@@ -245,7 +245,7 @@ export function registerGpuRoutes(app: Express) {
    * GET /api/gpu/workers/:id
    * Get specific worker details
    */
-  app.get("/api/gpu/workers/:id", async (req: Request, res: Response) => {
+  app.get("/gpu/workers/:id", async (req: Request, res: Response) => {
     try {
       const workerId = parseInt(req.params.id);
 
@@ -269,7 +269,7 @@ export function registerGpuRoutes(app: Express) {
    * GET /api/gpu/quota/status
    * Get quota status for all workers
    */
-  app.get("/api/gpu/quota/status", async (req: Request, res: Response) => {
+  app.get("/gpu/quota/status", async (req: Request, res: Response) => {
     try {
       const quotas = await quotaManager.getAllWorkerQuotas();
       const health = await quotaManager.getPoolHealth();
@@ -285,7 +285,7 @@ export function registerGpuRoutes(app: Express) {
    * Record worker usage after job completion
    * Call this after every inference/training job!
    */
-  app.post("/api/gpu/quota/record", async (req: Request, res: Response) => {
+  app.post("/gpu/quota/record", async (req: Request, res: Response) => {
     try {
       const { workerId, durationMinutes } = req.body;
 
@@ -305,7 +305,7 @@ export function registerGpuRoutes(app: Express) {
    * POST /api/gpu/quota/reset
    * Manually reset weekly quotas (runs automatically every Monday)
    */
-  app.post("/api/gpu/quota/reset", async (req: Request, res: Response) => {
+  app.post("/gpu/quota/reset", async (req: Request, res: Response) => {
     try {
       await quotaManager.resetWeeklyQuotas();
 
@@ -319,7 +319,7 @@ export function registerGpuRoutes(app: Express) {
    * POST /api/gpu/shutdown
    * Worker notifies shutdown (auto-shutdown or manual)
    */
-  app.post("/api/gpu/shutdown", async (req: Request, res: Response) => {
+  app.post("/gpu/shutdown", async (req: Request, res: Response) => {
     try {
       const { worker_name } = req.body;
       
@@ -353,7 +353,7 @@ export function registerGpuRoutes(app: Express) {
    * MANUAL deletion of GPU worker by user
    * NO automatic lifecycle - user controls when to remove workers
    */
-  app.delete("/api/gpu/:id", async (req: Request, res: Response) => {
+  app.delete("/gpu/:id", async (req: Request, res: Response) => {
     try {
       const workerId = parseInt(req.params.id);
 

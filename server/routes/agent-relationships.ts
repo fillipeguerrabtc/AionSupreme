@@ -4,7 +4,7 @@ import { agentRelationshipsStorage } from "../storage.agent-relationships";
 
 export function registerAgentRelationshipRoutes(app: Express) {
   // GET /api/agent-relationships - List all relationships
-  app.get("/api/agent-relationships", async (req, res) => {
+  app.get("/agent-relationships", async (req, res) => {
     try {
       const relationships = await agentRelationshipsStorage.listAll();
       res.json(relationships);
@@ -14,7 +14,7 @@ export function registerAgentRelationshipRoutes(app: Express) {
   });
 
   // GET /api/agent-relationships/parent/:parentId - Get children of a parent
-  app.get("/api/agent-relationships/parent/:parentId", async (req, res) => {
+  app.get("/agent-relationships/parent/:parentId", async (req, res) => {
     try {
       const relationships = await agentRelationshipsStorage.getByParent(req.params.parentId);
       res.json(relationships);
@@ -24,7 +24,7 @@ export function registerAgentRelationshipRoutes(app: Express) {
   });
 
   // GET /api/agent-relationships/child/:childId - Get parents of a child
-  app.get("/api/agent-relationships/child/:childId", async (req, res) => {
+  app.get("/agent-relationships/child/:childId", async (req, res) => {
     try {
       const relationships = await agentRelationshipsStorage.getByChild(req.params.childId);
       res.json(relationships);
@@ -34,7 +34,7 @@ export function registerAgentRelationshipRoutes(app: Express) {
   });
 
   // POST /api/agent-relationships - Create new relationship
-  app.post("/api/agent-relationships", async (req, res) => {
+  app.post("/agent-relationships", async (req, res) => {
     try {
       const { parentAgentId, childAgentId, budgetSharePercent, delegationMode, maxDepth, toolDelta, namespaceSuffix } = req.body;
 
@@ -76,7 +76,7 @@ export function registerAgentRelationshipRoutes(app: Express) {
   });
 
   // PATCH /api/agent-relationships/:id - Update relationship
-  app.patch("/api/agent-relationships/:id", async (req, res) => {
+  app.patch("/agent-relationships/:id", async (req, res) => {
     try {
       const { budgetSharePercent, delegationMode, maxDepth, toolDelta, namespaceSuffix } = req.body;
 
@@ -101,7 +101,7 @@ export function registerAgentRelationshipRoutes(app: Express) {
   });
 
   // DELETE /api/agent-relationships/:id - Soft delete relationship
-  app.delete("/api/agent-relationships/:id", async (req, res) => {
+  app.delete("/agent-relationships/:id", async (req, res) => {
     try {
       const deleted = await agentRelationshipsStorage.delete(Number(req.params.id));
       res.json(deleted);

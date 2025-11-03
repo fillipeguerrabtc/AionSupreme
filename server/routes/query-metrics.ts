@@ -17,7 +17,7 @@ export function registerQueryMetricsRoutes(app: Express) {
    * GET /api/admin/query-metrics
    * Retorna todas as métricas de queries registradas
    */
-  app.get("/api/admin/query-metrics", async (req: Request, res: Response) => {
+  app.get("/query-metrics", async (req: Request, res: Response) => {
     try {
       const { endpoint, limit, daysAgo } = req.query;
       const days = daysAgo && typeof daysAgo === "string" ? parseInt(daysAgo, 10) : 7;
@@ -55,7 +55,7 @@ export function registerQueryMetricsRoutes(app: Express) {
    * GET /api/admin/query-metrics/stats
    * Retorna estatísticas agregadas de performance
    */
-  app.get("/api/admin/query-metrics/stats", async (req: Request, res: Response) => {
+  app.get("/query-metrics/stats", async (req: Request, res: Response) => {
     try {
       const stats = await queryMonitor.getStats();
       res.json(stats);
@@ -73,7 +73,7 @@ export function registerQueryMetricsRoutes(app: Express) {
    * Retorna queries lentas (latência >= threshold)
    * Query param: threshold (default: 1000ms)
    */
-  app.get("/api/admin/query-metrics/slow", async (req: Request, res: Response) => {
+  app.get("/query-metrics/slow", async (req: Request, res: Response) => {
     try {
       const { threshold } = req.query;
       const thresholdMs = threshold && typeof threshold === "string"
@@ -100,7 +100,7 @@ export function registerQueryMetricsRoutes(app: Express) {
    * GET /api/admin/query-metrics/summary
    * Alias para /stats - retorna estatísticas agregadas
    */
-  app.get("/api/admin/query-metrics/summary", async (req: Request, res: Response) => {
+  app.get("/query-metrics/summary", async (req: Request, res: Response) => {
     try {
       const stats = await queryMonitor.getStats();
       
@@ -132,7 +132,7 @@ export function registerQueryMetricsRoutes(app: Express) {
    * GET /api/admin/query-metrics/trends
    * Retorna tendências de latência ao longo do tempo (últimas 24h)
    */
-  app.get("/api/admin/query-metrics/trends", async (req: Request, res: Response) => {
+  app.get("/query-metrics/trends", async (req: Request, res: Response) => {
     try {
       const { daysAgo } = req.query;
       const days = daysAgo && typeof daysAgo === "string" ? parseInt(daysAgo, 10) : 7;
@@ -188,7 +188,7 @@ export function registerQueryMetricsRoutes(app: Express) {
    * DELETE /api/admin/query-metrics
    * Limpa todo o histórico de métricas
    */
-  app.delete("/api/admin/query-metrics", async (req: Request, res: Response) => {
+  app.delete("/query-metrics", async (req: Request, res: Response) => {
     try {
       queryMonitor.clear();
       res.json({ message: "Query metrics cleared successfully" });

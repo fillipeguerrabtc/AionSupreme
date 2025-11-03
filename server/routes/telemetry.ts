@@ -15,7 +15,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/agents/stats
    * Retorna estatísticas de uso de todos os agentes
    */
-  app.get("/api/admin/telemetry/agents/stats", async (req: Request, res: Response) => {
+  app.get("/telemetry/agents/stats", async (req: Request, res: Response) => {
     try {
       const stats = await usageTracker.getAgentStats();
       
@@ -44,7 +44,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/agents/top?limit=10
    * Retorna top N agentes mais usados
    */
-  app.get("/api/admin/telemetry/agents/top", async (req: Request, res: Response) => {
+  app.get("/telemetry/agents/top", async (req: Request, res: Response) => {
     try {
       const { limit } = req.query;
       const limitNum = limit && typeof limit === "string" ? parseInt(limit, 10) : 10;
@@ -64,7 +64,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/agents/least-used?limit=10
    * Retorna agentes menos usados
    */
-  app.get("/api/admin/telemetry/agents/least-used", async (req: Request, res: Response) => {
+  app.get("/telemetry/agents/least-used", async (req: Request, res: Response) => {
     try {
       const { limit } = req.query;
       const limitNum = limit && typeof limit === "string" ? parseInt(limit, 10) : 10;
@@ -84,7 +84,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/agents/:id/timeseries?days=30
    * Retorna série temporal de uso de um agente específico
    */
-  app.get("/api/admin/telemetry/agents/:id/timeseries", async (req: Request, res: Response) => {
+  app.get("/telemetry/agents/:id/timeseries", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { days } = req.query;
@@ -105,7 +105,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/agents/all/timeseries?days=30
    * Retorna série temporal agregada de todos os agentes
    */
-  app.get("/api/admin/telemetry/agents/all/timeseries", async (req: Request, res: Response) => {
+  app.get("/telemetry/agents/all/timeseries", async (req: Request, res: Response) => {
     try {
       const { days } = req.query;
       const daysNum = days && typeof days === "string" ? parseInt(days, 10) : 30;
@@ -125,7 +125,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/namespaces/stats
    * Retorna estatísticas de uso de todos os namespaces
    */
-  app.get("/api/admin/telemetry/namespaces/stats", async (req: Request, res: Response) => {
+  app.get("/telemetry/namespaces/stats", async (req: Request, res: Response) => {
     try {
       const stats = await usageTracker.getNamespaceStats();
       
@@ -154,7 +154,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/namespaces/top?limit=10
    * Retorna top N namespaces mais usados
    */
-  app.get("/api/admin/telemetry/namespaces/top", async (req: Request, res: Response) => {
+  app.get("/telemetry/namespaces/top", async (req: Request, res: Response) => {
     try {
       const { limit } = req.query;
       const limitNum = limit && typeof limit === "string" ? parseInt(limit, 10) : 10;
@@ -174,7 +174,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/namespaces/least-used?limit=10
    * Retorna namespaces menos usados
    */
-  app.get("/api/admin/telemetry/namespaces/least-used", async (req: Request, res: Response) => {
+  app.get("/telemetry/namespaces/least-used", async (req: Request, res: Response) => {
     try {
       const { limit } = req.query;
       const limitNum = limit && typeof limit === "string" ? parseInt(limit, 10) : 10;
@@ -194,7 +194,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/namespaces/:id/timeseries?days=30
    * Retorna série temporal de uso de um namespace específico
    */
-  app.get("/api/admin/telemetry/namespaces/:id/timeseries", async (req: Request, res: Response) => {
+  app.get("/telemetry/namespaces/:id/timeseries", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { days } = req.query;
@@ -215,7 +215,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/namespaces/all/timeseries?days=30
    * Retorna série temporal agregada de todos os namespaces
    */
-  app.get("/api/admin/telemetry/namespaces/all/timeseries", async (req: Request, res: Response) => {
+  app.get("/telemetry/namespaces/all/timeseries", async (req: Request, res: Response) => {
     try {
       const { days} = req.query;
       const daysNum = days && typeof days === "string" ? parseInt(days, 10) : 30;
@@ -235,7 +235,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/admin/telemetry/agents/history?days=30
    * Alias para agents/all/timeseries - histórico de uso de agentes
    */
-  app.get("/api/admin/telemetry/agents/history", async (req: Request, res: Response) => {
+  app.get("/telemetry/agents/history", async (req: Request, res: Response) => {
     try {
       const { days } = req.query;
       const daysNum = days && typeof days === "string" ? parseInt(days, 10) : 30;
@@ -255,7 +255,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/admin/telemetry/namespaces/history?days=30
    * Alias para namespaces/all/timeseries - histórico de uso de namespaces
    */
-  app.get("/api/admin/telemetry/namespaces/history", async (req: Request, res: Response) => {
+  app.get("/telemetry/namespaces/history", async (req: Request, res: Response) => {
     try {
       const { days } = req.query;
       const daysNum = days && typeof days === "string" ? parseInt(days, 10) : 30;
@@ -275,7 +275,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/telemetry/overview
    * Retorna visão geral consolidada de telemetria
    */
-  app.get("/api/admin/telemetry/overview", async (req: Request, res: Response) => {
+  app.get("/telemetry/overview", async (req: Request, res: Response) => {
     try {
       const agentStats = await usageTracker.getAgentStats();
       const namespaceStats = await usageTracker.getNamespaceStats();
@@ -317,7 +317,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/admin/telemetry/agents/:id/sub-agents
    * Retorna sub-agents de um agent pai
    */
-  app.get("/api/admin/telemetry/agents/:id/sub-agents", async (req: Request, res: Response) => {
+  app.get("/telemetry/agents/:id/sub-agents", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const subAgents = await usageTracker.getSubAgents(id);
@@ -335,7 +335,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/admin/telemetry/namespaces/:namespace/sub-namespaces
    * Retorna sub-namespaces de um namespace pai
    */
-  app.get("/api/admin/telemetry/namespaces/:namespace/sub-namespaces", async (req: Request, res: Response) => {
+  app.get("/telemetry/namespaces/:namespace/sub-namespaces", async (req: Request, res: Response) => {
     try {
       const { namespace } = req.params;
       const subNamespaces = await usageTracker.getSubNamespaces(namespace);
@@ -353,7 +353,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/admin/telemetry/agents/by-tier/:tier
    * Retorna agents filtrados por tier (agent ou subagent)
    */
-  app.get("/api/admin/telemetry/agents/by-tier/:tier", async (req: Request, res: Response) => {
+  app.get("/telemetry/agents/by-tier/:tier", async (req: Request, res: Response) => {
     try {
       const { tier } = req.params;
       
@@ -376,7 +376,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/admin/telemetry/namespaces/root
    * Retorna apenas namespaces raiz (sem "/")
    */
-  app.get("/api/admin/telemetry/namespaces/root", async (req: Request, res: Response) => {
+  app.get("/telemetry/namespaces/root", async (req: Request, res: Response) => {
     try {
       const rootNamespaces = usageTracker.getRootNamespaces();
       res.json(rootNamespaces);
@@ -393,7 +393,7 @@ export function registerTelemetryRoutes(app: Express) {
    * GET /api/admin/telemetry/hierarchical-overview
    * Retorna overview separado por hierarquia (root agents vs sub-agents, root namespaces vs sub-namespaces)
    */
-  app.get("/api/admin/telemetry/hierarchical-overview", async (req: Request, res: Response) => {
+  app.get("/telemetry/hierarchical-overview", async (req: Request, res: Response) => {
     try {
       const overview = usageTracker.getHierarchicalOverview();
       res.json(overview);
@@ -410,7 +410,7 @@ export function registerTelemetryRoutes(app: Express) {
    * DELETE /api/telemetry/clear
    * Limpa todo histórico de telemetria
    */
-  app.delete("/api/admin/telemetry/clear", async (req: Request, res: Response) => {
+  app.delete("/telemetry/clear", async (req: Request, res: Response) => {
     try {
       usageTracker.clear();
       res.json({ message: "Telemetry data cleared successfully" });

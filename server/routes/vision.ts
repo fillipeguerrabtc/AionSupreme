@@ -22,7 +22,7 @@ export function registerVisionRoutes(app: Express) {
    * GET /api/vision/providers
    * Retorna informações sobre os provedores configurados
    */
-  app.get("/api/vision/providers", async (req: Request, res: Response) => {
+  app.get("/vision/providers", async (req: Request, res: Response) => {
     try {
       // Provider configuration (database in future, hardcoded for now with comment)
       // TODO: Move to database table 'vision_providers' for dynamic updates
@@ -94,7 +94,7 @@ export function registerVisionRoutes(app: Express) {
    * GET /api/vision/status
    * Retorna status atual das quotas de todos os provedores
    */
-  app.get("/api/vision/status", async (req: Request, res: Response) => {
+  app.get("/vision/status", async (req: Request, res: Response) => {
     try {
       const status = visionCascade.getQuotaStatus();
       
@@ -113,7 +113,7 @@ export function registerVisionRoutes(app: Express) {
    * GET /api/vision/quota-history
    * Retorna histórico de uso das quotas dos últimos 7 dias
    */
-  app.get("/api/vision/quota-history", async (req: Request, res: Response) => {
+  app.get("/vision/quota-history", async (req: Request, res: Response) => {
     try {
       const days = parseInt(req.query.days as string) || 7;
       const startDate = new Date();
@@ -185,7 +185,7 @@ export function registerVisionRoutes(app: Express) {
    * POST /api/vision/test
    * Testa um provider específico processando uma imagem de teste REAL
    */
-  app.post("/api/vision/test", async (req: Request, res: Response) => {
+  app.post("/vision/test", async (req: Request, res: Response) => {
     try {
       const { provider } = req.body;
       

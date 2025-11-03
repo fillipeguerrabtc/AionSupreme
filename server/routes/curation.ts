@@ -16,7 +16,7 @@ export function registerCurationRoutes(app: Express) {
    * GET /api/curation/pending
    * Lista itens pendentes de curadoria
    */
-  app.get("/api/curation/pending", async (req, res) => {
+  app.get("/curation/pending", async (req, res) => {
     try {
       const items = await curationStore.listPending();
       res.json(items);
@@ -29,7 +29,7 @@ export function registerCurationRoutes(app: Express) {
    * GET /api/curation/all
    * Lista todos os itens com filtros opcionais
    */
-  app.get("/api/curation/all", async (req, res) => {
+  app.get("/curation/all", async (req, res) => {
     try {
       const status = req.query.status as string | undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
@@ -46,7 +46,7 @@ export function registerCurationRoutes(app: Express) {
    * Adiciona item à fila de curadoria
    * TIER 1 DEDUPLICATION: Hash-based realtime duplicate check (<1ms)
    */
-  app.post("/api/curation/add", async (req, res) => {
+  app.post("/curation/add", async (req, res) => {
     try {
       const { title, content, suggestedNamespaces, tags, submittedBy } = req.body;
 
@@ -108,7 +108,7 @@ export function registerCurationRoutes(app: Express) {
    * PATCH /api/curation/edit
    * Edita item pendente (título, conteúdo, tags, namespaces, nota)
    */
-  app.patch("/api/curation/edit", async (req, res) => {
+  app.patch("/curation/edit", async (req, res) => {
     try {
       const { id, title, content, tags, suggestedNamespaces, note } = req.body;
 
@@ -138,7 +138,7 @@ export function registerCurationRoutes(app: Express) {
    * POST /api/curation/approve
    * Aprova e publica item + ADICIONA AO DATASET DE TREINO
    */
-  app.post("/api/curation/approve", async (req, res) => {
+  app.post("/curation/approve", async (req, res) => {
     try {
       const { id, reviewedBy } = req.body;
 
@@ -201,7 +201,7 @@ export function registerCurationRoutes(app: Express) {
    * POST /api/curation/reject
    * Rejeita item E limpa imagens órfãs
    */
-  app.post("/api/curation/reject", async (req, res) => {
+  app.post("/curation/reject", async (req, res) => {
     try {
       const { id, reviewedBy, note } = req.body;
 
@@ -250,7 +250,7 @@ export function registerCurationRoutes(app: Express) {
    * POST /api/curation/bulk-approve
    * Aprova múltiplos itens de uma vez
    */
-  app.post("/api/curation/bulk-approve", async (req, res) => {
+  app.post("/curation/bulk-approve", async (req, res) => {
     try {
       const { ids, reviewedBy } = req.body;
 
@@ -328,7 +328,7 @@ export function registerCurationRoutes(app: Express) {
    * POST /api/curation/approve-all
    * Aprova TODOS os itens pendentes
    */
-  app.post("/api/curation/approve-all", async (req, res) => {
+  app.post("/curation/approve-all", async (req, res) => {
     try {
       const { reviewedBy } = req.body;
 
@@ -376,7 +376,7 @@ export function registerCurationRoutes(app: Express) {
    * POST /api/curation/bulk-reject
    * Rejeita múltiplos itens de uma vez
    */
-  app.post("/api/curation/bulk-reject", async (req, res) => {
+  app.post("/curation/bulk-reject", async (req, res) => {
     try {
       const { ids, reviewedBy, note } = req.body;
 
@@ -442,7 +442,7 @@ export function registerCurationRoutes(app: Express) {
    * POST /api/curation/reject-all
    * Rejeita TODOS os itens pendentes
    */
-  app.post("/api/curation/reject-all", async (req, res) => {
+  app.post("/curation/reject-all", async (req, res) => {
     try {
       const { reviewedBy, note } = req.body;
 
@@ -505,7 +505,7 @@ export function registerCurationRoutes(app: Express) {
    * GET /api/curation/history
    * Lista histórico completo (aprovados + rejeitados) com retenção de 5 anos
    */
-  app.get("/api/curation/history", async (req, res) => {
+  app.get("/curation/history", async (req, res) => {
     try {
       const status = req.query.status as "approved" | "rejected" | undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
@@ -521,7 +521,7 @@ export function registerCurationRoutes(app: Express) {
    * POST /api/curation/:id/generate-descriptions
    * Gera descrições AI para imagens em attachments usando Vision Cascade
    */
-  app.post("/api/curation/:id/generate-descriptions", async (req, res) => {
+  app.post("/curation/:id/generate-descriptions", async (req, res) => {
     try {
       const { id } = req.params;
       
@@ -610,7 +610,7 @@ export function registerCurationRoutes(app: Express) {
    * Executa cleanup manual de itens rejeitados expirados (30 dias)
    * GDPR compliance: auto-deletion of rejected content
    */
-  app.post("/api/curation/cleanup", async (req, res) => {
+  app.post("/curation/cleanup", async (req, res) => {
     try {
       const result = await curationStore.cleanupExpiredRejectedItems();
 
@@ -638,7 +638,7 @@ export function registerCurationRoutes(app: Express) {
    * Scans all pending items and marks near-duplicates
    * Expensive operation - generates embeddings via OpenAI
    */
-  app.post("/api/curation/scan-duplicates", async (req, res) => {
+  app.post("/curation/scan-duplicates", async (req, res) => {
     try {
       console.log('[Curation] 🔍 Starting duplicate scan...');
       
@@ -673,7 +673,7 @@ export function registerCurationRoutes(app: Express) {
    * - originalContent: Full original document
    * - duplicateTitle: What it's duplicating
    */
-  app.get("/api/curation/preview-absorption/:id", async (req, res) => {
+  app.get("/curation/preview-absorption/:id", async (req, res) => {
     try {
       const itemId = req.params.id;
       
@@ -770,7 +770,7 @@ export function registerCurationRoutes(app: Express) {
    * 3. Update item with extracted content
    * 4. Return confirmation
    */
-  app.post("/api/curation/absorb-partial/:id", async (req, res) => {
+  app.post("/curation/absorb-partial/:id", async (req, res) => {
     try {
       const itemId = req.params.id;
       
@@ -886,7 +886,7 @@ export function registerCurationRoutes(app: Express) {
    * DELETE /api/curation/:id
    * Remove item da fila (apenas para testes)
    */
-  app.delete("/api/curation/:id", async (req, res) => {
+  app.delete("/curation/:id", async (req, res) => {
     try {
       const success = await curationStore.remove(req.params.id);
 
