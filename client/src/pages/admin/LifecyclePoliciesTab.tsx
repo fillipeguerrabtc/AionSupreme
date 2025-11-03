@@ -19,10 +19,6 @@ export default function LifecyclePoliciesTab() {
 
   const { data: policy, isLoading } = useQuery({
     queryKey: ["/api/admin/lifecycle-policies"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/lifecycle-policies");
-      return res.json();
-    },
   });
 
   // Initialize pending changes when policy loads
