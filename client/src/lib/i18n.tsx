@@ -538,6 +538,56 @@ interface Translations {
       };
     };
     
+    // User Management
+    userManagement: {
+      title: string;
+      subtitle: string;
+      addUser: string;
+      alertInfo: string;
+      usersCount: string;
+      loading: string;
+      noUsers: string;
+      noUsersDesc: string;
+      deleteConfirm: string;
+      table: {
+        name: string;
+        email: string;
+        type: string;
+        roles: string;
+        created: string;
+        actions: string;
+        noRoles: string;
+      };
+      dialog: {
+        createTitle: string;
+        editTitle: string;
+        name: string;
+        namePlaceholder: string;
+        email: string;
+        emailPlaceholder: string;
+        password: string;
+        passwordPlaceholder: string;
+        passwordEditNote: string;
+        userType: string;
+        userTypePlaceholder: string;
+        userTypeDashboard: string;
+        userTypeChat: string;
+        cancel: string;
+        create: string;
+        creating: string;
+        update: string;
+        updating: string;
+      };
+      toasts: {
+        createSuccess: string;
+        createError: string;
+        updateSuccess: string;
+        updateError: string;
+        deleteSuccess: string;
+        deleteError: string;
+      };
+    };
+    
     // Agents Page
     agents: {
       title: string;
@@ -1254,6 +1304,55 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      userManagement: {
+        title: "Gerenciamento de Usuários",
+        subtitle: "Gerencie usuários do sistema e suas funções",
+        addUser: "Adicionar Usuário",
+        alertInfo: "Usuários com tipo \"dashboard\" podem acessar o painel administrativo. Usuários com tipo \"chat\" podem apenas usar a interface de chat.",
+        usersCount: "Usuários",
+        loading: "Carregando usuários...",
+        noUsers: "Nenhum usuário encontrado.",
+        noUsersDesc: "Crie seu primeiro usuário para começar.",
+        deleteConfirm: "Tem certeza de que deseja excluir este usuário?",
+        table: {
+          name: "Nome",
+          email: "E-mail",
+          type: "Tipo",
+          roles: "Funções",
+          created: "Criado em",
+          actions: "Ações",
+          noRoles: "Sem funções",
+        },
+        dialog: {
+          createTitle: "Criar Novo Usuário",
+          editTitle: "Editar Usuário",
+          name: "Nome",
+          namePlaceholder: "João Silva",
+          email: "E-mail",
+          emailPlaceholder: "joao@exemplo.com",
+          password: "Senha",
+          passwordPlaceholder: "••••••••",
+          passwordEditNote: "Senha (deixe em branco para manter a atual)",
+          userType: "Tipo de Usuário",
+          userTypePlaceholder: "Selecione o tipo de usuário",
+          userTypeDashboard: "Dashboard",
+          userTypeChat: "Chat",
+          cancel: "Cancelar",
+          create: "Criar Usuário",
+          creating: "Criando...",
+          update: "Atualizar Usuário",
+          updating: "Atualizando...",
+        },
+        toasts: {
+          createSuccess: "Usuário criado com sucesso",
+          createError: "Falha ao criar usuário",
+          updateSuccess: "Usuário atualizado com sucesso",
+          updateError: "Falha ao atualizar usuário",
+          deleteSuccess: "Usuário excluído com sucesso",
+          deleteError: "Falha ao excluir usuário",
+        },
+      },
+      
       agents: {
         title: "Agentes Especialistas",
         subtitle: "Gerencie agentes e sub-agentes especializados",
@@ -1961,6 +2060,55 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      userManagement: {
+        title: "User Management",
+        subtitle: "Manage system users and their roles",
+        addUser: "Add User",
+        alertInfo: "Users with \"dashboard\" type can access the admin panel. Users with \"chat\" type can only use the chat interface.",
+        usersCount: "Users",
+        loading: "Loading users...",
+        noUsers: "No users found.",
+        noUsersDesc: "Create your first user to get started.",
+        deleteConfirm: "Are you sure you want to delete this user?",
+        table: {
+          name: "Name",
+          email: "Email",
+          type: "Type",
+          roles: "Roles",
+          created: "Created",
+          actions: "Actions",
+          noRoles: "No roles",
+        },
+        dialog: {
+          createTitle: "Create New User",
+          editTitle: "Edit User",
+          name: "Name",
+          namePlaceholder: "John Doe",
+          email: "Email",
+          emailPlaceholder: "john@example.com",
+          password: "Password",
+          passwordPlaceholder: "••••••••",
+          passwordEditNote: "Password (leave blank to keep current)",
+          userType: "User Type",
+          userTypePlaceholder: "Select user type",
+          userTypeDashboard: "Dashboard",
+          userTypeChat: "Chat",
+          cancel: "Cancel",
+          create: "Create User",
+          creating: "Creating...",
+          update: "Update User",
+          updating: "Updating...",
+        },
+        toasts: {
+          createSuccess: "User created successfully",
+          createError: "Failed to create user",
+          updateSuccess: "User updated successfully",
+          updateError: "Failed to update user",
+          deleteSuccess: "User deleted successfully",
+          deleteError: "Failed to delete user",
+        },
+      },
+      
       agents: {
         title: "Specialist Agents",
         subtitle: "Manage specialized agents and sub-agents",
@@ -2665,6 +2813,55 @@ const translations: Record<Language, Translations> = {
           saving: "Guardando...",
           saved: "¡Zona horaria guardada con éxito!",
           saveError: "Error al guardar zona horaria",
+        },
+      },
+      
+      userManagement: {
+        title: "Gestión de Usuarios",
+        subtitle: "Gestiona usuarios del sistema y sus roles",
+        addUser: "Añadir Usuario",
+        alertInfo: "Los usuarios con tipo \"dashboard\" pueden acceder al panel administrativo. Los usuarios con tipo \"chat\" solo pueden usar la interfaz de chat.",
+        usersCount: "Usuarios",
+        loading: "Cargando usuarios...",
+        noUsers: "No se encontraron usuarios.",
+        noUsersDesc: "Crea tu primer usuario para comenzar.",
+        deleteConfirm: "¿Estás seguro de que deseas eliminar este usuario?",
+        table: {
+          name: "Nombre",
+          email: "Correo electrónico",
+          type: "Tipo",
+          roles: "Roles",
+          created: "Creado",
+          actions: "Acciones",
+          noRoles: "Sin roles",
+        },
+        dialog: {
+          createTitle: "Crear Nuevo Usuario",
+          editTitle: "Editar Usuario",
+          name: "Nombre",
+          namePlaceholder: "Juan Pérez",
+          email: "Correo electrónico",
+          emailPlaceholder: "juan@ejemplo.com",
+          password: "Contraseña",
+          passwordPlaceholder: "••••••••",
+          passwordEditNote: "Contraseña (dejar en blanco para mantener actual)",
+          userType: "Tipo de Usuario",
+          userTypePlaceholder: "Selecciona tipo de usuario",
+          userTypeDashboard: "Dashboard",
+          userTypeChat: "Chat",
+          cancel: "Cancelar",
+          create: "Crear Usuario",
+          creating: "Creando...",
+          update: "Actualizar Usuario",
+          updating: "Actualizando...",
+        },
+        toasts: {
+          createSuccess: "Usuario creado con éxito",
+          createError: "Error al crear usuario",
+          updateSuccess: "Usuario actualizado con éxito",
+          updateError: "Error al actualizar usuario",
+          deleteSuccess: "Usuario eliminado con éxito",
+          deleteError: "Error al eliminar usuario",
         },
       },
       

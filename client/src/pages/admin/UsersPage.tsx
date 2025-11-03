@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UserPlus, Edit, Trash2, Shield, AlertCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useLanguage } from "@/lib/i18n";
 
 interface User {
   id: string;
@@ -31,6 +32,7 @@ interface Role {
 }
 
 export default function UsersPage() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -77,14 +79,14 @@ export default function UsersPage() {
       setIsCreateDialogOpen(false);
       form.reset();
       toast({
-        title: "Success",
-        description: "User created successfully",
+        title: t.common.success,
+        description: t.admin.userManagement.toasts.createSuccess,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create user",
+        title: t.common.error,
+        description: error.message || t.admin.userManagement.toasts.createError,
         variant: "destructive",
       });
     },
@@ -106,14 +108,14 @@ export default function UsersPage() {
       setSelectedUser(null);
       form.reset();
       toast({
-        title: "Success",
-        description: "User updated successfully",
+        title: t.common.success,
+        description: t.admin.userManagement.toasts.updateSuccess,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update user",
+        title: t.common.error,
+        description: error.message || t.admin.userManagement.toasts.updateError,
         variant: "destructive",
       });
     },
@@ -130,14 +132,14 @@ export default function UsersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       toast({
-        title: "Success",
-        description: "User deleted successfully",
+        title: t.common.success,
+        description: t.admin.userManagement.toasts.deleteSuccess,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete user",
+        title: t.common.error,
+        description: error.message || t.admin.userManagement.toasts.deleteError,
         variant: "destructive",
       });
     },
@@ -154,7 +156,7 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = (id: string) => {
-    if (confirm("Are you sure you want to delete this user?")) {
+    if (confirm(t.admin.userManagement.deleteConfirm)) {
       deleteUserMutation.mutate(id);
     }
   };
@@ -186,44 +188,44 @@ export default function UsersPage() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
+          <h1 className="text-3xl font-bold">{t.admin.userManagement.title}</h1>
           <p className="text-muted-foreground mt-1">
-            Manage system users and their roles
+            {t.admin.userManagement.subtitle}
           </p>
         </div>
         <Button onClick={handleCreateClick} data-testid="button-create-user">
           <UserPlus className="w-4 h-4 mr-2" />
-          Add User
+          {t.admin.userManagement.addUser}
         </Button>
       </div>
 
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Users with "dashboard" type can access the admin panel. Users with "chat" type can only use the chat interface.
+          {t.admin.userManagement.alertInfo}
         </AlertDescription>
       </Alert>
 
       <Card>
         <CardHeader>
-          <CardTitle>Users ({users?.length || 0})</CardTitle>
+          <CardTitle>{t.admin.userManagement.usersCount} ({users?.length || 0})</CardTitle>
         </CardHeader>
         <CardContent>
           {usersLoading ? (
             <div className="text-center py-8 text-muted-foreground">
-              Loading users...
+              {t.admin.userManagement.loading}
             </div>
           ) : users && users.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full" data-testid="table-users">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-3 font-semibold">Name</th>
-                    <th className="text-left p-3 font-semibold">Email</th>
-                    <th className="text-left p-3 font-semibold">Type</th>
-                    <th className="text-left p-3 font-semibold">Roles</th>
-                    <th className="text-left p-3 font-semibold">Created</th>
-                    <th className="text-right p-3 font-semibold">Actions</th>
+                    <th className="text-left p-3 font-semibold">{t.admin.userManagement.table.name}</th>
+                    <th className="text-left p-3 font-semibold">{t.admin.userManagement.table.email}</th>
+                    <th className="text-left p-3 font-semibold">{t.admin.userManagement.table.type}</th>
+                    <th className="text-left p-3 font-semibold">{t.admin.userManagement.table.roles}</th>
+                    <th className="text-left p-3 font-semibold">{t.admin.userManagement.table.created}</th>
+                    <th className="text-right p-3 font-semibold">{t.admin.userManagement.table.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -240,7 +242,9 @@ export default function UsersPage() {
                       <td className="p-3 text-muted-foreground">{user.email}</td>
                       <td className="p-3">
                         <Badge variant={user.userType === 'dashboard' ? 'default' : 'secondary'}>
-                          {user.userType}
+                          {user.userType === 'dashboard' 
+                            ? t.admin.userManagement.dialog.userTypeDashboard 
+                            : t.admin.userManagement.dialog.userTypeChat}
                         </Badge>
                       </td>
                       <td className="p-3">
@@ -252,7 +256,7 @@ export default function UsersPage() {
                               </Badge>
                             ))
                           ) : (
-                            <span className="text-muted-foreground text-sm">No roles</span>
+                            <span className="text-muted-foreground text-sm">{t.admin.userManagement.table.noRoles}</span>
                           )}
                         </div>
                       </td>
@@ -286,7 +290,7 @@ export default function UsersPage() {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No users found. Create your first user to get started.
+              {t.admin.userManagement.noUsers} {t.admin.userManagement.noUsersDesc}
             </div>
           )}
         </CardContent>
@@ -296,7 +300,7 @@ export default function UsersPage() {
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent data-testid="dialog-create-user">
           <DialogHeader>
-            <DialogTitle>Create New User</DialogTitle>
+            <DialogTitle>{t.admin.userManagement.dialog.createTitle}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleCreateUser)} className="space-y-4">
@@ -305,9 +309,9 @@ export default function UsersPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>{t.admin.userManagement.dialog.name}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="John Doe" data-testid="input-user-name" />
+                      <Input {...field} placeholder={t.admin.userManagement.dialog.namePlaceholder} data-testid="input-user-name" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -318,9 +322,9 @@ export default function UsersPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>{t.admin.userManagement.dialog.email}</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" placeholder="john@example.com" data-testid="input-user-email" />
+                      <Input {...field} type="email" placeholder={t.admin.userManagement.dialog.emailPlaceholder} data-testid="input-user-email" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -331,9 +335,9 @@ export default function UsersPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>{t.admin.userManagement.dialog.password}</FormLabel>
                     <FormControl>
-                      <Input {...field} type="password" placeholder="••••••••" data-testid="input-user-password" />
+                      <Input {...field} type="password" placeholder={t.admin.userManagement.dialog.passwordPlaceholder} data-testid="input-user-password" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -344,16 +348,16 @@ export default function UsersPage() {
                 name="userType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>User Type</FormLabel>
+                    <FormLabel>{t.admin.userManagement.dialog.userType}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-user-type">
-                          <SelectValue placeholder="Select user type" />
+                          <SelectValue placeholder={t.admin.userManagement.dialog.userTypePlaceholder} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="dashboard">Dashboard</SelectItem>
-                        <SelectItem value="chat">Chat</SelectItem>
+                        <SelectItem value="dashboard">{t.admin.userManagement.dialog.userTypeDashboard}</SelectItem>
+                        <SelectItem value="chat">{t.admin.userManagement.dialog.userTypeChat}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -362,10 +366,10 @@ export default function UsersPage() {
               />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
+                  {t.admin.userManagement.dialog.cancel}
                 </Button>
                 <Button type="submit" disabled={createUserMutation.isPending} data-testid="button-submit-user">
-                  {createUserMutation.isPending ? "Creating..." : "Create User"}
+                  {createUserMutation.isPending ? t.admin.userManagement.dialog.creating : t.admin.userManagement.dialog.create}
                 </Button>
               </DialogFooter>
             </form>
@@ -377,7 +381,7 @@ export default function UsersPage() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent data-testid="dialog-edit-user">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle>{t.admin.userManagement.dialog.editTitle}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleUpdateUser)} className="space-y-4">
@@ -386,9 +390,9 @@ export default function UsersPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>{t.admin.userManagement.dialog.name}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="John Doe" />
+                      <Input {...field} placeholder={t.admin.userManagement.dialog.namePlaceholder} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -399,9 +403,9 @@ export default function UsersPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>{t.admin.userManagement.dialog.email}</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" placeholder="john@example.com" />
+                      <Input {...field} type="email" placeholder={t.admin.userManagement.dialog.emailPlaceholder} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -412,9 +416,9 @@ export default function UsersPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password (leave blank to keep current)</FormLabel>
+                    <FormLabel>{t.admin.userManagement.dialog.passwordEditNote}</FormLabel>
                     <FormControl>
-                      <Input {...field} type="password" placeholder="••••••••" />
+                      <Input {...field} type="password" placeholder={t.admin.userManagement.dialog.passwordPlaceholder} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -425,16 +429,16 @@ export default function UsersPage() {
                 name="userType"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>User Type</FormLabel>
+                    <FormLabel>{t.admin.userManagement.dialog.userType}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select user type" />
+                          <SelectValue placeholder={t.admin.userManagement.dialog.userTypePlaceholder} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="dashboard">Dashboard</SelectItem>
-                        <SelectItem value="chat">Chat</SelectItem>
+                        <SelectItem value="dashboard">{t.admin.userManagement.dialog.userTypeDashboard}</SelectItem>
+                        <SelectItem value="chat">{t.admin.userManagement.dialog.userTypeChat}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -443,10 +447,10 @@ export default function UsersPage() {
               />
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancel
+                  {t.admin.userManagement.dialog.cancel}
                 </Button>
                 <Button type="submit" disabled={updateUserMutation.isPending}>
-                  {updateUserMutation.isPending ? "Updating..." : "Update User"}
+                  {updateUserMutation.isPending ? t.admin.userManagement.dialog.updating : t.admin.userManagement.dialog.update}
                 </Button>
               </DialogFooter>
             </form>
