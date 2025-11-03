@@ -3296,7 +3296,7 @@ Este documento é o **guia principal** para desenvolvedores. Consulte também:
 1. **GUIA_PRODUTO.md** - Para pessoas não-técnicas (visão de produto)
 2. **ARCHITECTURE.md** - Arquitetura detalhada com diagramas
 3. **API.md** - Referência completa de todos endpoints
-4. **docs/pdfs/** - 19 PDFs técnicos com fundamentos teóricos
+4. **replit.md** - Informações do projeto, arquitetura e convenções
 
 ### Documentos Específicos (na pasta docs/)
 
@@ -3305,35 +3305,7 @@ Este documento é o **guia principal** para desenvolvedores. Consulte também:
 - **GPU_WORKERS_SETUP_GUIDE.md** - Setup de workers GPU (Colab/Kaggle)
 - **FREE_GPU_API_STRATEGY.md** - Estratégia de APIs e GPUs gratuitas
 - **COLAB_KEEPALIVE_GUIDE.md** - Manter Colab sempre vivo
-
-### Estrutura de 19 PDFs Técnicos
-
-Localizados em `docs/pdfs/`:
-
-**Fundamentos (Partes 1-2):**
-- `Parte01.pdf` - Transformer, MoE, LoRA, PPO/RLHF
-- `Parte02.pdf` - Multimodalidade, RAG, Agentes
-
-**Arquitetura (Partes 3.1-3.4):**
-- `Parte03-1.pdf` - Transformer-MoE detalhado
-- `Parte03-2.pdf` - Multimodalidade completa
-- `Parte03-3.pdf` - Agência Autônoma (POMDP + ReAct)
-- `Parte03-4.pdf` - Implementação e Deploy
-
-**Apêndices (Partes 4-16):**
-- `Parte04.pdf` - Apêndices matemáticos
-- `Parte05-07.pdf` - Implementação prática (3 partes)
-- `Parte08.pdf` - Processamento multimodal avançado (1.8 MB)
-- `Parte09.pdf` - Sistemas de memória e RAG
-- `Parte10.pdf` - Agentes e ferramentas
-- `Parte11.pdf` - Treinamento e Fine-tuning
-- `Parte12.pdf` - Otimização e performance
-- `Parte13.pdf` - Segurança e políticas
-- `Parte14.pdf` - Monitoramento e observabilidade
-- `Parte15.pdf` - Deploy e infraestrutura
-- `Parte16.pdf` - Casos de uso e exemplos
-
-**Total:** ~12 MB de documentação técnica em PT-BR
+- **AUTOMATIC_FALLBACK.md** - Sistema de fallback automático (5 níveis)
 
 ### Links Externos Úteis
 

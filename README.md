@@ -5,8 +5,6 @@
 [![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
 
-[**Português**](#português) | [**English**](./README_PT-BR.md)
-
 ---
 
 ## 🌟 Visão Geral
