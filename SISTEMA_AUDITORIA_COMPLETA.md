@@ -44,7 +44,7 @@
   2. **Knowledge Base (RAG)** - Busca semântica com confidence score
   3. **GPU Pool** - Inferência em GPUs gratuitas (Colab/Kaggle)
   4. **Free APIs** - Groq (14.4k/dia) → Gemini (1.5k/dia) → HF (720/dia) → OpenRouter (50/dia)
-  5. **Web/DeepWeb** - DuckDuckGo ou Tor search
+  5. **Web Search** - DuckDuckGo search
   6. **OpenAI** - GPT-4o-mini (último recurso, pago)
 - **Evidência:**
   ```typescript

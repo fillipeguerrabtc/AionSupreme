@@ -59,18 +59,6 @@ const TOOLS_SEED_DATA: ToolData[] = [
     },
   },
   {
-    id: "deepweb_search",
-    name: "DeepWeb Search",
-    slug: "deepweb-search",
-    type: "deepweb_search",
-    config: {
-      description: "Search deep web and Tor network",
-      parameters: {
-        query: { type: "string", required: true, description: "Search query" },
-      },
-    },
-  },
-  {
     id: "vision_cascade",
     name: "Vision Analysis",
     slug: "vision-cascade",

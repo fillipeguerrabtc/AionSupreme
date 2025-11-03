@@ -41,7 +41,6 @@ Você JÁ TEM todas as keys necessárias no Replit Secrets:
 ┌─────────────────────────────────────────────────┐
 │ GOOGLE COLAB (Computing Gratuito = GPU T4)     │
 │ • Llama 3 8B (modelo LLM)                       │
-│ • Tor Browser (DeepWeb)                         │
 │ • FastAPI (servidor HTTP)                       │
 │                                                  │
 │ AQUI RODA SEU LLM PRÓPRIO! 🚀                   │
@@ -222,7 +221,6 @@ User → Replit → Google Colab (SEU Llama 3 8B)
 
 **Benefícios:**
 - ✅ **Sem censura** (seu modelo, suas regras)
-- ✅ **Tor funcional** (DeepWeb de verdade)
 - ✅ **Gratuito** (12h/sessão, ~84h/semana)
 - ✅ **Privado** (dados não saem do Google)
 

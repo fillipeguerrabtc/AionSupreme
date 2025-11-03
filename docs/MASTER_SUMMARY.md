@@ -59,7 +59,7 @@
 // ✅ ORDEM OBRIGATÓRIA IMPLEMENTADA (VERIFICADA):
 1. Knowledge Base (RAG Search) - τ = 0.6 confidence threshold
 2. Free APIs (Groq → Gemini → HF → OpenRouter) - auto-fallback se recusa
-3. Web/DeepWeb Search - se recusa detectada em step 2
+3. Web Search - se recusa detectada em step 2
 4. OpenAI (último recurso, pago) - auto-fallback se recusa
 
 // ✅ FALLBACK AUTOMÁTICO em passos 2 e 4:

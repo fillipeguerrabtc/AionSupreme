@@ -1,6 +1,6 @@
 /**
  * AION Supreme - Automatic Fallback System
- * When LLM refuses → Search web/deepweb → Index KB → Generate uncensored response
+ * When LLM refuses → Search web → Index KB → Generate uncensored response
  */
 
 import { detectRefusal, isHighConfidenceRefusal } from './refusal-detector';

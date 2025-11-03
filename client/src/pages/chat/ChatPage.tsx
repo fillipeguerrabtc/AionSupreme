@@ -192,7 +192,7 @@ export default function ChatPage() {
       }
       
       // 🔍 Detect if user needs agent (SearchVideos, SearchWeb, etc)
-      const needsAgent = /\b(v[ií]deo|video|buscar?|procur[ae]|find|search|imagem|image|foto|photo|web|internet|deepweb|dark.?web|tor|mostr[ae]|show|exib[ae])/i.test(userMessage);
+      const needsAgent = /\b(v[ií]deo|video|buscar?|procur[ae]|find|search|imagem|image|foto|photo|web|internet|mostr[ae]|show|exib[ae])/i.test(userMessage);
       
       // Use agent endpoint if needed, otherwise regular chat
       const endpoint = needsAgent ? "/api/agent/chat" : "/api/v1/chat/completions";

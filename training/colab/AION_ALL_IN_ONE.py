@@ -1,7 +1,6 @@
 # AION - All-in-One Colab Setup
 # ================================
 # Este script instala TUDO automaticamente:
-# - Tor Browser + DeepWeb
 # - Llama 3 8B + LoRA
 # - FastAPI Server
 # - Ngrok + Auto-registro
@@ -15,7 +14,6 @@ print("""
 ║   🚀 AION - All-in-One GPU Worker Setup                 ║
 ║                                                          ║
 ║   Setup completo em ~5 minutos:                          ║
-║   ✓ Tor Browser + DeepWeb                                ║
 ║   ✓ Llama 3 8B + LoRA                                    ║
 ║   ✓ FastAPI Server (OpenAI-compatible)                   ║
 ║   ✓ Ngrok + Auto-registro no AION                        ║

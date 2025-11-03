@@ -106,13 +106,6 @@
 
 ---
 
-### **Teste 2.3: Verificar Tor/DeepWeb (Opcional)**
-- [ ] Enviei no chat: "Busque no DeepWeb sobre privacidade"
-- [ ] Sistema usou Tor para buscar
-- [ ] Recebi resultados de .onion sites
-
-**Tempo: 2 minutos**
-
 ---
 
 ## 🎊 **FASE 3: CONFIRMAÇÃO FINAL**
@@ -209,7 +202,6 @@ curl -X POST https://seu-url.repl.co/api/gpu/register \
 Você agora tem:
 - ✅ IA 100% Independente
 - ✅ Sem Censura
-- ✅ DeepWeb Real
 - ✅ LLM Próprio (Llama 3 8B)
 - ✅ ~500h GPU/mês grátis
 - ✅ Custo: $0/mês

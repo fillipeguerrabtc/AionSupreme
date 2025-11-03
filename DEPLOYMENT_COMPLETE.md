@@ -2,7 +2,7 @@
 
 **IA Verdadeiramente Autônoma, Sem Censura, Com Modelo Próprio**
 
-Este guia mostra como criar uma IA 100% independente rodando em infraestrutura gratuita, com modelo LLM próprio treinável para nichos específicos, acesso DeepWeb real via Tor, e zero dependência de APIs censuradas.
+Este guia mostra como criar uma IA 100% independente rodando em infraestrutura gratuita, com modelo LLM próprio treinável para nichos específicos, e zero dependência de APIs censuradas.
 
 ---
 
@@ -40,12 +40,6 @@ Este guia mostra como criar uma IA 100% independente rodando em infraestrutura g
 │ │ • OpenAI-compatible API                             │ │
 │ └─────────────────────────────────────────────────────┘ │
 │                                                           │
-│ ┌─────────────────────────────────────────────────────┐ │
-│ │ Tor Browser + SOCKS5 Proxy (porta 9050)             │ │
-│ │ • DarkSearch.io, Ahmia.fi (via Tor)                 │ │
-│ │ • Acesso real a .onion sites                        │ │
-│ │ • DeepWeb funcional                                 │ │
-│ └─────────────────────────────────────────────────────┘ │
 │                                                           │
 │ ┌─────────────────────────────────────────────────────┐ │
 │ │ Google Drive Mount                                   │ │
@@ -70,7 +64,6 @@ Este guia mostra como criar uma IA 100% independente rodando em infraestrutura g
 ✅ **100% Gratuito** (~$0/mês)  
 ✅ **LLM Próprio** (Llama 3 8B + seu fine-tuning)  
 ✅ **Sem Censura** (você controla dados + políticas)  
-✅ **DeepWeb Real** (Tor instalado no Colab)  
 ✅ **Alta Disponibilidade** (~500h GPU/mês via rotação)  
 ✅ **Fallback Inteligente** (GPU offline → Free APIs)  
 ✅ **Treino Contínuo** (modelo melhora com uso)
@@ -235,51 +228,7 @@ npm run dev
 3. **Runtime → Change runtime type → GPU (T4)**
 4. Salve como: **AION_GPU_Worker.ipynb**
 
-### Passo 2: Instalar Tor Browser
-
-Cole e execute:
-
-```python
-# ============================================================================
-# INSTALAÇÃO TOR + DEEPWEB
-# ============================================================================
-
-# Instalar Tor
-!apt-get update
-!apt-get install -y tor
-
-# Configurar Tor
-with open('/etc/tor/torrc', 'w') as f:
-    f.write("""
-SocksPort 9050
-ControlPort 9051
-CookieAuthentication 1
-""")
-
-# Iniciar Tor em background
-!tor &
-
-# Aguardar Tor iniciar (30 segundos)
-import time
-print("⏳ Aguardando Tor iniciar...")
-time.sleep(30)
-
-# Verificar se Tor está rodando
-!curl --socks5 localhost:9050 --socks5-hostname localhost:9050 -s https://check.torproject.org/ | grep -q "Congratulations"
-
-print("✅ Tor instalado e rodando!")
-print("✅ SOCKS5 proxy: localhost:9050")
-print("✅ DeepWeb acessível!")
-```
-
-**Output esperado:**
-```
-✅ Tor instalado e rodando!
-✅ SOCKS5 proxy: localhost:9050
-✅ DeepWeb acessível!
-```
-
-### Passo 3: Instalar Dependências Python
+### Passo 2: Instalar Dependências Python
 
 ```python
 # ============================================================================
