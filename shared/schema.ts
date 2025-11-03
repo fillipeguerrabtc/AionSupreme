@@ -1655,10 +1655,11 @@ export type Role = typeof roles.$inferSelect;
  */
 export const permissions = pgTable("permissions", {
   id: serial("id").primaryKey(),
-  code: varchar("code", { length: 255 }).notNull().unique(), // Format: "module:submodule:action"
+  name: varchar("name", { length: 255 }).notNull(), // User-friendly name (e.g., "Visualizar Usuários")
+  code: varchar("code", { length: 255 }).notNull().unique(), // Auto-generated: "module:submodule:action"
   module: varchar("module", { length: 50 }).notNull(), // e.g., "kb", "agents", "users"
   submodule: varchar("submodule", { length: 50 }).notNull(), // e.g., "documents", "images", "list"
-  action: varchar("action", { length: 50 }).notNull(), // e.g., "read", "create", "update", "delete", "manage"
+  action: varchar("action", { length: 50 }).notNull(), // e.g., "read", "write", "delete", "manage"
   description: text("description"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({

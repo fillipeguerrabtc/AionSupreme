@@ -27,83 +27,83 @@ import bcrypt from "bcryptjs";
  */
 const ALL_PERMISSIONS: InsertPermission[] = [
   // Dashboard module
-  { code: "dashboard:overview:read", module: "dashboard", submodule: "overview", action: "read", description: "View dashboard overview" },
+  { name: "View Dashboard", code: "dashboard:overview:read", module: "dashboard", submodule: "overview", action: "read", description: "View dashboard overview" },
   
   // Knowledge Base - Documents
-  { code: "kb:documents:read", module: "kb", submodule: "documents", action: "read", description: "View KB documents" },
-  { code: "kb:documents:create", module: "kb", submodule: "documents", action: "create", description: "Create KB documents" },
-  { code: "kb:documents:update", module: "kb", submodule: "documents", action: "update", description: "Edit KB documents" },
-  { code: "kb:documents:delete", module: "kb", submodule: "documents", action: "delete", description: "Delete KB documents" },
+  { name: "View Documents", code: "kb:documents:read", module: "kb", submodule: "documents", action: "read", description: "View KB documents" },
+  { name: "Create Documents", code: "kb:documents:create", module: "kb", submodule: "documents", action: "create", description: "Create KB documents" },
+  { name: "Edit Documents", code: "kb:documents:update", module: "kb", submodule: "documents", action: "update", description: "Edit KB documents" },
+  { name: "Delete Documents", code: "kb:documents:delete", module: "kb", submodule: "documents", action: "delete", description: "Delete KB documents" },
   
   // Knowledge Base - Images
-  { code: "kb:images:read", module: "kb", submodule: "images", action: "read", description: "View KB images" },
-  { code: "kb:images:create", module: "kb", submodule: "images", action: "create", description: "Upload KB images" },
-  { code: "kb:images:delete", module: "kb", submodule: "images", action: "delete", description: "Delete KB images" },
+  { name: "View Images", code: "kb:images:read", module: "kb", submodule: "images", action: "read", description: "View KB images" },
+  { name: "Upload Images", code: "kb:images:create", module: "kb", submodule: "images", action: "create", description: "Upload KB images" },
+  { name: "Delete Images", code: "kb:images:delete", module: "kb", submodule: "images", action: "delete", description: "Delete KB images" },
   
   // Agents
-  { code: "agents:list:read", module: "agents", submodule: "list", action: "read", description: "List specialist agents" },
-  { code: "agents:details:read", module: "agents", submodule: "details", action: "read", description: "View agent details" },
-  { code: "agents:create:create", module: "agents", submodule: "create", action: "create", description: "Create new agents" },
-  { code: "agents:update:update", module: "agents", submodule: "update", action: "update", description: "Edit agents" },
-  { code: "agents:delete:delete", module: "agents", submodule: "delete", action: "delete", description: "Delete agents" },
+  { name: "List Agents", code: "agents:list:read", module: "agents", submodule: "list", action: "read", description: "List specialist agents" },
+  { name: "View Agent Details", code: "agents:details:read", module: "agents", submodule: "details", action: "read", description: "View agent details" },
+  { name: "Create Agents", code: "agents:create:create", module: "agents", submodule: "create", action: "create", description: "Create new agents" },
+  { name: "Edit Agents", code: "agents:update:update", module: "agents", submodule: "update", action: "update", description: "Edit agents" },
+  { name: "Delete Agents", code: "agents:delete:delete", module: "agents", submodule: "delete", action: "delete", description: "Delete agents" },
   
   // Curation Queue (HITL)
-  { code: "curation:queue:read", module: "curation", submodule: "queue", action: "read", description: "View curation queue" },
-  { code: "curation:queue:manage", module: "curation", submodule: "queue", action: "manage", description: "Approve/reject items in queue" },
+  { name: "View Curation Queue", code: "curation:queue:read", module: "curation", submodule: "queue", action: "read", description: "View curation queue" },
+  { name: "Manage Curation Queue", code: "curation:queue:manage", module: "curation", submodule: "queue", action: "manage", description: "Approve/reject items in queue" },
   
   // Namespaces
-  { code: "namespaces:list:read", module: "namespaces", submodule: "list", action: "read", description: "List knowledge namespaces" },
-  { code: "namespaces:create:create", module: "namespaces", submodule: "create", action: "create", description: "Create namespaces" },
-  { code: "namespaces:update:update", module: "namespaces", submodule: "update", action: "update", description: "Edit namespaces" },
-  { code: "namespaces:delete:delete", module: "namespaces", submodule: "delete", action: "delete", description: "Delete namespaces" },
+  { name: "List Namespaces", code: "namespaces:list:read", module: "namespaces", submodule: "list", action: "read", description: "List knowledge namespaces" },
+  { name: "Create Namespaces", code: "namespaces:create:create", module: "namespaces", submodule: "create", action: "create", description: "Create namespaces" },
+  { name: "Edit Namespaces", code: "namespaces:update:update", module: "namespaces", submodule: "update", action: "update", description: "Edit namespaces" },
+  { name: "Delete Namespaces", code: "namespaces:delete:delete", module: "namespaces", submodule: "delete", action: "delete", description: "Delete namespaces" },
   
   // GPU Pool
-  { code: "gpu:pool:read", module: "gpu", submodule: "pool", action: "read", description: "View GPU pool status" },
-  { code: "gpu:pool:execute", module: "gpu", submodule: "pool", action: "execute", description: "Execute GPU operations" },
-  { code: "gpu:pool:manage", module: "gpu", submodule: "pool", action: "manage", description: "Manage GPU workers" },
+  { name: "View GPU Pool", code: "gpu:pool:read", module: "gpu", submodule: "pool", action: "read", description: "View GPU pool status" },
+  { name: "Execute GPU Operations", code: "gpu:pool:execute", module: "gpu", submodule: "pool", action: "execute", description: "Execute GPU operations" },
+  { name: "Manage GPU Workers", code: "gpu:pool:manage", module: "gpu", submodule: "pool", action: "manage", description: "Manage GPU workers" },
   
   // Vision System
-  { code: "vision:status:read", module: "vision", submodule: "status", action: "read", description: "View vision system status" },
-  { code: "vision:process:execute", module: "vision", submodule: "process", action: "execute", description: "Process images" },
+  { name: "View Vision Status", code: "vision:status:read", module: "vision", submodule: "status", action: "read", description: "View vision system status" },
+  { name: "Process Images (Vision)", code: "vision:process:execute", module: "vision", submodule: "process", action: "execute", description: "Process images" },
   
   // Telemetry & Analytics
-  { code: "telemetry:metrics:read", module: "telemetry", submodule: "metrics", action: "read", description: "View telemetry metrics" },
-  { code: "telemetry:usage:read", module: "telemetry", submodule: "usage", action: "read", description: "View usage analytics" },
+  { name: "View Telemetry", code: "telemetry:metrics:read", module: "telemetry", submodule: "metrics", action: "read", description: "View telemetry metrics" },
+  { name: "View Usage Analytics", code: "telemetry:usage:read", module: "telemetry", submodule: "usage", action: "read", description: "View usage analytics" },
   
   // Training
-  { code: "training:jobs:read", module: "training", submodule: "jobs", action: "read", description: "View training jobs" },
-  { code: "training:jobs:execute", module: "training", submodule: "jobs", action: "execute", description: "Start/stop training jobs" },
-  { code: "training:datasets:read", module: "training", submodule: "datasets", action: "read", description: "View datasets" },
-  { code: "training:datasets:create", module: "training", submodule: "datasets", action: "create", description: "Create datasets" },
-  { code: "training:datasets:delete", module: "training", submodule: "datasets", action: "delete", description: "Delete datasets" },
+  { name: "View Training Jobs", code: "training:jobs:read", module: "training", submodule: "jobs", action: "read", description: "View training jobs" },
+  { name: "Execute Training Jobs", code: "training:jobs:execute", module: "training", submodule: "jobs", action: "execute", description: "Start/stop training jobs" },
+  { name: "View Datasets", code: "training:datasets:read", module: "training", submodule: "datasets", action: "read", description: "View datasets" },
+  { name: "Create Datasets", code: "training:datasets:create", module: "training", submodule: "datasets", action: "create", description: "Create datasets" },
+  { name: "Delete Datasets", code: "training:datasets:delete", module: "training", submodule: "datasets", action: "delete", description: "Delete datasets" },
   
   // Settings
-  { code: "settings:timezone:read", module: "settings", submodule: "timezone", action: "read", description: "View timezone settings" },
-  { code: "settings:timezone:update", module: "settings", submodule: "timezone", action: "update", description: "Update timezone" },
-  { code: "settings:policies:read", module: "settings", submodule: "policies", action: "read", description: "View policies" },
-  { code: "settings:policies:update", module: "settings", submodule: "policies", action: "update", description: "Update policies" },
-  { code: "settings:system:read", module: "settings", submodule: "system", action: "read", description: "View system settings" },
-  { code: "settings:system:update", module: "settings", submodule: "system", action: "update", description: "Update system settings" },
+  { name: "View Timezone Settings", code: "settings:timezone:read", module: "settings", submodule: "timezone", action: "read", description: "View timezone settings" },
+  { name: "Update Timezone", code: "settings:timezone:update", module: "settings", submodule: "timezone", action: "update", description: "Update timezone" },
+  { name: "View Policies", code: "settings:policies:read", module: "settings", submodule: "policies", action: "read", description: "View policies" },
+  { name: "Update Policies", code: "settings:policies:update", module: "settings", submodule: "policies", action: "update", description: "Update policies" },
+  { name: "View System Settings", code: "settings:system:read", module: "settings", submodule: "system", action: "read", description: "View system settings" },
+  { name: "Update System Settings", code: "settings:system:update", module: "settings", submodule: "system", action: "update", description: "Update system settings" },
   
   // Users & RBAC
-  { code: "users:list:read", module: "users", submodule: "list", action: "read", description: "List users" },
-  { code: "users:details:read", module: "users", submodule: "details", action: "read", description: "View user details" },
-  { code: "users:create:create", module: "users", submodule: "create", action: "create", description: "Create new users" },
-  { code: "users:update:update", module: "users", submodule: "update", action: "update", description: "Edit users" },
-  { code: "users:delete:delete", module: "users", submodule: "delete", action: "delete", description: "Delete users" },
-  { code: "users:roles:manage", module: "users", submodule: "roles", action: "manage", description: "Assign/remove user roles" },
+  { name: "List Users", code: "users:list:read", module: "users", submodule: "list", action: "read", description: "List users" },
+  { name: "View User Details", code: "users:details:read", module: "users", submodule: "details", action: "read", description: "View user details" },
+  { name: "Create Users", code: "users:create:create", module: "users", submodule: "create", action: "create", description: "Create new users" },
+  { name: "Edit Users", code: "users:update:update", module: "users", submodule: "update", action: "update", description: "Edit users" },
+  { name: "Delete Users", code: "users:delete:delete", module: "users", submodule: "delete", action: "delete", description: "Delete users" },
+  { name: "Manage User Roles", code: "users:roles:manage", module: "users", submodule: "roles", action: "manage", description: "Assign/remove user roles" },
   
   // Roles Management
-  { code: "roles:list:read", module: "roles", submodule: "list", action: "read", description: "List roles" },
-  { code: "roles:create:create", module: "roles", submodule: "create", action: "create", description: "Create custom roles" },
-  { code: "roles:update:update", module: "roles", submodule: "update", action: "update", description: "Edit roles" },
-  { code: "roles:delete:delete", module: "roles", submodule: "delete", action: "delete", description: "Delete custom roles" },
-  { code: "roles:permissions:manage", module: "roles", submodule: "permissions", action: "manage", description: "Assign permissions to roles" },
+  { name: "List Roles", code: "roles:list:read", module: "roles", submodule: "list", action: "read", description: "List roles" },
+  { name: "Create Custom Roles", code: "roles:create:create", module: "roles", submodule: "create", action: "create", description: "Create custom roles" },
+  { name: "Edit Roles", code: "roles:update:update", module: "roles", submodule: "update", action: "update", description: "Edit roles" },
+  { name: "Delete Custom Roles", code: "roles:delete:delete", module: "roles", submodule: "delete", action: "delete", description: "Delete custom roles" },
+  { name: "Manage Role Permissions", code: "roles:permissions:manage", module: "roles", submodule: "permissions", action: "manage", description: "Assign permissions to roles" },
   
   // Chat Interface
-  { code: "chat:messages:read", module: "chat", submodule: "messages", action: "read", description: "Read chat messages" },
-  { code: "chat:messages:create", module: "chat", submodule: "messages", action: "create", description: "Send chat messages" },
-  { code: "chat:history:read", module: "chat", submodule: "history", action: "read", description: "View chat history" },
+  { name: "Read Chat Messages", code: "chat:messages:read", module: "chat", submodule: "messages", action: "read", description: "Read chat messages" },
+  { name: "Send Chat Messages", code: "chat:messages:create", module: "chat", submodule: "messages", action: "create", description: "Send chat messages" },
+  { name: "View Chat History", code: "chat:history:read", module: "chat", submodule: "history", action: "read", description: "View chat history" },
 ];
 
 /**

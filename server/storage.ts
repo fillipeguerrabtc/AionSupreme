@@ -28,6 +28,24 @@ import {
   queryMetrics, type QueryMetric, type InsertQueryMetric,
   agentQueryResults, type AgentQueryResult, type InsertAgentQueryResult,
 } from "@shared/schema";
+import { type PermissionAction, generatePermissionCode, validatePermissionSelection } from "@shared/permissions-catalog";
+
+// Structured permission creation payload
+export interface PermissionCreationPayload {
+  name: string;
+  module: string;
+  submodule: string;
+  actions: PermissionAction[];
+  description?: string;
+}
+
+export interface PermissionUpdatePayload {
+  name?: string;
+  module?: string;
+  submodule?: string;
+  actions?: PermissionAction[];
+  description?: string;
+}
 
 // ============================================================================
 // INTERFACE DE STORAGE - Operações CRUD completas para todas as entidades
@@ -60,6 +78,10 @@ export interface IStorage {
   assignPermissionToUser(userId: string, permissionId: number, assignedBy?: string): Promise<void>;
   revokePermissionFromUser(userId: string, permissionId: number): Promise<void>;
   getUserSpecificPermissions(userId: string): Promise<Permission[]>;
+  
+  // Structured permission creation (new UX)
+  createPermissionStructured(payload: PermissionCreationPayload): Promise<Permission[]>;
+  updatePermissionStructured(id: number, payload: PermissionUpdatePayload): Promise<Permission>;
   
   // Políticas
   getPolicy(id: number): Promise<Policy | undefined>;
@@ -255,11 +277,70 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
+  async createPermissionStructured(payload: PermissionCreationPayload): Promise<Permission[]> {
+    // Validate payload against catalog
+    const validation = validatePermissionSelection(payload.module, payload.submodule, payload.actions);
+    if (!validation.valid) {
+      throw new Error(`Invalid permission selection: ${validation.errors.join(', ')}`);
+    }
+
+    // Generate one permission per action
+    const permissionsToCreate: InsertPermission[] = payload.actions.map(action => ({
+      name: payload.name,
+      code: generatePermissionCode(payload.module, payload.submodule, action),
+      module: payload.module,
+      submodule: payload.submodule,
+      action,
+      description: payload.description || null,
+    }));
+
+    // Insert all permissions
+    const created = await db.insert(permissions).values(permissionsToCreate).returning();
+    return created;
+  }
+
   async updatePermission(id: number, data: Partial<InsertPermission>): Promise<Permission> {
     const [updated] = await db.update(permissions)
       .set(data)
       .where(eq(permissions.id, id))
       .returning();
+    return updated;
+  }
+
+  async updatePermissionStructured(id: number, payload: PermissionUpdatePayload): Promise<Permission> {
+    // Build update data
+    const updateData: Partial<InsertPermission> = {};
+    
+    if (payload.name !== undefined) updateData.name = payload.name;
+    if (payload.description !== undefined) updateData.description = payload.description;
+    
+    // If changing module/submodule/action, regenerate code and validate
+    if (payload.module || payload.submodule || payload.actions) {
+      const existing = await this.getPermission(id);
+      if (!existing) throw new Error('Permission not found');
+      
+      const newModule = payload.module || existing.module;
+      const newSubmodule = payload.submodule || existing.submodule;
+      const newActions = payload.actions || [existing.action as PermissionAction];
+      
+      // Validate new selection
+      const validation = validatePermissionSelection(newModule, newSubmodule, newActions);
+      if (!validation.valid) {
+        throw new Error(`Invalid permission selection: ${validation.errors.join(', ')}`);
+      }
+      
+      // Update fields
+      updateData.module = newModule;
+      updateData.submodule = newSubmodule;
+      updateData.action = newActions[0]; // For single update, use first action
+      updateData.code = generatePermissionCode(newModule, newSubmodule, newActions[0]);
+    }
+    
+    const [updated] = await db.update(permissions)
+      .set(updateData)
+      .where(eq(permissions.id, id))
+      .returning();
+    
     return updated;
   }
 

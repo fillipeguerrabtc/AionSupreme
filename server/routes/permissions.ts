@@ -467,5 +467,88 @@ export function registerPermissionsRoutes(app: Router) {
     }
   });
 
-  console.log("[Permissions Routes] ✅ 15 RBAC routes registered successfully");
+  // ============================================================================
+  // STRUCTURED PERMISSIONS (NEW UX)
+  // ============================================================================
+
+  /**
+   * GET /permissions/catalog
+   * Get the permissions catalog (modules, submodules, actions)
+   */
+  app.get("/permissions/catalog", async (req: Request, res: Response) => {
+    try {
+      const { PERMISSIONS_CATALOG } = await import("@shared/permissions-catalog");
+      res.json(PERMISSIONS_CATALOG);
+    } catch (error) {
+      console.error("Error fetching permissions catalog:", error);
+      res.status(500).json({
+        error: "Failed to fetch permissions catalog",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * POST /permissions/structured
+   * Create permissions using structured payload (new UX)
+   * Body: { name: string, module: string, submodule: string, actions: string[], description?: string }
+   */
+  app.post("/permissions/structured", async (req: Request, res: Response) => {
+    try {
+      const { name, module, submodule, actions, description } = req.body;
+      
+      // Validate required fields
+      if (!name || !module || !submodule || !actions || !Array.isArray(actions) || actions.length === 0) {
+        return res.status(400).json({
+          error: "Missing required fields",
+          message: "name, module, submodule, and actions[] are required",
+        });
+      }
+      
+      const createdPermissions = await storage.createPermissionStructured({
+        name,
+        module,
+        submodule,
+        actions,
+        description,
+      });
+      
+      res.status(201).json(createdPermissions);
+    } catch (error) {
+      console.error("Error creating structured permissions:", error);
+      res.status(500).json({
+        error: "Failed to create permissions",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * PUT /permissions/:id/structured
+   * Update permission using structured payload (new UX)
+   * Body: Partial<{ name: string, module: string, submodule: string, actions: string[], description?: string }>
+   */
+  app.put("/permissions/:id/structured", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const permissionId = parseInt(id, 10);
+      
+      // Verify permission exists
+      const existing = await storage.getPermission(permissionId);
+      if (!existing) {
+        return res.status(404).json({ error: "Permission not found" });
+      }
+      
+      const updated = await storage.updatePermissionStructured(permissionId, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating structured permission:", error);
+      res.status(500).json({
+        error: "Failed to update permission",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  console.log("[Permissions Routes] ✅ 18 RBAC routes registered successfully");
 }
