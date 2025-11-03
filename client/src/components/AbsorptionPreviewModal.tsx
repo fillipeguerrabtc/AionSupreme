@@ -55,7 +55,7 @@ export function AbsorptionPreviewModal({ itemId, itemTitle, onClose }: Absorptio
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       toast({
         title: "✅ Absorção concluída!",
         description: `Conteúdo reduzido de ${data.analysis.originalLength} para ${data.analysis.extractedLength} caracteres (${data.analysis.reductionPercent}% de redução).`,
@@ -86,8 +86,8 @@ export function AbsorptionPreviewModal({ itemId, itemTitle, onClose }: Absorptio
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       toast({
         title: "Item rejeitado",
         description: "Duplicata removida da fila de curadoria.",

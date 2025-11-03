@@ -1,6 +1,6 @@
 // server/agent/runtime.ts
 import type { Agent, AgentExecutor, AgentInput, AgentOutput, AgentRunContext } from "./types";
-import { generateWithFreeAPIs } from "../llm/free-apis";
+import { generateWithPriority } from "../llm/priority-orchestrator"; // ✅ MUDANÇA: Usar priority-orchestrator em vez de free-apis
 import { ragService } from "../rag/vector-store";
 
 // Runtime cache stores AgentExecutor (with run() method) not plain Agent configs
@@ -139,7 +139,13 @@ ${ragContext}`;
           { role: "user", content: input.query }
         ];
         
-        const llmResult = await generateWithFreeAPIs({
+        // ✅ CORREÇÃO CRÍTICA: Usar priority-orchestrator para seguir ordem obrigatória:
+        // 1. KB (RAG global - além dos namespaces do agente)
+        // 2. GPU Pool (Custom LoRA LLMs)
+        // 3. Free APIs (Groq → Gemini → HF → OpenRouter)
+        // 4. Web Search (se recusa detectada)
+        // 5. OpenAI (último recurso, pago)
+        const priorityResult = await generateWithPriority({
           messages: conversationMessages,
           temperature: 0.7,
           maxTokens: 1024,
@@ -147,20 +153,21 @@ ${ragContext}`;
         
         const latencyMs = Date.now() - startTime;
         
-        // STEP 5: Estimate cost (very rough estimation)
-        // Free APIs have $0 cost, but we track token usage
-        const estimatedCost = 0; // Free LLMs
+        // STEP 5: Extrair custo e tokens do priority result
+        const estimatedCost = priorityResult.usage?.totalTokens 
+          ? (priorityResult.usage.totalTokens / 1000) * 0.002 // Estimativa rough
+          : 0;
         
-        console.log(`[AgentExecutor] Agent "${agent.name}" completed in ${latencyMs}ms using ${llmResult.provider}`);
+        console.log(`[AgentExecutor] Agent "${agent.name}" completed in ${latencyMs}ms using ${priorityResult.source} (${priorityResult.provider || 'unknown'})`);
         
         return {
-          text: llmResult.text,
+          text: priorityResult.content,
           citations,
           attachments: attachments.length > 0 ? attachments : undefined,
           costUSD: estimatedCost,
           tokens: {
-            prompt: llmResult.tokensUsed ? Math.floor(llmResult.tokensUsed * 0.7) : 0,
-            completion: llmResult.tokensUsed ? Math.floor(llmResult.tokensUsed * 0.3) : 0,
+            prompt: priorityResult.usage?.promptTokens || 0,
+            completion: priorityResult.usage?.completionTokens || 0,
           },
           latencyMs,
         };

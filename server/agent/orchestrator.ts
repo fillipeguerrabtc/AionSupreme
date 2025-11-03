@@ -100,7 +100,8 @@ export async function orchestrateAgents(
             try {
               const result = await executor.run(agentInput, agentContext);
               const execLatency = Date.now() - execStartTime;
-              queryMonitor.trackAgentQuerySuccess(choice.agentId, execLatency);
+              // Fix: Pass as number explicitly to avoid TypeScript error
+              queryMonitor.trackAgentQuerySuccess(choice.agentId, execLatency as number);
               return {
                 agentId: choice.agentId,
                 agentName: executor.name,
@@ -109,7 +110,8 @@ export async function orchestrateAgents(
               };
             } catch (execError: any) {
               const execLatency = Date.now() - execStartTime;
-              queryMonitor.trackAgentQueryError(choice.agentId, execError.name || "UnknownError", execLatency);
+              // Fix: Pass as number explicitly to avoid TypeScript error
+              queryMonitor.trackAgentQueryError(choice.agentId, execError.name || "UnknownError", execLatency as number);
               throw execError; // Re-throw to be caught by outer catch
             }
           }

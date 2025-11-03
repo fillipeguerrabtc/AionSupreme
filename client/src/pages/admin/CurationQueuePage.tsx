@@ -94,9 +94,9 @@ export default function CurationQueuePage() {
 
   // Fetch pending items
   const { data: items, isLoading } = useQuery<CurationItem[]>({
-    queryKey: ["/api/curation/pending"],
+    queryKey: ["/api/admin/curation/pending"],
     queryFn: async () => {
-      const res = await fetch("/api/curation/pending");
+      const res = await fetch("/api/admin/curation/pending");
       if (!res.ok) throw new Error(t.common.loadingError);
       return res.json();
     },
@@ -104,9 +104,9 @@ export default function CurationQueuePage() {
 
   // Fetch history items (approved + rejected, 5-year retention)
   const { data: historyItems, isLoading: historyLoading } = useQuery<CurationItem[]>({
-    queryKey: ["/api/curation/history"],
+    queryKey: ["/api/admin/curation/history"],
     queryFn: async () => {
-      const res = await fetch("/api/curation/history");
+      const res = await fetch("/api/admin/curation/history");
       if (!res.ok) throw new Error(t.common.loadingError);
       return res.json();
     },
@@ -157,7 +157,7 @@ export default function CurationQueuePage() {
   // Edit mutation
   const editMutation = useMutation({
     mutationFn: async (data: { id: string; title: string; content: string; tags: string[]; suggestedNamespaces: string[]; note: string }) => {
-      const res = await apiRequest("/api/curation/edit", {
+      const res = await apiRequest("/api/admin/curation/edit", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -165,7 +165,7 @@ export default function CurationQueuePage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       toast({ title: "Item atualizado com sucesso!" });
       setEditDialogOpen(false);
       setSelectedItem(null);
@@ -178,7 +178,7 @@ export default function CurationQueuePage() {
   // Approve mutation
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await apiRequest("/api/curation/approve", {
+      const res = await apiRequest("/api/admin/curation/approve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, reviewedBy: "admin" }),
@@ -186,8 +186,8 @@ export default function CurationQueuePage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       toast({ title: "Item aprovado e publicado com sucesso!" });
       setApproveDialogOpen(false);
       setSelectedItem(null);
@@ -200,7 +200,7 @@ export default function CurationQueuePage() {
   // Bulk approve mutation
   const bulkApproveMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const res = await apiRequest("/api/curation/bulk-approve", {
+      const res = await apiRequest("/api/admin/curation/bulk-approve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids, reviewedBy: "admin" }),
@@ -208,8 +208,8 @@ export default function CurationQueuePage() {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", 1] });
       toast({ 
         title: `${data.approved} itens aprovados com sucesso!`,
@@ -237,7 +237,7 @@ export default function CurationQueuePage() {
         setSelectedItem(data.item);
       }
       
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       toast({
         title: "Descrições geradas com sucesso!",
         description: `${data.processedImages} imagens processadas`,
@@ -255,13 +255,13 @@ export default function CurationQueuePage() {
   // Scan duplicates mutation (semantic deduplication)
   const scanDuplicatesMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("/api/curation/scan-duplicates", {
+      const res = await apiRequest("/api/admin/curation/scan-duplicates", {
         method: "POST",
       });
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       const duplicatesFound = (data.stats?.exact || 0) + (data.stats?.near || 0);
       toast({
         title: "Scan de duplicatas concluído!",
@@ -286,7 +286,7 @@ export default function CurationQueuePage() {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       toast({
         title: "Absorção parcial concluída!",
         description: `Conteúdo reduzido de ${data.analysis.originalLength} para ${data.analysis.extractedLength} caracteres (${data.analysis.reductionPercent}% de redução). Duplicado de: "${data.duplicateTitle}"`,
@@ -304,7 +304,7 @@ export default function CurationQueuePage() {
   // Approve all mutation
   const approveAllMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("/api/curation/approve-all", {
+      const res = await apiRequest("/api/admin/curation/approve-all", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reviewedBy: "admin" }),
@@ -312,8 +312,8 @@ export default function CurationQueuePage() {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", 1] });
       toast({ 
         title: `${data.approved} itens aprovados com sucesso!`,
@@ -329,7 +329,7 @@ export default function CurationQueuePage() {
   // Bulk reject mutation
   const bulkRejectMutation = useMutation({
     mutationFn: async (data: { ids: string[]; note: string }) => {
-      const res = await apiRequest("/api/curation/bulk-reject", {
+      const res = await apiRequest("/api/admin/curation/bulk-reject", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: data.ids, reviewedBy: "admin", note: data.note }),
@@ -337,8 +337,8 @@ export default function CurationQueuePage() {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       toast({ 
         title: `${data.rejected} itens rejeitados com sucesso!`,
         description: data.failed > 0 ? `${data.failed} itens falharam` : undefined
@@ -355,7 +355,7 @@ export default function CurationQueuePage() {
   // Reject all mutation
   const rejectAllMutation = useMutation({
     mutationFn: async (note: string) => {
-      const res = await apiRequest("/api/curation/reject-all", {
+      const res = await apiRequest("/api/admin/curation/reject-all", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reviewedBy: "admin", note }),
@@ -363,8 +363,8 @@ export default function CurationQueuePage() {
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       toast({ 
         title: `${data.rejected} itens rejeitados com sucesso!`,
         description: `Todos os itens pendentes foram removidos da fila`
@@ -380,7 +380,7 @@ export default function CurationQueuePage() {
   // Reject mutation
   const rejectMutation = useMutation({
     mutationFn: async (data: { id: string; note: string }) => {
-      const res = await apiRequest("/api/curation/reject", {
+      const res = await apiRequest("/api/admin/curation/reject", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: data.id, reviewedBy: "admin", note: data.note }),
@@ -388,8 +388,8 @@ export default function CurationQueuePage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/pending"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/curation/history"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       toast({ title: "Item rejeitado" });
       setRejectDialogOpen(false);
       setSelectedItem(null);
