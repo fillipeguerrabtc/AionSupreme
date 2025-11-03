@@ -54,7 +54,7 @@ export interface WebSearchMetadata {
 }
 
 export interface TokenTrackingData {
-  provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter' | 'openai' | 'kb' | 'web' | 'deepweb';
+  provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter' | 'openai' | 'kb' | 'web';
   model: string;
   promptTokens: number;
   completionTokens: number;
@@ -170,7 +170,7 @@ export async function trackTokenUsage(data: TokenTrackingData): Promise<void> {
 // ============================================================================
 
 export async function getUsageSummary(): Promise<UsageSummary[]> {
-  const providers = ['groq', 'gemini', 'huggingface', 'openrouter', 'openai', 'kb', 'web', 'deepweb'];
+  const providers = ['groq', 'gemini', 'huggingface', 'openrouter', 'openai', 'kb', 'web'];
   const now = new Date();
   
   // Use local timezone (Brasília) for "today" and "this month" calculations
@@ -566,7 +566,7 @@ export async function getTokenTrends(
   return filledResults;
 }
 
-// Get token trends with breakdown by provider (including KB, Web, DeepWeb)
+// Get token trends with breakdown by provider (including KB, Web)
 export interface TokenTrendByProvider {
   date: string;
   totalTokens: number;
@@ -577,7 +577,6 @@ export interface TokenTrendByProvider {
   openai?: number;
   kb?: number;
   web?: number;
-  deepweb?: number;
   [key: string]: number | string | undefined;
 }
 
@@ -622,8 +621,7 @@ export async function getTokenTrendsWithProviders(
         openrouter: 0,
         openai: 0,
         kb: 0,
-        web: 0,
-        deepweb: 0
+        web: 0
       });
     }
     
@@ -651,8 +649,7 @@ export async function getTokenTrendsWithProviders(
       openrouter: 0,
       openai: 0,
       kb: 0,
-      web: 0,
-      deepweb: 0
+      web: 0
     });
     
     currentDate.setDate(currentDate.getDate() + 1);
@@ -662,12 +659,12 @@ export async function getTokenTrendsWithProviders(
 }
 
 // ============================================================================
-// WEB/DEEPWEB SEARCH HISTORY
+// WEB SEARCH HISTORY
 // ============================================================================
 
 export interface SearchHistoryEntry {
   id: number;
-  provider: 'web' | 'deepweb';
+  provider: 'web';
   query: string;
   sources: Array<{
     url: string;
@@ -682,7 +679,7 @@ export interface SearchHistoryEntry {
 }
 
 export async function getWebSearchHistory(
-  provider: 'web' | 'deepweb' | 'both' = 'both',
+  provider: 'web' | 'both' = 'both',
   limit: number = 100
 ): Promise<SearchHistoryEntry[]> {
   const query = provider === 'both'
@@ -691,7 +688,7 @@ export async function getWebSearchHistory(
         .from(tokenUsage)
         .where(
           and(
-            sql`${tokenUsage.provider} IN ('web', 'deepweb')`,
+            eq(tokenUsage.provider, 'web'),
             eq(tokenUsage.requestType, 'search')
           )
         )
@@ -713,7 +710,7 @@ export async function getWebSearchHistory(
   
   return results.map(r => ({
     id: r.id,
-    provider: r.provider as 'web' | 'deepweb',
+    provider: r.provider as 'web',
     query: (r.metadata as any)?.query || '',
     sources: (r.metadata as any)?.sources || [],
     resultsCount: (r.metadata as any)?.resultsCount || 0,
@@ -725,12 +722,6 @@ export async function getWebSearchHistory(
 
 export async function getWebSearchStats(): Promise<{
   web: {
-    totalSearches: number;
-    successfulSearches: number;
-    totalSources: number;
-    uniqueDomains: number;
-  };
-  deepweb: {
     totalSearches: number;
     successfulSearches: number;
     totalSources: number;
@@ -750,19 +741,6 @@ export async function getWebSearchStats(): Promise<{
       )
     );
   
-  const deepwebStats = await db
-    .select({
-      total: sql<number>`COUNT(*)`,
-      successful: sql<number>`SUM(CASE WHEN ${tokenUsage.success} = true THEN 1 ELSE 0 END)`,
-    })
-    .from(tokenUsage)
-    .where(
-      and(
-        eq(tokenUsage.provider, 'deepweb'),
-        eq(tokenUsage.requestType, 'search')
-      )
-    );
-  
   // Get all web searches to count sources/domains
   const webSearches = await db
     .select()
@@ -770,17 +748,6 @@ export async function getWebSearchStats(): Promise<{
     .where(
       and(
         eq(tokenUsage.provider, 'web'),
-        eq(tokenUsage.requestType, 'search'),
-        eq(tokenUsage.success, true)
-      )
-    );
-  
-  const deepwebSearches = await db
-    .select()
-    .from(tokenUsage)
-    .where(
-      and(
-        eq(tokenUsage.provider, 'deepweb'),
         eq(tokenUsage.requestType, 'search'),
         eq(tokenUsage.success, true)
       )
@@ -798,29 +765,12 @@ export async function getWebSearchStats(): Promise<{
     });
   }
   
-  let deepwebTotalSources = 0;
-  const deepwebDomains = new Set<string>();
-  
-  for (const search of deepwebSearches) {
-    const sources = (search.metadata as any)?.sources || [];
-    deepwebTotalSources += sources.length;
-    sources.forEach((s: any) => {
-      if (s.domain) deepwebDomains.add(s.domain);
-    });
-  }
-  
   return {
     web: {
       totalSearches: Number(webStats[0]?.total || 0),
       successfulSearches: Number(webStats[0]?.successful || 0),
       totalSources: webTotalSources,
       uniqueDomains: webDomains.size
-    },
-    deepweb: {
-      totalSearches: Number(deepwebStats[0]?.total || 0),
-      successfulSearches: Number(deepwebStats[0]?.successful || 0),
-      totalSources: deepwebTotalSources,
-      uniqueDomains: deepwebDomains.size
     }
   };
 }

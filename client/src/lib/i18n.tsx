@@ -73,7 +73,6 @@ interface Translations {
       freeApis: string;
       openai: string;
       webSearches: string;
-      deepWeb: string;
       kbDocuments: string;
       gpuWorkers: string;
       federatedJobs: string;
@@ -102,7 +101,6 @@ interface Translations {
         freeApis: string;
         openai: string;
         webSearches: string;
-        deepWeb: string;
         limitsAlerts: string;
       };
       
@@ -192,26 +190,6 @@ interface Translations {
       
       // Web Searches
       webSearches: {
-        title: string;
-        statsTitle: string;
-        statsDesc: string;
-        totalSearches: string;
-        successfulSearches: string;
-        totalSources: string;
-        uniqueDomains: string;
-        historyTitle: string;
-        historyDesc: string;
-        recentSearches: string;
-        query: string;
-        resultsCount: string;
-        timestamp: string;
-        viewSources: string;
-        noHistory: string;
-        noHistoryDesc: string;
-      };
-      
-      // DeepWeb
-      deepWeb: {
         title: string;
         statsTitle: string;
         statsDesc: string;
@@ -919,7 +897,6 @@ const translations: Record<Language, Translations> = {
         freeApis: "APIs Gratuitas",
         openai: "OpenAI",
         webSearches: "Buscas Web",
-        deepWeb: "DeepWeb",
         kbDocuments: "Documentos KB",
         gpuWorkers: "Trabalhadores GPU",
         federatedJobs: "Jobs de Treinamento",
@@ -946,7 +923,6 @@ const translations: Record<Language, Translations> = {
           freeApis: "APIs Gratuitas",
           openai: "OpenAI",
           webSearches: "Buscas Web",
-          deepWeb: "DeepWeb",
           limitsAlerts: "Limites & Alertas",
         },
         
@@ -1047,25 +1023,6 @@ const translations: Record<Language, Translations> = {
           viewSources: "Ver Fontes",
           noHistory: "Nenhum histórico disponível",
           noHistoryDesc: "Não há buscas web registradas",
-        },
-        
-        deepWeb: {
-          title: "DeepWeb",
-          statsTitle: "Estatísticas de Buscas DeepWeb",
-          statsDesc: "Resumo de buscas na rede Tor",
-          totalSearches: "Total de Buscas",
-          successfulSearches: "Buscas Bem-Sucedidas",
-          totalSources: "Total de Fontes",
-          uniqueDomains: "Domínios Únicos",
-          historyTitle: "Histórico de Buscas DeepWeb",
-          historyDesc: "Consultas realizadas na rede Tor",
-          recentSearches: "Buscas Recentes",
-          query: "Consulta",
-          resultsCount: "Resultados",
-          timestamp: "Data/Hora",
-          viewSources: "Ver Fontes",
-          noHistory: "Nenhum histórico disponível",
-          noHistoryDesc: "Não há buscas na DeepWeb registradas",
         },
         
         openaiTab: {
@@ -1734,7 +1691,6 @@ const translations: Record<Language, Translations> = {
         freeApis: "Free APIs",
         openai: "OpenAI",
         webSearches: "Web Searches",
-        deepWeb: "DeepWeb",
         kbDocuments: "KB Documents",
         gpuWorkers: "GPU Workers",
         federatedJobs: "Training Jobs",
@@ -1761,7 +1717,6 @@ const translations: Record<Language, Translations> = {
           freeApis: "Free APIs",
           openai: "OpenAI",
           webSearches: "Web Searches",
-          deepWeb: "DeepWeb",
           limitsAlerts: "Limits & Alerts",
         },
         
@@ -1862,25 +1817,6 @@ const translations: Record<Language, Translations> = {
           viewSources: "View Sources",
           noHistory: "No history available",
           noHistoryDesc: "No web searches recorded",
-        },
-        
-        deepWeb: {
-          title: "DeepWeb",
-          statsTitle: "DeepWeb Search Statistics",
-          statsDesc: "Summary of Tor network searches",
-          totalSearches: "Total Searches",
-          successfulSearches: "Successful Searches",
-          totalSources: "Total Sources",
-          uniqueDomains: "Unique Domains",
-          historyTitle: "DeepWeb Search History",
-          historyDesc: "Tor network queries performed",
-          recentSearches: "Recent Searches",
-          query: "Query",
-          resultsCount: "Results",
-          timestamp: "Timestamp",
-          viewSources: "View Sources",
-          noHistory: "No history available",
-          noHistoryDesc: "No DeepWeb searches recorded",
         },
         
         openaiTab: {
@@ -2549,7 +2485,6 @@ const translations: Record<Language, Translations> = {
         freeApis: "APIs Gratuitas",
         openai: "OpenAI",
         webSearches: "Búsquedas Web",
-        deepWeb: "DeepWeb",
         kbDocuments: "Documentos KB",
         gpuWorkers: "Trabajadores GPU",
         federatedJobs: "Jobs de Entrenamiento",
@@ -2576,7 +2511,6 @@ const translations: Record<Language, Translations> = {
           freeApis: "APIs Gratuitas",
           openai: "OpenAI",
           webSearches: "Búsquedas Web",
-          deepWeb: "DeepWeb",
           limitsAlerts: "Límites y Alertas",
         },
         
@@ -2677,25 +2611,6 @@ const translations: Record<Language, Translations> = {
           viewSources: "Ver Fuentes",
           noHistory: "No hay historial disponible",
           noHistoryDesc: "No hay búsquedas web registradas",
-        },
-        
-        deepWeb: {
-          title: "DeepWeb",
-          statsTitle: "Estadísticas de Búsquedas DeepWeb",
-          statsDesc: "Resumen de búsquedas en red Tor",
-          totalSearches: "Total de Búsquedas",
-          successfulSearches: "Búsquedas Exitosas",
-          totalSources: "Total de Fuentes",
-          uniqueDomains: "Dominios Únicos",
-          historyTitle: "Historial de Búsquedas DeepWeb",
-          historyDesc: "Consultas realizadas en red Tor",
-          recentSearches: "Búsquedas Recientes",
-          query: "Consulta",
-          resultsCount: "Resultados",
-          timestamp: "Fecha/Hora",
-          viewSources: "Ver Fuentes",
-          noHistory: "No hay historial disponible",
-          noHistoryDesc: "No hay búsquedas en DeepWeb registradas",
         },
         
         openaiTab: {
