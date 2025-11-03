@@ -87,20 +87,11 @@ A aplicação estará disponível em `http://localhost:5000`.
 
 ### Documentação Principal
 
-- [**Guia de Arquitetura**](./docs/ARCHITECTURE.md) - Design do sistema, componentes e decisões técnicas
-- [**Sistema de Fallback Automático**](./docs/AUTOMATIC_FALLBACK.md) - Detecção de recusa e busca web autônoma
-- [**Índice de Documentação em PDF**](./docs/INDEX.md) - Guia completo dos 19 PDFs técnicos
-- [**Referência da API**](./docs/API.md) - Endpoints da API REST e uso
-- [**Guia de Configuração de GPU**](./SETUP_GPU_WORKERS.md) - Configuração de workers GPU gratuitos (Google Colab + Kaggle)
-
-### PDFs Técnicos (19 Partes)
-
-Documentação técnica completa cobrindo:
-- **Partes 1-2**: Fundamentos teóricos (Transformer, MoE, LoRA, RLHF, leis de escala)
-- **Partes 3.1-3.4**: Arquitetura do sistema (multimodal, RAG, agentes, implantação)
-- **Partes 4-16**: Detalhes de implementação, provas matemáticas, guias práticos
-
-Todos os PDFs estão organizados em [`docs/pdfs/`](./docs/pdfs/).
+- 📖 [**Guia do Desenvolvedor**](./docs/GUIA_DESENVOLVEDOR.md) - Documentação técnica completa (115KB)
+- 🏗️ [**Guia de Arquitetura**](./docs/ARCHITECTURE.md) - Design do sistema e decisões técnicas
+- 📡 [**Referência da API**](./docs/API.md) - Endpoints REST e schemas
+- 🎮 [**Configuração GPU Workers**](./docs/GPU_WORKERS_SETUP_GUIDE.md) - Setup completo de 10 GPUs gratuitas
+- 📋 [**Informações do Projeto**](./replit.md) - Arquitetura, preferências e convenções
 
 ## 🎯 Recursos Principais
 
@@ -276,8 +267,8 @@ AION_URL = "https://sua-url-aion.replit.app"
 ```
 
 ### Documentação:
-- 📖 **Guia de Configuração**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
-- 📅 **Cronograma 24/7**: [GPU_SCHEDULE_24_7.md](./GPU_SCHEDULE_24_7.md)
+- 📖 **Guia de Setup GPU**: [docs/GPU_WORKERS_SETUP_GUIDE.md](./docs/GPU_WORKERS_SETUP_GUIDE.md)
+- 🚀 **Estratégia GPU Gratuita**: [docs/FREE_GPU_API_STRATEGY.md](./docs/FREE_GPU_API_STRATEGY.md)
 
 ### Endpoints da API:
 ```bash
@@ -292,13 +283,13 @@ POST /api/gpu/quota/record        # Registrar uso após jobs
 
 ---
 
-## 🔗 Links
+## 🔗 Links Importantes
 
-- **Documentação**: [`docs/`](./docs/)
-- **PDFs Técnicos**: [`docs/pdfs/`](./docs/pdfs/)
-- **Status de Produção**: [PRODUCTION_STATUS.md](./PRODUCTION_STATUS.md)
-- **Configuração Pool GPU**: [SETUP_GPU_WORKERS.md](./SETUP_GPU_WORKERS.md)
-- **Cronograma GPU 24/7**: [GPU_SCHEDULE_24_7.md](./GPU_SCHEDULE_24_7.md)
+- 📁 **Documentação Técnica**: [`docs/`](./docs/)
+- 📋 **Informações do Projeto**: [replit.md](./replit.md)
+- 🎮 **Setup GPU Workers**: [docs/GPU_WORKERS_SETUP_GUIDE.md](./docs/GPU_WORKERS_SETUP_GUIDE.md)
+- 🏗️ **Arquitetura do Sistema**: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+- 📖 **Guia Completo**: [docs/GUIA_DESENVOLVEDOR.md](./docs/GUIA_DESENVOLVEDOR.md)
 
 ---
 
