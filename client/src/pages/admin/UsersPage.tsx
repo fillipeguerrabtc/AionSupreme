@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +20,7 @@ interface User {
   id: string;
   email: string;
   name: string;
-  userType: 'chat' | 'dashboard';
+  userType: 'dashboard_admin' | 'chat_only' | 'both';
   roles: string[];
   isAdmin: boolean;
   createdAt: string;
@@ -57,14 +58,16 @@ export default function UsersPage() {
     email: string;
     name: string;
     password: string;
-    userType: 'chat' | 'dashboard';
+    accessDashboard: boolean;
+    accessChat: boolean;
     roleIds: string[];
   }>({
     defaultValues: {
       email: "",
       name: "",
       password: "",
-      userType: "dashboard",
+      accessDashboard: true,
+      accessChat: true,
       roleIds: [],
     },
   });
@@ -172,13 +175,51 @@ export default function UsersPage() {
   });
 
   const handleCreateUser = (data: any) => {
-    createUserMutation.mutate(data);
+    // Convert accessDashboard/accessChat to userType
+    const { accessDashboard, accessChat, ...rest } = data;
+    let userType: 'dashboard_admin' | 'chat_only' | 'both';
+    
+    if (accessDashboard && accessChat) {
+      userType = 'both';
+    } else if (accessDashboard) {
+      userType = 'dashboard_admin';
+    } else if (accessChat) {
+      userType = 'chat_only';
+    } else {
+      toast({
+        title: t.common.error,
+        description: t.admin.userManagement.dialog.userTypeRequired,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    createUserMutation.mutate({ ...rest, userType });
   };
 
   const handleUpdateUser = (data: any) => {
-    if (selectedUser) {
-      updateUserMutation.mutate({ id: selectedUser.id, data });
+    if (!selectedUser) return;
+    
+    // Convert accessDashboard/accessChat to userType
+    const { accessDashboard, accessChat, ...rest } = data;
+    let userType: 'dashboard_admin' | 'chat_only' | 'both';
+    
+    if (accessDashboard && accessChat) {
+      userType = 'both';
+    } else if (accessDashboard) {
+      userType = 'dashboard_admin';
+    } else if (accessChat) {
+      userType = 'chat_only';
+    } else {
+      toast({
+        title: t.common.error,
+        description: t.admin.userManagement.dialog.userTypeRequired,
+        variant: "destructive",
+      });
+      return;
     }
+    
+    updateUserMutation.mutate({ id: selectedUser.id, data: { ...rest, userType } });
   };
 
   const handleDeleteUser = (id: string) => {
@@ -189,11 +230,17 @@ export default function UsersPage() {
 
   const handleEditClick = async (user: User) => {
     setSelectedUser(user);
+    
+    // Convert userType to accessDashboard/accessChat
+    const accessDashboard = user.userType === 'dashboard_admin' || user.userType === 'both';
+    const accessChat = user.userType === 'chat_only' || user.userType === 'both';
+    
     form.reset({
       email: user.email,
       name: user.name,
       password: "",
-      userType: user.userType,
+      accessDashboard,
+      accessChat,
       roleIds: [],
     });
     
@@ -259,7 +306,8 @@ export default function UsersPage() {
       email: "",
       name: "",
       password: "",
-      userType: "dashboard",
+      accessDashboard: true,
+      accessChat: true,
       roleIds: [],
     });
     setIsCreateDialogOpen(true);
@@ -322,10 +370,12 @@ export default function UsersPage() {
                       </td>
                       <td className="p-3 text-muted-foreground">{user.email}</td>
                       <td className="p-3">
-                        <Badge variant={user.userType === 'dashboard' ? 'default' : 'secondary'}>
-                          {user.userType === 'dashboard' 
-                            ? t.admin.userManagement.dialog.userTypeDashboard 
-                            : t.admin.userManagement.dialog.userTypeChat}
+                        <Badge variant={user.userType === 'chat_only' ? 'secondary' : 'default'}>
+                          {user.userType === 'both' 
+                            ? t.admin.userManagement.dialog.userTypeBoth
+                            : user.userType === 'dashboard_admin'
+                              ? t.admin.userManagement.dialog.userTypeDashboard
+                              : t.admin.userManagement.dialog.userTypeChat}
                         </Badge>
                       </td>
                       <td className="p-3">
@@ -424,27 +474,44 @@ export default function UsersPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="userType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t.admin.userManagement.dialog.userType}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">{t.admin.userManagement.dialog.userTypeAccessLabel}</Label>
+                <p className="text-sm text-muted-foreground">{t.admin.userManagement.dialog.userTypeAccessDescription}</p>
+                
+                <FormField
+                  control={form.control}
+                  name="accessDashboard"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-3 space-y-0">
                       <FormControl>
-                        <SelectTrigger data-testid="select-user-type">
-                          <SelectValue placeholder={t.admin.userManagement.dialog.userTypePlaceholder} />
-                        </SelectTrigger>
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                          data-testid="checkbox-access-dashboard"
+                        />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="dashboard">{t.admin.userManagement.dialog.userTypeDashboard}</SelectItem>
-                        <SelectItem value="chat">{t.admin.userManagement.dialog.userTypeChat}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormLabel className="!mt-0 cursor-pointer">{t.admin.userManagement.dialog.userTypeDashboard}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="accessChat"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-3 space-y-0">
+                      <FormControl>
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                          data-testid="checkbox-access-chat"
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0 cursor-pointer">{t.admin.userManagement.dialog.userTypeChat}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   {t.admin.userManagement.dialog.cancel}
@@ -557,27 +624,44 @@ export default function UsersPage() {
                 </div>
               )}
 
-              <FormField
-                control={form.control}
-                name="userType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t.admin.userManagement.dialog.userType}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">{t.admin.userManagement.dialog.userTypeAccessLabel}</Label>
+                <p className="text-sm text-muted-foreground">{t.admin.userManagement.dialog.userTypeAccessDescription}</p>
+                
+                <FormField
+                  control={form.control}
+                  name="accessDashboard"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-3 space-y-0">
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t.admin.userManagement.dialog.userTypePlaceholder} />
-                        </SelectTrigger>
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                          data-testid="checkbox-edit-access-dashboard"
+                        />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="dashboard">{t.admin.userManagement.dialog.userTypeDashboard}</SelectItem>
-                        <SelectItem value="chat">{t.admin.userManagement.dialog.userTypeChat}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormLabel className="!mt-0 cursor-pointer">{t.admin.userManagement.dialog.userTypeDashboard}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="accessChat"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center gap-3 space-y-0">
+                      <FormControl>
+                        <Checkbox 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                          data-testid="checkbox-edit-access-chat"
+                        />
+                      </FormControl>
+                      <FormLabel className="!mt-0 cursor-pointer">{t.admin.userManagement.dialog.userTypeChat}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                   {t.admin.userManagement.dialog.cancel}

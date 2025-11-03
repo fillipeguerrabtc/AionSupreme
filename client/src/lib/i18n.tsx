@@ -570,9 +570,13 @@ interface Translations {
         passwordPlaceholder: string;
         passwordEditNote: string;
         userType: string;
-        userTypePlaceholder: string;
+        userTypeAccessLabel: string;
+        userTypeAccessDescription: string;
         userTypeDashboard: string;
         userTypeChat: string;
+        userTypeBoth: string;
+        userTypeNone: string;
+        userTypeRequired: string;
         cancel: string;
         create: string;
         creating: string;
@@ -1390,10 +1394,14 @@ const translations: Record<Language, Translations> = {
           password: "Senha",
           passwordPlaceholder: "••••••••",
           passwordEditNote: "Senha (deixe em branco para manter a atual)",
-          userType: "Tipo de Usuário",
-          userTypePlaceholder: "Selecione o tipo de usuário",
-          userTypeDashboard: "Dashboard",
-          userTypeChat: "Chat",
+          userType: "Tipo de Acesso",
+          userTypeAccessLabel: "Permissões de Acesso",
+          userTypeAccessDescription: "Selecione quais interfaces o usuário pode acessar",
+          userTypeDashboard: "Acesso ao Painel Administrativo",
+          userTypeChat: "Acesso ao Chat",
+          userTypeBoth: "Ambos",
+          userTypeNone: "Nenhum",
+          userTypeRequired: "Selecione pelo menos uma permissão de acesso",
           cancel: "Cancelar",
           create: "Criar Usuário",
           creating: "Criando...",
@@ -2201,10 +2209,14 @@ const translations: Record<Language, Translations> = {
           password: "Password",
           passwordPlaceholder: "••••••••",
           passwordEditNote: "Password (leave blank to keep current)",
-          userType: "User Type",
-          userTypePlaceholder: "Select user type",
-          userTypeDashboard: "Dashboard",
-          userTypeChat: "Chat",
+          userType: "Access Type",
+          userTypeAccessLabel: "Access Permissions",
+          userTypeAccessDescription: "Select which interfaces the user can access",
+          userTypeDashboard: "Access to Admin Dashboard",
+          userTypeChat: "Access to Chat",
+          userTypeBoth: "Both",
+          userTypeNone: "None",
+          userTypeRequired: "Select at least one access permission",
           cancel: "Cancel",
           create: "Create User",
           creating: "Creating...",
@@ -3012,10 +3024,14 @@ const translations: Record<Language, Translations> = {
           password: "Contraseña",
           passwordPlaceholder: "••••••••",
           passwordEditNote: "Contraseña (dejar en blanco para mantener actual)",
-          userType: "Tipo de Usuario",
-          userTypePlaceholder: "Selecciona tipo de usuario",
-          userTypeDashboard: "Dashboard",
-          userTypeChat: "Chat",
+          userType: "Tipo de Acceso",
+          userTypeAccessLabel: "Permisos de Acceso",
+          userTypeAccessDescription: "Seleccione a qué interfaces puede acceder el usuario",
+          userTypeDashboard: "Acceso al Panel Administrativo",
+          userTypeChat: "Acceso al Chat",
+          userTypeBoth: "Ambos",
+          userTypeNone: "Ninguno",
+          userTypeRequired: "Seleccione al menos un permiso de acceso",
           cancel: "Cancelar",
           create: "Crear Usuario",
           creating: "Creando...",
