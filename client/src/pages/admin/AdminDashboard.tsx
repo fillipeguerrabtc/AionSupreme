@@ -40,6 +40,7 @@ import { AdminSidebar } from "@/components/AdminSidebar";
 import AgentsPage from "./AgentsPage";
 import CurationQueuePage from "./CurationQueuePage";
 import UsersPage from "./UsersPage";
+import PermissionsPage from "./PermissionsPage";
 import NamespacesPage from "./NamespacesPage";
 import ImagesGalleryPage from "./ImagesGalleryPage";
 import ImageSearchPage from "./ImageSearchPage";
@@ -824,6 +825,13 @@ export default function AdminDashboard() {
               {activeTab === "users" && (
                 <div className="space-y-6">
                   <UsersPage />
+                </div>
+              )}
+
+              {/* Permissions Tab */}
+              {activeTab === "permissions" && (
+                <div className="space-y-6">
+                  <PermissionsPage />
                 </div>
               )}
 
