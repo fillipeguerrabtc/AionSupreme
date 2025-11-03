@@ -51,16 +51,19 @@ export default function Login() {
       const result = await response.json();
       
       if (result.success) {
-        // CRITICAL: Invalidate auth cache to trigger re-fetch
+        // CRITICAL: Invalidate and refetch auth cache before navigation
         await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
+        // Wait for the new user data to be fetched before redirecting
+        await queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
         
         toast({
           title: "Login realizado com sucesso!",
           description: `Bem-vindo, ${result.user.firstName}!`,
         });
         
-        // Small delay to ensure cache is refreshed before navigation
-        setTimeout(() => setLocation("/admin"), 100);
+        // Navigate immediately after cache is fully refreshed
+        setLocation("/admin");
       } else {
         throw new Error("Falha ao fazer login");
       }

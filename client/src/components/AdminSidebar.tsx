@@ -67,7 +67,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: LayoutDashboard,
       value: "overview",
       testId: "nav-overview",
-      requiredPermission: undefined, // Always visible
+      requiredPermission: "dashboard:overview:read",
     },
     {
       title: t.admin.tabs.telemetry,
@@ -200,7 +200,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: SettingsIcon,
       value: "settings",
       testId: "nav-settings",
-      requiredPermission: undefined, // Always visible
+      requiredPermission: "admin:settings:manage",
     },
   ];
 
