@@ -1,4 +1,4 @@
-export type PermissionAction = 'read' | 'write' | 'delete' | 'manage' | 'approve' | 'reject';
+export type PermissionAction = 'read' | 'create' | 'update' | 'delete' | 'manage' | 'execute' | 'approve' | 'reject';
 
 export interface SubmoduleDefinition {
   slug: string;
@@ -47,12 +47,12 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'documents',
         labelKey: 'permissions.submodules.kb.documents',
-        actions: ['read', 'write', 'delete', 'manage']
+        actions: ['read', 'create', 'update', 'delete', 'manage']
       },
       {
         slug: 'images',
         labelKey: 'permissions.submodules.kb.images',
-        actions: ['read', 'write', 'delete', 'manage']
+        actions: ['read', 'create', 'update', 'delete', 'manage']
       }
     ]
   },
@@ -63,7 +63,7 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'pool',
         labelKey: 'permissions.submodules.gpu.pool',
-        actions: ['read', 'write', 'delete', 'manage']
+        actions: ['read', 'execute', 'manage']
       }
     ]
   },
@@ -74,12 +74,12 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'jobs',
         labelKey: 'permissions.submodules.training.jobs',
-        actions: ['read', 'write', 'delete', 'manage']
+        actions: ['read', 'execute']
       },
       {
         slug: 'datasets',
         labelKey: 'permissions.submodules.training.datasets',
-        actions: ['read', 'write', 'delete', 'manage']
+        actions: ['read', 'create', 'delete']
       }
     ]
   },
@@ -90,7 +90,7 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'system',
         labelKey: 'permissions.submodules.settings.system',
-        actions: ['read', 'write', 'manage']
+        actions: ['read', 'update', 'manage']
       }
     ]
   },
@@ -101,7 +101,7 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'list',
         labelKey: 'permissions.submodules.agents.list',
-        actions: ['read', 'write', 'delete', 'manage']
+        actions: ['read', 'create', 'update', 'delete']
       }
     ]
   },
@@ -112,7 +112,7 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'list',
         labelKey: 'permissions.submodules.users.list',
-        actions: ['read', 'write', 'delete', 'manage']
+        actions: ['read', 'create', 'update', 'delete', 'manage']
       }
     ]
   },
@@ -123,7 +123,7 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'permissions',
         labelKey: 'permissions.submodules.roles.permissions',
-        actions: ['read', 'write', 'delete', 'manage']
+        actions: ['read', 'create', 'update', 'delete', 'manage']
       }
     ]
   },
@@ -134,7 +134,7 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'queue',
         labelKey: 'permissions.submodules.curation.queue',
-        actions: ['read', 'write', 'approve', 'reject']
+        actions: ['read', 'update', 'approve', 'reject']
       }
     ]
   },
@@ -145,7 +145,7 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'status',
         labelKey: 'permissions.submodules.vision.status',
-        actions: ['read', 'write', 'manage']
+        actions: ['read', 'execute']
       }
     ]
   },
@@ -156,7 +156,7 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'list',
         labelKey: 'permissions.submodules.namespaces.list',
-        actions: ['read', 'write', 'delete', 'manage']
+        actions: ['read', 'create', 'update', 'delete']
       }
     ]
   },
@@ -167,7 +167,7 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
       {
         slug: 'settings',
         labelKey: 'permissions.submodules.admin.settings',
-        actions: ['read', 'write', 'manage']
+        actions: ['read', 'update', 'manage']
       }
     ]
   }
@@ -188,7 +188,7 @@ export function parsePermissionCode(code: string): { module: string; submodule: 
 }
 
 export function isValidAction(action: string): action is PermissionAction {
-  return ['read', 'write', 'delete', 'manage', 'approve', 'reject'].includes(action);
+  return ['read', 'create', 'update', 'delete', 'manage', 'execute', 'approve', 'reject'].includes(action);
 }
 
 export function getModuleBySlug(slug: string): ModuleDefinition | undefined {
