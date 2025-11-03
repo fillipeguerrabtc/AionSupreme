@@ -603,7 +603,45 @@ interface Translations {
         assignError: string;
         revokeSuccess: string;
         revokeError: string;
+        createSuccess: string;
+        createError: string;
+        updateSuccess: string;
+        updateError: string;
+        deleteSuccess: string;
+        deleteError: string;
       };
+      crud: {
+        createButton: string;
+        createTitle: string;
+        editTitle: string;
+        deleteTitle: string;
+        deleteConfirm: string;
+        codeLabel: string;
+        nameLabel: string;
+        moduleLabel: string;
+        descriptionLabel: string;
+        codePlaceholder: string;
+        namePlaceholder: string;
+        modulePlaceholder: string;
+        descriptionPlaceholder: string;
+        usageWarning: string;
+        usageInfo: string;
+        rolesUsing: string;
+        usersUsing: string;
+        creating: string;
+        create: string;
+        saving: string;
+        save: string;
+        deleting: string;
+        delete: string;
+        cancel: string;
+      };
+    };
+    
+    // User-specific permissions
+    userPermissions: {
+      title: string;
+      description: string;
     };
     
     // Agents Page
@@ -1385,7 +1423,45 @@ const translations: Record<Language, Translations> = {
           assignError: "Falha ao atribuir permissão",
           revokeSuccess: "Permissão revogada com sucesso",
           revokeError: "Falha ao revogar permissão",
+          createSuccess: "Permissão criada com sucesso",
+          createError: "Erro ao criar permissão",
+          updateSuccess: "Permissão atualizada com sucesso",
+          updateError: "Erro ao atualizar permissão",
+          deleteSuccess: "Permissão excluída com sucesso",
+          deleteError: "Erro ao excluir permissão",
         },
+        crud: {
+          createButton: "Nova Permissão",
+          createTitle: "Nova Permissão",
+          editTitle: "Editar Permissão",
+          deleteTitle: "Excluir Permissão",
+          deleteConfirm: "Tem certeza que deseja excluir esta permissão?",
+          codeLabel: "Código",
+          nameLabel: "Nome",
+          moduleLabel: "Módulo",
+          descriptionLabel: "Descrição",
+          codePlaceholder: "ex: kb:images:read",
+          namePlaceholder: "ex: Visualizar Imagens KB",
+          modulePlaceholder: "ex: kb",
+          descriptionPlaceholder: "Descrição da permissão (opcional)",
+          usageWarning: "Esta ação removerá todas as atribuições desta permissão!",
+          usageInfo: "Esta permissão está sendo usada em:",
+          rolesUsing: "papéis (roles)",
+          usersUsing: "usuários",
+          creating: "Criando...",
+          create: "Criar",
+          saving: "Salvando...",
+          save: "Salvar",
+          deleting: "Excluindo...",
+          delete: "Excluir",
+          cancel: "Cancelar",
+        },
+      },
+      
+      // User Management - Extended
+      userPermissions: {
+        title: "Permissões Específicas do Usuário",
+        description: "Estas permissões são adicionadas ou removidas para este usuário específico, além das permissões herdadas do papel (role).",
       },
       
       agents: {
@@ -2158,7 +2234,45 @@ const translations: Record<Language, Translations> = {
           assignError: "Failed to assign permission",
           revokeSuccess: "Permission revoked successfully",
           revokeError: "Failed to revoke permission",
+          createSuccess: "Permission created successfully",
+          createError: "Error creating permission",
+          updateSuccess: "Permission updated successfully",
+          updateError: "Error updating permission",
+          deleteSuccess: "Permission deleted successfully",
+          deleteError: "Error deleting permission",
         },
+        crud: {
+          createButton: "New Permission",
+          createTitle: "New Permission",
+          editTitle: "Edit Permission",
+          deleteTitle: "Delete Permission",
+          deleteConfirm: "Are you sure you want to delete this permission?",
+          codeLabel: "Code",
+          nameLabel: "Name",
+          moduleLabel: "Module",
+          descriptionLabel: "Description",
+          codePlaceholder: "e.g., kb:images:read",
+          namePlaceholder: "e.g., View KB Images",
+          modulePlaceholder: "e.g., kb",
+          descriptionPlaceholder: "Permission description (optional)",
+          usageWarning: "This action will remove all assignments of this permission!",
+          usageInfo: "This permission is being used in:",
+          rolesUsing: "roles",
+          usersUsing: "users",
+          creating: "Creating...",
+          create: "Create",
+          saving: "Saving...",
+          save: "Save",
+          deleting: "Deleting...",
+          delete: "Delete",
+          cancel: "Cancel",
+        },
+      },
+      
+      // User Management - Extended
+      userPermissions: {
+        title: "User-Specific Permissions",
+        description: "These permissions are added or removed for this specific user, in addition to permissions inherited from the role.",
       },
       
       agents: {
@@ -2931,7 +3045,45 @@ const translations: Record<Language, Translations> = {
           assignError: "Error al asignar permiso",
           revokeSuccess: "Permiso revocado con éxito",
           revokeError: "Error al revocar permiso",
+          createSuccess: "Permiso creado con éxito",
+          createError: "Error al crear permiso",
+          updateSuccess: "Permiso actualizado con éxito",
+          updateError: "Error al actualizar permiso",
+          deleteSuccess: "Permiso eliminado con éxito",
+          deleteError: "Error al eliminar permiso",
         },
+        crud: {
+          createButton: "Nuevo Permiso",
+          createTitle: "Nuevo Permiso",
+          editTitle: "Editar Permiso",
+          deleteTitle: "Eliminar Permiso",
+          deleteConfirm: "¿Está seguro de que desea eliminar este permiso?",
+          codeLabel: "Código",
+          nameLabel: "Nombre",
+          moduleLabel: "Módulo",
+          descriptionLabel: "Descripción",
+          codePlaceholder: "ej: kb:images:read",
+          namePlaceholder: "ej: Ver Imágenes KB",
+          modulePlaceholder: "ej: kb",
+          descriptionPlaceholder: "Descripción del permiso (opcional)",
+          usageWarning: "¡Esta acción eliminará todas las asignaciones de este permiso!",
+          usageInfo: "Este permiso está siendo usado en:",
+          rolesUsing: "roles",
+          usersUsing: "usuarios",
+          creating: "Creando...",
+          create: "Crear",
+          saving: "Guardando...",
+          save: "Guardar",
+          deleting: "Eliminando...",
+          delete: "Eliminar",
+          cancel: "Cancelar",
+        },
+      },
+      
+      // User Management - Extended
+      userPermissions: {
+        title: "Permisos Específicos del Usuario",
+        description: "Estos permisos se agregan o eliminan para este usuario específico, además de los permisos heredados del rol.",
       },
       
       agents: {

@@ -35,6 +35,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/lib/i18n";
 
 interface ImageItem {
   id: string;
@@ -74,6 +75,7 @@ interface Document {
 import type { Namespace } from "@shared/schema";
 
 export default function ImagesGalleryPage() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -223,9 +225,9 @@ export default function ImagesGalleryPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Gerenciar Conteúdo</h1>
+        <h1 className="text-3xl font-bold">{t.admin.knowledgeBase.imagesTab}</h1>
         <p className="text-muted-foreground mt-2">
-          Imagens e documentos aprovados da Knowledge Base
+          {t.admin.knowledgeBase.subtitle}
         </p>
       </div>
 

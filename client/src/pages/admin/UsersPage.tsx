@@ -31,12 +31,27 @@ interface Role {
   description: string | null;
 }
 
+interface Permission {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  module: string | null;
+}
+
+interface UserPermission {
+  id: number;
+  code: string;
+  name: string;
+}
+
 export default function UsersPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUserPermissions, setSelectedUserPermissions] = useState<number[]>([]);
 
   const form = useForm<{
     email: string;
@@ -62,6 +77,17 @@ export default function UsersPage() {
   // Fetch roles
   const { data: roles } = useQuery<Role[]>({
     queryKey: ['/api/admin/roles'],
+  });
+
+  // Fetch all permissions
+  const { data: allPermissions = [] } = useQuery<Permission[]>({
+    queryKey: ['/api/admin/permissions'],
+  });
+
+  // Fetch user-specific permissions
+  const { data: userPermissions = [] } = useQuery<UserPermission[]>({
+    queryKey: ['/api/admin/users', selectedUser?.id, 'permissions'],
+    enabled: !!selectedUser?.id,
   });
 
   // Create user mutation
@@ -161,7 +187,7 @@ export default function UsersPage() {
     }
   };
 
-  const handleEditClick = (user: User) => {
+  const handleEditClick = async (user: User) => {
     setSelectedUser(user);
     form.reset({
       email: user.email,
@@ -170,7 +196,62 @@ export default function UsersPage() {
       userType: user.userType,
       roleIds: [],
     });
+    
+    // Load user-specific permissions
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/permissions`);
+      const permissions: UserPermission[] = await res.json();
+      setSelectedUserPermissions(permissions.map(p => p.id));
+    } catch {
+      setSelectedUserPermissions([]);
+    }
+    
     setIsEditDialogOpen(true);
+  };
+
+  // Mutations for user-specific permissions
+  const assignUserPermissionMutation = useMutation({
+    mutationFn: async ({ userId, permissionId }: { userId: string; permissionId: number }) => {
+      const res = await apiRequest(`/api/admin/users/${userId}/permissions`, {
+        method: 'POST',
+        body: JSON.stringify({ permissionId }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      if (selectedUser) {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/users', selectedUser.id, 'permissions'] });
+      }
+    },
+  });
+
+  const revokeUserPermissionMutation = useMutation({
+    mutationFn: async ({ userId, permissionId }: { userId: string; permissionId: number }) => {
+      const res = await apiRequest(`/api/admin/users/${userId}/permissions/${permissionId}`, {
+        method: 'DELETE',
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      if (selectedUser) {
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/users', selectedUser.id, 'permissions'] });
+      }
+    },
+  });
+
+  const toggleUserPermission = async (permissionId: number) => {
+    if (!selectedUser) return;
+    
+    const hasPermission = selectedUserPermissions.includes(permissionId);
+    
+    if (hasPermission) {
+      await revokeUserPermissionMutation.mutateAsync({ userId: selectedUser.id, permissionId });
+      setSelectedUserPermissions(prev => prev.filter(id => id !== permissionId));
+    } else {
+      await assignUserPermissionMutation.mutateAsync({ userId: selectedUser.id, permissionId });
+      setSelectedUserPermissions(prev => [...prev, permissionId]);
+    }
   };
 
   const handleCreateClick = () => {
@@ -379,7 +460,7 @@ export default function UsersPage() {
 
       {/* Edit User Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent data-testid="dialog-edit-user">
+        <DialogContent data-testid="dialog-edit-user" className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t.admin.userManagement.dialog.editTitle}</DialogTitle>
           </DialogHeader>
@@ -424,6 +505,58 @@ export default function UsersPage() {
                   </FormItem>
                 )}
               />
+              
+              {/* User-Specific Permissions Section */}
+              {selectedUser && (
+                <div className="space-y-3 pt-4 border-t">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    <Label className="text-base font-semibold">{t.admin.userPermissions.title}</Label>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {t.admin.userPermissions.description}
+                  </p>
+                  
+                  <div className="max-h-60 overflow-y-auto space-y-3 border rounded-md p-3">
+                    {Object.entries(
+                      allPermissions.reduce((acc, permission) => {
+                        const module = permission.module || 'general';
+                        if (!acc[module]) acc[module] = [];
+                        acc[module].push(permission);
+                        return acc;
+                      }, {} as Record<string, Permission[]>)
+                    ).map(([module, permissions]) => (
+                      <div key={module} className="space-y-2">
+                        <div className="font-medium text-sm capitalize bg-muted px-2 py-1 rounded">{module}</div>
+                        <div className="space-y-1 ml-4">
+                          {permissions.map(permission => {
+                            const isSelected = selectedUserPermissions.includes(permission.id);
+                            return (
+                              <div 
+                                key={permission.id} 
+                                className="flex items-center gap-2 py-1 hover-elevate px-2 rounded"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleUserPermission(permission.id)}
+                                  className="rounded border-gray-300"
+                                  data-testid={`checkbox-user-permission-${permission.id}`}
+                                />
+                                <div className="flex-1">
+                                  <div className="text-sm">{permission.name}</div>
+                                  <div className="text-xs text-muted-foreground">{permission.code}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <FormField
                 control={form.control}
                 name="userType"

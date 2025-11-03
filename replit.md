@@ -14,6 +14,24 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 5. Fluxo obrigatório: Responder → Completar tarefas atuais → Iniciar novas tarefas
 6. **NUNCA comece tarefas novas antes de terminar as antigas**
 
+**🚨 REGRA CRÍTICA DE QUALIDADE - ZERO TOLERÂNCIA:**
+**"NADA NIVEL MVP - JA NASCE NIVEL PRODUÇÃO"**
+- ❌ **ZERO strings hardcoded** - TUDO deve usar i18n (PT/EN/ES)
+- ❌ **ZERO dados mocados** - TUDO deve vir do PostgreSQL
+- ❌ **ZERO in-memory storage** - TUDO deve ser persistente no DB
+- ❌ **ZERO implementações incompletas** - TUDO deve ser funcional e production-ready
+- ✅ **100% dados reais e configuráveis** - Todas as features devem ser totalmente funcionais
+- ✅ **100% persistência** - Todos os dados devem ser salvos no banco de dados
+- ✅ **100% internacionalizado** - Todas as strings devem estar traduzidas em 3 idiomas
+- ✅ **100% production-grade** - Código, validações, error handling completos
+
+**IMPLEMENTAÇÃO OBRIGATÓRIA:**
+- Sempre verificar se strings estão traduzidas antes de entregar
+- Sempre usar PostgreSQL via Drizzle ORM, nunca in-memory
+- Sempre implementar validações, error handling, loading states
+- Sempre adicionar data-testid para testes E2E
+- Sempre revisar código com architect antes de marcar como completed
+
 ## System Architecture
 
 ### Core System Design
