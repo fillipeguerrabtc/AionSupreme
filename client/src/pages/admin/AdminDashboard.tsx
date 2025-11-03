@@ -604,34 +604,7 @@ export default function AdminDashboard() {
             </CardHeader>
           </Card>
 
-          {/* Card 7: DeepWeb Searches → Token Monitoring (DeepWeb subtab) */}
-          <Card 
-            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
-            onClick={() => {
-              setTokenSubtab('deepweb');
-              setActiveTab("tokens");
-            }}
-            data-testid="card-deepweb-searches"
-          >
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                {t.admin.overview.deepWeb}
-              </CardTitle>
-              <div className="text-2xl sm:text-3xl font-bold text-foreground">
-                {webStats?.deepweb ? (
-                  (webStats.deepweb.totalSearches || 0).toLocaleString()
-                ) : (
-                  <span className="animate-pulse">...</span>
-                )}
-              </div>
-              <CardDescription className="text-xs">
-                {t.admin.overview.torNetworkQueries}
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          {/* Card 8: KB Documents → Knowledge Base Tab */}
+          {/* Card 7: KB Documents → Knowledge Base Tab */}
           <Card 
             className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("knowledge")}
