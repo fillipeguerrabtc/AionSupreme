@@ -122,6 +122,19 @@ export class LLMClient {
   private openai: OpenAI;
   private rateLimiter: RateLimiter;
 
+  /**
+   * Trigger billing sync após requests OpenAI
+   * Importação assíncrona para evitar dependência circular
+   */
+  private async triggerBillingSync(): Promise<void> {
+    try {
+      const { openAIBillingSync } = await import('../services/openai-billing-sync');
+      await openAIBillingSync.triggerSync();
+    } catch (err) {
+      // Silenciar erro - billing sync é opcional
+    }
+  }
+
   constructor() {
     // Inicializar cliente OpenAI
     // Usa OPENAI_API_KEY do Replit Secrets (chave fornecida pelo usuário)
@@ -439,6 +452,9 @@ export class LLMClient {
       await this.recordMetrics(model, result);
 
       console.log(`[LLM] ✅ Resposta obtida via OpenAI (custo: $${costUsd.toFixed(4)})`);
+
+      // 💰 Trigger billing sync após uso OpenAI (não bloqueia resposta)
+      this.triggerBillingSync();
 
       return result;
     } catch (error: any) {

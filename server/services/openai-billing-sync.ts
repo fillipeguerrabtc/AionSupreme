@@ -159,7 +159,7 @@ class OpenAIBillingSyncService {
   }
 
   /**
-   * Agendar sync automático a cada 1 hora
+   * Agendar sync automático a cada 5 minutos
    */
   startAutoSync(): void {
     if (!this.openai) {
@@ -172,8 +172,8 @@ class OpenAIBillingSyncService {
       console.error("[OpenAI Billing Sync] Erro no sync inicial:", err.message);
     });
 
-    // Agendar sync a cada 1 hora
-    const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1 hora
+    // Agendar sync a cada 5 minutos (ao invés de 1 hora)
+    const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutos
 
     this.syncInterval = setInterval(() => {
       console.log("[OpenAI Billing Sync] ⏰ Executando sync automático...");
@@ -182,7 +182,24 @@ class OpenAIBillingSyncService {
       });
     }, SYNC_INTERVAL_MS);
 
-    console.log(`[OpenAI Billing Sync] 📅 Auto-sync agendado (intervalo: 1 hora)`);
+    console.log(`[OpenAI Billing Sync] 📅 Auto-sync agendado (intervalo: 5 minutos)`);
+  }
+
+  /**
+   * Trigger manual de sync (chamado após cada request OpenAI)
+   * Sync assíncrono - não bloqueia a resposta
+   */
+  async triggerSync(): Promise<void> {
+    if (!this.openai) {
+      return;
+    }
+
+    console.log("[OpenAI Billing Sync] 🔄 Sync manual triggered (pós-request)");
+    
+    // Sync em background (não aguarda)
+    this.syncBillingData(7).catch(err => {
+      console.error("[OpenAI Billing Sync] Erro no sync manual:", err.message);
+    });
   }
 
   /**
