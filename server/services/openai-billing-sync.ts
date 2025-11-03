@@ -69,7 +69,7 @@ class OpenAIBillingSyncService {
         `https://api.openai.com/v1/organization/costs?start_time=${startTime}&bucket_width=1d&limit=${days}`,
         {
           headers: {
-            "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+            "Authorization": `Bearer ${process.env.OPENAI_ADMIN_KEY}`,
             "Content-Type": "application/json"
           }
         }
