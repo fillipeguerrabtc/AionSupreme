@@ -204,20 +204,21 @@ export default function AdminDashboard() {
   // It sums provider.today.tokens from all providers (OpenAI, Groq, Gemini, HuggingFace, etc.)
   // The backend /api/tokens/summary returns today/month breakdown using America/Sao_Paulo timezone
   // "Today" means from 00:00:00 to 23:59:59 in Brazilian timezone
-  const totalTokensToday = tokenSummary?.reduce((sum: number, provider: any) => {
+  // PRODUCTION-FIX: Ensure tokenSummary is an array before calling reduce
+  const totalTokensToday = (Array.isArray(tokenSummary) ? tokenSummary.reduce((sum: number, provider: any) => {
     return sum + (provider.today?.tokens || 0);
-  }, 0) || 0;
+  }, 0) : 0);
   
-  const totalTokensMonth = tokenSummary?.reduce((sum: number, provider: any) => {
+  const totalTokensMonth = (Array.isArray(tokenSummary) ? tokenSummary.reduce((sum: number, provider: any) => {
     return sum + (provider.month?.tokens || 0);
-  }, 0) || 0;
+  }, 0) : 0);
 
-  const totalTokensAllTime = tokenSummary?.reduce((sum: number, provider: any) => {
+  const totalTokensAllTime = (Array.isArray(tokenSummary) ? tokenSummary.reduce((sum: number, provider: any) => {
     return sum + (provider.allTime?.tokens || 0);
-  }, 0) || 0;
+  }, 0) : 0);
 
   // Fetch OpenAI specific stats from tokenSummary
-  const openaiStats = tokenSummary?.find((p: any) => p.provider === 'openai');
+  const openaiStats = Array.isArray(tokenSummary) ? tokenSummary.find((p: any) => p.provider === 'openai') : null;
 
   const updatePolicy = useMutation({
     mutationFn: async (updates: any) => {

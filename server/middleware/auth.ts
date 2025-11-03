@@ -181,3 +181,84 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
   // Just pass through, req.user will be set if authenticated
   next();
 }
+
+/**
+ * PRODUCTION HELPER: Extract userId from session (supports both OAuth and Local auth)
+ * 
+ * Returns userId string or null if not authenticated
+ * Works with both Replit OAuth (user.claims.sub) and Local auth (user.id)
+ */
+export function getUserId(req: Request): string | null {
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
+    return null;
+  }
+  
+  const user = req.user as any;
+  
+  // Local authentication - user.id is directly available
+  if (user.isLocal && user.id) {
+    return user.id;
+  }
+  
+  // OAuth authentication - user.claims.sub
+  if (user.claims && user.claims.sub) {
+    return user.claims.sub;
+  }
+  
+  return null;
+}
+
+/**
+ * CRITICAL SECURITY: Require Admin Role Middleware
+ * 
+ * Prevents unauthorized access to admin-only routes.
+ * Returns 403 Forbidden if user is authenticated but not an admin.
+ * Returns 401 Unauthorized if user is not authenticated.
+ * 
+ * Usage:
+ * app.get("/api/admin/users", requireAdmin, async (req, res) => { ... });
+ */
+export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  // First check if authenticated
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
+    return res.status(401).json({ 
+      error: "Unauthorized",
+      message: "Authentication required to access this resource"
+    });
+  }
+  
+  const user = req.user as any;
+  
+  // Get user roles from database
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ 
+        error: "Unauthorized",
+        message: "Unable to identify user"
+      });
+    }
+    
+    // Check if user has admin role in database
+    // PRODUCTION: Accepts "Super Admin" or "Admin" roles
+    const userRoles = await storage.getUserRoles(userId);
+    const isAdmin = userRoles.some((role: any) => 
+      role.name === 'Super Admin' || role.name === 'Admin'
+    );
+    
+    if (!isAdmin) {
+      return res.status(403).json({ 
+        error: "Forbidden",
+        message: "Admin role required to access this resource"
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('[Auth] Error checking admin role:', error);
+    return res.status(500).json({ 
+      error: "Internal Server Error",
+      message: "Failed to verify admin role"
+    });
+  }
+}

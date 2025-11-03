@@ -170,12 +170,21 @@ const BUILT_IN_ROLES: Array<InsertRole & { permissions: string[] }> = [
 ];
 
 /**
- * Seed RBAC system
+ * Seed RBAC system (100% IDEMPOTENT - only runs once)
  */
 export async function seedRBAC() {
-  console.log("[RBAC Seed] 🔐 Starting RBAC system initialization...");
+  console.log("[RBAC Seed] 🔐 Checking RBAC system...");
   
   try {
+    // PRODUCTION: Check if seed already ran (idempotent)
+    const existingPermissions = await db.select().from(permissions).limit(1);
+    if (existingPermissions.length > 0) {
+      console.log("[RBAC Seed] ✅ RBAC system already initialized (skipping seed)");
+      return;
+    }
+    
+    console.log("[RBAC Seed] 🆕 First-time initialization - creating RBAC system...");
+    
     // 1. Seed ALL permissions
     console.log(`[RBAC Seed] Creating ${ALL_PERMISSIONS.length} granular permissions...`);
     for (const perm of ALL_PERMISSIONS) {

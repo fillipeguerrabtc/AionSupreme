@@ -768,7 +768,7 @@ const translations: Record<Language, Translations> = {
     },
     chat: {
       welcome: "Bem-vindo ao AION",
-      welcomeDesc: "Sistema de IA autônomo com capacidades ilimitadas. Pergunte qualquer coisa.",
+      welcomeDesc: "Simples e Sofisticado.",
       placeholder: "Digite sua mensagem...",
       thinking: "Pensando...",
       send: "Enviar",
@@ -1475,7 +1475,7 @@ const translations: Record<Language, Translations> = {
     },
     chat: {
       welcome: "Welcome to AION",
-      welcomeDesc: "Autonomous AI system with unlimited capabilities. Ask anything.",
+      welcomeDesc: "Simple and Sophisticated.",
       placeholder: "Type your message...",
       thinking: "Thinking...",
       send: "Send",
@@ -2182,7 +2182,7 @@ const translations: Record<Language, Translations> = {
     },
     chat: {
       welcome: "Bienvenido a AION",
-      welcomeDesc: "Sistema de IA autónomo con capacidades ilimitadas. Pregunta cualquier cosa.",
+      welcomeDesc: "Simple y Sofisticado.",
       placeholder: "Escribe tu mensaje...",
       thinking: "Pensando...",
       send: "Enviar",

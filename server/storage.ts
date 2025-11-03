@@ -18,6 +18,8 @@ import {
   videoJobs, type VideoJob, type InsertVideoJob,
   videoAssets, type VideoAsset, type InsertVideoAsset,
   trainingDataCollection, type TrainingDataCollection, type InsertTrainingDataCollection,
+  roles, type Role,
+  userRoles, type UserRole,
 } from "@shared/schema";
 
 // ============================================================================
@@ -31,6 +33,7 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   createUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, data: Partial<UpsertUser>): Promise<User>;
+  getUserRoles(userId: string): Promise<Role[]>;
   
   // Políticas
   getPolicy(id: number): Promise<Policy | undefined>;
@@ -187,6 +190,16 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return updated;
+  }
+
+  async getUserRoles(userId: string): Promise<Role[]> {
+    const result = await db
+      .select({ role: roles })
+      .from(userRoles)
+      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .where(eq(userRoles.userId, userId));
+    
+    return result.map(r => r.role);
   }
 
   // --------------------------------------------------------------------------

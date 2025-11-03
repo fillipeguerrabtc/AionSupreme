@@ -35,6 +35,10 @@ export const users = pgTable("users", {
   verificationToken: varchar("verification_token"), // Email verification token
   verificationTokenExpires: timestamp("verification_token_expires"), // Token expiration (24h)
   
+  // User type: determines access to dashboard admin, chat, or both
+  // PRODUCTION: "both" is default - most users can access both chat and admin dashboard (RBAC controls granular permissions)
+  userType: varchar("user_type").notNull().default("both"), // "dashboard_admin" | "chat_only" | "both"
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

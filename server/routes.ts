@@ -30,7 +30,7 @@ import * as fsSync from "fs";
 import path from "path";
 import express from "express";
 import { optionalAuth } from "./replitAuth";
-import { requireAuth } from "./middleware/auth"; // SECURITY FIX: Protect admin routes
+import { requireAuth, requireAdmin, getUserId } from "./middleware/auth"; // SECURITY FIX: Protect admin routes
 import { DatasetProcessor } from "./training/datasets/dataset-processor";
 import { DatasetValidator } from "./training/datasets/dataset-validator";
 import { db } from "./db";
@@ -64,69 +64,57 @@ export function registerRoutes(app: Express): Server {
   // Aplicar rate limiting APENAS para rotas API (não assets estáticos)
   app.use("/api", rateLimitMiddleware);
   
-  // SECURITY FIX: Protect ALL admin/management routes with Replit Auth
-  // Whitelist for public endpoints that don't require auth
-  const publicEndpoints = [
-    "/api/chat",      // Chat endpoint is public (can be rate-limited)
-    "/api/health",    // Health check endpoint
-    "/api/login",     // Login endpoint
-    "/api/callback",  // OAuth callback endpoint
-    "/api/logout",    // Logout endpoint
-    "/api/auth/user", // Auth status check endpoint
-  ];
-  
-  app.use("/api", (req, res, next) => {
-    // Skip auth for public endpoints
-    if (publicEndpoints.some(endpoint => req.path.startsWith(endpoint))) {
-      return next();
-    }
-    
-    // PRODUCTION-READY: Check if user is authenticated via Passport session
-    if (!req.isAuthenticated || !req.isAuthenticated()) {
-      return res.status(401).json({ 
-        error: "Unauthorized",
-        message: "Authentication required. Please log in at /api/login"
-      });
-    }
-    
-    next();
-  });
+  // PRODUCTION-READY: Auth is handled per-route using optionalAuth or requireAuth
+  // This allows fine-grained control - chat works without auth, admin requires auth
   
   // Popular banco de dados na inicialização
   seedDatabase().catch(console.error);
 
+  // ========================================
+  // ADMIN SUB-ROUTES - PROTECTED WITH requireAdmin
+  // ========================================
+  // CRITICAL SECURITY: All admin management routes require admin role
+  // These modules handle: agents, curation, GPU, vision, KB, namespaces, telemetry
+  
+  // Create admin router with requireAdmin middleware applied globally
+  const adminSubRouter = express.Router();
+  adminSubRouter.use(requireAdmin); // All routes under this router require admin role
+  
   // Registrar rotas multi-agente
-  registerAgentRoutes(app);
-  registerAgentRelationshipRoutes(app);
+  registerAgentRoutes(adminSubRouter);
+  registerAgentRelationshipRoutes(adminSubRouter);
   
   // Registrar rotas de curadoria (HITL)
-  registerCurationRoutes(app);
-  registerKbPromoteRoutes(app);
+  registerCurationRoutes(adminSubRouter);
+  registerKbPromoteRoutes(adminSubRouter);
   
   // Registrar rotas de gerenciamento de namespaces
-  registerNamespaceRoutes(app);
+  registerNamespaceRoutes(adminSubRouter);
   
   // Registrar rotas do GPU Pool (workers GPU Plug&Play)
-  registerGpuRoutes(app);
+  registerGpuRoutes(adminSubRouter);
   
   // Registrar rotas do Vision System (compreensão multimodal de imagens)
-  registerVisionRoutes(app);
+  registerVisionRoutes(adminSubRouter);
   
   // Registrar rotas de KB Images (busca semântica de imagens na base de conhecimento)
-  registerKbImagesRoutes(app);
+  registerKbImagesRoutes(adminSubRouter);
   
   // Registrar rotas de métricas de queries (monitoramento de performance)
-  registerQueryMetricsRoutes(app);
+  registerQueryMetricsRoutes(adminSubRouter);
   
   // Registrar rotas de telemetria (analytics de agentes e namespaces)
-  registerTelemetryRoutes(app);
+  registerTelemetryRoutes(adminSubRouter);
+  
+  // Mount admin sub-router on /api
+  app.use("/api", adminSubRouter);
 
   // ========================================
   // ENDPOINTS DE ÍCONES CUSTOMIZADOS
   // ========================================
   
   // POST /api/icons/upload - Upload de ícone customizado
-  app.post("/api/icons/upload", upload.single("icon"), async (req, res) => {
+  app.post("/api/icons/upload", requireAuth, upload.single("icon"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "Nenhum arquivo enviado" });
@@ -187,7 +175,7 @@ export function registerRoutes(app: Express): Server {
   // ========================================
   
   // POST /api/learn/ingest-link - Ingerir dados de URL para treino
-  app.post("/api/learn/ingest-link", async (req, res) => {
+  app.post("/api/learn/ingest-link", requireAuth, async (req, res) => {
     try {
       const { linkIngestionService } = await import("./learn/link-ingestion");
       const { url, userId } = req.body;
@@ -216,7 +204,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/learn/ingest-batch - Ingerir múltiplas URLs
-  app.post("/api/learn/ingest-batch", async (req, res) => {
+  app.post("/api/learn/ingest-batch", requireAuth, async (req, res) => {
     try {
       const { linkIngestionService } = await import("./learn/link-ingestion");
       const { urls, userId } = req.body;
@@ -243,7 +231,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/learn/collect-chats - Coletar conversas de alta qualidade
-  app.post("/api/learn/collect-chats", async (req, res) => {
+  app.post("/api/learn/collect-chats", requireAuth, async (req, res) => {
     try {
       const { chatIngestionService } = await import("./learn/chat-ingestion");
       const { limit = 50, autoSubmit = true } = req.body;
@@ -269,7 +257,7 @@ export function registerRoutes(app: Express): Server {
   // ========================================
   
   // Download dataset completo
-  app.get("/api/datasets/:id/download", async (req, res) => {
+  app.get("/api/datasets/:id/download", requireAuth, async (req, res) => {
     try {
       const datasetId = parseInt(req.params.id);
       
@@ -295,7 +283,7 @@ export function registerRoutes(app: Express): Server {
 
   // Download de CHUNK específico (Federated Learning)
   // GET /api/datasets/chunks/:jobId/:chunkIndex/download
-  app.get("/api/datasets/chunks/:jobId/:chunkIndex/download", async (req, res) => {
+  app.get("/api/datasets/chunks/:jobId/:chunkIndex/download", requireAuth, async (req, res) => {
     try {
       const { datasetSplitter } = await import("./federated/dataset-splitter");
       const { resolve } = await import("path");
@@ -322,7 +310,7 @@ export function registerRoutes(app: Express): Server {
   
   // Download de checkpoint global (modelo agregado via FedAvg)
   // GET /api/training/jobs/:jobId/checkpoint
-  app.get("/api/training/jobs/:jobId/checkpoint", async (req, res) => {
+  app.get("/api/training/jobs/:jobId/checkpoint", requireAuth, async (req, res) => {
     try {
       const { resolve } = await import("path");
       const jobId = parseInt(req.params.jobId);
@@ -799,7 +787,7 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/kb/ingest
   // HITL FIX: Ingestão de arquivos KB passa pela fila de curadoria
-  app.post("/api/kb/ingest", upload.single("file"), async (req, res) => {
+  app.post("/api/kb/ingest", requireAuth, upload.single("file"), async (req, res) => {
     try {
       if (!req.file) throw new Error("Nenhum arquivo enviado");
       
@@ -861,7 +849,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/kb/search
-  app.post("/api/kb/search", async (req, res) => {
+  app.post("/api/kb/search", requireAuth, async (req, res) => {
     try {
       const { query, k } = req.body;
       const results = await ragService.search(query, { k: k || 10 });
@@ -872,7 +860,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/agent/plan_act
-  app.post("/api/agent/plan_act", async (req, res) => {
+  app.post("/api/agent/plan_act", requireAuth, async (req, res) => {
     try {
       const { goal, conversation_id, message_id } = req.body;
       
@@ -889,7 +877,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET/POST /api/admin/policies
-  app.get("/api/admin/policies", async (req, res) => {
+  app.get("/api/admin/policies", requireAdmin, async (req, res) => {
     try {
       const policy = await storage.getActivePolicy();
       res.json(policy || {});
@@ -900,7 +888,7 @@ export function registerRoutes(app: Express): Server {
 
   // Preview the FULL system prompt (custom + generated parts)
   // Accepts POST with temporary behavior values for live preview
-  app.post("/api/admin/policies/preview-prompt", async (req, res) => {
+  app.post("/api/admin/policies/preview-prompt", requireAdmin, async (req, res) => {
     try {
       const policy = await storage.getActivePolicy();
       if (!policy) {
@@ -928,7 +916,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/admin/policies", async (req, res) => {
+  app.post("/api/admin/policies", requireAdmin, async (req, res) => {
     try {
       const existing = await storage.getActivePolicy();
       
@@ -945,7 +933,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/admin/settings/timezone - Obter timezone do sistema
-  app.get("/api/admin/settings/timezone", async (req, res) => {
+  app.get("/api/admin/settings/timezone", requireAdmin, async (req, res) => {
     try {
       // Sempre retornar timezone padrão (single-tenant)
       res.json({ timezone: "America/Sao_Paulo" });
@@ -955,7 +943,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/admin/settings/timezone - Atualizar timezone do sistema
-  app.post("/api/admin/settings/timezone", async (req, res) => {
+  app.post("/api/admin/settings/timezone", requireAdmin, async (req, res) => {
     try {
       const { timezone } = req.body;
       
@@ -978,7 +966,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/admin/lifecycle-policies - Get lifecycle policy configuration
-  app.get("/api/admin/lifecycle-policies", async (req, res) => {
+  app.get("/api/admin/lifecycle-policies", requireAdmin, async (req, res) => {
     try {
       const policyPath = path.join(process.cwd(), "config", "lifecycle-policy.json");
       const policyContent = await fs.readFile(policyPath, "utf-8");
@@ -991,7 +979,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // PATCH /api/admin/lifecycle-policies - Update lifecycle policy configuration
-  app.patch("/api/admin/lifecycle-policies", async (req, res) => {
+  app.patch("/api/admin/lifecycle-policies", requireAdmin, async (req, res) => {
     try {
       const policyPath = path.join(process.cwd(), "config", "lifecycle-policy.json");
       
@@ -1040,7 +1028,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/metrics/realtime
-  app.get("/api/metrics/realtime", async (req, res) => {
+  app.get("/api/metrics/realtime", requireAuth, async (req, res) => {
     try {
       const metrics = await storage.getMetrics(undefined, 100);
       res.json({ metrics });
@@ -1080,7 +1068,7 @@ export function registerRoutes(app: Express): Server {
   // Now using: /api/gpu/workers/register, /api/gpu/workers/heartbeat, etc.
 
   // POST /api/training/prepare - Preparar dataset de treino
-  app.post("/api/training/prepare", async (req, res) => {
+  app.post("/api/training/prepare", requireAuth, async (req, res) => {
     try {
       const { criteria } = req.body;
 
@@ -1098,7 +1086,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training/stats - Estatísticas de dados disponíveis
-  app.get("/api/training/stats", async (req, res) => {
+  app.get("/api/training/stats", requireAuth, async (req, res) => {
     try {
       // Coletar dados sem exportar
       const examples = await trainingDataCollector.collectTrainingData();
@@ -1119,7 +1107,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/admin/index-pdfs (indexar todos os 7 PDFs técnicos)
-  app.post("/api/admin/index-pdfs", async (req, res) => {
+  app.post("/api/admin/index-pdfs", requireAdmin, async (req, res) => {
     try {
       const documentIds = await knowledgeIndexer.indexAllPDFs();
       res.json({ success: true, documentIds });
@@ -1134,7 +1122,7 @@ export function registerRoutes(app: Express): Server {
 
   // GET /api/admin/documents - Listar documentos APROVADOS
   // HITL FIX: Apenas mostrar documentos que passaram por aprovação humana (status='indexed')
-  app.get("/api/admin/documents", async (req, res) => {
+  app.get("/api/admin/documents", requireAdmin, async (req, res) => {
     try {
       const allDocs = await storage.getDocuments(1000);
       
@@ -1150,7 +1138,7 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/admin/documents - Adicionar novo documento (texto manual)
   // HITL FIX: Toda alimentação manual da KB passa pela fila de curadoria
-  app.post("/api/admin/documents", async (req, res) => {
+  app.post("/api/admin/documents", requireAdmin, async (req, res) => {
     try {
       const { title, content, source } = req.body;
       
@@ -1204,7 +1192,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // PATCH /api/admin/documents/:id - Atualizar documento
-  app.patch("/api/admin/documents/:id", async (req, res) => {
+  app.patch("/api/admin/documents/:id", requireAdmin, async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
       const { title, content, metadata } = req.body;
@@ -1239,7 +1227,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // DELETE /api/admin/documents/:id - Deletar documento KB em cascata
-  app.delete("/api/admin/documents/:id", async (req, res) => {
+  app.delete("/api/admin/documents/:id", requireAdmin, async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
       
@@ -1266,7 +1254,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // DELETE /api/admin/documents/bulk - Deletar múltiplos documentos KB em cascata
-  app.delete("/api/admin/documents/bulk", async (req, res) => {
+  app.delete("/api/admin/documents/bulk", requireAdmin, async (req, res) => {
     try {
       const { documentIds } = req.body;
       
@@ -1297,7 +1285,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // PATCH /api/admin/documents/:id/attachments/:index - Atualizar descrição de anexo
-  app.patch("/api/admin/documents/:id/attachments/:index", async (req, res) => {
+  app.patch("/api/admin/documents/:id/attachments/:index", requireAdmin, async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
       const attachmentIndex = parseInt(req.params.index);
@@ -1336,8 +1324,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // DELETE /api/admin/documents/:id - Deletar documento
-  app.delete("/api/admin/documents/:id", async (req, res) => {
+  // DELETE /api/admin/documents/:id - Deletar documento (DUPLICADO - REMOVER)
+  // NOTA: Este endpoint está duplicado com o da linha 1220 que usa kbCascadeService
+  // TODO: Remover este endpoint duplicado
+  app.delete("/api/admin/documents/:id/legacy", requireAdmin, async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
       await storage.deleteDocument(docId);
@@ -1348,7 +1338,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/admin/kb/scan-duplicates - Scan KB for duplicates (manual trigger)
-  app.post("/api/admin/kb/scan-duplicates", async (req, res) => {
+  app.post("/api/admin/kb/scan-duplicates", requireAdmin, async (req, res) => {
     try {
       console.log('[KB Dedup] Manual scan triggered via API');
       
@@ -1369,7 +1359,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/admin/kb/reset - Limpar TODOS os dados da Knowledge Base (para testes)
-  app.post("/api/admin/kb/reset", async (req, res) => {
+  app.post("/api/admin/kb/reset", requireAdmin, async (req, res) => {
     try {
       const { documents, embeddings, curationQueue } = await import("@shared/schema");
       
@@ -1421,17 +1411,18 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/admin/seed-system - Popular sistema completo (Namespaces, Tools, Agents)
   // ADMIN ONLY - Endpoint protegido com allowlist de admins
-  app.post("/api/admin/seed-system", async (req, res) => {
-    const user = req.user as any; // Tipo de usuário Replit Auth
+  app.post("/api/admin/seed-system", requireAdmin, async (req, res) => {
+    // PRODUCTION: Support both OAuth and Local auth
+    const userId = getUserId(req);
     
     // 1. Verificação de autenticação
-    if (!req.isAuthenticated() || !user?.claims?.sub) {
+    if (!userId) {
       return res.status(401).json({ error: "Autenticação obrigatória" });
     }
     
     // 2. Verificação de autorização - allowlist de admins
     const adminAllowlist = (process.env.ADMIN_ALLOWED_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
-    const userSub = user.claims.sub;
+    const userSub = userId;
     
     // Em desenvolvimento, permitir qualquer usuário autenticado se allowlist estiver vazia
     const isProduction = process.env.NODE_ENV === "production";
@@ -1461,17 +1452,18 @@ export function registerRoutes(app: Express): Server {
   // POST /api/admin/migrate-agent-namespaces - Migrar agentes existentes para novo sistema de namespaces
   // ADMIN ONLY - Endpoint protegido com allowlist de admins
   // Query params: ?dryRun=true para modo dry-run
-  app.post("/api/admin/migrate-agent-namespaces", async (req, res) => {
-    const user = req.user as any;
+  app.post("/api/admin/migrate-agent-namespaces", requireAdmin, async (req, res) => {
+    // PRODUCTION: Support both OAuth and Local auth
+    const userId = getUserId(req);
     
     // 1. Verificação de autenticação
-    if (!req.isAuthenticated() || !user?.claims?.sub) {
+    if (!userId) {
       return res.status(401).json({ error: "Autenticação obrigatória" });
     }
     
     // 2. Verificação de autorização - allowlist de admins
     const adminAllowlist = (process.env.ADMIN_ALLOWED_SUBS || "").split(",").map(s => s.trim()).filter(Boolean);
-    const userSub = user.claims.sub;
+    const userSub = userId;
     
     const isProduction = process.env.NODE_ENV === "production";
     const isAuthorized = !isProduction && adminAllowlist.length === 0 ? true : adminAllowlist.includes(userSub);
@@ -1509,7 +1501,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/admin/images - Listar todas as imagens aprendidas
-  app.get("/api/admin/images", async (req, res) => {
+  app.get("/api/admin/images", requireAdmin, async (req, res) => {
     try {
       const imagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
       
@@ -1543,7 +1535,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/admin/images/all - Obter TODAS as imagens de TODAS as fontes
-  app.get("/api/admin/images/all", async (req, res) => {
+  app.get("/api/admin/images/all", requireAdmin, async (req, res) => {
     try {
       const allImages: any[] = [];
 
@@ -1637,7 +1629,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // DELETE /api/admin/images - Delete multiple images
-  app.delete("/api/admin/images", async (req, res) => {
+  app.delete("/api/admin/images", requireAdmin, async (req, res) => {
     try {
       const { imageIds } = req.body;
       
@@ -1719,7 +1711,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // DELETE /api/admin/images/:filename - Delete learned image
-  app.delete("/api/admin/images/:filename", async (req, res) => {
+  app.delete("/api/admin/images/:filename", requireAdmin, async (req, res) => {
     try {
       const filename = req.params.filename;
       const imagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
@@ -1744,7 +1736,7 @@ export function registerRoutes(app: Express): Server {
   // ===== ADMIN: Orphan Detection =====
   
   // GET /api/admin/orphans - Detect orphaned agents
-  app.get("/api/admin/orphans", async (req, res) => {
+  app.get("/api/admin/orphans", requireAdmin, async (req, res) => {
     try {
       const { detectOrphanedAgents } = await import("./services/orphan-detection");
       const result = await detectOrphanedAgents();
@@ -1760,7 +1752,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/admin/orphans/auto-fix - Auto-fix agents with invalid namespaces (SAFE)
-  app.post("/api/admin/orphans/auto-fix", async (req, res) => {
+  app.post("/api/admin/orphans/auto-fix", requireAdmin, async (req, res) => {
     try {
       const { autoFixOrphanedAgents } = await import("./services/orphan-detection");
       const result = await autoFixOrphanedAgents();
@@ -1780,7 +1772,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/admin/orphans/platform-scan - Scan ALL modules for orphans
-  app.get("/api/admin/orphans/platform-scan", async (req, res) => {
+  app.get("/api/admin/orphans/platform-scan", requireAdmin, async (req, res) => {
     try {
       const { platformOrphanScanner } = await import("./services/platform-orphan-scan");
       const report = await platformOrphanScanner.scanAll();
@@ -1802,7 +1794,7 @@ export function registerRoutes(app: Express): Server {
   // POST /api/admin/crawl-website - Deep crawl entire website
   // Crawls all sublinks, extracts text + images with Vision API descriptions
   // Sends everything to curation queue (HITL)
-  app.post("/api/admin/crawl-website", async (req, res) => {
+  app.post("/api/admin/crawl-website", requireAdmin, async (req, res) => {
     try {
       const { url, namespace, maxDepth, maxPages, consolidatePages } = req.body;
 
@@ -1843,7 +1835,7 @@ export function registerRoutes(app: Express): Server {
   // POST /api/admin/learn-from-url - Deep crawl website with all sublinks + images
   // HITL FIX: All URL content goes through curation queue
   // UPGRADE: Now uses WebsiteCrawlerService for COMPLETE site crawling
-  app.post("/api/admin/learn-from-url", async (req, res) => {
+  app.post("/api/admin/learn-from-url", requireAdmin, async (req, res) => {
     try {
       const { url, namespace, maxDepth, maxPages } = req.body;
 
@@ -1891,7 +1883,7 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/admin/upload-files - Upload and process multiple files
   // HITL FIX: All uploaded files go through curation queue
-  app.post("/api/admin/upload-files", upload.array("files", 20), async (req, res) => {
+  app.post("/api/admin/upload-files", requireAdmin, upload.array("files", 20), async (req, res) => {
     try {
       const files = req.files as Express.Multer.File[];
 
@@ -1985,7 +1977,7 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/admin/learn-from-youtube - Extract YouTube video transcript
   // HITL: Transcript goes through curation queue for human review
-  app.post("/api/admin/learn-from-youtube", async (req, res) => {
+  app.post("/api/admin/learn-from-youtube", requireAdmin, async (req, res) => {
     try {
       const { url, namespace, title } = req.body;
 
@@ -2043,7 +2035,7 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/admin/web-search-learn - Search web and learn
   // HITL FIX: All web search results go through curation queue
-  app.post("/api/admin/web-search-learn", async (req, res) => {
+  app.post("/api/admin/web-search-learn", requireAdmin, async (req, res) => {
     try {
       const { query } = req.body;
 
@@ -2110,7 +2102,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/documents (list documents)
-  app.get("/api/documents", async (req, res) => {
+  app.get("/api/documents", requireAuth, async (req, res) => {
     try {
       const documents = await storage.getDocuments(100);
       res.json({ documents });
@@ -2120,7 +2112,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/agent/hierarchical_plan (hierarchical planning)
-  app.post("/api/agent/hierarchical_plan", async (req, res) => {
+  app.post("/api/agent/hierarchical_plan", requireAuth, async (req, res) => {
     try {
       const { goal, conversation_id, message_id } = req.body;
       
@@ -2149,7 +2141,7 @@ export function registerRoutes(app: Express): Server {
   // ============================================================================
   
   // POST /api/generate/image - Generate image using DALL-E 3
-  app.post("/api/generate/image", async (req, res) => {
+  app.post("/api/generate/image", requireAuth, async (req, res) => {
     try {
       const { prompt, size, quality, style, conversation_id } = req.body;
       
@@ -2209,7 +2201,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // POST /api/generate/text - Generate text file (code, markdown, etc)
-  app.post("/api/generate/text", async (req, res) => {
+  app.post("/api/generate/text", requireAuth, async (req, res) => {
     try {
       const { content, filename, language, conversation_id } = req.body;
       
@@ -2271,7 +2263,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // GET /api/files/:id - Download generated file
-  app.get("/api/files/:id", async (req, res) => {
+  app.get("/api/files/:id", requireAuth, async (req, res) => {
     try {
       const fileId = parseInt(req.params.id);
       const file = await storage.getGeneratedFile(fileId);
@@ -2298,7 +2290,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // GET /api/files/:id/download - Force download
-  app.get("/api/files/:id/download", async (req, res) => {
+  app.get("/api/files/:id/download", requireAuth, async (req, res) => {
     try {
       const fileId = parseInt(req.params.id);
       const file = await storage.getGeneratedFile(fileId);
@@ -2327,7 +2319,7 @@ export function registerRoutes(app: Express): Server {
   // ============================================================================
   
   // POST /api/videos/generate - Submit video generation job
-  app.post("/api/videos/generate", async (req, res) => {
+  app.post("/api/videos/generate", requireAuth, async (req, res) => {
     try {
       const {
         prompt,
@@ -2370,7 +2362,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // GET /api/videos/jobs/:id - Get video job status
-  app.get("/api/videos/jobs/:id", async (req, res) => {
+  app.get("/api/videos/jobs/:id", requireAuth, async (req, res) => {
     try {
       const jobId = parseInt(req.params.id);
       const status = await videoGenerator.getJobStatus(jobId);
@@ -2381,7 +2373,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // GET /api/videos/:id - Download video asset
-  app.get("/api/videos/:id", async (req, res) => {
+  app.get("/api/videos/:id", requireAuth, async (req, res) => {
     try {
       const assetId = parseInt(req.params.id);
       const asset = await storage.getVideoAsset(assetId);
@@ -2492,20 +2484,57 @@ export function registerRoutes(app: Express): Server {
   // CONVERSATIONS & MESSAGES - Chat persistence with Replit Auth
   // ============================================================================
   
-  // GET /api/auth/user - Get current user info or null
+  // GET /api/auth/user - Get current user info or null (supports both OAuth and Local auth)
   app.get("/api/auth/user", optionalAuth, async (req, res) => {
     try {
       const user = req.user as any;
+      const userId = getUserId(req);
       
-      if (!req.isAuthenticated() || !user?.claims) {
+      if (!userId) {
         return res.json(null);
       }
       
-      const userId = user.claims.sub;
-      const userData = await storage.getUser(userId);
+      // PRODUCTION: Support both OAuth and Local authentication
+      let userData: any;
       
-      res.json(userData || null);
+      if (user.isLocal) {
+        // Local authentication - user data is already in session
+        userData = {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          authProvider: 'local',
+        };
+      } else {
+        // OAuth authentication - fetch from database
+        userData = await storage.getUser(userId);
+      }
+      
+      // SECURITY: Load user roles for RBAC
+      const { userRoles: userRolesTable, roles: rolesTable } = await import("../shared/schema");
+      const userRolesList = await db
+        .select({
+          roleId: userRolesTable.roleId,
+          roleName: rolesTable.name,
+        })
+        .from(userRolesTable)
+        .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+        .where(eq(userRolesTable.userId, userId));
+      
+      const userWithRoles = {
+        ...userData,
+        roles: userRolesList.map(r => r.roleName),
+        isAdmin: userRolesList.some(r => 
+          r.roleName === 'Super Admin' || 
+          r.roleName === 'Admin' || 
+          r.roleName === 'Content Manager'
+        ),
+      };
+      
+      res.json(userWithRoles || null);
     } catch (error: any) {
+      console.error('[Auth] Error fetching user:', error);
       res.json(null);
     }
   });
@@ -2513,15 +2542,14 @@ export function registerRoutes(app: Express): Server {
   // GET /api/conversations - List conversations (user's if logged in, empty for anonymous)
   app.get("/api/conversations", optionalAuth, async (req, res) => {
     try {
-      const user = req.user as any;
+      // PRODUCTION: Support both OAuth and Local auth
+      const userId = getUserId(req);
       
       // Only authenticated users can list conversations
-      if (!req.isAuthenticated() || !user?.claims?.sub) {
+      if (!userId) {
         // Anonymous users don't have persistent conversations
         return res.json([]);
       }
-      
-      const userId = user.claims.sub;
       const conversationsWithCount = await storage.getConversationsWithMessageCount(userId, 50);
       
       res.json(conversationsWithCount);
@@ -2534,10 +2562,9 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/conversations", optionalAuth, async (req, res) => {
     try {
       const { title } = req.body;
-      const user = req.user as any;
       
-      // Get userId if authenticated
-      const userId = req.isAuthenticated() && user?.claims?.sub ? user.claims.sub : null;
+      // PRODUCTION: Support both OAuth and Local auth
+      const userId = getUserId(req);
       
       const conversation = await storage.createConversation({
         userId: userId || undefined,
@@ -2560,9 +2587,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Conversation not found" });
       }
       
-      // Verify ownership
-      const user = req.user as any;
-      const userId = req.isAuthenticated() && user?.claims?.sub ? user.claims.sub : null;
+      // PRODUCTION: Support both OAuth and Local auth
+      const userId = getUserId(req);
       
       // Anonymous conversations (userId null) are not accessible - no way to verify ownership
       if (!conversation.userId) {
@@ -2591,8 +2617,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Conversation not found" });
       }
       
-      const user = req.user as any;
-      const userId = req.isAuthenticated() && user?.claims?.sub ? user.claims.sub : null;
+      // PRODUCTION: Support both OAuth and Local auth
+      const userId = getUserId(req);
       
       // Anonymous conversations (userId null) are not accessible - no way to verify ownership
       if (!conversation.userId) {
@@ -2613,7 +2639,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // POST /api/conversations/:id/messages - Save message
-  app.post("/api/conversations/:id/messages", async (req, res) => {
+  app.post("/api/conversations/:id/messages", requireAuth, async (req, res) => {
     try {
       const conversationId = parseInt(req.params.id);
       const { role, content, attachments, tool_calls, metadata } = req.body;
@@ -2717,9 +2743,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Conversation not found" });
       }
       
-      // Verify ownership
-      const user = req.user as any;
-      const userId = req.isAuthenticated() && user?.claims?.sub ? user.claims.sub : null;
+      // PRODUCTION: Support both OAuth and Local auth
+      const userId = getUserId(req);
       
       // If conversation has userId, only that user can delete it
       if (conversation.userId) {
@@ -2745,13 +2770,12 @@ export function registerRoutes(app: Express): Server {
   // GET /api/projects - List user's projects
   app.get("/api/projects", optionalAuth, async (req, res) => {
     try {
-      const user = req.user as any;
+      // PRODUCTION: Support both OAuth and Local auth
+      const userId = getUserId(req);
       
-      if (!req.isAuthenticated() || !user?.claims?.sub) {
+      if (!userId) {
         return res.json([]);
       }
-      
-      const userId = user.claims.sub;
       const projects = await storage.getProjectsByUser(userId);
       
       res.json(projects);
@@ -2763,13 +2787,12 @@ export function registerRoutes(app: Express): Server {
   // POST /api/projects - Create new project
   app.post("/api/projects", optionalAuth, async (req, res) => {
     try {
-      const user = req.user as any;
+      // PRODUCTION: Support both OAuth and Local auth
+      const userId = getUserId(req);
       
-      if (!req.isAuthenticated() || !user?.claims?.sub) {
+      if (!userId) {
         return res.status(401).json({ error: "Authentication required to create projects" });
       }
-      
-      const userId = user.claims.sub;
       const { name, description } = req.body;
       
       if (!name || !name.trim()) {
@@ -2791,9 +2814,10 @@ export function registerRoutes(app: Express): Server {
   // PATCH /api/projects/:id - Update project
   app.patch("/api/projects/:id", optionalAuth, async (req, res) => {
     try {
-      const user = req.user as any;
+      // PRODUCTION: Support both OAuth and Local auth
+      const userId = getUserId(req);
       
-      if (!req.isAuthenticated() || !user?.claims?.sub) {
+      if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
       }
       
@@ -2803,8 +2827,6 @@ export function registerRoutes(app: Express): Server {
       if (!project) {
         return res.status(404).json({ error: "Project not found" });
       }
-      
-      const userId = user.claims.sub;
       if (project.userId !== userId) {
         return res.status(403).json({ error: "Forbidden: You don't own this project" });
       }
@@ -2824,9 +2846,10 @@ export function registerRoutes(app: Express): Server {
   // DELETE /api/projects/:id - Delete project
   app.delete("/api/projects/:id", optionalAuth, async (req, res) => {
     try {
-      const user = req.user as any;
+      // PRODUCTION: Support both OAuth and Local auth
+      const userId = getUserId(req);
       
-      if (!req.isAuthenticated() || !user?.claims?.sub) {
+      if (!userId) {
         return res.status(401).json({ error: "Authentication required" });
       }
       
@@ -2836,8 +2859,6 @@ export function registerRoutes(app: Express): Server {
       if (!project) {
         return res.status(404).json({ error: "Project not found" });
       }
-      
-      const userId = user.claims.sub;
       if (project.userId !== userId) {
         return res.status(403).json({ error: "Forbidden: You don't own this project" });
       }
@@ -2921,7 +2942,7 @@ export function registerRoutes(app: Express): Server {
   }
   
   // POST /api/agent/chat - Agent-powered chat with automatic tool usage
-  app.post("/api/agent/chat", async (req, res) => {
+  app.post("/api/agent/chat", requireAuth, async (req, res) => {
     const startTime = Date.now();
     
     try {
@@ -3093,7 +3114,7 @@ export function registerRoutes(app: Express): Server {
   // ========================================================================
 
   // POST /api/training/jobs - Create new federated training job
-  app.post("/api/training/jobs", async (req, res) => {
+  app.post("/api/training/jobs", requireAuth, async (req, res) => {
     try {
       const { trainingJobs, insertTrainingJobSchema } = await import("../shared/schema");
       const { db } = await import("./db");
@@ -3111,7 +3132,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training/jobs - List all training jobs
-  app.get("/api/training/jobs", async (req, res) => {
+  app.get("/api/training/jobs", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { trainingJobs } = await import("../shared/schema");
@@ -3128,7 +3149,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training/jobs/:id - Get training job details
-  app.get("/api/training/jobs/:id", async (req, res) => {
+  app.get("/api/training/jobs/:id", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { trainingJobs, trainingWorkers } = await import("../shared/schema");
@@ -3163,7 +3184,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/training/jobs/:id/start - Start training job
-  app.post("/api/training/jobs/:id/start", async (req, res) => {
+  app.post("/api/training/jobs/:id/start", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { trainingJobs } = await import("../shared/schema");
@@ -3198,7 +3219,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/training/jobs/:id/pause - Pause training job
-  app.post("/api/training/jobs/:id/pause", async (req, res) => {
+  app.post("/api/training/jobs/:id/pause", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { trainingJobs } = await import("../shared/schema");
@@ -3232,7 +3253,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/training/gradients - Submit gradient update from worker
-  app.post("/api/training/gradients", async (req, res) => {
+  app.post("/api/training/gradients", requireAuth, async (req, res) => {
     try {
       const { gradientAggregator } = await import("./federated/gradient-aggregator");
       const { jobId, workerId, step, localStep, localLoss, gradients, numExamples } = req.body;
@@ -3278,7 +3299,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training/checkpoints/:jobId - Get latest checkpoint
-  app.get("/api/training/checkpoints/:jobId", async (req, res) => {
+  app.get("/api/training/checkpoints/:jobId", requireAuth, async (req, res) => {
     try {
       const { gradientAggregator } = await import("./federated/gradient-aggregator");
       const jobId = parseInt(req.params.jobId);
@@ -3308,7 +3329,7 @@ export function registerRoutes(app: Express): Server {
   // ============================================================================
 
   // POST /api/training/datasets - Upload new dataset
-  app.post("/api/training/datasets", upload.single("file"), async (req, res) => {
+  app.post("/api/training/datasets", requireAuth, upload.single("file"), async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
@@ -3358,7 +3379,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training/datasets - List all datasets
-  app.get("/api/training/datasets", async (req, res) => {
+  app.get("/api/training/datasets", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets, trainingDataCollection } = await import("../shared/schema");
@@ -3397,7 +3418,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training/datasets/:id - Get specific dataset
-  app.get("/api/training/datasets/:id", async (req, res) => {
+  app.get("/api/training/datasets/:id", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
@@ -3426,7 +3447,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training/datasets/:id/preview - Get dataset content preview
-  app.get("/api/training/datasets/:id/preview", async (req, res) => {
+  app.get("/api/training/datasets/:id/preview", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
@@ -3469,7 +3490,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // PATCH /api/training/datasets/:id - Update dataset metadata
-  app.patch("/api/training/datasets/:id", async (req, res) => {
+  app.patch("/api/training/datasets/:id", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
@@ -3513,7 +3534,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // DELETE /api/training/datasets/:id - Delete dataset
-  app.delete("/api/training/datasets/:id", async (req, res) => {
+  app.delete("/api/training/datasets/:id", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
@@ -3548,7 +3569,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/training/datasets/bulk-delete - Bulk delete datasets
-  app.post("/api/training/datasets/bulk-delete", async (req, res) => {
+  app.post("/api/training/datasets/bulk-delete", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
@@ -3598,7 +3619,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training/datasets/:id/download - Download dataset file
-  app.get("/api/training/datasets/:id/download", async (req, res) => {
+  app.get("/api/training/datasets/:id/download", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
@@ -3642,7 +3663,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/training/datasets/generate-from-kb - Auto-generate dataset from Knowledge Base
-  app.post("/api/training/datasets/generate-from-kb", async (req, res) => {
+  app.post("/api/training/datasets/generate-from-kb", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets, trainingDataCollection } = await import("../shared/schema");
@@ -3753,7 +3774,7 @@ export function registerRoutes(app: Express): Server {
   // ============================================================================
 
   // POST /api/training-data/collect/:conversationId - Collect conversation for training
-  app.post("/api/training-data/collect/:conversationId", async (req, res) => {
+  app.post("/api/training-data/collect/:conversationId", requireAuth, async (req, res) => {
     try {
       const { ConversationCollector } = await import("./training/collectors/conversation-collector");
       const conversationId = parseInt(req.params.conversationId);
@@ -3811,7 +3832,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training/auto-evolution/stats - Get auto-evolution statistics
-  app.get("/api/training/auto-evolution/stats", async (req, res) => {
+  app.get("/api/training/auto-evolution/stats", requireAuth, async (req, res) => {
     try {
       // Total conversations collected
       const totalConversationsResult = await db
@@ -3914,7 +3935,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training-data - List collected training data
-  app.get("/api/training-data", async (req, res) => {
+  app.get("/api/training-data", requireAuth, async (req, res) => {
     try {
       const status = req.query.status as string | undefined;
       const limit = parseInt(req.query.limit as string) || 100;
@@ -3929,7 +3950,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // PATCH /api/training-data/:id - Update training data status (approve/reject) or content
-  app.patch("/api/training-data/:id", async (req, res) => {
+  app.patch("/api/training-data/:id", requireAuth, async (req, res) => {
     try {
       const { z } = await import("zod");
       const { TrainingDataValidator } = await import("./training/training-data-validator");
@@ -4021,7 +4042,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // DELETE /api/training-data/:id - Delete training data
-  app.delete("/api/training-data/:id", async (req, res) => {
+  app.delete("/api/training-data/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -4044,7 +4065,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/training/jobs/:id/claim-chunk - Claim an available chunk for training
-  app.post("/api/training/jobs/:id/claim-chunk", async (req, res) => {
+  app.post("/api/training/jobs/:id/claim-chunk", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { trainingJobs, trainingWorkers } = await import("../shared/schema");
@@ -4118,7 +4139,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/training/jobs/:id/progress - Get real-time training progress
-  app.get("/api/training/jobs/:id/progress", async (req, res) => {
+  app.get("/api/training/jobs/:id/progress", requireAuth, async (req, res) => {
     try {
       const { db } = await import("./db");
       const { trainingJobs, trainingWorkers, gradientUpdates } = await import("../shared/schema");
@@ -4191,7 +4212,7 @@ export function registerRoutes(app: Express): Server {
   // ========================================================================
 
   // POST /api/rag/search - Semantic search with MMR
-  app.post("/api/rag/search", async (req, res) => {
+  app.post("/api/rag/search", requireAuth, async (req, res) => {
     try {
       const { query, options } = req.body;
       const { mmrSearch } = await import("./ai/rag-service");

@@ -1,12 +1,17 @@
 // Integração Replit Auth - blueprint:javascript_log_in_with_replit
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
+import { Strategy as LocalStrategy } from "passport-local";
 import passport from "passport";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import bcrypt from "bcryptjs";
+import { db } from "./db";
+import { users } from "../shared/schema";
+import { eq } from "drizzle-orm";
 
 const getOidcConfig = memoize(
   async () => {
@@ -27,6 +32,11 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
   });
+  
+  // PRODUCTION-FIX: Use secure cookies only in production (HTTPS)
+  // In development (HTTP), secure cookies won't work
+  const isProduction = process.env.NODE_ENV === "production";
+  
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
@@ -34,8 +44,8 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
-      sameSite: 'lax', // SECURITY: Prevent CSRF attacks. Use 'strict' for higher security or 'lax' for better UX
+      secure: isProduction, // Only use secure cookies in production (HTTPS)
+      sameSite: 'lax', // SECURITY: Prevent CSRF attacks
       maxAge: sessionTtl,
     },
   });
@@ -66,6 +76,51 @@ export async function setupAuth(app: Express) {
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // PRODUCTION: Configure LOCAL authentication strategy (email + password)
+  passport.use('local', new LocalStrategy(
+    {
+      usernameField: 'email',
+      passwordField: 'password'
+    },
+    async (email: string, password: string, done) => {
+      try {
+        // Find user in database
+        const [user] = await db.select()
+          .from(users)
+          .where(eq(users.email, email))
+          .limit(1);
+        
+        if (!user) {
+          return done(null, false, { message: 'Invalid email or password' });
+        }
+        
+        // Verify user has local auth enabled
+        if (user.authProvider !== 'local' || !user.password) {
+          return done(null, false, { message: 'This account uses OAuth. Please login with Replit.' });
+        }
+        
+        // Verify password
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
+          return done(null, false, { message: 'Invalid email or password' });
+        }
+        
+        // Success - return user (without password)
+        const { password: _, ...userWithoutPassword } = user;
+        return done(null, {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          authProvider: 'local',
+          isLocal: true,
+        });
+      } catch (error) {
+        return done(error);
+      }
+    }
+  ));
 
   const config = await getOidcConfig();
 
@@ -125,6 +180,56 @@ export async function setupAuth(app: Express) {
           post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
         }).href
       );
+    });
+  });
+
+  // PRODUCTION: Local authentication endpoint (email + password)
+  app.post("/api/auth/local-login", (req, res, next) => {
+    passport.authenticate('local', (err: any, user: any, info: any) => {
+      if (err) {
+        return res.status(500).json({ 
+          error: 'Authentication error',
+          message: err.message 
+        });
+      }
+      
+      if (!user) {
+        return res.status(401).json({ 
+          error: 'Unauthorized',
+          message: info?.message || 'Invalid credentials' 
+        });
+      }
+      
+      // Create session
+      req.logIn(user, (err) => {
+        if (err) {
+          return res.status(500).json({ 
+            error: 'Session error',
+            message: err.message 
+          });
+        }
+        
+        // Success - return user data
+        return res.json({ 
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+          }
+        });
+      });
+    })(req, res, next);
+  });
+
+  // PRODUCTION: Logout endpoint (works for both local and OAuth)
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+      res.json({ success: true });
     });
   });
 }
