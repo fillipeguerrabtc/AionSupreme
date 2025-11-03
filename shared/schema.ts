@@ -1720,6 +1720,31 @@ export const insertRolePermissionSchema = createInsertSchema(rolePermissions).om
 export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
 export type RolePermission = typeof rolePermissions.$inferSelect;
 
+/**
+ * USER_PERMISSIONS - User-specific permission overrides
+ * 
+ * Allows assigning permissions directly to users (in addition to role-based permissions)
+ * Use case: Grant specific permissions to a user without changing their role
+ */
+export const userPermissions = pgTable("user_permissions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  permissionId: integer("permission_id").notNull().references(() => permissions.id, { onDelete: 'cascade' }),
+  assignedBy: varchar("assigned_by").references(() => users.id), // Who assigned this permission
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+}, (table) => ({
+  userPermUnique: unique("user_permissions_user_perm_unique").on(table.userId, table.permissionId),
+  userIdx: index("user_permissions_user_idx").on(table.userId),
+  permIdx: index("user_permissions_perm_idx").on(table.permissionId),
+}));
+
+export const insertUserPermissionSchema = createInsertSchema(userPermissions).omit({ 
+  id: true, 
+  assignedAt: true 
+});
+export type InsertUserPermission = z.infer<typeof insertUserPermissionSchema>;
+export type UserPermission = typeof userPermissions.$inferSelect;
+
 // ============================================================================
 // USAGE_RECORDS - Agent and Namespace usage tracking (PRODUCTION-READY)
 // ============================================================================

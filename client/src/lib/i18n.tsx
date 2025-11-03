@@ -355,6 +355,7 @@ interface Translations {
     knowledgeBase: {
       title: string;
       subtitle: string;
+      imagesTab: string;
       
       actions: {
         addText: string;
@@ -1144,6 +1145,7 @@ const translations: Record<Language, Translations> = {
       knowledgeBase: {
         title: "Base de Conhecimento",
         subtitle: "Gerencie todos os conhecimentos indexados",
+        imagesTab: "Gerenciar Conteúdo",
         
         actions: {
           addText: "Adicionar Texto",
@@ -1916,6 +1918,7 @@ const translations: Record<Language, Translations> = {
       knowledgeBase: {
         title: "Knowledge Base",
         subtitle: "Manage all indexed knowledge",
+        imagesTab: "Manage Content",
         
         actions: {
           addText: "Add Text",
@@ -2688,6 +2691,7 @@ const translations: Record<Language, Translations> = {
       knowledgeBase: {
         title: "Base de Conocimiento",
         subtitle: "Gestiona todo el conocimiento indexado",
+        imagesTab: "Gestionar Contenido",
         
         actions: {
           addText: "Añadir Texto",

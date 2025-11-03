@@ -22,6 +22,7 @@ import {
   userRoles, type UserRole,
   permissions, type Permission, type InsertPermission,
   rolePermissions, type RolePermission, type InsertRolePermission,
+  userPermissions, type UserPermission, type InsertUserPermission,
   usageRecords, type UsageRecord, type InsertUsageRecord,
   namespaceRelevanceRecords, type NamespaceRelevanceRecord, type InsertNamespaceRelevanceRecord,
   queryMetrics, type QueryMetric, type InsertQueryMetric,
@@ -47,10 +48,18 @@ export interface IStorage {
   getRoles(): Promise<Role[]>;
   getRole(id: number): Promise<Role | undefined>;
   getPermissions(): Promise<Permission[]>;
+  getPermission(id: number): Promise<Permission | undefined>;
+  createPermission(permission: InsertPermission): Promise<Permission>;
+  updatePermission(id: number, permission: Partial<InsertPermission>): Promise<Permission>;
+  deletePermission(id: number): Promise<void>;
+  checkPermissionUsage(permissionId: number): Promise<{ inUse: boolean; roleCount: number; userCount: number }>;
   getRolePermissions(roleId: number): Promise<Permission[]>;
   getUserPermissions(userId: string): Promise<Permission[]>;
   assignPermissionToRole(roleId: number, permissionId: number): Promise<void>;
   revokePermissionFromRole(roleId: number, permissionId: number): Promise<void>;
+  assignPermissionToUser(userId: string, permissionId: number, assignedBy?: string): Promise<void>;
+  revokePermissionFromUser(userId: string, permissionId: number): Promise<void>;
+  getUserSpecificPermissions(userId: string): Promise<Permission[]>;
   
   // Políticas
   getPolicy(id: number): Promise<Policy | undefined>;
@@ -233,7 +242,50 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPermissions(): Promise<Permission[]> {
-    return await db.select().from(permissions);
+    return await db.select().from(permissions).orderBy(permissions.code);
+  }
+
+  async getPermission(id: number): Promise<Permission | undefined> {
+    const [permission] = await db.select().from(permissions).where(eq(permissions.id, id));
+    return permission;
+  }
+
+  async createPermission(permission: InsertPermission): Promise<Permission> {
+    const [created] = await db.insert(permissions).values(permission).returning();
+    return created;
+  }
+
+  async updatePermission(id: number, data: Partial<InsertPermission>): Promise<Permission> {
+    const [updated] = await db.update(permissions)
+      .set(data)
+      .where(eq(permissions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deletePermission(id: number): Promise<void> {
+    // CASCADE delete will handle rolePermissions and userPermissions
+    await db.delete(permissions).where(eq(permissions.id, id));
+  }
+
+  async checkPermissionUsage(permissionId: number): Promise<{ inUse: boolean; roleCount: number; userCount: number }> {
+    const [roleCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(rolePermissions)
+      .where(eq(rolePermissions.permissionId, permissionId));
+    
+    const [userCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(userPermissions)
+      .where(eq(userPermissions.permissionId, permissionId));
+    
+    const inUse = (roleCount.count > 0) || (userCount.count > 0);
+    
+    return {
+      inUse,
+      roleCount: roleCount.count,
+      userCount: userCount.count
+    };
   }
 
   async getRolePermissions(roleId: number): Promise<Permission[]> {
@@ -247,14 +299,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserPermissions(userId: string): Promise<Permission[]> {
-    const result = await db
+    // Get permissions from roles
+    const rolePerms = await db
       .select({ permission: permissions })
       .from(userRoles)
       .innerJoin(rolePermissions, eq(userRoles.roleId, rolePermissions.roleId))
       .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
       .where(eq(userRoles.userId, userId));
     
-    return result.map(r => r.permission);
+    // Get user-specific permissions
+    const userPerms = await db
+      .select({ permission: permissions })
+      .from(userPermissions)
+      .innerJoin(permissions, eq(userPermissions.permissionId, permissions.id))
+      .where(eq(userPermissions.userId, userId));
+    
+    // Merge and deduplicate by permission code
+    const allPerms = [...rolePerms.map(r => r.permission), ...userPerms.map(r => r.permission)];
+    const uniquePerms = Array.from(new Map(allPerms.map(p => [p.code, p])).values());
+    
+    return uniquePerms;
   }
 
   async assignPermissionToRole(roleId: number, permissionId: number): Promise<void> {
@@ -268,6 +332,33 @@ export class DatabaseStorage implements IStorage {
         eq(rolePermissions.roleId, roleId),
         eq(rolePermissions.permissionId, permissionId)
       ));
+  }
+
+  async assignPermissionToUser(userId: string, permissionId: number, assignedBy?: string): Promise<void> {
+    await db.insert(userPermissions).values({ 
+      userId, 
+      permissionId,
+      assignedBy
+    });
+  }
+
+  async revokePermissionFromUser(userId: string, permissionId: number): Promise<void> {
+    await db
+      .delete(userPermissions)
+      .where(and(
+        eq(userPermissions.userId, userId),
+        eq(userPermissions.permissionId, permissionId)
+      ));
+  }
+
+  async getUserSpecificPermissions(userId: string): Promise<Permission[]> {
+    const result = await db
+      .select({ permission: permissions })
+      .from(userPermissions)
+      .innerJoin(permissions, eq(userPermissions.permissionId, permissions.id))
+      .where(eq(userPermissions.userId, userId));
+    
+    return result.map(r => r.permission);
   }
 
   async getUsers(limit: number = 100): Promise<User[]> {
