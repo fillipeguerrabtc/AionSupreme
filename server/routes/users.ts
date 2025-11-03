@@ -9,6 +9,22 @@ import { db } from "../db";
 import { users, userRoles, roles } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
+/**
+ * Sanitize user object to remove sensitive fields
+ * CRITICAL SECURITY: Never expose password hashes or reset tokens to clients
+ * 
+ * @param user - User object from storage (may contain sensitive fields)
+ * @returns Safe user object without password/token fields
+ */
+function sanitizeUser<T extends { password?: string | null; resetToken?: string | null; resetTokenExpiry?: Date | null }>(
+  user: T
+): Omit<T, 'password' | 'resetToken' | 'resetTokenExpiry'> {
+  if (!user) return user as any;
+  
+  const { password, resetToken, resetTokenExpiry, ...safeUser } = user;
+  return safeUser;
+}
+
 export function registerUserRoutes(app: Express) {
   /**
    * GET /api/admin/users
@@ -26,7 +42,7 @@ export function registerUserRoutes(app: Express) {
         allUsers.map(async (user) => {
           const userRolesList = await storage.getUserRoles(user.id);
           return {
-            ...user,
+            ...sanitizeUser(user),
             roles: userRolesList.map(r => r.name),
             isAdmin: userRolesList.some(r => 
               r.name === 'Super Admin' || 
@@ -62,7 +78,7 @@ export function registerUserRoutes(app: Express) {
       
       const userRolesList = await storage.getUserRoles(id);
       const userWithRoles = {
-        ...user,
+        ...sanitizeUser(user),
         roles: userRolesList.map(r => r.name),
         isAdmin: userRolesList.some(r => 
           r.name === 'Super Admin' || 
@@ -126,7 +142,7 @@ export function registerUserRoutes(app: Express) {
       // Buscar roles do usuário criado
       const userRolesList = await storage.getUserRoles(user.id);
       const userWithRoles = {
-        ...user,
+        ...sanitizeUser(user),
         roles: userRolesList.map(r => r.name),
         isAdmin: userRolesList.some(r => 
           r.name === 'Super Admin' || 
@@ -174,7 +190,7 @@ export function registerUserRoutes(app: Express) {
       // Buscar roles do usuário
       const userRolesList = await storage.getUserRoles(id);
       const userWithRoles = {
-        ...updatedUser,
+        ...sanitizeUser(updatedUser),
         roles: userRolesList.map(r => r.name),
         isAdmin: userRolesList.some(r => 
           r.name === 'Super Admin' || 
