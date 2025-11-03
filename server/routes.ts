@@ -21,6 +21,7 @@ import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { auditMiddleware } from "./middleware/audit";
 import { exportPrometheusMetrics } from "./metrics/exporter";
 import { metricsCollector } from "./metrics/collector";
+import { queryMonitor } from "./services/query-monitor";
 import { usageTracker } from "./services/usage-tracker";
 import { imageGenerator } from "./generation/image-generator";
 import { videoGenerator } from "./generation/video-generator";
@@ -589,7 +590,7 @@ export function registerRoutes(app: Express): Server {
       }
       
       // ✅ PRODUCTION-READY: Record query metrics in PostgreSQL
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "chat",
         result.provider || "priority-orchestrator",
         latency,
@@ -895,7 +896,7 @@ export function registerRoutes(app: Express): Server {
       }
       
       // ✅ PRODUCTION-READY: Record query metrics in PostgreSQL
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "rag",
         "kb",
         latency,
@@ -909,7 +910,7 @@ export function registerRoutes(app: Express): Server {
       const latency = Date.now() - startTime;
       
       // ✅ Track error
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "rag",
         "kb",
         latency,
@@ -1141,7 +1142,7 @@ export function registerRoutes(app: Express): Server {
       
       // ✅ PRODUCTION-READY: Track dataset preparation in PostgreSQL
       const latency = Date.now() - startTime;
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "training",
         "prepare",
         latency,
@@ -1160,7 +1161,7 @@ export function registerRoutes(app: Express): Server {
       const latency = Date.now() - startTime;
       
       // ✅ Track error
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "training",
         "prepare",
         latency,
@@ -1273,7 +1274,7 @@ export function registerRoutes(app: Express): Server {
 
       // ✅ PRODUCTION-READY: Track document submission in PostgreSQL
       const latency = Date.now() - startTime;
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "kb",
         "document",
         latency,
@@ -1291,7 +1292,7 @@ export function registerRoutes(app: Express): Server {
       const latency = Date.now() - startTime;
       
       // ✅ Track error
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "kb",
         "document",
         latency,
@@ -2844,7 +2845,7 @@ export function registerRoutes(app: Express): Server {
       
       // ✅ PRODUCTION-READY: Track message save in PostgreSQL
       const latency = Date.now() - startTime;
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "message",
         "conversation",
         latency,
@@ -2858,7 +2859,7 @@ export function registerRoutes(app: Express): Server {
       const latency = Date.now() - startTime;
       
       // ✅ Track error
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "message",
         "conversation",
         latency,
@@ -3208,7 +3209,7 @@ export function registerRoutes(app: Express): Server {
       );
       
       // ✅ PRODUCTION-READY: Record query metrics in PostgreSQL
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "chat",
         "react-agent",
         latency,
@@ -3242,7 +3243,7 @@ export function registerRoutes(app: Express): Server {
       
       // ✅ PRODUCTION-READY: Track error in PostgreSQL
       const latency = Date.now() - startTime;
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "chat",
         "react-agent",
         latency,
@@ -3304,7 +3305,7 @@ export function registerRoutes(app: Express): Server {
       
       // ✅ PRODUCTION-READY: Track training job creation in PostgreSQL
       const latency = Date.now() - startTime;
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "training",
         "job-create",
         latency,
@@ -3318,7 +3319,7 @@ export function registerRoutes(app: Express): Server {
       const latency = Date.now() - startTime;
       
       // ✅ Track error
-      await metricsCollector.recordQuery(
+      await queryMonitor.recordQuery(
         "training",
         "job-create",
         latency,
