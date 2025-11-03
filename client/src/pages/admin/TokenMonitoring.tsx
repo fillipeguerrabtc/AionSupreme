@@ -599,18 +599,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
               </p>
             </CardContent>
           </Card>
-
-          <Card className="glass-premium border-accent/20 hover-elevate">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{t.admin.overview.deepWeb}</CardTitle>
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold gradient-text">
-              </div>
-              <p className="text-xs text-muted-foreground">{t.admin.overview.torNetworkQueries}</p>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Usage by Provider - Pie Chart */}
@@ -1407,87 +1395,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   <div className="text-center py-12 text-muted-foreground">
                     <Globe className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>{t.admin.tokenMonitoring.webSearches.noHistory}</p>
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      {/* DEEPWEB TAB */}
-        <Card className="glass-premium border-accent/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5 text-indigo-500" />
-              {t.admin.tokenMonitoring.deepWeb.historyTitle}
-            </CardTitle>
-            <CardDescription>{t.admin.tokenMonitoring.deepWeb.historyDesc}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3 mb-6">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.deepWeb.totalSearches}</p>
-                <p className="text-3xl font-bold gradient-text">
-                </p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.deepWeb.totalSources}</p>
-                <p className="text-3xl font-bold gradient-text">
-                </p>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.deepWeb.uniqueDomains}</p>
-                <p className="text-3xl font-bold gradient-text">
-                </p>
-              </div>
-            </div>
-
-            <Separator className="my-6" />
-
-            <ScrollArea className="h-[600px] pr-4">
-              <div className="space-y-4">
-                  <Card key={idx} className="glass border-indigo-500/20 hover-elevate">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-lg">{search.query}</CardTitle>
-                          <CardDescription className="flex items-center gap-2 mt-1">
-                            <Clock className="w-3 h-3" />
-                            {new Date(search.timestamp).toLocaleString()}
-                          </CardDescription>
-                        </div>
-                        <Badge variant="outline" className="bg-indigo-500/10">
-                          {search.metadata?.results_count || 0} {t.admin.tokenMonitoring.common.searches.toLowerCase()}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <p className="text-sm font-semibold">{t.admin.tokenMonitoring.common.sources}:</p>
-                        {(search.metadata?.sources || []).slice(0, 5).map((source: any, sidx: number) => (
-                          <div key={sidx} className="flex items-start gap-2 p-3 rounded-lg bg-background/50 border border-border/50">
-                            <Search className="w-4 h-4 mt-0.5 text-indigo-500 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{source.title}</p>
-                              <p className="text-xs text-muted-foreground truncate">{source.domain}</p>
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{source.snippet}</p>
-                              <p className="text-xs text-indigo-500 font-mono mt-1 truncate">{source.url}</p>
-                            </div>
-                          </div>
-                        ))}
-                        {((search.metadata?.sources || []).length > 5) && (
-                          <p className="text-xs text-muted-foreground text-center">
-                            +{(search.metadata?.sources || []).length - 5} {t.admin.tokenMonitoring.common.moreSources}
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>{t.admin.tokenMonitoring.deepWeb.noHistory}</p>
                   </div>
                 )}
               </div>

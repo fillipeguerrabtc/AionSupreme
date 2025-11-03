@@ -15,7 +15,7 @@ interface SearchResult {
 interface SearchResultsListProps {
   results: SearchResult[];
   query: string;
-  source?: "web" | "deepweb";
+  source?: "web";
 }
 
 export function SearchResultsList({ results, query, source = "web" }: SearchResultsListProps) {
@@ -63,11 +63,6 @@ export function SearchResultsList({ results, query, source = "web" }: SearchResu
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">
           {results.length} resultado{results.length !== 1 ? 's' : ''} para "{query}"
-          {source === "deepweb" && (
-            <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-              DeepWeb
-            </span>
-          )}
         </h3>
       </div>
 

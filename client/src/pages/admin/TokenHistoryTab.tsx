@@ -29,8 +29,7 @@ const providerColors: Record<string, string> = {
   openrouter: "bg-purple-500/10 text-purple-500 border-purple-500/20",
   openai: "bg-green-500/10 text-green-500 border-green-500/20",
   kb: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20",
-  web: "bg-red-500/10 text-red-500 border-red-500/20",
-  deepweb: "bg-gray-500/10 text-gray-500 border-gray-500/20"
+  web: "bg-red-500/10 text-red-500 border-red-500/20"
 };
 
 export default function TokenHistoryTab() {
