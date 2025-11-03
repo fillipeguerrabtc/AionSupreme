@@ -232,29 +232,83 @@ class QueryMonitor {
   }
 
   /**
-   * Registra sucesso de query de agent - PRODUCTION-READY PostgreSQL
+   * VERSÃO COMPLETA - Registra sucesso de query de agent - PRODUCTION-READY PostgreSQL
    */
   async trackAgentQuerySuccess(
-    agentId: string,
-    agentName: string,
-    query: string,
-    totalSteps: number,
-    latencyMs: number,
+    agentIdOrOptions: string | {
+      agentId: string;
+      agentName?: string;
+      query?: string;
+      totalSteps?: number;
+      latencyMs: number;
+      tokensUsed?: number;
+      metadata?: Record<string, any>;
+    },
+    agentName?: string,
+    query?: string,
+    totalSteps?: number,
+    latencyMs?: number,
     tokensUsed: number = 0,
     metadata?: Record<string, any>
   ): Promise<void> {
     try {
+      // Suporta chamada simplificada: trackAgentQuerySuccess(agentId, latencyMs)
+      // E chamada completa: trackAgentQuerySuccess(agentId, name, query, steps, latency, tokens, meta)
+      let params: {
+        agentId: string;
+        agentName: string;
+        query: string;
+        totalSteps: number;
+        latencyMs: number;
+        tokensUsed: number;
+        metadata?: Record<string, any>;
+      };
+
+      if (typeof agentIdOrOptions === 'object') {
+        // Chamada com objeto
+        params = {
+          agentId: agentIdOrOptions.agentId,
+          agentName: agentIdOrOptions.agentName || 'Unknown Agent',
+          query: agentIdOrOptions.query || 'N/A',
+          totalSteps: agentIdOrOptions.totalSteps || 1,
+          latencyMs: agentIdOrOptions.latencyMs,
+          tokensUsed: agentIdOrOptions.tokensUsed || 0,
+          metadata: agentIdOrOptions.metadata,
+        };
+      } else if (typeof agentName === 'number' && !query) {
+        // Chamada simplificada: trackAgentQuerySuccess(agentId, latencyMs)
+        params = {
+          agentId: agentIdOrOptions,
+          agentName: 'Unknown Agent',
+          query: 'N/A',
+          totalSteps: 1,
+          latencyMs: agentName, // agentName é na verdade latencyMs neste caso
+          tokensUsed: 0,
+        };
+      } else {
+        // Chamada completa
+        params = {
+          agentId: agentIdOrOptions,
+          agentName: agentName || 'Unknown Agent',
+          query: query || 'N/A',
+          totalSteps: totalSteps || 1,
+          latencyMs: latencyMs || 0,
+          tokensUsed,
+          metadata,
+        };
+      }
+
       await storage.createAgentQueryResult({
         tenantId: 1,
-        agentId,
-        agentName,
-        query,
-        totalSteps,
+        agentId: params.agentId,
+        agentName: params.agentName,
+        query: params.query,
+        totalSteps: params.totalSteps,
         success: true,
         finalAnswer: null,
-        latencyMs,
-        tokensUsed,
-        metadata,
+        latencyMs: params.latencyMs,
+        tokensUsed: params.tokensUsed,
+        metadata: params.metadata,
       });
     } catch (error) {
       console.error("[QueryMonitor] Error tracking agent query success:", error);
@@ -262,30 +316,81 @@ class QueryMonitor {
   }
 
   /**
-   * Registra erro de query de agent - PRODUCTION-READY PostgreSQL
+   * VERSÃO COMPLETA - Registra erro de query de agent - PRODUCTION-READY PostgreSQL
    */
   async trackAgentQueryError(
-    agentId: string,
-    agentName: string,
-    query: string,
-    totalSteps: number,
-    errorType: string,
-    latencyMs: number,
-    metadata?: Record<string, any>
+    agentIdOrOptions: string | {
+      agentId: string;
+      agentName?: string;
+      query?: string;
+      totalSteps?: number;
+      errorType: string;
+      latencyMs: number;
+      metadata?: Record<string, any>;
+    },
+    errorTypeOrAgentName?: string,
+    queryOrLatency?: string | number,
+    totalStepsOrMetadata?: number | Record<string, any>,
+    latencyMsOrUndefined?: number,
+    metadataOrUndefined?: Record<string, any>
   ): Promise<void> {
     try {
-      const metadataWithError: Record<string, any> = metadata ? { ...metadata } : {};
-      metadataWithError.errorType = errorType;
+      let params: {
+        agentId: string;
+        agentName: string;
+        query: string;
+        totalSteps: number;
+        errorType: string;
+        latencyMs: number;
+        metadata?: Record<string, any>;
+      };
+
+      if (typeof agentIdOrOptions === 'object') {
+        // Chamada com objeto
+        params = {
+          agentId: agentIdOrOptions.agentId,
+          agentName: agentIdOrOptions.agentName || 'Unknown Agent',
+          query: agentIdOrOptions.query || 'N/A',
+          totalSteps: agentIdOrOptions.totalSteps || 1,
+          errorType: agentIdOrOptions.errorType,
+          latencyMs: agentIdOrOptions.latencyMs,
+          metadata: agentIdOrOptions.metadata,
+        };
+      } else if (typeof queryOrLatency === 'number' && !totalStepsOrMetadata) {
+        // Chamada simplificada: trackAgentQueryError(agentId, errorType, latencyMs)
+        params = {
+          agentId: agentIdOrOptions,
+          agentName: 'Unknown Agent',
+          query: 'N/A',
+          totalSteps: 1,
+          errorType: errorTypeOrAgentName || 'UnknownError',
+          latencyMs: queryOrLatency,
+        };
+      } else {
+        // Chamada completa: trackAgentQueryError(agentId, agentName, query, totalSteps, errorType, latencyMs, metadata)
+        params = {
+          agentId: agentIdOrOptions,
+          agentName: errorTypeOrAgentName || 'Unknown Agent',
+          query: typeof queryOrLatency === 'string' ? queryOrLatency : 'N/A',
+          totalSteps: typeof totalStepsOrMetadata === 'number' ? totalStepsOrMetadata : 1,
+          errorType: typeof totalStepsOrMetadata === 'number' && latencyMsOrUndefined !== undefined ? 'UnknownError' : 'UnknownError',
+          latencyMs: latencyMsOrUndefined || 0,
+          metadata: typeof totalStepsOrMetadata === 'object' ? totalStepsOrMetadata : metadataOrUndefined,
+        };
+      }
+
+      const metadataWithError: Record<string, any> = params.metadata ? { ...params.metadata } : {};
+      metadataWithError.errorType = params.errorType;
       
       await storage.createAgentQueryResult({
         tenantId: 1,
-        agentId,
-        agentName,
-        query,
-        totalSteps,
+        agentId: params.agentId,
+        agentName: params.agentName,
+        query: params.query,
+        totalSteps: params.totalSteps,
         success: false,
         finalAnswer: null,
-        latencyMs,
+        latencyMs: params.latencyMs,
         tokensUsed: 0,
         metadata: metadataWithError,
       });
