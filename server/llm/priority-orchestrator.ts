@@ -4,7 +4,7 @@
  * 1. Knowledge Base (RAG Search)
  * 2. GPU Pool (Multi-GPU Load Balancing with Custom LoRA LLMs)
  * 3. Free APIs (Groq → Gemini → HF → OpenRouter) com auto-fallback
- * 4. Web/DeepWeb Search (se recusa detectada)
+ * 4. Web Search (se recusa detectada)
  * 5. OpenAI (último recurso, pago) com auto-fallback
  */
 
@@ -49,12 +49,12 @@ export interface PriorityRequest {
   topP?: number;
   maxTokens?: number;
   unrestricted?: boolean;  // UNRESTRICTED mode = bypasses all filters
-  forcedSource?: 'web' | 'deepweb' | 'kb' | 'free-apis';  // Force specific source when user explicitly requests it
+  forcedSource?: 'web' | 'kb' | 'free-apis';  // Force specific source when user explicitly requests it
 }
 
 export interface PriorityResponse {
   content: string;
-  source: 'kb' | 'free-api' | 'web-fallback' | 'deepweb-fallback' | 'openai' | 'openai-fallback';
+  source: 'kb' | 'free-api' | 'web-fallback' | 'openai' | 'openai-fallback';
   provider?: string;
   model?: string;
   usage?: {
@@ -74,7 +74,6 @@ export interface PriorityResponse {
     kbConfidence?: number;
     refusalDetected?: boolean;
     webSearchPerformed?: boolean;
-    deepwebSearchPerformed?: boolean;
     documentsIndexed?: number;
     explicitRequestFulfilled?: boolean;
     noAPIConsumption?: boolean;
@@ -296,79 +295,6 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
         return {
           content: `Tentei buscar na internet conforme solicitado, mas não encontrei resultados. Erro: ${error.message}`,
           source: 'web-fallback',
-          provider: 'search-failed',
-          model: 'error'
-        };
-      }
-    }
-    
-    // DEEPWEB SEARCH (explicit request) - NO API CONSUMPTION
-    if (req.forcedSource === 'deepweb') {
-      console.log('   🕵️ Executing DEEPWEB SEARCH as requested (NO API CONSUMPTION)...');
-      try {
-        // First check KB for existing knowledge
-        const kbResult = await searchWithConfidence(userMessage, { limit: 3 });
-        
-        if (kbResult.confidence >= 0.7 && kbResult.topResults.length > 0) {
-          console.log('   ✅ Found in Knowledge Base! Using KB results instead...');
-          const context = kbResult.topResults
-            .map(r => `[${r.metadata?.title || 'Document'}] ${r.chunkText}`)
-            .join('\n\n');
-          
-          const kbResponse = `📚 Informações da Knowledge Base:\n\n${context}\n\n[Fonte: Knowledge Base - ${kbResult.topResults.length} documentos]`;
-          
-          // MULTIMODAL: Collect attachments from KB results
-          const attachments: Array<{type: "image"|"video"|"document"; url: string; filename: string; mimeType: string; size?: number}> = [];
-          for (const result of kbResult.topResults) {
-            if (result.attachments && Array.isArray(result.attachments)) {
-              attachments.push(...result.attachments);
-            }
-          }
-          console.log(`   📎 Collected ${attachments.length} attachments from KB`);
-          
-          return {
-            content: kbResponse,
-            source: 'kb',
-            provider: 'knowledge-base',
-            model: 'rag-mmr',
-            attachments: attachments.length > 0 ? attachments : undefined,
-            metadata: {
-              kbResults: kbResult.topResults.length,
-              kbConfidence: kbResult.confidence,
-              explicitRequestFulfilled: true
-            }
-          };
-        }
-        
-        // KB didn't have it - go to DeepWeb
-        const deepwebResult = await executeDeepWebSearch(userMessage);
-        
-        await trackWebSearch(
-          'deepweb',
-          deepwebResult.model,
-          deepwebResult.searchMetadata
-        );
-        
-        console.log('   ✅ DeepWeb search completed WITHOUT consuming API tokens!');
-        console.log('='.repeat(80) + '\n');
-        
-        return {
-          content: deepwebResult.content,
-          source: 'deepweb-fallback',
-          provider: deepwebResult.provider,
-          model: deepwebResult.model,
-          metadata: {
-            deepwebSearchPerformed: true,
-            documentsIndexed: deepwebResult.documentsIndexed,
-            explicitRequestFulfilled: true,
-            noAPIConsumption: true
-          }
-        };
-      } catch (error: any) {
-        console.error('   ✗ DeepWeb search failed:', error.message);
-        return {
-          content: `Tentei buscar na DeepWeb conforme solicitado, mas não encontrei resultados. Erro: ${error.message}`,
-          source: 'deepweb-fallback',
           provider: 'search-failed',
           model: 'error'
         };
@@ -1040,7 +966,7 @@ interface WebFallbackResult {
 
 // Helper function to validate and track web searches safely
 async function trackWebSearch(
-  provider: 'web' | 'deepweb',
+  provider: 'web',
   model: string,
   metadata: unknown
 ): Promise<void> {
@@ -1074,103 +1000,6 @@ async function trackWebSearch(
       success: false
     });
   }
-}
-
-async function executeDeepWebSearch(
-  query: string
-): Promise<WebFallbackResult> {
-  console.log('   🕵️ Searching DeepWeb/Tor for information...');
-  
-  // Use TorSearch tool from agent
-  const torSearchResult = await agentTools.TorSearch({ query });
-  
-  if (!torSearchResult || !torSearchResult.observation) {
-    return {
-      content: "Busquei na DeepWeb mas não encontrei resultados relevantes. Tente reformular sua pergunta.",
-      provider: 'deepweb-search',
-      model: 'tor-failed',
-      documentsIndexed: 0,
-      searchMetadata: {
-        query,
-        sources: [],
-        resultsCount: 0,
-        indexedDocuments: 0
-      }
-    };
-  }
-  
-  // Extract results from metadata (NOT from observation string!)
-  const metadata = torSearchResult.metadata as any;
-  const results = metadata?.results || [];
-  
-  if (!torSearchResult.success || results.length === 0) {
-    return {
-      content: torSearchResult.observation, // Use the formatted message from tor-search
-      provider: 'deepweb-search',
-      model: 'no-results',
-      documentsIndexed: 0,
-      searchMetadata: {
-        query,
-        sources: [],
-        resultsCount: 0,
-        indexedDocuments: 0
-      }
-    };
-  }
-  
-  console.log(`   ✓ Found ${results.length} DeepWeb results`);
-  console.log('   📋 Sending DeepWeb results to curation queue...');
-  
-  // Send to curation queue for HITL approval (NOT direct KB insertion)
-  let queued = 0;
-  for (const result of results.slice(0, 5)) {
-    try {
-      const title = result.title || 'DeepWeb Result';
-      const content = result.snippet || '';
-      
-      await db.insert(curationQueue).values({
-        title,
-        content,
-        suggestedNamespaces: ["deepweb"],
-        tags: [`deepweb`, `tor:${result.isTorSite}`, `url:${result.url}`],
-        status: "pending",
-        submittedBy: "deepweb-search-system",
-      } as any);
-      
-      queued++;
-    } catch (error: any) {
-      console.error(`   ✗ Failed to queue DeepWeb result:`, error.message);
-    }
-  }
-  
-  console.log(`   ✓ Queued ${queued} DeepWeb documents for HITL approval`);
-  console.log('   📋 Returning raw DeepWeb summary (NO API CONSUMPTION)');
-  
-  // Prepare search metadata
-  const searchMetadata = {
-    query,
-    sources: results.slice(0, 10).map((r: any) => ({
-      url: r.url,
-      title: r.title || 'DeepWeb Result',
-      snippet: r.snippet || '',
-      domain: r.isTorSite ? 'tor-network' : 'clearnet'
-    })),
-    resultsCount: results.length,
-    indexedDocuments: queued
-  };
-  
-  // Format response without LLM
-  const formattedSummary = `🕵️ Resultados da busca na DeepWeb/Tor:\n\n${results.slice(0, 5).map((r: any, i: number) => 
-    `${i + 1}. **${r.title || 'DeepWeb Result'}**\n   ${r.snippet || 'No description'}\n   🔗 ${r.url}${r.isTorSite ? ' (⚠️ Requer Tor)' : ''}\n`
-  ).join('\n')}\n\n📊 Total: ${results.length} resultados encontrados\n📋 ${queued} documentos enviados para fila de curadoria (aguardando aprovação HITL)\n\n⚠️ **Nota**: Estes resultados vêm da rede Tor/DeepWeb`;
-  
-  return {
-    content: formattedSummary,
-    provider: 'deepweb-summary',
-    model: 'tor-results',
-    documentsIndexed: queued,
-    searchMetadata
-  };
 }
 
 async function executeWebFallback(
