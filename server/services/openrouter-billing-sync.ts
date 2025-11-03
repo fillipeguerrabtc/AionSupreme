@@ -23,14 +23,14 @@ class OpenRouterBillingSyncService {
 
   constructor() {
     // OpenRouter usa variáveis de ambiente específicas
-    this.apiKey = process.env.OPENROUTER_API_KEY || "";
+    this.apiKey = process.env.OPEN_ROUTER_API_KEY || "";
     
     if (!this.apiKey) {
-      console.warn("[OpenRouter Billing Sync] ⚠️  OPENROUTER_API_KEY não encontrada - sync desabilitado");
+      console.warn("[OpenRouter Billing Sync] ⚠️  OPEN_ROUTER_API_KEY não encontrada - sync desabilitado");
       return;
     }
 
-    console.log("[OpenRouter Billing Sync] ✅ Inicializado com sucesso");
+    console.log("[OpenRouter Billing Sync] ✅ Inicializado com OPEN_ROUTER_API_KEY");
   }
 
   /**
