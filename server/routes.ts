@@ -3107,6 +3107,23 @@ export function registerRoutes(app: Express): Server {
         const latency = Date.now() - startTime;
         metricsCollector.recordLatency(latency);
         
+        // 🧠 CRITICAL HITL: Send explicit request to curation queue
+        try {
+          const { autoLearningListener } = await import('./events/auto-learning-listener');
+          
+          autoLearningListener.onChatCompleted({
+            conversationId: null,
+            userMessage: explicitRequest.cleanQuery || lastUserMessage,
+            assistantResponse: orchestratorResult.content,
+            source: explicitRequest.source,
+            provider: orchestratorResult.provider,
+          }).catch((err: any) => {
+            console.error('[HITL] Failed to send explicit request to curation:', err.message);
+          });
+        } catch (autoLearnError: any) {
+          console.error('[HITL] Curation system unavailable:', autoLearnError.message);
+        }
+        
         return res.json({
           choices: [{ 
             message: { 
@@ -3199,6 +3216,26 @@ export function registerRoutes(app: Express): Server {
         undefined,
         { totalSteps: result.totalSteps, stopReason: result.stopReason }
       );
+      
+      // 🧠 CRITICAL HITL: Send to curation queue
+      // Ensures ALL chat responses go through human review before KB indexing
+      try {
+        const { autoLearningListener } = await import('./events/auto-learning-listener');
+        
+        // Fire and forget - não bloquear resposta
+        autoLearningListener.onChatCompleted({
+          conversationId: null, // Sem ID de conversa para chats standalone
+          userMessage: lastUserMessage,
+          assistantResponse: finalContent,
+          source: fallbackResult.usedFallback ? 'web' : 'react-agent',
+          provider: fallbackResult.usedFallback ? 'automatic-fallback' : 'react-agent',
+        }).catch((err: any) => {
+          console.error('[HITL] Failed to send to curation queue:', err.message);
+        });
+      } catch (autoLearnError: any) {
+        // Não falhar a requisição se curadoria falhar
+        console.error('[HITL] Curation system unavailable:', autoLearnError.message);
+      }
       
       res.json({
         choices: [{ 

@@ -6,7 +6,7 @@
 
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { getProviderQuotas } from '../monitoring/token-tracker';
+import { getProviderQuotas, trackTokenUsage } from '../monitoring/token-tracker';
 
 // ============================================================================
 // TYPES
@@ -106,11 +106,27 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
 
   usageStats.groq.today++;
 
+  // ✅ PRODUCTION: Track real usage from Groq API
+  const promptTokens = response.usage?.prompt_tokens || 0;
+  const completionTokens = response.usage?.completion_tokens || 0;
+  const totalTokens = response.usage?.total_tokens || 0;
+  
+  await trackTokenUsage({
+    provider: 'groq',
+    model: 'llama-3.3-70b-versatile',
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    cost: 0,  // Free API
+    requestType: 'chat',
+    success: true
+  });
+
   return {
     text: response.choices[0].message.content || '',
     provider: 'groq',
     model: 'llama-3.3-70b-versatile',
-    tokensUsed: response.usage?.total_tokens
+    tokensUsed: totalTokens
   };
 }
 
@@ -152,11 +168,27 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
 
   usageStats.gemini.today++;
 
+  // ✅ PRODUCTION: Track real usage from Gemini API
+  const promptTokens = response.usageMetadata?.promptTokenCount || 0;
+  const completionTokens = response.usageMetadata?.candidatesTokenCount || 0;
+  const totalTokens = response.usageMetadata?.totalTokenCount || 0;
+  
+  await trackTokenUsage({
+    provider: 'gemini',
+    model: 'gemini-2.0-flash-exp',
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    cost: 0,  // Free API
+    requestType: 'chat',
+    success: true
+  });
+
   return {
     text: response.text(),
     provider: 'gemini',
     model: 'gemini-2.0-flash-exp',
-    tokensUsed: response.usageMetadata?.totalTokenCount
+    tokensUsed: totalTokens
   };
 }
 
@@ -245,11 +277,27 @@ async function callOpenRouter(req: LLMRequest): Promise<LLMResponse> {
   const data = await response.json();
   usageStats.openrouter.today++;
 
+  // ✅ PRODUCTION: Track real usage from OpenRouter API
+  const promptTokens = data.usage?.prompt_tokens || 0;
+  const completionTokens = data.usage?.completion_tokens || 0;
+  const totalTokens = data.usage?.total_tokens || 0;
+  
+  await trackTokenUsage({
+    provider: 'openrouter',
+    model: 'llama-3.1-8b-instruct',
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    cost: 0,  // Free API
+    requestType: 'chat',
+    success: true
+  });
+
   return {
     text: data.choices[0].message.content,
     provider: 'openrouter',
     model: 'llama-3.1-8b-instruct',
-    tokensUsed: data.usage?.total_tokens
+    tokensUsed: totalTokens
   };
 }
 
@@ -271,11 +319,27 @@ async function callOpenAI(req: LLMRequest): Promise<LLMResponse> {
     top_p: req.topP || 0.9
   });
 
+  // ✅ PRODUCTION: Track real usage from OpenAI API (PAID)
+  const promptTokens = response.usage?.prompt_tokens || 0;
+  const completionTokens = response.usage?.completion_tokens || 0;
+  const totalTokens = response.usage?.total_tokens || 0;
+  
+  await trackTokenUsage({
+    provider: 'openai',
+    model: 'gpt-3.5-turbo',
+    promptTokens,
+    completionTokens,
+    totalTokens,
+    // ✅ Real cost calculation (not mock!)
+    requestType: 'chat',
+    success: true
+  });
+
   return {
     text: response.choices[0].message.content || '',
     provider: 'openai',
     model: 'gpt-3.5-turbo',
-    tokensUsed: response.usage?.total_tokens
+    tokensUsed: totalTokens
   };
 }
 
