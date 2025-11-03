@@ -875,8 +875,11 @@ export function registerRoutes(app: Express): Server {
     const startTime = Date.now();
     
     try {
-      const { query, k, namespace } = req.body;
-      const results = await ragService.search(query, { k: k || 10, namespace });
+      const { query, k, namespace, namespaces } = req.body;
+      const results = await ragService.search(query, { 
+        k: k || 10, 
+        namespaces: namespaces || (namespace ? [namespace] : undefined)
+      });
       
       const latency = Date.now() - startTime;
       
@@ -2792,54 +2795,33 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      // 🧠 AUTO-COLLECT HIGH-QUALITY CONVERSATIONS FOR TRAINING
-      // Trigger after ASSISTANT messages (conversation complete)
-      if (role === "assistant") {
+      // 🧠 HITL ENFORCEMENT - Send to curation queue (ZERO bypass policy)
+      // Trigger after ASSISTANT messages (conversation turn complete)
+      if (role === "assistant" && content) {
         try {
-          const { ConversationCollector } = await import("./training/collectors/conversation-collector");
+          const { autoLearningListener } = await import("./events/auto-learning-listener");
           
-          // Get all messages for this conversation
+          // Get all messages to find last user message
           const allMessages = await storage.getMessagesByConversation(conversationId);
           
-          // Calculate quality metrics
-          const metrics = ConversationCollector.calculateQualityScore(allMessages);
+          // Find the last user message (the one before this assistant message)
+          const lastUserMsg = allMessages
+            .filter(m => m.role === "user")
+            .slice(-1)[0];
           
-          // Only collect if quality meets threshold
-          if (ConversationCollector.shouldCollect(metrics)) {
-            // Check if already collected
-            const existing = await storage.getTrainingDataCollectionByConversation(conversationId);
-            
-            if (!existing) {
-              // Get conversation
-              const conversation = await storage.getConversation(conversationId);
-              if (conversation) {
-                // Convert to training format
-                const systemPrompt = ConversationCollector.extractSystemPrompt(allMessages);
-                const formattedData = ConversationCollector.convertToTrainingFormat(allMessages, systemPrompt);
-                
-                // Create training data collection entry
-                await storage.createTrainingDataCollection({
-                  conversationId,
-                  autoQualityScore: metrics.score,
-                  status: "pending",
-                  formattedData,
-                  metadata: {
-                    messageCount: metrics.messageCount,
-                    totalTokens: metrics.totalTokens,
-                    avgLatency: metrics.avgLatency,
-                    providers: metrics.providers,
-                    toolsUsed: metrics.toolsUsed,
-                    hasAttachments: metrics.hasAttachments,
-                  },
-                });
-                
-                console.log(`   ✅ High-quality conversation collected for training (ID: ${conversationId}, score: ${metrics.score}, messages: ${metrics.messageCount})`);
-              }
-            }
+          if (lastUserMsg) {
+            // Send to curation queue (HITL mandatory)
+            await autoLearningListener.onChatCompleted({
+              conversationId,
+              userMessage: lastUserMsg.content,
+              assistantResponse: content,
+              source: metadata?.source || "openai",
+              provider: metadata?.provider,
+            });
           }
         } catch (collectorError: any) {
           // Don't fail the request if collection fails
-          console.error('[Auto-Collect] Failed to collect training data:', collectorError.message);
+          console.error('[HITL] Failed to send to curation queue:', collectorError.message);
         }
       }
       
