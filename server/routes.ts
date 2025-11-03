@@ -944,7 +944,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET/POST /api/admin/policies
-  app.get("/api/admin/policies", requireAdmin, requirePermission("admin:settings:manage"), async (req, res) => {
+  app.get("/api/admin/policies", requireAdmin, requirePermission("settings:policies:read"), async (req, res) => {
     try {
       const policy = await storage.getActivePolicy();
       res.json(policy || {});
@@ -955,7 +955,7 @@ export function registerRoutes(app: Express): Server {
 
   // Preview the FULL system prompt (custom + generated parts)
   // Accepts POST with temporary behavior values for live preview
-  app.post("/api/admin/policies/preview-prompt", requireAdmin, requirePermission("admin:settings:manage"), async (req, res) => {
+  app.post("/api/admin/policies/preview-prompt", requireAdmin, requirePermission("settings:policies:read"), async (req, res) => {
     try {
       const policy = await storage.getActivePolicy();
       if (!policy) {
@@ -983,7 +983,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/admin/policies", requireAdmin, requirePermission("admin:settings:manage"), async (req, res) => {
+  app.post("/api/admin/policies", requireAdmin, requirePermission("settings:policies:update"), async (req, res) => {
     try {
       const existing = await storage.getActivePolicy();
       
@@ -1000,7 +1000,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/admin/settings/timezone - Obter timezone do sistema
-  app.get("/api/admin/settings/timezone", requireAdmin, requirePermission("admin:settings:manage"), async (req, res) => {
+  app.get("/api/admin/settings/timezone", requireAdmin, requirePermission("settings:timezone:read"), async (req, res) => {
     try {
       // Sempre retornar timezone padrão (single-tenant)
       res.json({ timezone: "America/Sao_Paulo" });
@@ -1010,7 +1010,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/admin/settings/timezone - Atualizar timezone do sistema
-  app.post("/api/admin/settings/timezone", requireAdmin, requirePermission("admin:settings:manage"), async (req, res) => {
+  app.post("/api/admin/settings/timezone", requireAdmin, requirePermission("settings:timezone:update"), async (req, res) => {
     try {
       const { timezone } = req.body;
       
@@ -1033,7 +1033,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/admin/lifecycle-policies - Get lifecycle policy configuration
-  app.get("/api/admin/lifecycle-policies", requireAdmin, requirePermission("admin:settings:manage"), async (req, res) => {
+  app.get("/api/admin/lifecycle-policies", requireAdmin, requirePermission("settings:policies:read"), async (req, res) => {
     try {
       const policyPath = path.join(process.cwd(), "config", "lifecycle-policy.json");
       const policyContent = await fs.readFile(policyPath, "utf-8");
@@ -1046,7 +1046,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // PATCH /api/admin/lifecycle-policies - Update lifecycle policy configuration
-  app.patch("/api/admin/lifecycle-policies", requireAdmin, requirePermission("admin:settings:manage"), async (req, res) => {
+  app.patch("/api/admin/lifecycle-policies", requireAdmin, requirePermission("settings:policies:update"), async (req, res) => {
     try {
       const policyPath = path.join(process.cwd(), "config", "lifecycle-policy.json");
       

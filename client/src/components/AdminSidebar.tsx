@@ -193,14 +193,14 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: Timer,
       value: "lifecycle",
       testId: "nav-lifecycle",
-      requiredPermission: "settings:system:read",
+      requiredPermission: "settings:policies:read",
     },
     {
       title: t.admin.tabs.settings,
       icon: SettingsIcon,
       value: "settings",
       testId: "nav-settings",
-      requiredPermission: "admin:settings:manage",
+      requiredPermission: "settings:policies:read",
     },
   ];
 

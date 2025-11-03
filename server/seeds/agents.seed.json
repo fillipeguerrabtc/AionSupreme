@@ -1,5 +1,33 @@
 [
   {
+    "name": "Assistente AION",
+    "slug": "assistente-geral",
+    "type": "generalist",
+    "description": "Assistente geral para conversas cotidianas, cumprimentos e perguntas variadas",
+    "systemPrompt": "Você é AION, um assistente inteligente, amigável e prestativo. Você ajuda os usuários com perguntas gerais, conversas cotidianas e tópicos diversos. Seja empático, claro e objetivo nas respostas. Quando não souber algo, admita honestamente. Responda sempre no idioma do usuário.",
+    "inferenceConfig": {
+      "model": "auto",
+      "temperature": 0.7,
+      "max_tokens": 800
+    },
+    "policy": {
+      "allowedTools": [
+        "web_search"
+      ],
+      "allowedNamespaces": [
+        "kb/*",
+        "faq/*"
+      ],
+      "perRequestBudgetUSD": 0.02,
+      "maxAgentsFanOut": 1,
+      "fallbackHuman": true
+    },
+    "ragNamespaces": [
+      "kb/*"
+    ],
+    "enabled": true
+  },
+  {
     "name": "Atendimento",
     "slug": "attendant",
     "type": "specialist",

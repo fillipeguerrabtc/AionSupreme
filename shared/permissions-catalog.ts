@@ -91,6 +91,16 @@ export const PERMISSIONS_CATALOG: ModuleDefinition[] = [
         slug: 'system',
         labelKey: 'permissions.submodules.settings.system',
         actions: ['read', 'update', 'manage']
+      },
+      {
+        slug: 'policies',
+        labelKey: 'permissions.submodules.settings.policies',
+        actions: ['read', 'update']
+      },
+      {
+        slug: 'timezone',
+        labelKey: 'permissions.submodules.settings.timezone',
+        actions: ['read', 'update']
       }
     ]
   },
