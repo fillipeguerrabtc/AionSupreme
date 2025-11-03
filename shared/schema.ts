@@ -296,8 +296,6 @@ export const documents = pgTable("documents", {
     truncated?: boolean; // Whether content was truncated
     analyzed?: boolean; // For images - whether Vision API was used
     namespaces?: string[]; // Namespaces for multi-agent routing (CRITICAL!)
-    deepweb?: boolean; // From DeepWeb/Tor search
-    isTorSite?: boolean; // Is a .onion site
   }>(),
   
   createdAt: timestamp("created_at").notNull().defaultNow(),

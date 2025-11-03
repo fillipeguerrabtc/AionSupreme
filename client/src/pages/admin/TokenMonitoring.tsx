@@ -113,7 +113,7 @@ interface WebSearchSource {
 interface WebSearchRecord {
   id: number;
   query: string;
-  provider: 'web' | 'deepweb';
+  provider: 'web';
   timestamp: string;
   metadata?: {
     query?: string;
@@ -132,7 +132,7 @@ interface WebSearchProviderStats {
 
 interface WebSearchStats {
   web: WebSearchProviderStats;
-  deepweb: WebSearchProviderStats;
+  
 }
 
 interface KBSearchHistoryEntry {
@@ -163,12 +163,11 @@ const COLORS = {
   openrouter: '#8b5cf6',
   openai: '#10a37f',
   web: '#06b6d4',
-  deepweb: '#6366f1',
   kb: '#f59e0b'
 };
 
 interface TokenMonitoringProps {
-  initialTab?: 'overview' | 'kb' | 'free-apis' | 'openai' | 'web' | 'deepweb' | 'limits';
+  initialTab?: 'overview' | 'kb' | 'free-apis' | 'openai' | 'web' | 'limits';
 }
 
 export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonitoringProps = {}) {
@@ -332,8 +331,9 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
       return;
     }
 
+
     const headers = showBreakdown 
-      ? ['Date', 'Total Tokens', 'Groq', 'Gemini', 'HuggingFace', 'OpenRouter', 'OpenAI', 'KB', 'Web', 'DeepWeb']
+      ? ['Date', 'Total Tokens', 'Groq', 'Gemini', 'HuggingFace', 'OpenRouter', 'OpenAI', 'KB', 'Web']
       : ['Date', 'Tokens', 'Requests', 'Cost'];
     
     const rows = trends.daily.map((d: any) => {
@@ -347,8 +347,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
           d.openrouter || 0,
           d.openai || 0,
           d.kb || 0,
-          d.web || 0,
-          d.deepweb || 0
+          d.web || 0
         ].join(',');
       } else {
         return [d.date, d.tokens || 0, d.requests || 0, d.cost || 0].join(',');
@@ -418,10 +417,8 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
   
   const getWebSearchCount = () => webStats?.web?.totalSearches ?? 0;
   const getWebResultsCount = () => webStats?.web?.totalSources ?? 0;
-  const getDeepWebSearchCount = () => webStats?.deepweb?.totalSearches ?? 0;
   
   const getWebSearchHistory = () => webHistory?.filter(w => w.provider === 'web') ?? [];
-  const getDeepWebSearchHistory = () => webHistory?.filter(w => w.provider === 'deepweb') ?? [];
   
   // Prepare chart data - convert summary array to chart-friendly format
   const getProviderChartData = () => {
@@ -510,7 +507,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
           <Globe className="w-4 h-4 mr-2" />
           {t.admin.tokenMonitoring.tabs.webSearches}
         </TabsTrigger>
-        <TabsTrigger value="deepweb" data-testid="tab-deepweb">
           <Search className="w-4 h-4 mr-2" />
           {t.admin.tokenMonitoring.tabs.deepWeb}
         </TabsTrigger>
@@ -607,7 +603,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
             </CardContent>
           </Card>
 
-          {/* DeepWeb Searches */}
           <Card className="glass-premium border-accent/20 hover-elevate">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{t.admin.overview.deepWeb}</CardTitle>
@@ -615,7 +610,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold gradient-text">
-                {getDeepWebSearchCount()}
               </div>
               <p className="text-xs text-muted-foreground">{t.admin.overview.torNetworkQueries}</p>
             </CardContent>
@@ -871,7 +865,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       <Area type="monotone" dataKey="openai" stackId="1" stroke={COLORS.openai} fill="url(#openai)" name="OpenAI" />
                       <Area type="monotone" dataKey="kb" stackId="1" stroke={COLORS.kb} fill={COLORS.kb} fillOpacity={0.6} name="KB" />
                       <Area type="monotone" dataKey="web" stackId="1" stroke={COLORS.web} fill={COLORS.web} fillOpacity={0.6} name="Web" />
-                      <Area type="monotone" dataKey="deepweb" stackId="1" stroke={COLORS.deepweb} fill={COLORS.deepweb} fillOpacity={0.6} name="DeepWeb" />
                     </>
                   ) : (
                     <Area type="monotone" dataKey="tokens" stackId="1" stroke={COLORS.openai} fill="url(#total)" name={t.admin.tokenMonitoring.overview.totalTokens} />
@@ -1426,7 +1419,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
       </TabsContent>
 
       {/* DEEPWEB TAB */}
-      <TabsContent value="deepweb" className="space-y-6">
         <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -1440,19 +1432,16 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.deepWeb.totalSearches}</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {webStats?.deepweb?.totalSearches || 0}
                 </p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.deepWeb.totalSources}</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {webStats?.deepweb?.totalSources || 0}
                 </p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.deepWeb.uniqueDomains}</p>
                 <p className="text-3xl font-bold gradient-text">
-                  {webStats?.deepweb?.uniqueDomains || 0}
                 </p>
               </div>
             </div>
@@ -1461,7 +1450,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
             <ScrollArea className="h-[600px] pr-4">
               <div className="space-y-4">
-                {getDeepWebSearchHistory().map((search, idx) => (
                   <Card key={idx} className="glass border-indigo-500/20 hover-elevate">
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -1500,7 +1488,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     </CardContent>
                   </Card>
                 ))}
-                {getDeepWebSearchHistory().length === 0 && (
                   <div className="text-center py-12 text-muted-foreground">
                     <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>{t.admin.tokenMonitoring.deepWeb.noHistory}</p>

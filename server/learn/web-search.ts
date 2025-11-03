@@ -1,6 +1,6 @@
 /**
- * AION Supreme - Web Search & Deep Web Discovery
- * DuckDuckGo HTML Scraping + Optional Tor Search
+ * AION Supreme - Web Search
+ * DuckDuckGo HTML Scraping
  */
 
 import * as cheerio from 'cheerio';
@@ -13,12 +13,11 @@ export interface SearchResult {
   title: string;
   snippet: string;
   url: string;
-  source: 'duckduckgo' | 'tor';
+  source: 'duckduckgo';
 }
 
 export interface SearchOptions {
   limit?: number;
-  useTor?: boolean;
   timeout?: number;
 }
 
@@ -32,7 +31,6 @@ export async function searchWeb(
 ): Promise<SearchResult[]> {
   const {
     limit = 10,
-    useTor = false,
     timeout = 10000
   } = options;
 
@@ -41,13 +39,6 @@ export async function searchWeb(
   try {
     // DuckDuckGo HTML search
     const results = await searchDuckDuckGo(query, limit, timeout);
-    
-    // TODO: Add Tor search if enabled
-    if (useTor && results.length < limit) {
-      console.log('[WebSearch] Attempting deep web search...');
-      // const torResults = await searchTor(query, limit - results.length);
-      // results.push(...torResults);
-    }
 
     console.log(`[WebSearch] Found ${results.length} results`);
     return results;
@@ -133,30 +124,6 @@ async function searchDuckDuckGo(
     }
     throw error;
   }
-}
-
-// ============================================================================
-// TOR SEARCH (Deep Web) - PLACEHOLDER
-// ============================================================================
-
-/**
- * Deep web search using Tor
- * IMPLEMENTATION NOTE: Requires Tor proxy running (e.g., socks5://localhost:9050)
- * 
- * For production deployment:
- * 1. Install Tor: apt-get install tor
- * 2. Start Tor service: systemctl start tor
- * 3. Configure SOCKS proxy in fetch calls
- */
-async function searchTor(query: string, limit: number): Promise<SearchResult[]> {
-  // TODO: Implement Tor search when needed
-  // This requires:
-  // - Tor proxy running (SOCKS5)
-  // - fetch with proxy support (e.g., node-fetch with socks-proxy-agent)
-  // - Access to .onion search engines (Ahmia, Torch, etc.)
-  
-  console.log('[TorSearch] Deep web search not yet implemented');
-  return [];
 }
 
 // ============================================================================

@@ -2997,7 +2997,7 @@ export function registerRoutes(app: Express): Server {
   
   // Helper: Detect explicit source request keywords
   function detectExplicitSourceRequest(message: string): {
-    source: 'web' | 'deepweb' | 'kb' | 'free-apis' | null;
+    source: 'web' | 'kb' | 'free-apis' | null;
     cleanQuery: string;
   } {
     const normalized = message.toLowerCase();
@@ -3011,16 +3011,6 @@ export function registerRoutes(app: Express): Server {
       'search the web', 'search google', 'look up online'
     ];
     
-    // DeepWeb keywords (Portuguese + English + variations)
-    const deepwebKeywords = [
-      'consulte na deepweb', 'pesquise na deepweb', 'busque na deepweb', 'procure na deepweb',
-      'consulte na deep web', 'pesquise na deep web', 'busque na deep web', 'procure na deep web',
-      'consulte no tor', 'pesquise no tor', 'busque no tor', 'procure no tor',
-      'consulte na darkweb', 'pesquise na darkweb', 'dark web', 'darknet',
-      'search deepweb', 'search deep web', 'search tor', 'search dark web',
-      'look up deepweb', 'find on tor', 'onion search'
-    ];
-    
     // Knowledge Base keywords
     const kbKeywords = [
       'consulte na knowledge base', 'pesquise na knowledge base',
@@ -3028,16 +3018,6 @@ export function registerRoutes(app: Express): Server {
       'consulte na base de conhecimento', 'pesquise na base de conhecimento',
       'search knowledge base', 'search kb'
     ];
-    
-    // Check DeepWeb first (more specific)
-    for (const keyword of deepwebKeywords) {
-      if (normalized.includes(keyword)) {
-        return { 
-          source: 'deepweb', 
-          cleanQuery: message.replace(new RegExp(keyword, 'gi'), '').trim() 
-        };
-      }
-    }
     
     // Check KB
     for (const keyword of kbKeywords) {
@@ -4609,10 +4589,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/tokens/web-search-history - Get web/deepweb search history with sources
+  // GET /api/tokens/web-search-history - Get web search history
   app.get("/api/tokens/web-search-history", async (req, res) => {
     try {
-      const provider = (req.query.provider as 'web' | 'deepweb' | 'both') || 'both';
+      const provider = (req.query.provider as 'web' | 'both') || 'both';
       const limit = parseInt(req.query.limit as string) || 100;
       
       const history = await tokenTracker.getWebSearchHistory(provider, limit);
@@ -4622,7 +4602,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/tokens/web-search-stats - Get web/deepweb search statistics
+  // GET /api/tokens/web-search-stats - Get web search statistics
   app.get("/api/tokens/web-search-stats", async (req, res) => {
     try {
       const stats = await tokenTracker.getWebSearchStats();
