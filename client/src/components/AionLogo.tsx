@@ -1,4 +1,4 @@
-const logoImage = "/aion-logo.png";
+const logoImage = "/system/aion-logo.png";
 
 interface AionLogoProps {
   size?: "sm" | "md" | "lg" | "xl";

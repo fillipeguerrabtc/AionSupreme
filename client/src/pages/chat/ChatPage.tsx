@@ -591,7 +591,7 @@ export default function ChatPage() {
               {msg.role === "assistant" && (
                 <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
                   <img 
-                    src="/cat.gif" 
+                    src="/system/cat.gif" 
                     alt="Gatinho"
                     className="w-full h-full object-cover"
                     data-testid="icon-bot"
@@ -629,7 +629,7 @@ export default function ChatPage() {
             <div className="flex gap-4 animate-slide-up">
               <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
                 <img 
-                  src="/cat.gif" 
+                  src="/system/cat.gif" 
                   alt="Gatinho"
                   className="w-full h-full object-cover"
                 />
@@ -793,7 +793,7 @@ export default function ChatPage() {
               {msg.role === "assistant" && (
                 <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
                   <img 
-                    src="/cat.gif" 
+                    src="/system/cat.gif" 
                     alt="Gatinho"
                     className="w-full h-full object-cover"
                     data-testid="icon-bot"
@@ -831,7 +831,7 @@ export default function ChatPage() {
             <div className="flex gap-4 animate-slide-up">
               <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
                 <img 
-                  src="/cat.gif" 
+                  src="/system/cat.gif" 
                   alt="Gatinho"
                   className="w-full h-full object-cover"
                 />
