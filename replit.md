@@ -80,3 +80,43 @@ Key decisions include a single-tenant architecture, externalized JSON behavioral
 - **cheerio**: HTML parsing and web scraping
 - **multer**: File upload handling
 - **file-type**: MIME type detection
+
+## Gestão de Arquivos e Assets
+
+### Estrutura de Diretórios
+```
+client/public/system/          # 🛡️ PROTEGIDO - Assets críticos do sistema
+  ├── favicon.png              # Favicon (usado em index.html)
+  ├── aion-logo.png            # Logo principal (usado em AionLogo.tsx)
+  └── cat.gif                  # Avatar do bot no chat (usado em ChatPage.tsx)
+
+attached_assets/
+  ├── learned_images/          # 🛡️ PROTEGIDO - Imagens processadas pelo Vision AI
+  ├── generated_images/        # 🛡️ PROTEGIDO - Logos gerados pelo sistema
+  ├── stock_images/            # Imagens de stock (pode limpar se vazia)
+  └── custom_icons/            # Ícones customizados (pode limpar se vazia)
+
+training/colab/                # 🛡️ PROTEGIDO - Scripts Python para GPU workers
+  ├── AION_ALL_IN_ONE.py       # Script completo de GPU worker
+  ├── COLAB_FINE_TUNING.py     # Script de fine-tuning
+  └── COLAB_INFERENCE_SERVER.py # Script de inference server
+```
+
+### Regras de Limpeza
+**NUNCA DELETAR:**
+- `client/public/system/` - Assets críticos referenciados no código
+- `attached_assets/learned_images/` - Usado por ImageProcessor (server/learn/image-processor.ts)
+- `attached_assets/generated_images/` - Histórico de logos/imagens geradas
+- `training/colab/*.py` - Scripts essenciais para GPU workers
+
+**PODE LIMPAR:**
+- Screenshots temporários: `image_*.png`, `IMG_*.png`, `Logo_*.png`, `Favicon_*.png`
+- Arquivos com timestamp: `*_1762*.png`, `*_1762*.jpeg`
+- GIFs de teste não usados pelo sistema
+- PDFs obsoletos em `docs/pdfs/` (documentação já está em .md)
+- Pastas vazias: `stock_images/`, `custom_icons/`
+
+### Convenção de Uso
+- **Assets do sistema** (favicon, logos, avatares) → `client/public/system/`
+- **Anexos temporários** (screenshots, demos) → `attached_assets/` (limpeza periódica)
+- **Imagens aprendidas** (Vision AI) → `attached_assets/learned_images/` (automático)
