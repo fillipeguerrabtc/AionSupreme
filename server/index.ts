@@ -1,3 +1,6 @@
+// ⚡ FASE 1 - Fail-fast ENV Check (DEVE SER PRIMEIRO IMPORT)
+import "./scripts/check-env";
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -5,11 +8,19 @@ import { fileCleanup } from "./cleanup/file-cleanup";
 import { setupAuth } from "./replitAuth";
 import { autoRecovery } from "./federated/auto-recovery";
 import { queryMonitoringMiddleware } from "./middleware/query-monitoring";
+import { applySecurity } from "./middleware/security";
+import { withRequestId, log as logger } from "./utils/logger";
 
 process.env.TZ = 'America/Sao_Paulo';
-console.log(`[Timezone] Configured to: ${process.env.TZ} (Brasília, Brazil)`);
+logger.info(`[Timezone] Configured to: ${process.env.TZ} (Brasília, Brazil)`);
 
 const app = express();
+
+// 🔒 FASE 1 - Segurança HTTP (Helmet + CORS)
+applySecurity(app);
+
+// 📝 FASE 1 - Logger com RequestId para rastreabilidade
+app.use(withRequestId);
 
 declare module 'http' {
   interface IncomingMessage {
@@ -69,6 +80,10 @@ app.use((req, res, next) => {
   // Carregar sistema multi-agente do banco de dados
   const { loadAgentsFromDatabase } = await import("./agent/loader");
   await loadAgentsFromDatabase(); // Modo single-tenant
+
+  // 💾 FASE 1 - Carregar Vector Store snapshot (RAG persistente)
+  const { vectorStore } = await import("./rag/vector-store");
+  vectorStore.load();
 
   // Iniciar serviço de limpeza de arquivos (executa a cada hora para deletar arquivos expirados)
   fileCleanup.start();
@@ -137,3 +152,22 @@ app.use((req, res, next) => {
     }
   });
 })();
+
+// 💾 FASE 1 - Salvar Vector Store snapshot no shutdown (SINGLETON - fora do async block)
+let shutdownHandlersRegistered = false;
+
+async function gracefulShutdown(signal: string) {
+  const { vectorStore } = await import("./rag/vector-store");
+  const { log } = await import("./utils/logger");
+  
+  log.info(`[Shutdown] Recebido sinal ${signal}, salvando snapshot...`);
+  vectorStore.save();
+  log.info('[Shutdown] Snapshot salvo, encerrando processo');
+  process.exit(0);
+}
+
+if (!shutdownHandlersRegistered) {
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  shutdownHandlersRegistered = true;
+}

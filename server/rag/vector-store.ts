@@ -12,6 +12,8 @@ import { storage } from "../storage";
 import { embedder } from "./embedder";
 import type { Embedding } from "@shared/schema";
 import { usageTracker } from "../services/usage-tracker";
+import fs from "fs";
+import path from "path";
 
 interface SearchResult {
   id: number;
@@ -185,6 +187,59 @@ export class VectorStore {
       totalVectors: this.vectors.size,
       dimensions: firstVector ? firstVector.length : 0,
     };
+  }
+
+  /**
+   * 💾 FASE 1 - Vector Store Persistente
+   * Salva snapshot do index em disco para persistir entre restarts
+   */
+  private snapshotPath = process.env.VECTOR_SNAPSHOT_PATH || "./data/vectorstore.snapshot.json";
+
+  save(): void {
+    try {
+      // Converter Maps para objetos serializáveis
+      const snapshot = {
+        vectors: Object.fromEntries(this.vectors.entries()),
+        metadata: Object.fromEntries(this.metadata.entries()),
+        timestamp: new Date().toISOString(),
+        stats: this.getStats()
+      };
+
+      // Criar diretório se não existe
+      const dir = path.dirname(this.snapshotPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // Salvar snapshot
+      fs.writeFileSync(this.snapshotPath, JSON.stringify(snapshot, null, 2));
+      console.log(`[VectorStore] 💾 Snapshot salvo: ${this.vectors.size} vectors (${this.snapshotPath})`);
+    } catch (error) {
+      console.error("[VectorStore] ❌ Erro ao salvar snapshot:", error);
+    }
+  }
+
+  load(): void {
+    try {
+      if (!fs.existsSync(this.snapshotPath)) {
+        console.log("[VectorStore] ℹ️  Nenhum snapshot encontrado, iniciando com index vazio");
+        return;
+      }
+
+      const data = fs.readFileSync(this.snapshotPath, "utf-8");
+      const snapshot = JSON.parse(data);
+
+      // Restaurar Maps
+      this.vectors = new Map(Object.entries(snapshot.vectors).map(([k, v]) => [Number(k), v as number[]]));
+      this.metadata = new Map(Object.entries(snapshot.metadata).map(([k, v]) => [Number(k), v as any]));
+
+      console.log(`[VectorStore] ✅ Snapshot carregado: ${this.vectors.size} vectors (salvo em ${snapshot.timestamp})`);
+    } catch (error) {
+      console.error("[VectorStore] ❌ Erro ao carregar snapshot:", error);
+      console.log("[VectorStore] ⚠️  Iniciando com index vazio");
+      this.vectors.clear();
+      this.metadata.clear();
+    }
   }
 }
 

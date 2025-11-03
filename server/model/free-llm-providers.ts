@@ -17,6 +17,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { HfInference } from "@huggingface/inference";
 import OpenAI from "openai";
 import type { ChatMessage, ChatCompletionResult } from "./llm-client";
+import { ENV } from "../utils/env";
 
 interface ProviderUsage {
   requests: number;     // Número de requisições (para limites)
@@ -47,12 +48,11 @@ export class FreeLLMProviders {
     // SECURITY: NEVER log API keys or key prefixes - they can be used for brute-force attacks
     console.log("[Free LLM] 🔍 Initializing free API providers...");
     
-    // OpenRouter API (400+ modelos via único endpoint)
-    const openrouterKey = process.env.OPEN_ROUTER_API_KEY;
-    if (openrouterKey) {
+    // 🔑 FASE 1 - ENV Padronizada (aceita OPEN_ROUTER_API_KEY ou OPENROUTER_API_KEY)
+    if (ENV.OPENROUTER_API_KEY) {
       this.openrouter = new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
-        apiKey: openrouterKey,
+        apiKey: ENV.OPENROUTER_API_KEY,
         defaultHeaders: {
           "HTTP-Referer": "https://aion.replit.dev",
           "X-Title": "AION - Autonomous AI System",
@@ -60,34 +60,31 @@ export class FreeLLMProviders {
       });
       console.log("[Free LLM] ✓ OpenRouter API inicializada (50 req/dia grátis, 400+ modelos)");
     } else {
-      console.warn("[Free LLM] ⚠️  OPEN_ROUTER_API_KEY não encontrada");
+      console.warn("[Free LLM] ⚠️  OPENROUTER_API_KEY não encontrada");
     }
 
     // Groq API
-    const groqKey = process.env.GROQ_API_KEY;
-    if (groqKey) {
-      this.groq = new Groq({ apiKey: groqKey });
+    if (ENV.GROQ_API_KEY) {
+      this.groq = new Groq({ apiKey: ENV.GROQ_API_KEY });
       console.log("[Free LLM] ✓ Groq API inicializada (14.4k req/dia)");
     } else {
       console.warn("[Free LLM] ⚠️  GROQ_API_KEY não encontrada");
     }
 
-    // Gemini API
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (geminiKey) {
-      this.gemini = new GoogleGenerativeAI(geminiKey);
+    // Gemini API (aceita GEMINI_API_KEY ou GOOGLE_API_KEY)
+    if (ENV.GOOGLE_API_KEY) {
+      this.gemini = new GoogleGenerativeAI(ENV.GOOGLE_API_KEY);
       console.log("[Free LLM] ✓ Gemini API inicializada (1.5k req/dia)");
     } else {
-      console.warn("[Free LLM] ⚠️  GEMINI_API_KEY não encontrada");
+      console.warn("[Free LLM] ⚠️  GOOGLE_API_KEY/GEMINI_API_KEY não encontrada");
     }
 
-    // HuggingFace API
-    const hfKey = process.env.HUGGINGFACE_API_KEY;
-    if (hfKey) {
-      this.hf = new HfInference(hfKey);
+    // HuggingFace API (aceita HUGGINGFACE_API_KEY ou HF_API_KEY)
+    if (ENV.HF_API_KEY) {
+      this.hf = new HfInference(ENV.HF_API_KEY);
       console.log("[Free LLM] ✓ HuggingFace API inicializada (~720 req/dia)");
     } else {
-      console.warn("[Free LLM] ⚠️  HUGGINGFACE_API_KEY não encontrada");
+      console.warn("[Free LLM] ⚠️  HF_API_KEY/HUGGINGFACE_API_KEY não encontrada");
     }
     
     // Resumo final
