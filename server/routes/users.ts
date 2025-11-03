@@ -30,7 +30,7 @@ export function registerUserRoutes(app: Express) {
    * GET /api/admin/users
    * Lista todos os usuários do sistema
    */
-  app.get("/admin/users", async (req: Request, res: Response) => {
+  app.get("/users", async (req: Request, res: Response) => {
     try {
       const { limit } = req.query;
       const limitNum = limit && typeof limit === "string" ? parseInt(limit, 10) : 100;
@@ -67,7 +67,7 @@ export function registerUserRoutes(app: Express) {
    * GET /api/admin/users/:id
    * Obtém detalhes de um usuário específico
    */
-  app.get("/admin/users/:id", async (req: Request, res: Response) => {
+  app.get("/users/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       
@@ -101,7 +101,7 @@ export function registerUserRoutes(app: Express) {
    * POST /api/admin/users
    * Cria um novo usuário
    */
-  app.post("/admin/users", async (req: Request, res: Response) => {
+  app.post("/users", async (req: Request, res: Response) => {
     try {
       const { email, name, password, roleIds } = req.body;
       
@@ -165,7 +165,7 @@ export function registerUserRoutes(app: Express) {
    * PUT /api/admin/users/:id
    * Atualiza um usuário existente
    */
-  app.put("/admin/users/:id", async (req: Request, res: Response) => {
+  app.put("/users/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { email, name, password, userType } = req.body;
@@ -213,7 +213,7 @@ export function registerUserRoutes(app: Express) {
    * DELETE /api/admin/users/:id
    * Deleta um usuário
    */
-  app.delete("/admin/users/:id", async (req: Request, res: Response) => {
+  app.delete("/users/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       
@@ -242,7 +242,7 @@ export function registerUserRoutes(app: Express) {
    * POST /api/admin/users/:id/roles
    * Adiciona uma role a um usuário
    */
-  app.post("/admin/users/:id/roles", async (req: Request, res: Response) => {
+  app.post("/users/:id/roles", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { roleId } = req.body;
@@ -301,7 +301,7 @@ export function registerUserRoutes(app: Express) {
    * DELETE /api/admin/users/:id/roles/:roleId
    * Remove uma role de um usuário
    */
-  app.delete("/admin/users/:id/roles/:roleId", async (req: Request, res: Response) => {
+  app.delete("/users/:id/roles/:roleId", async (req: Request, res: Response) => {
     try {
       const { id, roleId } = req.params;
       
@@ -336,7 +336,7 @@ export function registerUserRoutes(app: Express) {
    * GET /api/admin/roles
    * Lista todas as roles disponíveis
    */
-  app.get("/admin/roles", async (req: Request, res: Response) => {
+  app.get("/roles", async (req: Request, res: Response) => {
     try {
       const allRoles = await db.select().from(roles);
       res.json(allRoles);

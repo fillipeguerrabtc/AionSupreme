@@ -78,7 +78,9 @@ export function registerRoutes(app: Express): Server {
   // CRITICAL SECURITY: All admin management routes require admin role
   // These modules handle: agents, curation, GPU, vision, KB, namespaces, telemetry
   
-  // Create admin router with requireAdmin middleware applied globally
+  // CRITICAL FIX: Admin routes must use /api/admin prefix to NOT block public routes
+  // Previously mounted on /api which blocked ALL /api routes including /api/conversations
+  // Now correctly isolated to /api/admin/* only
   const adminSubRouter = express.Router();
   adminSubRouter.use(requireAdmin); // All routes under this router require admin role
   
@@ -111,8 +113,8 @@ export function registerRoutes(app: Express): Server {
   // Registrar rotas de telemetria (analytics de agentes e namespaces)
   registerTelemetryRoutes(adminSubRouter);
   
-  // Mount admin sub-router on /api
-  app.use("/api", adminSubRouter);
+  // Mount admin sub-router on /api/admin (NOT /api to avoid blocking public routes)
+  app.use("/api/admin", adminSubRouter);
 
   // ========================================
   // ENDPOINTS DE ÍCONES CUSTOMIZADOS
