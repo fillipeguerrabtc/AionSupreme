@@ -18,6 +18,7 @@ import {
   Eye,
   BarChart3,
   LogOut,
+  Shield,
 } from "lucide-react";
 import {
   Sidebar,
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useLanguage } from "@/lib/i18n";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { logout } from "@/lib/authUtils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -45,6 +47,7 @@ interface AdminSidebarProps {
 export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
   const { t } = useLanguage();
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { hasPermission } = usePermissions();
   const { isMobile, setOpenMobile } = useSidebar();
 
   const getUserInitials = () => {
@@ -64,116 +67,150 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: LayoutDashboard,
       value: "overview",
       testId: "nav-overview",
+      requiredPermission: undefined, // Always visible
     },
     {
       title: t.admin.tabs.telemetry,
       icon: BarChart3,
       value: "telemetry",
       testId: "nav-telemetry",
+      requiredPermission: "admin:telemetry:read",
     },
     {
       title: t.admin.tabs.tokenMonitoring,
       icon: Activity,
       value: "tokens",
       testId: "nav-tokens",
+      requiredPermission: "admin:tokens:read",
     },
     {
       title: t.admin.tabs.history,
       icon: Clock,
       value: "history",
       testId: "nav-history",
+      requiredPermission: "admin:history:read",
     },
     {
       title: t.admin.tabs.costHistory,
       icon: DollarSign,
       value: "cost",
       testId: "nav-cost",
+      requiredPermission: "admin:cost:read",
     },
     {
       title: t.admin.tabs.knowledgeBase,
       icon: Database,
       value: "knowledge",
       testId: "nav-knowledge",
+      requiredPermission: "kb:documents:read",
     },
     {
       title: t.admin.tabs.gpuManagement,
       icon: Server,
       value: "gpu",
       testId: "nav-gpu",
+      requiredPermission: "admin:gpu:read",
     },
     {
       title: t.admin.tabs.federatedTraining,
       icon: Cpu,
       value: "federated",
       testId: "nav-federated",
+      requiredPermission: "admin:federated:read",
     },
     {
       title: t.admin.tabs.autoEvolution,
       icon: Sparkles,
       value: "evolution",
       testId: "nav-evolution",
+      requiredPermission: "admin:evolution:read",
     },
     {
       title: t.admin.tabs.datasets,
       icon: FileText,
       value: "datasets",
       testId: "nav-datasets",
+      requiredPermission: "admin:datasets:read",
     },
     {
       title: t.admin.tabs.agents,
       icon: Users,
       value: "agents",
       testId: "nav-agents",
+      requiredPermission: "admin:agents:read",
     },
     {
       title: "User Management",
       icon: UserCog,
       value: "users",
       testId: "nav-users",
+      requiredPermission: "admin:users:read",
+    },
+    {
+      title: "Permissions",
+      icon: Shield,
+      value: "permissions",
+      testId: "nav-permissions",
+      requiredPermission: "admin:permissions:read",
     },
     {
       title: t.admin.tabs.curation,
       icon: ClipboardCheck,
       value: "curation",
       testId: "nav-curation",
+      requiredPermission: "admin:curation:read",
     },
     {
       title: "Galeria de Imagens",
       icon: Image,
       value: "images",
       testId: "nav-images",
+      requiredPermission: "kb:images:read",
     },
     {
       title: "Busca de Imagens (AI)",
       icon: Eye,
       value: "image-search",
       testId: "nav-image-search",
+      requiredPermission: "kb:images:search",
     },
     {
       title: "Vision System",
       icon: Eye,
       value: "vision",
       testId: "nav-vision",
+      requiredPermission: "admin:vision:read",
     },
     {
       title: "Namespaces",
       icon: FolderTree,
       value: "namespaces",
       testId: "nav-namespaces",
+      requiredPermission: "kb:namespaces:read",
     },
     {
       title: "Lifecycle Policies",
       icon: Timer,
       value: "lifecycle",
       testId: "nav-lifecycle",
+      requiredPermission: "admin:lifecycle:read",
     },
     {
       title: t.admin.tabs.settings,
       icon: SettingsIcon,
       value: "settings",
       testId: "nav-settings",
+      requiredPermission: undefined, // Always visible
     },
   ];
+
+  // Filter menu items based on user permissions
+  const visibleMenuItems = menuItems.filter(item => {
+    // If no permission required, always show
+    if (!item.requiredPermission) return true;
+    // Otherwise, check if user has the required permission
+    return hasPermission(item.requiredPermission);
+  });
 
   return (
     <Sidebar collapsible="icon">
@@ -182,7 +219,7 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
           <SidebarGroupLabel>{t.admin.sidebar.navigation}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {visibleMenuItems.map((item) => (
                 <SidebarMenuItem key={item.value}>
                   <SidebarMenuButton
                     onClick={() => {

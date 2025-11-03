@@ -588,6 +588,23 @@ interface Translations {
       };
     };
     
+    // Permissions Management
+    permissions: {
+      title: string;
+      description: string;
+      matrix: {
+        title: string;
+        permissionColumn: string;
+        noPermissions: string;
+      };
+      toasts: {
+        assignSuccess: string;
+        assignError: string;
+        revokeSuccess: string;
+        revokeError: string;
+      };
+    };
+    
     // Agents Page
     agents: {
       title: string;
@@ -1353,6 +1370,22 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      permissions: {
+        title: "Gerenciamento de Permissões",
+        description: "Gerencie permissões de funções para controle de acesso granular",
+        matrix: {
+          title: "Matriz de Permissões",
+          permissionColumn: "Permissão",
+          noPermissions: "Nenhuma permissão encontrada",
+        },
+        toasts: {
+          assignSuccess: "Permissão atribuída com sucesso",
+          assignError: "Falha ao atribuir permissão",
+          revokeSuccess: "Permissão revogada com sucesso",
+          revokeError: "Falha ao revogar permissão",
+        },
+      },
+      
       agents: {
         title: "Agentes Especialistas",
         subtitle: "Gerencie agentes e sub-agentes especializados",
@@ -2109,6 +2142,22 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      permissions: {
+        title: "Permissions Management",
+        description: "Manage role permissions for granular access control",
+        matrix: {
+          title: "Permissions Matrix",
+          permissionColumn: "Permission",
+          noPermissions: "No permissions found",
+        },
+        toasts: {
+          assignSuccess: "Permission assigned successfully",
+          assignError: "Failed to assign permission",
+          revokeSuccess: "Permission revoked successfully",
+          revokeError: "Failed to revoke permission",
+        },
+      },
+      
       agents: {
         title: "Specialist Agents",
         subtitle: "Manage specialized agents and sub-agents",
@@ -2862,6 +2911,22 @@ const translations: Record<Language, Translations> = {
           updateError: "Error al actualizar usuario",
           deleteSuccess: "Usuario eliminado con éxito",
           deleteError: "Error al eliminar usuario",
+        },
+      },
+      
+      permissions: {
+        title: "Gestión de Permisos",
+        description: "Gestiona permisos de roles para control de acceso granular",
+        matrix: {
+          title: "Matriz de Permisos",
+          permissionColumn: "Permiso",
+          noPermissions: "No se encontraron permisos",
+        },
+        toasts: {
+          assignSuccess: "Permiso asignado con éxito",
+          assignError: "Error al asignar permiso",
+          revokeSuccess: "Permiso revocado con éxito",
+          revokeError: "Error al revocar permiso",
         },
       },
       
