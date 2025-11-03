@@ -1,0 +1,515 @@
+isso aqui é ADICIONAL ao que enviei antes (não substitui).
+Vou direto ao ponto com um pacote de refatoração linha-a-linha para você colar no repo, priorizando o hotspot server/routes.ts (reduzir any, padronizar respostas, trocar console.* por logger com requestId, validação com Zod, SSE e error handling consistente). Incluo também organização das rotas por domínio, tipos compartilhados, middleware de erros, envelopes de resposta, schemas de payload, e ajustes no front (SSE).
+
+Onde escrevo “SUBSTITUIR/CRIAR”, é pra colar exatamente como está.
+Onde escrevo “APLICAR”, é pra você replicar o padrão nas demais rotas.
+
+PARTE 6 — Refatoração de rotas (server) – completa, detalhada e pronta pra colar
+6.1 Estrutura proposta (modularização das rotas)
+
+Crie a seguinte árvore (migrando handlers hoje concentrados em server/routes.ts):
+
+server/
+  routes/
+    index.ts            ← registra todas as subrotas
+    health.ts           ← /health, /version
+    chat.ts             ← /chat (request/response síncrono)
+    chat-stream.ts      ← /chat/stream (SSE)
+    kb.ts               ← /kb/* (ingest, list, promote, delete)
+    curation.ts         ← /curation/* (fila, aprovar, rejeitar)
+    agents.ts           ← /agents/* (namespaces, subnamespaces)
+    policy.ts           ← /policy/* (atualizar flags, presets)
+    policy-audit.ts     ← /admin/policy/audit
+    metrics.ts          ← /metrics (export Prometheus/JSON)
+
+
+Depois que essas rotas estiverem criadas, esvazie os handlers duplicados de server/routes.ts e deixe apenas um export que registra as subrotas (ou remova este arquivo se não for mais necessário).
+
+6.2 Logger + RequestId (usar em todas as rotas)
+
+Você já tem o server/utils/logger.ts (enviei na parte anterior).
+Garanta no server/index.ts:
+
+import { applySecurity } from "./middleware/security";
+import { withRequestId } from "./utils/logger";
+import { registerRoutes } from "./routes"; // novo
+
+const app = express();
+applySecurity(app);
+app.use(withRequestId);
+registerRoutes(app);
+
+6.3 Envelopes de resposta + Error Handler global
+6.3.1 Resposta padrão
+
+Crie server/utils/http.ts:
+
+import type { Response } from "express";
+
+export function ok<T>(res: Response, data: T, meta: Record<string, any> = {}) {
+  return res.status(200).json({ ok: true, data, meta });
+}
+export function created<T>(res: Response, data: T, meta: Record<string, any> = {}) {
+  return res.status(201).json({ ok: true, data, meta });
+}
+export function badRequest(res: Response, error: any, meta: Record<string, any> = {}) {
+  return res.status(400).json({ ok: false, error, meta });
+}
+export function unauthorized(res: Response, error: any = "unauthorized") {
+  return res.status(401).json({ ok: false, error });
+}
+export function forbidden(res: Response, error: any = "forbidden") {
+  return res.status(403).json({ ok: false, error });
+}
+export function notFound(res: Response, error: any = "not-found") {
+  return res.status(404).json({ ok: false, error });
+}
+export function serverError(res: Response, error: any = "server-error") {
+  return res.status(500).json({ ok: false, error });
+}
+
+6.3.2 Error handler
+
+Crie server/middleware/error-handler.ts:
+
+import type { Request, Response, NextFunction } from "express";
+import { reqLog } from "../utils/logger";
+
+export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
+  const log = reqLog(req);
+  const message = err instanceof Error ? err.message : "unknown-error";
+  log.error({ err: message });
+  res.status(500).json({ ok: false, error: message });
+}
+
+
+No server/index.ts, após registrar as rotas:
+
+import { errorHandler } from "./middleware/error-handler";
+app.use(errorHandler);
+
+6.4 Schemas Zod (validar todos os payloads)
+
+Crie server/schemas/index.ts:
+
+import { z } from "zod";
+
+// Chat request
+export const ChatSchema = z.object({
+  sessionId: z.string().min(1),
+  input: z.string().min(1),
+  files: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    mime: z.string()
+  })).optional(),
+  options: z.object({
+    temperature: z.number().min(0).max(2).optional(),
+    top_p: z.number().min(0).max(1).optional(),
+  }).optional()
+});
+
+// Ingest por link
+export const IngestLinkSchema = z.object({
+  url: z.string().url(),
+  namespaces: z.array(z.string()).min(1),
+  dedup: z.boolean().default(true)
+});
+
+// Ingest por arquivo (metadados)
+export const IngestFileSchema = z.object({
+  name: z.string().min(1),
+  mime: z.string().min(1),
+  size: z.number().int().positive(),
+  namespaces: z.array(z.string()).min(1),
+  hash: z.string().min(8).optional()
+});
+
+// Promoção para KB
+export const PromoteSchema = z.object({
+  text: z.string().min(1),
+  title: z.string().optional(),
+  suggestedNamespaces: z.array(z.string()).min(1),
+  submittedBy: z.string().optional(),
+});
+
+// Curadoria (aprovar/rejeitar)
+export const CurationActionSchema = z.object({
+  itemId: z.string().min(1),
+  action: z.enum(["approve","reject"]),
+  reason: z.string().optional(),
+});
+
+// Policy update
+export const PolicyUpdateSchema = z.object({
+  preset: z.string().min(1), // ex.: "UNRESTRICTED", "STRICT", etc.
+  flags: z.object({
+    enableModeration: z.boolean().optional(),
+    enableWebSearch: z.boolean().optional(),
+    allowExternalAPIs: z.boolean().optional(),
+  }).optional()
+});
+
+
+APLICAR esses schemas nas rotas para eliminar any e garantir contratos estáveis.
+
+6.5 Rotas: registro central
+
+SUBSTITUIR/CRIAR server/routes/index.ts:
+
+import type { Express } from "express";
+import { registerHealthRoutes } from "./health";
+import { registerChatRoutes } from "./chat";
+import { registerChatStream } from "./chat-stream";
+import { registerKbRoutes } from "./kb";
+import { registerCurationRoutes } from "./curation";
+import { registerAgentRoutes } from "./agents";
+import { registerPolicyRoutes } from "./policy";
+import { registerPolicyAudit } from "./policy-audit";
+import { registerMetricsRoutes } from "./metrics";
+
+export function registerRoutes(app: Express) {
+  registerHealthRoutes(app);
+  registerChatRoutes(app);
+  registerChatStream(app);
+  registerKbRoutes(app);
+  registerCurationRoutes(app);
+  registerAgentRoutes(app);
+  registerPolicyRoutes(app);
+  registerPolicyAudit(app);
+  registerMetricsRoutes(app);
+}
+
+6.6 Health
+
+CRIAR server/routes/health.ts:
+
+import type { Express, Request, Response } from "express";
+import { ok } from "../utils/http";
+
+export function registerHealthRoutes(app: Express) {
+  app.get("/health", (_req: Request, res: Response) => ok(res, { status: "ok" }));
+  app.get("/version", (_req: Request, res: Response) => ok(res, { version: process.env.APP_VERSION || "dev" }));
+}
+
+6.7 Chat (síncrono) com Zod + logger
+
+CRIAR server/routes/chat.ts:
+
+import type { Express, Request, Response } from "express";
+import { ChatSchema } from "../schemas";
+import { badRequest, ok, serverError } from "../utils/http";
+import { reqLog } from "../utils/logger";
+import { generateWithPriority } from "../llm/priority-orchestrator";
+
+export function registerChatRoutes(app: Express) {
+  app.post("/api/chat", async (req: Request, res: Response) => {
+    const log = reqLog(req);
+    const parsed = ChatSchema.safeParse(req.body);
+    if (!parsed.success) return badRequest(res, parsed.error.flatten());
+
+    try {
+      const answer = await generateWithPriority.run(parsed.data);
+      return ok(res, answer);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "unknown-error";
+      log.error({ msg, route: "/api/chat" });
+      return serverError(res, msg);
+    }
+  });
+}
+
+6.8 Chat (SSE) – streaming token-a-token
+
+CRIAR server/routes/chat-stream.ts:
+
+import type { Express, Request, Response } from "express";
+import { ChatSchema } from "../schemas";
+import { reqLog } from "../utils/logger";
+import { generateWithPriority } from "../llm/priority-orchestrator";
+
+export function registerChatStream(app: Express) {
+  app.get("/api/chat/stream", async (req: Request, res: Response) => {
+    const log = reqLog(req);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    let parsed: any;
+    try {
+      parsed = ChatSchema.parse(JSON.parse(String(req.query.payload || "{}")));
+    } catch (e: any) {
+      res.write(`event: error\ndata: ${JSON.stringify({ error: "bad-request" })}\n\n`);
+      return res.end();
+    }
+
+    try {
+      for await (const token of generateWithPriority.stream(parsed)) {
+        res.write(`data: ${JSON.stringify({ token })}\n\n`);
+      }
+      res.write("data: [DONE]\n\n");
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "unknown-error";
+      log.error({ msg, route: "/api/chat/stream" });
+      res.write(`event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`);
+    } finally {
+      res.end();
+    }
+  });
+}
+
+6.9 KB (ingest, list, promote, delete) com Zod
+
+CRIAR server/routes/kb.ts:
+
+import type { Express, Request, Response } from "express";
+import { IngestLinkSchema, IngestFileSchema, PromoteSchema } from "../schemas";
+import { badRequest, ok, created, serverError } from "../utils/http";
+import { reqLog } from "../utils/logger";
+import { scheduleIndex } from "../rag/knowledge-indexer";
+import { kbService } from "../rag/kb-service";
+
+export function registerKbRoutes(app: Express) {
+  app.post("/kb/ingest/link", async (req: Request, res: Response) => {
+    const log = reqLog(req);
+    const parsed = IngestLinkSchema.safeParse(req.body);
+    if (!parsed.success) return badRequest(res, parsed.error.flatten());
+    try {
+      const id = await kbService.ingestLink(parsed.data);
+      return created(res, { id });
+    } catch (e: any) {
+      log.error({ msg: e?.message || "ingest-link-error" });
+      return serverError(res, "ingest-link-error");
+    }
+  });
+
+  app.post("/kb/ingest/file", async (req: Request, res: Response) => {
+    const log = reqLog(req);
+    const parsed = IngestFileSchema.safeParse(req.body);
+    if (!parsed.success) return badRequest(res, parsed.error.flatten());
+    try {
+      const id = await kbService.ingestFile(parsed.data);
+      return created(res, { id });
+    } catch (e: any) {
+      log.error({ msg: e?.message || "ingest-file-error" });
+      return serverError(res, "ingest-file-error");
+    }
+  });
+
+  app.post("/kb/promote", async (req: Request, res: Response) => {
+    const log = reqLog(req);
+    const parsed = PromoteSchema.safeParse(req.body);
+    if (!parsed.success) return badRequest(res, parsed.error.flatten());
+    try {
+      const docId = await kbService.promote(parsed.data);
+      await scheduleIndex(docId); // rebuild incremental
+      return created(res, { documentId: docId });
+    } catch (e: any) {
+      log.error({ msg: e?.message || "kb-promote-error" });
+      return serverError(res, "kb-promote-error");
+    }
+  });
+
+  app.delete("/kb/:id", async (req: Request, res: Response) => {
+    try {
+      await kbService.remove(Number(req.params.id));
+      return ok(res, { removed: true });
+    } catch {
+      return serverError(res, "kb-remove-error");
+    }
+  });
+}
+
+6.10 Curadoria (fila, aprovar/rejeitar)
+
+CRIAR server/routes/curation.ts:
+
+import type { Express, Request, Response } from "express";
+import { CurationActionSchema } from "../schemas";
+import { ok, badRequest, serverError } from "../utils/http";
+import { reqLog } from "../utils/logger";
+import { curationService } from "../curation/service";
+import { scheduleIndex } from "../rag/knowledge-indexer";
+
+export function registerCurationRoutes(app: Express) {
+  app.get("/curation/pending", async (_req: Request, res: Response) => {
+    const items = await curationService.listPending();
+    return ok(res, items);
+  });
+
+  app.post("/curation/action", async (req: Request, res: Response) => {
+    const log = reqLog(req);
+    const parsed = CurationActionSchema.safeParse(req.body);
+    if (!parsed.success) return badRequest(res, parsed.error.flatten());
+    try {
+      const result = await curationService.applyAction(parsed.data);
+      if (parsed.data.action === "approve" && result?.documentId) {
+        await scheduleIndex(result.documentId);
+      }
+      return ok(res, result);
+    } catch (e: any) {
+      log.error({ msg: e?.message || "curation-action-error" });
+      return serverError(res, "curation-action-error");
+    }
+  });
+}
+
+6.11 Agents / Namespaces
+
+CRIAR server/routes/agents.ts:
+
+import type { Express, Request, Response } from "express";
+import { ok, badRequest, serverError } from "../utils/http";
+import { agentsService } from "../agent/service";
+import { reqLog } from "../utils/logger";
+
+export function registerAgentRoutes(app: Express) {
+  app.get("/agents/namespaces", async (_req: Request, res: Response) => {
+    const data = await agentsService.listNamespaces();
+    return ok(res, data);
+  });
+
+  app.post("/agents/namespaces", async (req: Request, res: Response) => {
+    const log = reqLog(req);
+    try {
+      const data = await agentsService.createNamespace(req.body);
+      return ok(res, data);
+    } catch (e: any) {
+      log.error({ msg: e?.message || "namespace-create-error" });
+      return serverError(res, "namespace-create-error");
+    }
+  });
+}
+
+6.12 Policy + Audit Trail
+
+CRIAR server/routes/policy.ts:
+
+import type { Express, Request, Response } from "express";
+import { PolicyUpdateSchema } from "../schemas";
+import { badRequest, ok, serverError } from "../utils/http";
+import { reqLog } from "../utils/logger";
+import { policyService } from "../policy/service";
+
+export function registerPolicyRoutes(app: Express) {
+  app.post("/policy/update", async (req: Request, res: Response) => {
+    const log = reqLog(req);
+    const parsed = PolicyUpdateSchema.safeParse(req.body);
+    if (!parsed.success) return badRequest(res, parsed.error.flatten());
+    try {
+      const result = await policyService.update(parsed.data);
+      return ok(res, result);
+    } catch (e: any) {
+      log.error({ msg: e?.message || "policy-update-error" });
+      return serverError(res, "policy-update-error");
+    }
+  });
+}
+
+
+JÁ ENVIADO: server/routes/policy-audit.ts (na parte anterior). Se ainda não criou, crie agora.
+
+6.13 Métricas
+
+CRIAR server/routes/metrics.ts:
+
+import type { Express, Request, Response } from "express";
+import { ok } from "../utils/http";
+import { metricsExporter } from "../metrics/exporter";
+
+export function registerMetricsRoutes(app: Express) {
+  app.get("/metrics", async (_req: Request, res: Response) => {
+    // Caso tenha Prometheus text, sirva text/plain:
+    // res.setHeader("Content-Type", "text/plain"); res.send(await metricsExporter.prom()); return;
+    const json = await metricsExporter.json();
+    return ok(res, json);
+  });
+}
+
+PARTE 7 — Front-end: SSE no chat (token-a-token)
+
+No front, adicione um helper e atualize a página de chat.
+
+CRIAR client/src/lib/stream.ts:
+
+export function streamAnswer(payload: any, onToken: (t:string)=>void, onDone: ()=>void, onError:(m:string)=>void){
+  const es = new EventSource(`/api/chat/stream?payload=${encodeURIComponent(JSON.stringify(payload))}`);
+  es.onmessage = (e) => {
+    if (e.data === "[DONE]") { es.close(); onDone(); return; }
+    try {
+      const { token } = JSON.parse(e.data);
+      onToken(token);
+    } catch { /* ignore malformed */ }
+  };
+  es.addEventListener("error", () => { es.close(); onError("stream-error"); });
+}
+
+
+EDITAR client/src/pages/chat/ChatPage.tsx (exemplo de uso):
+
+import { streamAnswer } from "../../lib/stream";
+
+function handleSend(message: string) {
+  setStreaming(true);
+  const payload = { sessionId, input: message };
+  streamAnswer(payload,
+    (tok) => setAssistantText((prev) => prev + tok),
+    () => setStreaming(false),
+    (err) => { setStreaming(false); toast.error(err); }
+  );
+}
+
+
+Se o front estiver separado do backend (Vercel/Netlify), proxie /api/chat/stream no dev server ou use URL absoluta.
+
+PARTE 8 — Sanitização (XSS) – pontos específicos
+
+Nos 4 componentes que usam HTML bruto:
+
+import DOMPurify from "dompurify";
+...
+<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlString) }} />
+
+
+Aplicar em:
+
+client/src/components/IconPicker.tsx
+
+client/src/components/agents/NamespaceIconDisplay.tsx
+
+client/src/components/ui/chart.tsx
+
+client/src/pages/admin/NamespacesPage.tsx
+
+PARTE 9 — .env.example (padronizado)
+
+Crie/Atualize .env.example:
+
+DATABASE_URL=postgresql://user:pass@host:5432/db
+SESSION_SECRET=change-me
+OPENROUTER_API_KEY=
+GROQ_API_KEY=
+GOOGLE_API_KEY=
+HF_API_KEY=
+AION_CONFIDENCE_THRESHOLD=0.62
+AION_MAX_FALLBACKS_PER_HOUR=60
+CORS_ORIGIN=http://localhost:3000
+VECTOR_SNAPSHOT_PATH=./data/vectorstore.snapshot.json
+LOG_LEVEL=info
+APP_VERSION=1.0.0
+
+PARTE 10 — Pós-refactor: checklist de limpeza no repo
+
+ Remover console.log/console.error antigos (usar reqLog(req).*).
+
+ Aplicar Zod em todas rotas que recebem payload.
+
+ Trocar todos catch (e: any) por unknown + instanceof.
+
+ Mover handlers de server/routes.ts para arquivos em server/routes/*.
+
+ Garantir que o middleware de auditoria (se existir) está aplicado no index.ts.
+
+ Testar SSE no front (ver barra de streaming em tempo real).
+
+ Salvar/Carregar snapshot do VectorStore em ingest e on shutdown (SIGTERM).
