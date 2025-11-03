@@ -8,7 +8,7 @@ import { searchWeb } from '../learn/web-search';
 import { indexDocumentComplete } from '../ai/knowledge-indexer';
 import { generateWithFreeAPIs, type LLMRequest, type LLMResponse } from './free-apis';
 import { db } from '../db';
-import { documents } from '@shared/schema';
+import { documents, curationQueue } from '@shared/schema';
 import { sql } from 'drizzle-orm';
 
 // ============================================================================
@@ -106,27 +106,29 @@ export async function generateWithFallback(
 
     console.log(`[Fallback] Found ${searchResults.length} search results`);
 
-    // Step 6: Index top results into Knowledge Base
-    console.log('[Fallback] 📚 Indexing search results into Knowledge Base...');
-    let indexed = 0;
+    // Step 6: Send results to curation queue for HITL approval
+    console.log('[Fallback] 📋 Sending search results to curation queue...');
+    let queued = 0;
 
-    for (const result of searchResults.slice(0, 5)) {  // Index top 5
+    for (const result of searchResults.slice(0, 5)) {  // Queue top 5
       try {
-        const docId = await createAndIndexDocument({
+        await db.insert(curationQueue).values({
           title: result.title,
           content: result.snippet,
-          url: result.url,
-          source: 'automatic-fallback'
-        });
+          suggestedNamespaces: ["automatic-fallback"],
+          tags: [`automatic-fallback`, `url:${result.url}`],
+          status: "pending",
+          submittedBy: "automatic-fallback-system",
+        } as any);
 
-        indexed++;
-        console.log(`[Fallback] ✓ Indexed: ${result.title}`);
+        queued++;
+        console.log(`[Fallback] ✓ Queued: ${result.title}`);
       } catch (error: any) {
-        console.error(`[Fallback] ✗ Failed to index ${result.url}:`, error.message);
+        console.error(`[Fallback] ✗ Failed to queue ${result.url}:`, error.message);
       }
     }
 
-    console.log(`[Fallback] Indexed ${indexed} documents`);
+    console.log(`[Fallback] Queued ${queued} documents for HITL approval`);
 
     // Step 7: Generate response using indexed knowledge
     console.log('[Fallback] 🎯 Generating response...');
@@ -160,7 +162,7 @@ export async function generateWithFallback(
         refusalDetected: true,
         refusalConfidence: refusalAnalysis.confidence,
         webSearchPerformed: true,
-        documentsIndexed: indexed,
+        documentsIndexed: queued,
         source: 'web-summary'
       };
     }
@@ -173,7 +175,7 @@ export async function generateWithFallback(
       refusalDetected: true,
       refusalConfidence: refusalAnalysis.confidence,
       webSearchPerformed: true,
-      documentsIndexed: indexed,
+      documentsIndexed: queued,
       source: unrestrictedResponse.provider
     };
 
@@ -193,28 +195,8 @@ export async function generateWithFallback(
 }
 
 // ============================================================================
-// HELPER: Create and Index Document from Fallback
+// DEPRECATED: createAndIndexDocument
 // ============================================================================
-
-async function createAndIndexDocument(data: {
-  title: string;
-  content: string;
-  url?: string;
-  source: string;
-}): Promise<number> {
-  // Create document
-  const [doc] = await db.insert(documents).values({
-    title: data.title,
-    content: data.content,
-    source: data.source,
-    status: 'indexed',
-    metadata: data.url ? { url: data.url } : {},
-    createdAt: sql`NOW()`,
-    updatedAt: sql`NOW()`
-  }).returning();
-
-  // Index chunks
-  await indexDocumentComplete(doc.id, data.content);
-
-  return doc.id;
-}
+// This function was removed as part of HITL enforcement.
+// All content must now go through the curation queue for human approval
+// before being indexed into the Knowledge Base.

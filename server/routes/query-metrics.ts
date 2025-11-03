@@ -10,6 +10,7 @@
 
 import { Express, Request, Response } from "express";
 import { queryMonitor } from "../services/query-monitor";
+import { storage } from "../storage";
 
 export function registerQueryMetricsRoutes(app: Express) {
   /**
@@ -18,13 +19,15 @@ export function registerQueryMetricsRoutes(app: Express) {
    */
   app.get("/api/admin/query-metrics", async (req: Request, res: Response) => {
     try {
-      const { endpoint, limit } = req.query;
+      const { endpoint, limit, daysAgo } = req.query;
+      const days = daysAgo && typeof daysAgo === "string" ? parseInt(daysAgo, 10) : 7;
 
-      let metrics = queryMonitor.getMetrics();
+      // ✅ PRODUCTION-READY: Buscar do PostgreSQL via storage
+      let metrics = await storage.getQueryMetrics({ daysAgo: days });
 
-      // Filtrar por endpoint se especificado
+      // Filtrar por queryType se especificado
       if (endpoint && typeof endpoint === "string") {
-        metrics = queryMonitor.getMetricsByEndpoint(endpoint);
+        metrics = metrics.filter(m => m.queryType === endpoint);
       }
 
       // Limitar quantidade se especificado
@@ -54,7 +57,7 @@ export function registerQueryMetricsRoutes(app: Express) {
    */
   app.get("/api/admin/query-metrics/stats", async (req: Request, res: Response) => {
     try {
-      const stats = queryMonitor.getStats();
+      const stats = await queryMonitor.getStats();
       res.json(stats);
     } catch (error) {
       console.error("Error fetching query stats:", error);
@@ -77,7 +80,7 @@ export function registerQueryMetricsRoutes(app: Express) {
         ? parseInt(threshold, 10)
         : 1000;
 
-      const slowQueries = queryMonitor.getSlowQueries(thresholdMs);
+      const slowQueries = await queryMonitor.getSlowQueries(thresholdMs);
 
       res.json({
         threshold: thresholdMs,
@@ -99,11 +102,11 @@ export function registerQueryMetricsRoutes(app: Express) {
    */
   app.get("/api/admin/query-metrics/summary", async (req: Request, res: Response) => {
     try {
-      const stats = queryMonitor.getStats();
+      const stats = await queryMonitor.getStats();
       
       // Calcular success rate e error rate
       const totalQueries = stats.totalQueries || 0;
-      const errorCount = stats.errorCount || 0;
+      const errorCount = Math.round((stats.errorRate / 100) * totalQueries) || 0;
       const successRate = totalQueries > 0 ? (totalQueries - errorCount) / totalQueries : 1;
       const errorRate = totalQueries > 0 ? errorCount / totalQueries : 0;
       
@@ -131,18 +134,22 @@ export function registerQueryMetricsRoutes(app: Express) {
    */
   app.get("/api/admin/query-metrics/trends", async (req: Request, res: Response) => {
     try {
-      const metrics = queryMonitor.getMetrics();
+      const { daysAgo } = req.query;
+      const days = daysAgo && typeof daysAgo === "string" ? parseInt(daysAgo, 10) : 7;
+      
+      // ✅ PRODUCTION-READY: Buscar do PostgreSQL via storage
+      const metrics = await storage.getQueryMetrics({ daysAgo: days });
       
       // Agrupar por hora e calcular médias
       const hourlyData: { [key: string]: { latencies: number[]; errors: number } } = {};
       
-      metrics.forEach((metric) => {
+      metrics.forEach((metric: any) => {
         const hour = new Date(metric.timestamp).toISOString().substring(0, 13); // YYYY-MM-DDTHH
         if (!hourlyData[hour]) {
           hourlyData[hour] = { latencies: [], errors: 0 };
         }
-        hourlyData[hour].latencies.push(metric.latency);
-        if (metric.status >= 400) {
+        hourlyData[hour].latencies.push(metric.latencyMs);
+        if (!metric.success) {
           hourlyData[hour].errors++;
         }
       });

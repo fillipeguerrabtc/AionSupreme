@@ -37,15 +37,26 @@ export function queryMonitoringMiddleware(
     }
 
     // Registra a métrica
-    queryMonitor.recordQuery({
+    const queryType = `${req.method} ${req.path}`;
+    const success = res.statusCode < 400;
+    const metadata = {
       method: req.method,
       endpoint: req.path,
-      latencyMs,
       statusCode: res.statusCode,
+      latencyMs,
       queryParams: Object.keys(req.query).length > 0
-        ? JSON.stringify(req.query)
+        ? req.query
         : undefined,
-    });
+    };
+    
+    queryMonitor.recordQuery(
+      queryType,
+      null, // provider (not an external API call)
+      latencyMs,
+      success,
+      undefined, // errorMessage
+      metadata
+    );
   });
 
   next();

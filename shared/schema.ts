@@ -1719,3 +1719,160 @@ export const insertRolePermissionSchema = createInsertSchema(rolePermissions).om
 });
 export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
 export type RolePermission = typeof rolePermissions.$inferSelect;
+
+// ============================================================================
+// USAGE_RECORDS - Agent and Namespace usage tracking (PRODUCTION-READY)
+// ============================================================================
+/**
+ * Rastreia uso de agentes e namespaces com hierarquia
+ * - Agentes: root agents vs subagents
+ * - Namespaces: root namespaces vs sub-namespaces
+ */
+export const usageRecords = pgTable("usage_records", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
+  
+  // Entity info
+  entityType: text("entity_type").notNull(), // "agent" | "namespace"
+  entityId: text("entity_id").notNull(),
+  entityName: text("entity_name").notNull(),
+  operation: text("operation").notNull(), // "query" | "search" | "generation" | "tool_use"
+  
+  // Hierarchy tracking
+  agentTier: text("agent_tier"), // "agent" | "subagent" (null for namespaces)
+  parentAgentId: text("parent_agent_id"), // ID do agent pai (null se root agent)
+  isRootNamespace: boolean("is_root_namespace"), // true se namespace raiz (null para agents)
+  parentNamespace: text("parent_namespace"), // Namespace pai (null se root)
+  
+  // Metadata
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  
+  // Timestamp
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("usage_records_tenant_idx").on(table.tenantId),
+  entityTypeIdx: index("usage_records_entity_type_idx").on(table.entityType),
+  entityIdIdx: index("usage_records_entity_id_idx").on(table.entityId),
+  timestampIdx: index("usage_records_timestamp_idx").on(table.timestamp),
+  agentTierIdx: index("usage_records_agent_tier_idx").on(table.agentTier),
+  parentAgentIdx: index("usage_records_parent_agent_idx").on(table.parentAgentId),
+  parentNamespaceIdx: index("usage_records_parent_namespace_idx").on(table.parentNamespace),
+}));
+
+export const insertUsageRecordSchema = createInsertSchema(usageRecords).omit({ id: true, timestamp: true });
+export type InsertUsageRecord = z.infer<typeof insertUsageRecordSchema>;
+export type UsageRecord = typeof usageRecords.$inferSelect;
+
+// ============================================================================
+// NAMESPACE_RELEVANCE_RECORDS - KB search quality tracking (PRODUCTION-READY)
+// ============================================================================
+/**
+ * Rastreia qualidade real de buscas RAG por namespace
+ * - Scores de similaridade coseno (0-1)
+ * - Quantidade de resultados retornados
+ */
+export const namespaceRelevanceRecords = pgTable("namespace_relevance_records", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
+  
+  namespace: text("namespace").notNull(),
+  avgRelevanceScore: real("avg_relevance_score").notNull(), // 0-1 (cosine similarity)
+  resultCount: integer("result_count").notNull(),
+  
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("namespace_relevance_tenant_idx").on(table.tenantId),
+  namespaceIdx: index("namespace_relevance_namespace_idx").on(table.namespace),
+  timestampIdx: index("namespace_relevance_timestamp_idx").on(table.timestamp),
+}));
+
+export const insertNamespaceRelevanceRecordSchema = createInsertSchema(namespaceRelevanceRecords).omit({ 
+  id: true, 
+  timestamp: true 
+});
+export type InsertNamespaceRelevanceRecord = z.infer<typeof insertNamespaceRelevanceRecordSchema>;
+export type NamespaceRelevanceRecord = typeof namespaceRelevanceRecords.$inferSelect;
+
+// ============================================================================
+// QUERY_METRICS - API latency and performance tracking (PRODUCTION-READY)
+// ============================================================================
+/**
+ * Rastreia métricas de performance de queries
+ * - Latência em ms
+ * - Success/error rates
+ * - Provider usado
+ */
+export const queryMetrics = pgTable("query_metrics", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
+  
+  // Query info
+  queryType: text("query_type").notNull(), // "chat" | "embedding" | "rag" | "tool"
+  provider: text("provider"), // "openai" | "groq" | "kb" | "web" etc
+  
+  // Performance
+  latencyMs: integer("latency_ms").notNull(),
+  success: boolean("success").notNull().default(true),
+  errorMessage: text("error_message"),
+  
+  // Metadata
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("query_metrics_tenant_idx").on(table.tenantId),
+  queryTypeIdx: index("query_metrics_query_type_idx").on(table.queryType),
+  providerIdx: index("query_metrics_provider_idx").on(table.provider),
+  timestampIdx: index("query_metrics_timestamp_idx").on(table.timestamp),
+  latencyIdx: index("query_metrics_latency_idx").on(table.latencyMs),
+}));
+
+export const insertQueryMetricSchema = createInsertSchema(queryMetrics).omit({ id: true, timestamp: true });
+export type InsertQueryMetric = z.infer<typeof insertQueryMetricSchema>;
+export type QueryMetric = typeof queryMetrics.$inferSelect;
+
+// ============================================================================
+// AGENT_QUERY_RESULTS - Agent execution results (PRODUCTION-READY)
+// ============================================================================
+/**
+ * Rastreia resultados de execuções de agentes ReAct
+ * - Total steps, sucesso/falha
+ * - Tokens usados, latência
+ */
+export const agentQueryResults = pgTable("agent_query_results", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
+  
+  // Agent info
+  agentId: text("agent_id"),
+  agentName: text("agent_name"),
+  
+  // Query
+  query: text("query").notNull(),
+  
+  // Results
+  totalSteps: integer("total_steps").notNull(),
+  success: boolean("success").notNull(),
+  finalAnswer: text("final_answer"),
+  
+  // Performance
+  latencyMs: integer("latency_ms").notNull(),
+  tokensUsed: integer("tokens_used").default(0),
+  
+  // Metadata (tools used, etc)
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: index("agent_query_results_tenant_idx").on(table.tenantId),
+  agentIdIdx: index("agent_query_results_agent_id_idx").on(table.agentId),
+  timestampIdx: index("agent_query_results_timestamp_idx").on(table.timestamp),
+  successIdx: index("agent_query_results_success_idx").on(table.success),
+}));
+
+export const insertAgentQueryResultSchema = createInsertSchema(agentQueryResults).omit({ 
+  id: true, 
+  timestamp: true 
+});
+export type InsertAgentQueryResult = z.infer<typeof insertAgentQueryResultSchema>;
+export type AgentQueryResult = typeof agentQueryResults.$inferSelect;

@@ -21,6 +21,7 @@ import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { auditMiddleware } from "./middleware/audit";
 import { exportPrometheusMetrics } from "./metrics/exporter";
 import { metricsCollector } from "./metrics/collector";
+import { usageTracker } from "./services/usage-tracker";
 import { imageGenerator } from "./generation/image-generator";
 import { videoGenerator } from "./generation/video-generator";
 import multer from "multer";
@@ -47,6 +48,7 @@ import { registerVisionRoutes } from "./routes/vision";
 import { registerKbImagesRoutes } from "./routes/kb-images";
 import { registerQueryMetricsRoutes } from "./routes/query-metrics";
 import { registerTelemetryRoutes } from "./routes/telemetry";
+import { registerUserRoutes } from "./routes/users";
 
 const upload = multer({ 
   dest: "/tmp/uploads/",
@@ -79,6 +81,9 @@ export function registerRoutes(app: Express): Server {
   // Create admin router with requireAdmin middleware applied globally
   const adminSubRouter = express.Router();
   adminSubRouter.use(requireAdmin); // All routes under this router require admin role
+  
+  // Registrar rotas de gerenciamento de usuários
+  registerUserRoutes(adminSubRouter);
   
   // Registrar rotas multi-agente
   registerAgentRoutes(adminSubRouter);
@@ -577,6 +582,16 @@ export function registerRoutes(app: Express): Server {
         metricsCollector.recordTokens(result.usage.totalTokens);
       }
       
+      // ✅ PRODUCTION-READY: Record query metrics in PostgreSQL
+      await metricsCollector.recordQuery(
+        "chat",
+        result.provider || "priority-orchestrator",
+        latency,
+        true,
+        undefined,
+        { tokensUsed: result.usage?.totalTokens || 0, provider: result.provider }
+      );
+      
       // 🧠 AUTO-EVOLUÇÃO: Acionar sistema de auto-aprendizado
       // Isso cria o loop infinito de aprendizado: Chat → KB → Dataset → Treino → Modelo Melhor
       try {
@@ -850,11 +865,53 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/kb/search
   app.post("/api/kb/search", requireAuth, async (req, res) => {
+    const startTime = Date.now();
+    
     try {
-      const { query, k } = req.body;
-      const results = await ragService.search(query, { k: k || 10 });
+      const { query, k, namespace } = req.body;
+      const results = await ragService.search(query, { k: k || 10, namespace });
+      
+      const latency = Date.now() - startTime;
+      
+      // ✅ PRODUCTION-READY: Track namespace search in PostgreSQL
+      if (namespace) {
+        await usageTracker.trackNamespaceSearch(
+          namespace,
+          namespace,
+          { query, resultCount: results.length }
+        );
+        
+        // ✅ Track search quality (relevance scores)
+        const relevanceScores = results.map((r: any) => r.similarity || r.score || 0);
+        if (relevanceScores.length > 0) {
+          await usageTracker.trackNamespaceSearchQuality(namespace, relevanceScores);
+        }
+      }
+      
+      // ✅ PRODUCTION-READY: Record query metrics in PostgreSQL
+      await metricsCollector.recordQuery(
+        "rag",
+        "kb",
+        latency,
+        true,
+        undefined,
+        { query, resultCount: results.length, namespace }
+      );
+      
       res.json({ results });
     } catch (error: any) {
+      const latency = Date.now() - startTime;
+      
+      // ✅ Track error
+      await metricsCollector.recordQuery(
+        "rag",
+        "kb",
+        latency,
+        false,
+        error.message,
+        undefined
+      );
+      
       res.status(500).json({ error: error.message });
     }
   });
@@ -1069,10 +1126,23 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/training/prepare - Preparar dataset de treino
   app.post("/api/training/prepare", requireAuth, async (req, res) => {
+    const startTime = Date.now();
+    
     try {
       const { criteria } = req.body;
 
       const result = await trainingDataCollector.prepareDataset(criteria);
+      
+      // ✅ PRODUCTION-READY: Track dataset preparation in PostgreSQL
+      const latency = Date.now() - startTime;
+      await metricsCollector.recordQuery(
+        "training",
+        "prepare",
+        latency,
+        true,
+        undefined,
+        { exampleCount: result.stats.totalExamples, valid: result.validation.valid }
+      );
       
       res.json({
         success: true,
@@ -1081,6 +1151,18 @@ export function registerRoutes(app: Express): Server {
         validation: result.validation,
       });
     } catch (error: any) {
+      const latency = Date.now() - startTime;
+      
+      // ✅ Track error
+      await metricsCollector.recordQuery(
+        "training",
+        "prepare",
+        latency,
+        false,
+        error.message,
+        undefined
+      );
+      
       res.status(500).json({ error: error.message });
     }
   });
@@ -1139,6 +1221,8 @@ export function registerRoutes(app: Express): Server {
   // POST /api/admin/documents - Adicionar novo documento (texto manual)
   // HITL FIX: Toda alimentação manual da KB passa pela fila de curadoria
   app.post("/api/admin/documents", requireAdmin, async (req, res) => {
+    const startTime = Date.now();
+    
     try {
       const { title, content, source } = req.body;
       
@@ -1181,12 +1265,35 @@ export function registerRoutes(app: Express): Server {
         submittedBy: "admin",
       });
 
+      // ✅ PRODUCTION-READY: Track document submission in PostgreSQL
+      const latency = Date.now() - startTime;
+      await metricsCollector.recordQuery(
+        "kb",
+        "document",
+        latency,
+        true,
+        undefined,
+        { curationId: item.id, source: source || "manual" }
+      );
+      
       res.json({ 
         message: "Conteúdo submetido à fila de curadoria para revisão humana",
         curationId: item.id,
         status: "pending_approval"
       });
     } catch (error: any) {
+      const latency = Date.now() - startTime;
+      
+      // ✅ Track error
+      await metricsCollector.recordQuery(
+        "kb",
+        "document",
+        latency,
+        false,
+        error.message,
+        undefined
+      );
+      
       res.status(500).json({ error: error.message });
     }
   });
@@ -2640,6 +2747,8 @@ export function registerRoutes(app: Express): Server {
   
   // POST /api/conversations/:id/messages - Save message
   app.post("/api/conversations/:id/messages", requireAuth, async (req, res) => {
+    const startTime = Date.now();
+    
     try {
       const conversationId = parseInt(req.params.id);
       const { role, content, attachments, tool_calls, metadata } = req.body;
@@ -2727,8 +2836,31 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
+      // ✅ PRODUCTION-READY: Track message save in PostgreSQL
+      const latency = Date.now() - startTime;
+      await metricsCollector.recordQuery(
+        "message",
+        "conversation",
+        latency,
+        true,
+        undefined,
+        { conversationId, role, hasAttachments: !!attachments }
+      );
+      
       res.json(message);
     } catch (error: any) {
+      const latency = Date.now() - startTime;
+      
+      // ✅ Track error
+      await metricsCollector.recordQuery(
+        "message",
+        "conversation",
+        latency,
+        false,
+        error.message,
+        undefined
+      );
+      
       res.status(500).json({ error: error.message });
     }
   });
@@ -3054,6 +3186,31 @@ export function registerRoutes(app: Express): Server {
       
       metricsCollector.recordLatency(latency);
       
+      // ✅ PRODUCTION-READY: Track agent usage in PostgreSQL
+      await usageTracker.trackAgentUse(
+        "react-agent",
+        "ReAct Agent",
+        "query",
+        { 
+          query: lastUserMessage,
+          steps: result.totalSteps,
+          success: result.success,
+          stopReason: result.stopReason
+        },
+        "agent", // Root agent
+        undefined // No parent
+      );
+      
+      // ✅ PRODUCTION-READY: Record query metrics in PostgreSQL
+      await metricsCollector.recordQuery(
+        "chat",
+        "react-agent",
+        latency,
+        result.success,
+        undefined,
+        { totalSteps: result.totalSteps, stopReason: result.stopReason }
+      );
+      
       res.json({
         choices: [{ 
           message: { 
@@ -3076,6 +3233,18 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error: any) {
       metricsCollector.recordError();
+      
+      // ✅ PRODUCTION-READY: Track error in PostgreSQL
+      const latency = Date.now() - startTime;
+      await metricsCollector.recordQuery(
+        "chat",
+        "react-agent",
+        latency,
+        false,
+        error.message,
+        undefined
+      );
+      
       console.error('[Agent Chat] Error:', error);
       res.status(500).json({ error: error.message });
     }
@@ -3115,6 +3284,8 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/training/jobs - Create new federated training job
   app.post("/api/training/jobs", requireAuth, async (req, res) => {
+    const startTime = Date.now();
+    
     try {
       const { trainingJobs, insertTrainingJobSchema } = await import("../shared/schema");
       const { db } = await import("./db");
@@ -3125,8 +3296,31 @@ export function registerRoutes(app: Express): Server {
       
       console.log(`[Federated] Created training job: ${job.name} (ID ${job.id})`);
       
+      // ✅ PRODUCTION-READY: Track training job creation in PostgreSQL
+      const latency = Date.now() - startTime;
+      await metricsCollector.recordQuery(
+        "training",
+        "job-create",
+        latency,
+        true,
+        undefined,
+        { jobId: job.id, jobName: job.name }
+      );
+      
       res.json({ job });
     } catch (error: any) {
+      const latency = Date.now() - startTime;
+      
+      // ✅ Track error
+      await metricsCollector.recordQuery(
+        "training",
+        "job-create",
+        latency,
+        false,
+        error.message,
+        undefined
+      );
+      
       res.status(500).json({ error: error.message });
     }
   });
@@ -4237,18 +4431,9 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/rag/index-document - Index document with smart chunking
-  app.post("/api/rag/index-document", async (req, res) => {
-    try {
-      const { documentId, content, options } = req.body;
-      const { indexDocumentComplete } = await import("./ai/knowledge-indexer");
-      
-      const chunks = await indexDocumentComplete(documentId, content, options);
-      res.json({ success: true, chunks });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // REMOVED: /api/rag/index-document
+  // This endpoint bypassed HITL curation queue and was unused.
+  // Documents must be indexed ONLY after approval through curation queue.
 
   // ========================================================================
   // TRAINING & METRICS - AION Supreme

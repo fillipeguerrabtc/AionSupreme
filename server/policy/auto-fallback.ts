@@ -15,6 +15,8 @@ import { storage } from "../storage";
 import type { Policy } from "@shared/schema";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { db } from "../db";
+import { curationQueue } from "@shared/schema";
 
 export interface FallbackResult {
   usedFallback: boolean;
@@ -469,28 +471,24 @@ export class AutoFallback {
       if (content && content.length > 100) {
         allContent += `\n\n--- Source: ${url} ---\n${content}\n`;
         
-        // Index in KB for future queries
+        // Send to curation queue for HITL approval (NOT direct KB insertion)
         try {
-          const doc = await storage.createDocument({
-            filename: `web-${Date.now()}.txt`,
-            mimeType: 'text/plain',
-            size: content.length,
-            storageUrl: url,
-            extractedText: content,
-            status: 'pending',
-            metadata: { source: 'auto_fallback', url, query: searchQuery } as any,
-          });
+          const title = `Auto-Fallback: ${searchQuery.substring(0, 60)}`;
           
-          await ragService.indexDocument(doc.id, content, {
-            source: 'auto_fallback',
-            url,
-            query: searchQuery,
+          await db.insert(curationQueue).values({
+            title,
+            content,
+            suggestedNamespaces: ["auto-fallback"],
+            tags: [`auto-fallback`, `url:${url}`, `query:${searchQuery}`],
+            status: "pending",
+            submittedBy: "auto-fallback-system",
           } as any);
           
           indexedCount++;
-          console.log(`[Fallback] ✓ Indexed ${url} in KB (doc ID: ${doc.id})`);
+          console.log(`[Fallback] ✓ Sent to curation queue: ${url}`);
+          console.log(`[Fallback] ⚠️ Awaiting HITL approval before KB indexing`);
         } catch (error: any) {
-          console.error(`[Fallback] Failed to index ${url}:`, error.message);
+          console.error(`[Fallback] Failed to queue ${url}:`, error.message);
         }
       }
     }

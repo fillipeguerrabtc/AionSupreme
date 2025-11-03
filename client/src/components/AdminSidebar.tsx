@@ -10,12 +10,14 @@ import {
   FileText,
   Settings as SettingsIcon,
   Users,
+  UserCog,
   ClipboardCheck,
   FolderTree,
   Image,
   Timer,
   Eye,
   BarChart3,
+  LogOut,
 } from "lucide-react";
 import {
   Sidebar,
@@ -30,6 +32,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useLanguage } from "@/lib/i18n";
+import { useAuth } from "@/hooks/useAuth";
+import { logout } from "@/lib/authUtils";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -38,7 +44,19 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
   const { t } = useLanguage();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { isMobile, setOpenMobile } = useSidebar();
+
+  const getUserInitials = () => {
+    if (!user) return "?";
+    if (user.firstName && user.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user.email) {
+      return user.email[0].toUpperCase();
+    }
+    return "A";
+  };
 
   const menuItems = [
     {
@@ -106,6 +124,12 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: Users,
       value: "agents",
       testId: "nav-agents",
+    },
+    {
+      title: "User Management",
+      icon: UserCog,
+      value: "users",
+      testId: "nav-users",
     },
     {
       title: t.admin.tabs.curation,
@@ -179,10 +203,46 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/40 p-2">
-        <div className="text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
-          AION v1.0.0
-        </div>
+      <SidebarFooter className="border-t border-border/40 p-4">
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground text-center">Loading...</div>
+        ) : isAuthenticated && user ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 group-data-[collapsible=icon]:hidden">
+              <Avatar className="w-8 h-8" data-testid="avatar-admin-user">
+                <AvatarImage src={user.profileImageUrl || undefined} />
+                <AvatarFallback>{getUserInitials()}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate" data-testid="text-admin-username">
+                  {user.firstName && user.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : user.email}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                logout();
+                if (isMobile) setOpenMobile(false);
+              }}
+              variant="ghost"
+              className="w-full justify-start group-data-[collapsible=icon]:justify-center"
+              data-testid="button-admin-logout"
+            >
+              <LogOut className="w-4 h-4 mr-2 group-data-[collapsible=icon]:mr-0" />
+              <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+            </Button>
+            <div className="text-xs text-muted-foreground text-center group-data-[collapsible=icon]:hidden">
+              AION v1.0.0
+            </div>
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground text-center">
+            Not authenticated
+          </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   );

@@ -17,7 +17,7 @@ export function registerTelemetryRoutes(app: Express) {
    */
   app.get("/api/admin/telemetry/agents/stats", async (req: Request, res: Response) => {
     try {
-      const stats = usageTracker.getAgentStats();
+      const stats = await usageTracker.getAgentStats();
       
       // Converter schema para match com frontend (usageCount, lastUsed como ISO string)
       const formattedStats = stats.map(stat => ({
@@ -49,7 +49,7 @@ export function registerTelemetryRoutes(app: Express) {
       const { limit } = req.query;
       const limitNum = limit && typeof limit === "string" ? parseInt(limit, 10) : 10;
       
-      const topAgents = usageTracker.getTopAgents(limitNum);
+      const topAgents = await usageTracker.getTopAgents(limitNum);
       res.json(topAgents);
     } catch (error) {
       console.error("Error fetching top agents:", error);
@@ -69,7 +69,7 @@ export function registerTelemetryRoutes(app: Express) {
       const { limit } = req.query;
       const limitNum = limit && typeof limit === "string" ? parseInt(limit, 10) : 10;
       
-      const leastUsed = usageTracker.getLeastUsedAgents(limitNum);
+      const leastUsed = await usageTracker.getLeastUsedAgents(limitNum);
       res.json(leastUsed);
     } catch (error) {
       console.error("Error fetching least used agents:", error);
@@ -90,7 +90,7 @@ export function registerTelemetryRoutes(app: Express) {
       const { days } = req.query;
       const daysNum = days && typeof days === "string" ? parseInt(days, 10) : 30;
       
-      const timeseries = usageTracker.getAgentTimeSeries(id, daysNum);
+      const timeseries = await usageTracker.getAgentTimeSeries(id, daysNum);
       res.json(timeseries);
     } catch (error) {
       console.error("Error fetching agent timeseries:", error);
@@ -110,7 +110,7 @@ export function registerTelemetryRoutes(app: Express) {
       const { days } = req.query;
       const daysNum = days && typeof days === "string" ? parseInt(days, 10) : 30;
       
-      const timeseries = usageTracker.getAllAgentsTimeSeries(daysNum);
+      const timeseries = await usageTracker.getAllAgentsTimeSeries(daysNum);
       res.json(timeseries);
     } catch (error) {
       console.error("Error fetching all agents timeseries:", error);
@@ -127,7 +127,7 @@ export function registerTelemetryRoutes(app: Express) {
    */
   app.get("/api/admin/telemetry/namespaces/stats", async (req: Request, res: Response) => {
     try {
-      const stats = usageTracker.getNamespaceStats();
+      const stats = await usageTracker.getNamespaceStats();
       
       // Converter schema para match com frontend (usageCount, lastUsed como ISO string)
       const formattedStats = stats.map(stat => ({
@@ -159,7 +159,7 @@ export function registerTelemetryRoutes(app: Express) {
       const { limit } = req.query;
       const limitNum = limit && typeof limit === "string" ? parseInt(limit, 10) : 10;
       
-      const topNamespaces = usageTracker.getTopNamespaces(limitNum);
+      const topNamespaces = await usageTracker.getTopNamespaces(limitNum);
       res.json(topNamespaces);
     } catch (error) {
       console.error("Error fetching top namespaces:", error);
@@ -179,7 +179,7 @@ export function registerTelemetryRoutes(app: Express) {
       const { limit } = req.query;
       const limitNum = limit && typeof limit === "string" ? parseInt(limit, 10) : 10;
       
-      const leastUsed = usageTracker.getLeastUsedNamespaces(limitNum);
+      const leastUsed = await usageTracker.getLeastUsedNamespaces(limitNum);
       res.json(leastUsed);
     } catch (error) {
       console.error("Error fetching least used namespaces:", error);
@@ -200,7 +200,7 @@ export function registerTelemetryRoutes(app: Express) {
       const { days } = req.query;
       const daysNum = days && typeof days === "string" ? parseInt(days, 10) : 30;
       
-      const timeseries = usageTracker.getNamespaceTimeSeries(id, daysNum);
+      const timeseries = await usageTracker.getNamespaceTimeSeries(id, daysNum);
       res.json(timeseries);
     } catch (error) {
       console.error("Error fetching namespace timeseries:", error);
@@ -217,10 +217,10 @@ export function registerTelemetryRoutes(app: Express) {
    */
   app.get("/api/admin/telemetry/namespaces/all/timeseries", async (req: Request, res: Response) => {
     try {
-      const { days } = req.query;
+      const { days} = req.query;
       const daysNum = days && typeof days === "string" ? parseInt(days, 10) : 30;
       
-      const timeseries = usageTracker.getAllNamespacesTimeSeries(daysNum);
+      const timeseries = await usageTracker.getAllNamespacesTimeSeries(daysNum);
       res.json(timeseries);
     } catch (error) {
       console.error("Error fetching all namespaces timeseries:", error);
@@ -240,7 +240,7 @@ export function registerTelemetryRoutes(app: Express) {
       const { days } = req.query;
       const daysNum = days && typeof days === "string" ? parseInt(days, 10) : 30;
       
-      const timeseries = usageTracker.getAllAgentsTimeSeries(daysNum);
+      const timeseries = await usageTracker.getAllAgentsTimeSeries(daysNum);
       res.json(timeseries);
     } catch (error) {
       console.error("Error fetching agents history:", error);
@@ -260,7 +260,7 @@ export function registerTelemetryRoutes(app: Express) {
       const { days } = req.query;
       const daysNum = days && typeof days === "string" ? parseInt(days, 10) : 30;
       
-      const timeseries = usageTracker.getAllNamespacesTimeSeries(daysNum);
+      const timeseries = await usageTracker.getAllNamespacesTimeSeries(daysNum);
       res.json(timeseries);
     } catch (error) {
       console.error("Error fetching namespaces history:", error);
@@ -277,9 +277,9 @@ export function registerTelemetryRoutes(app: Express) {
    */
   app.get("/api/admin/telemetry/overview", async (req: Request, res: Response) => {
     try {
-      const agentStats = usageTracker.getAgentStats();
-      const namespaceStats = usageTracker.getNamespaceStats();
-      const totalRecords = usageTracker.getTotalRecords();
+      const agentStats = await usageTracker.getAgentStats();
+      const namespaceStats = await usageTracker.getNamespaceStats();
+      const totalRecords = await usageTracker.getTotalRecords();
       
       // Calcular totais
       const totalAgentUses = agentStats.reduce((sum, s) => sum + s.totalUses, 0);
@@ -320,7 +320,7 @@ export function registerTelemetryRoutes(app: Express) {
   app.get("/api/admin/telemetry/agents/:id/sub-agents", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const subAgents = usageTracker.getSubAgents(id);
+      const subAgents = await usageTracker.getSubAgents(id);
       res.json(subAgents);
     } catch (error) {
       console.error("Error fetching sub-agents:", error);
@@ -338,7 +338,7 @@ export function registerTelemetryRoutes(app: Express) {
   app.get("/api/admin/telemetry/namespaces/:namespace/sub-namespaces", async (req: Request, res: Response) => {
     try {
       const { namespace } = req.params;
-      const subNamespaces = usageTracker.getSubNamespaces(namespace);
+      const subNamespaces = await usageTracker.getSubNamespaces(namespace);
       res.json(subNamespaces);
     } catch (error) {
       console.error("Error fetching sub-namespaces:", error);

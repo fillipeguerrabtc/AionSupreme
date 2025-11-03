@@ -52,21 +52,26 @@ export class AutoLearningListener {
     console.log(`\n📝 [AutoLearning] Chat completado - indexando conhecimento...`);
 
     try {
-      // Auto-indexar resposta na KB
-      const indexed = await autoIndexer.indexResponse({
-        conversationId: payload.conversationId,
-        userMessage: payload.userMessage,
-        assistantResponse: payload.assistantResponse,
-        source: "chat",
-        provider: payload.provider,
+      // ✅ PRODUCTION-READY: Send to curation queue for HITL review
+      // High-quality conversations go through human approval before KB indexing
+      const { curationStore } = await import("../curation/store");
+      
+      const conversationContent = `Q: ${payload.userMessage}\n\nA: ${payload.assistantResponse}`;
+      
+      const item = await curationStore.addToCuration({
+        title: payload.userMessage.substring(0, 100),
+        content: conversationContent,
+        suggestedNamespaces: ["chat/conversations"],
+        tags: ["chat", payload.source, payload.provider || "unknown"],
+        submittedBy: "auto-learning",
       });
+      
+      console.log(`   ✅ Chat enviado para fila de curadoria (ID: ${item.id})`);
+      console.log(`   ⚠️ Aguardando aprovação HITL antes de indexar na KB`);
 
-      if (indexed) {
-        console.log("   ✅ Conhecimento indexado na KB");
-        
-        // Verificar se deve gerar dataset
-        await this.checkAndTriggerDatasetGeneration();
-      }
+      // REMOVED: Direct KB indexing bypass
+      // Content must be approved through curation queue before indexing
+      // Dataset generation will be triggered after HITL approval
     } catch (error: any) {
       console.error(`[AutoLearning] Erro ao processar chat:`, error.message);
     }

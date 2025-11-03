@@ -15,7 +15,7 @@ import { searchWeb } from '../learn/web-search';
 import { indexDocumentComplete } from '../ai/knowledge-indexer';
 import { agentTools } from '../agent/tools';
 import { db } from '../db';
-import { documents } from '@shared/schema';
+import { documents, curationQueue } from '@shared/schema';
 import { sql } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { trackTokenUsage } from '../monitoring/token-tracker';
@@ -1119,29 +1119,31 @@ async function executeDeepWebSearch(
   }
   
   console.log(`   ✓ Found ${results.length} DeepWeb results`);
-  console.log('   📚 Indexing DeepWeb results into Knowledge Base...');
+  console.log('   📋 Sending DeepWeb results to curation queue...');
   
-  // Index top results
-  let indexed = 0;
+  // Send to curation queue for HITL approval (NOT direct KB insertion)
+  let queued = 0;
   for (const result of results.slice(0, 5)) {
     try {
-      const doc = await storage.createDocument({
-        title: result.title || 'DeepWeb Result',
-        content: result.snippet || '',
-        extractedText: result.snippet || '',
-        source: 'automatic-deepweb-fallback',
-        status: 'indexed',
-        metadata: { url: result.url, deepweb: true, isTorSite: result.isTorSite }
-      });
+      const title = result.title || 'DeepWeb Result';
+      const content = result.snippet || '';
       
-      await indexDocumentComplete(doc.id, result.snippet || '');
-      indexed++;
+      await db.insert(curationQueue).values({
+        title,
+        content,
+        suggestedNamespaces: ["deepweb"],
+        tags: [`deepweb`, `tor:${result.isTorSite}`, `url:${result.url}`],
+        status: "pending",
+        submittedBy: "deepweb-search-system",
+      } as any);
+      
+      queued++;
     } catch (error: any) {
-      console.error(`   ✗ Failed to index DeepWeb result:`, error.message);
+      console.error(`   ✗ Failed to queue DeepWeb result:`, error.message);
     }
   }
   
-  console.log(`   ✓ Indexed ${indexed} DeepWeb documents`);
+  console.log(`   ✓ Queued ${queued} DeepWeb documents for HITL approval`);
   console.log('   📋 Returning raw DeepWeb summary (NO API CONSUMPTION)');
   
   // Prepare search metadata
@@ -1154,19 +1156,19 @@ async function executeDeepWebSearch(
       domain: r.isTorSite ? 'tor-network' : 'clearnet'
     })),
     resultsCount: results.length,
-    indexedDocuments: indexed
+    indexedDocuments: queued
   };
   
   // Format response without LLM
   const formattedSummary = `🕵️ Resultados da busca na DeepWeb/Tor:\n\n${results.slice(0, 5).map((r: any, i: number) => 
     `${i + 1}. **${r.title || 'DeepWeb Result'}**\n   ${r.snippet || 'No description'}\n   🔗 ${r.url}${r.isTorSite ? ' (⚠️ Requer Tor)' : ''}\n`
-  ).join('\n')}\n\n📊 Total: ${results.length} resultados encontrados\n✅ ${indexed} documentos indexados na Knowledge Base\n\n⚠️ **Nota**: Estes resultados vêm da rede Tor/DeepWeb`;
+  ).join('\n')}\n\n📊 Total: ${results.length} resultados encontrados\n📋 ${queued} documentos enviados para fila de curadoria (aguardando aprovação HITL)\n\n⚠️ **Nota**: Estes resultados vêm da rede Tor/DeepWeb`;
   
   return {
     content: formattedSummary,
     provider: 'deepweb-summary',
     model: 'tor-results',
-    documentsIndexed: indexed,
+    documentsIndexed: queued,
     searchMetadata
   };
 }
@@ -1196,29 +1198,28 @@ async function executeWebFallback(
   }
   
   console.log(`   ✓ Found ${searchResults.length} web results`);
-  console.log('   📚 Indexing results into Knowledge Base...');
+  console.log('   📋 Sending results to curation queue...');
   
-  // Index top results
-  let indexed = 0;
+  // Send to curation queue for HITL approval (NOT direct KB insertion)
+  let queued = 0;
   for (const result of searchResults.slice(0, 5)) {
     try {
-      const doc = await storage.createDocument({
+      await db.insert(curationQueue).values({
         title: result.title,
         content: result.snippet,
-        extractedText: result.snippet,
-        source: 'automatic-web-fallback',
-        status: 'indexed',
-        metadata: { url: result.url }
-      });
+        suggestedNamespaces: ["web"],
+        tags: [`web-search`, `url:${result.url}`],
+        status: "pending",
+        submittedBy: "web-search-system",
+      } as any);
       
-      await indexDocumentComplete(doc.id, result.snippet);
-      indexed++;
+      queued++;
     } catch (error: any) {
-      console.error(`   ✗ Failed to index ${result.url}:`, error.message);
+      console.error(`   ✗ Failed to queue ${result.url}:`, error.message);
     }
   }
   
-  console.log(`   ✓ Indexed ${indexed} documents`);
+  console.log(`   ✓ Queued ${queued} documents for HITL approval`);
   
   // Prepare search metadata
   const searchMetadata = {
@@ -1233,7 +1234,7 @@ async function executeWebFallback(
       };
     }),
     resultsCount: searchResults.length,
-    indexedDocuments: indexed
+    indexedDocuments: queued
   };
   
   // EXPLICIT REQUEST MODE: Skip LLM and return raw formatted summary
@@ -1241,13 +1242,13 @@ async function executeWebFallback(
     console.log('   📋 Returning raw search summary (NO API CONSUMPTION)');
     const formattedSummary = `🔍 Resultados da busca na internet:\n\n${searchResults.slice(0, 5).map((r, i) => 
       `${i + 1}. **${r.title}**\n   ${r.snippet}\n   🔗 ${r.url}\n`
-    ).join('\n')}\n\n📊 Total: ${searchResults.length} resultados encontrados\n✅ ${indexed} documentos indexados na Knowledge Base`;
+    ).join('\n')}\n\n📊 Total: ${searchResults.length} resultados encontrados\n📋 ${queued} documentos enviados para fila de curadoria (aguardando aprovação HITL)`;
     
     return {
       content: formattedSummary,
       provider: 'web-summary',
       model: 'raw-results',
-      documentsIndexed: indexed,
+      documentsIndexed: queued,
       searchMetadata
     };
   }
@@ -1273,21 +1274,7 @@ async function executeWebFallback(
   try {
     const response = await generateWithFreeAPIs(unrestrictedPrompt);
     
-    // Prepare search metadata
-    const searchMetadata = {
-      query,
-      sources: searchResults.slice(0, 10).map(r => {
-        const urlObj = new URL(r.url);
-        return {
-          url: r.url,
-          title: r.title,
-          snippet: r.snippet,
-          domain: urlObj.hostname
-        };
-      }),
-      resultsCount: searchResults.length,
-      indexedDocuments: indexed
-    };
+    // Prepare search metadata (use already defined searchMetadata variable from above)
     
     // Final refusal check
     const finalCheck = detectRefusal(response.text);
@@ -1297,7 +1284,7 @@ async function executeWebFallback(
         content: `Based on web research:\n\n${searchResults.slice(0, 3).map(r => `• ${r.title}: ${r.snippet}`).join('\n\n')}\n\nSources:\n${searchResults.slice(0, 3).map(r => `- ${r.url}`).join('\n')}`,
         provider: 'web-summary',
         model: 'raw-results',
-        documentsIndexed: indexed,
+        documentsIndexed: queued,
         searchMetadata
       };
     }
@@ -1306,33 +1293,17 @@ async function executeWebFallback(
       content: response.text,
       provider: response.provider,
       model: response.model,
-      documentsIndexed: indexed,
+      documentsIndexed: queued,
       searchMetadata
     };
     
   } catch (error) {
-    // Prepare search metadata for error case
-    const searchMetadata = {
-      query,
-      sources: searchResults.slice(0, 10).map(r => {
-        const urlObj = new URL(r.url);
-        return {
-          url: r.url,
-          title: r.title,
-          snippet: r.snippet,
-          domain: urlObj.hostname
-        };
-      }),
-      resultsCount: searchResults.length,
-      indexedDocuments: indexed
-    };
-    
-    // Ultimate fallback - raw search summary
+    // Ultimate fallback - raw search summary (use searchMetadata already defined above)
     return {
       content: `Based on web research:\n\n${searchResults.slice(0, 3).map(r => `• ${r.title}: ${r.snippet}`).join('\n\n')}\n\nSources:\n${searchResults.slice(0, 3).map(r => `- ${r.url}`).join('\n')}`,
       provider: 'web-summary',
       model: 'raw-results',
-      documentsIndexed: indexed,
+      documentsIndexed: queued,
       searchMetadata
     };
   }

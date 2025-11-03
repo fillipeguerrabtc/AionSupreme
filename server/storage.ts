@@ -20,6 +20,10 @@ import {
   trainingDataCollection, type TrainingDataCollection, type InsertTrainingDataCollection,
   roles, type Role,
   userRoles, type UserRole,
+  usageRecords, type UsageRecord, type InsertUsageRecord,
+  namespaceRelevanceRecords, type NamespaceRelevanceRecord, type InsertNamespaceRelevanceRecord,
+  queryMetrics, type QueryMetric, type InsertQueryMetric,
+  agentQueryResults, type AgentQueryResult, type InsertAgentQueryResult,
 } from "@shared/schema";
 
 // ============================================================================
@@ -34,6 +38,8 @@ export interface IStorage {
   createUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, data: Partial<UpsertUser>): Promise<User>;
   getUserRoles(userId: string): Promise<Role[]>;
+  getUsers(limit?: number): Promise<User[]>;
+  deleteUser(id: string): Promise<void>;
   
   // Políticas
   getPolicy(id: number): Promise<Policy | undefined>;
@@ -200,6 +206,16 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userRoles.userId, userId));
     
     return result.map(r => r.role);
+  }
+
+  async getUsers(limit: number = 100): Promise<User[]> {
+    return db.select().from(users)
+      .orderBy(desc(users.createdAt))
+      .limit(limit);
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 
   // --------------------------------------------------------------------------
@@ -739,6 +755,178 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTrainingDataCollection(id: number): Promise<void> {
     await db.delete(trainingDataCollection).where(eq(trainingDataCollection.id, id));
+  }
+
+  // --------------------------------------------------------------------------
+  // USAGE TRACKING - Agent and Namespace usage (PRODUCTION-READY)
+  // --------------------------------------------------------------------------
+  async createUsageRecord(data: InsertUsageRecord): Promise<UsageRecord> {
+    const [created] = await db.insert(usageRecords).values([data] as any).returning();
+    return created;
+  }
+
+  async getUsageRecords(filters?: {
+    entityType?: "agent" | "namespace";
+    entityId?: string;
+    agentTier?: "agent" | "subagent";
+    parentAgentId?: string;
+    isRootNamespace?: boolean;
+    parentNamespace?: string;
+    daysAgo?: number;
+    limit?: number;
+  }): Promise<UsageRecord[]> {
+    let query = db.select().from(usageRecords);
+    
+    const conditions: any[] = [];
+    
+    if (filters?.entityType) {
+      conditions.push(eq(usageRecords.entityType, filters.entityType));
+    }
+    if (filters?.entityId) {
+      conditions.push(eq(usageRecords.entityId, filters.entityId));
+    }
+    if (filters?.agentTier) {
+      conditions.push(eq(usageRecords.agentTier, filters.agentTier));
+    }
+    if (filters?.parentAgentId) {
+      conditions.push(eq(usageRecords.parentAgentId, filters.parentAgentId));
+    }
+    if (filters?.isRootNamespace !== undefined) {
+      conditions.push(eq(usageRecords.isRootNamespace, filters.isRootNamespace));
+    }
+    if (filters?.parentNamespace) {
+      conditions.push(eq(usageRecords.parentNamespace, filters.parentNamespace));
+    }
+    if (filters?.daysAgo) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - filters.daysAgo);
+      conditions.push(gte(usageRecords.timestamp, cutoffDate));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return query
+      .orderBy(desc(usageRecords.timestamp))
+      .limit(filters?.limit || 1000);
+  }
+
+  // --------------------------------------------------------------------------
+  // NAMESPACE RELEVANCE - KB search quality (PRODUCTION-READY)
+  // --------------------------------------------------------------------------
+  async createNamespaceRelevanceRecord(data: InsertNamespaceRelevanceRecord): Promise<NamespaceRelevanceRecord> {
+    const [created] = await db.insert(namespaceRelevanceRecords).values([data] as any).returning();
+    return created;
+  }
+
+  async getNamespaceRelevanceRecords(filters?: {
+    namespace?: string;
+    daysAgo?: number;
+    limit?: number;
+  }): Promise<NamespaceRelevanceRecord[]> {
+    let query = db.select().from(namespaceRelevanceRecords);
+    
+    const conditions: any[] = [];
+    
+    if (filters?.namespace) {
+      conditions.push(eq(namespaceRelevanceRecords.namespace, filters.namespace));
+    }
+    if (filters?.daysAgo) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - filters.daysAgo);
+      conditions.push(gte(namespaceRelevanceRecords.timestamp, cutoffDate));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return query
+      .orderBy(desc(namespaceRelevanceRecords.timestamp))
+      .limit(filters?.limit || 1000);
+  }
+
+  // --------------------------------------------------------------------------
+  // QUERY METRICS - API performance tracking (PRODUCTION-READY)
+  // --------------------------------------------------------------------------
+  async createQueryMetric(data: InsertQueryMetric): Promise<QueryMetric> {
+    const [created] = await db.insert(queryMetrics).values([data] as any).returning();
+    return created;
+  }
+
+  async getQueryMetrics(filters?: {
+    queryType?: string;
+    provider?: string;
+    success?: boolean;
+    daysAgo?: number;
+    limit?: number;
+  }): Promise<QueryMetric[]> {
+    let query = db.select().from(queryMetrics);
+    
+    const conditions: any[] = [];
+    
+    if (filters?.queryType) {
+      conditions.push(eq(queryMetrics.queryType, filters.queryType));
+    }
+    if (filters?.provider) {
+      conditions.push(eq(queryMetrics.provider, filters.provider));
+    }
+    if (filters?.success !== undefined) {
+      conditions.push(eq(queryMetrics.success, filters.success));
+    }
+    if (filters?.daysAgo) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - filters.daysAgo);
+      conditions.push(gte(queryMetrics.timestamp, cutoffDate));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return query
+      .orderBy(desc(queryMetrics.timestamp))
+      .limit(filters?.limit || 1000);
+  }
+
+  // --------------------------------------------------------------------------
+  // AGENT QUERY RESULTS - Agent execution tracking (PRODUCTION-READY)
+  // --------------------------------------------------------------------------
+  async createAgentQueryResult(data: InsertAgentQueryResult): Promise<AgentQueryResult> {
+    const [created] = await db.insert(agentQueryResults).values([data] as any).returning();
+    return created;
+  }
+
+  async getAgentQueryResults(filters?: {
+    agentId?: string;
+    success?: boolean;
+    daysAgo?: number;
+    limit?: number;
+  }): Promise<AgentQueryResult[]> {
+    let query = db.select().from(agentQueryResults);
+    
+    const conditions: any[] = [];
+    
+    if (filters?.agentId) {
+      conditions.push(eq(agentQueryResults.agentId, filters.agentId));
+    }
+    if (filters?.success !== undefined) {
+      conditions.push(eq(agentQueryResults.success, filters.success));
+    }
+    if (filters?.daysAgo) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - filters.daysAgo);
+      conditions.push(gte(agentQueryResults.timestamp, cutoffDate));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    return query
+      .orderBy(desc(agentQueryResults.timestamp))
+      .limit(filters?.limit || 1000);
   }
 }
 
