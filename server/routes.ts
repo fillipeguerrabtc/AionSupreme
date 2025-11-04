@@ -21,6 +21,7 @@ import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { sendSuccess, sendValidationError, sendServerError, responseEnvelope } from "./utils/response";
 import { auditMiddleware } from "./middleware/audit";
 import log from "./utils/logger";
+import { getErrorMessage } from "./utils/error-helpers";
 import { rebuildService } from "./kb/rebuild-service";
 import { exportPrometheusMetrics } from "./metrics/exporter";
 import { metricsCollector } from "./metrics/collector";
@@ -169,7 +170,7 @@ export function registerRoutes(app: Express): Server {
         url: publicUrl,
         filename 
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Icon Upload] Erro:", error);
       
       // Limpar arquivo temporário em caso de erro
@@ -212,7 +213,7 @@ export function registerRoutes(app: Express): Server {
         curationId: result.curationId,
         message: "Conteúdo enviado para curadoria com sucesso",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Link Ingestion] Erro:", error);
       sendServerError(res, error);
     }
@@ -240,7 +241,7 @@ export function registerRoutes(app: Express): Server {
         failed,
         results,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Batch Ingestion] Erro:", error);
       sendServerError(res, error);
     }
@@ -262,9 +263,9 @@ export function registerRoutes(app: Express): Server {
         collected,
         message: `${collected} conversas enviadas para curadoria`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Chat Collection] Erro:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -291,9 +292,9 @@ export function registerRoutes(app: Express): Server {
       res.setHeader("Content-Type", "application/jsonl");
       res.setHeader("Content-Disposition", `attachment; filename="${dataset.originalFilename}"`);
       res.sendFile(absolutePath);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Dataset Download] Erro:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -314,9 +315,9 @@ export function registerRoutes(app: Express): Server {
       res.setHeader("Content-Type", "application/jsonl");
       res.setHeader("Content-Disposition", `attachment; filename="chunk-${chunkIndex}.jsonl"`);
       res.sendFile(absolutePath);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Chunk Download] Erro:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -353,9 +354,9 @@ export function registerRoutes(app: Express): Server {
       res.setHeader("Content-Type", "application/octet-stream");
       res.setHeader("Content-Disposition", `attachment; filename="checkpoint-job-${jobId}.safetensors"`);
       res.sendFile(absolutePath);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Checkpoint Download] Erro:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -375,10 +376,10 @@ export function registerRoutes(app: Express): Server {
         timestamp: new Date().toISOString(),
         uptime: Math.floor((Date.now() - startupTime) / 1000),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       res.status(503).json({
         status: "indisponível",
-        error: error.message,
+        error: getErrorMessage(error),
         timestamp: new Date().toISOString(),
       });
     }
@@ -407,11 +408,11 @@ export function registerRoutes(app: Express): Server {
         status: "saudável",
         latency: `${latency}ms`,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       allHealthy = false;
       checks.services.database = {
         status: "indisponível",
-        error: error.message,
+        error: getErrorMessage(error),
       };
     }
     
@@ -422,10 +423,10 @@ export function registerRoutes(app: Express): Server {
         status: "saudável",
         providers: apiStatus,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       checks.services.freeAPIs = {
         status: "degradado",
-        error: error.message,
+        error: getErrorMessage(error),
       };
     }
     
@@ -436,10 +437,10 @@ export function registerRoutes(app: Express): Server {
         status: hasOpenAI ? "healthy" : "not_configured",
         configured: hasOpenAI,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       checks.services.openai = {
         status: "unknown",
-        error: error.message,
+        error: getErrorMessage(error),
       };
     }
     
@@ -453,10 +454,10 @@ export function registerRoutes(app: Express): Server {
         activeWorkers,
         totalWorkers,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       checks.services.gpuPool = {
         status: "degraded",
-        error: error.message,
+        error: getErrorMessage(error),
       };
     }
     
@@ -470,8 +471,8 @@ export function registerRoutes(app: Express): Server {
       const { pool } = await import("./db");
       await pool.query("SELECT 1");
       res.status(200).json({ ready: true });
-    } catch (error: any) {
-      res.status(503).json({ ready: false, error: error.message });
+    } catch (error: unknown) {
+      res.status(503).json({ ready: false, error: getErrorMessage(error) });
     }
   });
   
@@ -486,10 +487,10 @@ export function registerRoutes(app: Express): Server {
       const { multiCloudSync } = require("../deployment/multi-cloud-sync");
       const status = multiCloudSync.getStatus();
       res.status(200).json(status);
-    } catch (error: any) {
+    } catch (error: unknown) {
       res.status(503).json({
         error: "Multi-cloud sync not enabled",
-        message: error.message,
+        message: getErrorMessage(error),
       });
     }
   });
@@ -562,8 +563,8 @@ export function registerRoutes(app: Express): Server {
           } else {
             console.log(`[Chat API] Nenhum agente disponível, usando orquestrador de prioridade como fallback`);
           }
-        } catch (multiAgentError: any) {
-          console.warn(`[Chat API] Multi-agente falhou, usando fallback:`, multiAgentError.message);
+        } catch (multiAgentError: unknown) {
+          console.warn(`[Chat API] Multi-agente falhou, usando fallback:`, getErrorMessage(multiAgentError));
         }
       }
       
@@ -617,13 +618,13 @@ export function registerRoutes(app: Express): Server {
           assistantResponse: result.content,
           source: result.source as any,
           provider: result.provider,
-        }).catch((err: any) => {
-          console.error('[AutoLearning] Failed to process chat:', err.message);
+        }).catch((err: unknown) => {
+          console.error('[AutoLearning] Failed to process chat:', getErrorMessage(err));
         });
         
-      } catch (autoLearnError: any) {
+      } catch (autoLearnError: unknown) {
         // Não falhar a requisição se auto-aprendizado falhar
-        console.error('[AutoLearning] System unavailable:', autoLearnError.message);
+        console.error('[AutoLearning] System unavailable:', getErrorMessage(autoLearnError));
       }
       
       res.json({
@@ -643,9 +644,9 @@ export function registerRoutes(app: Express): Server {
           ...result.metadata
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       metricsCollector.recordError();
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -729,8 +730,8 @@ export function registerRoutes(app: Express): Server {
             res.end();
             return;
           }
-        } catch (multiAgentError: any) {
-          console.warn({ error: multiAgentError.message }, "[SSE] Multi-agent failed, using fallback");
+        } catch (multiAgentError: unknown) {
+          console.warn({ error: getErrorMessage(multiAgentError) }, "[SSE] Multi-agent failed, using fallback");
         }
       }
       
@@ -787,13 +788,13 @@ export function registerRoutes(app: Express): Server {
       
       res.end();
       
-    } catch (error: any) {
-      console.error({ error: error.message }, "[SSE] Stream failed");
+    } catch (error: unknown) {
+      console.error({ error: getErrorMessage(error) }, "[SSE] Stream failed");
       metricsCollector.recordError();
       
       // Enviar evento de erro
       res.write(`event: error\n`);
-      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: getErrorMessage(error) })}\n\n`);
       res.end();
     }
   });
@@ -813,9 +814,9 @@ export function registerRoutes(app: Express): Server {
       metricsCollector.recordLatency(latency);
       
       res.json({ text: transcription });
-    } catch (error: any) {
+    } catch (error: unknown) {
       metricsCollector.recordError();
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -889,8 +890,8 @@ export function registerRoutes(app: Express): Server {
                 } as any);
                 
                 console.log(`[Chat] 🖼️ Imagem enviada para curadoria: ${filename}`);
-              } catch (error: any) {
-                console.error(`[Chat] ⚠️ Erro ao processar imagem ${file.originalname}:`, error.message);
+              } catch (error: unknown) {
+                console.error(`[Chat] ⚠️ Erro ao processar imagem ${file.originalname}:`, getErrorMessage(error));
               }
             }
             
@@ -954,9 +955,9 @@ export function registerRoutes(app: Express): Server {
           searchQuery: fallbackResult.searchQuery,
         } : undefined,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       metricsCollector.recordError();
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1018,8 +1019,8 @@ export function registerRoutes(app: Express): Server {
         message: "Arquivo submetido à fila de curadoria para revisão humana",
         status: "pending_approval"
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1062,7 +1063,7 @@ export function registerRoutes(app: Express): Server {
       );
       
       res.json({ results });
-    } catch (error: any) {
+    } catch (error: unknown) {
       const latency = Date.now() - startTime;
       
       // ✅ Track error
@@ -1071,11 +1072,11 @@ export function registerRoutes(app: Express): Server {
         "kb",
         latency,
         false,
-        error.message,
+        getErrorMessage(error),
         undefined
       );
       
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1091,8 +1092,8 @@ export function registerRoutes(app: Express): Server {
       
       const result = await reactEngine.execute(goal, conversation_id || 1, message_id || 1, tools);
       res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1101,8 +1102,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const policy = await storage.getActivePolicy();
       res.json(policy || {});
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1130,9 +1131,9 @@ export function registerRoutes(app: Express): Server {
         fullPrompt: fullPrompt,
         behavior: previewPolicy.behavior
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error generating prompt preview:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1147,8 +1148,8 @@ export function registerRoutes(app: Express): Server {
         const created = await storage.createPolicy(req.body);
         res.json(created);
       }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1157,8 +1158,8 @@ export function registerRoutes(app: Express): Server {
     try {
       // Sempre retornar timezone padrão (single-tenant)
       res.json({ timezone: "America/Sao_Paulo" });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1180,8 +1181,8 @@ export function registerRoutes(app: Express): Server {
       
       // Timezone setting is no longer persisted (single-tenant)
       res.json({ timezone, success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1192,9 +1193,9 @@ export function registerRoutes(app: Express): Server {
       const policyContent = await fs.readFile(policyPath, "utf-8");
       const policy = JSON.parse(policyContent);
       res.json(policy);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Lifecycle Policies] GET error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1241,9 +1242,9 @@ export function registerRoutes(app: Express): Server {
       
       console.log("[Lifecycle Policies] Configuration updated successfully");
       res.json({ success: true, policy: updatedPolicy });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Lifecycle Policies] PATCH error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1252,8 +1253,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const metrics = await storage.getMetrics(undefined, 100);
       res.json({ metrics });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1279,8 +1280,8 @@ export function registerRoutes(app: Express): Server {
           ? `✓ ${totalRemaining.toLocaleString()} requisições gratuitas disponíveis hoje`
           : "⚠️ Limite diário atingido - aguardar reset em 24h",
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1313,7 +1314,7 @@ export function registerRoutes(app: Express): Server {
         stats: result.stats,
         validation: result.validation,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       const latency = Date.now() - startTime;
       
       // ✅ Track error
@@ -1322,11 +1323,11 @@ export function registerRoutes(app: Express): Server {
         "prepare",
         latency,
         false,
-        error.message,
+        getErrorMessage(error),
         undefined
       );
       
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1346,8 +1347,8 @@ export function registerRoutes(app: Express): Server {
           ? `✓ ${stats.totalExamples} exemplos prontos para treino`
           : `⚠️ Dataset necessita correções: ${validation.errors.join(", ")}`,
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1356,8 +1357,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const documentIds = await knowledgeIndexer.indexAllPDFs();
       res.json({ success: true, documentIds });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1376,8 +1377,8 @@ export function registerRoutes(app: Express): Server {
       
       console.log(`[KB API] Returning ${approvedDocs.length} approved docs (filtered from ${allDocs.length} total)`);
       res.json(approvedDocs);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1444,7 +1445,7 @@ export function registerRoutes(app: Express): Server {
         curationId: item.id,
         status: "pending_approval"
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       const latency = Date.now() - startTime;
       
       // ✅ Track error
@@ -1453,11 +1454,11 @@ export function registerRoutes(app: Express): Server {
         "document",
         latency,
         false,
-        error.message,
+        getErrorMessage(error),
         undefined
       );
       
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1491,8 +1492,8 @@ export function registerRoutes(app: Express): Server {
       }
 
       res.json(updated);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1518,8 +1519,8 @@ export function registerRoutes(app: Express): Server {
         filesDeleted: result.filesDeleted,
         warnings: result.warnings,
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1549,8 +1550,8 @@ export function registerRoutes(app: Express): Server {
         filesDeleted: result.filesDeleted,
         warnings: result.warnings,
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1589,8 +1590,8 @@ export function registerRoutes(app: Express): Server {
         attachment: updatedAttachments[attachmentIndex],
         document: updated,
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1602,8 +1603,8 @@ export function registerRoutes(app: Express): Server {
       const docId = parseInt(req.params.id);
       await storage.deleteDocument(docId);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1622,9 +1623,9 @@ export function registerRoutes(app: Express): Server {
         report,
         formatted: kbDeduplicationScanner.formatReport(report),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[KB Dedup] Scan error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1673,9 +1674,9 @@ export function registerRoutes(app: Express): Server {
           images: req.body.clearImages || false
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[KB Reset] ❌ Erro ao resetar KB:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1713,9 +1714,9 @@ export function registerRoutes(app: Express): Server {
         ...result,
         message: "AION Complete System seeded successfully",
       });
-    } catch (error: any) {
-      console.error("[Seed] Error:", error.message);
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      console.error("[Seed] Error:", getErrorMessage(error));
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1764,9 +1765,9 @@ export function registerRoutes(app: Express): Server {
           ? "Dry-run completo (nenhuma mudança feita)"
           : "Migração de namespaces de agentes completada com sucesso",
       });
-    } catch (error: any) {
-      console.error("[Migration] Error:", error.message);
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      console.error("[Migration] Error:", getErrorMessage(error));
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1799,8 +1800,8 @@ export function registerRoutes(app: Express): Server {
         .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());
 
       res.json(images);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1892,9 +1893,9 @@ export function registerRoutes(app: Express): Server {
         },
         images: allImages
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[API] Error fetching all images:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1958,9 +1959,9 @@ export function registerRoutes(app: Express): Server {
           } else {
             errors.push(`Unknown source: ${source}`);
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
           console.error(`[DELETE Images] Error deleting ${imageId}:`, err);
-          errors.push(`${imageId}: ${err.message}`);
+          errors.push(`${imageId}: ${getErrorMessage(err)}`);
         }
       }
 
@@ -1974,9 +1975,9 @@ export function registerRoutes(app: Express): Server {
         deleted: deletedCount,
         errors: errors.length > 0 ? errors : undefined
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[DELETE Images] Error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -1998,8 +1999,8 @@ export function registerRoutes(app: Express): Server {
 
       fsSync.unlinkSync(filepath);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -2016,7 +2017,7 @@ export function registerRoutes(app: Express): Server {
       console.error("Error detecting orphans:", error);
       res.status(500).json({
         error: "Failed to detect orphans",
-        message: error instanceof Error ? error.message : String(error),
+        message: error instanceof Error ? getErrorMessage(error) : String(error),
       });
     }
   });
@@ -2036,7 +2037,7 @@ export function registerRoutes(app: Express): Server {
       console.error("Error auto-fixing orphans:", error);
       res.status(500).json({
         error: "Failed to auto-fix orphans",
-        message: error instanceof Error ? error.message : String(error),
+        message: error instanceof Error ? getErrorMessage(error) : String(error),
       });
     }
   });
@@ -2056,7 +2057,7 @@ export function registerRoutes(app: Express): Server {
       console.error("Error scanning platform orphans:", error);
       res.status(500).json({
         error: "Failed to scan platform orphans",
-        message: error instanceof Error ? error.message : String(error),
+        message: error instanceof Error ? getErrorMessage(error) : String(error),
       });
     }
   });
@@ -2096,9 +2097,9 @@ export function registerRoutes(app: Express): Server {
         result
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[API] Erro ao crawlear website:", error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -2145,9 +2146,9 @@ export function registerRoutes(app: Express): Server {
           duration: result.duration
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[API] ❌ Erro ao crawlear URL:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -2226,9 +2227,9 @@ export function registerRoutes(app: Express): Server {
 
           // Clean up temp file
           await fs.unlink(file.path).catch(() => {});
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(`Error processing ${file.originalname}:`, error);
-          errors.push({ filename: file.originalname, error: error.message });
+          errors.push({ filename: file.originalname, error: getErrorMessage(error) });
         }
       }
 
@@ -2240,8 +2241,8 @@ export function registerRoutes(app: Express): Server {
         errors: errors.length > 0 ? errors : undefined,
         status: "pending_approval"
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -2297,9 +2298,9 @@ export function registerRoutes(app: Express): Server {
         },
         status: "pending_approval"
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[API] ❌ Erro ao processar YouTube:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -2366,8 +2367,8 @@ export function registerRoutes(app: Express): Server {
         items: submittedItems,
         status: "pending_approval"
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -2376,8 +2377,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const documents = await storage.getDocuments(100);
       res.json({ documents });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -2401,8 +2402,8 @@ export function registerRoutes(app: Express): Server {
       );
       
       res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -2464,9 +2465,9 @@ export function registerRoutes(app: Express): Server {
           expiresAt: fileRecord.expiresAt,
         },
       });
-    } catch (error: any) {
-      console.error(`[API] Error generating image:`, error.message);
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      console.error(`[API] Error generating image:`, getErrorMessage(error));
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2527,8 +2528,8 @@ export function registerRoutes(app: Express): Server {
           expiresAt: fileRecord.expiresAt,
         },
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2554,8 +2555,8 @@ export function registerRoutes(app: Express): Server {
       
       const fileBuffer = await fs.readFile(file.storageUrl);
       res.send(fileBuffer);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2579,8 +2580,8 @@ export function registerRoutes(app: Express): Server {
       
       const fileBuffer = await fs.readFile(file.storageUrl);
       res.send(fileBuffer);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2625,9 +2626,9 @@ export function registerRoutes(app: Express): Server {
         success: true,
         job: result,
       });
-    } catch (error: any) {
-      console.error("[API] Video generation failed:", error.message);
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      console.error("[API] Video generation failed:", getErrorMessage(error));
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2637,8 +2638,8 @@ export function registerRoutes(app: Express): Server {
       const jobId = parseInt(req.params.id);
       const status = await videoGenerator.getJobStatus(jobId);
       res.json(status);
-    } catch (error: any) {
-      res.status(404).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(404).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2663,8 +2664,8 @@ export function registerRoutes(app: Express): Server {
       
       const videoBuffer = await fs.readFile(asset.storageUrl);
       res.send(videoBuffer);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2744,9 +2745,9 @@ export function registerRoutes(app: Express): Server {
       }
       
       res.json({ success: true });
-    } catch (error: any) {
-      console.error("[API] Webhook processing failed:", error.message);
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      console.error("[API] Webhook processing failed:", getErrorMessage(error));
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -2803,7 +2804,7 @@ export function registerRoutes(app: Express): Server {
       };
       
       res.json(userWithRoles || null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[Auth] Error fetching user:', error);
       res.json(null);
     }
@@ -2823,8 +2824,8 @@ export function registerRoutes(app: Express): Server {
       const conversationsWithCount = await storage.getConversationsWithMessageCount(userId, 50);
       
       res.json(conversationsWithCount);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2842,8 +2843,8 @@ export function registerRoutes(app: Express): Server {
       });
       
       res.json(conversation);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2871,8 +2872,8 @@ export function registerRoutes(app: Express): Server {
       }
       
       res.json(conversation);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2903,8 +2904,8 @@ export function registerRoutes(app: Express): Server {
       const messages = await storage.getMessagesByConversation(conversationId);
       
       res.json(messages);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -2972,9 +2973,9 @@ export function registerRoutes(app: Express): Server {
               provider: metadata?.provider,
             });
           }
-        } catch (collectorError: any) {
+        } catch (collectorError: unknown) {
           // Don't fail the request if collection fails
-          console.error('[HITL] Failed to send to curation queue:', collectorError.message);
+          console.error('[HITL] Failed to send to curation queue:', getErrorMessage(collectorError));
         }
       }
       
@@ -2990,7 +2991,7 @@ export function registerRoutes(app: Express): Server {
       );
       
       res.json(message);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const latency = Date.now() - startTime;
       
       // ✅ Track error
@@ -2999,11 +3000,11 @@ export function registerRoutes(app: Express): Server {
         "conversation",
         latency,
         false,
-        error.message,
+        getErrorMessage(error),
         undefined
       );
       
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -3032,8 +3033,8 @@ export function registerRoutes(app: Express): Server {
       
       await storage.deleteConversation(conversationId);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3053,8 +3054,8 @@ export function registerRoutes(app: Express): Server {
       const projects = await storage.getProjectsByUser(userId);
       
       res.json(projects);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -3080,8 +3081,8 @@ export function registerRoutes(app: Express): Server {
       });
       
       res.json(project);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -3112,8 +3113,8 @@ export function registerRoutes(app: Express): Server {
       });
       
       res.json(updated);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -3139,8 +3140,8 @@ export function registerRoutes(app: Express): Server {
       
       await storage.deleteProject(projectId);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3250,11 +3251,11 @@ export function registerRoutes(app: Express): Server {
             assistantResponse: orchestratorResult.content,
             source: explicitRequest.source === 'free-apis' ? 'free-api' : explicitRequest.source,
             provider: orchestratorResult.provider,
-          }).catch((err: any) => {
-            console.error('[HITL] Failed to send explicit request to curation:', err.message);
+          }).catch((err: unknown) => {
+            console.error('[HITL] Failed to send explicit request to curation:', getErrorMessage(err));
           });
-        } catch (autoLearnError: any) {
-          console.error('[HITL] Curation system unavailable:', autoLearnError.message);
+        } catch (autoLearnError: unknown) {
+          console.error('[HITL] Curation system unavailable:', getErrorMessage(autoLearnError));
         }
         
         return res.json({
@@ -3362,12 +3363,12 @@ export function registerRoutes(app: Express): Server {
           assistantResponse: finalContent,
           source: fallbackResult.usedFallback ? 'web' : 'openai',
           provider: fallbackResult.usedFallback ? 'automatic-fallback' : 'react-agent',
-        }).catch((err: any) => {
-          console.error('[HITL] Failed to send to curation queue:', err.message);
+        }).catch((err: unknown) => {
+          console.error('[HITL] Failed to send to curation queue:', getErrorMessage(err));
         });
-      } catch (autoLearnError: any) {
+      } catch (autoLearnError: unknown) {
         // Não falhar a requisição se curadoria falhar
-        console.error('[HITL] Curation system unavailable:', autoLearnError.message);
+        console.error('[HITL] Curation system unavailable:', getErrorMessage(autoLearnError));
       }
       
       res.json({
@@ -3390,7 +3391,7 @@ export function registerRoutes(app: Express): Server {
           searchQuery: fallbackResult.searchQuery,
         } : undefined,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       metricsCollector.recordError();
       
       // ✅ PRODUCTION-READY: Track error in PostgreSQL
@@ -3400,12 +3401,12 @@ export function registerRoutes(app: Express): Server {
         "react-agent",
         latency,
         false,
-        error.message,
+        getErrorMessage(error),
         undefined
       );
       
       console.error('[Agent Chat] Error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3419,8 +3420,8 @@ export function registerRoutes(app: Express): Server {
       const { getUsageStats } = await import("./llm/free-apis");
       const stats = getUsageStats();
       res.json(stats);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3467,7 +3468,7 @@ export function registerRoutes(app: Express): Server {
       );
       
       res.json({ job });
-    } catch (error: any) {
+    } catch (error: unknown) {
       const latency = Date.now() - startTime;
       
       // ✅ Track error
@@ -3476,11 +3477,11 @@ export function registerRoutes(app: Express): Server {
         "job-create",
         latency,
         false,
-        error.message,
+        getErrorMessage(error),
         undefined
       );
       
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3496,8 +3497,8 @@ export function registerRoutes(app: Express): Server {
       });
       
       res.json({ jobs });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3531,8 +3532,8 @@ export function registerRoutes(app: Express): Server {
       });
       
       res.json({ job, workers });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3566,8 +3567,8 @@ export function registerRoutes(app: Express): Server {
       console.log(`[Federated] Started training job: ${job.name} (ID ${jobId})`);
       
       res.json({ job });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3600,8 +3601,8 @@ export function registerRoutes(app: Express): Server {
       console.log(`[Federated] Paused training job: ${job.name} (ID ${jobId})`);
       
       res.json({ job });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3646,8 +3647,8 @@ export function registerRoutes(app: Express): Server {
         shouldAggregate,
         checkpointPath,
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3672,8 +3673,8 @@ export function registerRoutes(app: Express): Server {
       const checkpoint = JSON.parse(checkpointData);
       
       res.json({ checkpoint, path: checkpointPath });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3725,9 +3726,9 @@ export function registerRoutes(app: Express): Server {
         message: "Dataset uploaded successfully",
         dataset: savedDataset,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Dataset upload error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3765,8 +3766,8 @@ export function registerRoutes(app: Express): Server {
           totalSize: totalSize,
         }
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3794,8 +3795,8 @@ export function registerRoutes(app: Express): Server {
       }
 
       res.json({ dataset });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3837,8 +3838,8 @@ export function registerRoutes(app: Express): Server {
         preview: content,
         maxLines,
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3881,8 +3882,8 @@ export function registerRoutes(app: Express): Server {
         .returning();
 
       res.json(updated);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3916,8 +3917,8 @@ export function registerRoutes(app: Express): Server {
       await db.delete(datasets).where(eq(datasets.id, id));
 
       res.json({ message: "Dataset deleted successfully" });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -3966,8 +3967,8 @@ export function registerRoutes(app: Express): Server {
         message: "Datasets deleted successfully",
         deleted: datasetsToDelete.length,
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4010,8 +4011,8 @@ export function registerRoutes(app: Express): Server {
       // Stream file to response
       const fileStream = (await import("fs")).createReadStream(dataset.storagePath);
       fileStream.pipe(res);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4116,9 +4117,9 @@ export function registerRoutes(app: Express): Server {
           mode
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("KB dataset generation error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4178,7 +4179,7 @@ export function registerRoutes(app: Express): Server {
         metrics,
         shouldCollect: ConversationCollector.shouldCollect(metrics),
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error collecting training data:", error);
       res.status(500).json({ error: "Failed to collect training data" });
     }
@@ -4281,9 +4282,9 @@ export function registerRoutes(app: Express): Server {
         },
         timeline
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Auto-evolution stats error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4296,7 +4297,7 @@ export function registerRoutes(app: Express): Server {
       const data = await storage.getAllTrainingDataCollection(status, limit);
 
       res.json({ trainingData: data });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error listing training data:", error);
       res.status(500).json({ error: "Failed to list training data" });
     }
@@ -4326,7 +4327,7 @@ export function registerRoutes(app: Express): Server {
       // Validate request body
       const validation = updateSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: validation.error.message });
+        return res.status(400).json({ error: validation.getErrorMessage(error) });
       }
       
       const { status, rating, approvedBy, formattedData } = validation.data;
@@ -4388,7 +4389,7 @@ export function registerRoutes(app: Express): Server {
         trainingData: updated,
         validation: validationResult,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating training data:", error);
       res.status(500).json({ error: "Failed to update training data" });
     }
@@ -4411,7 +4412,7 @@ export function registerRoutes(app: Express): Server {
       await storage.deleteTrainingDataCollection(id);
 
       res.json({ success: true, message: "Training data deleted successfully" });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting training data:", error);
       res.status(500).json({ error: "Failed to delete training data" });
     }
@@ -4486,8 +4487,8 @@ export function registerRoutes(app: Express): Server {
         chunkIndex: availableChunk,
         chunkPath,
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4555,8 +4556,8 @@ export function registerRoutes(app: Express): Server {
       };
       
       res.json(progress);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4572,8 +4573,8 @@ export function registerRoutes(app: Express): Server {
       
       const results = await mmrSearch(query, options);
       res.json({ results });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4585,8 +4586,8 @@ export function registerRoutes(app: Express): Server {
       
       const result = await searchWithConfidence(query, options);
       res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4605,8 +4606,8 @@ export function registerRoutes(app: Express): Server {
       
       const examples = await trainingDataCollector.collectTrainingData(options);
       res.json({ examples: examples.length, data: examples });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4617,8 +4618,8 @@ export function registerRoutes(app: Express): Server {
       
       const result = await trainingDataCollector.prepareDataset(options);
       res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4630,8 +4631,8 @@ export function registerRoutes(app: Express): Server {
       
       const metrics = calculateAllMetrics(results, k || 10);
       res.json(metrics);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4644,8 +4645,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const summary = await tokenTracker.getUsageSummary();
       res.json(summary);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4654,8 +4655,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const quotas = await tokenTracker.getProviderQuotas();
       res.json(quotas);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4705,8 +4706,8 @@ export function registerRoutes(app: Express): Server {
           end_date: endDate?.toISOString().split('T')[0]
         });
       }
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4716,8 +4717,8 @@ export function registerRoutes(app: Express): Server {
       const { provider, limits } = req.body;
       await tokenTracker.setTokenLimit(provider, limits);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4726,8 +4727,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const alerts = await tokenTracker.getUnacknowledgedAlerts();
       res.json(alerts);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4737,8 +4738,8 @@ export function registerRoutes(app: Express): Server {
       const alertId = parseInt(req.params.id);
       await tokenTracker.acknowledgeAlert(alertId);
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4750,8 +4751,8 @@ export function registerRoutes(app: Express): Server {
       
       const history = await tokenTracker.getWebSearchHistory(provider, limit);
       res.json(history);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4760,8 +4761,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const stats = await tokenTracker.getWebSearchStats();
       res.json(stats);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4772,8 +4773,8 @@ export function registerRoutes(app: Express): Server {
       
       const history = await tokenTracker.getKBSearchHistory(limit);
       res.json(history);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4784,8 +4785,8 @@ export function registerRoutes(app: Express): Server {
       
       const history = await tokenTracker.getCompleteTokenHistory(limit);
       res.json(history);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
   
@@ -4796,8 +4797,8 @@ export function registerRoutes(app: Express): Server {
       
       const costHistory = await tokenTracker.getCostHistory(limit);
       res.json(costHistory);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4814,8 +4815,8 @@ export function registerRoutes(app: Express): Server {
         source: "openai_costs_api",
         note: "Real data from OpenAI invoice, NOT calculated from tokens" 
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4827,8 +4828,8 @@ export function registerRoutes(app: Express): Server {
       
       await openAIBillingSync.syncBillingData(days);
       res.json({ success: true, message: `Synced last ${days} days from OpenAI Costs API` });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4840,8 +4841,8 @@ export function registerRoutes(app: Express): Server {
       
       const history = await tokenTracker.getFreeAPIsHistory(provider, limit);
       res.json(history);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4857,8 +4858,8 @@ export function registerRoutes(app: Express): Server {
       
       const result = await enforcePolicy(text);
       res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
     }
   });
 
@@ -4934,9 +4935,9 @@ export function registerRoutes(app: Express): Server {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.send(data);
       
-    } catch (error: any) {
-      console.error("[Media Proxy] Error:", error.message);
-      res.status(500).json({ error: "Failed to fetch media", details: error.message });
+    } catch (error: unknown) {
+      console.error("[Media Proxy] Error:", getErrorMessage(error));
+      res.status(500).json({ error: "Failed to fetch media", details: getErrorMessage(error) });
     }
   });
 
@@ -4971,11 +4972,11 @@ export function registerRoutes(app: Express): Server {
           "Rebuild job started successfully"
         )
       );
-    } catch (error: any) {
-      console.error({ error: error.message }, "[API] Failed to start rebuild job");
+    } catch (error: unknown) {
+      console.error({ error: getErrorMessage(error) }, "[API] Failed to start rebuild job");
       
       res.status(400).json(
-        responseEnvelope.error(error.message, "REBUILD_START_FAILED")
+        responseEnvelope.error(getErrorMessage(error), "REBUILD_START_FAILED")
       );
     }
   });
@@ -4992,11 +4993,11 @@ export function registerRoutes(app: Express): Server {
       res.json(
         responseEnvelope.success({ jobs })
       );
-    } catch (error: any) {
-      console.error({ error: error.message }, "[API] Failed to list rebuild jobs");
+    } catch (error: unknown) {
+      console.error({ error: getErrorMessage(error) }, "[API] Failed to list rebuild jobs");
       
       res.status(500).json(
-        responseEnvelope.error(error.message, "REBUILD_LIST_FAILED")
+        responseEnvelope.error(getErrorMessage(error), "REBUILD_LIST_FAILED")
       );
     }
   });
@@ -5026,11 +5027,11 @@ export function registerRoutes(app: Express): Server {
       res.json(
         responseEnvelope.success(status)
       );
-    } catch (error: any) {
-      console.error({ error: error.message }, "[API] Failed to get rebuild job status");
+    } catch (error: unknown) {
+      console.error({ error: getErrorMessage(error) }, "[API] Failed to get rebuild job status");
       
       res.status(500).json(
-        responseEnvelope.error(error.message, "REBUILD_STATUS_FAILED")
+        responseEnvelope.error(getErrorMessage(error), "REBUILD_STATUS_FAILED")
       );
     }
   });
@@ -5068,11 +5069,11 @@ export function registerRoutes(app: Express): Server {
           "Rebuild job cancelled successfully"
         )
       );
-    } catch (error: any) {
-      console.error({ error: error.message }, "[API] Failed to cancel rebuild job");
+    } catch (error: unknown) {
+      console.error({ error: getErrorMessage(error) }, "[API] Failed to cancel rebuild job");
       
       res.status(500).json(
-        responseEnvelope.error(error.message, "REBUILD_CANCEL_FAILED")
+        responseEnvelope.error(getErrorMessage(error), "REBUILD_CANCEL_FAILED")
       );
     }
   });
