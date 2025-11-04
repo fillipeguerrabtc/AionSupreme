@@ -26,7 +26,95 @@
     "stream_failed": "Stream falló",
     "auto_learning_failed": "Error al procesar chat",
     "auto_learning_unavailable": "Sistema no disponible",
-    "error_processing_image": "Error al procesar imagen {{filename}}"
+    "error_processing_image": "Error al procesar imagen {{filename}}",
+    "message_required": "Parámetro message requerido",
+    "new_chat": "Nuevo Chat",
+    "new_conversation": "Nueva Conversación",
+    "conversation_not_found": "Conversación no encontrada",
+    "forbidden_anonymous": "Prohibido: Conversaciones anónimas no accesibles",
+    "forbidden_delete_anonymous": "Prohibido: No se pueden eliminar conversaciones anónimas",
+    "forbidden_not_owner": "Prohibido: No eres dueño de esta conversación"
+  },
+  "upload": {
+    "no_file": "No se subió archivo",
+    "no_files": "No se subieron archivos",
+    "no_audio_file": "No se subió archivo de audio",
+    "processing_failed": "Error al procesar subida",
+    "duplicate_detected": "Archivo duplicado detectado",
+    "duplicate_exact": "Archivo duplicado exacto encontrado en KB",
+    "submitted_for_curation": "Archivo enviado a cola de curación para revisión humana",
+    "file_expired": "Archivo expirado",
+    "file_not_found": "Archivo no encontrado",
+    "file_not_found_or_deleted": "Archivo no encontrado o eliminado",
+    "content_filename_required": "Contenido y nombre de archivo son requeridos",
+    "invalid_filename": "Nombre de archivo inválido"
+  },
+  "kb": {
+    "url_required": "URL es requerida",
+    "ingest_failed": "Error al ingerir enlace",
+    "submitted_for_curation": "Contenido enviado para curación con éxito",
+    "urls_array_required": "Array de URLs es requerido",
+    "title_content_required": "Título y contenido son requeridos",
+    "duplicate_detected": "Contenido duplicado detectado",
+    "duplicate_exact": "Duplicado exacto encontrado en KB",
+    "content_submitted": "Contenido enviado a cola de curación para revisión humana",
+    "document_not_found": "Documento no encontrado",
+    "document_ids_required": "Array documentIds es requerido",
+    "description_required": "Descripción es requerida",
+    "attachment_not_found": "Adjunto no encontrado",
+    "reset_complete": "Knowledge Base completamente reiniciada",
+    "search_query_required": "Query de búsqueda es requerida"
+  },
+  "dataset": {
+    "not_found": "Dataset no encontrado"
+  },
+  "training": {
+    "job_not_found": "Job no encontrado",
+    "checkpoint_not_ready": "Checkpoint aún no disponible - entrenamiento en progreso",
+    "invalid_job_id": "ID del job inválido",
+    "no_checkpoint": "No se encontró checkpoint para este job",
+    "worker_reported_failure": "Worker reportó falla",
+    "gradient_received": "Gradiente recibido",
+    "missing_fields": "Campos requeridos faltantes: jobId, workerId, step, gradients, numExamples"
+  },
+  "policy": {
+    "no_active_policy": "No se encontró política activa",
+    "invalid_data": "Datos de política de ciclo de vida inválidos"
+  },
+  "timezone": {
+    "invalid": "Zona horaria inválida",
+    "invalid_iana": "Zona horaria IANA inválida"
+  },
+  "admin": {
+    "auth_required": "Autenticación requerida",
+    "forbidden": "Prohibido: Se requiere acceso de admin.",
+    "forbidden_en": "Forbidden: Admin access required. Contact system administrator.",
+    "seed_success": "Sistema AION Complete sembrado con éxito",
+    "dry_run_complete": "Dry-run completo (no se hicieron cambios)",
+    "migration_success": "Migración de namespaces de agentes completada con éxito",
+    "orphan_detection_failed": "Error al detectar huérfanos",
+    "orphan_fix_failed": "Error al corregir huérfanos automáticamente",
+    "orphan_scan_failed": "Error al escanear huérfanos de plataforma"
+  },
+  "project": {
+    "name_required": "Nombre del proyecto es requerido",
+    "not_found": "Proyecto no encontrado",
+    "forbidden_not_owner": "Prohibido: No eres dueño de este proyecto",
+    "auth_required": "Autenticación requerida para crear proyectos"
+  },
+  "video": {
+    "expired": "Video expirado",
+    "not_found_or_deleted": "Video no encontrado o eliminado"
+  },
+  "image": {
+    "not_found": "Imagen no encontrada"
+  },
+  "youtube": {
+    "url_required": "URL de YouTube es requerida",
+    "invalid_url": "URL de YouTube inválida"
+  },
+  "prompts": {
+    "prompt_required": "Prompt es requerido"
   },
   "errors": {
     "unknown_error": "Error desconocido ocurrió",
@@ -34,7 +122,8 @@
     "validation_error": "Error de validación",
     "not_found": "No encontrado",
     "unauthorized": "No autorizado",
-    "forbidden": "Prohibido"
+    "forbidden": "Prohibido",
+    "auth_required": "Autenticación requerida"
   },
   "common": {
     "success": "Éxito",

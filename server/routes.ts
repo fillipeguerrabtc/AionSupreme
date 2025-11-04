@@ -137,7 +137,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/icons/upload", requireAuth, upload.single("icon"), async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "Nenhum arquivo enviado" });
+        return res.status(400).json({ error: req.t('upload.no_file') });
       }
 
       const file = req.file;
@@ -186,7 +186,7 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
-      res.status(500).json({ error: "Falha ao processar upload" });
+      res.status(500).json({ error: req.t('upload.processing_failed') });
     }
   });
 
@@ -202,24 +202,24 @@ export function registerRoutes(app: Express): Server {
       const { url, userId } = req.body;
 
       if (!url) {
-        return sendValidationError(res, "URL é obrigatória");
+        return sendValidationError(res, req.t('kb.url_required'));
       }
 
       const result = await linkIngestionService.ingestFromLink(url, userId);
 
       if (!result.success) {
-        return sendValidationError(res, result.error || "Falha ao ingerir link");
+        return sendValidationError(res, result.error || req.t('kb.ingest_failed'));
       }
 
       sendSuccess(res, {
         title: result.title,
         wordCount: result.wordCount,
         curationId: result.curationId,
-        message: "Conteúdo enviado para curadoria com sucesso",
+        message: req.t('kb.submitted_for_curation'),
       });
     } catch (error: unknown) {
       console.error("[Link Ingestion] Erro:", error);
-      sendServerError(res, error);
+      sendServerError(res, getErrorMessage(error));
     }
   });
 
@@ -231,7 +231,7 @@ export function registerRoutes(app: Express): Server {
       const { urls, userId } = req.body;
 
       if (!urls || !Array.isArray(urls) || urls.length === 0) {
-        return sendValidationError(res, "Array de URLs é obrigatório");
+        return sendValidationError(res, req.t('kb.urls_array_required'));
       }
 
       const results = await linkIngestionService.ingestBatch(urls, userId);
@@ -247,7 +247,7 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error: unknown) {
       console.error("[Batch Ingestion] Erro:", error);
-      sendServerError(res, error);
+      sendServerError(res, getErrorMessage(error));
     }
   });
 
@@ -285,7 +285,7 @@ export function registerRoutes(app: Express): Server {
       const [dataset] = await db.select().from(datasets).where(eq(datasets.id, datasetId)).limit(1);
       
       if (!dataset) {
-        return res.status(404).json({ error: "Dataset não encontrado" });
+        return res.status(404).json({ error: req.t('dataset.not_found') });
       }
       
       // Resolver caminho absoluto (sendFile exige caminho absoluto)
@@ -342,12 +342,12 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!job) {
-        return res.status(404).json({ error: "Job não encontrado" });
+        return res.status(404).json({ error: req.t('training.job_not_found') });
       }
 
       if (!job.latestCheckpoint) {
         return res.status(404).json({ 
-          error: "Checkpoint ainda não disponível - treino em andamento" 
+          error: req.t('training.checkpoint_not_ready')
         });
       }
 
@@ -807,7 +807,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/v1/transcribe", upload.single("audio"), async (req, res) => {
     const startTime = Date.now();
     try {
-      if (!req.file) throw new Error("Nenhum arquivo de áudio enviado");
+      if (!req.file) throw new Error(req.t('upload.no_audio_file'));
       
       metricsCollector.recordRequest();
       
@@ -969,7 +969,7 @@ export function registerRoutes(app: Express): Server {
   // HITL FIX: Ingestão de arquivos KB passa pela fila de curadoria
   app.post("/api/kb/ingest", requireAuth, upload.single("file"), async (req, res) => {
     try {
-      if (!req.file) throw new Error("Nenhum arquivo enviado");
+      if (!req.file) throw new Error(req.t('upload.no_file'));
       
       const mimeType = fileProcessor.detectMimeType(req.file.originalname);
       
@@ -989,7 +989,7 @@ export function registerRoutes(app: Express): Server {
         await fs.unlink(req.file.path).catch(() => {});
         
         return res.status(409).json({
-          error: "Arquivo duplicado detectado",
+          error: req.t('upload.duplicate_detected'),
           duplicate: {
             id: dupCheck.duplicateOf.id,
             title: dupCheck.duplicateOf.title,
@@ -997,7 +997,7 @@ export function registerRoutes(app: Express): Server {
             similarity: dupCheck.duplicateOf.similarity
           },
           message: dupCheck.method === 'hash'
-            ? "Arquivo duplicado exato encontrado na KB"
+            ? req.t('upload.duplicate_exact')
             : `Conteúdo similar encontrado (${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% correspondência)`
         });
       }
@@ -1020,7 +1020,7 @@ export function registerRoutes(app: Express): Server {
       res.json({ 
         ok: true, 
         curationId: item.id,
-        message: "Arquivo submetido à fila de curadoria para revisão humana",
+        message: req.t('upload.submitted_for_curation'),
         status: "pending_approval"
       });
     } catch (error: unknown) {
@@ -1117,7 +1117,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const policy = await storage.getActivePolicy();
       if (!policy) {
-        return res.status(404).json({ error: "No active policy found" });
+        return res.status(404).json({ error: req.t('policy.no_active_policy') });
       }
 
       // Use temporary behavior from request if provided, otherwise use saved
@@ -1395,7 +1395,7 @@ export function registerRoutes(app: Express): Server {
       const { title, content, source } = req.body;
       
       if (!title || !content) {
-        return res.status(400).json({ error: "Título e conteúdo são obrigatórios" });
+        return res.status(400).json({ error: req.t('kb.title_content_required') });
       }
 
       // DEDUPLICAÇÃO: Verificar se conteúdo é duplicado
@@ -1408,7 +1408,7 @@ export function registerRoutes(app: Express): Server {
 
       if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
         return res.status(409).json({
-          error: "Conteúdo duplicado detectado",
+          error: req.t('kb.duplicate_detected'),
           duplicate: {
             id: dupCheck.duplicateOf.id,
             title: dupCheck.duplicateOf.title,
@@ -1416,7 +1416,7 @@ export function registerRoutes(app: Express): Server {
             similarity: dupCheck.duplicateOf.similarity
           },
           message: dupCheck.method === 'hash'
-            ? "Duplicado exato encontrado na KB"
+            ? req.t('kb.duplicate_exact')
             : `Conteúdo similar encontrado (${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% correspondência)`
         });
       }
@@ -1445,7 +1445,7 @@ export function registerRoutes(app: Express): Server {
       );
       
       res.json({ 
-        message: "Conteúdo submetido à fila de curadoria para revisão humana",
+        message: req.t('kb.content_submitted'),
         curationId: item.id,
         status: "pending_approval"
       });
@@ -1475,7 +1475,7 @@ export function registerRoutes(app: Express): Server {
       // Obter documento existente para mesclar metadata
       const existingDoc = await storage.getDocument(docId);
       if (!existingDoc) {
-        return res.status(404).json({ error: "Documento não encontrado" });
+        return res.status(404).json({ error: req.t('kb.document_not_found') });
       }
 
       // Mesclar metadata recebido com metadata existente (preservar todos os campos)
@@ -1534,7 +1534,7 @@ export function registerRoutes(app: Express): Server {
       const { documentIds } = req.body;
       
       if (!documentIds || !Array.isArray(documentIds) || documentIds.length === 0) {
-        return res.status(400).json({ error: "Array documentIds é obrigatório" });
+        return res.status(400).json({ error: req.t('kb.document_ids_required') });
       }
 
       // Importar serviço de cascata
@@ -4331,7 +4331,7 @@ export function registerRoutes(app: Express): Server {
       // Validate request body
       const validation = updateSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: validation.getErrorMessage(error) });
+        return res.status(400).json({ error: getErrorMessage(validation.error) });
       }
       
       const { status, rating, approvedBy, formattedData } = validation.data;

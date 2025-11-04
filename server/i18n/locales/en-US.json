@@ -26,7 +26,95 @@
     "stream_failed": "Stream failed",
     "auto_learning_failed": "Failed to process chat",
     "auto_learning_unavailable": "System unavailable",
-    "error_processing_image": "Error processing image {{filename}}"
+    "error_processing_image": "Error processing image {{filename}}",
+    "message_required": "Message parameter required",
+    "new_chat": "New Chat",
+    "new_conversation": "New Conversation",
+    "conversation_not_found": "Conversation not found",
+    "forbidden_anonymous": "Forbidden: Anonymous conversations not accessible",
+    "forbidden_delete_anonymous": "Forbidden: Cannot delete anonymous conversations",
+    "forbidden_not_owner": "Forbidden: You don't own this conversation"
+  },
+  "upload": {
+    "no_file": "No file uploaded",
+    "no_files": "No files uploaded",
+    "no_audio_file": "No audio file uploaded",
+    "processing_failed": "Failed to process upload",
+    "duplicate_detected": "Duplicate file detected",
+    "duplicate_exact": "Exact duplicate file found in KB",
+    "submitted_for_curation": "File submitted to curation queue for human review",
+    "file_expired": "File expired",
+    "file_not_found": "File not found",
+    "file_not_found_or_deleted": "File not found or deleted",
+    "content_filename_required": "Content and filename are required",
+    "invalid_filename": "Invalid filename"
+  },
+  "kb": {
+    "url_required": "URL is required",
+    "ingest_failed": "Failed to ingest link",
+    "submitted_for_curation": "Content submitted for curation successfully",
+    "urls_array_required": "URLs array is required",
+    "title_content_required": "Title and content are required",
+    "duplicate_detected": "Duplicate content detected",
+    "duplicate_exact": "Exact duplicate found in KB",
+    "content_submitted": "Content submitted to curation queue for human review",
+    "document_not_found": "Document not found",
+    "document_ids_required": "documentIds array is required",
+    "description_required": "Description is required",
+    "attachment_not_found": "Attachment not found",
+    "reset_complete": "Knowledge Base completely reset",
+    "search_query_required": "Search query is required"
+  },
+  "dataset": {
+    "not_found": "Dataset not found"
+  },
+  "training": {
+    "job_not_found": "Job not found",
+    "checkpoint_not_ready": "Checkpoint not yet available - training in progress",
+    "invalid_job_id": "Invalid job ID",
+    "no_checkpoint": "No checkpoint found for this job",
+    "worker_reported_failure": "Worker reported failure",
+    "gradient_received": "Gradient received",
+    "missing_fields": "Missing required fields: jobId, workerId, step, gradients, numExamples"
+  },
+  "policy": {
+    "no_active_policy": "No active policy found",
+    "invalid_data": "Invalid lifecycle policy data"
+  },
+  "timezone": {
+    "invalid": "Invalid timezone",
+    "invalid_iana": "Invalid IANA timezone"
+  },
+  "admin": {
+    "auth_required": "Authentication required",
+    "forbidden": "Forbidden: Admin access required.",
+    "forbidden_en": "Forbidden: Admin access required. Contact system administrator.",
+    "seed_success": "AION Complete System seeded successfully",
+    "dry_run_complete": "Dry-run complete (no changes made)",
+    "migration_success": "Agent namespace migration completed successfully",
+    "orphan_detection_failed": "Failed to detect orphans",
+    "orphan_fix_failed": "Failed to auto-fix orphans",
+    "orphan_scan_failed": "Failed to scan platform orphans"
+  },
+  "project": {
+    "name_required": "Project name is required",
+    "not_found": "Project not found",
+    "forbidden_not_owner": "Forbidden: You don't own this project",
+    "auth_required": "Authentication required to create projects"
+  },
+  "video": {
+    "expired": "Video expired",
+    "not_found_or_deleted": "Video not found or deleted"
+  },
+  "image": {
+    "not_found": "Image not found"
+  },
+  "youtube": {
+    "url_required": "YouTube URL is required",
+    "invalid_url": "Invalid YouTube URL"
+  },
+  "prompts": {
+    "prompt_required": "Prompt is required"
   },
   "errors": {
     "unknown_error": "Unknown error occurred",
@@ -34,7 +122,8 @@
     "validation_error": "Validation error",
     "not_found": "Not found",
     "unauthorized": "Unauthorized",
-    "forbidden": "Forbidden"
+    "forbidden": "Forbidden",
+    "auth_required": "Authentication required"
   },
   "common": {
     "success": "Success",
