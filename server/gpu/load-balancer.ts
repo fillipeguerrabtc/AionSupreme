@@ -7,12 +7,16 @@
  * - Least-busy: Worker with fewest active requests
  * - Fastest: Worker with lowest average latency
  * 
+ * ⚡ FASE 2 - C2: Integrado com Circuit Breaker para prevenir cascata de falhas
+ * 
  * Falls back to free APIs if no GPUs available.
  */
 
 import { gpuPoolManager } from "./pool-manager";
 import type { GpuWorker } from "../../shared/schema";
 import axios from "axios";
+import { circuitBreakerManager } from "./circuit-breaker";
+import { log } from "../utils/logger";
 
 export type LoadBalancingStrategy = "round-robin" | "least-busy" | "fastest";
 
@@ -24,12 +28,19 @@ export class GpuLoadBalancer {
 
   /**
    * Get next available GPU worker based on strategy
+   * ⚡ FASE 2 - C2: Filtra workers considerando Circuit Breaker state
    */
   async getNextWorker(): Promise<GpuWorker | null> {
     const healthyWorkers = await gpuPoolManager.getHealthyWorkers();
 
-    if (healthyWorkers.length === 0) {
-      console.log("[Load Balancer] No healthy GPU workers available");
+    // ⚡ FASE 2 - C2: Filter out workers with OPEN circuits
+    const availableWorkers = circuitBreakerManager.filterHealthyWorkers(healthyWorkers);
+
+    if (availableWorkers.length === 0) {
+      log.warn({ 
+        totalHealthy: healthyWorkers.length, 
+        availableAfterCircuitBreaker: 0 
+      }, "[Load Balancer] No available GPU workers (all circuits OPEN or no workers)");
       return null;
     }
 
@@ -37,22 +48,27 @@ export class GpuLoadBalancer {
 
     switch (this.strategy) {
       case "round-robin":
-        selectedWorker = this.selectRoundRobin(healthyWorkers);
+        selectedWorker = this.selectRoundRobin(availableWorkers);
         break;
 
       case "least-busy":
-        selectedWorker = this.selectLeastBusy(healthyWorkers);
+        selectedWorker = this.selectLeastBusy(availableWorkers);
         break;
 
       case "fastest":
-        selectedWorker = this.selectFastest(healthyWorkers);
+        selectedWorker = this.selectFastest(availableWorkers);
         break;
 
       default:
-        selectedWorker = healthyWorkers[0];
+        selectedWorker = availableWorkers[0];
     }
 
-    console.log(`[Load Balancer] Selected worker: ${selectedWorker.provider} (ID: ${selectedWorker.id}, Strategy: ${this.strategy})`);
+    log.info({ 
+      workerId: selectedWorker.id, 
+      provider: selectedWorker.provider, 
+      strategy: this.strategy 
+    }, "[Load Balancer] Selected worker");
+    
     return selectedWorker;
   }
 
@@ -118,6 +134,23 @@ export class GpuLoadBalancer {
       };
     }
 
+    // ⚡ FASE 2 - C2: Get circuit breaker for this worker
+    const breaker = circuitBreakerManager.getBreaker(worker.id, worker.provider || "unknown");
+
+    // Check if circuit allows execution
+    if (!breaker.canExecute()) {
+      log.warn({ 
+        workerId: worker.id, 
+        provider: worker.provider 
+      }, "[Load Balancer] Circuit OPEN - request rejected");
+      
+      return {
+        success: false,
+        error: "Circuit breaker OPEN - worker temporarily unavailable",
+        workerId: worker.id,
+      };
+    }
+
     // Track active request
     this.incrementActiveRequests(worker.id);
 
@@ -134,7 +167,7 @@ export class GpuLoadBalancer {
           stream: options.stream || false,
         },
         {
-          timeout: 60000, // 60s timeout
+          timeout: breaker.getTimeout(), // ⚡ FASE 2 - C2: Use circuit breaker timeout
           headers: {
             "Content-Type": "application/json",
           },
@@ -143,13 +176,20 @@ export class GpuLoadBalancer {
 
       const latencyMs = Date.now() - startTime;
 
+      // ⚡ FASE 2 - C2: Record success in circuit breaker
+      breaker.recordSuccess();
+
       // Update worker metrics
       await gpuPoolManager.updateWorkerMetrics(worker.id, latencyMs);
 
       // Extract response text
       const responseText = response.data.choices?.[0]?.message?.content || "";
 
-      console.log(`[Load Balancer] Request completed in ${latencyMs}ms via ${worker.provider}`);
+      log.info({ 
+        workerId: worker.id, 
+        provider: worker.provider, 
+        latencyMs 
+      }, "[Load Balancer] Request completed successfully");
 
       return {
         success: true,
@@ -158,7 +198,14 @@ export class GpuLoadBalancer {
         workerId: worker.id,
       };
     } catch (error: any) {
-      console.error(`[Load Balancer] Error executing request on ${worker.provider}:`, error.message);
+      // ⚡ FASE 2 - C2: Record failure in circuit breaker
+      breaker.recordFailure(error.message);
+      
+      log.error({ 
+        workerId: worker.id, 
+        provider: worker.provider, 
+        error: error.message 
+      }, "[Load Balancer] Request failed");
 
       return {
         success: false,
@@ -200,7 +247,22 @@ export class GpuLoadBalancer {
    */
   setStrategy(strategy: LoadBalancingStrategy): void {
     this.strategy = strategy;
-    console.log(`[Load Balancer] Strategy changed to: ${strategy}`);
+    log.info({ strategy }, "[Load Balancer] Strategy changed");
+  }
+
+  /**
+   * ⚡ FASE 2 - C2: Get circuit breaker stats
+   */
+  getCircuitBreakerStats() {
+    return circuitBreakerManager.getAllStats();
+  }
+
+  /**
+   * ⚡ FASE 2 - C2: Reset all circuit breakers
+   */
+  resetAllCircuitBreakers(): void {
+    circuitBreakerManager.resetAll();
+    log.info("[Load Balancer] All circuit breakers reset");
   }
 }
 
