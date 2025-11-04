@@ -1,16 +1,10 @@
-// server/agent/runtime.ts
 import type { Agent, AgentExecutor, AgentInput, AgentOutput, AgentRunContext } from "./types";
-import { generateWithPriority } from "../llm/priority-orchestrator"; // ✅ MUDANÇA: Usar priority-orchestrator em vez de free-apis
+import { generateWithPriority } from "../llm/priority-orchestrator";
 import { ragService } from "../rag/vector-store";
 
-// Runtime cache stores AgentExecutor (with run() method) not plain Agent configs
 const cache = new Map<string, AgentExecutor>();
 
-/**
- * Search RAG knowledge base in agent's namespaces
- * SINGLE-TENANT: tenantId = 1 (hardcoded)
- */
-async function searchRAG(query: string, namespaces: string[], k: number = 5): Promise<any[]> {
+async function searchRAG(query: string, namespaces: string[], k: number = 5) {
   try {
     if (namespaces.length === 0) {
       console.log("[AgentExecutor] No namespaces configured, skipping RAG search");
@@ -27,20 +21,17 @@ async function searchRAG(query: string, namespaces: string[], k: number = 5): Pr
 
     console.log(`[AgentExecutor] Found ${results.length} RAG results (filtered by namespaces)`);
     return results;
-  } catch (error: any) {
-    console.error("[AgentExecutor] RAG search error:", error.message);
+  } catch (error: unknown) {
+    console.error("[AgentExecutor] RAG search error:", error instanceof Error ? error.message : String(error));
     return [];
   }
 }
 
-/**
- * Build context from RAG results
- */
-function buildRAGContext(results: any[]): string {
+function buildRAGContext(results: Awaited<ReturnType<typeof searchRAG>>): string {
   if (results.length === 0) return "";
 
   const contextParts = results.map((r, idx) => {
-    return `[${idx + 1}] ${r.text}\nFonte: Documento ID ${r.documentId}`;
+    return `[${idx + 1}] ${r.chunkText}\nFonte: Documento ID ${r.documentId}`;
   });
 
   return `\n\nCONTEXTO DA BASE DE CONHECIMENTO:\n${contextParts.join("\n\n")}`;
@@ -76,7 +67,20 @@ function createAgentExecutor(agent: Agent): AgentExecutor {
         const attachments: Array<{type: "image"|"video"|"document"; url: string; filename: string; mimeType: string; size?: number}> = [];
         for (const result of ragResults) {
           if (result.attachments && Array.isArray(result.attachments)) {
-            attachments.push(...result.attachments);
+            for (const att of result.attachments) {
+              let type: "image"|"video"|"document";
+              if (att.type === 'image') type = 'image';
+              else if (att.type === 'video') type = 'video';
+              else type = 'document';
+              
+              attachments.push({
+                type,
+                url: att.url,
+                filename: att.filename || '',
+                mimeType: att.mimeType || '',
+                size: att.size
+              });
+            }
           }
         }
         console.log(`[AgentExecutor] Collected ${attachments.length} attachments from RAG results`);
@@ -106,20 +110,18 @@ ${ragContext}`;
           };
         }
         
-        // STEP 4: Call LLM with system prompt + conversation history + user query
-        // Normalize history: Filter system messages and keep only user/assistant
         const normalizedHistory = (input.history || [])
-          .filter((msg: any) => msg.role === "user" || msg.role === "assistant")
-          .map((msg: any) => {
+          .filter((msg) => msg.role === "user" || msg.role === "assistant")
+          .map((msg) => {
             // Handle different content formats (string, array, object)
             let contentText: string;
             if (typeof msg.content === "string") {
               contentText = msg.content;
             } else if (Array.isArray(msg.content)) {
-              // OpenAI multimodal format: [{type: "text", text: "..."}, ...]
-              contentText = msg.content
-                .filter((part: any) => part.type === "text" || typeof part === "string")
-                .map((part: any) => typeof part === "string" ? part : part.text || "")
+              const content = msg.content as Array<{type?: string; text?: string} | string>;
+              contentText = content
+                .filter((part) => typeof part === "string" || (typeof part === "object" && part.type === "text"))
+                .map((part) => typeof part === "string" ? part : part.text || "")
                 .join(" ");
             } else {
               // Fallback for other formats
@@ -172,11 +174,12 @@ ${ragContext}`;
           latencyMs,
         };
         
-      } catch (error: any) {
-        console.error(`[AgentExecutor] Error in agent "${agent.name}":`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[AgentExecutor] Error in agent "${agent.name}":`, errorMessage);
         
         return {
-          text: `Desculpe, ocorreu um erro ao processar sua solicitação: ${error.message}`,
+          text: `Desculpe, ocorreu um erro ao processar sua solicitação: ${errorMessage}`,
           citations: [],
           costUSD: 0,
           tokens: { prompt: 0, completion: 0 },

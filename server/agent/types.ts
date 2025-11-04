@@ -42,11 +42,11 @@ export interface Agent {
   systemPrompt?: string;
   ragNamespaces: string[]; // LEGACY: usar assignedNamespaces
   allowedTools: string[];
-  policy: any;
+  policy: Record<string, unknown>;
   budgetLimit?: number;
   escalationAgent?: string;
-  inferenceConfig?: any;
-  metadata?: any;
+  inferenceConfig?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
 }
 
 // Runtime executor (implements run method, wraps Agent config)
