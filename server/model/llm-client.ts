@@ -547,7 +547,7 @@ export class LLMClient {
     
     try {
       const response = await this.openai.embeddings.create({
-        model: "text-embedding-ada-002",
+        model: "text-embedding-3-small",
         input: texts,
       });
 
@@ -561,7 +561,7 @@ export class LLMClient {
         unit: "tokens",
         operation: "embedding",
         metadata: {
-          model: "text-embedding-ada-002",
+          model: "text-embedding-3-small",
         },
       });
 
