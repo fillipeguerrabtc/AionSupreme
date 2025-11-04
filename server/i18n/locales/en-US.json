@@ -1,0 +1,49 @@
+{
+  "health": {
+    "healthy": "healthy",
+    "unhealthy": "unavailable",
+    "degraded": "degraded",
+    "not_configured": "not configured",
+    "no_workers": "no workers",
+    "timestamp": "Timestamp",
+    "uptime": "Uptime",
+    "version": "Version",
+    "environment": "Environment",
+    "database": "Database",
+    "free_apis": "Free APIs",
+    "openai": "OpenAI",
+    "gpu_pool": "GPU Pool",
+    "multi_cloud_sync_not_enabled": "Multi-cloud sync not enabled"
+  },
+  "chat": {
+    "received_messages": "Received {{count}} messages in history",
+    "multi_agent_enabled": "ENABLED",
+    "multi_agent_disabled": "DISABLED",
+    "multi_agent_mode": "Multi-Agent Mode",
+    "last_messages": "Last {{count}} messages",
+    "using_multi_agent": "Using Multi-Agent System ({{count}} agents available)",
+    "multi_agent_failed_fallback": "Multi-agent failed, using fallback",
+    "stream_failed": "Stream failed",
+    "auto_learning_failed": "Failed to process chat",
+    "auto_learning_unavailable": "System unavailable",
+    "error_processing_image": "Error processing image {{filename}}"
+  },
+  "errors": {
+    "unknown_error": "Unknown error occurred",
+    "internal_server_error": "Internal server error",
+    "validation_error": "Validation error",
+    "not_found": "Not found",
+    "unauthorized": "Unauthorized",
+    "forbidden": "Forbidden"
+  },
+  "common": {
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information",
+    "status": "Status",
+    "message": "Message",
+    "created_at": "Created at",
+    "updated_at": "Updated at"
+  }
+}

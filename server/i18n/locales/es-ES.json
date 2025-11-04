@@ -1,0 +1,49 @@
+{
+  "health": {
+    "healthy": "saludable",
+    "unhealthy": "no disponible",
+    "degraded": "degradado",
+    "not_configured": "no configurado",
+    "no_workers": "sin workers",
+    "timestamp": "Marca de tiempo",
+    "uptime": "Tiempo activo",
+    "version": "Versión",
+    "environment": "Ambiente",
+    "database": "Base de Datos",
+    "free_apis": "APIs Gratuitas",
+    "openai": "OpenAI",
+    "gpu_pool": "Pool de GPU",
+    "multi_cloud_sync_not_enabled": "Sincronización multi-cloud no habilitada"
+  },
+  "chat": {
+    "received_messages": "Recibidos {{count}} mensajes en el historial",
+    "multi_agent_enabled": "HABILITADO",
+    "multi_agent_disabled": "DESHABILITADO",
+    "multi_agent_mode": "Modo Multi-Agente",
+    "last_messages": "Últimos {{count}} mensajes",
+    "using_multi_agent": "Usando Sistema Multi-Agente ({{count}} agentes disponibles)",
+    "multi_agent_failed_fallback": "Multi-agente falló, usando alternativa",
+    "stream_failed": "Stream falló",
+    "auto_learning_failed": "Error al procesar chat",
+    "auto_learning_unavailable": "Sistema no disponible",
+    "error_processing_image": "Error al procesar imagen {{filename}}"
+  },
+  "errors": {
+    "unknown_error": "Error desconocido ocurrió",
+    "internal_server_error": "Error interno del servidor",
+    "validation_error": "Error de validación",
+    "not_found": "No encontrado",
+    "unauthorized": "No autorizado",
+    "forbidden": "Prohibido"
+  },
+  "common": {
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información",
+    "status": "Estado",
+    "message": "Mensaje",
+    "created_at": "Creado en",
+    "updated_at": "Actualizado en"
+  }
+}

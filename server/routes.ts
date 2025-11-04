@@ -36,7 +36,8 @@ import * as fsSync from "fs";
 import path from "path";
 import express from "express";
 import { optionalAuth } from "./replitAuth";
-import { requireAuth, requireAdmin, requirePermission, getUserId } from "./middleware/auth"; // SECURITY FIX: Protect admin routes
+import { requireAuth, requireAdmin, requirePermission, getUserId } from "./middleware/auth";
+import { i18nMiddleware } from "./i18n/middleware"; // SECURITY FIX: Protect admin routes
 import { DatasetProcessor } from "./training/datasets/dataset-processor";
 import { DatasetValidator } from "./training/datasets/dataset-validator";
 import { db } from "./db";
@@ -68,6 +69,9 @@ const startupTime = Date.now();
 export function registerRoutes(app: Express): Server {
   // Aplicar middleware de auditoria globalmente (leve)
   app.use(auditMiddleware);
+  
+  // Aplicar I18N middleware globalmente
+  app.use(i18nMiddleware);
   
   // Aplicar rate limiting APENAS para rotas API (não assets estáticos)
   app.use("/api", rateLimitMiddleware);
