@@ -508,7 +508,6 @@ export function registerRoutes(app: Express): Server {
     try {
       const { messages, useMultiAgent = true } = req.body; // Habilitar multi-agent por padrão
       
-      // DEBUG: Logar tamanho do histórico de mensagens
       console.log(`[Chat API] Recebidas ${messages.length} mensagens no histórico`);
       console.log(`[Chat API] Multi-Agent Mode: ${useMultiAgent ? 'ENABLED' : 'DISABLED'}`);
       console.log(`[Chat API] Últimas 3 mensagens:`, messages.slice(-3).map((m: any) => ({

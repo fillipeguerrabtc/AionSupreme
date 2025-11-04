@@ -131,7 +131,6 @@ export class DeepCrawler {
           console.log(`     • ${page.images.length} imagens`);
           console.log(`     • ${page.links.length} links descobertos`);
 
-          // DEBUG: Mostrar links descobertos
           if (page.links.length > 0) {
             console.log(`     📋 Links descobertos:`);
             page.links.slice(0, 10).forEach(l => console.log(`        - ${l}`));

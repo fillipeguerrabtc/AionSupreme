@@ -90,7 +90,6 @@ class RateLimiter {
         const key = mapKey.substring(0, lastColonIndex);
         const window = mapKey.substring(lastColonIndex + 1);
         
-        // DEBUG: Log what we're trying to insert
         if (window.length > 10) {
           console.warn({ window, windowLength: window.length, mapKey, key, keyLength: key.length }, '[RateLimiter] Invalid window length detected, skipping entry');
           continue; // Skip invalid entries
