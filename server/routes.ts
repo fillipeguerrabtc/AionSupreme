@@ -18,6 +18,7 @@ import { hierarchicalPlanner } from "./agent/hierarchical-planner";
 import * as tokenTracker from "./monitoring/token-tracker";
 import { seedDatabase } from "./seed";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
+import { sendSuccess, sendValidationError, sendServerError } from "./utils/response";
 import { auditMiddleware } from "./middleware/audit";
 import { exportPrometheusMetrics } from "./metrics/exporter";
 import { metricsCollector } from "./metrics/collector";
@@ -187,23 +188,23 @@ export function registerRoutes(app: Express): Server {
   // ========================================
   
   // POST /api/learn/ingest-link - Ingerir dados de URL para treino
+  // 📦 FASE 2 - B2: Exemplo de HTTP Response Envelope
   app.post("/api/learn/ingest-link", requireAuth, async (req, res) => {
     try {
       const { linkIngestionService } = await import("./learn/link-ingestion");
       const { url, userId } = req.body;
 
       if (!url) {
-        return res.status(400).json({ error: "URL é obrigatória" });
+        return sendValidationError(res, "URL é obrigatória");
       }
 
       const result = await linkIngestionService.ingestFromLink(url, userId);
 
       if (!result.success) {
-        return res.status(400).json({ error: result.error });
+        return sendValidationError(res, result.error || "Falha ao ingerir link");
       }
 
-      res.json({
-        success: true,
+      sendSuccess(res, {
         title: result.title,
         wordCount: result.wordCount,
         curationId: result.curationId,
@@ -211,18 +212,19 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error: any) {
       console.error("[Link Ingestion] Erro:", error);
-      res.status(500).json({ error: error.message });
+      sendServerError(res, error);
     }
   });
 
   // POST /api/learn/ingest-batch - Ingerir múltiplas URLs
+  // 📦 FASE 2 - B2: Exemplo de HTTP Response Envelope
   app.post("/api/learn/ingest-batch", requireAuth, async (req, res) => {
     try {
       const { linkIngestionService } = await import("./learn/link-ingestion");
       const { urls, userId } = req.body;
 
       if (!urls || !Array.isArray(urls) || urls.length === 0) {
-        return res.status(400).json({ error: "Array de URLs é obrigatório" });
+        return sendValidationError(res, "Array de URLs é obrigatório");
       }
 
       const results = await linkIngestionService.ingestBatch(urls, userId);
@@ -230,7 +232,7 @@ export function registerRoutes(app: Express): Server {
       const successful = results.filter(r => r.success).length;
       const failed = results.filter(r => !r.success).length;
 
-      res.json({
+      sendSuccess(res, {
         total: results.length,
         successful,
         failed,
@@ -238,7 +240,7 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error: any) {
       console.error("[Batch Ingestion] Erro:", error);
-      res.status(500).json({ error: error.message });
+      sendServerError(res, error);
     }
   });
 
