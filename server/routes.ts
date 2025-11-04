@@ -493,7 +493,7 @@ export function registerRoutes(app: Express): Server {
       res.status(200).json(status);
     } catch (error: unknown) {
       res.status(503).json({
-        error: "Multi-cloud sync not enabled",
+        error: req.t('health.multi_cloud_sync_not_enabled'),
         message: getErrorMessage(error),
       });
     }
@@ -663,7 +663,7 @@ export function registerRoutes(app: Express): Server {
       const { message, useMultiAgent = "true" } = req.query;
       
       if (!message || typeof message !== "string") {
-        return res.status(400).json({ error: "Message parameter required" });
+        return res.status(400).json({ error: req.t('chat.message_required') });
       }
       
       // Configurar headers SSE
@@ -1173,14 +1173,14 @@ export function registerRoutes(app: Express): Server {
       const { timezone } = req.body;
       
       if (!timezone || typeof timezone !== 'string') {
-        return res.status(400).json({ error: "Invalid timezone" });
+        return res.status(400).json({ error: req.t('timezone.invalid') });
       }
       
       // Validate timezone using Intl
       try {
         Intl.DateTimeFormat(undefined, { timeZone: timezone });
       } catch {
-        return res.status(400).json({ error: "Invalid IANA timezone" });
+        return res.status(400).json({ error: req.t('timezone.invalid_iana') });
       }
       
       // Timezone setting is no longer persisted (single-tenant)
@@ -1212,7 +1212,7 @@ export function registerRoutes(app: Express): Server {
       const validationResult = lifecyclePolicyUpdateSchema.safeParse(req.body);
       if (!validationResult.success) {
         return res.status(400).json({ 
-          error: "Invalid lifecycle policy data",
+          error: req.t('policy.invalid_data'),
           details: validationResult.error.format()
         });
       }
@@ -1567,16 +1567,16 @@ export function registerRoutes(app: Express): Server {
       const { description } = req.body;
 
       if (description === undefined) {
-        return res.status(400).json({ error: "Descrição é obrigatória" });
+        return res.status(400).json({ error: req.t('kb.description_required') });
       }
 
       const doc = await storage.getDocument(docId);
       if (!doc) {
-        return res.status(404).json({ error: "Documento não encontrado" });
+        return res.status(404).json({ error: req.t('kb.document_not_found') });
       }
 
       if (!doc.attachments || !doc.attachments[attachmentIndex]) {
-        return res.status(404).json({ error: "Anexo não encontrado" });
+        return res.status(404).json({ error: req.t('kb.attachment_not_found') });
       }
 
       const updatedAttachments = [...doc.attachments];
@@ -1670,7 +1670,7 @@ export function registerRoutes(app: Express): Server {
       
       res.json({ 
         success: true,
-        message: "Knowledge Base completamente resetada",
+        message: req.t('kb.reset_complete'),
         cleared: {
           documents: true,
           embeddings: true,
@@ -1692,7 +1692,7 @@ export function registerRoutes(app: Express): Server {
     
     // 1. Verificação de autenticação
     if (!userId) {
-      return res.status(401).json({ error: "Autenticação obrigatória" });
+      return res.status(401).json({ error: req.t('admin.auth_required') });
     }
     
     // 2. Verificação de autorização - allowlist de admins
@@ -1706,7 +1706,7 @@ export function registerRoutes(app: Express): Server {
     if (!isAuthorized) {
       console.warn(`[Seed] Unauthorized access attempt by user: ${userSub}`);
       return res.status(403).json({ 
-        error: "Forbidden: Admin access required. Contact system administrator." 
+        error: req.t('admin.forbidden_en') 
       });
     }
     
@@ -1716,7 +1716,7 @@ export function registerRoutes(app: Express): Server {
       
       res.json({
         ...result,
-        message: "AION Complete System seeded successfully",
+        message: req.t('admin.seed_success'),
       });
     } catch (error: unknown) {
       console.error("[Seed] Error:", getErrorMessage(error));
@@ -1733,7 +1733,7 @@ export function registerRoutes(app: Express): Server {
     
     // 1. Verificação de autenticação
     if (!userId) {
-      return res.status(401).json({ error: "Autenticação obrigatória" });
+      return res.status(401).json({ error: req.t('admin.auth_required') });
     }
     
     // 2. Verificação de autorização - allowlist de admins
@@ -1746,7 +1746,7 @@ export function registerRoutes(app: Express): Server {
     if (!isAuthorized) {
       console.warn(`[Migration] Tentativa de acesso não autorizado do usuário: ${userSub}`);
       return res.status(403).json({ 
-        error: "Proibido: Acesso de admin necessário." 
+        error: req.t('admin.forbidden') 
       });
     }
     
@@ -1766,8 +1766,8 @@ export function registerRoutes(app: Express): Server {
       res.json({
         ...result,
         message: dryRun 
-          ? "Dry-run completo (nenhuma mudança feita)"
-          : "Migração de namespaces de agentes completada com sucesso",
+          ? req.t('admin.dry_run_complete')
+          : req.t('admin.migration_success'),
       });
     } catch (error: unknown) {
       console.error("[Migration] Error:", getErrorMessage(error));
