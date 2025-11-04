@@ -391,7 +391,7 @@ export function registerRoutes(app: Express): Server {
   
   // GET /health/detailed - Health check detalhado (para monitoramento)
   app.get("/health/detailed", async (req, res) => {
-    const checks: any = {
+    const checks: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - startupTime) / 1000),
       version: "1.0.0",
@@ -510,7 +510,7 @@ export function registerRoutes(app: Express): Server {
       
       console.log(`[Chat API] Recebidas ${messages.length} mensagens no histórico`);
       console.log(`[Chat API] Multi-Agent Mode: ${useMultiAgent ? 'ENABLED' : 'DISABLED'}`);
-      console.log(`[Chat API] Últimas 3 mensagens:`, messages.slice(-3).map((m: any) => ({
+      console.log(`[Chat API] Últimas 3 mensagens:`, messages.slice(-3).map((m) => ({
         role: m.role,
         preview: m.content?.substring(0, 50)
       })));
@@ -672,7 +672,7 @@ export function registerRoutes(app: Express): Server {
       res.setHeader("X-Accel-Buffering", "no"); // Nginx buffering off
       
       // Helper para enviar evento SSE
-      const sendSSE = (event: string, data: any) => {
+      const sendSSE = (event: string, data: unknown) => {
         res.write(`event: ${event}\n`);
         res.write(`data: ${JSON.stringify(data)}\n\n`);
       };
@@ -1049,7 +1049,7 @@ export function registerRoutes(app: Express): Server {
         );
         
         // ✅ Track search quality (relevance scores)
-        const relevanceScores = results.map((r: any) => r.similarity || r.score || 0);
+        const relevanceScores = results.map((r) => r.similarity || r.score || 0);
         if (relevanceScores.length > 0) {
           await usageTracker.trackNamespaceSearchQuality(namespace, relevanceScores);
         }
@@ -1090,7 +1090,7 @@ export function registerRoutes(app: Express): Server {
       
       const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
         name,
-        async (input: any) => fn(input),
+        async (input: unknown) => fn(input),
       ]));
       
       const result = await reactEngine.execute(goal, conversation_id || 1, message_id || 1, tools);
@@ -1800,7 +1800,7 @@ export function registerRoutes(app: Express): Server {
             modifiedAt: stats.mtime,
           };
         })
-        .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
       res.json(images);
     } catch (error: unknown) {
@@ -1811,7 +1811,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/admin/images/all - Obter TODAS as imagens de TODAS as fontes
   app.get("/api/admin/images/all", requireAdmin, async (req, res) => {
     try {
-      const allImages: any[] = [];
+      const allImages: Array<Record<string, unknown>> = [];
 
       // 1. Imagens aprendidas (do crawler)
       const learnedImagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
@@ -1862,11 +1862,11 @@ export function registerRoutes(app: Express): Server {
         .from(documents)
         .where(sql`status = 'indexed' AND attachments IS NOT NULL`);
       
-      docsWithImages.forEach((doc: any) => {
+      docsWithImages.forEach((doc) => {
         if (doc.attachments && Array.isArray(doc.attachments)) {
           doc.attachments
-            .filter((att: any) => att.type === 'image')
-            .forEach((img: any, idx: number) => {
+            .filter((att: Record<string, unknown>) => att.type === 'image')
+            .forEach((img: Record<string, unknown>, idx: number) => {
               allImages.push({
                 id: `doc-${doc.id}-${idx}`,
                 filename: img.filename,
@@ -2394,7 +2394,7 @@ export function registerRoutes(app: Express): Server {
       
       const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
         name,
-        async (input: any) => fn(input),
+        async (input: unknown) => fn(input),
       ]));
       
       const result = await hierarchicalPlanner.executePlan(
@@ -2761,7 +2761,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/auth/user - Get current user info or null (supports both OAuth and Local auth)
   app.get("/api/auth/user", optionalAuth, async (req, res) => {
     try {
-      const user = req.user as any;
+      const user = req.user as Record<string, unknown>;
       const userId = getUserId(req);
       
       if (!userId) {
@@ -2769,7 +2769,7 @@ export function registerRoutes(app: Express): Server {
       }
       
       // PRODUCTION: Support both OAuth and Local authentication
-      let userData: any;
+      let userData: Record<string, unknown>;
       
       if (user.isLocal) {
         // Local authentication - user data is already in session
@@ -3228,7 +3228,7 @@ export function registerRoutes(app: Express): Server {
         
         // Call priority orchestrator with forced source
         const orchestratorRequest = {
-          messages: messages.map((m: any) => ({
+          messages: messages.map((m) => ({
             role: m.role,
             content: m.content
           })),
@@ -3279,7 +3279,7 @@ export function registerRoutes(app: Express): Server {
       // Create tools Map
       const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
         name,
-        async (input: any) => fn(input),
+        async (input: unknown) => fn(input),
       ]));
       
       // Configure max iterations
@@ -4251,7 +4251,7 @@ export function registerRoutes(app: Express): Server {
         .groupBy(sql`DATE(${trainingDataCollection.createdAt})`)
         .orderBy(sql`DATE(${trainingDataCollection.createdAt})`);
 
-      const timeline = timelineResult.map((row: any) => ({
+      const timeline = timelineResult.map((row) => ({
         date: row.date,
         count: Number(row.count) || 0,
         avgScore: parseFloat(row.avgScore || '0')
@@ -4341,8 +4341,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Training data not found" });
       }
 
-      const updates: any = {};
-      const validationResult: any = {
+      const updates: Record<string, unknown> = {};
+      const validationResult: Record<string, unknown> = {
         warnings: [],
         corrections: [],
       };
