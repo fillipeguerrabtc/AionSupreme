@@ -650,6 +650,48 @@ export type InsertVideoAsset = z.infer<typeof insertVideoAssetSchema>;
 export type VideoAsset = typeof videoAssets.$inferSelect;
 
 // ============================================================================
+// REBUILD_JOBS - ⚡ FASE 2 - C3: Async KB vector index rebuild
+// ============================================================================
+export const rebuildJobs = pgTable("rebuild_jobs", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
+  
+  // Job parameters
+  namespaceFilter: text("namespace_filter"), // null = all namespaces
+  
+  // Progress tracking
+  status: text("status").notNull().default("pending"), // "pending" | "running" | "completed" | "failed"
+  progress: real("progress").notNull().default(0), // 0-100
+  totalDocuments: integer("total_documents").notNull().default(0),
+  processedDocuments: integer("processed_documents").notNull().default(0),
+  currentNamespace: text("current_namespace"),
+  
+  // Results
+  errorMessage: text("error_message"),
+  stats: jsonb("stats").$type<{
+    documentsIndexed: number;
+    namespacesProcessed: string[];
+    avgEmbeddingTime: number; // ms
+    totalDuration: number; // ms
+  }>(),
+  
+  // Lifecycle
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  
+  // Cancellation
+  cancelRequested: boolean("cancel_requested").notNull().default(false),
+}, (table) => ({
+  tenantIdx: index("rebuild_jobs_tenant_idx").on(table.tenantId),
+  statusIdx: index("rebuild_jobs_status_idx").on(table.status),
+}));
+
+export const insertRebuildJobSchema = createInsertSchema(rebuildJobs).omit({ id: true, createdAt: true });
+export type InsertRebuildJob = z.infer<typeof insertRebuildJobSchema>;
+export type RebuildJob = typeof rebuildJobs.$inferSelect;
+
+// ============================================================================
 // TOKEN_USAGE - Token consumption tracking for all APIs
 // ============================================================================
 export const tokenUsage = pgTable("token_usage", {

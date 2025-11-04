@@ -18,8 +18,10 @@ import { hierarchicalPlanner } from "./agent/hierarchical-planner";
 import * as tokenTracker from "./monitoring/token-tracker";
 import { seedDatabase } from "./seed";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
-import { sendSuccess, sendValidationError, sendServerError } from "./utils/response";
+import { sendSuccess, sendValidationError, sendServerError, responseEnvelope } from "./utils/response";
 import { auditMiddleware } from "./middleware/audit";
+import log from "./utils/logger";
+import { rebuildService } from "./kb/rebuild-service";
 import { exportPrometheusMetrics } from "./metrics/exporter";
 import { metricsCollector } from "./metrics/collector";
 import { queryMonitor } from "./services/query-monitor";
@@ -4796,6 +4798,135 @@ export function registerRoutes(app: Express): Server {
   // Serve chat images statically (from user uploads in chat)
   const chatImagesDir = path.join(process.cwd(), 'attached_assets', 'chat_images');
   app.use('/attached_assets/chat_images', express.static(chatImagesDir));
+
+  // ============================================================================
+  // ⚡ FASE 2 - C3: KB REBUILD ASYNC ROUTES
+  // ============================================================================
+  
+  /**
+   * POST /api/kb/rebuild
+   * Inicia rebuild assíncrono do índice vetorial
+   * Returns 202 Accepted + job ID
+   */
+  app.post("/api/kb/rebuild", async (req, res) => {
+    try {
+      const { namespaceFilter } = req.body;
+
+      const jobId = await rebuildService.startRebuild(namespaceFilter);
+
+      log.info({ jobId, namespaceFilter }, "[API] Rebuild job started");
+
+      res.status(202).json(
+        responseEnvelope.success(
+          { jobId },
+          "Rebuild job started successfully"
+        )
+      );
+    } catch (error: any) {
+      log.error({ error: error.message }, "[API] Failed to start rebuild job");
+      
+      res.status(400).json(
+        responseEnvelope.error(error.message, "REBUILD_START_FAILED")
+      );
+    }
+  });
+
+  /**
+   * GET /api/kb/rebuild
+   * Lista todos os rebuild jobs (últimos 50)
+   */
+  app.get("/api/kb/rebuild", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const jobs = await rebuildService.listJobs(limit);
+
+      res.json(
+        responseEnvelope.success({ jobs })
+      );
+    } catch (error: any) {
+      log.error({ error: error.message }, "[API] Failed to list rebuild jobs");
+      
+      res.status(500).json(
+        responseEnvelope.error(error.message, "REBUILD_LIST_FAILED")
+      );
+    }
+  });
+
+  /**
+   * GET /api/kb/rebuild/:jobId
+   * Obtém status de um rebuild job específico
+   */
+  app.get("/api/kb/rebuild/:jobId", async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+
+      if (isNaN(jobId)) {
+        return res.status(400).json(
+          responseEnvelope.error("Invalid job ID", "INVALID_JOB_ID")
+        );
+      }
+
+      const status = await rebuildService.getJobStatus(jobId);
+
+      if (!status) {
+        return res.status(404).json(
+          responseEnvelope.error("Rebuild job not found", "JOB_NOT_FOUND")
+        );
+      }
+
+      res.json(
+        responseEnvelope.success(status)
+      );
+    } catch (error: any) {
+      log.error({ error: error.message }, "[API] Failed to get rebuild job status");
+      
+      res.status(500).json(
+        responseEnvelope.error(error.message, "REBUILD_STATUS_FAILED")
+      );
+    }
+  });
+
+  /**
+   * DELETE /api/kb/rebuild/:jobId
+   * Cancela rebuild job em andamento
+   */
+  app.delete("/api/kb/rebuild/:jobId", async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+
+      if (isNaN(jobId)) {
+        return res.status(400).json(
+          responseEnvelope.error("Invalid job ID", "INVALID_JOB_ID")
+        );
+      }
+
+      const cancelled = await rebuildService.cancelRebuild(jobId);
+
+      if (!cancelled) {
+        return res.status(404).json(
+          responseEnvelope.error(
+            "Rebuild job not found or not running",
+            "JOB_NOT_CANCELLABLE"
+          )
+        );
+      }
+
+      log.info({ jobId }, "[API] Rebuild job cancelled");
+
+      res.json(
+        responseEnvelope.success(
+          { jobId, cancelled: true },
+          "Rebuild job cancelled successfully"
+        )
+      );
+    } catch (error: any) {
+      log.error({ error: error.message }, "[API] Failed to cancel rebuild job");
+      
+      res.status(500).json(
+        responseEnvelope.error(error.message, "REBUILD_CANCEL_FAILED")
+      );
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

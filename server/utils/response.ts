@@ -102,3 +102,33 @@ export function sendRateLimitError(res: Response, retryAfter: number = 60): void
   res.setHeader("Retry-After", retryAfter);
   res.status(429).json(response);
 }
+
+/**
+ * ⚡ FASE 2 - B2: Response Envelope Helper Object
+ * 
+ * Facilita criar response objects sem precisar do objeto `res`
+ * Útil para testes e para retornar objetos de resposta
+ */
+export const responseEnvelope = {
+  /**
+   * Cria response envelope de sucesso
+   */
+  success<T>(data: T, message?: string): ApiResponse<T> {
+    return {
+      ok: true,
+      data,
+      ...(message && { metadata: { message } }),
+    };
+  },
+
+  /**
+   * Cria response envelope de erro
+   */
+  error(message: string, code?: string): ApiResponse {
+    return {
+      ok: false,
+      error: message,
+      ...(code && { metadata: { code } }),
+    };
+  },
+};
