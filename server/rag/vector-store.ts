@@ -12,7 +12,8 @@ import { storage } from "../storage";
 import { embedder } from "./embedder";
 import type { Embedding } from "@shared/schema";
 import { usageTracker } from "../services/usage-tracker";
-import fs from "fs";
+import fs from "fs/promises";
+import fsSync from "fs";
 import path from "path";
 
 interface SearchResult {
@@ -195,9 +196,8 @@ export class VectorStore {
    */
   private snapshotPath = process.env.VECTOR_SNAPSHOT_PATH || "./data/vectorstore.snapshot.json";
 
-  save(): void {
+  async save(): Promise<void> {
     try {
-      // Converter Maps para objetos serializáveis
       const snapshot = {
         vectors: Object.fromEntries(this.vectors.entries()),
         metadata: Object.fromEntries(this.metadata.entries()),
@@ -205,31 +205,27 @@ export class VectorStore {
         stats: this.getStats()
       };
 
-      // Criar diretório se não existe
       const dir = path.dirname(this.snapshotPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      // Salvar snapshot
-      fs.writeFileSync(this.snapshotPath, JSON.stringify(snapshot, null, 2));
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(this.snapshotPath, JSON.stringify(snapshot, null, 2));
       console.log(`[VectorStore] 💾 Snapshot salvo: ${this.vectors.size} vectors (${this.snapshotPath})`);
     } catch (error) {
       console.error("[VectorStore] ❌ Erro ao salvar snapshot:", error);
     }
   }
 
-  load(): void {
+  async load(): Promise<void> {
     try {
-      if (!fs.existsSync(this.snapshotPath)) {
+      try {
+        await fs.access(this.snapshotPath);
+      } catch {
         console.log("[VectorStore] ℹ️  Nenhum snapshot encontrado, iniciando com index vazio");
         return;
       }
 
-      const data = fs.readFileSync(this.snapshotPath, "utf-8");
+      const data = await fs.readFile(this.snapshotPath, "utf-8");
       const snapshot = JSON.parse(data);
 
-      // Restaurar Maps
       this.vectors = new Map(Object.entries(snapshot.vectors).map(([k, v]) => [Number(k), v as number[]]));
       this.metadata = new Map(Object.entries(snapshot.metadata).map(([k, v]) => [Number(k), v as any]));
 

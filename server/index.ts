@@ -81,9 +81,8 @@ app.use((req, res, next) => {
   const { loadAgentsFromDatabase } = await import("./agent/loader");
   await loadAgentsFromDatabase(); // Modo single-tenant
 
-  // 💾 FASE 1 - Carregar Vector Store snapshot (RAG persistente)
   const { vectorStore } = await import("./rag/vector-store");
-  vectorStore.load();
+  await vectorStore.load();
 
   // Iniciar serviço de limpeza de arquivos (executa a cada hora para deletar arquivos expirados)
   fileCleanup.start();
@@ -161,7 +160,7 @@ async function gracefulShutdown(signal: string) {
   const { log } = await import("./utils/logger");
   
   console.log(`[Shutdown] Recebido sinal ${signal}, salvando snapshot...`);
-  vectorStore.save();
+  await vectorStore.save();
   console.log('[Shutdown] Snapshot salvo, encerrando processo');
   process.exit(0);
 }

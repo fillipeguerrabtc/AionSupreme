@@ -5,7 +5,8 @@
  * As descrições são indexadas na KB para RAG textual.
  */
 
-import * as fs from "fs";
+import fs from "fs/promises";
+import fsSync from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
 import { VisionCascade } from "./vision-cascade";
@@ -25,12 +26,10 @@ export class ImageProcessor {
   private visionCascade: VisionCascade;
 
   constructor() {
-    // Garante que diretório existe
-    if (!fs.existsSync(this.imagesDir)) {
-      fs.mkdirSync(this.imagesDir, { recursive: true });
+    if (!fsSync.existsSync(this.imagesDir)) {
+      fsSync.mkdirSync(this.imagesDir, { recursive: true });
     }
     
-    // Inicializa Vision Cascade (Gemini → HF → OpenAI)
     this.visionCascade = new VisionCascade();
   }
 
@@ -50,8 +49,7 @@ export class ImageProcessor {
       // Gera descrição com Vision API
       const description = await this.generateDescription(localPath, alt);
 
-      // Obtem metadados do arquivo
-      const stats = fs.statSync(localPath);
+      const stats = await fs.stat(localPath);
       const mimeType = this.getMimeType(localPath);
       const filename = path.basename(localPath);
 
@@ -120,9 +118,10 @@ export class ImageProcessor {
       const filename = `${cleanName}_${hash}.${ext}`;
       const filepath = path.join(this.imagesDir, filename);
 
-      // Salva se não existe
-      if (!fs.existsSync(filepath)) {
-        fs.writeFileSync(filepath, buffer);
+      try {
+        await fs.access(filepath);
+      } catch {
+        await fs.writeFile(filepath, buffer);
       }
 
       return filepath;
@@ -138,8 +137,7 @@ export class ImageProcessor {
    */
   private async generateDescription(imagePath: string, alt?: string): Promise<string> {
     try {
-      // Lê imagem
-      const imageBuffer = fs.readFileSync(imagePath);
+      const imageBuffer = await fs.readFile(imagePath);
       const mimeType = this.getMimeType(imagePath);
 
       // Usa Vision Cascade (tenta Gemini → HF → OpenAI automaticamente)
@@ -189,14 +187,14 @@ export class ImageProcessor {
    * Remove imagens não utilizadas (limpeza)
    */
   async cleanup(keepPaths: string[]): Promise<void> {
-    const files = fs.readdirSync(this.imagesDir);
+    const files = await fs.readdir(this.imagesDir);
     const keepFilenames = new Set(keepPaths.map(p => path.basename(p)));
 
     let removed = 0;
     for (const file of files) {
       if (!keepFilenames.has(file)) {
         const filepath = path.join(this.imagesDir, file);
-        fs.unlinkSync(filepath);
+        await fs.unlink(filepath);
         removed++;
       }
     }
