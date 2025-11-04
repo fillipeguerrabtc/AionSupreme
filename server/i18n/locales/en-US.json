@@ -33,7 +33,8 @@
     "conversation_not_found": "Conversation not found",
     "forbidden_anonymous": "Forbidden: Anonymous conversations not accessible",
     "forbidden_delete_anonymous": "Forbidden: Cannot delete anonymous conversations",
-    "forbidden_not_owner": "Forbidden: You don't own this conversation"
+    "forbidden_not_owner": "Forbidden: You don't own this conversation",
+    "conversations_sent_to_curation": "{{collected}} conversations sent to curation"
   },
   "upload": {
     "no_file": "No file uploaded",
@@ -66,7 +67,8 @@
     "search_query_required": "Search query is required"
   },
   "dataset": {
-    "not_found": "Dataset not found"
+    "not_found": "Dataset not found",
+    "deleted_successfully": "Dataset deleted successfully"
   },
   "training": {
     "job_not_found": "Job not found",
@@ -75,7 +77,8 @@
     "no_checkpoint": "No checkpoint found for this job",
     "worker_reported_failure": "Worker reported failure",
     "gradient_received": "Gradient received",
-    "missing_fields": "Missing required fields: jobId, workerId, step, gradients, numExamples"
+    "missing_fields": "Missing required fields: jobId, workerId, step, gradients, numExamples",
+    "deleted_successfully": "Training data deleted successfully"
   },
   "policy": {
     "no_active_policy": "No active policy found",
@@ -115,6 +118,9 @@
   },
   "prompts": {
     "prompt_required": "Prompt is required"
+  },
+  "billing": {
+    "synced_days": "Synced last {{days}} days from OpenAI Costs API"
   },
   "errors": {
     "unknown_error": "Unknown error occurred",

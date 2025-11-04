@@ -33,7 +33,8 @@
     "conversation_not_found": "Conversación no encontrada",
     "forbidden_anonymous": "Prohibido: Conversaciones anónimas no accesibles",
     "forbidden_delete_anonymous": "Prohibido: No se pueden eliminar conversaciones anónimas",
-    "forbidden_not_owner": "Prohibido: No eres dueño de esta conversación"
+    "forbidden_not_owner": "Prohibido: No eres dueño de esta conversación",
+    "conversations_sent_to_curation": "{{collected}} conversaciones enviadas a curación"
   },
   "upload": {
     "no_file": "No se subió archivo",
@@ -66,7 +67,8 @@
     "search_query_required": "Query de búsqueda es requerida"
   },
   "dataset": {
-    "not_found": "Dataset no encontrado"
+    "not_found": "Dataset no encontrado",
+    "deleted_successfully": "Dataset eliminado con éxito"
   },
   "training": {
     "job_not_found": "Job no encontrado",
@@ -75,7 +77,8 @@
     "no_checkpoint": "No se encontró checkpoint para este job",
     "worker_reported_failure": "Worker reportó falla",
     "gradient_received": "Gradiente recibido",
-    "missing_fields": "Campos requeridos faltantes: jobId, workerId, step, gradients, numExamples"
+    "missing_fields": "Campos requeridos faltantes: jobId, workerId, step, gradients, numExamples",
+    "deleted_successfully": "Dato de entrenamiento eliminado con éxito"
   },
   "policy": {
     "no_active_policy": "No se encontró política activa",
@@ -115,6 +118,9 @@
   },
   "prompts": {
     "prompt_required": "Prompt es requerido"
+  },
+  "billing": {
+    "synced_days": "Sincronizado últimos {{days}} días de la API de Costos de OpenAI"
   },
   "errors": {
     "unknown_error": "Error desconocido ocurrió",

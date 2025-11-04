@@ -265,7 +265,7 @@ export function registerRoutes(app: Express): Server {
       res.json({
         success: true,
         collected,
-        message: `${collected} conversas enviadas para curadoria`,
+        message: req.t('chat.conversations_sent_to_curation', { collected }),
       });
     } catch (error: unknown) {
       console.error("[Chat Collection] Erro:", error);
@@ -3907,7 +3907,7 @@ export function registerRoutes(app: Express): Server {
       // Delete from database
       await db.delete(datasets).where(eq(datasets.id, id));
 
-      res.json({ message: "Dataset deleted successfully" });
+      res.json({ message: req.t('dataset.deleted_successfully') });
     } catch (error: unknown) {
       res.status(500).json({ error: getErrorMessage(error) });
     }
@@ -4402,7 +4402,7 @@ export function registerRoutes(app: Express): Server {
 
       await storage.deleteTrainingDataCollection(id);
 
-      res.json({ success: true, message: "Training data deleted successfully" });
+      res.json({ success: true, message: req.t('training.deleted_successfully') });
     } catch (error: unknown) {
       console.error("Error deleting training data:", error);
       res.status(500).json({ error: "Failed to delete training data" });
@@ -4818,7 +4818,7 @@ export function registerRoutes(app: Express): Server {
       const { openAIBillingSync } = await import("./services/openai-billing-sync");
       
       await openAIBillingSync.syncBillingData(days);
-      res.json({ success: true, message: `Synced last ${days} days from OpenAI Costs API` });
+      res.json({ success: true, message: req.t('billing.synced_days', { days }) });
     } catch (error: unknown) {
       res.status(500).json({ error: getErrorMessage(error) });
     }
