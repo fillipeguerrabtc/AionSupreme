@@ -649,6 +649,155 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // GET /api/chat/stream - Streaming de chat via Server-Sent Events (SSE)
+  // 🎯 FASE 2 - D1: SSE Backend para chat em tempo real
+  app.get("/api/chat/stream", async (req, res) => {
+    const startTime = Date.now();
+    
+    try {
+      const { message, useMultiAgent = "true" } = req.query;
+      
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ error: "Message parameter required" });
+      }
+      
+      // Configurar headers SSE
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no"); // Nginx buffering off
+      
+      // Helper para enviar evento SSE
+      const sendSSE = (event: string, data: any) => {
+        res.write(`event: ${event}\n`);
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      };
+      
+      // Enviar evento de início
+      sendSSE("start", { timestamp: Date.now() });
+      
+      log.info(
+        { message: message.substring(0, 100), useMultiAgent },
+        "[SSE] Starting streaming chat"
+      );
+      
+      // Registrar métricas
+      metricsCollector.recordRequest();
+      
+      // Converter message em formato de mensagens
+      const messages = [{ role: "user", content: message }];
+      const useAgent = useMultiAgent === "true";
+      
+      let fullResponse = "";
+      
+      // 🤖 TENTAR SISTEMA MULTI-AGENTE PRIMEIRO
+      if (useAgent) {
+        try {
+          const { orchestrateAgents } = await import("./agent/orchestrator");
+          const { loadAgents } = await import("./agent/registry");
+          
+          const availableAgents = await loadAgents();
+          
+          if (availableAgents.length > 0) {
+            log.info({ agents: availableAgents.length }, "[SSE] Using multi-agent system");
+            
+            const agentResult = await orchestrateAgents(message, {
+              history: [],
+              budgetUSD: 1.0,
+              tenantId: 1,
+              sessionId: "sse-chat-session",
+            });
+            
+            fullResponse = agentResult.content;
+            
+            // Enviar resposta em chunks (simular streaming)
+            const chunkSize = 50;
+            for (let i = 0; i < fullResponse.length; i += chunkSize) {
+              const chunk = fullResponse.substring(i, i + chunkSize);
+              sendSSE("chunk", { content: chunk });
+              await new Promise(resolve => setTimeout(resolve, 20)); // Small delay
+            }
+            
+            // Enviar evento de conclusão
+            const latency = Date.now() - startTime;
+            sendSSE("done", { 
+              latency,
+              provider: "multi-agent",
+              metadata: agentResult.metadata
+            });
+            
+            res.end();
+            return;
+          }
+        } catch (multiAgentError: any) {
+          log.warn({ error: multiAgentError.message }, "[SSE] Multi-agent failed, using fallback");
+        }
+      }
+      
+      // FALLBACK: Priority Orchestrator
+      log.info("[SSE] Using priority orchestrator");
+      
+      const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
+      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, message);
+      const fullMessages = [{ role: "system", content: systemPrompt }, ...messages];
+      
+      const activeRules = Object.values(policy.rules).filter(v => v === true);
+      const isUnrestricted = activeRules.length === 0;
+      
+      const result = await generateWithPriority({
+        messages: fullMessages,
+        temperature: policy.temperature,
+        topP: policy.topP,
+        unrestricted: isUnrestricted
+      });
+      
+      fullResponse = result.content;
+      
+      // Enviar resposta em chunks
+      const chunkSize = 50;
+      for (let i = 0; i < fullResponse.length; i += chunkSize) {
+        const chunk = fullResponse.substring(i, i + chunkSize);
+        sendSSE("chunk", { content: chunk });
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      
+      // Registrar métricas
+      const latency = Date.now() - startTime;
+      metricsCollector.recordLatency(latency);
+      if (result.usage) {
+        metricsCollector.recordTokens(result.usage.totalTokens);
+      }
+      
+      await queryMonitor.recordQuery(
+        "chat-sse",
+        result.provider || "priority-orchestrator",
+        latency,
+        true,
+        undefined,
+        { tokensUsed: result.usage?.totalTokens || 0, provider: result.provider }
+      );
+      
+      // Enviar evento de conclusão
+      sendSSE("done", {
+        latency,
+        provider: result.provider,
+        model: result.model,
+        usage: result.usage
+      });
+      
+      res.end();
+      
+    } catch (error: any) {
+      log.error({ error: error.message }, "[SSE] Stream failed");
+      metricsCollector.recordError();
+      
+      // Enviar evento de erro
+      res.write(`event: error\n`);
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
+  });
+
   // POST /api/v1/transcribe (transcrição de áudio Whisper)
   app.post("/api/v1/transcribe", upload.single("audio"), async (req, res) => {
     const startTime = Date.now();

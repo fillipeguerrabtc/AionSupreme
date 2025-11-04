@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Send, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video, LogIn } from "lucide-react";
+import { Send, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video, LogIn, Zap } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage, detectMessageLanguage } from "@/lib/i18n";
@@ -16,6 +16,7 @@ import { VideoPreview } from "@/components/VideoPreview";
 import { ImagePreview } from "@/components/ImagePreview";
 import { AttachmentsRenderer } from "@/components/AttachmentsRenderer";
 import { AttachmentThumbnail } from "@/components/AttachmentThumbnail";
+import { useStreamingChat } from "@/hooks/use-streaming-chat";
 
 interface Message {
   id?: number;
@@ -42,9 +43,13 @@ export default function ChatPage() {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [useStreaming, setUseStreaming] = useState(true); // 🎯 FASE 2 - D1: Enable streaming by default
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // 🎯 FASE 2 - D1: SSE Streaming Hook
+  const streamingChat = useStreamingChat();
 
   // Create or load conversation on mount
   useEffect(() => {
@@ -266,10 +271,68 @@ export default function ChatPage() {
     },
   });
 
+  // 🎯 FASE 2 - D1: Update placeholder message in real-time during streaming
+  useEffect(() => {
+    if (streamingChat.isStreaming && streamingChat.streamedMessage) {
+      setMessages(prev => {
+        const updated = [...prev];
+        const lastMsg = updated[updated.length - 1];
+        
+        // Update last message if it's assistant and doesn't have ID (placeholder)
+        if (lastMsg && lastMsg.role === "assistant" && !lastMsg.id) {
+          updated[updated.length - 1] = {
+            ...lastMsg,
+            content: streamingChat.streamedMessage,
+          };
+        }
+        
+        return updated;
+      });
+    }
+  }, [streamingChat.streamedMessage, streamingChat.isStreaming]);
+  
+  // 🎯 FASE 2 - D1: Save streamed message ONLY when completed successfully (não durante retry)
+  useEffect(() => {
+    if (streamingChat.completedSuccessfully && streamingChat.streamedMessage && conversationId) {
+      const saveStreamedMessage = async () => {
+        try {
+          const response = await apiRequest(`/api/conversations/${conversationId}/messages`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              role: "assistant",
+              content: streamingChat.streamedMessage,
+            }),
+          });
+          const savedMsg = await response.json();
+          
+          // Update last message with saved ID
+          setMessages(prev => {
+            const updated = [...prev];
+            const lastMsg = updated[updated.length - 1];
+            if (lastMsg && lastMsg.role === "assistant" && !lastMsg.id) {
+              updated[updated.length - 1] = {
+                ...lastMsg,
+                id: savedMsg.id,
+                conversationId: savedMsg.conversationId,
+                content: streamingChat.streamedMessage,
+              };
+            }
+            return updated;
+          });
+        } catch (error) {
+          console.error("[SSE] Failed to save streamed message:", error);
+        }
+      };
+      
+      saveStreamedMessage();
+    }
+  }, [streamingChat.completedSuccessfully, streamingChat.streamedMessage, conversationId]);
+  
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, sendMutation.isPending]);
+  }, [messages, sendMutation.isPending, streamingChat.streamedMessage]);
 
   // Scroll to top on page load (mobile fix)
   useEffect(() => {
@@ -348,7 +411,20 @@ export default function ChatPage() {
       textareaRef.current.blur();
     }
     
-    sendMutation.mutate({ userMessage, files: attachedFiles });
+    // 🎯 FASE 2 - D1: Use SSE streaming if enabled (and no files attached)
+    if (useStreaming && attachedFiles.length === 0) {
+      // Add placeholder message for streaming response
+      setMessages(prev => [...prev, { 
+        role: "assistant", 
+        content: "" // Will be populated by streaming
+      }]);
+      
+      streamingChat.sendMessage(userMessage, true);
+      setAttachedFiles([]);
+    } else {
+      // Use traditional mutation for file uploads or when streaming disabled
+      sendMutation.mutate({ userMessage, files: attachedFiles });
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -625,7 +701,35 @@ export default function ChatPage() {
             </div>
           ))}
           
-          {sendMutation.isPending && (
+          {/* 🎯 FASE 2 - D1: Show streaming message in real-time */}
+          {streamingChat.isStreaming && (
+            <div className="flex gap-4 animate-slide-up" data-testid="message-streaming">
+              <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
+                <img 
+                  src="/system/cat.gif" 
+                  alt="Gatinho"
+                  className="w-full h-full object-cover"
+                  data-testid="icon-bot-streaming"
+                />
+              </div>
+              <div className="bg-muted px-5 py-4 rounded-xl rounded-bl-sm border border-transparent max-w-2xl">
+                {streamingChat.streamedMessage ? (
+                  <div className="whitespace-pre-wrap" data-testid="text-streaming">
+                    {renderMessageContent(streamingChat.streamedMessage)}
+                    <span className="inline-block w-1 h-4 bg-primary ml-1 animate-pulse" />
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {sendMutation.isPending && !useStreaming && (
             <div className="flex gap-4 animate-slide-up">
               <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
                 <img 
@@ -703,6 +807,19 @@ export default function ChatPage() {
               title={isRecording ? "Stop recording" : "Record audio"}
             >
               {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </Button>
+
+            {/* 🎯 FASE 2 - D1: Streaming Toggle Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setUseStreaming(!useStreaming)}
+              disabled={sendMutation.isPending || streamingChat.isStreaming}
+              className={`shrink-0 hover-elevate ${useStreaming ? "text-primary" : "text-muted-foreground"}`}
+              data-testid="button-toggle-streaming"
+              title={useStreaming ? "Streaming ON (real-time)" : "Streaming OFF"}
+            >
+              <Zap className={`w-5 h-5 ${useStreaming ? "fill-current" : ""}`} />
             </Button>
 
             {/* Text Input */}
@@ -827,7 +944,35 @@ export default function ChatPage() {
             </div>
           ))}
           
-          {sendMutation.isPending && (
+          {/* 🎯 FASE 2 - D1: Show streaming message in real-time */}
+          {streamingChat.isStreaming && (
+            <div className="flex gap-4 animate-slide-up" data-testid="message-streaming">
+              <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
+                <img 
+                  src="/system/cat.gif" 
+                  alt="Gatinho"
+                  className="w-full h-full object-cover"
+                  data-testid="icon-bot-streaming"
+                />
+              </div>
+              <div className="bg-muted px-5 py-4 rounded-xl rounded-bl-sm border border-transparent max-w-2xl">
+                {streamingChat.streamedMessage ? (
+                  <div className="whitespace-pre-wrap" data-testid="text-streaming">
+                    {renderMessageContent(streamingChat.streamedMessage)}
+                    <span className="inline-block w-1 h-4 bg-primary ml-1 animate-pulse" />
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {sendMutation.isPending && !useStreaming && (
             <div className="flex gap-4 animate-slide-up">
               <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
                 <img 
@@ -905,6 +1050,19 @@ export default function ChatPage() {
               title={isRecording ? "Stop recording" : "Record audio"}
             >
               {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </Button>
+
+            {/* 🎯 FASE 2 - D1: Streaming Toggle Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setUseStreaming(!useStreaming)}
+              disabled={sendMutation.isPending || streamingChat.isStreaming}
+              className={`shrink-0 hover-elevate ${useStreaming ? "text-primary" : "text-muted-foreground"}`}
+              data-testid="button-toggle-streaming"
+              title={useStreaming ? "Streaming ON (real-time)" : "Streaming OFF"}
+            >
+              <Zap className={`w-5 h-5 ${useStreaming ? "fill-current" : ""}`} />
             </Button>
 
             {/* Text Input */}
