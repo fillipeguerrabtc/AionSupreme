@@ -44,7 +44,7 @@ class RebuildService {
       status: "pending",
     }).returning();
 
-    log.info(
+    console.log(
       { jobId: job.id, namespaceFilter, queueLength: this.jobQueue.length },
       "[RebuildService] Created rebuild job"
     );
@@ -55,7 +55,7 @@ class RebuildService {
     // Inicia processamento da fila (se não estiver processando)
     if (!this.isProcessing) {
       this.processQueue().catch((error) => {
-        log.error(
+        console.error(
           { error: error.message },
           "[RebuildService] Queue processing failed"
         );
@@ -79,7 +79,7 @@ class RebuildService {
       while (this.jobQueue.length > 0) {
         const jobId = this.jobQueue.shift()!; // Pega próximo job da fila
 
-        log.info(
+        console.log(
           { jobId, queueLength: this.jobQueue.length },
           "[RebuildService] Processing next job from queue"
         );
@@ -115,7 +115,7 @@ class RebuildService {
         })
         .where(eq(rebuildJobs.id, jobId));
 
-      log.info({ jobId }, "[RebuildService] Starting rebuild");
+      console.log({ jobId }, "[RebuildService] Starting rebuild");
 
       // Obtém filtro de namespace
       const job = await db.query.rebuildJobs.findFirst({
@@ -148,13 +148,13 @@ class RebuildService {
         })
         .where(eq(rebuildJobs.id, jobId));
 
-      log.info(
+      console.log(
         { jobId, stats },
         "[RebuildService] Rebuild completed successfully"
       );
 
     } catch (error: any) {
-      log.error(
+      console.error(
         { jobId, error: error.message },
         "[RebuildService] Rebuild failed"
       );
@@ -203,7 +203,7 @@ class RebuildService {
 
     const totalDocs = filteredDocuments.length;
 
-    log.info(
+    console.log(
       { jobId, totalDocs, namespaceFilter, totalBeforeFilter: allDocuments.length },
       "[RebuildService] Found documents to rebuild"
     );
@@ -219,7 +219,7 @@ class RebuildService {
     for (let i = 0; i < filteredDocuments.length; i += CHUNK_SIZE) {
       // Verifica cancelamento
       if (this.cancelSignal) {
-        log.warn({ jobId }, "[RebuildService] Rebuild cancelled by user");
+        console.warn({ jobId }, "[RebuildService] Rebuild cancelled by user");
         throw new Error("Rebuild cancelled by user");
       }
 
@@ -243,7 +243,7 @@ class RebuildService {
           }
 
         } catch (error: any) {
-          log.warn(
+          console.warn(
             { jobId, docId: doc.id, error: error.message },
             "[RebuildService] Failed to re-index document"
           );
@@ -262,7 +262,7 @@ class RebuildService {
         })
         .where(eq(rebuildJobs.id, jobId));
 
-      log.info(
+      console.log(
         { jobId, progress, processedDocuments: documentsIndexed, totalDocs },
         "[RebuildService] Progress update"
       );
@@ -332,7 +332,7 @@ class RebuildService {
 
     this.cancelSignal = true;
 
-    log.info({ jobId }, "[RebuildService] Rebuild cancellation requested");
+    console.log({ jobId }, "[RebuildService] Rebuild cancellation requested");
 
     return true;
   }

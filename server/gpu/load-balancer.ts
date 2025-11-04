@@ -16,7 +16,6 @@ import { gpuPoolManager } from "./pool-manager";
 import type { GpuWorker } from "../../shared/schema";
 import axios from "axios";
 import { circuitBreakerManager } from "./circuit-breaker";
-import { log } from "../utils/logger";
 
 export type LoadBalancingStrategy = "round-robin" | "least-busy" | "fastest";
 
@@ -37,7 +36,7 @@ export class GpuLoadBalancer {
     const availableWorkers = circuitBreakerManager.filterHealthyWorkers(healthyWorkers);
 
     if (availableWorkers.length === 0) {
-      log.warn({ 
+      console.warn({ 
         totalHealthy: healthyWorkers.length, 
         availableAfterCircuitBreaker: 0 
       }, "[Load Balancer] No available GPU workers (all circuits OPEN or no workers)");
@@ -63,7 +62,7 @@ export class GpuLoadBalancer {
         selectedWorker = availableWorkers[0];
     }
 
-    log.info({ 
+    console.log({ 
       workerId: selectedWorker.id, 
       provider: selectedWorker.provider, 
       strategy: this.strategy 
@@ -139,7 +138,7 @@ export class GpuLoadBalancer {
 
     // Check if circuit allows execution
     if (!breaker.canExecute()) {
-      log.warn({ 
+      console.warn({ 
         workerId: worker.id, 
         provider: worker.provider 
       }, "[Load Balancer] Circuit OPEN - request rejected");
@@ -185,7 +184,7 @@ export class GpuLoadBalancer {
       // Extract response text
       const responseText = response.data.choices?.[0]?.message?.content || "";
 
-      log.info({ 
+      console.log({ 
         workerId: worker.id, 
         provider: worker.provider, 
         latencyMs 
@@ -201,7 +200,7 @@ export class GpuLoadBalancer {
       // ⚡ FASE 2 - C2: Record failure in circuit breaker
       breaker.recordFailure(error.message);
       
-      log.error({ 
+      console.error({ 
         workerId: worker.id, 
         provider: worker.provider, 
         error: error.message 
@@ -247,7 +246,7 @@ export class GpuLoadBalancer {
    */
   setStrategy(strategy: LoadBalancingStrategy): void {
     this.strategy = strategy;
-    log.info({ strategy }, "[Load Balancer] Strategy changed");
+    console.log({ strategy }, "[Load Balancer] Strategy changed");
   }
 
   /**
@@ -262,7 +261,7 @@ export class GpuLoadBalancer {
    */
   resetAllCircuitBreakers(): void {
     circuitBreakerManager.resetAll();
-    log.info("[Load Balancer] All circuit breakers reset");
+    console.log("[Load Balancer] All circuit breakers reset");
   }
 }
 

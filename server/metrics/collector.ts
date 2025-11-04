@@ -181,10 +181,14 @@ class MetricsCollector {
         value: snapshot.latency.mean,
         unit: "ms",
         operation: "aggregate",
-        metadata: snapshot,
+        metadata: {
+          p50: snapshot.latency.p50,
+          p95: snapshot.latency.p95,
+          p99: snapshot.latency.p99,
+        },
       });
     } catch (error) {
-      console.error("[Metrics] Failed to persist metrics:", error);
+      console.error({ err: error }, "[Metrics] Failed to persist metrics");
     }
   }
 }
@@ -193,5 +197,5 @@ export const metricsCollector = new MetricsCollector();
 
 // Persist metrics every 60 seconds
 setInterval(() => {
-  metricsCollector.persistMetrics().catch(console.error);
+  metricsCollector.persistMetrics().catch((err) => console.error({ err }, "Failed to persist metrics"));
 }, 60000);

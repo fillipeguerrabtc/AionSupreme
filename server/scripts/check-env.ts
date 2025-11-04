@@ -6,6 +6,7 @@
  * Isso previne o servidor subir "meia-boca" e falhar silenciosamente depois.
  */
 
+
 const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
   "SESSION_SECRET",

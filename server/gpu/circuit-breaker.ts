@@ -11,7 +11,6 @@
  * Baseado no padrão "Release It!" de Michael Nygard
  */
 
-import { log } from "../utils/logger";
 
 export enum CircuitState {
   CLOSED = "CLOSED",       // Normal operation
@@ -64,7 +63,7 @@ export class CircuitBreaker {
         parseInt(process.env.CIRCUIT_BREAKER_TIMEOUT_MS || "60000"),
     };
     
-    log.info({
+    console.log({
       workerId,
       workerName,
       config: this.config,
@@ -85,7 +84,7 @@ export class CircuitBreaker {
       case CircuitState.OPEN:
         // Check if recovery timeout expired
         if (this.nextRetryTime && now >= this.nextRetryTime) {
-          log.info(
+          console.log(
             { workerId: this.workerId, workerName: this.workerName },
             "[CircuitBreaker] Transitioning to HALF_OPEN - testing recovery"
           );
@@ -96,7 +95,7 @@ export class CircuitBreaker {
         
         // Still in cooldown
         const remainingMs = this.nextRetryTime ? this.nextRetryTime - now : 0;
-        log.warn(
+        console.warn(
           { 
             workerId: this.workerId, 
             workerName: this.workerName,
@@ -131,7 +130,7 @@ export class CircuitBreaker {
       case CircuitState.HALF_OPEN:
         // Check if enough successes to close
         if (this.successCount >= this.config.successThreshold) {
-          log.info(
+          console.log(
             { 
               workerId: this.workerId, 
               workerName: this.workerName,
@@ -148,7 +147,7 @@ export class CircuitBreaker {
 
       case CircuitState.OPEN:
         // Should not happen (can't execute when OPEN)
-        log.warn(
+        console.warn(
           { workerId: this.workerId, workerName: this.workerName },
           "[CircuitBreaker] Unexpected success while OPEN"
         );
@@ -173,7 +172,7 @@ export class CircuitBreaker {
 
       case CircuitState.HALF_OPEN:
         // Failed during recovery, go back to OPEN
-        log.warn(
+        console.warn(
           { 
             workerId: this.workerId, 
             workerName: this.workerName,
@@ -198,7 +197,7 @@ export class CircuitBreaker {
     this.nextRetryTime = Date.now() + this.config.recoveryTimeout;
     this.successCount = 0;
 
-    log.error(
+    console.error(
       { 
         workerId: this.workerId, 
         workerName: this.workerName,
@@ -218,7 +217,7 @@ export class CircuitBreaker {
     this.successCount = 0;
     this.nextRetryTime = null;
     
-    log.info(
+    console.log(
       { workerId: this.workerId, workerName: this.workerName },
       "[CircuitBreaker] Circuit manually reset to CLOSED"
     );
@@ -265,7 +264,7 @@ export class CircuitBreakerManager {
    */
   setGlobalConfig(config: Partial<CircuitBreakerConfig>): void {
     this.globalConfig = config;
-    log.info({ config }, "[CircuitBreakerManager] Global config updated");
+    console.log({ config }, "[CircuitBreakerManager] Global config updated");
   }
 
   /**
@@ -286,7 +285,7 @@ export class CircuitBreakerManager {
       };
       
       this.breakers.set(workerId, new CircuitBreaker(workerId, workerName, mergedConfig));
-      log.info(
+      console.log(
         { 
           workerId, 
           workerName, 
@@ -306,7 +305,7 @@ export class CircuitBreakerManager {
   removeBreaker(workerId: number): void {
     if (this.breakers.has(workerId)) {
       this.breakers.delete(workerId);
-      log.info({ workerId }, "[CircuitBreakerManager] Removed circuit breaker");
+      console.log({ workerId }, "[CircuitBreakerManager] Removed circuit breaker");
     }
   }
 
@@ -317,7 +316,7 @@ export class CircuitBreakerManager {
     for (const breaker of Array.from(this.breakers.values())) {
       breaker.reset();
     }
-    log.info("[CircuitBreakerManager] Reset all circuit breakers");
+    console.log("[CircuitBreakerManager] Reset all circuit breakers");
   }
 
   /**

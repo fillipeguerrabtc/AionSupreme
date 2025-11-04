@@ -28,7 +28,7 @@ export class AutoRecovery {
     }, this.checkInterval);
     
     // Run immediately
-    this.checkAndRecover().catch(console.error);
+    this.checkAndRecover().catch((err) => console.error({ err }, "[Auto-Recovery] Initial check failed"));
   }
   
   /**
@@ -56,7 +56,7 @@ export class AutoRecovery {
         await this.recoverJob(job.id);
       }
     } catch (error) {
-      console.error('[Auto-Recovery] Check failed:', error);
+      console.error({ err: error }, '[Auto-Recovery] Check failed');
     }
   }
   
@@ -73,11 +73,13 @@ export class AutoRecovery {
     });
     
     // Find failed workers (status = "failed" or GPU is offline)
-    const failedWorkers = workers.filter(w => 
-      w.status === 'failed' || 
-      w.worker?.status === 'offline' ||
-      w.worker?.status === 'unhealthy'
-    );
+    const failedWorkers = workers.filter(w => {
+      if (w.status === 'failed') return true;
+      if (w.worker && 'status' in w.worker) {
+        return w.worker.status === 'offline' || w.worker.status === 'unhealthy';
+      }
+      return false;
+    });
     
     if (failedWorkers.length === 0) {
       return; // No failures

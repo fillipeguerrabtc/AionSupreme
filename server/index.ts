@@ -160,9 +160,9 @@ async function gracefulShutdown(signal: string) {
   const { vectorStore } = await import("./rag/vector-store");
   const { log } = await import("./utils/logger");
   
-  log.info(`[Shutdown] Recebido sinal ${signal}, salvando snapshot...`);
+  console.log(`[Shutdown] Recebido sinal ${signal}, salvando snapshot...`);
   vectorStore.save();
-  log.info('[Shutdown] Snapshot salvo, encerrando processo');
+  console.log('[Shutdown] Snapshot salvo, encerrando processo');
   process.exit(0);
 }
 

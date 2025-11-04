@@ -13,7 +13,6 @@ import { type Request, type Response, type NextFunction } from "express";
 import { db } from "../db";
 import { rateLimits } from "@shared/schema";
 import { eq, and, lt, sql } from "drizzle-orm";
-import { log } from "../utils/logger";
 import { sendRateLimitError } from "../utils/response";
 
 interface RateLimitConfig {
@@ -62,9 +61,9 @@ class RateLimiter {
         });
       }
       
-      log.info({ count: records.length }, '[RateLimiter] Loaded active rate limits from DB');
+      console.log({ count: records.length }, '[RateLimiter] Loaded active rate limits from DB');
     } catch (error) {
-      log.error({ error }, '[RateLimiter] Failed to load from DB');
+      console.error({ error }, '[RateLimiter] Failed to load from DB');
     }
   }
 
@@ -93,7 +92,7 @@ class RateLimiter {
         
         // DEBUG: Log what we're trying to insert
         if (window.length > 10) {
-          log.warn({ window, windowLength: window.length, mapKey, key, keyLength: key.length }, '[RateLimiter] Invalid window length detected, skipping entry');
+          console.warn({ window, windowLength: window.length, mapKey, key, keyLength: key.length }, '[RateLimiter] Invalid window length detected, skipping entry');
           continue; // Skip invalid entries
         }
         
@@ -129,9 +128,9 @@ class RateLimiter {
         entry.dirty = false;
       }
 
-      log.info({ count: dirtyEntries.length }, '[RateLimiter] Synced entries to DB');
+      console.log({ count: dirtyEntries.length }, '[RateLimiter] Synced entries to DB');
     } catch (error) {
-      log.error({ error }, '[RateLimiter] Failed to sync to DB');
+      console.error({ error }, '[RateLimiter] Failed to sync to DB');
     } finally {
       this.syncInProgress = false;
     }
@@ -250,9 +249,9 @@ class RateLimiter {
         .delete(rateLimits)
         .where(lt(rateLimits.resetAt, new Date()));
       
-      log.info('[RateLimiter] Cleaned up expired entries from DB');
+      console.log('[RateLimiter] Cleaned up expired entries from DB');
     } catch (error) {
-      log.error({ error }, '[RateLimiter] Failed to cleanup DB');
+      console.error({ error }, '[RateLimiter] Failed to cleanup DB');
     }
   }
 }
@@ -261,20 +260,20 @@ const rateLimiter = new RateLimiter();
 
 // SECURITY FIX: Load from PostgreSQL on startup
 rateLimiter.loadFromDB().catch((err) => {
-  log.error({ error: err }, '[RateLimiter] Failed to load from DB on startup');
+  console.error({ error: err }, '[RateLimiter] Failed to load from DB on startup');
 });
 
 // SECURITY FIX: Sync to PostgreSQL every 10 seconds
 setInterval(() => {
   rateLimiter.syncToDB().catch((err) => {
-    log.error({ error: err }, '[RateLimiter] Failed to sync to DB');
+    console.error({ error: err }, '[RateLimiter] Failed to sync to DB');
   });
 }, 10 * 1000);
 
 // SECURITY FIX: Cleanup expired entries every 5 minutes
 setInterval(() => {
   rateLimiter.cleanup().catch((err) => {
-    log.error({ error: err }, '[RateLimiter] Failed to cleanup');
+    console.error({ error: err }, '[RateLimiter] Failed to cleanup');
   });
 }, 5 * 60 * 1000);
 

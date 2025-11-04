@@ -69,6 +69,7 @@ export type Tenant = typeof tenants.$inferSelect;
 // ============================================================================
 export const policies = pgTable("policies", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   policyName: text("policy_name").notNull(),
   
   // Rules configuration (boolean flags for each category)
@@ -118,6 +119,7 @@ export const policies = pgTable("policies", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("policies_tenant_idx").on(table.tenantId),
 }));
 
 export const insertPolicySchema = createInsertSchema(policies).omit({ id: true, createdAt: true, updatedAt: true });
@@ -166,6 +168,7 @@ export type ProjectFile = typeof projectFiles.$inferSelect;
 // ============================================================================
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   userId: varchar("user_id").references(() => users.id), // Optional: null for anonymous sessions
   projectId: integer("project_id").references(() => projects.id), // Optional: link to project
   title: text("title").notNull().default("New Conversation"),
@@ -177,6 +180,7 @@ export const conversations = pgTable("conversations", {
   expiresAt: timestamp("expires_at"), // Optional expiration (if retention policy applied)
   archivedAt: timestamp("archived_at"), // Archived timestamp (18mo inactivity → archive)
 }, (table) => ({
+  tenantIdx: index("conversations_tenant_idx").on(table.tenantId),
   userIdx: index("conversations_user_idx").on(table.userId),
   projectIdx: index("conversations_project_idx").on(table.projectId),
   expiresIdx: index("conversations_expires_idx").on(table.expiresAt),
@@ -240,6 +244,7 @@ export type Message = typeof messages.$inferSelect;
 // ============================================================================
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Universal fields for all document types
   title: text("title").notNull().default("Untitled"), // Title/filename
@@ -296,6 +301,7 @@ export const documents = pgTable("documents", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("documents_tenant_idx").on(table.tenantId),
   statusIdx: index("documents_status_idx").on(table.status),
   sourceIdx: index("documents_source_idx").on(table.source),
   contentHashIdx: index("documents_content_hash_idx").on(table.contentHash), // Index for O(1) duplicate lookup during curation
@@ -312,6 +318,7 @@ export type Document = typeof documents.$inferSelect;
 export const embeddings = pgTable("embeddings", {
   id: serial("id").primaryKey(),
   documentId: integer("document_id").notNull().references(() => documents.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Chunk information
   chunkIndex: integer("chunk_index").notNull(),
@@ -333,6 +340,7 @@ export const embeddings = pgTable("embeddings", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   documentIdx: index("embeddings_document_idx").on(table.documentId),
+  tenantIdx: index("embeddings_tenant_idx").on(table.tenantId),
 }));
 
 export const insertEmbeddingSchema = createInsertSchema(embeddings).omit({ id: true, createdAt: true });
@@ -379,6 +387,7 @@ export type ToolExecution = typeof toolExecutions.$inferSelect;
 // ============================================================================
 export const metrics = pgTable("metrics", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Metric type
   metricType: text("metric_type").notNull(), // "latency" | "tokens" | "cost" | "cache" | "error"
@@ -402,6 +411,7 @@ export const metrics = pgTable("metrics", {
   
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("metrics_tenant_idx").on(table.tenantId),
   timestampIdx: index("metrics_timestamp_idx").on(table.timestamp),
   typeIdx: index("metrics_type_idx").on(table.metricType),
 }));
@@ -416,6 +426,7 @@ export type Metric = typeof metrics.$inferSelect;
 // ============================================================================
 export const generatedFiles = pgTable("generated_files", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   conversationId: integer("conversation_id").references(() => conversations.id),
   
   // File information
@@ -445,6 +456,7 @@ export const generatedFiles = pgTable("generated_files", {
   expiresAt: timestamp("expires_at").notNull(), // Auto-delete after this time (1 hour)
   isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => ({
+  tenantIdx: index("generated_files_tenant_idx").on(table.tenantId),
   expiresIdx: index("generated_files_expires_idx").on(table.expiresAt),
 }));
 
@@ -458,6 +470,7 @@ export type GeneratedFile = typeof generatedFiles.$inferSelect;
 // ============================================================================
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Event information
   eventType: text("event_type").notNull(), // "policy_change" | "message_sent" | "tool_executed" | "document_uploaded"
@@ -479,6 +492,7 @@ export const auditLogs = pgTable("audit_logs", {
   
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("audit_logs_tenant_idx").on(table.tenantId),
   timestampIdx: index("audit_logs_timestamp_idx").on(table.timestamp),
   eventTypeIdx: index("audit_logs_event_type_idx").on(table.eventType),
 }));
@@ -493,6 +507,7 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 // ============================================================================
 export const knowledgeSources = pgTable("knowledge_sources", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Source information
   sourceType: text("source_type").notNull(), // "web_scrape" | "api" | "upload" | "manual"
@@ -518,6 +533,7 @@ export const knowledgeSources = pgTable("knowledge_sources", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("knowledge_sources_tenant_idx").on(table.tenantId),
 }));
 
 export const insertKnowledgeSourceSchema = createInsertSchema(knowledgeSources).omit({ id: true, createdAt: true, updatedAt: true });
@@ -530,6 +546,7 @@ export type KnowledgeSource = typeof knowledgeSources.$inferSelect;
 // ============================================================================
 export const videoJobs = pgTable("video_jobs", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   conversationId: integer("conversation_id").references(() => conversations.id),
   
   // Job specification
@@ -571,6 +588,7 @@ export const videoJobs = pgTable("video_jobs", {
   completedAt: timestamp("completed_at"),
   estimatedCompletionAt: timestamp("estimated_completion_at"),
 }, (table) => ({
+  tenantIdx: index("video_jobs_tenant_idx").on(table.tenantId),
   statusIdx: index("video_jobs_status_idx").on(table.status),
 }));
 
@@ -583,6 +601,7 @@ export type VideoJob = typeof videoJobs.$inferSelect;
 // ============================================================================
 export const videoAssets = pgTable("video_assets", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   jobId: integer("job_id").references(() => videoJobs.id),
   
   // File information
@@ -622,6 +641,7 @@ export const videoAssets = pgTable("video_assets", {
   expiresAt: timestamp("expires_at").notNull(), // Auto-delete after time
   isDeleted: boolean("is_deleted").notNull().default(false),
 }, (table) => ({
+  tenantIdx: index("video_assets_tenant_idx").on(table.tenantId),
   expiresIdx: index("video_assets_expires_idx").on(table.expiresAt),
 }));
 
@@ -634,6 +654,7 @@ export type VideoAsset = typeof videoAssets.$inferSelect;
 // ============================================================================
 export const rebuildJobs = pgTable("rebuild_jobs", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Job parameters
   namespaceFilter: text("namespace_filter"), // null = all namespaces
@@ -662,6 +683,7 @@ export const rebuildJobs = pgTable("rebuild_jobs", {
   // Cancellation
   cancelRequested: boolean("cancel_requested").notNull().default(false),
 }, (table) => ({
+  tenantIdx: index("rebuild_jobs_tenant_idx").on(table.tenantId),
   statusIdx: index("rebuild_jobs_status_idx").on(table.status),
 }));
 
@@ -674,6 +696,7 @@ export type RebuildJob = typeof rebuildJobs.$inferSelect;
 // ============================================================================
 export const tokenUsage = pgTable("token_usage", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // API Provider
   provider: text("provider").notNull(), // "groq" | "gemini" | "huggingface" | "openrouter" | "openai" | "kb" | "web"
@@ -706,6 +729,7 @@ export const tokenUsage = pgTable("token_usage", {
   
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("token_usage_tenant_idx").on(table.tenantId),
   providerIdx: index("token_usage_provider_idx").on(table.provider),
   timestampIdx: index("token_usage_timestamp_idx").on(table.timestamp),
 }));
@@ -719,6 +743,7 @@ export type TokenUsage = typeof tokenUsage.$inferSelect;
 // ============================================================================
 export const tokenLimits = pgTable("token_limits", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Provider
   provider: text("provider").notNull(), // "groq" | "gemini" | "huggingface" | "openrouter" | "openai" | "all"
@@ -737,6 +762,7 @@ export const tokenLimits = pgTable("token_limits", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
+  tenantProviderIdx: index("token_limits_tenant_provider_idx").on(table.tenantId, table.provider),
 }));
 
 export const insertTokenLimitSchema = createInsertSchema(tokenLimits).omit({ id: true, createdAt: true, updatedAt: true });
@@ -748,6 +774,7 @@ export type TokenLimit = typeof tokenLimits.$inferSelect;
 // ============================================================================
 export const tokenAlerts = pgTable("token_alerts", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   provider: text("provider").notNull(),
   alertType: text("alert_type").notNull(), // "threshold_reached" | "limit_exceeded" | "daily_reset"
@@ -762,6 +789,7 @@ export const tokenAlerts = pgTable("token_alerts", {
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("token_alerts_tenant_idx").on(table.tenantId),
   acknowledgedIdx: index("token_alerts_acknowledged_idx").on(table.acknowledged),
 }));
 
@@ -774,6 +802,7 @@ export type TokenAlert = typeof tokenAlerts.$inferSelect;
 // ============================================================================
 export const openai_billing_sync = pgTable("openai_billing_sync", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Time period (from OpenAI Costs API)
   startTime: timestamp("start_time").notNull(), // Unix timestamp converted to timestamp
@@ -795,6 +824,7 @@ export const openai_billing_sync = pgTable("openai_billing_sync", {
   // Deduplication: ensure we don't sync the same period twice
   periodKey: text("period_key").notNull().unique(), // Format: "YYYY-MM-DD" for daily buckets
 }, (table) => ({
+  tenantIdx: index("openai_billing_tenant_idx").on(table.tenantId),
   periodKeyIdx: index("openai_billing_period_key_idx").on(table.periodKey),
   startTimeIdx: index("openai_billing_start_time_idx").on(table.startTime),
 }));
@@ -808,6 +838,7 @@ export type OpenAIBillingSync = typeof openai_billing_sync.$inferSelect;
 // ============================================================================
 export const gpuWorkers = pgTable("gpu_workers", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Provider and identification
   provider: text("provider").notNull(), // "colab" | "kaggle" | "modal" | "paperspace" | "lightning"
@@ -838,6 +869,7 @@ export const gpuWorkers = pgTable("gpu_workers", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   lastUsedAt: timestamp("last_used_at"), // When last served a request
 }, (table) => ({
+  tenantIdx: index("gpu_workers_tenant_idx").on(table.tenantId),
   providerIdx: index("gpu_workers_provider_idx").on(table.provider),
   statusIdx: index("gpu_workers_status_idx").on(table.status),
   accountIdIdx: index("gpu_workers_account_id_idx").on(table.accountId),
@@ -865,6 +897,7 @@ export const trainingJobs = pgTable("training_jobs", {
   // Job identification
   name: text("name").notNull(),
   description: text("description"),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Model configuration
   modelType: text("model_type").notNull(), // "llama-3-8b" | "mistral-7b" | "phi-3"
@@ -916,6 +949,7 @@ export const trainingJobs = pgTable("training_jobs", {
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
 }, (table) => ({
+  tenantIdx: index("training_jobs_tenant_idx").on(table.tenantId),
   statusIdx: index("training_jobs_status_idx").on(table.status),
 }));
 
@@ -1060,6 +1094,7 @@ export const datasets = pgTable("datasets", {
   id: serial("id").primaryKey(),
   
   // Ownership
+  tenantId: integer("tenant_id").notNull().default(1),
   userId: varchar("user_id").references(() => users.id),
   
   // Dataset metadata
@@ -1102,6 +1137,7 @@ export const datasets = pgTable("datasets", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("datasets_tenant_idx").on(table.tenantId),
   userIdx: index("datasets_user_idx").on(table.userId),
   statusIdx: index("datasets_status_idx").on(table.status),
 }));
@@ -1124,6 +1160,7 @@ export const trainingDataCollection = pgTable("training_data_collection", {
   
   // Source conversation (nullable for standalone training examples)
   conversationId: integer("conversation_id").references(() => conversations.id),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Quality metrics
   rating: integer("rating"), // 1-5 stars (optional user feedback)
@@ -1162,6 +1199,7 @@ export const trainingDataCollection = pgTable("training_data_collection", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   conversationIdx: index("training_data_conversation_idx").on(table.conversationId),
+  tenantIdx: index("training_data_tenant_idx").on(table.tenantId),
   statusIdx: index("training_data_status_idx").on(table.status),
   ratingIdx: index("training_data_rating_idx").on(table.rating),
 }));
@@ -1180,6 +1218,7 @@ export type TrainingDataCollection = typeof trainingDataCollection.$inferSelect;
 // ============================================================================
 export const lifecycleAuditLogs = pgTable("lifecycle_audit_logs", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Operation details
   timestamp: timestamp("timestamp").notNull().defaultNow(),
@@ -1207,6 +1246,7 @@ export const lifecycleAuditLogs = pgTable("lifecycle_audit_logs", {
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("lifecycle_audit_tenant_idx").on(table.tenantId),
   moduleIdx: index("lifecycle_audit_module_idx").on(table.module),
   timestampIdx: index("lifecycle_audit_timestamp_idx").on(table.timestamp),
   policyIdx: index("lifecycle_audit_policy_idx").on(table.policyName),
@@ -1233,6 +1273,7 @@ export type LifecycleAuditLog = typeof lifecycleAuditLogs.$inferSelect;
  */
 export const agents = pgTable("agents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: integer("tenant_id").notNull().default(1),
   name: varchar("name", { length: 120 }).notNull(),
   slug: varchar("slug", { length: 120 }).notNull(),
   type: varchar("type", { length: 32 }).notNull().default("specialist"), // specialist|generalist|router-only
@@ -1309,6 +1350,7 @@ export type Agent = typeof agents.$inferSelect;
  */
 export const agentRelationships = pgTable("agent_relationships", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   parentAgentId: varchar("parent_agent_id", { length: 120 }).notNull().references(() => agents.id),
   childAgentId: varchar("child_agent_id", { length: 120 }).notNull().references(() => agents.id),
   
@@ -1345,6 +1387,7 @@ export type AgentRelationship = typeof agentRelationships.$inferSelect;
  */
 export const agentBudgets = pgTable("agent_budgets", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   agentId: varchar("agent_id", { length: 120 }).notNull().references(() => agents.id),
   sessionId: varchar("session_id", { length: 256 }).notNull(),
   
@@ -1377,6 +1420,7 @@ export type AgentBudget = typeof agentBudgets.$inferSelect;
  */
 export const agentTraces = pgTable("agent_traces", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   sessionId: varchar("session_id", { length: 256 }).notNull(),
   traceId: varchar("trace_id", { length: 256 }).notNull(),
   
@@ -1423,6 +1467,7 @@ export type AgentTrace = typeof agentTraces.$inferSelect;
  */
 export const tools = pgTable("tools", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: integer("tenant_id").notNull().default(1),
   name: varchar("name", { length: 120 }).notNull(),
   slug: varchar("slug", { length: 120 }).notNull(),
   type: varchar("type", { length: 64 }).notNull(), // "whatsapp"|"crm"|"catalog"|"payments"|"calendar"|"web_search"|...
@@ -1455,12 +1500,14 @@ export const agentTools = pgTable("agent_tools", {
 // ============================================================================
 export const namespaces = pgTable("namespaces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: integer("tenant_id").notNull().default(1),
   name: varchar("name", { length: 255 }).notNull().unique(), // e.g., "financas/investimentos" (serve como ID e nome de exibição)
   description: text("description"),
   icon: varchar("icon", { length: 50 }), // Lucide icon name
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("namespaces_tenant_idx").on(table.tenantId),
   nameIdx: index("namespaces_name_idx").on(table.name),
 }));
 
@@ -1478,6 +1525,7 @@ export type Namespace = typeof namespaces.$inferSelect;
  */
 export const curationQueue = pgTable("curation_queue", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: integer("tenant_id").notNull().default(1),
   title: text("title").notNull(),
   content: text("content").notNull(),
   suggestedNamespaces: jsonb("suggested_namespaces").$type<string[]>().notNull().default([]),
@@ -1514,6 +1562,7 @@ export const curationQueue = pgTable("curation_queue", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("curation_queue_tenant_idx").on(table.tenantId),
   statusIdx: index("curation_queue_status_idx").on(table.status),
   submittedAtIdx: index("curation_queue_submitted_at_idx").on(table.submittedAt),
   statusChangedAtIdx: index("curation_queue_status_changed_at_idx").on(table.statusChangedAt),
@@ -1536,6 +1585,7 @@ export type CurationQueue = typeof curationQueue.$inferSelect;
  */
 export const traces = pgTable("traces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: integer("tenant_id").notNull().default(1),
   sessionId: varchar("session_id").notNull(),
   userQuery: text("user_query").notNull(),
   routerDecision: jsonb("router_decision").$type<{
@@ -1782,6 +1832,7 @@ export type UserPermission = typeof userPermissions.$inferSelect;
  */
 export const usageRecords = pgTable("usage_records", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Entity info
   entityType: text("entity_type").notNull(), // "agent" | "namespace"
@@ -1801,6 +1852,7 @@ export const usageRecords = pgTable("usage_records", {
   // Timestamp
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("usage_records_tenant_idx").on(table.tenantId),
   entityTypeIdx: index("usage_records_entity_type_idx").on(table.entityType),
   entityIdIdx: index("usage_records_entity_id_idx").on(table.entityId),
   timestampIdx: index("usage_records_timestamp_idx").on(table.timestamp),
@@ -1823,6 +1875,7 @@ export type UsageRecord = typeof usageRecords.$inferSelect;
  */
 export const namespaceRelevanceRecords = pgTable("namespace_relevance_records", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   namespace: text("namespace").notNull(),
   avgRelevanceScore: real("avg_relevance_score").notNull(), // 0-1 (cosine similarity)
@@ -1830,6 +1883,7 @@ export const namespaceRelevanceRecords = pgTable("namespace_relevance_records", 
   
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("namespace_relevance_tenant_idx").on(table.tenantId),
   namespaceIdx: index("namespace_relevance_namespace_idx").on(table.namespace),
   timestampIdx: index("namespace_relevance_timestamp_idx").on(table.timestamp),
 }));
@@ -1852,6 +1906,7 @@ export type NamespaceRelevanceRecord = typeof namespaceRelevanceRecords.$inferSe
  */
 export const queryMetrics = pgTable("query_metrics", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Query info
   queryType: text("query_type").notNull(), // "chat" | "embedding" | "rag" | "tool"
@@ -1867,6 +1922,7 @@ export const queryMetrics = pgTable("query_metrics", {
   
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("query_metrics_tenant_idx").on(table.tenantId),
   queryTypeIdx: index("query_metrics_query_type_idx").on(table.queryType),
   providerIdx: index("query_metrics_provider_idx").on(table.provider),
   timestampIdx: index("query_metrics_timestamp_idx").on(table.timestamp),
@@ -1887,6 +1943,7 @@ export type QueryMetric = typeof queryMetrics.$inferSelect;
  */
 export const agentQueryResults = pgTable("agent_query_results", {
   id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").notNull().default(1),
   
   // Agent info
   agentId: text("agent_id"),
@@ -1909,6 +1966,7 @@ export const agentQueryResults = pgTable("agent_query_results", {
   
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 }, (table) => ({
+  tenantIdx: index("agent_query_results_tenant_idx").on(table.tenantId),
   agentIdIdx: index("agent_query_results_agent_id_idx").on(table.agentId),
   timestampIdx: index("agent_query_results_timestamp_idx").on(table.timestamp),
   successIdx: index("agent_query_results_success_idx").on(table.success),

@@ -676,7 +676,7 @@ export function registerRoutes(app: Express): Server {
       // Enviar evento de início
       sendSSE("start", { timestamp: Date.now() });
       
-      log.info(
+      console.log(
         { message: message.substring(0, 100), useMultiAgent },
         "[SSE] Starting streaming chat"
       );
@@ -699,7 +699,7 @@ export function registerRoutes(app: Express): Server {
           const availableAgents = await loadAgents();
           
           if (availableAgents.length > 0) {
-            log.info({ agents: availableAgents.length }, "[SSE] Using multi-agent system");
+            console.log({ agents: availableAgents.length }, "[SSE] Using multi-agent system");
             
             const agentResult = await orchestrateAgents(message, {
               history: [],
@@ -730,12 +730,12 @@ export function registerRoutes(app: Express): Server {
             return;
           }
         } catch (multiAgentError: any) {
-          log.warn({ error: multiAgentError.message }, "[SSE] Multi-agent failed, using fallback");
+          console.warn({ error: multiAgentError.message }, "[SSE] Multi-agent failed, using fallback");
         }
       }
       
       // FALLBACK: Priority Orchestrator
-      log.info("[SSE] Using priority orchestrator");
+      console.log("[SSE] Using priority orchestrator");
       
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
       const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, message);
@@ -788,7 +788,7 @@ export function registerRoutes(app: Express): Server {
       res.end();
       
     } catch (error: any) {
-      log.error({ error: error.message }, "[SSE] Stream failed");
+      console.error({ error: error.message }, "[SSE] Stream failed");
       metricsCollector.recordError();
       
       // Enviar evento de erro
@@ -4963,7 +4963,7 @@ export function registerRoutes(app: Express): Server {
 
       const jobId = await rebuildService.startRebuild(namespaceFilter);
 
-      log.info({ jobId, namespaceFilter }, "[API] Rebuild job started");
+      console.log({ jobId, namespaceFilter }, "[API] Rebuild job started");
 
       res.status(202).json(
         responseEnvelope.success(
@@ -4972,7 +4972,7 @@ export function registerRoutes(app: Express): Server {
         )
       );
     } catch (error: any) {
-      log.error({ error: error.message }, "[API] Failed to start rebuild job");
+      console.error({ error: error.message }, "[API] Failed to start rebuild job");
       
       res.status(400).json(
         responseEnvelope.error(error.message, "REBUILD_START_FAILED")
@@ -4993,7 +4993,7 @@ export function registerRoutes(app: Express): Server {
         responseEnvelope.success({ jobs })
       );
     } catch (error: any) {
-      log.error({ error: error.message }, "[API] Failed to list rebuild jobs");
+      console.error({ error: error.message }, "[API] Failed to list rebuild jobs");
       
       res.status(500).json(
         responseEnvelope.error(error.message, "REBUILD_LIST_FAILED")
@@ -5027,7 +5027,7 @@ export function registerRoutes(app: Express): Server {
         responseEnvelope.success(status)
       );
     } catch (error: any) {
-      log.error({ error: error.message }, "[API] Failed to get rebuild job status");
+      console.error({ error: error.message }, "[API] Failed to get rebuild job status");
       
       res.status(500).json(
         responseEnvelope.error(error.message, "REBUILD_STATUS_FAILED")
@@ -5060,7 +5060,7 @@ export function registerRoutes(app: Express): Server {
         );
       }
 
-      log.info({ jobId }, "[API] Rebuild job cancelled");
+      console.log({ jobId }, "[API] Rebuild job cancelled");
 
       res.json(
         responseEnvelope.success(
@@ -5069,7 +5069,7 @@ export function registerRoutes(app: Express): Server {
         )
       );
     } catch (error: any) {
-      log.error({ error: error.message }, "[API] Failed to cancel rebuild job");
+      console.error({ error: error.message }, "[API] Failed to cancel rebuild job");
       
       res.status(500).json(
         responseEnvelope.error(error.message, "REBUILD_CANCEL_FAILED")
