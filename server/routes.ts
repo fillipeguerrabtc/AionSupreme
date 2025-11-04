@@ -1598,18 +1598,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // DELETE /api/admin/documents/:id - Deletar documento (DUPLICADO - REMOVER)
-  // NOTA: Este endpoint está duplicado com o da linha 1220 que usa kbCascadeService
-  // TODO: Remover este endpoint duplicado
-  app.delete("/api/admin/documents/:id/legacy", requireAdmin, async (req, res) => {
-    try {
-      const docId = parseInt(req.params.id);
-      await storage.deleteDocument(docId);
-      res.json({ success: true });
-    } catch (error: unknown) {
-      res.status(500).json({ error: getErrorMessage(error) });
-    }
-  });
 
   // POST /api/admin/kb/scan-duplicates - Scan KB for duplicates (manual trigger)
   app.post("/api/admin/kb/scan-duplicates", requireAdmin, async (req, res) => {
