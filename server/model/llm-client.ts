@@ -457,25 +457,27 @@ export class LLMClient {
       this.triggerBillingSync();
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Se erro é ContentRefusalError, re-lançar imediatamente
       if (error instanceof ContentRefusalError) {
         console.error("[LLM] ⛔ Content refusal error - propagando para web-search fallback");
         throw error;
       }
       
-      console.error(`[LLM] ❌ OpenAI também falhou:`, error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[LLM] ❌ OpenAI também falhou:`, errorMessage);
       
       // Retry logic com exponential backoff apenas para erros temporários
-      if (error.status === 429 || error.status >= 500) {
-        console.log(`[LLM] Retrying after error ${error.status}...`);
+      const errorWithStatus = error as {status?: number};
+      if (errorWithStatus.status === 429 || (errorWithStatus.status && errorWithStatus.status >= 500)) {
+        console.log(`[LLM] Retrying after error ${errorWithStatus.status}...`);
         await new Promise(resolve => setTimeout(resolve, 2000));
         return this.chatCompletion(options);
       }
       
       throw new Error(
         `TODAS as APIs falharam (Free + OpenAI). ` +
-        `OpenAI error: ${error.message}`
+        `OpenAI error: ${errorMessage}`
       );
     }
   }
@@ -530,7 +532,7 @@ export class LLMClient {
       console.log(`[LLM] Audio transcribed in ${latencyMs}ms`);
       
       return transcription.text;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[LLM] Transcription error:", error);
       throw error;
     }

@@ -21,8 +21,9 @@ onEvent("AGENT_NAMESPACES_CHANGED", async ({ agentId, namespaces }) => {
       // and call knowledgeIndexer.reIndexDocument(documentId) for each
       // For now, we log the event and maintain the indexing structure
       
-    } catch (error: any) {
-      console.error(`[AgentsIndexer] Error rebuilding namespace ${namespace}:`, error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[AgentsIndexer] Error rebuilding namespace ${namespace}:`, errorMessage);
     }
   }
 });
@@ -38,8 +39,9 @@ onEvent("DOC_INGESTED", async ({ documentId, namespace }) => {
     // Re-index the document using existing infrastructure
     await knowledgeIndexer.reIndexDocument(documentId);
     console.log(`[AgentsIndexer] ✅ Document ${documentId} re-indexed in namespace ${namespace}`);
-  } catch (error: any) {
-    console.error(`[AgentsIndexer] Error re-indexing document ${documentId}:`, error.message);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[AgentsIndexer] Error re-indexing document ${documentId}:`, errorMessage);
   }
 });
 

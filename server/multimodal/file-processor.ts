@@ -90,14 +90,15 @@ export class FileProcessor {
         extractedText,
         metadata,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`[FileProcessor] Error processing ${filename}:`, error);
       return {
         filename,
         mimeType,
         size: stats.size,
         extractedText: "",
-        error: error.message,
+        error: errorMessage,
       };
     }
   }
@@ -123,11 +124,12 @@ export class FileProcessor {
           version: data.version,
         },
       };
-    } catch (error: any) {
-      console.warn("[FileProcessor] PDF parsing failed, using fallback:", error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn("[FileProcessor] PDF parsing failed, using fallback:", errorMessage);
       return {
-        text: `[PDF content - extraction failed: ${error.message}]`,
-        metadata: { error: error.message },
+        text: `[PDF content - extraction failed: ${errorMessage}]`,
+        metadata: { error: errorMessage },
       };
     }
   }
@@ -248,12 +250,13 @@ export class FileProcessor {
           size: imageBuffer.length,
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("[FileProcessor] Error analyzing image with Vision API:", error);
       
       // Fallback: return basic info
       return {
-        text: `[Image file - vision analysis unavailable: ${error.message}]`,
+        text: `[Image file - vision analysis unavailable: ${errorMessage}]`,
         metadata: {
           analyzed: false,
         },

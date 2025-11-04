@@ -375,9 +375,10 @@ export class FreeLLMProviders {
       try {
         console.log("[Free LLM] → Usando OpenRouter (Llama 4 Scout:free)");
         return await this.openrouterChat(messages);
-      } catch (error: any) {
-        errors.push(`OpenRouter: ${error.message}`);
-        console.warn("[Free LLM] ⚠️  OpenRouter falhou:", error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        errors.push(`OpenRouter: ${errorMessage}`);
+        console.warn("[Free LLM] ⚠️  OpenRouter falhou:", errorMessage);
       }
     }
 
@@ -386,9 +387,10 @@ export class FreeLLMProviders {
       try {
         console.log("[Free LLM] → Fallback para Groq (Llama 3.3 70B Versatile)");
         return await this.groqChat(messages);
-      } catch (error: any) {
-        errors.push(`Groq: ${error.message}`);
-        console.warn("[Free LLM] ⚠️  Groq falhou:", error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        errors.push(`Groq: ${errorMessage}`);
+        console.warn("[Free LLM] ⚠️  Groq falhou:", errorMessage);
       }
     }
 
@@ -397,9 +399,10 @@ export class FreeLLMProviders {
       try {
         console.log("[Free LLM] → Fallback para Gemini (2.0 Flash Exp)");
         return await this.geminiChat(messages);
-      } catch (error: any) {
-        errors.push(`Gemini: ${error.message}`);
-        console.warn("[Free LLM] ⚠️  Gemini falhou:", error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        errors.push(`Gemini: ${errorMessage}`);
+        console.warn("[Free LLM] ⚠️  Gemini falhou:", errorMessage);
       }
     }
 
@@ -408,9 +411,10 @@ export class FreeLLMProviders {
       try {
         console.log("[Free LLM] → Fallback para HuggingFace (Llama 3 8B Instruct)");
         return await this.hfChat(messages);
-      } catch (error: any) {
-        errors.push(`HuggingFace: ${error.message}`);
-        console.warn("[Free LLM] ⚠️  HuggingFace falhou:", error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        errors.push(`HuggingFace: ${errorMessage}`);
+        console.warn("[Free LLM] ⚠️  HuggingFace falhou:", errorMessage);
       }
     }
 
@@ -462,30 +466,30 @@ export class FreeLLMProviders {
       openrouter: {
         configured: !!this.openrouter,
         available: this.hasCredits('openrouter'),
-        used: this.usage.openrouter.daily,
-        limit: this.usage.openrouter.limit,
-        remaining: this.usage.openrouter.limit - this.usage.openrouter.daily,
+        used: this.usage.openrouter.requests,
+        limit: this.usage.openrouter.requestLimit,
+        remaining: this.usage.openrouter.requestLimit - this.usage.openrouter.requests,
       },
       groq: {
         configured: !!this.groq,
         available: this.hasCredits('groq'),
-        used: this.usage.groq.daily,
-        limit: this.usage.groq.limit,
-        remaining: this.usage.groq.limit - this.usage.groq.daily,
+        used: this.usage.groq.requests,
+        limit: this.usage.groq.requestLimit,
+        remaining: this.usage.groq.requestLimit - this.usage.groq.requests,
       },
       gemini: {
         configured: !!this.gemini,
         available: this.hasCredits('gemini'),
-        used: this.usage.gemini.daily,
-        limit: this.usage.gemini.limit,
-        remaining: this.usage.gemini.limit - this.usage.gemini.daily,
+        used: this.usage.gemini.requests,
+        limit: this.usage.gemini.requestLimit,
+        remaining: this.usage.gemini.requestLimit - this.usage.gemini.requests,
       },
       hf: {
         configured: !!this.hf,
         available: this.hasCredits('hf'),
-        used: this.usage.hf.daily,
-        limit: this.usage.hf.limit,
-        remaining: this.usage.hf.limit - this.usage.hf.daily,
+        used: this.usage.hf.requests,
+        limit: this.usage.hf.requestLimit,
+        remaining: this.usage.hf.requestLimit - this.usage.hf.requests,
       },
     };
   }

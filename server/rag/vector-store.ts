@@ -294,12 +294,13 @@ export class RAGService {
       await vectorStore.indexDocument(documentId);
       
       console.log(`[RAG] Successfully indexed document ${documentId} (${results.length} chunks)`);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`[RAG] Error indexing document ${documentId}:`, error);
       
       await storage.updateDocument(documentId, {
         status: "failed",
-        errorMessage: error.message,
+        errorMessage: errorMessage,
       });
       
       throw error;

@@ -74,9 +74,10 @@ export class KnowledgeIndexer {
         throw new Error(result.error);
       }
       return result.extractedText;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`[KnowledgeIndexer] Error extracting PDF ${filePath}:`, error);
-      throw new Error(`Failed to extract PDF: ${error.message}`);
+      throw new Error(`Failed to extract PDF: ${errorMessage}`);
     }
   }
 
@@ -170,8 +171,9 @@ export class KnowledgeIndexer {
         const docId = await this.indexPDF(pdfMeta);
         documentIds.push(docId);
         succeeded++;
-      } catch (error: any) {
-        console.error(`[KnowledgeIndexer] ❌ Failed to index ${pdfMeta.part}:`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`[KnowledgeIndexer] ❌ Failed to index ${pdfMeta.part}:`, errorMessage);
         failed++;
       }
     }

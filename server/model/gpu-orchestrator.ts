@@ -179,8 +179,9 @@ export class GPUOrchestrator {
           latencyMs: Date.now() - startTime,
           costUsd: 0, // GPU local = GRÁTIS! 🎉
         };
-      } catch (error: any) {
-        console.warn(`[GPU Orchestrator] ⚠️  GPU ${gpu.name} falhou:`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn(`[GPU Orchestrator] ⚠️  GPU ${gpu.name} falhou:`, errorMessage);
         // Fallback automático
       }
     }
