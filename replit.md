@@ -46,6 +46,20 @@ The backend uses Node.js and TypeScript with Express.js and PostgreSQL via Drizz
 ### System Design Choices
 Key decisions include a single-tenant architecture, externalized JSON behavioral configurations for dynamic updates. Full observability and telemetry include comprehensive query monitoring (latency, success/error rates, slow query detection), granular hierarchical usage analytics, usage analytics (agent execution tracking, namespace search tracking), a modern dashboard with Recharts visualizations, PostgreSQL trigram indexes for optimized search performance, and 29 production-ready REST endpoints for metrics access.
 
+### Recent Changes (Nov 5, 2025)
+
+**✅ Correções de Bugs:**
+1. **Chat - Avatar Duplicado:** Corrigido timing issue que causava renderização dupla do avatar durante transição de estados (adicionado guard `&& !streamingChat.isStreaming`)
+2. **Chat - Crash em Mensagens Undefined:** Adicionado guard na função `renderMessageContent` para tratar conteúdo undefined/null
+3. **Vision System - Erros LSP:** Adicionadas 13 traduções faltantes em PT-BR, EN-US e ES-ES (errorLoading, errorLoadingDesc, used, providersTitle, reqPerDay, statsTitle, statsDesc, noData, total, success, failed, rate)
+4. **Detecção Multilíngue:** System prompts atualizados - LLMs agora respondem automaticamente no idioma do usuário
+
+**✅ Verificações de Sistema:**
+- Timezone confirmado: America/Sao_Paulo (Brasília, Brazil)
+- Deduplicação KB funcionando: 1 exact, 5 near, 2 unique detectados
+- Auto-learning funcionando: 22 itens na fila de curadoria (critérios rigorosos OK)
+- Limpeza de dados: 68 imagens órfãs removidas de `attached_assets/learned_images/`
+
 ### Known Issues & Technical Debt
 
 #### 🚨 CRITICAL: ImageProcessor HITL Bypass (DOCUMENTADO - NÃO CORRIGIDO)
