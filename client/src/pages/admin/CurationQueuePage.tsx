@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink, Scan, ArrowDownToLine } from "lucide-react";
+import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink, Scan, ArrowDownToLine, AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { useLanguage } from "@/lib/i18n";
 import { AbsorptionPreviewModal } from "@/components/AbsorptionPreviewModal";
-import { NamespaceClassifier } from "@/components/NamespaceClassifier";
 
 interface CurationItem {
   id: string;
@@ -685,19 +684,35 @@ export default function CurationQueuePage() {
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <CardTitle>{item.title}</CardTitle>
-                          {/* Duplication Status Badge */}
+                          {/* Duplication Status Badge - Enhanced with % */}
                           {item.duplicationStatus === "exact" && (
-                            <Badge variant="destructive" data-testid={`badge-dup-exact-${item.id}`}>
-                              Duplicata Exata {item.similarityScore ? `(${Math.round(item.similarityScore * 100)}%)` : ""}
+                            <Badge 
+                              variant="destructive" 
+                              data-testid={`badge-dup-exact-${item.id}`}
+                              className="font-semibold flex items-center gap-1"
+                              title={`Duplicata exata detectada (${item.similarityScore ? Math.round(item.similarityScore * 100) : '100'}% similar)`}
+                            >
+                              <AlertCircle className="h-3 w-3" />
+                              Duplicata {item.similarityScore ? `${Math.round(item.similarityScore * 100)}%` : "100%"}
                             </Badge>
                           )}
                           {item.duplicationStatus === "near" && (
-                            <Badge className="bg-yellow-500 hover:bg-yellow-600" data-testid={`badge-dup-near-${item.id}`}>
-                              Similar {item.similarityScore ? `(${Math.round(item.similarityScore * 100)}%)` : ""}
+                            <Badge 
+                              className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold flex items-center gap-1" 
+                              data-testid={`badge-dup-near-${item.id}`}
+                              title={`Conteúdo similar detectado (${item.similarityScore ? Math.round(item.similarityScore * 100) : '~80'}% similar)`}
+                            >
+                              <AlertTriangle className="h-3 w-3" />
+                              Similar {item.similarityScore ? `${Math.round(item.similarityScore * 100)}%` : "~80%"}
                             </Badge>
                           )}
                           {item.duplicationStatus === "unique" && (
-                            <Badge className="bg-green-500 hover:bg-green-600" data-testid={`badge-dup-unique-${item.id}`}>
+                            <Badge 
+                              className="bg-green-600 hover:bg-green-700 text-white font-semibold flex items-center gap-1" 
+                              data-testid={`badge-dup-unique-${item.id}`}
+                              title="Conteúdo único - sem duplicatas detectadas"
+                            >
+                              <CheckCircle className="h-3 w-3" />
                               Único
                             </Badge>
                           )}
@@ -729,23 +744,6 @@ export default function CurationQueuePage() {
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
                         </Button>
-                        
-                        {/* Namespace Classification - LLM-powered intelligent categorization */}
-                        <NamespaceClassifier 
-                          content={item.content}
-                          title={item.title}
-                          onNamespaceSelected={(namespace) => {
-                            // Update item's suggested namespaces
-                            editMutation.mutate({
-                              id: item.id,
-                              title: item.title,
-                              content: item.content,
-                              tags: item.tags,
-                              suggestedNamespaces: [...item.suggestedNamespaces, namespace],
-                              note: item.note || ""
-                            });
-                          }}
-                        />
                         
                         {/* Absorb Partial button - only for near-duplicates with KB duplicate */}
                         {item.duplicationStatus === "near" && item.duplicateOfId && (
