@@ -37,6 +37,17 @@ export interface ProcessedImage {
   mimeType: string;
 }
 
+export interface ProcessedImageTemp {
+  buffer: Buffer;
+  base64: string;
+  description: string;
+  originalUrl: string;
+  filename: string;
+  size: number;
+  mimeType: string;
+  alt?: string;
+}
+
 export class ImageProcessor {
   private imagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
   private maxImageSize = 10 * 1024 * 1024; // 10MB max
@@ -51,7 +62,53 @@ export class ImageProcessor {
   }
 
   /**
-   * Processa uma imagem: baixa e gera descrição com Vision API
+   * NOVO: Processa imagem SEM salvar (para curadoria HITL)
+   * Retorna buffer em memória + base64 + descrição AI
+   */
+  async processImageForCuration(imageUrl: string, alt?: string): Promise<ProcessedImageTemp | null> {
+    try {
+      console.log(`[ImageProcessor] 📥 Processando para curadoria: ${imageUrl}`);
+
+      // Baixa imagem em memória (SEM salvar!)
+      const imageData = await this.downloadImageToMemory(imageUrl);
+      
+      if (!imageData) {
+        console.log(`   ⚠️ Falha ao baixar: ${imageUrl}`);
+        return null;
+      }
+
+      // Gera descrição com Vision API
+      const description = await this.visionCascade.generateDescription(
+        imageData.buffer, 
+        imageData.mimeType, 
+        alt
+      );
+
+      console.log(`   ✓ Imagem processada: ${imageData.filename}`);
+      if (description.success && !description.description.includes('Erro')) {
+        console.log(`     📝 Descrição AI: ${description.description.substring(0, 100)}...`);
+      }
+
+      return {
+        buffer: imageData.buffer,
+        base64: imageData.buffer.toString('base64'),
+        description: description.success ? description.description : (alt || 'Sem descrição'),
+        originalUrl: imageUrl,
+        filename: imageData.filename,
+        size: imageData.buffer.length,
+        mimeType: imageData.mimeType,
+        alt
+      };
+
+    } catch (error: any) {
+      console.error(`[ImageProcessor] Erro ao processar ${imageUrl}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * ANTIGO: Processa uma imagem: baixa e gera descrição com Vision API
+   * ⚠️ BYPASS HITL - Salva diretamente no filesystem
    */
   async processImage(imageUrl: string, alt?: string): Promise<ProcessedImage | null> {
     try {
@@ -90,6 +147,58 @@ export class ImageProcessor {
 
     } catch (error: any) {
       console.error(`[ImageProcessor] Erro ao processar ${imageUrl}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * NOVO: Baixa imagem APENAS para memória (sem salvar no filesystem)
+   */
+  private async downloadImageToMemory(url: string): Promise<{ buffer: Buffer; filename: string; mimeType: string } | null> {
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(15000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.startsWith('image/')) {
+        console.log(`   ⚠️ Não é imagem: ${contentType}`);
+        return null;
+      }
+
+      const contentLength = parseInt(response.headers.get('content-length') || '0');
+      if (contentLength > this.maxImageSize) {
+        console.log(`   ⚠️ Imagem muito grande: ${contentLength} bytes`);
+        return null;
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+
+      // Gera nome descritivo
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/').filter(Boolean);
+      const lastPart = pathParts[pathParts.length - 1] || 'image';
+      const cleanName = lastPart
+        .replace(/\.[^.]+$/, '')
+        .replace(/[^a-zA-Z0-9-_]/g, '_')
+        .substring(0, 50);
+      
+      const hash = crypto.createHash('md5').update(url).digest('hex').substring(0, 8);
+      const ext = this.getExtensionFromContentType(contentType) || 'jpg';
+      const filename = `${cleanName}_${hash}.${ext}`;
+
+      return {
+        buffer,
+        filename,
+        mimeType: contentType
+      };
+
+    } catch (error: any) {
+      console.error(`[ImageProcessor] Erro ao baixar ${url}:`, error.message);
       return null;
     }
   }
@@ -146,6 +255,32 @@ export class ImageProcessor {
     } catch (error: any) {
       console.error(`[ImageProcessor] Erro ao baixar ${url}:`, error.message);
       return null;
+    }
+  }
+
+  /**
+   * NOVO: Salva imagem a partir de buffer (para usar APÓS aprovação na curadoria)
+   */
+  async saveImageFromBuffer(buffer: Buffer, filename: string): Promise<string> {
+    try {
+      const filepath = path.join(this.imagesDir, filename);
+      
+      // Verifica se já existe
+      try {
+        await fs.access(filepath);
+        console.log(`   ℹ️ Imagem já existe: ${filename}`);
+        return path.relative(process.cwd(), filepath);
+      } catch {
+        // Não existe, vai salvar
+      }
+
+      await fs.writeFile(filepath, buffer);
+      console.log(`   ✅ Imagem salva: ${filename}`);
+      
+      return path.relative(process.cwd(), filepath);
+    } catch (error: any) {
+      console.error(`[ImageProcessor] Erro ao salvar ${filename}:`, error.message);
+      throw error;
     }
   }
 

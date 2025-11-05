@@ -258,11 +258,13 @@ export const documents = pgTable("documents", {
   // Multimodal attachments (images, videos, documents discovered in web crawling or uploaded)
   attachments: jsonb("attachments").$type<Array<{
     type: "image" | "video" | "audio" | "document";
-    url: string;
+    url: string; // URL final OU data:image/... para base64 temporário
     filename: string;
     mimeType: string;
     size: number;
     description?: string; // AI-generated description for images
+    base64?: string; // NOVO: Buffer base64 temporário (só para imagens PENDENTES na curadoria)
+    tempPath?: string; // NOVO: Path temporário antes de salvar definitivo
   }>>(),
   
   // Processing status
@@ -1529,6 +1531,54 @@ export const insertCurationQueueSchema = createInsertSchema(curationQueue).omit(
 });
 export type InsertCurationQueue = z.infer<typeof insertCurationQueueSchema>;
 export type CurationQueue = typeof curationQueue.$inferSelect;
+
+// ============================================================================
+// LINK CAPTURE JOBS - Sistema de Jobs para Deep Crawling com progresso
+// ============================================================================
+export const linkCaptureJobs = pgTable("link_capture_jobs", {
+  id: serial("id").primaryKey(),
+  url: text("url").notNull(), // URL sendo processada
+  
+  // Status e controle
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // "pending" | "running" | "paused" | "completed" | "failed" | "cancelled"
+  
+  // Progresso
+  progress: real("progress").notNull().default(0), // 0-100
+  totalItems: integer("total_items").default(0), // Total de items (páginas/imagens) estimado
+  processedItems: integer("processed_items").default(0), // Items já processados
+  currentItem: text("current_item"), // Descrição do item atual (ex: "Processando página X")
+  
+  // Controles
+  paused: boolean("paused").notNull().default(false),
+  cancelled: boolean("cancelled").notNull().default(false),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  
+  // Error handling
+  errorMessage: text("error_message"),
+  
+  // Metadata (opções do crawler, namespace, etc)
+  metadata: jsonb("metadata").$type<{
+    namespace?: string;
+    maxDepth?: number;
+    maxPages?: number;
+    includeImages?: boolean;
+    submittedBy?: string;
+  }>(),
+}, (table) => ({
+  statusIdx: index("link_capture_jobs_status_idx").on(table.status),
+  createdAtIdx: index("link_capture_jobs_created_at_idx").on(table.createdAt),
+}));
+
+export const insertLinkCaptureJobSchema = createInsertSchema(linkCaptureJobs).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertLinkCaptureJob = z.infer<typeof insertLinkCaptureJobSchema>;
+export type LinkCaptureJob = typeof linkCaptureJobs.$inferSelect;
 
 /**
  * Traces - Multi-agent execution traces for observability

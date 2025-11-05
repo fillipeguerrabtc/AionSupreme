@@ -278,13 +278,46 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       throw new Error(`Falha na verificação de duplicação: ${verificationError.message}`);
     }
 
+    // 🔥 NOVO: ZERO BYPASS - Salva imagens APÓS aprovação (HITL completo)
+    let finalAttachments = item.attachments;
+    if (item.attachments && item.attachments.length > 0) {
+      const { ImageProcessor } = await import("../learn/image-processor");
+      const imageProcessor = new ImageProcessor();
+      
+      finalAttachments = await Promise.all(
+        item.attachments.map(async (att: any) => {
+          // Se tem base64 temporário, salva agora no filesystem
+          if (att.base64 && att.type === "image") {
+            console.log(`[Curation] 💾 Salvando imagem aprovada: ${att.filename}`);
+            
+            const buffer = Buffer.from(att.base64, 'base64');
+            const localPath = await imageProcessor.saveImageFromBuffer(buffer, att.filename);
+            
+            // Retorna attachment com URL final (sem base64 temporário)
+            return {
+              type: att.type,
+              url: localPath, // Path relativo final
+              filename: att.filename,
+              mimeType: att.mimeType,
+              size: att.size,
+              description: att.description
+            };
+          }
+          // Se não tem base64, retorna como está
+          return att;
+        })
+      );
+      
+      console.log(`[Curation] ✅ ${finalAttachments.filter((a: any) => a.type === 'image').length} imagens salvas após aprovação`);
+    }
+
     // Create document record in database WITH ATTACHMENTS (tenantId defaults to 1 in schema)
     const [newDoc] = await db.insert(documents).values({
       title: item.title,
       content: contentToSave, // ← SÓ CONTEÚDO NOVO se near-duplicate!
       source: isAbsorption ? "curation_absorption" : "curation_approved",
       status: "indexed",
-      attachments: item.attachments || undefined, // Preserve multimodal attachments!
+      attachments: finalAttachments || undefined, // Attachments FINAIS (já salvos no filesystem!)
       metadata: {
         namespaces: item.suggestedNamespaces,
         tags: item.tags,

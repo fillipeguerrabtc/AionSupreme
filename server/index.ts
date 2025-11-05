@@ -3,6 +3,7 @@ import "./scripts/check-env";
 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import "./workers/link-capture-worker"; // Auto-start worker
 import { setupVite, serveStatic, log } from "./vite";
 import { fileCleanup } from "./cleanup/file-cleanup";
 import { setupAuth } from "./replitAuth";

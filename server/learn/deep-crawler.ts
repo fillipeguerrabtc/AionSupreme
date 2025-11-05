@@ -28,11 +28,13 @@ export interface CrawledPage {
   images: Array<{
     url: string;
     alt: string;
-    localPath?: string;
+    localPath?: string;      // Deprecated - usado apenas para compatibilidade
     description?: string;
-    filename?: string;     // Metadados do ImageProcessor
-    mimeType?: string;     // Metadados do ImageProcessor  
-    size?: number;         // Metadados do ImageProcessor
+    filename?: string;       // Metadados do ImageProcessor
+    mimeType?: string;       // Metadados do ImageProcessor  
+    size?: number;           // Metadados do ImageProcessor
+    base64?: string;         // NOVO: Buffer base64 para curadoria (ZERO BYPASS!)
+    tempPath?: string;       // NOVO: Path temporário
   }>;
   links: string[];
   metadata: {
@@ -378,20 +380,23 @@ export class DeepCrawler {
       });
     }
 
-    // Processa imagens (baixa e gera descrições)
+    // Processa imagens (baixa e gera descrições) - ZERO BYPASS!
     if (this.options.generateImageDescriptions && images.length > 0) {
-      console.log(`   🖼️ Processando ${images.length} imagens...`);
+      console.log(`   🖼️ Processando ${images.length} imagens (CURADORIA - sem salvar)...`);
       
       for (const image of images) {
         try {
-          const result = await this.imageProcessor.processImage(image.url, image.alt);
+          // 🔥 ZERO BYPASS: Usa processImageForCuration (retorna base64, NÃO salva!)
+          const result = await this.imageProcessor.processImageForCuration(image.url, image.alt);
           if (result) {
-            // Copia TODOS os metadados do ImageProcessor (não apenas localPath e description!)
-            image.localPath = result.localPath;
+            // Armazena base64 + metadados (SEM localPath!)
+            image.base64 = result.base64;
             image.description = result.description;
-            image.filename = result.filename;     // NOVO: metadados completos
-            image.mimeType = result.mimeType;     // NOVO: metadados completos
-            image.size = result.size;             // NOVO: metadados completos
+            image.filename = result.filename;
+            image.mimeType = result.mimeType;
+            image.size = result.size;
+            
+            console.log(`   ✓ Imagem processada (base64): ${result.filename}`);
           } else {
             // Se falhou ao processar, mantém pelo menos o alt text
             image.description = image.alt || 'Imagem sem descrição disponível';

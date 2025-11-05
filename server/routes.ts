@@ -2094,9 +2094,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/admin/learn-from-url - Deep crawl website with all sublinks + images
-  // HITL FIX: All URL content goes through curation queue
-  // UPGRADE: Now uses WebsiteCrawlerService for COMPLETE site crawling
+  // POST /api/admin/learn-from-url - Deep crawl website with all sublinks + images (ASYNC JOB!)
+  // NOVO: Cria job assíncrono para processamento em background
   app.post("/api/admin/learn-from-url", requireAdmin, async (req, res) => {
     try {
       const { url, namespace, maxDepth, maxPages } = req.body;
@@ -2105,37 +2104,31 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "URL is required" });
       }
 
-      console.log(`[API] 🚀 Deep crawling requested for: ${url}`);
+      console.log(`[API] 🚀 Criando job de deep crawling para: ${url}`);
       
-      // Import e executa WebsiteCrawlerService (deep crawling completo!)
-      const { websiteCrawlerService } = await import("./learn/website-crawler-service");
+      // NOVO: Cria job assíncrono
+      const { linkCaptureJobs } = await import("@shared/schema");
+      const { db } = await import("./db");
       
-      const result = await websiteCrawlerService.crawlWebsite({
+      const [job] = await db.insert(linkCaptureJobs).values({
         url,
-        namespace: namespace || 'kb/web',
-        maxDepth: maxDepth || 10,  // Default: 10 níveis (crawl profundo completo)
-        maxPages: maxPages || 500, // Default: 500 páginas (sites grandes)
-        consolidatePages: true     // SEMPRE cria KB única consolidada
-      });
+        status: "pending",
+        metadata: {
+          namespace: namespace || 'kb/web',
+          maxDepth: maxDepth || 5,
+          maxPages: maxPages || 100,
+          includeImages: true,
+          submittedBy: req.user?.id || "admin"
+        }
+      } as any).returning();
 
-      console.log(`[API] ✅ Deep crawl concluído:`, {
-        totalPages: result.totalPages,
-        totalImages: result.totalImages,
-        imagesWithDescriptions: result.imagesWithDescriptions,
-        duration: `${(result.duration / 1000).toFixed(1)}s`
-      });
+      console.log(`[API] ✅ Job ${job.id} criado para: ${url}`);
 
       res.json({ 
-        message: `URL content submitted to curation queue for human review. ${result.totalPages} pages crawled with ${result.totalImages} images.`,
-        url,
-        status: "pending_approval",
-        stats: {
-          totalPages: result.totalPages,
-          totalImages: result.totalImages,
-          imagesWithDescriptions: result.imagesWithDescriptions,
-          totalWords: result.totalWords,
-          duration: result.duration
-        }
+        message: `Job de deep crawling criado! Acompanhe o progresso em Jobs.`,
+        jobId: job.id,
+        status: "job_created",
+        job
       });
     } catch (error: unknown) {
       console.error("[API] ❌ Erro ao crawlear URL:", error);
@@ -5066,6 +5059,85 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json(
         responseEnvelope.error(getErrorMessage(error), "REBUILD_CANCEL_FAILED")
       );
+    }
+  });
+
+  // ============================================================================
+  // LINK CAPTURE JOBS - Endpoints para Jobs de Deep Crawling
+  // ============================================================================
+
+  app.get("/api/admin/jobs", async (req, res) => {
+    try {
+      const { linkCaptureJobs } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { desc } = await import("drizzle-orm");
+      
+      const jobs = await db
+        .select()
+        .from(linkCaptureJobs)
+        .orderBy(desc(linkCaptureJobs.createdAt))
+        .limit(50);
+      
+      res.json(jobs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/jobs/:id", async (req, res) => {
+    try {
+      const { linkCaptureJobs } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq } = await import("drizzle-orm");
+      
+      const [job] = await db
+        .select()
+        .from(linkCaptureJobs)
+        .where(eq(linkCaptureJobs.id, parseInt(req.params.id)))
+        .limit(1);
+      
+      if (!job) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
+      res.json(job);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.patch("/api/admin/jobs/:id", async (req, res) => {
+    try {
+      const { action } = req.body; // "pause" | "resume" | "cancel"
+      const { linkCaptureJobs } = await import("@shared/schema");
+      const { db } = await import("./db");
+      const { eq } = await import("drizzle-orm");
+      
+      const jobId = parseInt(req.params.id);
+      
+      const updates: any = {};
+      
+      if (action === "pause") {
+        updates.paused = true;
+        updates.status = "paused";
+      } else if (action === "resume") {
+        updates.paused = false;
+        updates.status = "running";
+      } else if (action === "cancel") {
+        updates.cancelled = true;
+        updates.status = "cancelled";
+        updates.completedAt = new Date();
+      }
+      
+      const [updatedJob] = await db
+        .update(linkCaptureJobs)
+        .set(updates)
+        .where(eq(linkCaptureJobs.id, jobId))
+        .returning();
+      
+      res.json(updatedJob);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 

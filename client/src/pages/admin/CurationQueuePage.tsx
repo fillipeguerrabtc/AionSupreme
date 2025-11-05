@@ -55,6 +55,8 @@ interface CurationItem {
     mimeType: string;
     size: number;
     description?: string;
+    base64?: string; // NOVO: base64 temporário para curadoria (ZERO BYPASS!)
+    tempPath?: string;
   }>;
 }
 
@@ -804,13 +806,17 @@ export default function CurationQueuePage() {
                           className="relative group rounded-md overflow-hidden border border-border cursor-pointer hover-elevate" 
                           data-testid={`image-preview-${idx}`}
                           onClick={() => {
-                            setSelectedImageUrl(img.url);
+                            // NOVO: Usa base64 se disponível (CURADORIA HITL)
+                            const imageUrl = img.base64 
+                              ? `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}`
+                              : img.url;
+                            setSelectedImageUrl(imageUrl);
                             setSelectedImageDesc(img.description || img.filename);
                             setImagePreviewOpen(true);
                           }}
                         >
                           <img 
-                            src={img.url} 
+                            src={img.base64 ? `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}` : img.url}
                             alt={img.description || img.filename}
                             className="w-full h-32 object-cover"
                             loading="lazy"
@@ -928,7 +934,7 @@ export default function CurationQueuePage() {
                   {selectedItem.attachments.filter(a => a.type === "image").map((img, idx) => (
                     <div key={idx} className="relative group rounded-md overflow-hidden border border-border">
                       <img 
-                        src={img.url} 
+                        src={img.base64 ? `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}` : img.url}
                         alt={img.description || img.filename}
                         className="w-full h-24 object-cover"
                         loading="lazy"

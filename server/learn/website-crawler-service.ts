@@ -113,16 +113,17 @@ export class WebsiteCrawlerService {
       }
     }
 
-    // Converte imagens para formato de attachments (usando metadados REAIS do ImageProcessor!)
+    // Converte imagens para formato de attachments (base64 temporário - ZERO BYPASS!)
     const attachments = page.images
-      .filter(img => img.localPath) // Apenas imagens que foram baixadas com sucesso
+      .filter(img => img.base64) // Apenas imagens que foram processadas com sucesso
       .map(img => ({
         type: 'image' as const,
-        url: `/${img.localPath}`, // Path relativo ao projeto
-        filename: img.filename || img.localPath?.split('/').pop() || 'image.jpg',
-        mimeType: img.mimeType || 'image/jpeg', // Usar mimeType REAL do ImageProcessor
-        size: img.size || 0, // Usar size REAL do ImageProcessor
-        description: img.description
+        url: img.url, // URL original
+        filename: img.filename || 'image.jpg',
+        mimeType: img.mimeType || 'image/jpeg',
+        size: img.size || 0,
+        description: img.description,
+        base64: img.base64 // NOVO: base64 temporário para curadoria
       }));
 
     // Tags automáticas
@@ -149,17 +150,18 @@ export class WebsiteCrawlerService {
 
     console.log(`   ✓ Enviado para curadoria: "${page.title}" (${attachments.length} imagens anexas)`);
 
-    // NOVO: Cria item de curadoria INDIVIDUAL para CADA imagem
+    // NOVO: Cria item de curadoria INDIVIDUAL para CADA imagem (ZERO BYPASS!)
     // Isso permite aprovação/rejeição granular de cada imagem
-    for (const img of page.images.filter(i => i.localPath)) {
+    for (const img of page.images.filter(i => i.base64)) {
       try {
         const imageAttachment = {
           type: 'image' as const,
-          url: `/${img.localPath}`,
-          filename: img.filename || img.localPath?.split('/').pop() || 'image.jpg',
+          url: img.url, // URL original
+          filename: img.filename || 'image.jpg',
           mimeType: img.mimeType || 'image/jpeg',
           size: img.size || 0,
-          description: img.description
+          description: img.description,
+          base64: img.base64 // NOVO: base64 temporário
         };
 
         await db.insert(curationQueue).values({
@@ -181,8 +183,9 @@ export class WebsiteCrawlerService {
 
   /**
    * Envia todas as páginas consolidadas em um único item de curadoria
+   * PUBLIC para uso no worker assíncrono
    */
-  private async sendConsolidatedToCuration(
+  public async sendConsolidatedToCuration(
     pages: CrawledPage[],
     namespace?: string,
     baseUrl?: string
@@ -226,31 +229,33 @@ export class WebsiteCrawlerService {
       consolidatedContent += `---\n\n`;
     }
 
-    // Coleta TODAS as imagens de todas as páginas (usando metadados REAIS!)
+    // Coleta TODAS as imagens de todas as páginas (base64 temporário - ZERO BYPASS!)
     const allAttachments = pages.flatMap(page => 
       page.images
-        .filter(img => img.localPath)
+        .filter(img => img.base64)
         .map(img => ({
           type: 'image' as const,
-          url: `/${img.localPath}`,
-          filename: img.filename || img.localPath?.split('/').pop() || 'image.jpg',
-          mimeType: img.mimeType || 'image/jpeg', // Usar mimeType REAL do ImageProcessor
-          size: img.size || 0, // Usar size REAL do ImageProcessor
-          description: img.description
+          url: img.url, // URL original
+          filename: img.filename || 'image.jpg',
+          mimeType: img.mimeType || 'image/jpeg',
+          size: img.size || 0,
+          description: img.description,
+          base64: img.base64 // NOVO: base64 temporário
         }))
     );
 
-    // NOVO: Cria item de curadoria INDIVIDUAL para CADA imagem (modo consolidado)
+    // NOVO: Cria item de curadoria INDIVIDUAL para CADA imagem (modo consolidado - ZERO BYPASS!)
     for (const page of pages) {
-      for (const img of page.images.filter(i => i.localPath)) {
+      for (const img of page.images.filter(i => i.base64)) {
         try {
           const imageAttachment = {
             type: 'image' as const,
-            url: `/${img.localPath}`,
-            filename: img.filename || img.localPath?.split('/').pop() || 'image.jpg',
+            url: img.url, // URL original
+            filename: img.filename || 'image.jpg',
             mimeType: img.mimeType || 'image/jpeg',
             size: img.size || 0,
-            description: img.description
+            description: img.description,
+            base64: img.base64 // NOVO: base64 temporário
           };
 
           await db.insert(curationQueue).values({
