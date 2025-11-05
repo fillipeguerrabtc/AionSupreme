@@ -50,7 +50,7 @@ export default function JobsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
       toast({
         title: t.common.success,
-        description: t.jobs.actionSuccess,
+        description: t.admin.jobs.actionSuccess,
       });
     },
     onError: (error: Error) => {
@@ -92,7 +92,7 @@ export default function JobsPage() {
     return (
       <Badge variant={variant} className="gap-1">
         <Icon className="h-3 w-3" />
-        {t.jobs.status[status]}
+        {t.admin.jobs.status[status]}
       </Badge>
     );
   };
@@ -113,8 +113,8 @@ export default function JobsPage() {
     <div className="p-6 space-y-6" data-testid="page-jobs">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" data-testid="text-jobs-title">{t.jobs.title}</h1>
-          <p className="text-muted-foreground" data-testid="text-jobs-subtitle">{t.jobs.subtitle}</p>
+          <h1 className="text-3xl font-bold" data-testid="text-jobs-title">{t.admin.jobs.title}</h1>
+          <p className="text-muted-foreground" data-testid="text-jobs-subtitle">{t.admin.jobs.subtitle}</p>
         </div>
         <Button
           onClick={() => refetch()}
@@ -131,16 +131,16 @@ export default function JobsPage() {
       <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)} className="w-full">
         <TabsList>
           <TabsTrigger value="all" data-testid="tab-all">
-            {t.jobs.filters.all} ({jobs?.length || 0})
+            {t.admin.jobs.filters.all} ({jobs?.length || 0})
           </TabsTrigger>
           <TabsTrigger value="active" data-testid="tab-active">
-            {t.jobs.filters.active} ({jobs?.filter(j => ["pending", "running", "paused"].includes(j.status)).length || 0})
+            {t.admin.jobs.filters.active} ({jobs?.filter(j => ["pending", "running", "paused"].includes(j.status)).length || 0})
           </TabsTrigger>
           <TabsTrigger value="completed" data-testid="tab-completed">
-            {t.jobs.filters.completed} ({jobs?.filter(j => j.status === "completed").length || 0})
+            {t.admin.jobs.filters.completed} ({jobs?.filter(j => j.status === "completed").length || 0})
           </TabsTrigger>
           <TabsTrigger value="failed" data-testid="tab-failed">
-            {t.jobs.filters.failed} ({jobs?.filter(j => ["failed", "cancelled"].includes(j.status)).length || 0})
+            {t.admin.jobs.filters.failed} ({jobs?.filter(j => ["failed", "cancelled"].includes(j.status)).length || 0})
           </TabsTrigger>
         </TabsList>
 
@@ -148,7 +148,7 @@ export default function JobsPage() {
           {filteredJobs.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground" data-testid="text-no-jobs">{t.jobs.noJobs}</p>
+                <p className="text-muted-foreground" data-testid="text-no-jobs">{t.admin.jobs.noJobs}</p>
               </CardContent>
             </Card>
           ) : (
@@ -165,10 +165,10 @@ export default function JobsPage() {
                       </div>
                       <CardDescription className="space-y-1">
                         <div data-testid={`text-job-id-${job.id}`}>
-                          {t.jobs.jobId}: #{job.id}
+                          {t.admin.jobs.jobId}: #{job.id}
                         </div>
                         <div data-testid={`text-job-created-${job.id}`}>
-                          {t.jobs.created}: {new Date(job.createdAt).toLocaleString()}
+                          {t.admin.jobs.created}: {new Date(job.createdAt).toLocaleString()}
                         </div>
                       </CardDescription>
                     </div>
@@ -217,11 +217,11 @@ export default function JobsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground" data-testid={`text-progress-${job.id}`}>
-                        {t.jobs.progress}: {job.progress}%
+                        {t.admin.jobs.progress}: {job.progress}%
                       </span>
                       {job.processedItems !== null && job.totalItems !== null && (
                         <span className="text-muted-foreground" data-testid={`text-items-${job.id}`}>
-                          {job.processedItems}/{job.totalItems} {t.jobs.items}
+                          {job.processedItems}/{job.totalItems} {t.admin.jobs.items}
                         </span>
                       )}
                     </div>
@@ -231,7 +231,7 @@ export default function JobsPage() {
                   {/* Current Item */}
                   {job.currentItem && (
                     <div className="text-sm">
-                      <span className="font-medium">{t.jobs.currentItem}: </span>
+                      <span className="font-medium">{t.admin.jobs.currentItem}: </span>
                       <span className="text-muted-foreground" data-testid={`text-current-item-${job.id}`}>
                         {job.currentItem}
                       </span>
@@ -252,17 +252,17 @@ export default function JobsPage() {
                     <div className="flex flex-wrap gap-2">
                       {job.metadata.namespace && (
                         <Badge variant="outline" data-testid={`badge-namespace-${job.id}`}>
-                          {t.jobs.namespace}: {job.metadata.namespace}
+                          {t.admin.jobs.namespace}: {job.metadata.namespace}
                         </Badge>
                       )}
                       {job.metadata.maxDepth && (
                         <Badge variant="outline" data-testid={`badge-depth-${job.id}`}>
-                          {t.jobs.maxDepth}: {job.metadata.maxDepth}
+                          {t.admin.jobs.maxDepth}: {job.metadata.maxDepth}
                         </Badge>
                       )}
                       {job.metadata.maxPages && (
                         <Badge variant="outline" data-testid={`badge-pages-${job.id}`}>
-                          {t.jobs.maxPages}: {job.metadata.maxPages}
+                          {t.admin.jobs.maxPages}: {job.metadata.maxPages}
                         </Badge>
                       )}
                     </div>
@@ -272,12 +272,12 @@ export default function JobsPage() {
                   <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
                     {job.startedAt && (
                       <div data-testid={`text-started-${job.id}`}>
-                        {t.jobs.started}: {new Date(job.startedAt).toLocaleString()}
+                        {t.admin.jobs.started}: {new Date(job.startedAt).toLocaleString()}
                       </div>
                     )}
                     {job.completedAt && (
                       <div data-testid={`text-completed-${job.id}`}>
-                        {t.jobs.completed}: {new Date(job.completedAt).toLocaleString()}
+                        {t.admin.jobs.completed}: {new Date(job.completedAt).toLocaleString()}
                       </div>
                     )}
                   </div>

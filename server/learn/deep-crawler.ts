@@ -71,6 +71,9 @@ export class DeepCrawler {
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
   };
 
+  // ✅ CALLBACK: para worker reportar progresso e checar pause/cancel
+  public onProgress?: (processed: number, total: number, currentUrl: string) => Promise<void>;
+
   constructor(startUrl: string, options?: CrawlerOptions) {
     this.baseUrl = new URL(startUrl);
     this.baseDomain = this.baseUrl.hostname;
@@ -120,6 +123,17 @@ export class DeepCrawler {
       console.log(`  URL: ${url}`);
       console.log(`  Profundidade: ${depth}/${this.options.maxDepth}`);
       console.log(`  Fila: ${this.queue.length} URLs pendentes`);
+
+      // ✅ CALLBACK: reporta progresso ANTES de cada página
+      if (this.onProgress) {
+        try {
+          const estimatedTotal = this.pages.length + this.queue.length + 1;
+          await this.onProgress(this.pages.length, estimatedTotal, url);
+        } catch (error: any) {
+          // Se callback lançar erro (PAUSED/CANCELLED), propaga imediatamente
+          throw error;
+        }
+      }
 
       try {
         const page = await this.crawlPage(url, depth);

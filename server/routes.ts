@@ -5118,13 +5118,13 @@ export function registerRoutes(app: Express): Server {
       const updates: any = {};
       
       if (action === "pause") {
-        updates.paused = true;
+        // ✅ Apenas muda status para "paused" (worker detecta via callback)
         updates.status = "paused";
       } else if (action === "resume") {
-        updates.paused = false;
+        // ✅ Muda status para "running" (worker continua processando)
         updates.status = "running";
       } else if (action === "cancel") {
-        updates.cancelled = true;
+        // ✅ Muda status para "cancelled" (worker detecta via callback)
         updates.status = "cancelled";
         updates.completedAt = new Date();
       }

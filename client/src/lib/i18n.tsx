@@ -1708,13 +1708,6 @@ const translations: Record<Language, Translations> = {
       updateSuccess: "Updated successfully",
       updateError: "Error updating",
       refresh: "Refresh",
-      saveError: "Error saving",
-      deleteSuccess: "Deleted successfully",
-      deleteError: "Error deleting",
-      createSuccess: "Created successfully",
-      createError: "Error creating",
-      updateSuccess: "Updated successfully",
-      updateError: "Error updating",
       status: {
         ready: "Ready",
         processing: "Processing",
