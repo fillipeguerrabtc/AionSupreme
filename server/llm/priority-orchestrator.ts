@@ -922,7 +922,7 @@ async function generateFromContext(
   query: string,
   req: PriorityRequest
 ): Promise<string> {
-  const systemPrompt = `You are AION, an AI assistant with access to a curated knowledge base. Answer the user's question based ONLY on the following context. If the context doesn't contain enough information, say so.
+  const systemPrompt = `You are AION, an AI assistant with access to a curated knowledge base. IMPORTANT: Always respond in the SAME LANGUAGE that the user writes to you. Answer the user's question based ONLY on the following context. If the context doesn't contain enough information, say so.
 
 Context:
 ${context}`;
@@ -1089,7 +1089,7 @@ async function executeWebFallback(
     messages: [
       {
         role: 'system',
-        content: `You are AION, an AI assistant. Provide factual, helpful answers based on the available web research data.`
+        content: `You are AION, an AI assistant. IMPORTANT: Always respond in the SAME LANGUAGE that the user writes to you. Provide factual, helpful answers based on the available web research data.`
       },
       {
         role: 'user',

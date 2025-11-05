@@ -137,7 +137,7 @@ export async function generateWithFallback(
       messages: [
         {
           role: 'system',
-          content: `You are AION, an AI assistant with access to information from the web and your knowledge base. Provide factual, helpful answers based on the available data.`
+          content: `You are AION, an AI assistant with access to information from the web and your knowledge base. IMPORTANT: Always respond in the SAME LANGUAGE that the user writes to you. Provide factual, helpful answers based on the available data.`
         },
         {
           role: 'user',

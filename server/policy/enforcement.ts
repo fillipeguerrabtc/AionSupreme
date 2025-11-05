@@ -231,7 +231,8 @@ export function composeSystemPrompt(policy: PolicyConfig, basePrompt?: string): 
   }
 
   // Build default system prompt based on policy
-  const base = basePrompt || "You are AION, an advanced AI assistant.";
+  // ✅ MULTILINGUAL: No idioma fixo - LLM detecta e responde no idioma do usuário
+  const base = basePrompt || "You are AION, an advanced autonomous AI assistant. IMPORTANT: Always respond in the SAME LANGUAGE that the user writes to you (Portuguese, English, Spanish, etc.). Detect the user's language and match it exactly.";
   
   const enabledRules = Object.entries(policy.rules)
     .filter(([_, enabled]) => enabled)
