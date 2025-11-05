@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
 import { COMMON_TIMEZONES, getCurrentDateTimeInTimezone } from "@/lib/datetime";
-// import TokenMonitoring from "./TokenMonitoring"; // TEMPORARILY DISABLED - FIXING JSX ERRORS
+import TokenMonitoring from "./TokenMonitoring";
 import KnowledgeBaseTab from "./KnowledgeBaseTab";
 import TokenHistoryTab from "./TokenHistoryTab";
 import CostHistoryTab from "./CostHistoryTab";
@@ -734,11 +734,11 @@ export default function AdminDashboard() {
               )}
 
               {/* Token Monitoring Tab - TEMPORARILY DISABLED */}
-              {/* {activeTab === "tokens" && (
+              {activeTab === "tokens" && (
                 <div className="space-y-6">
                   <TokenMonitoring initialTab={tokenSubtab} />
                 </div>
-              )} */}
+              )}
 
               {/* Token History Tab */}
               {activeTab === "history" && (

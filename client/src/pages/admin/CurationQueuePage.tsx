@@ -66,6 +66,11 @@ export default function CurationQueuePage() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
   
+  // Image preview modal state
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState("");
+  const [selectedImageDesc, setSelectedImageDesc] = useState("");
+  
   // Absorption preview state (hybrid UI)
   const [absorptionPreviewItem, setAbsorptionPreviewItem] = useState<{ id: string; title: string } | null>(null);
   
@@ -794,7 +799,16 @@ export default function CurationQueuePage() {
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                       {item.attachments.filter(a => a.type === "image").map((img, idx) => (
-                        <div key={idx} className="relative group rounded-md overflow-hidden border border-border hover-elevate" data-testid={`image-preview-${idx}`}>
+                        <div 
+                          key={idx} 
+                          className="relative group rounded-md overflow-hidden border border-border cursor-pointer hover-elevate" 
+                          data-testid={`image-preview-${idx}`}
+                          onClick={() => {
+                            setSelectedImageUrl(img.url);
+                            setSelectedImageDesc(img.description || img.filename);
+                            setImagePreviewOpen(true);
+                          }}
+                        >
                           <img 
                             src={img.url} 
                             alt={img.description || img.filename}
@@ -802,16 +816,10 @@ export default function CurationQueuePage() {
                             loading="lazy"
                           />
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <a 
-                              href={img.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-white text-xs flex items-center gap-1 hover:underline"
-                              data-testid={`link-image-${idx}`}
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                              Ver original
-                            </a>
+                            <span className="text-white text-xs flex items-center gap-1">
+                              <Scan className="h-3 w-3" />
+                              Ver imagem
+                            </span>
                           </div>
                           {img.description && (
                             <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 line-clamp-2">
@@ -1243,6 +1251,25 @@ export default function CurationQueuePage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Image Preview Modal */}
+      <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0" data-testid="dialog-image-preview">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle>{selectedImageDesc}</DialogTitle>
+            <DialogDescription>
+              Clique fora da imagem ou pressione ESC para fechar
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto p-6 pt-2">
+            <img 
+              src={selectedImageUrl} 
+              alt={selectedImageDesc}
+              className="w-full h-auto rounded-md border border-border"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Absorption Preview Modal (Hybrid UI) */}
       <AbsorptionPreviewModal

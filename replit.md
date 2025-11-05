@@ -46,6 +46,41 @@ The backend uses Node.js and TypeScript with Express.js and PostgreSQL via Drizz
 ### System Design Choices
 Key decisions include a single-tenant architecture, externalized JSON behavioral configurations for dynamic updates. Full observability and telemetry include comprehensive query monitoring (latency, success/error rates, slow query detection), granular hierarchical usage analytics, usage analytics (agent execution tracking, namespace search tracking), a modern dashboard with Recharts visualizations, PostgreSQL trigram indexes for optimized search performance, and 29 production-ready REST endpoints for metrics access.
 
+### Known Issues & Technical Debt
+
+#### 🚨 CRITICAL: ImageProcessor HITL Bypass (DOCUMENTADO - NÃO CORRIGIDO)
+**File:** `server/learn/image-processor.ts`
+
+**Problem:**
+- ImageProcessor saves images DIRECTLY to filesystem (`attached_assets/learned_images/`) BEFORE human approval
+- Violates Zero Bypass Policy - all content must pass through curation queue
+- Images persist even if parent content is REJECTED in curation
+
+**Root Cause:**
+```
+processImage() → downloadImage() → fs.writeFile() (IMMEDIATE)
+```
+- No integration with curationQueue table
+- No field for storing pending images/attachments
+- No cleanup of orphaned images after rejection
+
+**Impact:**
+- Disk space waste (rejected images not deleted)
+- Privacy/compliance risk (unapproved content stored)
+- Inconsistent HITL enforcement
+
+**Required Solution:**
+1. Add `attachments` JSONB field to `curationQueue` schema
+2. Store images as Base64/buffers or temp URLs in DB
+3. Save to filesystem ONLY after approval
+4. Implement orphan cleanup service for rejected images
+
+**Temporary Workaround:**
+- Manual cleanup via `/api/admin/images` endpoint
+- Monitor `learned_images/` directory size
+
+**Status:** Documented inline in code (Nov 2025), awaiting major refactor
+
 ## External Dependencies
 
 ### Third-Party Services

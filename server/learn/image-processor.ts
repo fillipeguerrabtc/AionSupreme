@@ -3,6 +3,23 @@
  * 
  * Baixa imagens e gera descrições textuais usando Gemini Vision.
  * As descrições são indexadas na KB para RAG textual.
+ * 
+ * ⚠️ CRÍTICO - BYPASS DE CURADORIA HITL:
+ * Este serviço salva imagens DIRETAMENTE no filesystem (attached_assets/learned_images/)
+ * ANTES da aprovação humana na fila de curadoria.
+ * 
+ * PROBLEMA:
+ * - processImage() → downloadImage() → filesystem IMEDIATO
+ * - Imagens são salvas mesmo se o conteúdo for REJEITADO na curadoria
+ * - VIOLAÇÃO da política Zero Bypass - todas as entradas devem passar por HITL
+ * 
+ * SOLUÇÃO FUTURA NECESSÁRIA:
+ * 1. Adicionar campo "attachments" no schema curationQueue
+ * 2. Armazenar imagens como buffers/URLs TEMPORÁRIOS até aprovação
+ * 3. Salvar no filesystem APENAS após aprovação na curadoria
+ * 4. Limpar imagens temporárias quando item é rejeitado
+ * 
+ * Status: DOCUMENTADO mas NÃO CORRIGIDO (requer refatoração grande)
  */
 
 import fs from "fs/promises";
