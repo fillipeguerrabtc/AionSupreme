@@ -106,10 +106,11 @@ const VIOLATION_PATTERNS = {
 // ============================================================================
 
 export async function loadPolicy(): Promise<PolicyConfig | null> {
+  // Single-tenant mode: Just get the first active policy
   const result = await db
     .select()
     .from(policies)
-    .where(eq(policies.tenantId, 1))
+    .where(eq(policies.isActive, true))
     .limit(1);
 
   if (result.length === 0) {
