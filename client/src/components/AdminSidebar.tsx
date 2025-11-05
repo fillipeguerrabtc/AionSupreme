@@ -19,6 +19,7 @@ import {
   BarChart3,
   LogOut,
   Shield,
+  ListTodo,
 } from "lucide-react";
 import {
   Sidebar,
@@ -158,6 +159,13 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: ClipboardCheck,
       value: "curation",
       testId: "nav-curation",
+      requiredPermission: "curation:queue:read",
+    },
+    {
+      title: t.admin.jobs.title,
+      icon: ListTodo,
+      value: "jobs",
+      testId: "nav-jobs",
       requiredPermission: "curation:queue:read",
     },
     {

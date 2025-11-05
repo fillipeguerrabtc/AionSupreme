@@ -39,6 +39,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AdminSidebar } from "@/components/AdminSidebar";
 import AgentsPage from "./AgentsPage";
 import CurationQueuePage from "./CurationQueuePage";
+import JobsPage from "./JobsPage";
 import UsersPage from "./UsersPage";
 import PermissionsPage from "./PermissionsPage";
 import NamespacesPage from "./NamespacesPage";
@@ -811,6 +812,12 @@ export default function AdminDashboard() {
               {activeTab === "curation" && (
                 <div className="space-y-6">
                   <CurationQueuePage />
+                </div>
+              )}
+
+              {activeTab === "jobs" && (
+                <div className="space-y-6">
+                  <JobsPage />
                 </div>
               )}
 
