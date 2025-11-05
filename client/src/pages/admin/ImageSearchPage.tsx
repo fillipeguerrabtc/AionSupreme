@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Search, Image as ImageIcon, Trash2, ExternalLink, FileImage } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -27,12 +34,15 @@ export default function ImageSearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ImageSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  
+  // Image preview modal
+  const [previewImage, setPreviewImage] = useState<ImageSearchResult | null>(null);
 
   // Lista todas as imagens indexadas
   const { data: allImages, isLoading: isLoadingAll } = useQuery<{ images: any[]; total: number }>({
-    queryKey: ["/api/kb/images"],
+    queryKey: ["/api/admin/kb/images"],
     queryFn: async () => {
-      const res = await apiRequest("/api/kb/images?limit=50");
+      const res = await apiRequest("/api/admin/kb/images?limit=50");
       const data = await res.json();
       return data.data;
     },
@@ -42,7 +52,7 @@ export default function ImageSearchPage() {
   const searchMutation = useMutation({
     mutationFn: async (query: string) => {
       setIsSearching(true);
-      const res = await apiRequest("/api/kb/images/search", {
+      const res = await apiRequest("/api/admin/kb/images/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, limit: 20 }),
@@ -70,13 +80,13 @@ export default function ImageSearchPage() {
   // Deletar imagem
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest(`/api/kb/images/${id}`, {
+      const res = await apiRequest(`/api/admin/kb/images/${id}`, {
         method: "DELETE",
       });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/kb/images"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/kb/images"] });
       toast({ title: t.admin.imageSearch.removed });
     },
   });
@@ -174,7 +184,7 @@ export default function ImageSearchPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {displayImages.map((image) => (
-                  <Card key={image.id} className="overflow-hidden hover-elevate" data-testid={`card-image-${image.id}`}>
+                  <Card key={image.id} className="overflow-hidden hover-elevate cursor-pointer" data-testid={`card-image-${image.id}`} onClick={() => setPreviewImage(image)}>
                     <div className="aspect-video bg-muted relative">
                       <img
                         src={`/${image.storageUrl}`}
@@ -239,6 +249,27 @@ export default function ImageSearchPage() {
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* Image Preview Modal */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0" data-testid="dialog-image-preview">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle>{previewImage?.filename}</DialogTitle>
+            <DialogDescription>
+              {previewImage?.description || "Sem descrição"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto p-6 pt-2">
+            {previewImage && (
+              <img 
+                src={`/${previewImage.storageUrl}`} 
+                alt={previewImage.description}
+                className="w-full h-auto rounded-md border border-border"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
