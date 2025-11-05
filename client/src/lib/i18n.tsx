@@ -790,6 +790,18 @@ interface Translations {
       dailyLimit: string;
       unlimited: string;
       loading: string;
+      errorLoading: string;
+      errorLoadingDesc: string;
+      used: string;
+      providersTitle: string;
+      reqPerDay: string;
+      statsTitle: string;
+      statsDesc: string;
+      noData: string;
+      total: string;
+      success: string;
+      failed: string;
+      rate: string;
     };
     
     // Namespaces Page
@@ -1620,6 +1632,18 @@ const translations: Record<Language, Translations> = {
         dailyLimit: "Limite Diário",
         unlimited: "Ilimitado",
         loading: "Carregando status...",
+        errorLoading: "Erro ao Carregar Provedores",
+        errorLoadingDesc: "Não foi possível carregar informações dos provedores",
+        used: "usado",
+        providersTitle: "Provedores de Visão AI",
+        reqPerDay: "req/dia",
+        statsTitle: "Estatísticas de Uso (Últimos 7 Dias)",
+        statsDesc: "Histórico detalhado de requisições por provedor",
+        noData: "Nenhum dado disponível",
+        total: "Total",
+        success: "Sucesso",
+        failed: "Falhou",
+        rate: "Taxa",
       },
       
       namespaces: {
@@ -2446,6 +2470,18 @@ const translations: Record<Language, Translations> = {
         dailyLimit: "Daily Limit",
         unlimited: "Unlimited",
         loading: "Loading status...",
+        errorLoading: "Error Loading Providers",
+        errorLoadingDesc: "Could not load provider information",
+        used: "used",
+        providersTitle: "Vision AI Providers",
+        reqPerDay: "req/day",
+        statsTitle: "Usage Statistics (Last 7 Days)",
+        statsDesc: "Detailed request history by provider",
+        noData: "No data available",
+        total: "Total",
+        success: "Success",
+        failed: "Failed",
+        rate: "Rate",
       },
       
       namespaces: {
@@ -3272,6 +3308,18 @@ const translations: Record<Language, Translations> = {
         dailyLimit: "Límite Diario",
         unlimited: "Ilimitado",
         loading: "Cargando estado...",
+        errorLoading: "Error al Cargar Proveedores",
+        errorLoadingDesc: "No se pudo cargar información de proveedores",
+        used: "usado",
+        providersTitle: "Proveedores de Vision AI",
+        reqPerDay: "req/día",
+        statsTitle: "Estadísticas de Uso (Últimos 7 Días)",
+        statsDesc: "Historial detallado de solicitudes por proveedor",
+        noData: "No hay datos disponibles",
+        total: "Total",
+        success: "Éxito",
+        failed: "Fallido",
+        rate: "Tasa",
       },
       
       namespaces: {
