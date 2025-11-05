@@ -537,6 +537,11 @@ export default function ChatPage() {
 
   // Detect and render video and image links in message content
   const renderMessageContent = (content: string) => {
+    // 🔧 FIX: Trata conteúdo undefined/null
+    if (!content || typeof content !== 'string') {
+      return <p className="text-muted-foreground italic">Sem conteúdo</p>;
+    }
+
     const parts: (string | JSX.Element)[] = [];
     let lastIndex = 0;
     let keyCounter = 0;
