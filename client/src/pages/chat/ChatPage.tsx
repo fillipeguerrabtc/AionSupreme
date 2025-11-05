@@ -729,7 +729,8 @@ export default function ChatPage() {
             </div>
           )}
           
-          {sendMutation.isPending && !useStreaming && (
+          {/* 🔧 FIX: Evita avatar duplicado - só renderiza se NÃO estiver streaming */}
+          {sendMutation.isPending && !useStreaming && !streamingChat.isStreaming && (
             <div className="flex gap-4 animate-slide-up">
               <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
                 <img 
@@ -972,7 +973,8 @@ export default function ChatPage() {
             </div>
           )}
           
-          {sendMutation.isPending && !useStreaming && (
+          {/* 🔧 FIX: Evita avatar duplicado - só renderiza se NÃO estiver streaming */}
+          {sendMutation.isPending && !useStreaming && !streamingChat.isStreaming && (
             <div className="flex gap-4 animate-slide-up">
               <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
                 <img 
