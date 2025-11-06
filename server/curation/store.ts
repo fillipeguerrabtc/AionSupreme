@@ -365,8 +365,23 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       console.log(`[Curation] 📎 Salvando ${item.attachments.length} attachments junto com documento ${newDoc.id}`);
     }
 
+    // 🔥 INDEXAÇÃO UNIFICADA: texto principal + descriptions dos attachments
+    // Garante que imagens/vídeos sejam encontrados via busca textual
+    let contentToIndex = newDoc.content;
+    if (finalAttachments && finalAttachments.length > 0) {
+      const attachmentDescriptions = finalAttachments
+        .filter((att: any) => att.description && att.description.trim())
+        .map((att: any) => `[${att.type === 'image' ? 'Imagem' : 'Vídeo'}] ${att.description}`)
+        .join('\n');
+      
+      if (attachmentDescriptions) {
+        contentToIndex = `${newDoc.content}\n\n--- Mídia Anexada ---\n${attachmentDescriptions}`;
+        console.log(`[Curation] 🖼️ Indexando ${finalAttachments.length} attachments com descriptions na KB`);
+      }
+    }
+
     // Index approved content into Knowledge Base vector store with namespace metadata
-    await knowledgeIndexer.indexDocument(newDoc.id, newDoc.content, {
+    await knowledgeIndexer.indexDocument(newDoc.id, contentToIndex, {
       namespaces: finalNamespaces, // ← USA NAMESPACES CONSOLIDADOS!
       tags: item.tags,
       source: "curation_approved",
