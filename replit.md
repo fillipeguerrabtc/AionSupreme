@@ -3,6 +3,15 @@
 ## Visão Geral
 AION é um sistema de IA autônomo de nível empresarial projetado para robustez, flexibilidade e auto-operação, estendendo-se além das limitações atuais dos LLMs. Possui aplicação configurável de políticas, recuperação de conhecimento baseada em RAG, agentes autônomos avançados usando POMDP com framework ReAct e geração profissional de vídeos. O sistema fornece interface de chat para usuários finais e painel administrativo com Equalizador de Personalidade de 7 Traços. Operando em modo single-tenant para implantação otimizada e eficiência de custos, a visão de negócio do AION é fornecer IA auto-sustentável e continuamente evolutiva que aprende e melhora autonomamente, reduzindo dependência de APIs externas ao longo do tempo.
 
+**NOVO (2025-11-06): Sistema de Meta-Learning Autônomo Production-Ready:**
+- Meta-Learner Service: Aprende algoritmos de aprendizado otimizados (TMLR Feb 2025)
+- ShiftEx MoE: Adaptive Mixture of Experts com MMD shift detection (June 2025)
+- PM-MoE Aggregator: Personalized expert selection com energy filtering (WWW 2025)
+- Self-Improvement Engine: Análise autônoma de código com LLM + recursive directory handling
+- 19 REST API endpoints com validação Zod específica
+- 7 tabelas PostgreSQL para meta-learning completo
+- ZERO BYPASS: Validação completa, auth, error handling, logging
+
 ## User Preferences
 Estilo de comunicação preferido: Linguagem simples e cotidiana.
 
