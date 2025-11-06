@@ -17,6 +17,7 @@ import { MetaLearnerService } from "../meta/meta-learner-service";
 import { ShiftExService } from "../moe/shiftex-service";
 import { PMMoEAggregator } from "../moe/pm-moe-aggregator";
 import { SelfImprovementEngine } from "../autonomous/self-improvement-engine";
+import { metaLearningOrchestrator } from "../meta/meta-learning-orchestrator";
 import { db } from "../db";
 import {
   learningAlgorithms,
@@ -525,5 +526,45 @@ export function registerMetaLearningRoutes(app: Express) {
     }
   });
 
-  logger.info("✅ Meta-Learning routes registered");
+  // ============================================================================
+  // PIPELINE ORCHESTRATION
+  // ============================================================================
+
+  /**
+   * POST /api/meta/pipeline/execute
+   * Execute complete autonomous learning pipeline
+   */
+  app.post("/api/meta/pipeline/execute", requireAdmin, async (req, res) => {
+    try {
+      const { namespace } = req.body;
+
+      const results = await metaLearningOrchestrator.executeFullPipeline(namespace);
+
+      sendSuccess(res, {
+        results,
+        totalStages: results.length,
+        successStages: results.filter(r => r.success).length,
+        failedStages: results.filter(r => !r.success).length
+      });
+    } catch (error) {
+      logger.error("❌ Failed to execute pipeline", { error });
+      sendServerError(res, error);
+    }
+  });
+
+  /**
+   * GET /api/meta/pipeline/status
+   * Get pipeline orchestrator status
+   */
+  app.get("/api/meta/pipeline/status", requireAdmin, async (req, res) => {
+    try {
+      const status = metaLearningOrchestrator.getStatus();
+      sendSuccess(res, status);
+    } catch (error) {
+      logger.error("❌ Failed to get pipeline status", { error });
+      sendServerError(res, error);
+    }
+  });
+
+  logger.info("✅ Meta-Learning routes registered (21 endpoints including pipeline)");
 }

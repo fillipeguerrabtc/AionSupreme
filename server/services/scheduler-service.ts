@@ -29,6 +29,7 @@ import { patternAnalyzer } from './pattern-analyzer';
 import { secretsVault } from './security/secrets-vault';
 import { modelDeploymentService } from './model-deployment-service';
 import { quotaTelemetryService } from './quota-telemetry-service';
+import { metaLearningOrchestrator } from '../meta/meta-learning-orchestrator';
 
 interface ScheduledJob {
   name: string;
@@ -152,6 +153,21 @@ export class SchedulerService {
         if (updated > 0) {
           // Logs já são feitos pelo service
         }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // JOB 8: Meta-Learning Pipeline - A cada 3 horas (P0.5 - Autonomous Learning!)
+    this.register({
+      name: 'meta-learning-pipeline',
+      schedule: '0 */3 * * *', // 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, 21:00
+      task: async () => {
+        console.log('\n🧠 [Scheduler] Executando Meta-Learning Pipeline...');
+        const results = await metaLearningOrchestrator.executeFullPipeline();
+        const successCount = results.filter(r => r.success).length;
+        console.log(`   ✅ Pipeline completo: ${successCount}/${results.length} stages bem-sucedidos`);
       },
       enabled: true,
       runCount: 0,
