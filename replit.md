@@ -40,6 +40,31 @@ AION operates in single-tenant mode with a multi-agent architecture and LLM-driv
 ### UI/UX
 The frontend is built with React 18, Vite, Wouter, and TanStack Query, using Radix UI, shadcn/ui patterns, Tailwind CSS, and a custom HSL-based design system. It features an elegant minimalist design with modern glassmorphism. It offers a clean conversational chat interface and an Admin Panel with enterprise-grade side navigation and a complete Internationalization (i18n) system supporting PT-BR (default), EN-US, ES-ES. All administrative pages are translated, including Dataset, Agent, and Curation Queue management. The Curation Queue for HITL review supports filtering and bulk actions. Vision System monitoring displays real-time quota tracking across 5 providers. An AI-powered semantic Image Search and Health Diagnostics are included. The Personality Equalizer in the Settings tab offers granular control via 7 functional sliders.
 
+### Admin Panel - Management Philosophy
+
+**Auto-Creation vs Manual Management**
+
+While AION implements automatic namespace classification and agent assignment, the Admin Panel provides manual management interfaces for critical operational control:
+
+**Namespaces Tab - Why Manual UI Exists:**
+- **Audit & Review**: Inspect automatically classified namespaces and verify semantic coherence
+- **Correction**: Rename or merge namespaces with poor auto-classification (e.g., split domains wrongly grouped)
+- **Hygiene**: Delete empty/orphaned namespaces not caught by automatic garbage collection
+- **Seeding**: Pre-create domain-specific namespaces before first content ingestion for better initial routing
+- **Override**: Manually assign documents to correct namespace when auto-classifier fails
+- **Monitoring**: Track namespace distribution, document counts, and detect namespace pollution
+
+**Agents Tab - Why Manual UI Exists:**
+- **Customization**: Create specialized agents with custom tools, budgets, and personality profiles beyond defaults
+- **Expert Configuration**: Fine-tune agent prompts, tool access, and namespace restrictions for domain experts
+- **Hierarchy Management**: Build multi-level agent hierarchies (senior → junior agents) with delegation rules
+- **Testing**: Prototype new agent behaviors before deploying to auto-creation system
+- **Migration**: Bulk edit or deprecate agents during system upgrades or policy changes
+- **Emergency Control**: Disable or modify misbehaving agents discovered during production monitoring
+
+**Design Principle:**
+Automation provides **convenience** (80% use cases), manual management provides **precision** (20% edge cases + operational safety). Both are essential for production-grade autonomous systems.
+
 ### Technical Implementations
 The backend uses Node.js and TypeScript with Express.js and PostgreSQL via Drizzle ORM. Key services include an LLM Client, Storage, Multi-Agent Router (MoE), namespace-scoped RAG, an Agent Engine (ReAct with POMDP), Automatic Fallback, Production-Grade Multimodal Processing, Web Content Discovery, YouTube Transcript Service, Vision Cascade, free LLM Provider rotation, GPU Orchestrator, GPU Pool Manager, GPU Load Balancer, Training Data Collector, Dataset Generator, Auto-Learning System, Token Monitoring, Lifecycle Management, Orphan Detection, Validation (Zod schemas), and a Complete Telemetry System. The frontend implements a centralized i18n system with a `useLanguage()` hook. Authentication uses Replit Auth (OpenID Connect). RAG combines OpenAI embeddings with BM25 for re-ranking. Professional video generation uses an asynchronous job queue, GPU workers, and webhook callbacks. The Automated Namespace Classification System uses GPT-4 for intelligent content analysis. The GPU Pool System manages intelligent quota, auto-shutdown, load balancing, and heartbeat monitoring. Multi-Cloud Deployment uses Google Cloud Run and AWS Fargate. Training data validation includes 8 real-time inline validation types. The Lifecycle Management System applies retention policies. KB Cascade Delete ensures comprehensive data removal.
 
