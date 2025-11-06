@@ -1,16 +1,7 @@
 # AION - Sistema de IA Autônomo
 
-## Visão Geral
-AION é um sistema de IA autônomo de nível empresarial projetado para robustez, flexibilidade e auto-operação, estendendo-se além das limitações atuais dos LLMs. Possui aplicação configurável de políticas, recuperação de conhecimento baseada em RAG, agentes autônomos avançados usando POMDP com framework ReAct e geração profissional de vídeos. O sistema fornece interface de chat para usuários finais e painel administrativo com Equalizador de Personalidade de 7 Traços. Operando em modo single-tenant para implantação otimizada e eficiência de custos, a visão de negócio do AION é fornecer IA auto-sustentável e continuamente evolutiva que aprende e melhora autonomamente, reduzindo dependência de APIs externas ao longo do tempo.
-
-**NOVO (2025-11-06): Sistema de Meta-Learning Autônomo Production-Ready:**
-- Meta-Learner Service: Aprende algoritmos de aprendizado otimizados (TMLR Feb 2025)
-- ShiftEx MoE: Adaptive Mixture of Experts com MMD shift detection (June 2025)
-- PM-MoE Aggregator: Personalized expert selection com energy filtering (WWW 2025)
-- Self-Improvement Engine: Análise autônoma de código com LLM + recursive directory handling
-- 19 REST API endpoints com validação Zod específica
-- 7 tabelas PostgreSQL para meta-learning completo
-- ZERO BYPASS: Validação completa, auth, error handling, logging
+## Overview
+AION is an enterprise-grade autonomous AI system designed for robustness, flexibility, and self-operation, extending beyond current LLM limitations. It features configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agents using POMDP with a ReAct framework, and professional video generation. The system provides a chat interface for end-users and an administrative dashboard with a 7-Trait Personality Equalizer. Operating in a single-tenant mode for optimized deployment and cost efficiency, AION's business vision is to deliver a self-sustaining, continuously evolving AI that learns and improves autonomously, reducing reliance on external APIs over time. It incorporates production-ready autonomous meta-learning capabilities, including a Meta-Learner Service, an Adaptive Mixture of Experts (ShiftEx MoE), a Personalized expert selection (PM-MoE Aggregator), and a Self-Improvement Engine for autonomous code analysis and patching.
 
 ## User Preferences
 Estilo de comunicação preferido: Linguagem simples e cotidiana.
@@ -41,68 +32,23 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 - Sempre adicionar data-testid para testes E2E
 - Sempre revisar código com architect antes de marcar como completed
 
-## Arquitetura do Sistema
+## System Architecture
 
-### Design do Sistema Central
-AION opera em modo single-tenant com arquitetura multi-agente e roteamento Mixture of Experts (MoE) orientado por LLM baseado em classificação de intenção. Inclui sistema automático de fallback com cadeia de prioridade de 5 níveis para respostas e suporte multilíngue universal. O sistema suporta agentes especializados com namespaces dedicados da base de conhecimento, acesso a ferramentas e limites de orçamento. Um sistema de curadoria de conhecimento Human-in-the-Loop (HITL), apoiado por PostgreSQL, requer aprovação humana para todo conteúdo antes da indexação, com Política de Zero Bypass. Um Sistema de Pool de GPU pronto para produção gerencia detecção de workers, monitoramento de heartbeat, balanceamento de carga, prioridade de inferência e rotação baseada em agendamento. Um Sistema de Auto-Evolução Contínua coleta conversas de alta qualidade para instruction tuning e geração de datasets, aplicando HITL. Processamento Multimodal Completo suporta vários tipos de documentos, imagens, vídeos, transcrições do YouTube e Deep Web Crawling. O Sistema Vision Cascade fornece failover automático de 5 provedores com rastreamento de quota. O sistema de agentes inclui hierarquia baseada em níveis para agentes e sub-agentes com exclusão em cascata. Federated Learning está totalmente implementado com Gradient Aggregation Coordinator e Tolerância a Falhas. Gerenciamento de Usuários & RBAC fornecem gerenciamento de usuários e permissões de nível empresarial com sistema granular de permissões.
+### Core System Design
+AION operates in a single-tenant mode with a multi-agent architecture and LLM-driven Mixture of Experts (MoE) routing based on intent classification. It includes a 5-level priority chain automatic fallback system and universal multi-language support. Specialized agents with dedicated knowledge base namespaces, tool access, and budget limits are supported. A Human-in-the-Loop (HITL) knowledge curation system, backed by PostgreSQL, requires human approval for all content before indexing with a Zero Bypass Policy. A production-ready GPU Pool System manages worker detection, heartbeat monitoring, load balancing, inference priority, and schedule-based rotation. A Continuous Self-Evolution System collects high-quality conversations for instruction tuning and dataset generation, applying HITL. Full Multimodal Processing supports various document types, images, videos, YouTube transcripts, and Deep Web Crawling. The Vision Cascade System provides automatic failover across 5 providers with quota tracking. The agent system includes a level-based hierarchy for agents and sub-agents with cascading deletion. Federated Learning is fully implemented with a Gradient Aggregation Coordinator and Fault Tolerance. User & RBAC Management provides enterprise-level user and permission management with a granular permission system. The system incorporates a Meta-Learner Service, Adaptive Mixture of Experts (ShiftEx MoE) with MMD shift detection and dynamic expert spawning, a Personalized Expert Selection (PM-MoE Aggregator), and a Self-Improvement Engine for autonomous code analysis.
 
 ### UI/UX
-O frontend é construído com React 18, Vite, Wouter e TanStack Query, utilizando Radix UI, padrões shadcn/ui, Tailwind CSS e sistema de design customizado baseado em HSL. Apresenta design minimalista elegante com glassmorphism moderno. Oferece interface de chat conversacional limpa e Painel Administrativo com navegação lateral de nível empresarial e sistema completo de Internacionalização (i18n) suportando PT-BR (padrão), EN-US, ES-ES. Todas as páginas administrativas estão traduzidas, incluindo gerenciamento de Dataset, Agente e Fila de Curadoria. A Fila de Curadoria para revisão HITL suporta filtragem e ações em lote. Monitoramento do Vision System exibe rastreamento de quota em tempo real através de 5 provedores. Busca de Imagem semântica alimentada por IA e Diagnósticos de Saúde estão incluídos. O Equalizador de Personalidade na aba Configurações oferece controle granular via 7 sliders funcionais.
+The frontend is built with React 18, Vite, Wouter, and TanStack Query, utilizing Radix UI, shadcn/ui patterns, Tailwind CSS, and a custom HSL-based design system. It features an elegant minimalist design with modern glassmorphism. It offers a clean conversational chat interface and an enterprise-level Admin Panel with side navigation and full Internationalization (i18n) supporting PT-BR (default), EN-US, ES-ES. All administrative pages are translated, including Dataset, Agent, and Curation Queue management. The Curation Queue for HITL review supports filtering and batch actions. Vision System monitoring displays real-time quota tracking across 5 providers. AI-powered semantic image search and Health Diagnostics are included. The Personality Equalizer in the Settings tab offers granular control via 7 functional sliders. The Admin Panel design philosophy balances auto-creation with manual management for auditing, correction, hygiene, seeding, override, and monitoring for namespaces, and customization, specialized configuration, hierarchy management, testing, migration, and emergency control for agents.
 
-### Painel Admin - Filosofia de Gerenciamento
+### Technical Implementations
+The backend uses Node.js and TypeScript with Express.js and PostgreSQL via Drizzle ORM. Key services include LLM Client, Storage, Multi-Agent Router (MoE), namespace-scoped RAG, Agent Engine (ReAct with POMDP), Automatic Fallback, Production-Grade Multimodal Processing, Web Content Discovery, YouTube Transcription Service, Vision Cascade, free LLM Provider rotation, GPU Orchestrator, GPU Pool Manager, GPU Load Balancer, Training Data Collector, Dataset Generator, Auto-Learning System, Token Monitoring, Lifecycle Management, Orphan Detection, Validation (Zod schemas), and a Comprehensive Telemetry System. It includes a Kaggle CLI Service for automatic provisioning and credential bootstrapping, a Colab Orchestrator Service for Puppeteer automation, and a GPU Management UI. A GPU Deletion Service handles cascading deletes, and an Auto-Scaling Service with a 24/7 Orchestrator intelligently manages all GPUs (Colab + Kaggle) using multi-factor dispatching and staggered rotation strategies. The Namespace Classifier uses LLM-based auto-classification. A Persistent Vector Store is PostgreSQL-backed with LRU cache. Robust error handling and structured logging are implemented. The frontend implements a centralized i18n system and uses Replit Auth (OpenID Connect). RAG combines OpenAI embeddings with BM25. Professional video generation uses an asynchronous job queue. Multi-Cloud Deployment uses Google Cloud Run and AWS Fargate. Training data validation and a Lifecycle Management System are in place.
 
-**Auto-Criação vs Gerenciamento Manual**
+### System Design Decisions
+Key decisions include single-tenant architecture and externalized JSON behavioral configurations for dynamic updates. Comprehensive observability and telemetry include query monitoring, granular hierarchical usage analytics, a modern dashboard with Recharts visualizations, PostgreSQL trigram indexes for optimized search performance, and 29 production-ready REST endpoints for metric access.
 
-Embora o AION implemente classificação automática de namespaces e atribuição de agentes, o Painel Admin fornece interfaces de gerenciamento manual para controle operacional crítico:
+## External Dependencies
 
-**Aba Namespaces - Por que a UI Manual Existe:**
-- **Auditoria & Revisão**: Inspecionar namespaces classificados automaticamente e verificar coerência semântica
-- **Correção**: Renomear ou mesclar namespaces com classificação automática ruim (ex: domínios divididos agrupados incorretamente)
-- **Higiene**: Deletar namespaces vazios/órfãos não capturados pela coleta de lixo automática
-- **Seeding**: Pré-criar namespaces específicos de domínio antes da primeira ingestão de conteúdo para melhor roteamento inicial
-- **Override**: Atribuir manualmente documentos ao namespace correto quando o classificador automático falha
-- **Monitoramento**: Rastrear distribuição de namespaces, contagem de documentos e detectar poluição de namespaces
-
-**Aba Agentes - Por que a UI Manual Existe:**
-- **Customização**: Criar agentes especializados com ferramentas customizadas, orçamentos e perfis de personalidade além dos padrões
-- **Configuração Especializada**: Ajustar prompts de agentes, acesso a ferramentas e restrições de namespace para especialistas de domínio
-- **Gerenciamento de Hierarquia**: Construir hierarquias multi-nível de agentes (sênior → júnior) com regras de delegação
-- **Testes**: Prototipar novos comportamentos de agentes antes de implantar no sistema de auto-criação
-- **Migração**: Editar em lote ou depreciar agentes durante upgrades de sistema ou mudanças de política
-- **Controle de Emergência**: Desabilitar ou modificar agentes com mau comportamento descobertos durante monitoramento de produção
-
-**Princípio de Design:**
-Automação fornece **conveniência** (80% dos casos de uso), gerenciamento manual fornece **precisão** (20% casos de borda + segurança operacional). Ambos são essenciais para sistemas autônomos de nível produção.
-
-### Implementações Técnicas
-O backend usa Node.js e TypeScript com Express.js e PostgreSQL via Drizzle ORM. Serviços-chave incluem Cliente LLM, Storage, Multi-Agent Router (MoE), RAG com escopo de namespace, Motor de Agente (ReAct com POMDP), Fallback Automático, Processamento Multimodal de Nível Produção, Descoberta de Conteúdo Web, Serviço de Transcrição YouTube, Vision Cascade, rotação de Provedores LLM gratuitos, GPU Orchestrator, GPU Pool Manager, GPU Load Balancer, Training Data Collector, Dataset Generator, Auto-Learning System, Monitoramento de Tokens, Lifecycle Management, Orphan Detection, Validação (schemas Zod) e Sistema de Telemetria Completo. 
-
-**PRODUÇÃO-READY (2025-11-06):**
-- **Kaggle CLI Service**: Provisioning automático de binary + bootstrap de credenciais via SecretsVault + 5 endpoints API completos
-- **Colab Orchestrator Service**: Automação Puppeteer para Google Colab (sem API pública) com provisioning lock e session tracking + 3 endpoints API
-- **GPU Management UI**: Interface simplificada com "+ Add Worker" dialog suportando Kaggle (API) e Colab (Puppeteer), edição inline de workers via PATCH /api/gpu/:id
-- **GPU Deletion Service**: CASCADE DELETE completo (sessions, resources, training jobs) com batch operations e cleanup automático de trainingWorkers
-- **Auto-Scaling Service**: Multi-factor dispatcher baseado em métricas reais (latency, load, availability, quota) com 4 scoring factors
-- **Auto-Scaling Orchestrator 24/7**: Orquestração inteligente de TODAS GPUs (Colab + Kaggle) com rotação escalonada (staggered start) garantindo máximo de GPUs online 24/7 sem que todas parem juntas. Detecta novas GPUs automaticamente e recalcula schedule. Estratégias: 3-Group Rotation (6+ Colabs), 2-Group Rotation (3-5 Colabs), Mixed Rotation (Colab backbone + Kaggle complement), Kaggle-Only (conservadora). Colab = prioridade alta (sem limite semanal), Kaggle = complemento estratégico (~4h/dia respeitando 29h/semana). 4 endpoints REST: /start, /stop, /recalculate, /status
-- **Namespace Classifier**: Auto-classification via LLM integrada no pipeline de upload/curation com consolidação inteligente (>80% similarity)
-- **Persistent Vector Store**: PostgreSQL-backed com LRU cache (10k embeddings), lazy loading e performance stats tracking
-- **Error Handling & Logging**: Structured logging service + error classes + circuit breaker (resilient) + retry/timeout patterns
-- **Integration Tests**: 100% pass rate (11/11 tests) validando DB, GPU, curation, training, namespaces e data integrity
-
-O frontend implementa sistema i18n centralizado com hook `useLanguage()`. Autenticação usa Replit Auth (OpenID Connect). RAG combina embeddings OpenAI com BM25 para re-ranking. Geração profissional de vídeo usa fila assíncrona de jobs, GPU workers e webhook callbacks. O Sistema de Classificação Automática de Namespaces usa GPT-4 para análise inteligente de conteúdo. O Sistema de Pool de GPU gerencia quota inteligente, auto-desligamento, balanceamento de carga e monitoramento de heartbeat. Implantação Multi-Nuvem usa Google Cloud Run e AWS Fargate. Validação de dados de treinamento inclui 8 tipos de validação inline em tempo real. O Sistema de Lifecycle Management aplica políticas de retenção. KB Cascade Delete garante remoção abrangente de dados.
-
-**⚠️ NOTA DE SEGURANÇA - SECRETS_MASTER_KEY:**
-- SecretsVault requer SECRETS_MASTER_KEY para encryption de credenciais (Kaggle API keys, Google passwords)
-- Em desenvolvimento sem SECRETS_MASTER_KEY, credenciais ficam em plaintext no PostgreSQL
-- **Produção**: SEMPRE configurar SECRETS_MASTER_KEY antes de deployar
-- Usar Google App Passwords ou tokens de curta duração ao invés de senhas reais quando possível
-
-### Decisões de Design do Sistema
-Decisões-chave incluem arquitetura single-tenant, configurações comportamentais JSON externalizadas para atualizações dinâmicas. Observabilidade e telemetria completas incluem monitoramento abrangente de queries, analytics de uso hierárquico granular, dashboard moderno com visualizações Recharts, índices trigram PostgreSQL para performance otimizada de busca e 29 endpoints REST prontos para produção para acesso a métricas.
-
-## Dependências Externas
-
-### Serviços de Terceiros
+### Third-Party Services
 - **API OpenAI**: LLM completions, embeddings, function calling, GPT-4o Vision.
 - **Neon Database**: PostgreSQL Serverless.
 - **Google Cloud Run**: Primary deployment platform.
@@ -113,9 +59,8 @@ Decisões-chave incluem arquitetura single-tenant, configurações comportamenta
 - **Google Colab, Kaggle, Modal**: Free GPU resources for fine-tuning and inference.
 - **RunPod/Modal**: GPU workers for video generation.
 - **Replit**: Development environment and authentication (OpenID Connect).
-- **GitHub Actions**: CI/CD pipeline.
 
-### Bibliotecas Principais (NPM)
+### Core Libraries (NPM)
 - **@neondatabase/serverless**: PostgreSQL client
 - **drizzle-orm**: Type-safe ORM
 - **openai**: Official OpenAI SDK
