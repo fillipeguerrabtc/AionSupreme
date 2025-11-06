@@ -278,6 +278,38 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       throw new Error(`Falha na verificação de duplicação: ${verificationError.message}`);
     }
 
+    // 🤖 AUTO-CRIAÇÃO DE NAMESPACES E AGENTES (AUTONOMOUS CURATION)
+    // ✅ CRÍTICO: Fazer ANTES de criar documento para aplicar consolidação everywhere
+    let finalNamespaces = item.suggestedNamespaces || [];
+    if (item.suggestedNamespaces && item.suggestedNamespaces.length > 0) {
+      const { autoCreateNamespacesAndAgents } = await import("../services/auto-namespace-creator");
+      const creationResult = await autoCreateNamespacesAndAgents(item.suggestedNamespaces, {
+        source: "curation_approval",
+        curationItemId: item.id,
+        reviewedBy,
+      });
+
+      // ✅ CRÍTICO: Aplicar mapeamento de consolidação
+      // Se houve consolidação (>80% similar), usa namespace existente
+      finalNamespaces = item.suggestedNamespaces.map(ns => 
+        creationResult.consolidatedMapping[ns] || ns
+      );
+
+      // ✅ CRÍTICO: Deduplica namespaces (se 2+ consolidaram para o mesmo)
+      finalNamespaces = [...new Set(finalNamespaces.filter(ns => ns && ns.trim()))];
+
+      if (Object.keys(creationResult.consolidatedMapping).length > 0) {
+        console.log(`[Curation] 🔄 Namespaces consolidados:`, creationResult.consolidatedMapping);
+        console.log(`[Curation] 📝 Namespaces finais deduplic+ ados:`, finalNamespaces);
+      }
+    }
+
+    // ✅ CRÍTICO: Garantir pelo menos 1 namespace válido (fallback 'geral')
+    if (!finalNamespaces || finalNamespaces.length === 0) {
+      console.warn(`[Curation] ⚠️ No namespaces for item ${item.id}, using default 'geral'`);
+      finalNamespaces = ['geral'];
+    }
+
     // 🔥 NOVO: ZERO BYPASS - Salva imagens APÓS aprovação (HITL completo)
     let finalAttachments = item.attachments;
     if (item.attachments && item.attachments.length > 0) {
@@ -319,7 +351,7 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       status: "indexed",
       attachments: finalAttachments || undefined, // Attachments FINAIS (já salvos no filesystem!)
       metadata: {
-        namespaces: item.suggestedNamespaces,
+        namespaces: finalNamespaces, // ← USA NAMESPACES CONSOLIDADOS!
         tags: item.tags,
         curationId: item.id,
         reviewedBy,
@@ -335,7 +367,7 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
 
     // Index approved content into Knowledge Base vector store with namespace metadata
     await knowledgeIndexer.indexDocument(newDoc.id, newDoc.content, {
-      namespaces: item.suggestedNamespaces,
+      namespaces: finalNamespaces, // ← USA NAMESPACES CONSOLIDADOS!
       tags: item.tags,
       source: "curation_approved",
       curationId: item.id,
@@ -346,11 +378,6 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
     try {
       const { trainingDataCollection } = await import("@shared/schema");
       
-      // VALIDATION: Ensure namespaces are valid
-      if (!item.suggestedNamespaces || item.suggestedNamespaces.length === 0) {
-        console.warn(`[Curation] ⚠️ No namespaces for item ${item.id}, using default 'geral'`);
-        item.suggestedNamespaces = ['geral'];
-      }
       
       // VALIDATION: Extract quality score from tags with fallback
       const qualityTag = item.tags.find(t => t.startsWith('quality-'));
@@ -374,13 +401,13 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
         metadata: {
           source: "curation_approved",
           curationId: item.id,
-          namespaces: item.suggestedNamespaces,
+          namespaces: finalNamespaces, // ✅ USA NAMESPACES CONSOLIDADOS!
           tags: item.tags,
           reviewedBy,
         },
       } as any);
       
-      console.log(`[Curation] ✅ Saved to training_data_collection (quality: ${qualityScore}, namespaces: ${item.suggestedNamespaces.join(', ')})`);
+      console.log(`[Curation] ✅ Saved to training_data_collection (quality: ${qualityScore}, namespaces: ${finalNamespaces.join(', ')})`);
     } catch (trainingError: any) {
       console.error(`[Curation] ❌ Failed to save training data:`, trainingError.message);
       // Fail closed: if training data save fails, throw error to prevent silent failures
