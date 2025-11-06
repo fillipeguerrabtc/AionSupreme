@@ -939,6 +939,12 @@ export const trainingJobs = pgTable("training_jobs", {
   latestCheckpoint: text("latest_checkpoint"), // Path/URL to latest model checkpoint
   checkpointInterval: integer("checkpoint_interval").notNull().default(100), // Save every N steps
   
+  // Deployment (P0.3 - Fine-Tune Deployment Logic)
+  deployed: boolean("deployed").notNull().default(false), // Se o modelo foi deployed
+  deployedAt: timestamp("deployed_at"), // When deployed to production
+  modelVersion: text("model_version"), // Deployed version identifier (e.g., "v1234567890-job123")
+  deploymentError: text("deployment_error"), // Error message if deployment failed
+  
   // Timestamps
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -946,6 +952,7 @@ export const trainingJobs = pgTable("training_jobs", {
   completedAt: timestamp("completed_at"),
 }, (table) => ({
   statusIdx: index("training_jobs_status_idx").on(table.status),
+  deployedIdx: index("training_jobs_deployed_idx").on(table.deployed),
 }));
 
 export const insertTrainingJobSchema = createInsertSchema(trainingJobs).omit({ 
@@ -2005,3 +2012,40 @@ export const insertAgentQueryResultSchema = createInsertSchema(agentQueryResults
 });
 export type InsertAgentQueryResult = z.infer<typeof insertAgentQueryResultSchema>;
 export type AgentQueryResult = typeof agentQueryResults.$inferSelect;
+
+// ============================================================================
+// SECRETS_VAULT - Encrypted credentials storage (AES-256-GCM)
+// ============================================================================
+/**
+ * Armazena credentials de forma segura com encryption
+ * - Kaggle API keys
+ * - Google OAuth credentials
+ * - Outros secrets sensíveis
+ * 
+ * NUNCA armazenar em plaintext!
+ */
+export const secretsVault = pgTable("secrets_vault", {
+  id: serial("id").primaryKey(),
+  
+  // Secret identifier (e.g., "kaggle:default:username", "google:colab:email@gmail.com")
+  name: text("name").notNull().unique(),
+  
+  // Encrypted data (JSON string com iv, authTag, salt, etc)
+  encryptedData: jsonb("encrypted_data").notNull(),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  rotatedAt: timestamp("rotated_at"), // Last rotation
+  expiresAt: timestamp("expires_at"), // Auto-expire
+  accessCount: integer("access_count").notNull().default(0),
+}, (table) => ({
+  nameIdx: index("secrets_vault_name_idx").on(table.name),
+  expiresAtIdx: index("secrets_vault_expires_at_idx").on(table.expiresAt),
+}));
+
+export const insertSecretSchema = createInsertSchema(secretsVault).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertSecret = z.infer<typeof insertSecretSchema>;
+export type Secret = typeof secretsVault.$inferSelect;

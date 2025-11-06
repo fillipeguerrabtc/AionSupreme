@@ -134,6 +134,15 @@ app.use((req, res, next) => {
   }, async () => {
     log(`serving on port ${port}`);
     
+    // ⏰ Initialize PRODUCTION SCHEDULER SERVICE (cron jobs reais!)
+    try {
+      const { schedulerService } = await import('./services/scheduler-service');
+      schedulerService.start();
+      console.log('✅ Scheduler Service iniciado com cron jobs production-grade');
+    } catch (err) {
+      console.error('⚠️ Failed to initialize scheduler service:', err);
+    }
+    
     // 🧠 Initialize Auto-Evolution System
     try {
       const { initAutoEvolution } = await import('./training/init-auto-evolution');
@@ -162,11 +171,19 @@ let shutdownHandlersRegistered = false;
 
 async function gracefulShutdown(signal: string) {
   const { vectorStore } = await import("./rag/vector-store");
+  const { schedulerService } = await import("./services/scheduler-service");
   const { log } = await import("./utils/logger");
   
-  console.log(`[Shutdown] Recebido sinal ${signal}, salvando snapshot...`);
+  console.log(`[Shutdown] Recebido sinal ${signal}, parando schedulers...`);
+  
+  // Parar schedulers primeiro
+  schedulerService.stop();
+  
+  // Salvar vector store
+  console.log('[Shutdown] Salvando snapshot do vector store...');
   await vectorStore.save();
-  console.log('[Shutdown] Snapshot salvo, encerrando processo');
+  
+  console.log('[Shutdown] Shutdown concluído, encerrando processo');
   process.exit(0);
 }
 
