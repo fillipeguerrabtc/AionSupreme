@@ -5,9 +5,37 @@
 
 ---
 
-## 🔴 LIMITAÇÕES CRÍTICAS DE PRODUÇÃO
+## 🔴 LIMITAÇÕES CRÍTICAS DE PRODUÇÃO (Bloqueiam Enterprise Scale)
 
-### 1. **VectorStore - Escalabilidade O(N)**
+### 1. **Image Processor - BYPASS HITL (Zero Bypass Violation)** 🔴 **P0 - SECURITY CRITICAL**
+**Arquivo:** `server/learn/image-processor.ts`  
+**Status:** ✅ DOCUMENTADO | ⚠️ NÃO CORRIGIDO (requer refatoração arquitetural grande)  
+**Limitação:**
+- `processImage()` → `downloadImage()` → filesystem IMEDIATO
+- Imagens salvas ANTES da aprovação humana na fila de curadoria
+- Imagens persistem mesmo se conteúdo for REJEITADO na curadoria
+- **VIOLAÇÃO da política Zero Bypass** - todas entradas devem passar por HITL
+
+**Mitigação Atual:**
+- Documentação EXPLÍCITA do problema no código
+- Comentário: "SOLUÇÃO FUTURA NECESSÁRIA"
+
+**Requisito de Produção:**
+1. Adicionar campo `attachments` no schema `curationQueue`
+2. Armazenar imagens como buffers/URLs TEMPORÁRIOS até aprovação
+3. Salvar no filesystem APENAS após aprovação na curadoria
+4. Limpar imagens temporárias quando item é rejeitado
+
+**Impacto:**
+- 🔴 CRÍTICO: Violação de política de segurança Zero Bypass
+- 🔴 ALTO: Armazenamento poluído com imagens não aprovadas
+- 🔴 MÉDIO: Compliance issues com GDPR/CCPA
+
+**Timeline:** P0 - Requer redesign arquitetural (estimado 8-16h eng)
+
+---
+
+### 2. **VectorStore - Escalabilidade O(N)**
 **Arquivo:** `server/rag/vector-store.ts`  
 **Status:** MVP Implementation (brute-force)  
 **Limitação:**
@@ -37,52 +65,29 @@
 
 ---
 
-### 2. **Image Processor - BYPASS HITL (Zero Bypass Violation)**
-**Arquivo:** `server/learn/image-processor.ts`  
-**Status:** VIOLAÇÃO da Política Zero Bypass  
-**Limitação:**
-- `processImage()` → `downloadImage()` → filesystem IMEDIATO
-- Imagens salvas ANTES da aprovação humana na fila de curadoria
-- Imagens persistem mesmo se conteúdo for REJEITADO na curadoria
-- VIOLAÇÃO da política Zero Bypass - todas entradas devem passar por HITL
+### 3. **File Upload Security - Validação Incompleta**
+**Arquivo:** `docs/GUIA_DESENVOLVEDOR.md` + endpoints de upload  
+**Status:** Parcialmente implementado  
+**Implementado:**
+- ✅ Validação de magic bytes para ícones
+- ✅ Limite de tamanho (5MB para ícones)
+- ✅ MIME type validation
 
-**Mitigação Atual:**
-- Documentação EXPLÍCITA do problema no código
-- Comentário: "SOLUÇÃO FUTURA NECESSÁRIA"
-
-**Requisito de Produção:**
-1. Adicionar campo `attachments` no schema `curationQueue`
-2. Armazenar imagens como buffers/URLs TEMPORÁRIOS até aprovação
-3. Salvar no filesystem APENAS após aprovação na curadoria
-4. Limpar imagens temporárias quando item é rejeitado
-
-**Impacto:**
-- 🔴 CRÍTICO: Violação de política de segurança Zero Bypass
-- 🔴 ALTO: Armazenamento poluído com imagens não aprovadas
-- 🔴 MÉDIO: Compliance issues com GDPR/CCPA
-
----
-
-### 3. **YouTube Transcript - Título é Stub**
-**Arquivo:** `server/learn/youtube-transcript-service.ts`  
-**Status:** TODO Implementation  
-**Limitação:**
-- `getYouTubeVideoTitle()` retorna `"Unknown Video"` sempre
-- Comentário: "TODO: Implement using YouTube Data API or web scraping"
-- Metadados incompletos para vídeos indexados
-
-**Mitigação Atual:**
-- Fallback para "Unknown Video"
-- Sistema continua funcionando sem título
+**Pendente:**
+- ❌ Validação de magic bytes para PDF, DOCX, XLSX
+- ❌ Validação de conteúdo (anti-malware scanning)
+- ❌ Sanitização de filenames (path traversal prevention)
 
 **Requisito de Produção:**
-- Implementar YouTube Data API v3 integration
-- OU web scraping de `https://www.youtube.com/watch?v={videoId}`
-- Extrair título, duração, thumbnail
+- Implementar magic bytes check para TODOS os tipos
+- Integrar ClamAV ou similar para malware scanning
+- Sanitizar filenames: `filename.replace(/[^a-zA-Z0-9.-]/g, '_')`
 
 **Impacto:**
-- ⚠️ BAIXO: Funcionalidade opcional, não quebra sistema
-- ⚠️ BAIXO: UX degradada sem títulos de vídeo
+- ⚠️ ALTO: Risco de malware upload
+- ⚠️ MÉDIO: Path traversal attacks
+
+**Timeline:** P0 - Requer integration com antivirus service (estimado 4-8h eng)
 
 ---
 
@@ -180,22 +185,27 @@
 
 ---
 
-## 🔒 GAPS DE SEGURANÇA PRODUCTION-READY
+## ✅ PROBLEMAS RESOLVIDOS (Durante Este Code Review)
 
-### 9. **Autenticação Faltando em Endpoints Críticos**
+### ✅ **1. Autenticação Granular em Endpoints de Datasets** 
 **Arquivo:** `server/routes.ts`  
-**Status:** VULNERABILIDADE  
-**Endpoints sem autenticação:**
-- `POST /api/training/datasets` (upload) - linha 3690-3717
-- `POST /api/training/datasets/bulk-delete` - linha 3909-3957
+**Status:** ✅ RESOLVIDO  
+**Problema Original:**
+- Endpoints tinham `requireAuth` mas faltava `requirePermission` granular
+- Falta de RBAC granular para operações sensíveis
 
-**Requisito de Produção:**
-- Adicionar `requireAuth` middleware
-- Adicionar `requirePermission("training:datasets:write")` check
+**Correção Aplicada:**
+- ✅ Adicionado `requirePermission("training:datasets:write")` em POST /api/training/datasets (linha 3673)
+- ✅ Adicionado `requirePermission("training:datasets:delete")` em POST /api/training/datasets/bulk-delete (linha 3913)
+- ✅ Adicionado `requirePermission("training:datasets:write")` em POST /api/training/datasets/generate-from-kb (linha 4007)
 
 **Impacto:**
-- 🔴 CRÍTICO: Qualquer usuário pode fazer upload/deletar datasets
-- 🔴 ALTO: Risco de data exfiltration/pollution
+- ✅ RESOLVIDO: Agora requer permissão granular além de autenticação
+- ✅ RBAC compliance: Apenas usuários com permissões corretas podem acessar
+
+---
+
+## 🔒 GAPS DE SEGURANÇA PRODUCTION-READY
 
 ---
 
@@ -299,9 +309,34 @@
 
 ---
 
-## 📊 LIMITAÇÕES DE ESCALA
+## 🟢 LIMITAÇÕES BAIXAS (Cosméticas/Opcionais)
 
-### 15. **BM25 Simplificado - Sem Corpus Statistics**
+### 15. **YouTube Transcript - Título é Stub**
+**Arquivo:** `server/learn/youtube-transcript-service.ts`  
+**Status:** TODO Implementation  
+**Limitação:**
+- `getYouTubeVideoTitle()` retorna `"Unknown Video"` sempre
+- Comentário: "TODO: Implement using YouTube Data API or web scraping"
+- Metadados incompletos para vídeos indexados
+
+**Mitigação Atual:**
+- Fallback para "Unknown Video"
+- Sistema continua funcionando sem título
+
+**Requisito de Produção:**
+- Implementar YouTube Data API v3 integration
+- OU web scraping de `https://www.youtube.com/watch?v={videoId}`
+- Extrair título, duração, thumbnail
+
+**Impacto:**
+- 🟢 BAIXO: Funcionalidade opcional, não quebra sistema
+- 🟢 BAIXO: UX levemente degradada sem títulos de vídeo
+
+**Timeline:** P2 - Nice-to-have (estimado 2-4h eng)
+
+---
+
+### 16. **BM25 Simplificado - Sem Corpus Statistics**
 **Arquivo:** `server/rag/vector-store.ts`  
 **Status:** TODO Implementation  
 **Limitação:**
@@ -319,7 +354,28 @@
 
 ---
 
-### 16. **Testing Manual - Sem CI/CD**
+### 17. **LLM Streaming Desabilitado**
+**Arquivo:** `server/model/llm-client.ts`  
+**Status:** Temporariamente desabilitado  
+**Limitação:**
+- `chatCompletionStream()` marcado como "⚠️ TEMPORARIAMENTE DESABILITADO"
+- Razão: "potential censorship issues with streaming"
+- Respostas não streamadas → latência percebida maior
+
+**Requisito de Produção:**
+- Revisar censorship issues
+- Re-habilitar streaming com filtering adequado
+- OU manter desabilitado se compliance exigir
+
+**Impacto:**
+- 🟢 BAIXO: UX degradada (sem typing effect)
+- 🟢 BAIXO: Latência percebida maior
+
+**Timeline:** P2 - Nice-to-have (estimado 1-2h eng)
+
+---
+
+### 18. **Testing Manual - Sem CI/CD**
 **Arquivo:** `server/ai/knowledge-indexer.ts`  
 **Status:** Manual testing apenas  
 **Limitação:**
@@ -342,29 +398,32 @@
 
 ### Limitações por Criticidade
 
-**🔴 CRÍTICAS (Bloqueiam Produção):**
-1. VectorStore O(N) - NÃO escala >10k docs
-2. Image Processor BYPASS HITL - Violação de segurança
-3. Autenticação faltando em /api/training/datasets
-4. File Upload Security incompleta
+**🔴 CRÍTICAS (Bloqueiam Enterprise Scale >10k docs):**
+1. **Image Processor BYPASS HITL** - Violação Zero Bypass Policy (P0 Security)
+2. **VectorStore O(N)** - NÃO escala >10k docs (P0 Performance)
+3. **File Upload Security** - Magic bytes validation incomplete (P0 Security)
 
-**🟠 ALTAS (Reduzem Confiabilidade):**
-5. Race conditions no VectorStore
-6. Rate limiting granular faltando
-7. Input validation faltando
-8. GPU Orchestrator autoStart não implementado
+**🟠 ALTAS (Reduzem Confiabilidade/Segurança):**
+4. **Race conditions no VectorStore** - Concurrency sem mutex (P1)
+5. **Rate limiting granular faltando** - DoS risk (P1)
+6. **Input validation faltando** - Resource exhaustion (P1)
+7. **GPU Orchestrator autoStart** - Manual intervention required (P1)
 
-**🟡 MÉDIAS (Degradam UX):**
-9. Web Crawler falha em JS-rendered content
-10. Hierarchical Planner sem refinement
-11. Agent Hierarchy usa heurística
-12. GDPR/CCPA export manual
-13. Testing manual
+**🟡 MÉDIAS (Degradam UX/Compliance):**
+8. **Web Crawler** - Falha em JS-rendered content (P2)
+9. **Hierarchical Planner** - Sem LLM refinement (P2)
+10. **Agent Hierarchy** - Usa heurística vs LLM (P2)
+11. **GDPR/CCPA export** - Manual export required (P2)
+12. **Testing manual** - Sem CI/CD (P2)
+13. **Error handling** - Observabilidade degradada (P2)
 
-**🟢 BAIXAS (Cosméticas):**
-14. YouTube título é stub
-15. LLM streaming desabilitado
-16. BM25 simplificado
+**🟢 BAIXAS (Cosméticas/Nice-to-Have):**
+14. **YouTube título** - Fallback para "Unknown Video" (P3)
+15. **LLM streaming** - Desabilitado por compliance (P3)
+16. **BM25 simplificado** - Corpus statistics faltando (P3)
+
+**✅ RESOLVIDOS (Durante Este Code Review):**
+17. **Autenticação granular em /api/training/datasets** - ✅ requirePermission adicionado
 
 ---
 
