@@ -349,6 +349,54 @@ export function registerGpuRoutes(app: Router) {
   });
 
   /**
+   * PATCH /api/gpu/:id
+   * Update GPU worker configuration
+   */
+  app.patch("/gpu/:id", async (req: Request, res: Response) => {
+    try {
+      const workerId = parseInt(req.params.id);
+      const { accountId, capabilities, status } = req.body;
+
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      if (accountId !== undefined) {
+        updateData.accountId = accountId;
+      }
+
+      if (capabilities !== undefined) {
+        updateData.capabilities = capabilities;
+      }
+
+      if (status !== undefined) {
+        updateData.status = status;
+      }
+
+      const [updatedWorker] = await db
+        .update(gpuWorkers)
+        .set(updateData)
+        .where(eq(gpuWorkers.id, workerId))
+        .returning();
+
+      if (!updatedWorker) {
+        return res.status(404).json({ error: "Worker not found" });
+      }
+
+      console.log(`[GPU Update] Worker ${workerId} updated successfully`);
+
+      res.json({ 
+        success: true, 
+        message: "Worker updated successfully",
+        worker: updatedWorker,
+      });
+    } catch (error: any) {
+      console.error("[GPU Update] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * DELETE /api/gpu/:id
    * CASCADE DELETE - Removes worker + all associated resources
    * (training jobs, sessions, files, etc.)
@@ -609,5 +657,101 @@ export function registerGpuRoutes(app: Router) {
     }
   });
 
-  console.log("[GPU Routes] ✅ 22 GPU Pool routes registered successfully (includes 5 Kaggle CLI + 3 deletion + 3 auto-scaling routes)");
+  /**
+   * ==========================================
+   * GOOGLE COLAB ORCHESTRATION (Puppeteer)
+   * ==========================================
+   */
+
+  /**
+   * POST /api/gpu/colab/provision
+   * Provision Google Colab notebook via Puppeteer automation
+   */
+  app.post("/gpu/colab/provision", async (req: Request, res: Response) => {
+    try {
+      const { email, password, notebookUrl } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: "email and password required" });
+      }
+
+      console.log(`[Colab Provision] Starting Puppeteer automation for ${email}...`);
+
+      const { colabOrchestrator } = await import('../services/colab-orchestrator');
+      
+      const result = await colabOrchestrator.provision({
+        credentials: { email, password },
+        notebookUrl,
+      });
+
+      if (result.status === 'failed') {
+        return res.status(500).json({ error: result.message });
+      }
+
+      res.json({
+        success: true,
+        notebookUrl: result.notebookUrl,
+        sessionId: result.sessionId,
+        status: result.status,
+        message: result.message,
+      });
+    } catch (error: any) {
+      console.error("[Colab Provision] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/gpu/colab/status
+   * Get status of all Colab sessions
+   */
+  app.get("/gpu/colab/status", async (req: Request, res: Response) => {
+    try {
+      // Query all Colab workers
+      const colabWorkers = await db
+        .select()
+        .from(gpuWorkers)
+        .where(eq(gpuWorkers.provider, "colab"))
+        .orderBy(desc(gpuWorkers.createdAt));
+
+      res.json({
+        success: true,
+        workers: colabWorkers,
+        total: colabWorkers.length,
+        active: colabWorkers.filter(w => w.status === "healthy" || w.status === "online").length,
+      });
+    } catch (error: any) {
+      console.error("[Colab Status] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/gpu/colab/stop
+   * Stop a Colab session
+   */
+  app.post("/gpu/colab/stop", async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.body;
+
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId required" });
+      }
+
+      console.log(`[Colab Stop] Stopping session ${sessionId}...`);
+
+      const { colabOrchestrator } = await import('../services/colab-orchestrator');
+      await colabOrchestrator.cleanup();
+
+      res.json({
+        success: true,
+        message: `Colab session ${sessionId} stopped`,
+      });
+    } catch (error: any) {
+      console.error("[Colab Stop] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  console.log("[GPU Routes] ✅ 26 GPU Pool routes registered successfully (includes 5 Kaggle CLI + 3 Colab + 4 deletion + 3 auto-scaling + 1 update routes)");
 }

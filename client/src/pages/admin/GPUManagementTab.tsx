@@ -6,8 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Server, Activity, Trash2, Plus, RefreshCw, Circle, Clock } from "lucide-react";
+import { Server, Activity, Trash2, Plus, RefreshCw, Circle, Clock, Pencil } from "lucide-react";
 import { formatDateTimeInTimezone } from "@/lib/datetime";
+import { AddWorkerDialog } from "@/components/admin/AddWorkerDialog";
+import { EditWorkerDialog } from "@/components/admin/EditWorkerDialog";
 
 interface GpuWorker {
   id: number;
@@ -49,6 +51,8 @@ interface PoolStats {
 
 export default function GPUManagementTab() {
   const { toast } = useToast();
+  const [showAddWorkerDialog, setShowAddWorkerDialog] = useState(false);
+  const [editingWorker, setEditingWorker] = useState<GpuWorker | null>(null);
 
   // Fetch system timezone for dynamic date formatting
   const { data: systemTimezone } = useQuery<{ timezone: string }>({
@@ -255,15 +259,26 @@ export default function GPUManagementTab() {
               <Server className="w-5 h-5" />
               GPU Workers
             </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/gpu/status"] })}
-              data-testid="button-refresh-gpus"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setShowAddWorkerDialog(true)}
+                data-testid="button-add-worker"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Worker
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/gpu/status"] })}
+                data-testid="button-refresh-gpus"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -324,15 +339,25 @@ export default function GPUManagementTab() {
                         {formatDate(worker.lastUsedAt)}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteMutation.mutate(worker.id)}
-                          disabled={deleteMutation.isPending}
-                          data-testid={`button-delete-gpu-${worker.id}`}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditingWorker(worker)}
+                            data-testid={`button-edit-gpu-${worker.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteMutation.mutate(worker.id)}
+                            disabled={deleteMutation.isPending}
+                            data-testid={`button-delete-gpu-${worker.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -343,32 +368,20 @@ export default function GPUManagementTab() {
         </CardContent>
       </Card>
 
-      {/* Instructions Card */}
-      <Card className="glass-premium border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            How to Add GPU Workers
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-sm text-muted-foreground space-y-2">
-            <p className="font-medium">To add a new GPU worker from Google Colab or Kaggle:</p>
-            <ol className="list-decimal list-inside space-y-1 ml-2">
-              <li>Open Google Colab or Kaggle notebook</li>
-              <li>Copy and paste the AION GPU worker script</li>
-              <li>Set your NGROK_AUTH_TOKEN secret</li>
-              <li>Run the script and wait for auto-registration</li>
-              <li>The GPU will appear here automatically with "Healthy" status</li>
-            </ol>
-            <p className="mt-4 text-xs bg-primary/10 p-3 rounded-md border border-primary/20">
-              <span className="font-semibold">💡 Pro Tip:</span> You can run multiple GPU instances across different
-              Google accounts for load balancing and 100% uptime. Each GPU will automatically register and receive
-              traffic via round-robin distribution.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Add Worker Dialog */}
+      <AddWorkerDialog
+        open={showAddWorkerDialog}
+        onOpenChange={setShowAddWorkerDialog}
+      />
+
+      {/* Edit Worker Dialog */}
+      {editingWorker && (
+        <EditWorkerDialog
+          worker={editingWorker}
+          open={!!editingWorker}
+          onOpenChange={(open) => !open && setEditingWorker(null)}
+        />
+      )}
     </div>
   );
 }
