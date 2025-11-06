@@ -3,20 +3,24 @@
  * 
  * Prevents hitting Google limits by:
  * - Tracking real-time usage per worker
- * - Using only 70% of available quota (30% safety margin)
+ * - ALWAYS stop 1 HOUR BEFORE limits (not percentage-based!)
  * - Round-robin distribution across all workers
  * - Automatic worker rotation when approaching limits
  * 
  * CRITICAL: Different quota models for different providers:
- * - COLAB: Quota por SESSÃO (12h max, usamos até 11.5h = 95.8%)
- * - KAGGLE: Quota SEMANAL (30h/semana, usamos até 21h = 70%)
+ * - COLAB: Quota por SESSÃO (12h max, usamos até 11h - 1h margem)
+ * - KAGGLE: Quota SEMANAL (30h/semana, usamos até 29h - 1h margem)
  * 
  * SAFETY: We NEVER want to trigger Google's punishment mechanisms!
+ * 
+ * Updated: 2025-11-06
+ * Fix: Corrected weekly quota from 70% (21h) to 96.6% (29h) - 1h safety margin
  */
 
 import { db } from "../db";
 import { gpuWorkers } from "../../shared/schema";
 import { eq, sql as drizzleSql } from "drizzle-orm";
+import { QUOTA_LIMITS, QuotaHelpers } from "../config/quota-limits";
 
 interface WorkerQuota {
   workerId: number;
@@ -32,10 +36,6 @@ interface WorkerQuota {
 }
 
 export class QuotaManager {
-  private static SAFETY_MARGIN = 0.70; // Use apenas 70% da quota (30% de margem)
-  private static COLAB_DEFAULT_QUOTA = 84; // ~12h/dia * 7
-  private static KAGGLE_DEFAULT_QUOTA = 30; // 30h/semana garantidas
-  
   private lastUsedWorkerIndex = -1; // For round-robin
 
   /**
@@ -71,28 +71,29 @@ export class QuotaManager {
       
       if (worker.provider === "colab") {
         // COLAB: Quota por SESSÃO
-        // Consideramos unsafe se sessionRuntime >= 95% do maxSessionHours
-        // (o auto-shutdown já está configurado para 95.8% = 11.5h/12h)
+        // Stop at 11h (12h - 1h safety margin)
+        const safeLimit = QUOTA_LIMITS.COLAB.SAFE_SESSION_HOURS;
         utilizationPercentage = maxSessionHours > 0 ? sessionRuntimeHours / maxSessionHours : 0;
-        isSafe = sessionRuntimeHours < (maxSessionHours * 0.90); // 90% = seguro
-        availableHours = Math.max(0, maxSessionHours - sessionRuntimeHours);
+        isSafe = sessionRuntimeHours < safeLimit; // 11h de 12h
+        availableHours = Math.max(0, safeLimit - sessionRuntimeHours);
         
         console.log(
           `[QuotaManager] Colab worker ${worker.id}: ` +
-          `session ${sessionRuntimeHours.toFixed(2)}h/${maxSessionHours}h ` +
-          `(${(utilizationPercentage * 100).toFixed(1)}%) ${isSafe ? "✅" : "⚠️"}`
+          `session ${sessionRuntimeHours.toFixed(2)}h/${safeLimit}h safe ` +
+          `(${(utilizationPercentage * 100).toFixed(1)}% of 12h) ${isSafe ? "✅" : "⚠️"}`
         );
       } else if (worker.provider === "kaggle") {
         // KAGGLE: Quota SEMANAL
-        // Usamos apenas 70% da quota semanal (30h)
+        // Stop at 29h (30h - 1h safety margin)
+        const safeWeeklyLimit = QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS;
         utilizationPercentage = quotaHoursPerWeek > 0 ? usedHoursThisWeek / quotaHoursPerWeek : 0;
-        isSafe = utilizationPercentage < QuotaManager.SAFETY_MARGIN; // 70%
-        availableHours = quotaHoursPerWeek - usedHoursThisWeek;
+        isSafe = usedHoursThisWeek < safeWeeklyLimit; // 29h de 30h
+        availableHours = Math.max(0, safeWeeklyLimit - usedHoursThisWeek);
         
         console.log(
           `[QuotaManager] Kaggle worker ${worker.id}: ` +
-          `week ${usedHoursThisWeek.toFixed(2)}h/${quotaHoursPerWeek}h ` +
-          `(${(utilizationPercentage * 100).toFixed(1)}%) ${isSafe ? "✅" : "⚠️"}`
+          `week ${usedHoursThisWeek.toFixed(2)}h/${safeWeeklyLimit}h safe ` +
+          `(${(utilizationPercentage * 100).toFixed(1)}% of 30h) ${isSafe ? "✅" : "⚠️"}`
         );
       } else {
         // Outros providers (local, cloud): sempre safe
@@ -193,10 +194,12 @@ export class QuotaManager {
       `(total: ${usedHoursThisWeek.toFixed(2)}h / ${quotaHoursPerWeek}h = ${utilization.toFixed(1)}%)`
     );
 
-    if (utilization > 70) {
+    // Warning threshold: 93% of 30h = 28h (1h before safety limit of 29h)
+    const warningThreshold = QUOTA_LIMITS.WARNING_THRESHOLDS.KAGGLE_WEEKLY_PERCENT * 100;
+    if (utilization > warningThreshold) {
       console.warn(
         `[QuotaManager] ⚠️  Worker ${workerId} (${worker.provider}) at ${utilization.toFixed(1)}% quota! ` +
-        `Approaching safety limit.`
+        `Approaching safety limit (29h).`
       );
     }
   }
@@ -271,9 +274,9 @@ export class QuotaManager {
   private getDefaultQuota(workerType: string): number {
     switch (workerType) {
       case "colab":
-        return QuotaManager.COLAB_DEFAULT_QUOTA;
+        return QUOTA_LIMITS.COLAB.SAFE_SESSION_HOURS * 7; // 11h/dia * 7
       case "kaggle":
-        return QuotaManager.KAGGLE_DEFAULT_QUOTA;
+        return QUOTA_LIMITS.KAGGLE.MAX_WEEKLY_HOURS; // 30h/semana
       default:
         return 168; // 24h/dia * 7 para local/cloud
     }
