@@ -350,35 +350,264 @@ export function registerGpuRoutes(app: Router) {
 
   /**
    * DELETE /api/gpu/:id
-   * MANUAL deletion of GPU worker by user
-   * NO automatic lifecycle - user controls when to remove workers
+   * CASCADE DELETE - Removes worker + all associated resources
+   * (training jobs, sessions, files, etc.)
    */
   app.delete("/gpu/:id", async (req: Request, res: Response) => {
     try {
       const workerId = parseInt(req.params.id);
 
-      const [worker] = await db
-        .select()
-        .from(gpuWorkers)
-        .where(eq(gpuWorkers.id, workerId))
-        .limit(1);
+      // Use GPUDeletionService for comprehensive cascade delete
+      const { gpuDeletionService } = await import('../services/gpu-deletion-service');
+      const result = await gpuDeletionService.deleteWorker(workerId);
 
-      if (!worker) {
-        return res.status(404).json({ error: "Worker not found" });
+      if (!result.success) {
+        return res.status(500).json({ 
+          error: "Deletion failed", 
+          details: result.errors,
+        });
       }
 
-      await db
-        .delete(gpuWorkers)
-        .where(eq(gpuWorkers.id, workerId));
-
-      console.log(`[GPU Pool] 🗑️ Worker manually deleted by user: ID ${workerId} (${worker.provider})`);
-
-      res.json({ success: true, message: "GPU worker deleted successfully" });
+      res.json({ 
+        success: true, 
+        message: "GPU worker deleted successfully (cascade)",
+        resourcesDeleted: result.resourcesDeleted,
+        warnings: result.errors.length > 0 ? result.errors : undefined,
+      });
     } catch (error: any) {
       console.error("[GPU Delete] Error:", error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  console.log("[GPU Routes] ✅ 11 GPU Pool routes registered successfully");
+  /**
+   * DELETE /api/gpu/batch
+   * Batch delete multiple workers
+   */
+  app.delete("/gpu/batch", async (req: Request, res: Response) => {
+    try {
+      const { workerIds } = req.body;
+
+      if (!Array.isArray(workerIds) || workerIds.length === 0) {
+        return res.status(400).json({ error: "workerIds array required" });
+      }
+
+      const { gpuDeletionService } = await import('../services/gpu-deletion-service');
+      const results = await gpuDeletionService.deleteMultipleWorkers(workerIds);
+
+      const successCount = results.filter(r => r.success).length;
+
+      res.json({ 
+        success: true, 
+        message: `Deleted ${successCount}/${workerIds.length} workers`,
+        results,
+      });
+    } catch (error: any) {
+      console.error("[GPU Batch Delete] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * DELETE /api/gpu/cleanup/offline
+   * Delete stale offline workers (older than X hours)
+   */
+  app.delete("/gpu/cleanup/offline", async (req: Request, res: Response) => {
+    try {
+      const olderThanHours = parseInt(req.query.hours as string) || 24;
+
+      const { gpuDeletionService } = await import('../services/gpu-deletion-service');
+      const deleted = await gpuDeletionService.deleteOfflineWorkers(olderThanHours);
+
+      res.json({ 
+        success: true, 
+        message: `Deleted ${deleted} stale workers (offline > ${olderThanHours}h)`,
+        deleted,
+      });
+    } catch (error: any) {
+      console.error("[GPU Cleanup] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ===================================================================
+  // AUTO-SCALING & INTELLIGENT DISPATCH (P1.3)
+  // ===================================================================
+
+  /**
+   * POST /api/gpu/auto-scale/select
+   * Select best worker based on real-time metrics
+   */
+  app.post("/gpu/auto-scale/select", async (req: Request, res: Response) => {
+    try {
+      const { requireGPU } = req.body;
+
+      const { autoScalingService } = await import('../services/auto-scaling-service');
+      const result = await autoScalingService.selectWorker(requireGPU);
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("[Auto-Scaling] Select error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/gpu/auto-scale/evaluate
+   * Evaluate current scaling decision
+   */
+  app.get("/gpu/auto-scale/evaluate", async (req: Request, res: Response) => {
+    try {
+      const { autoScalingService } = await import('../services/auto-scaling-service');
+      const decision = await autoScalingService.evaluateScaling();
+
+      res.json({ success: true, decision });
+    } catch (error: any) {
+      console.error("[Auto-Scaling] Evaluate error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/gpu/auto-scale/cluster-metrics
+   * Get cluster-wide metrics overview
+   */
+  app.get("/gpu/auto-scale/cluster-metrics", async (req: Request, res: Response) => {
+    try {
+      const { autoScalingService } = await import('../services/auto-scaling-service');
+      const metrics = await autoScalingService.getClusterMetrics();
+
+      res.json({ success: true, metrics });
+    } catch (error: any) {
+      console.error("[Auto-Scaling] Cluster metrics error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ===================================================================
+  // KAGGLE CLI MANAGEMENT (P1.1)
+  // ===================================================================
+
+  /**
+   * POST /api/gpu/kaggle/accounts
+   * Add Kaggle account to SecretsVault
+   */
+  app.post("/gpu/kaggle/accounts", async (req: Request, res: Response) => {
+    try {
+      const { username, apiKey } = req.body;
+
+      if (!username || !apiKey) {
+        return res.status(400).json({ error: "username and apiKey required" });
+      }
+
+      const { kaggleCLIService } = await import('../services/kaggle-cli-service');
+      const success = await kaggleCLIService.addAccount(username, apiKey);
+
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: `Account ${username} added successfully`,
+        });
+      } else {
+        res.status(500).json({ error: "Failed to add account" });
+      }
+    } catch (error: any) {
+      console.error("[Kaggle CLI] Add account error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * DELETE /api/gpu/kaggle/accounts/:username
+   * Remove Kaggle account
+   */
+  app.delete("/gpu/kaggle/accounts/:username", async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+
+      const { kaggleCLIService } = await import('../services/kaggle-cli-service');
+      const success = await kaggleCLIService.removeAccount(username);
+
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: `Account ${username} removed successfully`,
+        });
+      } else {
+        res.status(500).json({ error: "Failed to remove account" });
+      }
+    } catch (error: any) {
+      console.error("[Kaggle CLI] Remove account error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/gpu/kaggle/accounts
+   * List all Kaggle accounts
+   */
+  app.get("/gpu/kaggle/accounts", async (req: Request, res: Response) => {
+    try {
+      const { kaggleCLIService } = await import('../services/kaggle-cli-service');
+      const accounts = kaggleCLIService.listAccounts();
+
+      res.json({ 
+        success: true, 
+        accounts,
+      });
+    } catch (error: any) {
+      console.error("[Kaggle CLI] List accounts error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/gpu/kaggle/set-active
+   * Set active Kaggle account
+   */
+  app.post("/gpu/kaggle/set-active", async (req: Request, res: Response) => {
+    try {
+      const { username } = req.body;
+
+      if (!username) {
+        return res.status(400).json({ error: "username required" });
+      }
+
+      const { kaggleCLIService } = await import('../services/kaggle-cli-service');
+      const success = await kaggleCLIService.setActiveAccount(username);
+
+      if (success) {
+        res.json({ 
+          success: true, 
+          message: `Active account set to ${username}`,
+        });
+      } else {
+        res.status(500).json({ error: "Failed to set active account" });
+      }
+    } catch (error: any) {
+      console.error("[Kaggle CLI] Set active account error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/gpu/kaggle/status
+   * Get Kaggle CLI status
+   */
+  app.get("/gpu/kaggle/status", async (req: Request, res: Response) => {
+    try {
+      const { kaggleCLIService } = await import('../services/kaggle-cli-service');
+      const status = await kaggleCLIService.getStatus();
+
+      res.json({ 
+        success: true, 
+        status,
+      });
+    } catch (error: any) {
+      console.error("[Kaggle CLI] Get status error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  console.log("[GPU Routes] ✅ 22 GPU Pool routes registered successfully (includes 5 Kaggle CLI + 3 deletion + 3 auto-scaling routes)");
 }

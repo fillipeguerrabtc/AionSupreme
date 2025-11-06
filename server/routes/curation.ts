@@ -44,16 +44,36 @@ export function registerCurationRoutes(app: Router) {
   /**
    * POST /api/curation/add
    * Adiciona item à fila de curadoria
-   * TIER 1 DEDUPLICATION: Hash-based realtime duplicate check (<1ms)
+   * 
+   * FEATURES:
+   * ✅ TIER 1 DEDUPLICATION: Hash-based realtime duplicate check (<1ms)
+   * ✅ AUTO-CLASSIFICATION: Namespace suggestion via NamespaceClassifier
    */
   app.post("/curation/add", async (req, res) => {
     try {
-      const { title, content, suggestedNamespaces, tags, submittedBy } = req.body;
+      let { title, content, suggestedNamespaces, tags, submittedBy } = req.body;
 
-      if (!title || !content || !suggestedNamespaces) {
+      if (!title || !content) {
         return res.status(400).json({ 
-          error: "Missing required fields: title, content, suggestedNamespaces" 
+          error: "Missing required fields: title, content" 
         });
+      }
+
+      // AUTO-CLASSIFICATION: If no namespaces provided, classify automatically
+      let classificationResult = null;
+      if (!suggestedNamespaces || suggestedNamespaces.length === 0) {
+        console.log(`[Curation] 🤖 Auto-classifying: "${title}"`);
+        const { NamespaceClassifier } = await import('../services/namespace-classifier');
+        const classifier = new NamespaceClassifier();
+        classificationResult = await classifier.classifyContent(title, content);
+        
+        suggestedNamespaces = [classificationResult.suggestedNamespace];
+        
+        console.log(`[Curation] ✨ Auto-classified as "${classificationResult.suggestedNamespace}" (confidence: ${classificationResult.confidence}%)`);
+        if (classificationResult.existingSimilar.length > 0) {
+          console.log(`[Curation]    Similar namespaces found:`, 
+            classificationResult.existingSimilar.map(s => `${s.namespace} (${s.similarity}%)`).join(', '));
+        }
       }
 
       // 🔥 TIER 1: Realtime hash-based duplicate detection
@@ -98,7 +118,16 @@ export function registerCurationRoutes(app: Router) {
 
       console.log(`[Curation] ✅ Added to queue: "${title}" (unique content, hash: ${contentHash.substring(0, 8)}...)`);
 
-      res.status(201).json(item);
+      // Include classification metadata in response
+      res.status(201).json({
+        ...item,
+        autoClassification: classificationResult ? {
+          confidence: classificationResult.confidence,
+          isNewNamespace: classificationResult.isNewNamespace,
+          existingSimilar: classificationResult.existingSimilar,
+          reasoning: classificationResult.reasoning,
+        } : null,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
