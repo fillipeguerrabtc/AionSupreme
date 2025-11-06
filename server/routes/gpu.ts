@@ -753,5 +753,93 @@ export function registerGpuRoutes(app: Router) {
     }
   });
 
-  console.log("[GPU Routes] ✅ 26 GPU Pool routes registered successfully (includes 5 Kaggle CLI + 3 Colab + 4 deletion + 3 auto-scaling + 1 update routes)");
+  // ========================================
+  // AUTO-SCALING ORCHESTRATOR ROUTES
+  // ========================================
+
+  /**
+   * POST /api/gpu/auto-scaling/start
+   * Start Auto-Scaling Orchestrator (24/7 rotation)
+   */
+  app.post("/gpu/auto-scaling/start", async (req: Request, res: Response) => {
+    try {
+      console.log('[Auto-Scaling] Starting orchestrator...');
+      
+      const { autoScalingOrchestrator } = await import('../gpu-orchestration/auto-scaling-orchestrator');
+      const schedule = await autoScalingOrchestrator.startAutoScaling();
+
+      res.json({
+        success: true,
+        message: 'Auto-Scaling Orchestrator iniciado com sucesso!',
+        schedule,
+      });
+    } catch (error: any) {
+      console.error('[Auto-Scaling] Start error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/gpu/auto-scaling/stop
+   * Stop Auto-Scaling Orchestrator
+   */
+  app.post("/gpu/auto-scaling/stop", async (req: Request, res: Response) => {
+    try {
+      console.log('[Auto-Scaling] Stopping orchestrator...');
+      
+      const { autoScalingOrchestrator } = await import('../gpu-orchestration/auto-scaling-orchestrator');
+      await autoScalingOrchestrator.stopAutoScaling();
+
+      res.json({
+        success: true,
+        message: 'Auto-Scaling Orchestrator parado com sucesso!',
+      });
+    } catch (error: any) {
+      console.error('[Auto-Scaling] Stop error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/gpu/auto-scaling/recalculate
+   * Recalculate schedule (when new GPUs added)
+   */
+  app.post("/gpu/auto-scaling/recalculate", async (req: Request, res: Response) => {
+    try {
+      console.log('[Auto-Scaling] Recalculating schedule...');
+      
+      const { autoScalingOrchestrator } = await import('../gpu-orchestration/auto-scaling-orchestrator');
+      const schedule = await autoScalingOrchestrator.recalculateSchedule();
+
+      res.json({
+        success: true,
+        message: 'Schedule recalculado com sucesso!',
+        schedule,
+      });
+    } catch (error: any) {
+      console.error('[Auto-Scaling] Recalculate error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/gpu/auto-scaling/status
+   * Get current Auto-Scaling status
+   */
+  app.get("/gpu/auto-scaling/status", async (req: Request, res: Response) => {
+    try {
+      const { autoScalingOrchestrator } = await import('../gpu-orchestration/auto-scaling-orchestrator');
+      const status = await autoScalingOrchestrator.getStatus();
+
+      res.json({
+        success: true,
+        ...status,
+      });
+    } catch (error: any) {
+      console.error('[Auto-Scaling] Status error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  console.log("[GPU Routes] ✅ 30 GPU Pool routes registered successfully (includes 5 Kaggle CLI + 3 Colab + 4 deletion + 4 auto-scaling + 1 update routes)");
 }

@@ -74,6 +74,7 @@ O backend usa Node.js e TypeScript com Express.js e PostgreSQL via Drizzle ORM. 
 - **GPU Management UI**: Interface simplificada com "+ Add Worker" dialog suportando Kaggle (API) e Colab (Puppeteer), edição inline de workers via PATCH /api/gpu/:id
 - **GPU Deletion Service**: CASCADE DELETE completo (sessions, resources, training jobs) com batch operations e cleanup automático de trainingWorkers
 - **Auto-Scaling Service**: Multi-factor dispatcher baseado em métricas reais (latency, load, availability, quota) com 4 scoring factors
+- **Auto-Scaling Orchestrator 24/7**: Orquestração inteligente de TODAS GPUs (Colab + Kaggle) com rotação escalonada (staggered start) garantindo máximo de GPUs online 24/7 sem que todas parem juntas. Detecta novas GPUs automaticamente e recalcula schedule. Estratégias: 3-Group Rotation (6+ Colabs), 2-Group Rotation (3-5 Colabs), Mixed Rotation (Colab backbone + Kaggle complement), Kaggle-Only (conservadora). Colab = prioridade alta (sem limite semanal), Kaggle = complemento estratégico (~4h/dia respeitando 29h/semana). 4 endpoints REST: /start, /stop, /recalculate, /status
 - **Namespace Classifier**: Auto-classification via LLM integrada no pipeline de upload/curation com consolidação inteligente (>80% similarity)
 - **Persistent Vector Store**: PostgreSQL-backed com LRU cache (10k embeddings), lazy loading e performance stats tracking
 - **Error Handling & Logging**: Structured logging service + error classes + circuit breaker (resilient) + retry/timeout patterns
