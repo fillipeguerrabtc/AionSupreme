@@ -59,6 +59,7 @@ import { ColabOrchestrator } from './colab-orchestrator';
 import { KaggleOrchestrator } from './kaggle-orchestrator';
 import { quotaManager } from './intelligent-quota-manager';
 import { QUOTA_LIMITS } from '../config/quota-limits';
+import { retrieveKaggleCredentials, retrieveGoogleCredentials } from '../services/security/secrets-vault';
 
 interface GPUGroup {
   id: string;
@@ -551,17 +552,62 @@ export class AutoScalingOrchestrator {
 
     console.log(`[AutoScale] 🔥 Starting ${worker.provider} GPU #${workerId}...`);
 
-    // 1. Registrar sessão com quota manager ANTES de iniciar
-    await quotaManager.startSession(workerId);
+    let sessionStarted = false;
 
-    // 2. Buscar credenciais e iniciar GPU
-    // TODO: Integrar com SecretsVault para buscar credenciais
-    if (worker.provider === 'colab') {
-      // await this.colabOrchestrator.startSession({...});
-      console.log(`[AutoScale] ⚠️  Colab #${workerId} - Credenciais necessárias (SecretsVault integration pending)`);
-    } else if (worker.provider === 'kaggle') {
-      // await this.kaggleOrchestrator.startSession({...});
-      console.log(`[AutoScale] ⚠️  Kaggle #${workerId} - Credenciais necessárias (SecretsVault integration pending)`);
+    try {
+      // 1. Buscar credenciais do SecretsVault ANTES de registrar sessão
+      let credentials: any = null;
+      const accountId = worker.accountId || 'default';
+      
+      console.log(`[AutoScale] 🔐 Buscando credenciais no SecretsVault (provider: ${worker.provider}, account: ${accountId})...`);
+      
+      if (worker.provider === 'colab') {
+        credentials = await retrieveGoogleCredentials(accountId);
+        if (!credentials) {
+          console.error(`[AutoScale] ⚠️  Colab #${workerId} - Credenciais não encontradas no SecretsVault (accountId: ${accountId})`);
+          console.error(`[AutoScale] 💡 Dica: Use POST /api/admin/secrets/google para armazenar credenciais`);
+          return;
+        }
+        console.log(`[AutoScale] ✅ Credenciais Google recuperadas (account: ${accountId}, email: ${credentials.email})`);
+      } else if (worker.provider === 'kaggle') {
+        credentials = await retrieveKaggleCredentials(accountId);
+        if (!credentials) {
+          console.error(`[AutoScale] ⚠️  Kaggle #${workerId} - Credenciais não encontradas no SecretsVault (accountId: ${accountId})`);
+          console.error(`[AutoScale] 💡 Dica: Use POST /api/admin/secrets/kaggle para armazenar credenciais`);
+          return;
+        }
+        console.log(`[AutoScale] ✅ Credenciais Kaggle recuperadas (account: ${accountId}, username: ${credentials.username})`);
+      } else {
+        console.error(`[AutoScale] ⚠️  GPU #${workerId} - Provider não suportado: ${worker.provider}`);
+        return;
+      }
+
+      // 2. Registrar sessão com quota manager DEPOIS de validar credenciais
+      await quotaManager.startSession(workerId);
+      sessionStarted = true;
+
+      // 3. Iniciar GPU com credenciais validadas
+      if (worker.provider === 'colab') {
+        await this.colabOrchestrator.startSession({
+          email: credentials.email,
+          password: credentials.password,
+        });
+        console.log(`[AutoScale] ✅ Colab #${workerId} iniciado com sucesso`);
+      } else if (worker.provider === 'kaggle') {
+        await this.kaggleOrchestrator.startSession({
+          username: credentials.username,
+          apiKey: credentials.key,
+        });
+        console.log(`[AutoScale] ✅ Kaggle #${workerId} iniciado com sucesso`);
+      }
+    } catch (error: any) {
+      console.error(`[AutoScale] ❌ Erro ao iniciar GPU #${workerId}:`, error.message);
+      
+      // Rollback: Reverter registro de sessão se foi iniciada
+      if (sessionStarted) {
+        await quotaManager.stopSession(workerId);
+        console.log(`[AutoScale] ♻️  Quota session revertida para GPU #${workerId}`);
+      }
     }
   }
 
@@ -577,15 +623,25 @@ export class AutoScalingOrchestrator {
 
     console.log(`[AutoScale] 🛑 Stopping ${worker.provider} GPU #${workerId}...`);
 
-    // 1. Parar GPU primeiro
-    if (worker.provider === 'colab') {
-      await this.colabOrchestrator.stopSession(workerId);
-    } else if (worker.provider === 'kaggle') {
-      await this.kaggleOrchestrator.stopSession(workerId);
+    try {
+      // 1. Parar GPU primeiro
+      if (worker.provider === 'colab') {
+        await this.colabOrchestrator.stopSession(workerId);
+      } else if (worker.provider === 'kaggle') {
+        await this.kaggleOrchestrator.stopSession(workerId);
+      }
+    } catch (error: any) {
+      console.error(`[AutoScale] ⚠️  Erro ao parar provider GPU #${workerId}:`, error.message);
+      // Continuar para garantir que quota manager seja atualizado
+    } finally {
+      // 2. SEMPRE finalizar sessão no quota manager (mesmo se provider falhar)
+      try {
+        await quotaManager.stopSession(workerId);
+        console.log(`[AutoScale] ✅ Quota session finalizada para GPU #${workerId}`);
+      } catch (error: any) {
+        console.error(`[AutoScale] ❌ Erro ao finalizar quota session #${workerId}:`, error.message);
+      }
     }
-
-    // 2. Finalizar sessão no quota manager (atualiza stats)
-    await quotaManager.stopSession(workerId);
   }
 
   /**
