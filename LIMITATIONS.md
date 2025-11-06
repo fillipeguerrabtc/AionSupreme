@@ -109,22 +109,35 @@
 
 ---
 
-### 5. **GPU Orchestrator - AutoStart não implementado**
-**Arquivo:** `server/model/gpu-orchestrator.ts`  
+### 5. **GPU Orchestrator - AutoStart não implementado + Manual Registration**
+**Arquivo:** `server/model/gpu-orchestrator.ts`, `server/gpu/pool-manager.ts`  
 **Status:** TODO Implementation  
 **Limitação:**
-- `autoStartGPU()` é stub
-- Comentário: "TODO: Implement with Puppeteer/Selenium"
+- `autoStartGPU()` é stub (Comentário: "TODO: Implement with Puppeteer/Selenium")
 - GPUs não são iniciadas automaticamente quando offline
+- **GPU Registration é MANUAL:** Requer copiar Ngrok URL manualmente do Colab/Kaggle
+- **Worker Setup é MANUAL:** Requer executar notebook Python manualmente em Colab/Kaggle
+
+**Workflow Manual Atual:**
+1. Abrir Google Colab com GPU (T4/V100)
+2. Instalar ngrok e configurar auth token manualmente
+3. Executar notebook de inference server
+4. Copiar Ngrok URL público (ex: `https://abc123.ngrok.io`)
+5. Chamar `POST /api/gpu/register` com provider + ngrokUrl
+6. Worker fica online e disponível para treinamento/inferência
 
 **Requisito de Produção:**
-- Implementar Puppeteer/Selenium automation
-- Conectar com Google Colab/Kaggle/Modal APIs
+- Implementar Puppeteer/Selenium automation para Colab/Kaggle
+- Auto-setup ngrok tunnel e registro no backend
 - Auto-restart GPUs quando status === "offline"
+- Pre-configured notebooks com 1-click setup
 
 **Impacto:**
-- ⚠️ ALTO: Operador precisa iniciar GPUs manualmente
-- ⚠️ MÉDIO: Downtime aumentado se GPUs crashearem
+- 🟠 ALTO: Setup inicial requer ~15min manual por GPU
+- 🟠 MÉDIO: Operador precisa re-registrar se Colab/Kaggle session expirar
+- 🟠 BAIXO: Downtime aumentado se GPUs crashearem
+
+**Timeline:** P1 - Automation requer Puppeteer integration (estimado 16-24h eng)
 
 ---
 
@@ -182,6 +195,45 @@
 **Impacto:**
 - ⚠️ MÉDIO: Agentes sub-ótimos podem ser selecionados
 - ⚠️ BAIXO: Sistema funcional com heurística
+
+---
+
+### 9. **Fine-Tuned Model Deployment - MANUAL (BLOQUEADOR SELF-IMPROVING AI)** 🔴
+**Arquivo:** `server/gpu/orchestrator.ts`, worker notebooks  
+**Status:** ⚠️ CRÍTICO - Pipeline incompleto  
+**Limitação:**
+- Workers carregam **base models** automaticamente (Mistral, Llama, Phi-3 via HuggingFace)
+- **LoRA adapters** (fine-tuned) NÃO são deployed automaticamente
+- Worker NÃO sabe onde buscar checkpoint do training job completado
+- Operador precisa MANUALMENTE modificar worker code para carregar LoRA
+- **Quebra promise de "self-improving AI"** - modelo fine-tuned não entra em produção automaticamente
+
+**Workflow Manual Atual:**
+1. Completar federated training job → checkpoint salvo em `/data/training/checkpoints/job-{id}/`
+2. Download checkpoint via `GET /api/training/checkpoints/:jobId`
+3. Upload para Google Colab/Kaggle (ou mount Google Drive)
+4. Modificar worker code manualmente:
+   ```python
+   from peft import PeftModel
+   base_model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B")
+   model = PeftModel.from_pretrained(base_model, "/path/to/lora-adapters")
+   ```
+5. Re-registrar worker com modelo fine-tuned
+
+**Requisito de Produção:**
+- Implementar checkpoint auto-sync para workers (S3/GCS/webhook)
+- Worker deve buscar latest checkpoint via `GET /api/training/checkpoints/:jobId` automaticamente
+- Auto-aplicar LoRA adapters ao base model on startup
+- Endpoint `/v1/models/reload` para hot-reload sem restart
+- Health check que valida modelo carregado está atualizado
+
+**Impacto:**
+- 🔴 CRÍTICO: Fine-tuned inference NÃO funciona out-of-the-box
+- 🔴 ALTO: Operador precisa ~30min de setup manual por modelo trained
+- 🔴 ALTO: Self-improving loop QUEBRADO - modelo não entra em produção automaticamente
+- 🟠 MÉDIO: Cada update de modelo requer re-deploy manual
+
+**Timeline:** P0 - Bloqueador para autonomous self-improvement (estimado 8-12h eng)
 
 ---
 
@@ -398,48 +450,50 @@
 
 ### Limitações por Criticidade
 
-**🔴 CRÍTICAS (Bloqueiam Enterprise Scale >10k docs):**
+**🔴 CRÍTICAS (Bloqueiam Enterprise Scale >10k docs / Self-Improving AI):**
 1. **Image Processor BYPASS HITL** - Violação Zero Bypass Policy (P0 Security)
 2. **VectorStore O(N)** - NÃO escala >10k docs (P0 Performance)
 3. **File Upload Security** - Magic bytes validation incomplete (P0 Security)
+4. **Fine-Tuned Model Deployment MANUAL** - Self-improving loop quebrado (P0 Autonomy)
 
-**🟠 ALTAS (Reduzem Confiabilidade/Segurança):**
-4. **Race conditions no VectorStore** - Concurrency sem mutex (P1)
-5. **Rate limiting granular faltando** - DoS risk (P1)
-6. **Input validation faltando** - Resource exhaustion (P1)
-7. **GPU Orchestrator autoStart** - Manual intervention required (P1)
+**🟠 ALTAS (Reduzem Confiabilidade/Segurança/Autonomia):**
+5. **GPU Registration MANUAL** - Setup ~15min por GPU (P1 Autonomy)
+6. **Race conditions no VectorStore** - Concurrency sem mutex (P1)
+7. **Rate limiting granular faltando** - DoS risk (P1)
+8. **Input validation faltando** - Resource exhaustion (P1)
 
 **🟡 MÉDIAS (Degradam UX/Compliance):**
-8. **Web Crawler** - Falha em JS-rendered content (P2)
-9. **Hierarchical Planner** - Sem LLM refinement (P2)
-10. **Agent Hierarchy** - Usa heurística vs LLM (P2)
-11. **GDPR/CCPA export** - Manual export required (P2)
-12. **Testing manual** - Sem CI/CD (P2)
-13. **Error handling** - Observabilidade degradada (P2)
+9. **Web Crawler** - Falha em JS-rendered content (P2)
+10. **Hierarchical Planner** - Sem LLM refinement (P2)
+11. **Agent Hierarchy** - Usa heurística vs LLM (P2)
+12. **GDPR/CCPA export** - Manual export required (P2)
+13. **Testing manual** - Sem CI/CD (P2)
+14. **Error handling** - Observabilidade degradada (P2)
 
 **🟢 BAIXAS (Cosméticas/Nice-to-Have):**
-14. **YouTube título** - Fallback para "Unknown Video" (P3)
-15. **LLM streaming** - Desabilitado por compliance (P3)
-16. **BM25 simplificado** - Corpus statistics faltando (P3)
+15. **YouTube título** - Fallback para "Unknown Video" (P3)
+16. **LLM streaming** - Desabilitado por compliance (P3)
+17. **BM25 simplificado** - Corpus statistics faltando (P3)
 
 **✅ RESOLVIDOS (Durante Este Code Review):**
-17. **Autenticação granular em /api/training/datasets** - ✅ requirePermission adicionado
+18. **Autenticação granular em /api/training/datasets** - ✅ requirePermission adicionado
 
 ---
 
 ## ✅ PRÓXIMOS PASSOS RECOMENDADOS
 
-### Prioridade P0 (Bloqueia Deploy):
-1. ✅ Corrigir autenticação em `/api/training/datasets`
-2. ✅ Implementar FAISS Python service para VectorStore
-3. ✅ Corrigir Image Processor BYPASS HITL
-4. ✅ Adicionar validação completa de file uploads
+### Prioridade P0 (Bloqueia Enterprise Scale + Self-Improving AI):
+1. 🔴 **Fine-Tuned Model Auto-Deployment** - Checkpoint auto-sync + hot-reload (~8-12h)
+2. 🔴 **Corrigir Image Processor BYPASS HITL** - Temp storage + HITL approval (~8-16h)
+3. 🔴 **Implementar FAISS Python service** - Replace VectorStore O(N) (~16-24h)
+4. 🔴 **File Upload Security completa** - Magic bytes ALL types + antivirus (~4-8h)
+5. ✅ **Autenticação granular** - requirePermission adicionado ✅
 
-### Prioridade P1 (Deploy com Mitigação):
-5. ✅ Adicionar mutex completo no VectorStore
-6. ✅ Implementar rate limiting granular
-7. ✅ Adicionar Zod validation em ALL endpoints
-8. ✅ Implementar GPU autoStart
+### Prioridade P1 (Deploy com Mitigação - Autonomia):
+6. 🟠 **GPU Auto-Registration** - Puppeteer automation Colab/Kaggle (~16-24h)
+7. 🟠 **Mutex completo no VectorStore** - async-mutex ou p-queue (~2-4h)
+8. 🟠 **Rate limiting granular** - Endpoint-specific limits (~4-6h)
+9. 🟠 **Zod validation em ALL endpoints** - Input validation completa (~6-8h)
 
 ### Prioridade P2 (Melhorias Incrementais):
 9. Implementar Puppeteer para Web Crawler
@@ -449,4 +503,20 @@
 
 ---
 
-**Conclusão:** AION está **production-ready para MVP/small-scale**, mas requer correções P0+P1 para **enterprise production at scale (>10k docs, high-concurrency)**.
+## 🚨 **CONCLUSÃO ATUALIZADA:**
+
+**AION está production-ready para:**
+- ✅ **MVP/Small-Scale** (<10k docs, <100 users, <1000 req/day)
+- ✅ **Popular KB e aprovar 100 itens** via HITL curation
+- ✅ **Treinamento federado** com datasets da KB
+
+**AION NÃO está pronto para:**
+- ❌ **Self-Improving AI AUTOMÁTICO** - Fine-tuned model deployment é MANUAL (~30min setup)
+- ❌ **GPU Auto-Connection** - Colab/Kaggle registration é MANUAL (~15min setup)
+- ❌ **Enterprise Scale** (>10k docs, high-concurrency) - VectorStore O(N), race conditions
+- ❌ **Inferência com LLM próprio out-of-the-box** - LoRA deployment manual
+
+**Próximo passo para Self-Improving AI:**
+1. 🔴 **P0:** Implementar checkpoint auto-sync + worker hot-reload (~8-12h eng)
+2. 🟠 **P1:** Automatizar GPU registration via Puppeteer (~16-24h eng)
+3. 🟢 **Então:** Sistema se torna verdadeiramente autônomo e auto-evolutivo!
