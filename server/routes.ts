@@ -3667,7 +3667,7 @@ export function registerRoutes(app: Express): Server {
   // ============================================================================
 
   // POST /api/training/datasets - Upload new dataset
-  app.post("/api/training/datasets", requireAuth, upload.single("file"), async (req, res) => {
+  app.post("/api/training/datasets", requireAuth, requirePermission("training:datasets:write"), upload.single("file"), async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
@@ -3907,7 +3907,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/training/datasets/bulk-delete - Bulk delete datasets
-  app.post("/api/training/datasets/bulk-delete", requireAuth, async (req, res) => {
+  app.post("/api/training/datasets/bulk-delete", requireAuth, requirePermission("training:datasets:delete"), async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
@@ -4001,7 +4001,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/training/datasets/generate-from-kb - Auto-generate dataset from Knowledge Base
-  app.post("/api/training/datasets/generate-from-kb", requireAuth, async (req, res) => {
+  app.post("/api/training/datasets/generate-from-kb", requireAuth, requirePermission("training:datasets:write"), async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets, trainingDataCollection } = await import("../shared/schema");
