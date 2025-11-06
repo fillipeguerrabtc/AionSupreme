@@ -18,7 +18,6 @@ import XLSX from "xlsx";
 import { parseStringPromise } from "xml2js";
 import fs from "fs/promises";
 import path from "path";
-import { llmClient } from "../model/llm-client";
 import { createRequire } from "module";
 
 const require = createRequire(import.meta.url);
@@ -220,45 +219,49 @@ export class FileProcessor {
   }
 
   /**
-   * Process image with OpenAI Vision
-   * As per PDFs: PIL/Pillow + análise via CLIP/ViT
+   * Process image with Vision Cascade (supports GIFs and all image formats)
+   * Uses free-tier cascade: Gemini → GPT-4V → Claude 3 → HuggingFace → OpenAI
    */
   private async processImage(filePath: string, mimeType: string): Promise<{ text: string; metadata: Record<string, any> }> {
     try {
-      // Read image as base64
+      // Read image buffer
       const imageBuffer = await fs.readFile(filePath);
-      const base64Image = imageBuffer.toString("base64");
-      const dataUrl = `data:${mimeType};base64,${base64Image}`;
+      const filename = path.basename(filePath);
       
-      // Use GPT-4o Vision to analyze image (gpt-4-vision-preview depreciado)
-      // GPT-4o suporta visão nativamente
-      const response = await llmClient.chatCompletion({
-        messages: [
-          {
-            role: "user",
-            content: "Describe this image in detail. Extract any text visible in the image.",
-          },
-        ],
-        model: "gpt-4o", // GPT-4o tem suporte nativo a visão
-        maxTokens: 500,
-      });
+      // Use Vision Cascade for robust multi-provider fallback
+      const { VisionCascade } = await import("../learn/vision-cascade");
+      const visionCascade = new VisionCascade();
+      
+      // Pass filename as alt text fallback for better context
+      const result = await visionCascade.generateDescription(
+        imageBuffer, 
+        mimeType, 
+        `Imagem do arquivo: ${filename}`
+      );
+      
+      // Guard against empty descriptions (cascade failure)
+      const description = result.description || `Imagem ${filename} (análise de visão temporariamente indisponível)`;
       
       return {
-        text: response.content,
+        text: description,
         metadata: {
-          analyzed: true,
+          analyzed: result.success && !!result.description,
+          provider: result.provider,
+          tokensUsed: result.tokensUsed,
           size: imageBuffer.length,
         },
       };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error("[FileProcessor] Error analyzing image with Vision API:", error);
+      const filename = path.basename(filePath);
+      console.error("[FileProcessor] Error analyzing image with Vision Cascade:", error);
       
-      // Fallback: return basic info
+      // Fallback: return basic info with filename
       return {
-        text: `[Image file - vision analysis unavailable: ${errorMessage}]`,
+        text: `Imagem ${filename} (erro ao processar: ${errorMessage})`,
         metadata: {
           analyzed: false,
+          error: errorMessage,
         },
       };
     }
