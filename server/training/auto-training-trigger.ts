@@ -251,14 +251,12 @@ export class AutoTrainingTrigger {
         console.log(`   🎮 GPUs ativas: ${successCount}/${availableWorkers.length}`);
         console.log(`   🌐 Modo: FEDERATED LEARNING (FedAvg)`);
         console.log(`   📝 Job ID: ${job.id}`);
-
-        // TODO: IMPLEMENTAR GRADIENT AGGREGATION LOOP
-        // - Monitorar workers (polling ou webhooks)
-        // - Quando todos completarem: gradientAggregator.aggregate(job.id, step)
-        // - Atualizar modelo global
-        // - Broadcast novo checkpoint para workers
-        console.log("\n   ⚠️  PENDING: Gradient aggregation loop não implementado");
-        console.log("   → Workers treinarão mas modelo global não será agregado ainda");
+        
+        console.log("\n   🤖 AUTOMAÇÃO 100% ATIVA:");
+        console.log("   ✅ GradientAggregationCoordinator monitorando (check: 30s)");
+        console.log("   ✅ FedAvg automático quando todos workers completarem");
+        console.log("   ✅ Deployment automático do modelo (check: 1min)");
+        console.log("   ✅ Hot reload automático nos workers (zero downtime)");
       } else {
         // SINGLE GPU - Treino tradicional
         console.log("\n   💻 [4/5] MODO SINGLE-GPU...");

@@ -144,9 +144,7 @@ export class ModelDeploymentService {
         await db.update(trainingJobs)
           .set({ 
             status: 'completed',
-            // @ts-ignore
             deployed: false,
-            // @ts-ignore
             deploymentError: validation.errors?.join(', ') || 'Quality validation failed',
           })
           .where(eq(trainingJobs.id, jobId));
@@ -171,11 +169,8 @@ export class ModelDeploymentService {
       console.log('\n   ✅ [5/5] Finalizando deployment...');
       await db.update(trainingJobs)
         .set({
-          // @ts-ignore
           deployed: true,
-          // @ts-ignore
           deployedAt: new Date(),
-          // @ts-ignore
           modelVersion,
         })
         .where(eq(trainingJobs.id, jobId));
@@ -194,7 +189,6 @@ export class ModelDeploymentService {
       // Log error to database
       await db.update(trainingJobs)
         .set({
-          // @ts-ignore
           deploymentError: error.message,
         })
         .where(eq(trainingJobs.id, jobId));
@@ -211,7 +205,6 @@ export class ModelDeploymentService {
       // Get baseline loss (from most recent deployed model)
       const baselineJob = await db.query.trainingJobs.findFirst({
         where: and(
-          // @ts-ignore
           eq(trainingJobs.deployed, true),
           eq(trainingJobs.status, 'completed')
         ),
@@ -371,7 +364,6 @@ export class ModelDeploymentService {
       // Find previous deployed job
       const previousJob = await db.query.trainingJobs.findFirst({
         where: and(
-          // @ts-ignore
           eq(trainingJobs.deployed, true),
           eq(trainingJobs.status, 'completed')
         ),

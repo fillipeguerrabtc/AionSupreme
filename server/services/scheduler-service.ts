@@ -126,17 +126,14 @@ export class SchedulerService {
       errorCount: 0,
     });
 
-    // JOB 6: Model Deployment - A cada 15 minutos (P0.3 - Fine-Tune Deployment)
+    // JOB 6: Model Deployment - A cada 1 minuto (P0.3 - Fine-Tune Deployment)
     this.register({
       name: 'model-deployment',
-      schedule: '*/15 * * * *', // A cada 15 minutos
+      schedule: '*/1 * * * *', // A cada 1 minuto (mais responsivo)
       task: async () => {
-        console.log('\n🚀 [Scheduler] Verificando modelos prontos para deployment...');
         const deployed = await modelDeploymentService.checkAndDeployCompletedJobs();
         if (deployed > 0) {
-          console.log(`   ✅ ${deployed} modelo(s) deployed com sucesso`);
-        } else {
-          console.log('   ℹ️  Nenhum modelo novo para deployment');
+          console.log(`\n🚀 [Auto-Deploy] ✅ ${deployed} modelo(s) deployed automaticamente!`);
         }
       },
       enabled: true,
