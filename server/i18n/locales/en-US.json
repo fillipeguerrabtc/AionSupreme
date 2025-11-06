@@ -140,5 +140,19 @@
     "message": "Message",
     "created_at": "Created at",
     "updated_at": "Updated at"
+  },
+  "meta": {
+    "algorithm_created": "Algorithm created successfully",
+    "algorithm_not_found": "Algorithm not found",
+    "expert_spawned": "Expert created successfully",
+    "expert_not_found": "Expert not found",
+    "shift_detected": "Distribution shift detected",
+    "improvement_proposed": "Improvement proposed successfully",
+    "improvement_validated": "Improvement validated successfully",
+    "improvement_applied": "Improvement applied successfully",
+    "improvement_not_found": "Improvement not found",
+    "pipeline_executed": "Pipeline executed successfully",
+    "pipeline_running": "Pipeline already running",
+    "pipeline_failed": "Pipeline execution failed"
   }
 }
