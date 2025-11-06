@@ -1016,6 +1016,40 @@ export const insertTrainingWorkerSchema = createInsertSchema(trainingWorkers).om
 export type InsertTrainingWorker = z.infer<typeof insertTrainingWorkerSchema>;
 export type TrainingWorker = typeof trainingWorkers.$inferSelect;
 
+// Uploaded Adapters - PEFT adapter uploads from workers for aggregation
+export const uploadedAdapters = pgTable("uploaded_adapters", {
+  id: serial("id").primaryKey(),
+  
+  // Relationships
+  jobId: integer("job_id").notNull().references(() => trainingJobs.id, { onDelete: 'cascade' }),
+  workerId: integer("worker_id").notNull().references(() => gpuWorkers.id),
+  
+  // Adapter metadata
+  step: integer("step").notNull(), // Training step when adapter was saved
+  numExamples: integer("num_examples").notNull(), // Number of examples used (for weighted averaging)
+  filePath: text("file_path").notNull(), // Path to uploaded .tar.gz file
+  fileSize: integer("file_size").notNull(), // File size in bytes
+  
+  // Aggregation status
+  aggregated: boolean("aggregated").notNull().default(false), // Whether this adapter was included in aggregation
+  aggregationId: integer("aggregation_id"), // Which aggregation batch included this
+  
+  // Timestamps
+  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
+}, (table) => ({
+  jobIdx: index("uploaded_adapters_job_idx").on(table.jobId),
+  stepIdx: index("uploaded_adapters_step_idx").on(table.step),
+  aggregatedIdx: index("uploaded_adapters_aggregated_idx").on(table.aggregated),
+}));
+
+export const insertUploadedAdapterSchema = createInsertSchema(uploadedAdapters).omit({ 
+  id: true, 
+  uploadedAt: true,
+  aggregated: true,
+});
+export type InsertUploadedAdapter = z.infer<typeof insertUploadedAdapterSchema>;
+export type UploadedAdapter = typeof uploadedAdapters.$inferSelect;
+
 // Model Checkpoints - Armazena checkpoints do modelo global
 export const modelCheckpoints = pgTable("model_checkpoints", {
   id: serial("id").primaryKey(),

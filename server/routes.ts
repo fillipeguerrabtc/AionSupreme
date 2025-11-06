@@ -42,7 +42,7 @@ import { DatasetProcessor } from "./training/datasets/dataset-processor";
 import { DatasetValidator } from "./training/datasets/dataset-validator";
 import { db } from "./db";
 import { eq, and, gte, sql } from "drizzle-orm";
-import { trainingDataCollection, datasets, trainingJobs } from "../shared/schema";
+import { trainingDataCollection, datasets, trainingJobs, uploadedAdapters } from "../shared/schema";
 import { lifecyclePolicyUpdateSchema } from "./validation/lifecycle-policy-schema";
 import { registerAgentRoutes } from "./routes/agents";
 import { registerAgentRelationshipRoutes } from "./routes/agent-relationships";
@@ -61,6 +61,22 @@ const upload = multer({
   dest: "/tmp/uploads/",
   limits: {
     fileSize: 2 * 1024 * 1024, // 2MB max
+  }
+});
+
+// Dedicated multer config for adapter uploads (larger files - up to 50MB)
+const adapterUpload = multer({
+  dest: "/tmp/adapters/",
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max for PEFT adapters
+  },
+  fileFilter: (req, file, cb) => {
+    // Only accept .tar.gz files
+    if (file.originalname.endsWith('.tar.gz') || file.mimetype === 'application/gzip') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only .tar.gz files are allowed'));
+    }
   }
 });
 
@@ -3694,6 +3710,77 @@ export function registerRoutes(app: Express): Server {
       
     } catch (error: unknown) {
       console.error("[Checkpoint Download] Error:", getErrorMessage(error));
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
+  // ============================================================================
+  // ADAPTER UPLOAD (Hot Reload - Production-Grade)
+  // ============================================================================
+  
+  // POST /api/training/adapters/:jobId/:workerId/:step - Upload PEFT adapter from worker
+  // Workers upload complete adapter directories as .tar.gz for aggregation
+  app.post("/api/training/adapters/:jobId/:workerId/:step", adapterUpload.single("adapter"), async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const workerId = parseInt(req.params.workerId);
+      const step = parseInt(req.params.step);
+      
+      // Validation
+      if (isNaN(jobId) || isNaN(workerId) || isNaN(step)) {
+        return res.status(400).json({ error: "Invalid jobId, workerId, or step" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No adapter file uploaded" });
+      }
+      
+      const { numExamples } = req.body;
+      if (!numExamples || isNaN(parseInt(numExamples))) {
+        return res.status(400).json({ error: "Missing or invalid numExamples" });
+      }
+      
+      // Create persistent storage path
+      const persistentDir = path.join("/tmp/adapters", String(jobId), String(workerId));
+      await fs.mkdir(persistentDir, { recursive: true });
+      
+      const persistentPath = path.join(persistentDir, `step_${step}.tar.gz`);
+      
+      // Move uploaded file to persistent location
+      await fs.rename(req.file.path, persistentPath);
+      
+      // Insert into database
+      const [uploadRecord] = await db
+        .insert(uploadedAdapters)
+        .values({
+          jobId,
+          workerId,
+          step,
+          numExamples: parseInt(numExamples),
+          filePath: persistentPath,
+          fileSize: req.file.size,
+        })
+        .returning();
+      
+      console.log(`[Adapter Upload] Worker ${workerId} uploaded adapter for job ${jobId}, step ${step} (${req.file.size} bytes, ${numExamples} examples)`);
+      
+      // Check if we have enough adapters to aggregate
+      // (for now, we trigger aggregation manually via separate endpoint)
+      
+      res.json({
+        success: true,
+        adapterId: uploadRecord.id,
+        message: `Adapter uploaded successfully (${req.file.size} bytes)`,
+      });
+      
+    } catch (error: unknown) {
+      console.error("[Adapter Upload] Error:", getErrorMessage(error));
+      
+      // Cleanup temp file if exists
+      if (req.file?.path) {
+        await fs.unlink(req.file.path).catch(() => {});
+      }
+      
       res.status(500).json({ error: getErrorMessage(error) });
     }
   });
