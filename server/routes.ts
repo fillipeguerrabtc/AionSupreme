@@ -5272,15 +5272,15 @@ export function registerRoutes(app: Express): Server {
   // GPU WORKERS CRUD - Dashboard Management (P2)
   // ============================================================================
   
-  // POST /api/gpu/workers/notebooks - Add new Colab/Kaggle notebook for orchestration
+  // POST /api/gpu/workers/notebooks - Add new Colab/Kaggle notebook for orchestration (AUTO-CREATE)
   app.post("/api/gpu/workers/notebooks", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
     try {
-      const { provider, notebookUrl, email, password, useGPU, description } = req.body;
+      const { provider, email, password, kaggleUsername, kaggleKey, useGPU, title } = req.body;
       
       // Validate required fields
-      if (!provider || !notebookUrl || !email || !password) {
+      if (!provider || !email) {
         return res.status(400).json({ 
-          error: "Missing required fields: provider, notebookUrl, email, password" 
+          error: "Missing required fields: provider, email" 
         });
       }
       
@@ -5290,46 +5290,35 @@ export function registerRoutes(app: Express): Server {
         });
       }
       
-      // Determine provider limits
-      const providerLimits = provider === 'colab' 
-        ? {
-            max_session_hours: 12,
-            safety_margin_hours: 1,
-            idle_timeout_minutes: 90,
-          }
-        : {
-            max_session_hours: useGPU ? 12 : 9,
-            max_weekly_hours: 30,
-            safety_margin_hours: 1,
-          };
+      if (provider === 'kaggle' && (!kaggleUsername || !kaggleKey)) {
+        return res.status(400).json({
+          error: "Kaggle requires 'kaggleUsername' and 'kaggleKey'"
+        });
+      }
       
-      // Insert worker
-      const [worker] = await db.insert(gpuWorkers).values({
+      // CREATE GPU AUTOMATICAMENTE via GPU Manager
+      const { gpuManager } = await import("./gpu-orchestration/gpu-manager-service");
+      
+      const result = await gpuManager.createGPU({
         provider,
-        accountId: notebookUrl,  // Store notebook URL in accountId
-        ngrokUrl: 'pending',  // Will be filled when started
-        autoManaged: true,
-        capabilities: {
-          tor_enabled: false,
-          model: 'pending',
-          gpu: useGPU ? 'T4' : 'CPU',
-        },
-        providerLimits,
-        maxSessionDurationSeconds: (providerLimits.max_session_hours - providerLimits.safety_margin_hours) * 3600,
-        maxWeeklySeconds: providerLimits.max_weekly_hours ? providerLimits.max_weekly_hours * 3600 : null,
-      }).returning();
-      
-      // Store credentials securely (TODO: encrypt in production)
-      // For now, store in environment or separate secure table
+        email,
+        password,
+        kaggleUsername,
+        kaggleKey,
+        enableGPU: useGPU ?? true,
+        title,
+        autoStart: true,
+      });
       
       res.status(201).json({
         success: true,
-        worker,
-        message: `${provider} notebook added to orchestration pool`,
+        worker: result.worker,
+        notebookUrl: result.notebookUrl,
+        message: result.message,
       });
       
     } catch (error: unknown) {
-      console.error("[GPU CRUD] Add notebook error:", error);
+      console.error("[GPU CRUD] Auto-create error:", error);
       res.status(500).json({ error: getErrorMessage(error) });
     }
   });
@@ -5337,8 +5326,9 @@ export function registerRoutes(app: Express): Server {
   // GET /api/gpu/workers/notebooks - List all managed notebooks
   app.get("/api/gpu/workers/notebooks", requireAuth, async (req, res) => {
     try {
+      const { gpuWorkers: gpuWorkersTable } = await import("@/shared/schema");
       const workers = await db.query.gpuWorkers.findMany({
-        where: eq(gpuWorkers.autoManaged, true),
+        where: eq(gpuWorkersTable.autoManaged, true),
         orderBy: (workers, { desc }) => [desc(workers.createdAt)],
       });
       
@@ -5365,15 +5355,16 @@ export function registerRoutes(app: Express): Server {
   // PATCH /api/gpu/workers/notebooks/:id - Update notebook config
   app.patch("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
     try {
+      const { gpuWorkers: gpuWorkersTable } = await import("@/shared/schema");
       const workerId = parseInt(req.params.id);
       const { notebookUrl, description } = req.body;
       
       const updates: any = {};
       if (notebookUrl) updates.accountId = notebookUrl;
       
-      const [updated] = await db.update(gpuWorkers)
+      const [updated] = await db.update(gpuWorkersTable)
         .set(updates)
-        .where(eq(gpuWorkers.id, workerId))
+        .where(eq(gpuWorkersTable.id, workerId))
         .returning();
       
       if (!updated) {
@@ -5393,6 +5384,7 @@ export function registerRoutes(app: Express): Server {
   // DELETE /api/gpu/workers/notebooks/:id - Remove notebook from pool
   app.delete("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
     try {
+      const { gpuWorkers: gpuWorkersTable } = await import("@/shared/schema");
       const workerId = parseInt(req.params.id);
       
       // Stop session if running
@@ -5400,8 +5392,8 @@ export function registerRoutes(app: Express): Server {
       await orchestratorService.stopGPU(workerId);
       
       // Delete worker
-      const [deleted] = await db.delete(gpuWorkers)
-        .where(eq(gpuWorkers.id, workerId))
+      const [deleted] = await db.delete(gpuWorkersTable)
+        .where(eq(gpuWorkersTable.id, workerId))
         .returning();
       
       if (!deleted) {

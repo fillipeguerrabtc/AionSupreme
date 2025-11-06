@@ -55,10 +55,12 @@ export default function GPUDashboard() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({
     provider: 'colab',
-    notebookUrl: '',
     email: '',
     password: '',
+    kaggleUsername: '',
+    kaggleKey: '',
     useGPU: true,
+    title: '',
   });
 
   // Fetch all managed notebooks
@@ -75,14 +77,14 @@ export default function GPUDashboard() {
         body: JSON.stringify(data),
       });
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/gpu/workers/notebooks'] });
       toast({
-        title: "Notebook Added",
-        description: "GPU worker added to orchestration pool",
+        title: "GPU Creating...",
+        description: data.message || "Notebook is being created automatically",
       });
       setShowAddForm(false);
-      setFormData({ provider: 'colab', notebookUrl: '', email: '', password: '', useGPU: true });
+      setFormData({ provider: 'colab', email: '', password: '', kaggleUsername: '', kaggleKey: '', useGPU: true, title: '' });
     },
     onError: (error: Error) => {
       toast({
@@ -199,9 +201,9 @@ export default function GPUDashboard() {
       {showAddForm && (
         <Card data-testid="card-add-notebook-form">
           <CardHeader>
-            <CardTitle>Add New Notebook</CardTitle>
+            <CardTitle>Create GPU Worker - 100% Automated</CardTitle>
             <CardDescription>
-              Add a Colab or Kaggle notebook to the auto-orchestration pool
+              System will automatically create {formData.provider === 'colab' ? 'Colab' : 'Kaggle'} notebook, inject worker code, and start GPU
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -247,47 +249,97 @@ export default function GPUDashboard() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notebookUrl">Notebook URL</Label>
+                <Label htmlFor="title">Notebook Title (optional)</Label>
                 <Input
-                  id="notebookUrl"
-                  placeholder="https://colab.research.google.com/drive/..."
-                  value={formData.notebookUrl}
-                  onChange={(e) => setFormData({ ...formData, notebookUrl: e.target.value })}
-                  required
-                  data-testid="input-notebook-url"
+                  id="title"
+                  placeholder="AION Worker GPU-1"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  data-testid="input-title"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">{formData.provider === 'colab' ? 'Google Email' : 'Kaggle Username'}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder={formData.provider === 'colab' ? 'user@gmail.com' : 'username'}
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
-                    data-testid="input-email"
-                  />
-                </div>
+              {formData.provider === 'colab' ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Google Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="user@gmail.com"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                      data-testid="input-email"
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                    data-testid="input-password"
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password (optional if session exists)</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      data-testid="input-password"
+                    />
+                  </div>
                 </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="kaggleUsername">Kaggle Username</Label>
+                    <Input
+                      id="kaggleUsername"
+                      placeholder="username"
+                      value={formData.kaggleUsername}
+                      onChange={(e) => setFormData({ ...formData, kaggleUsername: e.target.value })}
+                      required
+                      data-testid="input-kaggle-username"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="kaggleKey">Kaggle API Key</Label>
+                    <Input
+                      id="kaggleKey"
+                      type="password"
+                      placeholder="Get from kaggle.com/account"
+                      value={formData.kaggleKey}
+                      onChange={(e) => setFormData({ ...formData, kaggleKey: e.target.value })}
+                      required
+                      data-testid="input-kaggle-key"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email (for notifications)</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                  data-testid="input-email-notification"
+                />
               </div>
 
               <div className="flex gap-2">
                 <Button type="submit" disabled={addNotebookMutation.isPending} data-testid="button-submit-notebook">
-                  {addNotebookMutation.isPending ? 'Adding...' : 'Add to Pool'}
+                  {addNotebookMutation.isPending ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Creating GPU...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="mr-2 h-4 w-4" />
+                      Auto-Create GPU
+                    </>
+                  )}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
                   Cancel
@@ -331,6 +383,17 @@ export default function GPUDashboard() {
                     <CardDescription className="text-xs">
                       {worker.capabilities.gpu} • {worker.capabilities.model}
                     </CardDescription>
+                    {worker.accountId && worker.accountId !== 'pending' && (
+                      <a
+                        href={worker.accountId}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline"
+                        data-testid={`link-notebook-${worker.id}`}
+                      >
+                        Open Notebook →
+                      </a>
+                    )}
                   </div>
                   <Badge variant={getStatusVariant(worker.status)} data-testid={`badge-status-${worker.id}`}>
                     {worker.status}
