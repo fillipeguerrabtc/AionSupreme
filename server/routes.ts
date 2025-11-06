@@ -3636,7 +3636,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/training/checkpoints/:jobId - Get latest checkpoint
+  // GET /api/training/checkpoints/:jobId - Get latest checkpoint METADATA
   app.get("/api/training/checkpoints/:jobId", requireAuth, async (req, res) => {
     try {
       const { gradientAggregator } = await import("./federated/gradient-aggregator");
@@ -3656,8 +3656,44 @@ export function registerRoutes(app: Express): Server {
       const checkpointData = await fs.readFile(checkpointPath, 'utf-8');
       const checkpoint = JSON.parse(checkpointData);
       
-      res.json({ checkpoint, path: checkpointPath });
+      // Return metadata + download URL for workers
+      const downloadUrl = `${req.protocol}://${req.get('host')}/api/training/checkpoints/${jobId}/download`;
+      
+      res.json({ 
+        checkpoint, 
+        path: checkpointPath,
+        downloadUrl,  // Workers use this to download checkpoint file
+        version: checkpoint.globalStep || 0  // For version checking
+      });
     } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
+  // GET /api/training/checkpoints/:jobId/download - Download checkpoint FILE for workers
+  // PUBLIC endpoint (no auth) - workers need to download this
+  app.get("/api/training/checkpoints/:jobId/download", async (req, res) => {
+    try {
+      const { gradientAggregator } = await import("./federated/gradient-aggregator");
+      const jobId = parseInt(req.params.jobId);
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ error: "Invalid job ID" });
+      }
+      
+      const checkpointPath = await gradientAggregator.getLatestCheckpoint(jobId);
+      
+      if (!checkpointPath) {
+        return res.status(404).json({ error: "No checkpoint found for this job" });
+      }
+      
+      // Stream checkpoint file to worker
+      res.setHeader("Content-Type", "application/octet-stream");
+      res.setHeader("Content-Disposition", `attachment; filename="checkpoint-job-${jobId}.pt"`);
+      res.sendFile(checkpointPath);
+      
+    } catch (error: unknown) {
+      console.error("[Checkpoint Download] Error:", getErrorMessage(error));
       res.status(500).json({ error: getErrorMessage(error) });
     }
   });
