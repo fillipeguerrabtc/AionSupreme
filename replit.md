@@ -46,19 +46,29 @@ The backend uses Node.js and TypeScript with Express.js and PostgreSQL via Drizz
 ### System Design Choices
 Key decisions include a single-tenant architecture, externalized JSON behavioral configurations for dynamic updates. Full observability and telemetry include comprehensive query monitoring (latency, success/error rates, slow query detection), granular hierarchical usage analytics, usage analytics (agent execution tracking, namespace search tracking), a modern dashboard with Recharts visualizations, PostgreSQL trigram indexes for optimized search performance, and 29 production-ready REST endpoints for metrics access.
 
-### Recent Changes (Nov 5, 2025)
+### Recent Changes (Nov 6, 2025)
 
-**✅ Correções de Bugs:**
-1. **Chat - Avatar Duplicado:** Corrigido timing issue que causava renderização dupla do avatar durante transição de estados (adicionado guard `&& !streamingChat.isStreaming`)
-2. **Chat - Crash em Mensagens Undefined:** Adicionado guard na função `renderMessageContent` para tratar conteúdo undefined/null
-3. **Vision System - Erros LSP:** Adicionadas 13 traduções faltantes em PT-BR, EN-US e ES-ES (errorLoading, errorLoadingDesc, used, providersTitle, reqPerDay, statsTitle, statsDesc, noData, total, success, failed, rate)
-4. **Detecção Multilíngue:** System prompts atualizados - LLMs agora respondem automaticamente no idioma do usuário
+**✅ Feature 1 - Simplified Curation UI (COMPLETED):**
+1. **NamespaceClassifier Removed**: Botão "Classify Namespace" removido da interface
+2. **Visual Deduplication Badges**: Ícones lucide-react (AlertCircle/AlertTriangle/CheckCircle) com % similaridade
+3. **Tooltips Explicativos**: Hover states com informações detalhadas sobre duplicação
+4. **Production-Ready**: Sem emojis, i18n completo, zero hardcoded strings
 
-**✅ Verificações de Sistema:**
-- Timezone confirmado: America/Sao_Paulo (Brasília, Brazil)
-- Deduplicação KB funcionando: 1 exact, 5 near, 2 unique detectados
-- Auto-learning funcionando: 22 itens na fila de curadoria (critérios rigorosos OK)
-- Limpeza de dados: 68 imagens órfãs removidas de `attached_assets/learned_images/`
+**✅ Feature 2 - Image Deduplication System (COMPLETED):**
+1. **Perceptual Hashing**: dHash (64-bit) via `sharp` library para detecção visual
+2. **ImageDeduplicationService**: Hamming distance + similarity scoring (0-100%)
+3. **Database Schema**: Campos em JSONB attachments (perceptualHash, md5Hash, imageDuplicationStatus, imageSimilarityScore, imageDuplicateOfId)
+4. **API Endpoint**: POST /api/curation/scan-image-duplicates (2 fases: generate hashes → compare & mark)
+5. **Multimodal Support**: Base64 (HITL), URLs remotas HTTP/HTTPS, paths locais filesystem
+6. **Frontend UI**: Botão "Escanear Imagens Duplicadas" + badges visuais nas thumbnails
+7. **Production-Ready**: Error handling robusto, fetch para URLs remotas, fallback para filesystem
+
+**✅ Previous Changes (Nov 5, 2025):**
+- **Chat - Avatar Duplicado**: Corrigido timing issue com guard `&& !streamingChat.isStreaming`
+- **Chat - Crash em Mensagens Undefined**: Adicionado guard na função `renderMessageContent`
+- **Vision System - Erros LSP**: 13 traduções faltantes adicionadas (PT/EN/ES)
+- **Detecção Multilíngue**: System prompts atualizados para resposta automática no idioma do usuário
+- **Verificações**: Timezone (America/Sao_Paulo), Deduplicação KB (1 exact, 5 near, 2 unique), Auto-learning (22 itens), Limpeza (68 imagens órfãs)
 
 ### Known Issues & Technical Debt
 
