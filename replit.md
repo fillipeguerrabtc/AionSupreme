@@ -1,7 +1,7 @@
 # AION - Sistema de IA Autônomo
 
-## Overview
-AION is an enterprise-grade autonomous AI system designed for robustness, flexibility, and self-operation, extending beyond current LLM limitations. It features configurable policy application, RAG-based knowledge retrieval, advanced autonomous agents using POMDP with the ReAct framework, and professional video generation. The system provides both a chat interface for end-users and an administrative panel with a 7-Trait Personality Equalizer. Operating in single-tenant mode for optimized deployment and cost efficiency, AION's business vision is to provide a self-sustaining, continuously evolving AI that learns and improves autonomously, reducing reliance on external APIs over time.
+## Visão Geral
+AION é um sistema de IA autônomo de nível empresarial projetado para robustez, flexibilidade e auto-operação, estendendo-se além das limitações atuais dos LLMs. Possui aplicação configurável de políticas, recuperação de conhecimento baseada em RAG, agentes autônomos avançados usando POMDP com framework ReAct e geração profissional de vídeos. O sistema fornece interface de chat para usuários finais e painel administrativo com Equalizador de Personalidade de 7 Traços. Operando em modo single-tenant para implantação otimizada e eficiência de custos, a visão de negócio do AION é fornecer IA auto-sustentável e continuamente evolutiva que aprende e melhora autonomamente, reduzindo dependência de APIs externas ao longo do tempo.
 
 ## User Preferences
 Estilo de comunicação preferido: Linguagem simples e cotidiana.
@@ -32,48 +32,48 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 - Sempre adicionar data-testid para testes E2E
 - Sempre revisar código com architect antes de marcar como completed
 
-## System Architecture
+## Arquitetura do Sistema
 
-### Core System Design
-AION operates in single-tenant mode with a multi-agent architecture and LLM-driven Mixture of Experts (MoE) routing based on intent classification. It includes an automatic fallback system with a 5-level priority chain for responses and universal multilingual support. The system supports specialized agents with dedicated knowledge base namespaces, tool access, and budget limits. A Human-in-the-Loop (HITL) knowledge curation system, backed by PostgreSQL, requires human approval for all content before indexing, with a Zero Bypass Policy. A Production-Ready GPU Pool System manages worker detection, heartbeat monitoring, load balancing, inference priority, and schedule-based rotation. A Continuous Self-Evolution System gathers high-quality conversations for instruction tuning and dataset generation, enforcing HITL. Complete Multimodal Processing supports various document types, images, videos, YouTube transcripts, and Deep Web Crawling. The Vision Cascade System provides 5-provider automatic failover with quota tracking. The agent system includes a level-based hierarchy for agents and sub-agents with cascading deletion. Federated Learning is fully implemented with Gradient Aggregation Coordinator and Fault Tolerance. User Management & RBAC provide enterprise-grade user and permission management with a granular permissions system.
+### Design do Sistema Central
+AION opera em modo single-tenant com arquitetura multi-agente e roteamento Mixture of Experts (MoE) orientado por LLM baseado em classificação de intenção. Inclui sistema automático de fallback com cadeia de prioridade de 5 níveis para respostas e suporte multilíngue universal. O sistema suporta agentes especializados com namespaces dedicados da base de conhecimento, acesso a ferramentas e limites de orçamento. Um sistema de curadoria de conhecimento Human-in-the-Loop (HITL), apoiado por PostgreSQL, requer aprovação humana para todo conteúdo antes da indexação, com Política de Zero Bypass. Um Sistema de Pool de GPU pronto para produção gerencia detecção de workers, monitoramento de heartbeat, balanceamento de carga, prioridade de inferência e rotação baseada em agendamento. Um Sistema de Auto-Evolução Contínua coleta conversas de alta qualidade para instruction tuning e geração de datasets, aplicando HITL. Processamento Multimodal Completo suporta vários tipos de documentos, imagens, vídeos, transcrições do YouTube e Deep Web Crawling. O Sistema Vision Cascade fornece failover automático de 5 provedores com rastreamento de quota. O sistema de agentes inclui hierarquia baseada em níveis para agentes e sub-agentes com exclusão em cascata. Federated Learning está totalmente implementado com Gradient Aggregation Coordinator e Tolerância a Falhas. Gerenciamento de Usuários & RBAC fornecem gerenciamento de usuários e permissões de nível empresarial com sistema granular de permissões.
 
 ### UI/UX
-The frontend is built with React 18, Vite, Wouter, and TanStack Query, using Radix UI, shadcn/ui patterns, Tailwind CSS, and a custom HSL-based design system. It features an elegant minimalist design with modern glassmorphism. It offers a clean conversational chat interface and an Admin Panel with enterprise-grade side navigation and a complete Internationalization (i18n) system supporting PT-BR (default), EN-US, ES-ES. All administrative pages are translated, including Dataset, Agent, and Curation Queue management. The Curation Queue for HITL review supports filtering and bulk actions. Vision System monitoring displays real-time quota tracking across 5 providers. An AI-powered semantic Image Search and Health Diagnostics are included. The Personality Equalizer in the Settings tab offers granular control via 7 functional sliders.
+O frontend é construído com React 18, Vite, Wouter e TanStack Query, utilizando Radix UI, padrões shadcn/ui, Tailwind CSS e sistema de design customizado baseado em HSL. Apresenta design minimalista elegante com glassmorphism moderno. Oferece interface de chat conversacional limpa e Painel Administrativo com navegação lateral de nível empresarial e sistema completo de Internacionalização (i18n) suportando PT-BR (padrão), EN-US, ES-ES. Todas as páginas administrativas estão traduzidas, incluindo gerenciamento de Dataset, Agente e Fila de Curadoria. A Fila de Curadoria para revisão HITL suporta filtragem e ações em lote. Monitoramento do Vision System exibe rastreamento de quota em tempo real através de 5 provedores. Busca de Imagem semântica alimentada por IA e Diagnósticos de Saúde estão incluídos. O Equalizador de Personalidade na aba Configurações oferece controle granular via 7 sliders funcionais.
 
-### Admin Panel - Management Philosophy
+### Painel Admin - Filosofia de Gerenciamento
 
-**Auto-Creation vs Manual Management**
+**Auto-Criação vs Gerenciamento Manual**
 
-While AION implements automatic namespace classification and agent assignment, the Admin Panel provides manual management interfaces for critical operational control:
+Embora o AION implemente classificação automática de namespaces e atribuição de agentes, o Painel Admin fornece interfaces de gerenciamento manual para controle operacional crítico:
 
-**Namespaces Tab - Why Manual UI Exists:**
-- **Audit & Review**: Inspect automatically classified namespaces and verify semantic coherence
-- **Correction**: Rename or merge namespaces with poor auto-classification (e.g., split domains wrongly grouped)
-- **Hygiene**: Delete empty/orphaned namespaces not caught by automatic garbage collection
-- **Seeding**: Pre-create domain-specific namespaces before first content ingestion for better initial routing
-- **Override**: Manually assign documents to correct namespace when auto-classifier fails
-- **Monitoring**: Track namespace distribution, document counts, and detect namespace pollution
+**Aba Namespaces - Por que a UI Manual Existe:**
+- **Auditoria & Revisão**: Inspecionar namespaces classificados automaticamente e verificar coerência semântica
+- **Correção**: Renomear ou mesclar namespaces com classificação automática ruim (ex: domínios divididos agrupados incorretamente)
+- **Higiene**: Deletar namespaces vazios/órfãos não capturados pela coleta de lixo automática
+- **Seeding**: Pré-criar namespaces específicos de domínio antes da primeira ingestão de conteúdo para melhor roteamento inicial
+- **Override**: Atribuir manualmente documentos ao namespace correto quando o classificador automático falha
+- **Monitoramento**: Rastrear distribuição de namespaces, contagem de documentos e detectar poluição de namespaces
 
-**Agents Tab - Why Manual UI Exists:**
-- **Customization**: Create specialized agents with custom tools, budgets, and personality profiles beyond defaults
-- **Expert Configuration**: Fine-tune agent prompts, tool access, and namespace restrictions for domain experts
-- **Hierarchy Management**: Build multi-level agent hierarchies (senior → junior agents) with delegation rules
-- **Testing**: Prototype new agent behaviors before deploying to auto-creation system
-- **Migration**: Bulk edit or deprecate agents during system upgrades or policy changes
-- **Emergency Control**: Disable or modify misbehaving agents discovered during production monitoring
+**Aba Agentes - Por que a UI Manual Existe:**
+- **Customização**: Criar agentes especializados com ferramentas customizadas, orçamentos e perfis de personalidade além dos padrões
+- **Configuração Especializada**: Ajustar prompts de agentes, acesso a ferramentas e restrições de namespace para especialistas de domínio
+- **Gerenciamento de Hierarquia**: Construir hierarquias multi-nível de agentes (sênior → júnior) com regras de delegação
+- **Testes**: Prototipar novos comportamentos de agentes antes de implantar no sistema de auto-criação
+- **Migração**: Editar em lote ou depreciar agentes durante upgrades de sistema ou mudanças de política
+- **Controle de Emergência**: Desabilitar ou modificar agentes com mau comportamento descobertos durante monitoramento de produção
 
-**Design Principle:**
-Automation provides **convenience** (80% use cases), manual management provides **precision** (20% edge cases + operational safety). Both are essential for production-grade autonomous systems.
+**Princípio de Design:**
+Automação fornece **conveniência** (80% dos casos de uso), gerenciamento manual fornece **precisão** (20% casos de borda + segurança operacional). Ambos são essenciais para sistemas autônomos de nível produção.
 
-### Technical Implementations
-The backend uses Node.js and TypeScript with Express.js and PostgreSQL via Drizzle ORM. Key services include an LLM Client, Storage, Multi-Agent Router (MoE), namespace-scoped RAG, an Agent Engine (ReAct with POMDP), Automatic Fallback, Production-Grade Multimodal Processing, Web Content Discovery, YouTube Transcript Service, Vision Cascade, free LLM Provider rotation, GPU Orchestrator, GPU Pool Manager, GPU Load Balancer, Training Data Collector, Dataset Generator, Auto-Learning System, Token Monitoring, Lifecycle Management, Orphan Detection, Validation (Zod schemas), and a Complete Telemetry System. The frontend implements a centralized i18n system with a `useLanguage()` hook. Authentication uses Replit Auth (OpenID Connect). RAG combines OpenAI embeddings with BM25 for re-ranking. Professional video generation uses an asynchronous job queue, GPU workers, and webhook callbacks. The Automated Namespace Classification System uses GPT-4 for intelligent content analysis. The GPU Pool System manages intelligent quota, auto-shutdown, load balancing, and heartbeat monitoring. Multi-Cloud Deployment uses Google Cloud Run and AWS Fargate. Training data validation includes 8 real-time inline validation types. The Lifecycle Management System applies retention policies. KB Cascade Delete ensures comprehensive data removal.
+### Implementações Técnicas
+O backend usa Node.js e TypeScript com Express.js e PostgreSQL via Drizzle ORM. Serviços-chave incluem Cliente LLM, Storage, Multi-Agent Router (MoE), RAG com escopo de namespace, Motor de Agente (ReAct com POMDP), Fallback Automático, Processamento Multimodal de Nível Produção, Descoberta de Conteúdo Web, Serviço de Transcrição YouTube, Vision Cascade, rotação de Provedores LLM gratuitos, GPU Orchestrator, GPU Pool Manager, GPU Load Balancer, Training Data Collector, Dataset Generator, Auto-Learning System, Monitoramento de Tokens, Lifecycle Management, Orphan Detection, Validação (schemas Zod) e Sistema de Telemetria Completo. O frontend implementa sistema i18n centralizado com hook `useLanguage()`. Autenticação usa Replit Auth (OpenID Connect). RAG combina embeddings OpenAI com BM25 para re-ranking. Geração profissional de vídeo usa fila assíncrona de jobs, GPU workers e webhook callbacks. O Sistema de Classificação Automática de Namespaces usa GPT-4 para análise inteligente de conteúdo. O Sistema de Pool de GPU gerencia quota inteligente, auto-desligamento, balanceamento de carga e monitoramento de heartbeat. Implantação Multi-Nuvem usa Google Cloud Run e AWS Fargate. Validação de dados de treinamento inclui 8 tipos de validação inline em tempo real. O Sistema de Lifecycle Management aplica políticas de retenção. KB Cascade Delete garante remoção abrangente de dados.
 
-### System Design Choices
-Key decisions include a single-tenant architecture, externalized JSON behavioral configurations for dynamic updates. Full observability and telemetry include comprehensive query monitoring, granular hierarchical usage analytics, a modern dashboard with Recharts visualizations, PostgreSQL trigram indexes for optimized search performance, and 29 production-ready REST endpoints for metrics access.
+### Decisões de Design do Sistema
+Decisões-chave incluem arquitetura single-tenant, configurações comportamentais JSON externalizadas para atualizações dinâmicas. Observabilidade e telemetria completas incluem monitoramento abrangente de queries, analytics de uso hierárquico granular, dashboard moderno com visualizações Recharts, índices trigram PostgreSQL para performance otimizada de busca e 29 endpoints REST prontos para produção para acesso a métricas.
 
-## External Dependencies
+## Dependências Externas
 
-### Third-Party Services
+### Serviços de Terceiros
 - **API OpenAI**: LLM completions, embeddings, function calling, GPT-4o Vision.
 - **Neon Database**: PostgreSQL Serverless.
 - **Google Cloud Run**: Primary deployment platform.
@@ -86,7 +86,7 @@ Key decisions include a single-tenant architecture, externalized JSON behavioral
 - **Replit**: Development environment and authentication (OpenID Connect).
 - **GitHub Actions**: CI/CD pipeline.
 
-### Core Libraries (NPM)
+### Bibliotecas Principais (NPM)
 - **@neondatabase/serverless**: PostgreSQL client
 - **drizzle-orm**: Type-safe ORM
 - **openai**: Official OpenAI SDK
