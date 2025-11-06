@@ -7,6 +7,7 @@ import { LanguageProvider } from "./lib/i18n";
 import { usePageTitle } from "./hooks/usePageTitle";
 import ChatPage from "@/pages/chat/ChatPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
+import GPUDashboard from "@/pages/admin/gpu-dashboard";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
 import { useEffect } from "react";
@@ -62,6 +63,7 @@ function Router() {
     <Switch>
       <Route path="/" component={ChatPage} />
       <Route path="/login" component={Login} />
+      <Route path="/admin/gpu-dashboard" component={() => <ProtectedRoute component={GPUDashboard} />} />
       <Route path="/admin" component={() => <ProtectedRoute component={AdminDashboard} />} />
       <Route path="/admin/:section" component={() => <ProtectedRoute component={AdminDashboard} />} />
       <Route component={NotFound} />

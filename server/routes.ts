@@ -5177,6 +5177,247 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // ============================================================================
+  // GPU AUTO-ORCHESTRATION - Puppeteer Automation (P1)
+  // ============================================================================
+  
+  // POST /api/gpu/orchestrate/start - Start best available GPU automatically
+  app.post("/api/gpu/orchestrate/start", requireAuth, requirePermission("gpu:orchestrate"), async (req, res) => {
+    try {
+      const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
+      
+      const result = await orchestratorService.startBestGPU();
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: result.reason,
+          success: false 
+        });
+      }
+      
+      res.json({
+        success: true,
+        workerId: result.workerId,
+        ngrokUrl: result.ngrokUrl,
+        message: result.reason,
+      });
+      
+    } catch (error: unknown) {
+      console.error("[Orchestrator API] Start error:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+  
+  // POST /api/gpu/orchestrate/stop/:workerId - Stop specific GPU
+  app.post("/api/gpu/orchestrate/stop/:workerId", requireAuth, requirePermission("gpu:orchestrate"), async (req, res) => {
+    try {
+      const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
+      const workerId = parseInt(req.params.workerId);
+      
+      const result = await orchestratorService.stopGPU(workerId);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: result.reason,
+          success: false 
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: result.reason,
+      });
+      
+    } catch (error: unknown) {
+      console.error("[Orchestrator API] Stop error:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+  
+  // GET /api/gpu/orchestrate/status - Get orchestrator status + quota info
+  app.get("/api/gpu/orchestrate/status", requireAuth, async (req, res) => {
+    try {
+      const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
+      
+      const status = await orchestratorService.getStatus();
+      
+      res.json(status);
+      
+    } catch (error: unknown) {
+      console.error("[Orchestrator API] Status error:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+  
+  // GET /api/gpu/quota/:workerId - Get quota status for specific worker
+  app.get("/api/gpu/quota/:workerId", requireAuth, async (req, res) => {
+    try {
+      const { quotaManager } = await import("./gpu-orchestration/intelligent-quota-manager");
+      const workerId = parseInt(req.params.workerId);
+      
+      const status = await quotaManager.getQuotaStatus(workerId);
+      
+      if (!status) {
+        return res.status(404).json({ error: "Worker not found" });
+      }
+      
+      res.json(status);
+      
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+  
+  // ============================================================================
+  // GPU WORKERS CRUD - Dashboard Management (P2)
+  // ============================================================================
+  
+  // POST /api/gpu/workers/notebooks - Add new Colab/Kaggle notebook for orchestration
+  app.post("/api/gpu/workers/notebooks", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
+    try {
+      const { provider, notebookUrl, email, password, useGPU, description } = req.body;
+      
+      // Validate required fields
+      if (!provider || !notebookUrl || !email || !password) {
+        return res.status(400).json({ 
+          error: "Missing required fields: provider, notebookUrl, email, password" 
+        });
+      }
+      
+      if (!['colab', 'kaggle'].includes(provider)) {
+        return res.status(400).json({ 
+          error: "Invalid provider. Must be 'colab' or 'kaggle'" 
+        });
+      }
+      
+      // Determine provider limits
+      const providerLimits = provider === 'colab' 
+        ? {
+            max_session_hours: 12,
+            safety_margin_hours: 1,
+            idle_timeout_minutes: 90,
+          }
+        : {
+            max_session_hours: useGPU ? 12 : 9,
+            max_weekly_hours: 30,
+            safety_margin_hours: 1,
+          };
+      
+      // Insert worker
+      const [worker] = await db.insert(gpuWorkers).values({
+        provider,
+        accountId: notebookUrl,  // Store notebook URL in accountId
+        ngrokUrl: 'pending',  // Will be filled when started
+        autoManaged: true,
+        capabilities: {
+          tor_enabled: false,
+          model: 'pending',
+          gpu: useGPU ? 'T4' : 'CPU',
+        },
+        providerLimits,
+        maxSessionDurationSeconds: (providerLimits.max_session_hours - providerLimits.safety_margin_hours) * 3600,
+        maxWeeklySeconds: providerLimits.max_weekly_hours ? providerLimits.max_weekly_hours * 3600 : null,
+      }).returning();
+      
+      // Store credentials securely (TODO: encrypt in production)
+      // For now, store in environment or separate secure table
+      
+      res.status(201).json({
+        success: true,
+        worker,
+        message: `${provider} notebook added to orchestration pool`,
+      });
+      
+    } catch (error: unknown) {
+      console.error("[GPU CRUD] Add notebook error:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+  
+  // GET /api/gpu/workers/notebooks - List all managed notebooks
+  app.get("/api/gpu/workers/notebooks", requireAuth, async (req, res) => {
+    try {
+      const workers = await db.query.gpuWorkers.findMany({
+        where: eq(gpuWorkers.autoManaged, true),
+        orderBy: (workers, { desc }) => [desc(workers.createdAt)],
+      });
+      
+      // Add quota status for each worker
+      const { quotaManager } = await import("./gpu-orchestration/intelligent-quota-manager");
+      
+      const workersWithStatus = await Promise.all(
+        workers.map(async (worker) => {
+          const quotaStatus = await quotaManager.getQuotaStatus(worker.id);
+          return {
+            ...worker,
+            quotaStatus,
+          };
+        })
+      );
+      
+      res.json(workersWithStatus);
+      
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+  
+  // PATCH /api/gpu/workers/notebooks/:id - Update notebook config
+  app.patch("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
+    try {
+      const workerId = parseInt(req.params.id);
+      const { notebookUrl, description } = req.body;
+      
+      const updates: any = {};
+      if (notebookUrl) updates.accountId = notebookUrl;
+      
+      const [updated] = await db.update(gpuWorkers)
+        .set(updates)
+        .where(eq(gpuWorkers.id, workerId))
+        .returning();
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Worker not found" });
+      }
+      
+      res.json({
+        success: true,
+        worker: updated,
+      });
+      
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+  
+  // DELETE /api/gpu/workers/notebooks/:id - Remove notebook from pool
+  app.delete("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
+    try {
+      const workerId = parseInt(req.params.id);
+      
+      // Stop session if running
+      const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
+      await orchestratorService.stopGPU(workerId);
+      
+      // Delete worker
+      const [deleted] = await db.delete(gpuWorkers)
+        .where(eq(gpuWorkers.id, workerId))
+        .returning();
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Worker not found" });
+      }
+      
+      res.json({
+        success: true,
+        message: `Worker ${workerId} removed from orchestration pool`,
+      });
+      
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -835,6 +835,33 @@ export const gpuWorkers = pgTable("gpu_workers", {
   totalLatencyMs: integer("total_latency_ms").notNull().default(0), // Sum for averaging
   averageLatencyMs: real("average_latency_ms").notNull().default(0),
   
+  // 🔥 AUTO-ORCHESTRATION & QUOTA MANAGEMENT (P1)
+  // Intelligent quota tracking for FREE tier providers (Colab 12h, Kaggle 30h/week)
+  autoManaged: boolean("auto_managed").notNull().default(false), // If under Puppeteer orchestrator control
+  puppeteerSessionId: text("puppeteer_session_id"), // Browser automation session ID
+  
+  // Session runtime tracking (Safety: stop 1h before limits)
+  sessionStartedAt: timestamp("session_started_at"), // When current session started
+  sessionDurationSeconds: integer("session_duration_seconds").notNull().default(0), // Current runtime
+  maxSessionDurationSeconds: integer("max_session_duration_seconds").notNull().default(39600), // 11h default (12h-1h safety)
+  scheduledStopAt: timestamp("scheduled_stop_at"), // When orchestrator will auto-stop
+  
+  // Weekly quota tracking (Kaggle specific: 30h GPU/week)
+  weeklyUsageSeconds: integer("weekly_usage_seconds").notNull().default(0), // Total seconds this week
+  maxWeeklySeconds: integer("max_weekly_seconds"), // 108000 for Kaggle (30h), null for Colab
+  weekStartedAt: timestamp("week_started_at"), // Week boundary for quota reset
+  
+  // Provider-specific limits
+  providerLimits: jsonb("provider_limits").$type<{
+    max_session_hours: number; // 12 for Colab, 12 for Kaggle GPU, 9 for Kaggle CPU
+    max_weekly_hours?: number; // 30 for Kaggle, null for Colab
+    idle_timeout_minutes?: number; // 90 for Colab, varies for Kaggle
+    safety_margin_hours: number; // 1h default - stop this many hours before limit
+  }>().default({
+    max_session_hours: 12,
+    safety_margin_hours: 1,
+  }),
+  
   // Timestamps
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
