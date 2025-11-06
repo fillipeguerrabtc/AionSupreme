@@ -662,6 +662,211 @@ export function registerCurationRoutes(app: Router) {
   });
 
   /**
+   * POST /api/curation/scan-image-duplicates
+   * IMAGE DEDUPLICATION: Perceptual hashing batch scan (on-demand)
+   * Scans all images in pending items and marks visual duplicates
+   * Uses dHash (difference hash) algorithm - robust against minor edits
+   */
+  app.post("/scan-image-duplicates", async (req, res) => {
+    try {
+      console.log('[Curation] 🖼️ Starting image duplicate scan...');
+      
+      const { imageDeduplicationService } = await import('../services/image-deduplication-service');
+      
+      // Get all pending items with images
+      const items = await db
+        .select()
+        .from(curationQueue)
+        .where(eq(curationQueue.status, 'pending'));
+      
+      let totalImages = 0;
+      let uniqueImages = 0;
+      let exactDuplicates = 0;
+      let nearDuplicates = 0;
+      let errors = 0;
+      
+      // Collect all image hashes first
+      const allImageHashes: Array<{
+        itemId: string;
+        attachmentIndex: number;
+        filename: string;
+        perceptualHash: string;
+        md5Hash: string;
+      }> = [];
+      
+      // Phase 1: Generate hashes for all images
+      for (const item of items) {
+        if (!item.attachments || item.attachments.length === 0) continue;
+        
+        const imageAttachments = item.attachments.filter(a => a.type === 'image');
+        if (imageAttachments.length === 0) continue;
+        
+        for (let i = 0; i < item.attachments.length; i++) {
+          const att = item.attachments[i];
+          if (att.type !== 'image') continue;
+          
+          totalImages++;
+          
+          try {
+            // Skip if already has hash
+            if (att.perceptualHash && att.md5Hash) {
+              allImageHashes.push({
+                itemId: item.id,
+                attachmentIndex: i,
+                filename: att.filename,
+                perceptualHash: att.perceptualHash,
+                md5Hash: att.md5Hash
+              });
+              continue;
+            }
+            
+            // Generate hash from base64 or URL
+            let buffer: Buffer;
+            if (att.base64) {
+              buffer = Buffer.from(att.base64, 'base64');
+            } else if (att.url) {
+              // Check if URL is HTTP/HTTPS (remote) or local filesystem path
+              if (att.url.startsWith('http://') || att.url.startsWith('https://')) {
+                // Fetch remote image
+                try {
+                  const response = await fetch(att.url);
+                  if (!response.ok) {
+                    console.warn(`[Curation] Falha ao baixar imagem: ${response.status} ${att.url}`);
+                    errors++;
+                    continue;
+                  }
+                  const arrayBuffer = await response.arrayBuffer();
+                  buffer = Buffer.from(arrayBuffer);
+                } catch (fetchError: any) {
+                  console.error(`[Curation] Erro ao fazer fetch: ${fetchError.message}`);
+                  errors++;
+                  continue;
+                }
+              } else {
+                // Read from local filesystem
+                try {
+                  const fs = await import('fs/promises');
+                  const path = await import('path');
+                  const fullPath = path.join(process.cwd(), att.url);
+                  buffer = await fs.readFile(fullPath);
+                } catch (readError: any) {
+                  console.error(`[Curation] Erro ao ler arquivo: ${readError.message}`);
+                  errors++;
+                  continue;
+                }
+              }
+            } else {
+              console.warn(`[Curation] Imagem sem base64 ou URL: ${att.filename}`);
+              errors++;
+              continue;
+            }
+            
+            const hash = await imageDeduplicationService.generateImageHash(buffer);
+            
+            // Update attachment with hash
+            att.perceptualHash = hash.perceptualHash;
+            att.md5Hash = hash.md5Hash;
+            
+            allImageHashes.push({
+              itemId: item.id,
+              attachmentIndex: i,
+              filename: att.filename,
+              perceptualHash: hash.perceptualHash,
+              md5Hash: hash.md5Hash
+            });
+            
+            // Save updated attachment
+            await db
+              .update(curationQueue)
+              .set({ 
+                attachments: item.attachments,
+                updatedAt: new Date()
+              })
+              .where(eq(curationQueue.id, item.id));
+            
+          } catch (error: any) {
+            console.error(`[Curation] Erro ao processar imagem ${att.filename}:`, error.message);
+            errors++;
+          }
+        }
+      }
+      
+      // Phase 2: Compare all images and mark duplicates
+      for (let i = 0; i < allImageHashes.length; i++) {
+        const current = allImageHashes[i];
+        
+        // Compare with previous images only (avoid double-checking)
+        const previousHashes = allImageHashes.slice(0, i);
+        
+        const similarityResult = await imageDeduplicationService.findSimilarImages(
+          {
+            perceptualHash: current.perceptualHash,
+            md5Hash: current.md5Hash
+          },
+          previousHashes.map(h => ({
+            id: h.itemId,
+            filename: h.filename,
+            perceptualHash: h.perceptualHash,
+            md5Hash: h.md5Hash
+          }))
+        );
+        
+        // Update attachment with duplication status
+        const [item] = await db
+          .select()
+          .from(curationQueue)
+          .where(eq(curationQueue.id, current.itemId))
+          .limit(1);
+        
+        if (!item || !item.attachments) continue;
+        
+        const att = item.attachments[current.attachmentIndex];
+        if (!att || att.type !== 'image') continue;
+        
+        if (similarityResult.isDuplicate) {
+          const status = imageDeduplicationService.getDuplicationStatus(similarityResult.hammingDistance);
+          att.imageDuplicationStatus = status;
+          att.imageSimilarityScore = similarityResult.similarity;
+          att.imageDuplicateOfId = similarityResult.duplicateOf?.id;
+          
+          if (status === 'exact') exactDuplicates++;
+          else if (status === 'near') nearDuplicates++;
+        } else {
+          att.imageDuplicationStatus = 'unique';
+          att.imageSimilarityScore = 0;
+          uniqueImages++;
+        }
+        
+        // Save updated attachment
+        await db
+          .update(curationQueue)
+          .set({ 
+            attachments: item.attachments,
+            updatedAt: new Date()
+          })
+          .where(eq(curationQueue.id, current.itemId));
+      }
+      
+      console.log(`[Curation] ✅ Image scan complete: ${totalImages} total, ${uniqueImages} unique, ${exactDuplicates} exact, ${nearDuplicates} near`);
+      
+      res.json({
+        success: true,
+        message: `Scanned ${totalImages} images`,
+        stats: {
+          total: totalImages,
+          unique: uniqueImages,
+          exact: exactDuplicates,
+          near: nearDuplicates,
+          errors
+        }
+      });
+    } catch (error: any) {
+      console.error('[Curation] Image scan error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * GET /api/curation/preview-absorption/:id
    * PREVIEW ONLY: Analyzes what would be extracted without executing
    * Returns preview for hybrid UI (auto-suggest + manual fallback)

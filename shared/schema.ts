@@ -1493,6 +1493,14 @@ export const curationQueue = pgTable("curation_queue", {
     mimeType: string;
     size: number;
     description?: string; // AI-generated description for images
+    base64?: string; // NOVO: base64 temporário para curadoria (ZERO BYPASS!)
+    tempPath?: string;
+    // Image deduplication hashes (perceptual + exact)
+    perceptualHash?: string;  // dHash (64-bit hex) - detects visually similar images
+    md5Hash?: string;         // MD5 for exact byte match
+    imageDuplicationStatus?: "unique" | "exact" | "near" | null;
+    imageSimilarityScore?: number;  // 0-100%
+    imageDuplicateOfId?: string;    // ID do item/imagem duplicado
   }>>(),
   
   status: varchar("status", { length: 20 }).notNull().default("pending"), // "pending" | "approved" | "rejected"

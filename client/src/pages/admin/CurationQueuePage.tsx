@@ -56,6 +56,12 @@ interface CurationItem {
     description?: string;
     base64?: string; // NOVO: base64 temporário para curadoria (ZERO BYPASS!)
     tempPath?: string;
+    // Image deduplication fields (perceptual hashing)
+    perceptualHash?: string;  // dHash (64-bit hex)
+    md5Hash?: string;         // MD5 for exact byte match
+    imageDuplicationStatus?: "unique" | "exact" | "near" | null;
+    imageSimilarityScore?: number;  // 0-100%
+    imageDuplicateOfId?: string;    // ID do item/imagem duplicado
   }>;
 }
 
@@ -277,6 +283,31 @@ export default function CurationQueuePage() {
     onError: (error: Error) => {
       toast({
         title: "Erro ao escanear duplicatas",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Scan image duplicates mutation (perceptual hashing)
+  const scanImageDuplicatesMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("/api/curation/scan-image-duplicates", {
+        method: "POST",
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
+      const duplicatesFound = (data.stats?.exact || 0) + (data.stats?.near || 0);
+      toast({
+        title: "Scan de imagens duplicadas concluído!",
+        description: `${data.stats?.total || 0} imagens analisadas. ${duplicatesFound} duplicatas detectadas.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao escanear imagens duplicadas",
         description: error.message,
         variant: "destructive",
       });
@@ -540,6 +571,17 @@ export default function CurationQueuePage() {
             >
               <Scan className="h-4 w-4 mr-2" />
               {scanDuplicatesMutation.isPending ? "Escaneando..." : "Escanear Duplicatas"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => scanImageDuplicatesMutation.mutate()}
+              disabled={scanImageDuplicatesMutation.isPending}
+              data-testid="button-scan-image-duplicates"
+              className="text-purple-600 hover:text-purple-700"
+            >
+              <ImageIcon className="h-4 w-4 mr-2" />
+              {scanImageDuplicatesMutation.isPending ? "Escaneando Imagens..." : "Escanear Imagens Duplicadas"}
             </Button>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -819,6 +861,41 @@ export default function CurationQueuePage() {
                             className="w-full h-32 object-cover"
                             loading="lazy"
                           />
+                          {/* Image Duplication Badge */}
+                          {img.imageDuplicationStatus === 'exact' && (
+                            <div className="absolute top-1 right-1">
+                              <Badge 
+                                variant="destructive" 
+                                className="text-xs font-semibold shadow-md flex items-center gap-1"
+                                title={`Duplicata exata (${img.imageSimilarityScore || 100}%)`}
+                              >
+                                <AlertCircle className="h-3 w-3" />
+                                {img.imageSimilarityScore || 100}%
+                              </Badge>
+                            </div>
+                          )}
+                          {img.imageDuplicationStatus === 'near' && (
+                            <div className="absolute top-1 right-1">
+                              <Badge 
+                                className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold shadow-md flex items-center gap-1" 
+                                title={`Imagem similar (${img.imageSimilarityScore || 80}%)`}
+                              >
+                                <AlertTriangle className="h-3 w-3" />
+                                {img.imageSimilarityScore || 80}%
+                              </Badge>
+                            </div>
+                          )}
+                          {img.imageDuplicationStatus === 'unique' && (
+                            <div className="absolute top-1 right-1">
+                              <Badge 
+                                className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold shadow-md flex items-center gap-1" 
+                                title="Imagem única"
+                              >
+                                <CheckCircle className="h-3 w-3" />
+                                Único
+                              </Badge>
+                            </div>
+                          )}
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <span className="text-white text-xs flex items-center gap-1">
                               <Scan className="h-3 w-3" />
