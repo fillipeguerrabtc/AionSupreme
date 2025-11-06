@@ -242,10 +242,11 @@ AION inclui um **pool de GPU totalmente autônomo** com inferência de custo zer
 ### Recursos:
 - ✅ **10 Workers Simultâneos** (5 Colab + 5 Kaggle)
 - ✅ **~70-80 horas GPU/dia** a custo zero
-- ✅ **Gerenciamento Inteligente de Quota** - Usa apenas 70% da quota (margem de segurança de 30%)
-- ✅ **Auto-Desligamento** - Notebooks encerram 30min antes dos limites do Google
-- ✅ **Balanceamento Round-Robin** - Rotação automática entre workers
-- ✅ **Cobertura 24/7** - Agendamento otimizado para disponibilidade contínua
+- ✅ **Auto-Scaling Orchestrator 24/7** - Rotação inteligente escalonada (staggered start) garantindo máximo de GPUs online sem que todas parem ao mesmo tempo
+- ✅ **Gerenciamento Inteligente de Quota** - Proteção contra session leaks e rastreamento preciso de uso
+- ✅ **Auto-Desligamento** - Notebooks encerram 1h antes dos limites (margem de segurança)
+- ✅ **SecretsVault Integration** - Credenciais criptografadas (AES-256-GCM) com retrieval automático
+- ✅ **Cobertura 24/7** - Estratégias: 3-Group Rotation (6+ Colabs), Mixed Rotation (Colab backbone + Kaggle complement)
 
 ### Configuração Rápida:
 ```bash
@@ -270,11 +271,25 @@ AION_URL = "https://sua-url-aion.replit.app"
 
 ### Endpoints da API:
 ```bash
+# GPU Workers
 POST /api/gpu/workers/register   # Registro de worker
 POST /api/gpu/workers/heartbeat  # Keep-alive (60s)
 GET  /api/gpu/workers             # Listar todos workers
+
+# Quota Management
 GET  /api/gpu/quota/status        # Rastreamento de quota em tempo real
 POST /api/gpu/quota/record        # Registrar uso após jobs
+
+# Auto-Scaling Orchestrator
+POST /api/gpu/auto-scaling/start      # Iniciar orquestração 24/7
+POST /api/gpu/auto-scaling/stop       # Parar orquestração
+POST /api/gpu/auto-scaling/recalculate # Recalcular schedule (novas GPUs)
+GET  /api/gpu/auto-scaling/status     # Status atual + schedule
+
+# SecretsVault (Admin)
+POST /api/admin/secrets/kaggle    # Armazenar credenciais Kaggle
+POST /api/admin/secrets/google    # Armazenar credenciais Google
+GET  /api/admin/secrets           # Listar secrets (encrypted)
 ```
 
 **ROI**: Economia de ~$18-29k/ano vs. serviços de GPU cloud pagos! 🚀

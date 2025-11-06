@@ -48,10 +48,26 @@ Você só faz **3 coisas simples**:
 │  5. Clicar "Add Worker"                                     │
 │                                                             │
 │  ✅ AION automaticamente:                                   │
-│     - Criptografa credenciais (AES-256)                     │
-│     - Salva no banco de dados                               │
+│     - Criptografa credenciais (AES-256-GCM) via SecretsVault│
+│     - Salva encrypted no banco PostgreSQL                   │
 │     - Provisiona worker                                     │
+│     - Auto-Scaling Orchestrator busca credenciais           │
 │     - Gerencia tudo pra você                                │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│  🤖 AUTO-SCALING ORCHESTRATOR (Automático)                  │
+├─────────────────────────────────────────────────────────────┤
+│  ✅ Busca credenciais do SecretsVault automaticamente       │
+│  ✅ Valida credenciais ANTES de iniciar GPU session         │
+│  ✅ Proteção contra quota session leaks                     │
+│  ✅ Rotação 24/7 inteligente (staggered start)              │
+│  ✅ Rollback automático se erro ao iniciar GPU              │
+│                                                             │
+│  📊 Estratégias de rotação:                                 │
+│     - 3-Group Rotation (6+ Colabs)                          │
+│     - Mixed Rotation (Colab backbone + Kaggle)              │
+│     - Kaggle-Only (conservadora)                            │
 └─────────────────────────────────────────────────────────────┘
 ```
 

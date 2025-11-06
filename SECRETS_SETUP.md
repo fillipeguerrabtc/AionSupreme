@@ -117,6 +117,46 @@ kaggle_credentials:
 
 ---
 
+## 🤖 Integração com Auto-Scaling Orchestrator
+
+### Como o Auto-Scaling usa o SecretsVault?
+
+O **Auto-Scaling Orchestrator** depende do SecretsVault para operar de forma segura:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  FLUXO COMPLETO: Encryption → SecretsVault → Auto-Scaling  │
+├─────────────────────────────────────────────────────────────┤
+│  1. SECRETS_MASTER_KEY configurado (Replit Secrets)        │
+│  2. Admin adiciona credenciais via GPU Management UI        │
+│  3. SecretsVault criptografa (AES-256-GCM) + salva no DB    │
+│  4. Auto-Scaling Orchestrator busca credenciais do Vault    │
+│  5. Valida credenciais ANTES de iniciar GPU session         │
+│  6. Se erro → Rollback automático (zero quota leaks)        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Proteções implementadas:
+
+✅ **Zero Quota Leaks:** Credenciais validadas ANTES de registrar sessão  
+✅ **Rollback Automático:** Se GPU falha, quota session é revertida  
+✅ **Structured Logging:** Logs informativos com provider + accountId  
+✅ **Try/Finally Blocks:** Garantem cleanup mesmo se provider falhar  
+
+### ⚠️ IMPORTANTE - Produção:
+
+**SEM SECRETS_MASTER_KEY:**
+- ❌ Credenciais em plaintext no PostgreSQL
+- ❌ Auto-Scaling não consegue buscar credenciais com segurança
+- ❌ **INSEGURO** para produção
+
+**COM SECRETS_MASTER_KEY:**
+- ✅ Credenciais encrypted (AES-256-GCM)
+- ✅ Auto-Scaling busca e decripta automaticamente
+- ✅ **SEGURO** para produção
+
+---
+
 ## 💡 Casos de Uso
 
 ### Quando as credenciais são criptografadas?
@@ -164,9 +204,11 @@ npm run dev
 
 ## 📚 Referências
 
-- **Algoritmo**: AES-256-CBC (padrão da indústria)
+- **Algoritmo**: AES-256-GCM (padrão da indústria com autenticação)
 - **Key Size**: 256 bits (32 bytes)
-- **Service**: `server/services/secrets-vault.ts`
+- **Authentication**: GCM mode com authTag para integridade
+- **Key Derivation**: PBKDF2 com salt único por secret
+- **Service**: `server/services/security/secrets-vault.ts`
 - **Script**: `scripts/setup-secrets-encryption.ts`
 
 ---
