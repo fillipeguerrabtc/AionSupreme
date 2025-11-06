@@ -1,10 +1,10 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
+modules = ["nodejs-20", "web", "postgresql-16", "python-3.11"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["python311", "tesseract", "ffmpeg", "poppler_utils"]
+packages = ["cargo", "ffmpeg", "libiconv", "poppler_utils", "python311", "rustc", "tesseract"]
 
 [deployment]
 deploymentTarget = "autoscale"
