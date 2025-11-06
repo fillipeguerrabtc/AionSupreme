@@ -18,6 +18,10 @@ interface Translations {
     updateSuccess: string;
     updateError: string;
     refresh: string;
+    active: string;
+    inactive: string;
+    created: string;
+    statusText: string;
     status: {
       ready: string;
       processing: string;
@@ -890,6 +894,75 @@ interface Translations {
       jobCreateError: string;
       nameRequired: string;
       nameRequiredDesc: string;
+    };
+  };
+
+  // Meta-Learning Dashboard
+  meta: {
+    dashboard: {
+      title: string;
+      subtitle: string;
+    };
+    tabs: {
+      algorithms: string;
+      experts: string;
+      improvements: string;
+    };
+    loading: {
+      algorithms: string;
+      experts: string;
+      improvements: string;
+    };
+    empty: {
+      algorithms: string;
+      experts: string;
+      improvements: string;
+    };
+    pipeline: {
+      execute: string;
+      executing: string;
+      executed: string;
+      execution_failed: string;
+      stages_completed: string;
+    };
+    algorithm: {
+      default: string;
+      performance: string;
+      set_as_default: string;
+      default_updated: string;
+    };
+    expert: {
+      accuracy: string;
+      loss: string;
+      samples_processed: string;
+      create: string;
+      creating: string;
+      created: string;
+      spawned_success: string;
+    };
+    improvement: {
+      category: string;
+      severity: string;
+      human_review: string;
+      requires: string;
+      not_requires: string;
+      validate: string;
+      validated: string;
+      validation_success: string;
+      apply: string;
+      applied: string;
+      code_updated: string;
+    };
+    severity: {
+      high: string;
+      medium: string;
+      low: string;
+    };
+    status: {
+      proposed: string;
+      validated: string;
+      applied: string;
+      error: string;
     };
   };
 }

@@ -30,6 +30,7 @@ import { secretsVault } from './security/secrets-vault';
 import { modelDeploymentService } from './model-deployment-service';
 import { quotaTelemetryService } from './quota-telemetry-service';
 import { metaLearningOrchestrator } from '../meta/meta-learning-orchestrator';
+import { logger } from './logger-service';
 
 interface ScheduledJob {
   name: string;
@@ -60,7 +61,7 @@ export class SchedulerService {
       name: 'chat-ingestion',
       schedule: '0 * * * *', // A cada hora
       task: async () => {
-        console.log('\n🤖 [Scheduler] Executando Chat Ingestion...');
+        logger.info('Scheduler: Executando Chat Ingestion');
         await chatIngestionService.runAutoCollection();
       },
       enabled: true,
@@ -73,10 +74,10 @@ export class SchedulerService {
       name: 'dataset-generation',
       schedule: '0 */6 * * *', // 00:00, 06:00, 12:00, 18:00
       task: async () => {
-        console.log('\n📦 [Scheduler] Executando Dataset Generation...');
+        logger.info('Scheduler: Executando Dataset Generation');
         const dataset = await datasetGenerator.generateAutoDataset();
         if (dataset) {
-          console.log(`   ✅ Dataset criado: ${dataset.examplesCount} exemplos`);
+          logger.info(`Dataset criado com ${dataset.examplesCount} exemplos`);
         }
       },
       enabled: true,
@@ -89,7 +90,7 @@ export class SchedulerService {
       name: 'auto-training-trigger',
       schedule: '*/30 * * * *', // :00 e :30 de cada hora
       task: async () => {
-        console.log('\n🔄 [Scheduler] Verificando necessidade de treino...');
+        logger.info('Scheduler: Verificando necessidade de treino');
         // AutoTrainingTrigger tem métodos privados
         // Garantimos que está ativo via init-auto-evolution
         // Este job serve apenas como heartbeat/monitoring
@@ -105,7 +106,7 @@ export class SchedulerService {
       name: 'pattern-analyzer',
       schedule: '0 */2 * * *', // 00:00, 02:00, 04:00, etc
       task: async () => {
-        console.log('\n🔍 [Scheduler] Executando Pattern Analyzer...');
+        logger.info('Scheduler: Executando Pattern Analyzer');
         await patternAnalyzer.feedbackToTrainingCollector();
       },
       enabled: true,
@@ -118,9 +119,9 @@ export class SchedulerService {
       name: 'secrets-cleanup',
       schedule: '0 3 * * *', // 03:00 UTC (00:00 Brasília)
       task: async () => {
-        console.log('\n🔐 [Scheduler] Limpando secrets expirados...');
+        logger.info('Scheduler: Limpando secrets expirados');
         const deleted = await secretsVault.cleanupExpired();
-        console.log(`   ✅ ${deleted} secrets expirados removidos`);
+        logger.info(`${deleted} secrets expirados removidos`);
       },
       enabled: true,
       runCount: 0,
@@ -164,17 +165,17 @@ export class SchedulerService {
       name: 'meta-learning-pipeline',
       schedule: '0 */3 * * *', // 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, 21:00
       task: async () => {
-        console.log('\n🧠 [Scheduler] Executando Meta-Learning Pipeline...');
+        logger.info('Scheduler: Executando Meta-Learning Pipeline');
         const results = await metaLearningOrchestrator.executeFullPipeline();
         const successCount = results.filter(r => r.success).length;
-        console.log(`   ✅ Pipeline completo: ${successCount}/${results.length} stages bem-sucedidos`);
+        logger.info(`Pipeline completo: ${successCount}/${results.length} stages bem-sucedidos`);
       },
       enabled: true,
       runCount: 0,
       errorCount: 0,
     });
 
-    console.log(`[SchedulerService] ✅ ${this.jobs.size} jobs registrados`);
+    logger.info(`SchedulerService: ${this.jobs.size} jobs registrados`);
   }
 
   /**
@@ -182,7 +183,7 @@ export class SchedulerService {
    */
   register(job: ScheduledJob): void {
     this.jobs.set(job.name, job);
-    console.log(`[SchedulerService] 📝 Job registrado: ${job.name} (${job.schedule})`);
+    logger.info(`SchedulerService: Job registrado - ${job.name} (${job.schedule})`);
   }
 
   /**
@@ -190,17 +191,17 @@ export class SchedulerService {
    */
   start(): void {
     if (this.isRunning) {
-      console.warn('[SchedulerService] ⚠️  Já está rodando');
+      logger.warn('SchedulerService já está rodando');
       return;
     }
 
-    console.log('\n╔════════════════════════════════════════════════════════════════╗');
+    logger.info('═══════════════════════════════════════════════════════════════════');
     console.log('║   ⏰ PRODUCTION SCHEDULER SERVICE - INICIANDO...              ║');
-    console.log('╚════════════════════════════════════════════════════════════════╝\n');
+    logger.info('═══════════════════════════════════════════════════════════════════');
 
     for (const [name, jobConfig] of Array.from(this.jobs.entries())) {
       if (!jobConfig.enabled) {
-        console.log(`[${name}] ⏸️  Desabilitado - pulando`);
+        logger.info(`Scheduler: Job ${name} desabilitado`);
         continue;
       }
 
@@ -219,16 +220,16 @@ export class SchedulerService {
         jobConfig.job = cronJob;
         jobConfig.nextRun = this.getNextRun(jobConfig.schedule);
 
-        console.log(`[${name}] ✅ Agendado: ${jobConfig.schedule}`);
+        logger.info(`Scheduler: Job ${name} agendado (${jobConfig.schedule})`);
         console.log(`   → Próxima execução: ${jobConfig.nextRun?.toLocaleString('pt-BR')}`);
 
       } catch (error: any) {
-        console.error(`[${name}] ❌ Falha ao agendar:`, error.message);
+        logger.error(`Falha ao agendar job ${name}`, { error: error.message });
       }
     }
 
     this.isRunning = true;
-    console.log('\n✅ Scheduler Service ATIVO - Todos os jobs agendados!\n');
+    logger.info('Scheduler Service ATIVO - Todos os jobs agendados');
   }
 
   /**
@@ -241,7 +242,7 @@ export class SchedulerService {
     const startTime = Date.now();
 
     try {
-      console.log(`\n⏱️  [${name}] INÍCIO - ${new Date().toISOString()}`);
+      logger.info(`Scheduler: Iniciando job ${name}`, { startTime: new Date().toISOString() });
 
       await job.task();
 
@@ -250,20 +251,20 @@ export class SchedulerService {
       job.lastRun = new Date();
       job.nextRun = this.getNextRun(job.schedule);
 
-      console.log(`✅ [${name}] CONCLUÍDO em ${duration}ms`);
-      console.log(`   → Total de execuções: ${job.runCount}`);
+      logger.info(`Scheduler: Job ${name} concluído`, { duration: `${duration}ms`, runCount: job.runCount });
+       
       console.log(`   → Próxima execução: ${job.nextRun?.toLocaleString('pt-BR')}`);
 
     } catch (error: any) {
       const duration = Date.now() - startTime;
       job.errorCount++;
 
-      console.error(`❌ [${name}] FALHOU após ${duration}ms:`, error.message);
-      console.error(`   → Total de erros: ${job.errorCount}`);
+      logger.error(`Scheduler: Job ${name} falhou`, { duration: `${duration}ms`, error: error.message, errorCount: job.errorCount });
+       
 
       // TODO: Integrar com sistema de alertas (email, Slack, etc)
       if (job.errorCount > 10) {
-        console.error(`⚠️  [${name}] CRÍTICO: Mais de 10 falhas consecutivas! Verificar urgente!`);
+        logger.error(`Scheduler: CRÍTICO - Job ${name} tem mais de 10 falhas consecutivas`, { errorCount: job.errorCount });
       }
     }
   }
@@ -287,17 +288,17 @@ export class SchedulerService {
    * Parar todos os jobs
    */
   stop(): void {
-    console.log('\n[SchedulerService] ⏸️  Parando todos os jobs...');
+    logger.info('SchedulerService: Parando todos os jobs');
 
     for (const [name, job] of Array.from(this.jobs.entries())) {
       if (job.job) {
         job.job.stop();
-        console.log(`   ✓ ${name} parado`);
+        logger.info(`Job ${name} parado`);
       }
     }
 
     this.isRunning = false;
-    console.log('✅ Scheduler Service parado\n');
+    logger.info('Scheduler Service parado');
   }
 
   /**
