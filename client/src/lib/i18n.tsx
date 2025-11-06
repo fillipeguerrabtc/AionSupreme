@@ -403,8 +403,10 @@ interface Translations {
       title: string;
       subtitle: string;
       activeWorkers: string;
+      totalGPUs: string;
       totalRequests: string;
       avgLatency: string;
+      avgLatencyMs: string;
       errorRate: string;
       workersOnline: string;
       requestsProcessed: string;
@@ -413,16 +415,30 @@ interface Translations {
       registeredWorkers: string;
       manageAllGpuWorkers: string;
       provider: string;
+      account: string;
       model: string;
       gpu: string;
       status: string;
       health: string;
+      tempo: string;
       requests: string;
       latency: string;
+      lastUsed: string;
       actions: string;
       healthy: string;
       unhealthy: string;
+      online: string;
+      offline: string;
+      pending: string;
+      addWorker: string;
+      refresh: string;
+      edit: string;
+      delete: string;
       remove: string;
+      loading: string;
+      noWorkers: string;
+      noWorkersDesc: string;
+      confirmDelete: string;
     };
     
     // Federated Training
@@ -1258,8 +1274,10 @@ const translations: Record<Language, Translations> = {
         title: "Gerenciamento de GPUs",
         subtitle: "Gerencie workers de GPU e load balancing",
         activeWorkers: "Workers Ativos",
+        totalGPUs: "Total de GPUs",
         totalRequests: "Total de Requisições",
         avgLatency: "Latência Média",
+        avgLatencyMs: "Latência Média",
         errorRate: "Taxa de Erros",
         workersOnline: "workers online",
         requestsProcessed: "requisições processadas",
@@ -1268,16 +1286,47 @@ const translations: Record<Language, Translations> = {
         registeredWorkers: "Workers Registrados",
         manageAllGpuWorkers: "Gerencie todos os workers de GPU",
         provider: "Provedor",
+        account: "Conta",
         model: "Modelo",
         gpu: "GPU",
         status: "Status",
         health: "Saúde",
+        tempo: "Tempo",
         requests: "Requisições",
         latency: "Latência",
+        lastUsed: "Último Uso",
         actions: "Ações",
         healthy: "Saudável",
         unhealthy: "Não Saudável",
+        online: "Online",
+        offline: "Offline",
+        pending: "Pendente",
+        addWorker: "Adicionar GPU Worker",
+        refresh: "Atualizar",
+        edit: "Editar",
+        delete: "Apagar",
         remove: "Remover",
+        loading: "Carregando GPU workers...",
+        noWorkers: "Nenhum GPU Worker Registrado",
+        noWorkersDesc: "GPU workers aparecerão aqui assim que se registrarem via script Colab/Kaggle.",
+        confirmDelete: "Tem certeza que deseja remover este worker?",
+        toast: {
+          workerRemoved: "GPU Worker Removido",
+          workerRemovedDesc: "O GPU worker foi removido com sucesso do pool.",
+          error: "Erro",
+          errorRemovingWorker: "Falha ao remover GPU worker",
+        },
+        time: {
+          never: "Nunca",
+          na: "N/A",
+          shuttingDown: "Desligando...",
+          secondsAgo: "s atrás",
+          minutesAgo: "m atrás",
+          hoursAgo: "h atrás",
+          hourUnit: "h",
+          minuteUnit: "m",
+          secondUnit: "s",
+        },
       },
       
       federatedTraining: {
@@ -2096,8 +2145,10 @@ const translations: Record<Language, Translations> = {
         title: "GPU Management",
         subtitle: "Manage GPU workers and load balancing",
         activeWorkers: "Active Workers",
+        totalGPUs: "Total GPUs",
         totalRequests: "Total Requests",
         avgLatency: "Avg Latency",
+        avgLatencyMs: "Avg Latency",
         errorRate: "Error Rate",
         workersOnline: "workers online",
         requestsProcessed: "requests processed",
@@ -2106,16 +2157,47 @@ const translations: Record<Language, Translations> = {
         registeredWorkers: "Registered Workers",
         manageAllGpuWorkers: "Manage all GPU workers",
         provider: "Provider",
+        account: "Account",
         model: "Model",
         gpu: "GPU",
         status: "Status",
         health: "Health",
+        tempo: "Time",
         requests: "Requests",
         latency: "Latency",
+        lastUsed: "Last Used",
         actions: "Actions",
         healthy: "Healthy",
         unhealthy: "Unhealthy",
+        online: "Online",
+        offline: "Offline",
+        pending: "Pending",
+        addWorker: "Add GPU Worker",
+        refresh: "Refresh",
+        edit: "Edit",
+        delete: "Delete",
         remove: "Remove",
+        loading: "Loading GPU workers...",
+        noWorkers: "No GPU Workers Registered",
+        noWorkersDesc: "GPU workers will appear here once they register via the Colab/Kaggle script.",
+        confirmDelete: "Are you sure you want to remove this worker?",
+        toast: {
+          workerRemoved: "GPU Worker Removed",
+          workerRemovedDesc: "The GPU worker has been successfully removed from the pool.",
+          error: "Error",
+          errorRemovingWorker: "Failed to remove GPU worker",
+        },
+        time: {
+          never: "Never",
+          na: "N/A",
+          shuttingDown: "Shutting down...",
+          secondsAgo: "s ago",
+          minutesAgo: "m ago",
+          hoursAgo: "h ago",
+          hourUnit: "h",
+          minuteUnit: "m",
+          secondUnit: "s",
+        },
       },
       
       federatedTraining: {
@@ -2934,8 +3016,10 @@ const translations: Record<Language, Translations> = {
         title: "Gestión de GPUs",
         subtitle: "Gestiona workers de GPU y balanceo de carga",
         activeWorkers: "Workers Activos",
+        totalGPUs: "Total de GPUs",
         totalRequests: "Total de Solicitudes",
         avgLatency: "Latencia Media",
+        avgLatencyMs: "Latencia Media",
         errorRate: "Tasa de Errores",
         workersOnline: "workers en línea",
         requestsProcessed: "solicitudes procesadas",
@@ -2944,16 +3028,47 @@ const translations: Record<Language, Translations> = {
         registeredWorkers: "Workers Registrados",
         manageAllGpuWorkers: "Gestiona todos los workers de GPU",
         provider: "Proveedor",
+        account: "Cuenta",
         model: "Modelo",
         gpu: "GPU",
         status: "Estado",
         health: "Salud",
+        tempo: "Tiempo",
         requests: "Solicitudes",
         latency: "Latencia",
+        lastUsed: "Último Uso",
         actions: "Acciones",
         healthy: "Saludable",
         unhealthy: "No Saludable",
+        online: "En Línea",
+        offline: "Fuera de Línea",
+        pending: "Pendiente",
+        addWorker: "Agregar GPU Worker",
+        refresh: "Actualizar",
+        edit: "Editar",
+        delete: "Eliminar",
         remove: "Eliminar",
+        loading: "Cargando workers de GPU...",
+        noWorkers: "No hay Workers de GPU Registrados",
+        noWorkersDesc: "Los workers de GPU aparecerán aquí una vez que se registren a través del script Colab/Kaggle.",
+        confirmDelete: "¿Estás seguro de que deseas eliminar este worker?",
+        toast: {
+          workerRemoved: "GPU Worker Eliminado",
+          workerRemovedDesc: "El GPU worker ha sido eliminado exitosamente del pool.",
+          error: "Error",
+          errorRemovingWorker: "No se pudo eliminar el GPU worker",
+        },
+        time: {
+          never: "Nunca",
+          na: "N/A",
+          shuttingDown: "Apagando...",
+          secondsAgo: "s atrás",
+          minutesAgo: "m atrás",
+          hoursAgo: "h atrás",
+          hourUnit: "h",
+          minuteUnit: "m",
+          secondUnit: "s",
+        },
       },
       
       federatedTraining: {

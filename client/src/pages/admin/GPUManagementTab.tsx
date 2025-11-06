@@ -10,6 +10,7 @@ import { Server, Activity, Trash2, Plus, RefreshCw, Circle, Clock, Pencil } from
 import { formatDateTimeInTimezone } from "@/lib/datetime";
 import { AddWorkerDialog } from "@/components/admin/AddWorkerDialog";
 import { EditWorkerDialog } from "@/components/admin/EditWorkerDialog";
+import { useLanguage } from "@/lib/i18n";
 
 interface GpuWorker {
   id: number;
@@ -50,6 +51,7 @@ interface PoolStats {
 }
 
 export default function GPUManagementTab() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [showAddWorkerDialog, setShowAddWorkerDialog] = useState(false);
   const [editingWorker, setEditingWorker] = useState<GpuWorker | null>(null);
@@ -91,14 +93,14 @@ export default function GPUManagementTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/status"] });
       toast({
-        title: "GPU Worker Removed",
-        description: "The GPU worker has been successfully removed from the pool.",
+        title: t.admin.gpuManagement.toast.workerRemoved,
+        description: t.admin.gpuManagement.toast.workerRemovedDesc,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to remove GPU worker",
+        title: t.admin.gpuManagement.toast.error,
+        description: error.message || t.admin.gpuManagement.toast.errorRemovingWorker,
         variant: "destructive",
       });
     },
@@ -111,35 +113,35 @@ export default function GPUManagementTab() {
         return (
           <Badge className="bg-green-500/20 text-green-300 border-green-500/50" data-testid={`status-healthy`}>
             <Circle className="w-2 h-2 mr-1 fill-current" />
-            {status === "online" ? "Online" : "Healthy"}
+            {status === "online" ? t.admin.gpuManagement.online : t.admin.gpuManagement.healthy}
           </Badge>
         );
       case "unhealthy":
         return (
           <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50" data-testid={`status-unhealthy`}>
             <Circle className="w-2 h-2 mr-1 fill-current" />
-            Unhealthy
+            {t.admin.gpuManagement.unhealthy}
           </Badge>
         );
       case "offline":
         return (
           <Badge className="bg-red-500/20 text-red-300 border-red-500/50" data-testid={`status-offline`}>
             <Circle className="w-2 h-2 mr-1 fill-current" />
-            Offline
+            {t.admin.gpuManagement.offline}
           </Badge>
         );
       case "pending":
         return (
           <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/50" data-testid={`status-pending`}>
             <Circle className="w-2 h-2 mr-1 fill-current" />
-            Pending
+            {t.admin.gpuManagement.pending}
           </Badge>
         );
     }
   };
 
   const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "Never";
+    if (!dateStr) return t.admin.gpuManagement.time.never;
     const date = new Date(dateStr);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
@@ -147,20 +149,20 @@ export default function GPUManagementTab() {
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
 
-    if (seconds < 60) return `${seconds}s ago`;
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
+    if (seconds < 60) return `${seconds}${t.admin.gpuManagement.time.secondsAgo}`;
+    if (minutes < 60) return `${minutes}${t.admin.gpuManagement.time.minutesAgo}`;
+    if (hours < 24) return `${hours}${t.admin.gpuManagement.time.hoursAgo}`;
     return formatDateTimeInTimezone(dateStr, timezone, { format: 'short' });
   };
 
   // Countdown timer component (real-time updates)
   const TimeRemaining = ({ worker }: { worker: GpuWorker }) => {
-    const [timeLeft, setTimeLeft] = useState<string>("N/A");
+    const [timeLeft, setTimeLeft] = useState<string>(t.admin.gpuManagement.time.na);
 
     useEffect(() => {
       const updateTimer = () => {
         if (worker.status === "offline" || worker.status === "pending") {
-          setTimeLeft("N/A");
+          setTimeLeft(t.admin.gpuManagement.time.na);
           return;
         }
 
@@ -169,7 +171,7 @@ export default function GPUManagementTab() {
         const sessionStart = metadata?.sessionStart;
 
         if (!maxSessionHours) {
-          setTimeLeft("N/A");
+          setTimeLeft(t.admin.gpuManagement.time.na);
           return;
         }
 
@@ -180,7 +182,7 @@ export default function GPUManagementTab() {
         const remaining = shutdownTime - now;
 
         if (remaining <= 0) {
-          setTimeLeft("Shutting down...");
+          setTimeLeft(t.admin.gpuManagement.time.shuttingDown);
           return;
         }
 
@@ -189,11 +191,11 @@ export default function GPUManagementTab() {
         const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
 
         if (hours > 0) {
-          setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+          setTimeLeft(`${hours}${t.admin.gpuManagement.time.hourUnit} ${minutes}${t.admin.gpuManagement.time.minuteUnit} ${seconds}${t.admin.gpuManagement.time.secondUnit}`);
         } else if (minutes > 0) {
-          setTimeLeft(`${minutes}m ${seconds}s`);
+          setTimeLeft(`${minutes}${t.admin.gpuManagement.time.minuteUnit} ${seconds}${t.admin.gpuManagement.time.secondUnit}`);
         } else {
-          setTimeLeft(`${seconds}s`);
+          setTimeLeft(`${seconds}${t.admin.gpuManagement.time.secondUnit}`);
         }
       };
 
@@ -211,42 +213,42 @@ export default function GPUManagementTab() {
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total GPUs</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.totalGPUs}</CardTitle>
             <div className="text-2xl font-bold gradient-text">{stats.total}</div>
           </CardHeader>
         </Card>
 
         <Card className="glass-premium border-green-500/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Healthy</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.healthy}</CardTitle>
             <div className="text-2xl font-bold text-green-400">{stats.healthy}</div>
           </CardHeader>
         </Card>
 
         <Card className="glass-premium border-yellow-500/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Unhealthy</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.unhealthy}</CardTitle>
             <div className="text-2xl font-bold text-yellow-400">{stats.unhealthy}</div>
           </CardHeader>
         </Card>
 
         <Card className="glass-premium border-red-500/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Offline</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.offline}</CardTitle>
             <div className="text-2xl font-bold text-red-400">{stats.offline}</div>
           </CardHeader>
         </Card>
 
         <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Requests</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.totalRequests}</CardTitle>
             <div className="text-2xl font-bold gradient-text">{stats.totalRequests.toLocaleString()}</div>
           </CardHeader>
         </Card>
 
         <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Avg Latency</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.avgLatencyMs}</CardTitle>
             <div className="text-2xl font-bold gradient-text">{stats.averageLatencyMs.toFixed(0)}ms</div>
           </CardHeader>
         </Card>
@@ -258,7 +260,7 @@ export default function GPUManagementTab() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Server className="w-5 h-5" />
-              GPU Workers
+              {t.admin.gpuManagement.registeredWorkers}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Button
@@ -268,7 +270,7 @@ export default function GPUManagementTab() {
                 data-testid="button-add-worker"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Worker
+                {t.admin.gpuManagement.addWorker}
               </Button>
               <Button
                 variant="outline"
@@ -277,21 +279,21 @@ export default function GPUManagementTab() {
                 data-testid="button-refresh-gpus"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
+                {t.admin.gpuManagement.refresh}
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading GPU workers...</div>
+            <div className="text-center py-8 text-muted-foreground">{t.admin.gpuManagement.loading}</div>
           ) : workers.length === 0 ? (
             <div className="text-center py-8 space-y-4">
               <Server className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
               <div>
-                <p className="text-muted-foreground font-medium">No GPU Workers Registered</p>
+                <p className="text-muted-foreground font-medium">{t.admin.gpuManagement.noWorkers}</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  GPU workers will appear here once they register via the Colab/Kaggle script.
+                  {t.admin.gpuManagement.noWorkersDesc}
                 </p>
               </div>
             </div>
@@ -300,21 +302,21 @@ export default function GPUManagementTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead>Model</TableHead>
-                    <TableHead>GPU</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>{t.admin.gpuManagement.provider}</TableHead>
+                    <TableHead>{t.admin.gpuManagement.account}</TableHead>
+                    <TableHead>{t.admin.gpuManagement.model}</TableHead>
+                    <TableHead>{t.admin.gpuManagement.gpu}</TableHead>
+                    <TableHead>{t.admin.gpuManagement.status}</TableHead>
                     <TableHead>
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        Tempo
+                        {t.admin.gpuManagement.tempo}
                       </div>
                     </TableHead>
-                    <TableHead>Requests</TableHead>
-                    <TableHead>Avg Latency</TableHead>
-                    <TableHead>Last Used</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>{t.admin.gpuManagement.requests}</TableHead>
+                    <TableHead>{t.admin.gpuManagement.avgLatency}</TableHead>
+                    <TableHead>{t.admin.gpuManagement.lastUsed}</TableHead>
+                    <TableHead>{t.admin.gpuManagement.actions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -380,7 +382,7 @@ export default function GPUManagementTab() {
         <EditWorkerDialog
           worker={editingWorker}
           open={!!editingWorker}
-          onOpenChange={(open) => !open && setEditingWorker(null)}
+          onOpenChange={(open: boolean) => !open && setEditingWorker(null)}
         />
       )}
     </div>

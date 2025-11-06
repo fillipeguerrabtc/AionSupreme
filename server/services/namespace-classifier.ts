@@ -289,8 +289,8 @@ ${namespaceList || 'Nenhum namespace existe ainda'}
       // 3. Combinar métricas
       const overallSimilarity = Math.max(nameSimilarity, wordSimilarity);
 
-      // Considerar similar se >60% similarity
-      if (overallSimilarity >= 60) {
+      // Considerar similar se >80% similarity (consolidação inteligente)
+      if (overallSimilarity >= 80) {
         similar.push({
           namespace: existing.name,
           similarity: Math.round(overallSimilarity),
