@@ -2083,3 +2083,435 @@ export const insertSecretSchema = createInsertSchema(secretsVault).omit({
 });
 export type InsertSecret = z.infer<typeof insertSecretSchema>;
 export type Secret = typeof secretsVault.$inferSelect;
+
+// ============================================================================
+// META-LEARNING SYSTEM - Autonomous Learning & Self-Improvement
+// Based on TMLR 2025: Metalearning Continual Learning Algorithms
+// Paper: arXiv:2312.00276
+// ============================================================================
+
+/**
+ * Learning Algorithms - Self-discovered learning algorithms by the AI
+ * The AI learns its own learning algorithms through meta-learning
+ */
+export const learningAlgorithms = pgTable("learning_algorithms", {
+  id: serial("id").primaryKey(),
+  
+  // Algorithm identification
+  name: varchar("name", { length: 255 }).notNull(),
+  version: varchar("version", { length: 50 }).notNull().default("1.0.0"),
+  
+  // Algorithm specification (self-referential network parameters)
+  algorithmType: varchar("algorithm_type", { length: 50 }).notNull(), // "continual" | "few_shot" | "domain_adaptation" | "transfer"
+  parameters: jsonb("parameters").notNull().$type<{
+    learning_rate_schedule?: any;
+    regularization_strategy?: any;
+    memory_management?: any;
+    plasticity_control?: any;
+    custom_rules?: any; // AI-generated custom optimization rules
+  }>(),
+  
+  // Self-referential neural network architecture
+  architecture: jsonb("architecture").notNull().$type<{
+    layers: number;
+    hidden_size: number;
+    attention_heads?: number;
+    custom_modules?: any[];
+  }>(),
+  
+  // Performance metrics
+  avgAccuracy: real("avg_accuracy").notNull().default(0),
+  avgLoss: real("avg_loss").notNull().default(0),
+  catastrophicForgettingScore: real("catastrophic_forgetting_score").notNull().default(0), // 0-1, lower is better
+  adaptationSpeed: real("adaptation_speed").notNull().default(0), // Tasks/hour
+  
+  // Task distribution it was learned on
+  taskDistribution: jsonb("task_distribution").$type<{
+    domains: string[];
+    num_tasks: number;
+    data_characteristics: any;
+  }>(),
+  
+  // Usage statistics
+  timesApplied: integer("times_applied").notNull().default(0),
+  successRate: real("success_rate").notNull().default(0), // 0-1
+  
+  // Status
+  isActive: boolean("is_active").notNull().default(true),
+  isDefault: boolean("is_default").notNull().default(false), // Default algorithm for new tasks
+  
+  // Metadata
+  discoveredBy: varchar("discovered_by", { length: 50 }).notNull().default("meta_learner"), // "meta_learner" | "human" | "hybrid"
+  notes: text("notes"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  nameVersionIdx: index("learning_algorithms_name_version_idx").on(table.name, table.version),
+  isActiveIdx: index("learning_algorithms_is_active_idx").on(table.isActive),
+  successRateIdx: index("learning_algorithms_success_rate_idx").on(table.successRate),
+}));
+
+export const insertLearningAlgorithmSchema = createInsertSchema(learningAlgorithms).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertLearningAlgorithm = z.infer<typeof insertLearningAlgorithmSchema>;
+export type LearningAlgorithm = typeof learningAlgorithms.$inferSelect;
+
+/**
+ * Meta Performance Metrics - Track performance of learned algorithms
+ * Enables comparison and selection of best algorithms
+ */
+export const metaPerformanceMetrics = pgTable("meta_performance_metrics", {
+  id: serial("id").primaryKey(),
+  
+  algorithmId: integer("algorithm_id").notNull().references(() => learningAlgorithms.id, { onDelete: 'cascade' }),
+  trainingJobId: integer("training_job_id").references(() => trainingJobs.id),
+  
+  // Performance data
+  taskName: varchar("task_name", { length: 255 }).notNull(),
+  domain: varchar("domain", { length: 100 }),
+  
+  // Metrics
+  accuracy: real("accuracy").notNull(),
+  loss: real("loss").notNull(),
+  f1Score: real("f1_score"),
+  perplexity: real("perplexity"),
+  
+  // Continual learning specific
+  forwardTransfer: real("forward_transfer"), // Improvement on new tasks due to old knowledge
+  backwardTransfer: real("backward_transfer"), // Retention of old tasks after learning new ones
+  forgettingMeasure: real("forgetting_measure"), // Catastrophic forgetting quantification
+  
+  // Efficiency
+  trainingTime: integer("training_time"), // seconds
+  samplesUsed: integer("samples_used"),
+  convergenceSteps: integer("convergence_steps"),
+  
+  // Comparison to baseline
+  baselineAlgorithm: varchar("baseline_algorithm", { length: 255 }),
+  improvementOverBaseline: real("improvement_over_baseline"), // Percentage
+  
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => ({
+  algorithmIdIdx: index("meta_performance_algorithm_id_idx").on(table.algorithmId),
+  taskNameIdx: index("meta_performance_task_name_idx").on(table.taskName),
+  timestampIdx: index("meta_performance_timestamp_idx").on(table.timestamp),
+}));
+
+export const insertMetaPerformanceMetricSchema = createInsertSchema(metaPerformanceMetrics).omit({ 
+  id: true, 
+  timestamp: true 
+});
+export type InsertMetaPerformanceMetric = z.infer<typeof insertMetaPerformanceMetricSchema>;
+export type MetaPerformanceMetric = typeof metaPerformanceMetrics.$inferSelect;
+
+// ============================================================================
+// ADAPTIVE MIXTURE OF EXPERTS (ShiftEx)
+// Based on June 2025 paper: "Shift Happens: MoE Continual Adaptation in FL"
+// ============================================================================
+
+/**
+ * MoE Experts - Dynamic experts spawned/consolidated by ShiftEx
+ * Experts specialize in different data distributions/domains
+ */
+export const moeExperts = pgTable("moe_experts", {
+  id: serial("id").primaryKey(),
+  
+  // Expert identification
+  name: varchar("name", { length: 255 }).notNull(),
+  expertType: varchar("expert_type", { length: 50 }).notNull(), // "domain_specialist" | "general" | "temporal" | "task_specific"
+  
+  // Specialization
+  domain: varchar("domain", { length: 100 }),
+  namespace: varchar("namespace", { length: 255 }),
+  dataDistribution: jsonb("data_distribution").$type<{
+    mean_embedding?: number[];
+    covariance_summary?: any;
+    characteristic_samples?: string[];
+  }>(),
+  
+  // Expert parameters (LoRA-style lightweight)
+  parameters: jsonb("parameters").notNull().$type<{
+    lora_rank: number;
+    adapter_alpha: number;
+    modules_to_save?: string[];
+    custom_config?: any;
+  }>(),
+  
+  // Model weights location
+  weightsPath: text("weights_path"), // S3/storage path
+  weightsChecksum: varchar("weights_checksum", { length: 64 }),
+  
+  // Performance tracking
+  avgAccuracy: real("avg_accuracy").notNull().default(0),
+  avgLoss: real("avg_loss").notNull().default(0),
+  numSamplesProcessed: integer("num_samples_processed").notNull().default(0),
+  
+  // Expert lifecycle
+  spawnedFrom: integer("spawned_from").references(() => moeExperts.id), // Parent expert ID
+  spawnReason: varchar("spawn_reason", { length: 100 }), // "shift_detected" | "specialization" | "consolidation"
+  
+  // MMD (Maximum Mean Discrepancy) tracking for shift detection
+  lastMMDScore: real("last_mmd_score"), // Distance to nearest expert
+  shiftDetectionThreshold: real("shift_detection_threshold").notNull().default(0.1),
+  
+  // Facility location optimization
+  creationCost: real("creation_cost").notNull().default(0), // Cost to spawn this expert
+  maintenanceCost: real("maintenance_cost").notNull().default(0), // Cost to keep active
+  
+  // Consolidation tracking
+  consolidatedInto: integer("consolidated_into").references(() => moeExperts.id), // If merged
+  consolidatedAt: timestamp("consolidated_at"),
+  
+  // Status
+  isActive: boolean("is_active").notNull().default(true),
+  usageCount: integer("usage_count").notNull().default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  domainIdx: index("moe_experts_domain_idx").on(table.domain),
+  expertTypeIdx: index("moe_experts_expert_type_idx").on(table.expertType),
+  isActiveIdx: index("moe_experts_is_active_idx").on(table.isActive),
+  namespaceIdx: index("moe_experts_namespace_idx").on(table.namespace),
+}));
+
+export const insertMoeExpertSchema = createInsertSchema(moeExperts).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertMoeExpert = z.infer<typeof insertMoeExpertSchema>;
+export type MoeExpert = typeof moeExperts.$inferSelect;
+
+/**
+ * Expert Performance - Granular tracking of expert performance over time
+ * Enables dynamic routing and expert selection
+ */
+export const expertPerformance = pgTable("expert_performance", {
+  id: serial("id").primaryKey(),
+  
+  expertId: integer("expert_id").notNull().references(() => moeExperts.id, { onDelete: 'cascade' }),
+  
+  // Context
+  taskName: varchar("task_name", { length: 255 }),
+  domain: varchar("domain", { length: 100 }),
+  dataCharacteristics: jsonb("data_characteristics").$type<{
+    input_distribution?: any;
+    label_distribution?: any;
+  }>(),
+  
+  // Performance metrics
+  accuracy: real("accuracy").notNull(),
+  loss: real("loss").notNull(),
+  latencyMs: integer("latency_ms"),
+  
+  // Expert selection
+  gatingScore: real("gating_score"), // Score from gating network (0-1)
+  wasSelected: boolean("was_selected").notNull(),
+  
+  // Energy-based filtering (PM-MoE)
+  energyScore: real("energy_score"), // Lower = better quality expert
+  passedEnergyFilter: boolean("passed_energy_filter"),
+  
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => ({
+  expertIdIdx: index("expert_performance_expert_id_idx").on(table.expertId),
+  timestampIdx: index("expert_performance_timestamp_idx").on(table.timestamp),
+  wasSelectedIdx: index("expert_performance_was_selected_idx").on(table.wasSelected),
+}));
+
+export const insertExpertPerformanceSchema = createInsertSchema(expertPerformance).omit({ 
+  id: true, 
+  timestamp: true 
+});
+export type InsertExpertPerformance = z.infer<typeof insertExpertPerformanceSchema>;
+export type ExpertPerformance = typeof expertPerformance.$inferSelect;
+
+/**
+ * Data Shifts - Detection of distribution shifts in incoming data
+ * Triggers expert spawning in ShiftEx
+ */
+export const dataShifts = pgTable("data_shifts", {
+  id: serial("id").primaryKey(),
+  
+  // Shift detection
+  shiftType: varchar("shift_type", { length: 50 }).notNull(), // "covariate" | "label" | "concept" | "temporal"
+  mmdScore: real("mmd_score").notNull(), // Maximum Mean Discrepancy
+  threshold: real("threshold").notNull(),
+  isSignificant: boolean("is_significant").notNull(), // mmdScore > threshold
+  
+  // Context
+  sourceDistribution: jsonb("source_distribution").$type<{
+    mean?: number[];
+    variance?: number[];
+    domain?: string;
+  }>(),
+  targetDistribution: jsonb("target_distribution").$type<{
+    mean?: number[];
+    variance?: number[];
+    domain?: string;
+  }>(),
+  
+  // Response
+  actionTaken: varchar("action_taken", { length: 100 }), // "spawn_expert" | "reuse_expert" | "consolidate" | "none"
+  expertSpawned: integer("expert_spawned").references(() => moeExperts.id),
+  expertReused: integer("expert_reused").references(() => moeExperts.id),
+  
+  // Metadata
+  namespace: varchar("namespace", { length: 255 }),
+  trainingJobId: integer("training_job_id").references(() => trainingJobs.id),
+  
+  detectedAt: timestamp("detected_at").notNull().defaultNow(),
+}, (table) => ({
+  isSignificantIdx: index("data_shifts_is_significant_idx").on(table.isSignificant),
+  shiftTypeIdx: index("data_shifts_shift_type_idx").on(table.shiftType),
+  detectedAtIdx: index("data_shifts_detected_at_idx").on(table.detectedAt),
+}));
+
+export const insertDataShiftSchema = createInsertSchema(dataShifts).omit({ 
+  id: true, 
+  detectedAt: true 
+});
+export type InsertDataShift = z.infer<typeof insertDataShiftSchema>;
+export type DataShift = typeof dataShifts.$inferSelect;
+
+// ============================================================================
+// RECURSIVE SELF-IMPROVEMENT
+// AI analyzes, suggests, validates, and applies code improvements autonomously
+// ============================================================================
+
+/**
+ * Self Improvements - Log of autonomous code improvements
+ * The AI improves its own codebase
+ */
+export const selfImprovements = pgTable("self_improvements", {
+  id: serial("id").primaryKey(),
+  
+  // Improvement identification
+  title: varchar("title", { length: 255 }).notNull(),
+  category: varchar("category", { length: 100 }).notNull(), // "performance" | "bug_fix" | "feature" | "refactor" | "optimization"
+  severity: varchar("severity", { length: 50 }).notNull().default("medium"), // "critical" | "high" | "medium" | "low"
+  
+  // Analysis
+  problemDescription: text("problem_description").notNull(),
+  rootCause: text("root_cause"),
+  impactAnalysis: jsonb("impact_analysis").$type<{
+    affected_modules: string[];
+    estimated_improvement: string;
+    risks: string[];
+  }>(),
+  
+  // Proposed solution
+  proposedChanges: jsonb("proposed_changes").notNull().$type<{
+    files_to_modify: Array<{
+      path: string;
+      changes: string;
+      diff?: string;
+    }>;
+    new_files?: Array<{
+      path: string;
+      content: string;
+    }>;
+    tests_to_add?: string[];
+  }>(),
+  
+  // Validation
+  validationStatus: varchar("validation_status", { length: 50 }).notNull().default("pending"), // "pending" | "passed" | "failed" | "skipped"
+  validationResults: jsonb("validation_results").$type<{
+    tests_passed?: number;
+    tests_failed?: number;
+    coverage_change?: number;
+    performance_impact?: any;
+    errors?: string[];
+  }>(),
+  
+  // Application
+  applicationStatus: varchar("application_status", { length: 50 }).notNull().default("proposed"), // "proposed" | "applied" | "rejected" | "rolled_back"
+  appliedAt: timestamp("applied_at"),
+  appliedBy: varchar("applied_by", { length: 50 }), // "autonomous" | "human_approved" | "hybrid"
+  
+  // Rollback capability
+  rollbackData: jsonb("rollback_data").$type<{
+    original_code: any;
+    rollback_script?: string;
+  }>(),
+  rolledBackAt: timestamp("rolled_back_at"),
+  rollbackReason: text("rollback_reason"),
+  
+  // Metrics
+  performanceBeforeAfter: jsonb("performance_before_after").$type<{
+    before: any;
+    after: any;
+    improvement_percentage?: number;
+  }>(),
+  
+  // Human review
+  requiresHumanReview: boolean("requires_human_review").notNull().default(false),
+  reviewedBy: varchar("reviewed_by", { length: 255 }),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNotes: text("review_notes"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  categoryIdx: index("self_improvements_category_idx").on(table.category),
+  validationStatusIdx: index("self_improvements_validation_status_idx").on(table.validationStatus),
+  applicationStatusIdx: index("self_improvements_application_status_idx").on(table.applicationStatus),
+  requiresReviewIdx: index("self_improvements_requires_review_idx").on(table.requiresHumanReview),
+}));
+
+export const insertSelfImprovementSchema = createInsertSchema(selfImprovements).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertSelfImprovement = z.infer<typeof insertSelfImprovementSchema>;
+export type SelfImprovement = typeof selfImprovements.$inferSelect;
+
+/**
+ * Improvement Validations - Detailed validation logs for self-improvements
+ * Tracks test results, performance benchmarks, and safety checks
+ */
+export const improvementValidations = pgTable("improvement_validations", {
+  id: serial("id").primaryKey(),
+  
+  improvementId: integer("improvement_id").notNull().references(() => selfImprovements.id, { onDelete: 'cascade' }),
+  
+  // Validation type
+  validationType: varchar("validation_type", { length: 50 }).notNull(), // "unit_test" | "integration_test" | "e2e_test" | "performance_benchmark" | "security_scan"
+  
+  // Results
+  passed: boolean("passed").notNull(),
+  score: real("score"), // 0-100 score
+  
+  // Details
+  testName: varchar("test_name", { length: 255 }),
+  output: text("output"),
+  errors: jsonb("errors").$type<string[]>(),
+  
+  // Performance
+  executionTimeMs: integer("execution_time_ms"),
+  
+  // Comparison
+  baselineValue: real("baseline_value"),
+  newValue: real("new_value"),
+  improvementPercentage: real("improvement_percentage"),
+  
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+}, (table) => ({
+  improvementIdIdx: index("improvement_validations_improvement_id_idx").on(table.improvementId),
+  validationTypeIdx: index("improvement_validations_validation_type_idx").on(table.validationType),
+  passedIdx: index("improvement_validations_passed_idx").on(table.passed),
+}));
+
+export const insertImprovementValidationSchema = createInsertSchema(improvementValidations).omit({ 
+  id: true, 
+  timestamp: true 
+});
+export type InsertImprovementValidation = z.infer<typeof insertImprovementValidationSchema>;
+export type ImprovementValidation = typeof improvementValidations.$inferSelect;

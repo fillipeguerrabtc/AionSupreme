@@ -56,6 +56,7 @@ import { registerQueryMetricsRoutes } from "./routes/query-metrics";
 import { registerTelemetryRoutes } from "./routes/telemetry";
 import { registerUserRoutes } from "./routes/users";
 import { registerPermissionsRoutes } from "./routes/permissions";
+import { registerMetaLearningRoutes } from "./routes/meta-learning";
 
 const upload = multer({ 
   dest: "/tmp/uploads/",
@@ -132,6 +133,9 @@ export function registerRoutes(app: Express): Server {
   
   // Registrar rotas do Vision System (compreensão multimodal de imagens)
   registerVisionRoutes(adminSubRouter);
+  
+  // Registrar rotas de Meta-Learning (autonomous learning system)
+  registerMetaLearningRoutes(adminSubRouter);
   
   // Registrar rotas de KB Images (busca semântica de imagens na base de conhecimento)
   registerKbImagesRoutes(adminSubRouter);
