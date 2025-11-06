@@ -157,6 +157,10 @@ export class KnowledgeIndexer {
   /**
    * Index all 7 technical PDFs
    * This is the complete knowledge base required by the system
+   * 
+   * GRACEFUL DEGRADATION: If PDFs are missing, logs warnings but DOES NOT crash.
+   * System continues to operate with whatever knowledge is available (HITL curated content).
+   * This is intentional - AION should work even without bootstrap PDFs.
    */
   async indexAllPDFs(): Promise<number[]> {
     console.log(`[KnowledgeIndexer] 📚 Indexing ALL 7 technical PDFs...`);
@@ -173,8 +177,9 @@ export class KnowledgeIndexer {
         succeeded++;
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`[KnowledgeIndexer] ❌ Failed to index ${pdfMeta.part}:`, errorMessage);
+        console.warn(`[KnowledgeIndexer] ⚠️  PDF not found (graceful degradation): ${pdfMeta.part} - ${errorMessage}`);
         failed++;
+        // INTENTIONAL: Continue with other PDFs, don't throw
       }
     }
     

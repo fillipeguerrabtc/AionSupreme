@@ -80,10 +80,17 @@ export function initAutoEvolution(): void {
   // COMPONENTE 9: Pattern Analyzer (Autonomous Learning Loop)
   console.log("🔍 [9/9] Pattern Analyzer - Autonomous Learning Loop...");
   const PATTERN_ANALYSIS_INTERVAL = 2 * 60 * 60 * 1000; // 2 horas
-  setInterval(async () => {
+  const patternAnalyzerInterval = setInterval(async () => {
     console.log("\n[PatternAnalyzer] 🤖 Executando análise automática de padrões...");
     await patternAnalyzer.feedbackToTrainingCollector();
   }, PATTERN_ANALYSIS_INTERVAL);
+  
+  // Store interval ID for proper cleanup (prevent memory leak)
+  if (!(global as any).__aion_intervals) {
+    (global as any).__aion_intervals = [];
+  }
+  (global as any).__aion_intervals.push(patternAnalyzerInterval);
+  
   console.log("   ✅ ATIVO - Análise de padrões de uso (intervalo: 2h)");
   console.log("   → Feedback loop: Telemetria → Insights → Training Data\n");
 
@@ -138,6 +145,15 @@ export function stopAutoEvolution(): void {
   autoTrainingTrigger.setEnabled(false);
   agentContinuousLearning.stop();
   gradientAggregationCoordinator.stop();
+  
+  // Clear all stored intervals (prevent memory leaks)
+  if ((global as any).__aion_intervals) {
+    for (const intervalId of (global as any).__aion_intervals) {
+      clearInterval(intervalId);
+    }
+    (global as any).__aion_intervals = [];
+    console.log("✅ Todos os intervalos limpos (memory leak prevention)");
+  }
   
   console.log("✅ Sistema de auto-evolução parado\n");
 }

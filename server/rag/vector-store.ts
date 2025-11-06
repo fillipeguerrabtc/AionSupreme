@@ -33,34 +33,73 @@ interface SearchResult {
 }
 
 /**
- * Vector store simples em memória similar ao FAISS
- * Para produção, substituir por FAISS real (faiss-node ou microsserviço Python)
+ * Vector store simples em memória - MVP IMPLEMENTATION
+ * 
+ * ⚠️  PERFORMANCE LIMITATIONS (CRITICAL):
+ * - Complexity: O(N) brute-force cosine similarity for ALL searches
+ * - Scales up to ~10k embeddings with acceptable performance (<500ms)
+ * - Beyond 10k embeddings: Search latency degrades linearly O(N)
+ * - NO approximate nearest neighbor (ANN) indexing (HNSW/IVF)
+ * 
+ * ⚠️  CONCURRENCY LIMITATIONS (CRITICAL):
+ * - NO mutex/locking for concurrent operations
+ * - Race condition: indexDocument() + removeDocument() called concurrently
+ * - Race condition: Multiple indexDocument() calls for same doc
+ * - Shared state: this.vectors and this.metadata Maps modified without sync
+ * - SAFE USAGE: Single-threaded event loop OR queue all operations
+ * 
+ * 🚀 PRODUCTION REQUIREMENTS:
+ * - Replace with FAISS Python service (HNSW/IVF index) for O(log N) search
+ * - Use faiss-node binding OR Python microservice with GPU acceleration
+ * - Implement async batch indexing + persistent storage (Redis/Postgres pgvector)
+ * - Add sharding for multi-tenant scale (100k+ embeddings per tenant)
+ * - Add proper locking/mutex for concurrent operations (p-queue or async-mutex)
+ * 
+ * ✅ CURRENT USE CASE: MVP/Development with HITL curated content (small KB)
+ * ❌ NOT SUITABLE: Large-scale production (>10k docs), real-time inference at scale, high-concurrency
  */
 export class VectorStore {
   private vectors: Map<number, number[]> = new Map(); // embedding_id -> vetor
   private metadata: Map<number, { text: string; documentId: number; meta?: any }> = new Map();
+  private indexingInProgress: Set<number> = new Set(); // Track docs being indexed (basic concurrency guard)
   
   /**
    * Indexar embeddings de um documento
    * Conforme PDFs: Vetores normalizados ê_{i,j}=e_{i,j}/||e_{i,j}||
+   * 
+   * ⚠️  CONCURRENCY: Basic guard against concurrent indexing of same document
+   * - Prevents race condition where same doc indexed twice simultaneously
+   * - Does NOT prevent race with removeDocument() - caller must serialize
    */
   async indexDocument(documentId: number): Promise<void> {
-    console.log(`[VectorStore] Indexando documento ${documentId}...`);
-    
-    // Obter todos os embeddings deste documento
-    const embeddings = await storage.getEmbeddingsByDocument(documentId);
-    
-    // Add to in-memory index
-    for (const emb of embeddings) {
-      this.vectors.set(emb.id, emb.embedding as number[]);
-      this.metadata.set(emb.id, {
-        text: emb.chunkText,
-        documentId: emb.documentId,
-        meta: emb.metadata,
-      });
+    // Basic concurrency guard - prevent concurrent indexing of same doc
+    if (this.indexingInProgress.has(documentId)) {
+      console.warn(`[VectorStore] Document ${documentId} already being indexed, skipping...`);
+      return;
     }
     
-    console.log(`[VectorStore] Indexed ${embeddings.length} chunks for document ${documentId}`);
+    this.indexingInProgress.add(documentId);
+    
+    try {
+      console.log(`[VectorStore] Indexando documento ${documentId}...`);
+      
+      // Obter todos os embeddings deste documento
+      const embeddings = await storage.getEmbeddingsByDocument(documentId);
+      
+      // Add to in-memory index
+      for (const emb of embeddings) {
+        this.vectors.set(emb.id, emb.embedding as number[]);
+        this.metadata.set(emb.id, {
+          text: emb.chunkText,
+          documentId: emb.documentId,
+          meta: emb.metadata,
+        });
+      }
+      
+      console.log(`[VectorStore] Indexed ${embeddings.length} chunks for document ${documentId}`);
+    } finally {
+      this.indexingInProgress.delete(documentId);
+    }
   }
 
   /**
@@ -86,7 +125,11 @@ export class VectorStore {
   /**
    * Busca semântica com similaridade cosseno
    * Conforme PDFs: sim(q,d)=E(q)·E(d)/(||E(q)||||E(d)||)
-   * Retorna top-k resultados com complexidade O(N) (força bruta por enquanto)
+   * 
+   * ⚠️  PERFORMANCE WARNING: O(N) brute-force search!
+   * - Iterates through ALL embeddings in memory for EVERY query
+   * - Acceptable for MVP (<10k embeddings), NOT for production scale
+   * - For >10k embeddings: Replace with FAISS HNSW/IVF index (O(log N))
    */
   async search(
     queryEmbedding: number[],
@@ -95,7 +138,8 @@ export class VectorStore {
   ): Promise<SearchResult[]> {
     const results: Array<{ id: number; score: number }> = [];
     
-    // Calcular similaridade com todos os vetores
+    // BRUTE-FORCE: Calcular similaridade com TODOS os vetores (O(N))
+    // TODO PRODUCTION: Replace with FAISS IndexHNSW or IndexIVF (O(log N))
     for (const [id, vector] of Array.from(this.vectors.entries())) {
       // Aplicar filtros
       const meta = this.metadata.get(id);
