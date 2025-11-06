@@ -35,7 +35,7 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 ## System Architecture
 
 ### Core System Design
-AION operates in single-tenant mode with a multi-agent architecture and LLM-driven Mixture of Experts (MoE) routing based on intent classification. It includes an automatic fallback system with a 5-level priority chain for responses (KB → GPU → Free APIs → Web → OpenAI) and universal multilingual support. The system supports specialized agents with dedicated knowledge base namespaces, tool access, and budget limits. A Human-in-the-Loop (HITL) knowledge curation system, backed by PostgreSQL, requires human approval for all content before indexing, with a Zero Bypass Policy. A Production-Ready GPU Pool System manages worker detection, heartbeat monitoring, load balancing, inference priority, and schedule-based rotation. A Continuous Self-Evolution System gathers high-quality conversations for instruction tuning and dataset generation, enforcing HITL. Complete Multimodal Processing supports various document types (PDF, DOCX, XLSX, CSV, XML), Images (GPT-4o Vision OCR), Videos (FFmpeg placeholder), YouTube Transcripts, and Deep Web Crawling. The Vision Cascade System provides 5-provider automatic failover with quota tracking. The agent system includes a level-based hierarchy for agents and sub-agents with cascading deletion. Federated Learning is fully implemented with Gradient Aggregation Coordinator and Fault Tolerance. User Management & RBAC provide enterprise-grade user and permission management with a granular permissions system.
+AION operates in single-tenant mode with a multi-agent architecture and LLM-driven Mixture of Experts (MoE) routing based on intent classification. It includes an automatic fallback system with a 5-level priority chain for responses and universal multilingual support. The system supports specialized agents with dedicated knowledge base namespaces, tool access, and budget limits. A Human-in-the-Loop (HITL) knowledge curation system, backed by PostgreSQL, requires human approval for all content before indexing, with a Zero Bypass Policy. A Production-Ready GPU Pool System manages worker detection, heartbeat monitoring, load balancing, inference priority, and schedule-based rotation. A Continuous Self-Evolution System gathers high-quality conversations for instruction tuning and dataset generation, enforcing HITL. Complete Multimodal Processing supports various document types, images, videos, YouTube transcripts, and Deep Web Crawling. The Vision Cascade System provides 5-provider automatic failover with quota tracking. The agent system includes a level-based hierarchy for agents and sub-agents with cascading deletion. Federated Learning is fully implemented with Gradient Aggregation Coordinator and Fault Tolerance. User Management & RBAC provide enterprise-grade user and permission management with a granular permissions system.
 
 ### UI/UX
 The frontend is built with React 18, Vite, Wouter, and TanStack Query, using Radix UI, shadcn/ui patterns, Tailwind CSS, and a custom HSL-based design system. It features an elegant minimalist design with modern glassmorphism. It offers a clean conversational chat interface and an Admin Panel with enterprise-grade side navigation and a complete Internationalization (i18n) system supporting PT-BR (default), EN-US, ES-ES. All administrative pages are translated, including Dataset, Agent, and Curation Queue management. The Curation Queue for HITL review supports filtering and bulk actions. Vision System monitoring displays real-time quota tracking across 5 providers. An AI-powered semantic Image Search and Health Diagnostics are included. The Personality Equalizer in the Settings tab offers granular control via 7 functional sliders.
@@ -44,66 +44,7 @@ The frontend is built with React 18, Vite, Wouter, and TanStack Query, using Rad
 The backend uses Node.js and TypeScript with Express.js and PostgreSQL via Drizzle ORM. Key services include an LLM Client, Storage, Multi-Agent Router (MoE), namespace-scoped RAG, an Agent Engine (ReAct with POMDP), Automatic Fallback, Production-Grade Multimodal Processing, Web Content Discovery, YouTube Transcript Service, Vision Cascade, free LLM Provider rotation, GPU Orchestrator, GPU Pool Manager, GPU Load Balancer, Training Data Collector, Dataset Generator, Auto-Learning System, Token Monitoring, Lifecycle Management, Orphan Detection, Validation (Zod schemas), and a Complete Telemetry System. The frontend implements a centralized i18n system with a `useLanguage()` hook. Authentication uses Replit Auth (OpenID Connect). RAG combines OpenAI embeddings with BM25 for re-ranking. Professional video generation uses an asynchronous job queue, GPU workers, and webhook callbacks. The Automated Namespace Classification System uses GPT-4 for intelligent content analysis. The GPU Pool System manages intelligent quota, auto-shutdown, load balancing, and heartbeat monitoring. Multi-Cloud Deployment uses Google Cloud Run and AWS Fargate. Training data validation includes 8 real-time inline validation types. The Lifecycle Management System applies retention policies. KB Cascade Delete ensures comprehensive data removal.
 
 ### System Design Choices
-Key decisions include a single-tenant architecture, externalized JSON behavioral configurations for dynamic updates. Full observability and telemetry include comprehensive query monitoring (latency, success/error rates, slow query detection), granular hierarchical usage analytics, usage analytics (agent execution tracking, namespace search tracking), a modern dashboard with Recharts visualizations, PostgreSQL trigram indexes for optimized search performance, and 29 production-ready REST endpoints for metrics access.
-
-### Recent Changes (Nov 6, 2025)
-
-**✅ Feature 1 - Simplified Curation UI (COMPLETED):**
-1. **NamespaceClassifier Removed**: Botão "Classify Namespace" removido da interface
-2. **Visual Deduplication Badges**: Ícones lucide-react (AlertCircle/AlertTriangle/CheckCircle) com % similaridade
-3. **Tooltips Explicativos**: Hover states com informações detalhadas sobre duplicação
-4. **Production-Ready**: Sem emojis, i18n completo, zero hardcoded strings
-
-**✅ Feature 2 - Image Deduplication System (COMPLETED):**
-1. **Perceptual Hashing**: dHash (64-bit) via `sharp` library para detecção visual
-2. **ImageDeduplicationService**: Hamming distance + similarity scoring (0-100%)
-3. **Database Schema**: Campos em JSONB attachments (perceptualHash, md5Hash, imageDuplicationStatus, imageSimilarityScore, imageDuplicateOfId)
-4. **API Endpoint**: POST /api/curation/scan-image-duplicates (2 fases: generate hashes → compare & mark)
-5. **Multimodal Support**: Base64 (HITL), URLs remotas HTTP/HTTPS, paths locais filesystem
-6. **Frontend UI**: Botão "Escanear Imagens Duplicadas" + badges visuais nas thumbnails
-7. **Production-Ready**: Error handling robusto, fetch para URLs remotas, fallback para filesystem
-
-**✅ Previous Changes (Nov 5, 2025):**
-- **Chat - Avatar Duplicado**: Corrigido timing issue com guard `&& !streamingChat.isStreaming`
-- **Chat - Crash em Mensagens Undefined**: Adicionado guard na função `renderMessageContent`
-- **Vision System - Erros LSP**: 13 traduções faltantes adicionadas (PT/EN/ES)
-- **Detecção Multilíngue**: System prompts atualizados para resposta automática no idioma do usuário
-- **Verificações**: Timezone (America/Sao_Paulo), Deduplicação KB (1 exact, 5 near, 2 unique), Auto-learning (22 itens), Limpeza (68 imagens órfãs)
-
-### Known Issues & Technical Debt
-
-#### 🚨 CRITICAL: ImageProcessor HITL Bypass (DOCUMENTADO - NÃO CORRIGIDO)
-**File:** `server/learn/image-processor.ts`
-
-**Problem:**
-- ImageProcessor saves images DIRECTLY to filesystem (`attached_assets/learned_images/`) BEFORE human approval
-- Violates Zero Bypass Policy - all content must pass through curation queue
-- Images persist even if parent content is REJECTED in curation
-
-**Root Cause:**
-```
-processImage() → downloadImage() → fs.writeFile() (IMMEDIATE)
-```
-- No integration with curationQueue table
-- No field for storing pending images/attachments
-- No cleanup of orphaned images after rejection
-
-**Impact:**
-- Disk space waste (rejected images not deleted)
-- Privacy/compliance risk (unapproved content stored)
-- Inconsistent HITL enforcement
-
-**Required Solution:**
-1. Add `attachments` JSONB field to `curationQueue` schema
-2. Store images as Base64/buffers or temp URLs in DB
-3. Save to filesystem ONLY after approval
-4. Implement orphan cleanup service for rejected images
-
-**Temporary Workaround:**
-- Manual cleanup via `/api/admin/images` endpoint
-- Monitor `learned_images/` directory size
-
-**Status:** Documented inline in code (Nov 2025), awaiting major refactor
+Key decisions include a single-tenant architecture, externalized JSON behavioral configurations for dynamic updates. Full observability and telemetry include comprehensive query monitoring, granular hierarchical usage analytics, a modern dashboard with Recharts visualizations, PostgreSQL trigram indexes for optimized search performance, and 29 production-ready REST endpoints for metrics access.
 
 ## External Dependencies
 
@@ -139,43 +80,3 @@ processImage() → downloadImage() → fs.writeFile() (IMMEDIATE)
 - **cheerio**: HTML parsing and web scraping
 - **multer**: File upload handling
 - **file-type**: MIME type detection
-
-## Gestão de Arquivos e Assets
-
-### Estrutura de Diretórios
-```
-client/public/system/          # 🛡️ PROTEGIDO - Assets críticos do sistema
-  ├── favicon.png              # Favicon (usado em index.html)
-  ├── aion-logo.png            # Logo principal (usado em AionLogo.tsx)
-  └── cat.gif                  # Avatar do bot no chat (usado em ChatPage.tsx)
-
-attached_assets/
-  ├── learned_images/          # 🛡️ PROTEGIDO - Imagens processadas pelo Vision AI
-  ├── generated_images/        # 🛡️ PROTEGIDO - Logos gerados pelo sistema
-  ├── stock_images/            # Imagens de stock (pode limpar se vazia)
-  └── custom_icons/            # Ícones customizados (pode limpar se vazia)
-
-training/colab/                # 🛡️ PROTEGIDO - Scripts Python para GPU workers
-  ├── AION_ALL_IN_ONE.py       # Script completo de GPU worker
-  ├── COLAB_FINE_TUNING.py     # Script de fine-tuning
-  └── COLAB_INFERENCE_SERVER.py # Script de inference server
-```
-
-### Regras de Limpeza
-**NUNCA DELETAR:**
-- `client/public/system/` - Assets críticos referenciados no código
-- `attached_assets/learned_images/` - Usado por ImageProcessor (server/learn/image-processor.ts)
-- `attached_assets/generated_images/` - Histórico de logos/imagens geradas
-- `training/colab/*.py` - Scripts essenciais para GPU workers
-
-**PODE LIMPAR:**
-- Screenshots temporários: `image_*.png`, `IMG_*.png`, `Logo_*.png`, `Favicon_*.png`
-- Arquivos com timestamp: `*_1762*.png`, `*_1762*.jpeg`
-- GIFs de teste não usados pelo sistema
-- PDFs obsoletos em `docs/pdfs/` (documentação já está em .md)
-- Pastas vazias: `stock_images/`, `custom_icons/`
-
-### Convenção de Uso
-- **Assets do sistema** (favicon, logos, avatares) → `client/public/system/`
-- **Anexos temporários** (screenshots, demos) → `attached_assets/` (limpeza periódica)
-- **Imagens aprendidas** (Vision AI) → `attached_assets/learned_images/` (automático)

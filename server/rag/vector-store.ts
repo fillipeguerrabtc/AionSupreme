@@ -337,24 +337,58 @@ export class RAGService {
       }
     );
     
-    // MULTIMODAL: Fetch attachments from source documents
+    // MULTIMODAL + HEALTHY FORGETTING: Fetch attachments + apply temporal degradation
     const uniqueDocIds = Array.from(new Set(results.map(r => r.documentId)));
     const documentAttachments = new Map<number, any[]>();
+    const documentCreatedAt = new Map<number, Date>();
     
     for (const docId of uniqueDocIds) {
       const doc = await storage.getDocument(docId);
-      if (doc?.attachments && doc.attachments.length > 0) {
-        documentAttachments.set(docId, doc.attachments);
+      if (doc) {
+        if (doc.attachments && doc.attachments.length > 0) {
+          documentAttachments.set(docId, doc.attachments);
+        }
+        if (doc.createdAt) {
+          documentCreatedAt.set(docId, doc.createdAt);
+        }
       }
     }
     
-    // Attach to results
-    const enrichedResults = results.map(result => ({
-      ...result,
-      attachments: documentAttachments.get(result.documentId)
-    }));
+    // HEALTHY FORGETTING: Apply temporal degradation (freshness boost)
+    // Recent documents get higher priority, old documents gradually decay
+    const now = new Date();
+    const AGE_WEIGHT = 0.3; // 30% max degradation
+    const MAX_AGE_DAYS = 1825; // 5 years
     
-    console.log(`[RAG] Search completed: ${results.length} results, ${documentAttachments.size} docs with attachments`);
+    const resultsWithFreshness = results.map(result => {
+      const createdAt = documentCreatedAt.get(result.documentId);
+      let freshnessFactor = 1.0;
+      
+      if (createdAt) {
+        // Normalize to Date instance (handles both Date and ISO string)
+        const createdAtDate = createdAt instanceof Date ? createdAt : new Date(createdAt);
+        
+        // Guard against invalid dates
+        if (!isNaN(createdAtDate.getTime())) {
+          const ageInDays = (now.getTime() - createdAtDate.getTime()) / (1000 * 60 * 60 * 24);
+          const ageRatio = Math.min(ageInDays / MAX_AGE_DAYS, 1); // Cap at 1.0
+          freshnessFactor = 1 - (AGE_WEIGHT * ageRatio);
+        }
+      }
+      
+      return {
+        ...result,
+        attachments: documentAttachments.get(result.documentId),
+        originalScore: result.score,
+        freshnessFactor,
+        score: result.score * freshnessFactor, // Apply temporal decay
+      };
+    });
+    
+    // Re-sort by adjusted score (freshness-aware ranking)
+    const enrichedResults = resultsWithFreshness.sort((a, b) => b.score - a.score);
+    
+    console.log(`[RAG] Search completed: ${results.length} results, ${documentAttachments.size} docs with attachments, freshness applied`);
     
     // Track namespace usage for telemetry
     if (options.namespaces && options.namespaces.length > 0) {
