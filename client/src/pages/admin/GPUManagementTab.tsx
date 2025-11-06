@@ -30,7 +30,7 @@ interface GpuWorker {
       usedHoursThisWeek?: number;
     };
   };
-  status: "healthy" | "unhealthy" | "offline" | "pending";
+  status: "healthy" | "unhealthy" | "offline" | "pending" | "online";
   lastHealthCheck?: string;
   lastHealthCheckError?: string;
   requestCount: number;
@@ -107,10 +107,11 @@ export default function GPUManagementTab() {
   const getStatusBadge = (status: GpuWorker["status"]) => {
     switch (status) {
       case "healthy":
+      case "online": // Treat "online" as "healthy" for display
         return (
           <Badge className="bg-green-500/20 text-green-300 border-green-500/50" data-testid={`status-healthy`}>
             <Circle className="w-2 h-2 mr-1 fill-current" />
-            Healthy
+            {status === "online" ? "Online" : "Healthy"}
           </Badge>
         );
       case "unhealthy":

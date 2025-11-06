@@ -70,6 +70,8 @@ O backend usa Node.js e TypeScript com Express.js e PostgreSQL via Drizzle ORM. 
 
 **PRODUÇÃO-READY (2025-11-06):**
 - **Kaggle CLI Service**: Provisioning automático de binary + bootstrap de credenciais via SecretsVault + 5 endpoints API completos
+- **Colab Orchestrator Service**: Automação Puppeteer para Google Colab (sem API pública) com provisioning lock e session tracking + 3 endpoints API
+- **GPU Management UI**: Interface simplificada com "+ Add Worker" dialog suportando Kaggle (API) e Colab (Puppeteer), edição inline de workers via PATCH /api/gpu/:id
 - **GPU Deletion Service**: CASCADE DELETE completo (sessions, resources, training jobs) com batch operations e cleanup automático de trainingWorkers
 - **Auto-Scaling Service**: Multi-factor dispatcher baseado em métricas reais (latency, load, availability, quota) com 4 scoring factors
 - **Namespace Classifier**: Auto-classification via LLM integrada no pipeline de upload/curation com consolidação inteligente (>80% similarity)
@@ -78,6 +80,12 @@ O backend usa Node.js e TypeScript com Express.js e PostgreSQL via Drizzle ORM. 
 - **Integration Tests**: 100% pass rate (11/11 tests) validando DB, GPU, curation, training, namespaces e data integrity
 
 O frontend implementa sistema i18n centralizado com hook `useLanguage()`. Autenticação usa Replit Auth (OpenID Connect). RAG combina embeddings OpenAI com BM25 para re-ranking. Geração profissional de vídeo usa fila assíncrona de jobs, GPU workers e webhook callbacks. O Sistema de Classificação Automática de Namespaces usa GPT-4 para análise inteligente de conteúdo. O Sistema de Pool de GPU gerencia quota inteligente, auto-desligamento, balanceamento de carga e monitoramento de heartbeat. Implantação Multi-Nuvem usa Google Cloud Run e AWS Fargate. Validação de dados de treinamento inclui 8 tipos de validação inline em tempo real. O Sistema de Lifecycle Management aplica políticas de retenção. KB Cascade Delete garante remoção abrangente de dados.
+
+**⚠️ NOTA DE SEGURANÇA - SECRETS_MASTER_KEY:**
+- SecretsVault requer SECRETS_MASTER_KEY para encryption de credenciais (Kaggle API keys, Google passwords)
+- Em desenvolvimento sem SECRETS_MASTER_KEY, credenciais ficam em plaintext no PostgreSQL
+- **Produção**: SEMPRE configurar SECRETS_MASTER_KEY antes de deployar
+- Usar Google App Passwords ou tokens de curta duração ao invés de senhas reais quando possível
 
 ### Decisões de Design do Sistema
 Decisões-chave incluem arquitetura single-tenant, configurações comportamentais JSON externalizadas para atualizações dinâmicas. Observabilidade e telemetria completas incluem monitoramento abrangente de queries, analytics de uso hierárquico granular, dashboard moderno com visualizações Recharts, índices trigram PostgreSQL para performance otimizada de busca e 29 endpoints REST prontos para produção para acesso a métricas.

@@ -35,6 +35,21 @@ export interface ColabProvisionResult {
 
 export class ColabOrchestrator {
   private browser: Browser | null = null;
+  private provisioningLock: boolean = false;
+  private activeSessions: Map<string, { email: string; startedAt: Date }> = new Map();
+
+  /**
+   * Check if provisioning is already in progress
+   */
+  private checkProvisioningLock(): void {
+    if (this.provisioningLock) {
+      throw new AppError(
+        'COLAB_PROVISIONING_IN_PROGRESS',
+        'Another Colab provisioning is already in progress. Please wait.',
+        { activeSessions: this.activeSessions.size }
+      );
+    }
+  }
 
   /**
    * Initialize headless browser
@@ -214,6 +229,12 @@ app.run(port=5000)
    * Provision new Colab GPU worker
    */
   async provision(options: ColabProvisionOptions): Promise<ColabProvisionResult> {
+    // Check lock to prevent concurrent provisioning
+    this.checkProvisioningLock();
+    
+    this.provisioningLock = true;
+    logger.info(`[ColabOrch] 🔒 Lock adquirido para ${options.credentials.email}`);
+
     const browser = await this.initBrowser();
     const page = await browser.newPage();
 
@@ -242,8 +263,15 @@ app.run(port=5000)
 
       // Generate session ID
       const sessionId = `colab-${Date.now()}`;
+      
+      // Track active session
+      this.activeSessions.set(sessionId, {
+        email: options.credentials.email,
+        startedAt: new Date(),
+      });
 
       logger.info(`[ColabOrch] ✅ Provisionamento concluído: ${notebookUrl}`);
+      logger.info(`[ColabOrch] 📊 Sessões ativas: ${this.activeSessions.size}`);
 
       return {
         notebookUrl,
@@ -261,6 +289,10 @@ app.run(port=5000)
         message: error.message || 'Falha no provisionamento Colab',
       };
     } finally {
+      // Release lock
+      this.provisioningLock = false;
+      logger.info('[ColabOrch] 🔓 Lock liberado');
+      
       // Keep page open to maintain session
       // await page.close(); // Commented: keep alive for GPU session
     }
