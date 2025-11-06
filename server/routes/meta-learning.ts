@@ -566,5 +566,45 @@ export function registerMetaLearningRoutes(app: Express) {
     }
   });
 
-  logger.info("✅ Meta-Learning routes registered (21 endpoints including pipeline)");
+  /**
+   * GET /api/meta/telemetry
+   * Get comprehensive telemetry metrics
+   */
+  app.get("/api/meta/telemetry", requireAdmin, async (_req, res) => {
+    try {
+      const [algorithms, experts, improvements] = await Promise.all([
+        db.select().from(learningAlgorithms),
+        db.select().from(moeExperts),
+        db.select().from(selfImprovements),
+      ]);
+
+      const metrics = {
+        algorithms: {
+          total: algorithms.length,
+          default: algorithms.find(a => a.isDefault)?.name || null,
+        },
+        experts: {
+          total: experts.length,
+          active: experts.filter(e => e.isActive).length,
+          totalSamplesProcessed: experts.reduce((sum, e) => sum + e.samplesProcessed, 0),
+        },
+        improvements: {
+          total: improvements.length,
+          byCategory: {
+            performance: improvements.filter(i => i.category === "performance").length,
+            bug_fix: improvements.filter(i => i.category === "bug_fix").length,
+            optimization: improvements.filter(i => i.category === "optimization").length,
+          },
+        },
+        timestamp: new Date().toISOString(),
+      };
+
+      sendSuccess(res, metrics);
+    } catch (error) {
+      logger.error("❌ Failed to get telemetry metrics", { error });
+      sendServerError(res, error);
+    }
+  });
+
+  logger.info("✅ Meta-Learning routes registered (22 endpoints including pipeline + telemetry)");
 }
