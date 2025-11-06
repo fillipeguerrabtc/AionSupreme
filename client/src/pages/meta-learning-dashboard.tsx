@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Brain, Zap, GitBranch, PlayCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { useLanguage } from "@/lib/i18n";
 
 type LearningAlgorithm = {
   id: string;
@@ -49,6 +50,7 @@ type PipelineExecution = {
 
 export default function MetaLearningDashboard() {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("algorithms");
 
   const { data: algorithms, isLoading: algorithmsLoading } = useQuery<LearningAlgorithm[]>({
@@ -73,8 +75,8 @@ export default function MetaLearningDashboard() {
     onSuccess: (data: PipelineExecution[]) => {
       const successCount = data.filter((r: PipelineExecution) => r.success).length;
       toast({
-        title: "Pipeline Executado",
-        description: `${successCount}/${data.length} estágios completados com sucesso`,
+        title: t("meta.pipeline.executed"),
+        description: t("meta.pipeline.stages_completed", { success: successCount, total: data.length }),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/meta/algorithms"] });
       queryClient.invalidateQueries({ queryKey: ["/api/moe/experts"] });
@@ -82,8 +84,8 @@ export default function MetaLearningDashboard() {
     },
     onError: () => {
       toast({
-        title: "Erro",
-        description: "Falha ao executar pipeline",
+        title: t("common.error"),
+        description: t("meta.pipeline.execution_failed"),
         variant: "destructive",
       });
     },
@@ -97,8 +99,8 @@ export default function MetaLearningDashboard() {
     },
     onSuccess: () => {
       toast({
-        title: "Sucesso",
-        description: "Algoritmo padrão atualizado",
+        title: t("common.success"),
+        description: t("meta.algorithm.default_updated"),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/meta/algorithms"] });
     },
@@ -112,8 +114,8 @@ export default function MetaLearningDashboard() {
     },
     onSuccess: () => {
       toast({
-        title: "Expert Criado",
-        description: "Novo expert foi gerado com sucesso",
+        title: t("meta.expert.created"),
+        description: t("meta.expert.spawned_success"),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/moe/experts"] });
     },
@@ -127,8 +129,8 @@ export default function MetaLearningDashboard() {
     },
     onSuccess: () => {
       toast({
-        title: "Melhoria Validada",
-        description: "Melhoria foi validada com sucesso",
+        title: t("meta.improvement.validated"),
+        description: t("meta.improvement.validation_success"),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/autonomous/improvements"] });
     },
@@ -142,8 +144,8 @@ export default function MetaLearningDashboard() {
     },
     onSuccess: () => {
       toast({
-        title: "Melhoria Aplicada",
-        description: "Código foi atualizado com sucesso",
+        title: t("meta.improvement.applied"),
+        description: t("meta.improvement.code_updated"),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/autonomous/improvements"] });
     },
@@ -154,8 +156,8 @@ export default function MetaLearningDashboard() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold" data-testid="text-meta-learning-title">Meta-Learning Dashboard</h1>
-            <p className="text-muted-foreground">Sistema de aprendizado autônomo e auto-evolução</p>
+            <h1 className="text-3xl font-bold" data-testid="text-meta-learning-title">{t("meta.dashboard.title")}</h1>
+            <p className="text-muted-foreground">{t("meta.dashboard.subtitle")}</p>
           </div>
           <Button
             onClick={() => executePipelineMutation.mutate()}
@@ -163,7 +165,7 @@ export default function MetaLearningDashboard() {
             data-testid="button-execute-pipeline"
           >
             <PlayCircle className="w-4 h-4 mr-2" />
-            {executePipelineMutation.isPending ? "Executando..." : "Executar Pipeline"}
+            {executePipelineMutation.isPending ? t("meta.pipeline.executing") : t("meta.pipeline.execute")}
           </Button>
         </div>
 
@@ -171,15 +173,15 @@ export default function MetaLearningDashboard() {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="algorithms" data-testid="tab-algorithms">
               <Brain className="w-4 h-4 mr-2" />
-              Algoritmos ({algorithms?.length || 0})
+              {t("meta.tabs.algorithms")} ({algorithms?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="experts" data-testid="tab-experts">
               <Zap className="w-4 h-4 mr-2" />
-              Experts ({experts?.length || 0})
+              t("meta.tabs.experts") + " ({experts?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="improvements" data-testid="tab-improvements">
               <GitBranch className="w-4 h-4 mr-2" />
-              Melhorias ({improvements?.length || 0})
+              t("meta.tabs.improvements") + " ({improvements?.length || 0})
             </TabsTrigger>
           </TabsList>
 
@@ -187,7 +189,7 @@ export default function MetaLearningDashboard() {
             {algorithmsLoading ? (
               <Card>
                 <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground">Carregando algoritmos...</p>
+                  <p className="text-center text-muted-foreground">t("meta.loading.algorithms")</p>
                 </CardContent>
               </Card>
             ) : algorithms && algorithms.length > 0 ? (
@@ -203,13 +205,13 @@ export default function MetaLearningDashboard() {
                           <CardDescription>{algo.type}</CardDescription>
                         </div>
                         {algo.isDefault && (
-                          <Badge variant="default" data-testid={`badge-default-${algo.id}`}>Padrão</Badge>
+                          <Badge variant="default" data-testid={`badge-default-${algo.id}`}>t("meta.algorithm.default")</Badge>
                         )}
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Performance</span>
+                        <span className="text-sm text-muted-foreground">t("meta.algorithm.performance")</span>
                         <Badge variant="outline" data-testid={`badge-performance-${algo.id}`}>
                           {(algo.performanceScore * 100).toFixed(1)}%
                         </Badge>
@@ -226,7 +228,7 @@ export default function MetaLearningDashboard() {
                           disabled={setDefaultAlgorithmMutation.isPending}
                           data-testid={`button-set-default-${algo.id}`}
                         >
-                          Definir como Padrão
+                          t("meta.algorithm.set_as_default")
                         </Button>
                       )}
                     </CardContent>
@@ -236,7 +238,7 @@ export default function MetaLearningDashboard() {
             ) : (
               <Card>
                 <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground">Nenhum algoritmo encontrado</p>
+                  <p className="text-center text-muted-foreground">t("meta.empty.algorithms")</p>
                 </CardContent>
               </Card>
             )}
@@ -257,7 +259,7 @@ export default function MetaLearningDashboard() {
             {expertsLoading ? (
               <Card>
                 <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground">Carregando experts...</p>
+                  <p className="text-center text-muted-foreground">t("meta.loading.experts")</p>
                 </CardContent>
               </Card>
             ) : experts && experts.length > 0 ? (
@@ -299,7 +301,7 @@ export default function MetaLearningDashboard() {
             ) : (
               <Card>
                 <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground">Nenhum expert encontrado</p>
+                  <p className="text-center text-muted-foreground">t("meta.empty.experts")</p>
                 </CardContent>
               </Card>
             )}
@@ -309,7 +311,7 @@ export default function MetaLearningDashboard() {
             {improvementsLoading ? (
               <Card>
                 <CardContent className="p-6">
-                  <p className="text-center text-muted-foreground">Carregando melhorias...</p>
+                  <p className="text-center text-muted-foreground">t("meta.loading.improvements")</p>
                 </CardContent>
               </Card>
             ) : improvements && improvements.length > 0 ? (

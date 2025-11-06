@@ -1,0 +1,47 @@
+# TODAS as strings que precisam de tradução no Meta-Learning Dashboard
+
+## Tabs
+- "Experts" → t("meta.tabs.experts")
+- "Melhorias" → t("meta.tabs.improvements")
+
+## Loading states
+- "Carregando algoritmos..." → t("meta.loading.algorithms")
+- "Carregando experts..." → t("meta.loading.experts")
+- "Carregando melhorias..." → t("meta.loading.improvements")
+
+## Empty states
+- "Nenhum algoritmo encontrado" → t("meta.empty.algorithms")
+- "Nenhum expert encontrado" → t("meta.empty.experts")
+- "Nenhuma melhoria encontrada" → t("meta.empty.improvements")
+
+## Algorithm card
+- "Padrão" → t("meta.algorithm.default")
+- "Performance" → t("meta.algorithm.performance")
+- "Criado" → t("common.created")
+- "Definir como Padrão" → t("meta.algorithm.set_as_default")
+
+## Expert card
+- "Ativo" → t("common.active")
+- "Inativo" → t("common.inactive")
+- "Acurácia" → t("meta.expert.accuracy")
+- "Loss" → t("meta.expert.loss")
+- "amostras processadas" → t("meta.expert.samples_processed")
+- "Criando..." → t("meta.expert.creating")
+- "Criar Expert" → t("meta.expert.create")
+
+## Improvement card
+- "Categoria" → t("meta.improvement.category")
+- "Severidade" → t("meta.improvement.severity")  
+- "Status" → t("common.status")
+- "Revisão Humana" → t("meta.improvement.human_review")
+- "Requer" → t("meta.improvement.requires")
+- "Não requer" → t("meta.improvement.not_requires")
+- "alta" → t("meta.severity.high")
+- "média" → t("meta.severity.medium")
+- "baixa" → t("meta.severity.low")
+- "proposto" → t("meta.status.proposed")
+- "validado" → t("meta.status.validated")
+- "aplicado" → t("meta.status.applied")
+- "erro" → t("meta.status.error")
+- "Validar" → t("meta.improvement.validate")
+- "Aplicar" → t("meta.improvement.apply")
