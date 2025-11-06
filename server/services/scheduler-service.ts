@@ -94,7 +94,7 @@ export class SchedulerService {
         // AutoTrainingTrigger tem métodos privados
         // Garantimos que está ativo via init-auto-evolution
         // Este job serve apenas como heartbeat/monitoring
-        console.log('   ✅ Auto-training trigger monitorado');
+        logger.info('Scheduler: Auto-training trigger monitorado');
       },
       enabled: false, // Desabilitado - AutoTrainingTrigger já tem seu próprio loop
       runCount: 0,
@@ -135,7 +135,7 @@ export class SchedulerService {
       task: async () => {
         const deployed = await modelDeploymentService.checkAndDeployCompletedJobs();
         if (deployed > 0) {
-          console.log(`\n🚀 [Auto-Deploy] ✅ ${deployed} modelo(s) deployed automaticamente!`);
+          logger.info(`Scheduler: Auto-Deploy concluído - ${deployed} modelo(s) deployed automaticamente`);
         }
       },
       enabled: true,
@@ -196,7 +196,7 @@ export class SchedulerService {
     }
 
     logger.info('═══════════════════════════════════════════════════════════════════');
-    console.log('║   ⏰ PRODUCTION SCHEDULER SERVICE - INICIANDO...              ║');
+    logger.info('║   ⏰ PRODUCTION SCHEDULER SERVICE - INICIANDO...              ║');
     logger.info('═══════════════════════════════════════════════════════════════════');
 
     for (const [name, jobConfig] of Array.from(this.jobs.entries())) {
@@ -220,8 +220,9 @@ export class SchedulerService {
         jobConfig.job = cronJob;
         jobConfig.nextRun = this.getNextRun(jobConfig.schedule);
 
-        logger.info(`Scheduler: Job ${name} agendado (${jobConfig.schedule})`);
-        console.log(`   → Próxima execução: ${jobConfig.nextRun?.toLocaleString('pt-BR')}`);
+        logger.info(`Scheduler: Job ${name} agendado (${jobConfig.schedule})`, { 
+          nextRun: jobConfig.nextRun?.toISOString() 
+        });
 
       } catch (error: any) {
         logger.error(`Falha ao agendar job ${name}`, { error: error.message });
@@ -251,9 +252,11 @@ export class SchedulerService {
       job.lastRun = new Date();
       job.nextRun = this.getNextRun(job.schedule);
 
-      logger.info(`Scheduler: Job ${name} concluído`, { duration: `${duration}ms`, runCount: job.runCount });
-       
-      console.log(`   → Próxima execução: ${job.nextRun?.toLocaleString('pt-BR')}`);
+      logger.info(`Scheduler: Job ${name} concluído`, { 
+        duration: `${duration}ms`, 
+        runCount: job.runCount,
+        nextRun: job.nextRun?.toISOString()
+      });
 
     } catch (error: any) {
       const duration = Date.now() - startTime;
@@ -310,7 +313,7 @@ export class SchedulerService {
       throw new Error(`Job '${name}' não encontrado`);
     }
 
-    console.log(`\n🔧 [SchedulerService] Executando '${name}' manualmente...`);
+    logger.info(`SchedulerService: Executando job '${name}' manualmente`);
     await this.executeJob(name);
   }
 
@@ -369,12 +372,12 @@ export class SchedulerService {
           await this.executeJob(name);
         });
         job.job = cronJob;
-        console.log(`[${name}] ✅ Habilitado`);
+        logger.info(`SchedulerService: Job ${name} habilitado`);
       } else if (!enabled && job.job) {
         // Parar job
         job.job.stop();
         job.job = undefined;
-        console.log(`[${name}] ⏸️  Desabilitado`);
+        logger.info(`SchedulerService: Job ${name} desabilitado`);
       }
     }
   }

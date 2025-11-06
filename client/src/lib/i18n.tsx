@@ -983,6 +983,10 @@ const translations: Record<Language, Translations> = {
       updateSuccess: "Atualizado com sucesso",
       updateError: "Erro ao atualizar",
       refresh: "Atualizar",
+      active: "Ativo",
+      inactive: "Inativo",
+      created: "Criado em",
+      statusText: "Status",
       status: {
         ready: "Pronto",
         processing: "Processando",
@@ -1854,6 +1858,10 @@ const translations: Record<Language, Translations> = {
       updateSuccess: "Updated successfully",
       updateError: "Error updating",
       refresh: "Refresh",
+      active: "Active",
+      inactive: "Inactive",
+      created: "Created at",
+      statusText: "Status",
       status: {
         ready: "Ready",
         processing: "Processing",
@@ -2725,6 +2733,10 @@ const translations: Record<Language, Translations> = {
       updateSuccess: "Actualizado exitosamente",
       updateError: "Error al actualizar",
       refresh: "Actualizar",
+      active: "Activo",
+      inactive: "Inactivo",
+      created: "Creado en",
+      statusText: "Estado",
       status: {
         ready: "Listo",
         processing: "Procesando",
