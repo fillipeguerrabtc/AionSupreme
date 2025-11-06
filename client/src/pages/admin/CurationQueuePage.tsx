@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink, Scan, ArrowDownToLine, AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
+import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink, Scan, ArrowDownToLine, AlertCircle, AlertTriangle, CheckCircle, Video, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -74,10 +74,11 @@ export default function CurationQueuePage() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
   
-  // Image preview modal state
-  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
-  const [selectedImageUrl, setSelectedImageUrl] = useState("");
-  const [selectedImageDesc, setSelectedImageDesc] = useState("");
+  // Media preview modal state (images + videos)
+  const [mediaPreviewOpen, setMediaPreviewOpen] = useState(false);
+  const [selectedMediaUrl, setSelectedMediaUrl] = useState("");
+  const [selectedMediaType, setSelectedMediaType] = useState<"image" | "video">("image");
+  const [selectedMediaDesc, setSelectedMediaDesc] = useState("");
   
   // Absorption preview state (hybrid UI)
   const [absorptionPreviewItem, setAbsorptionPreviewItem] = useState<{ id: string; title: string } | null>(null);
@@ -828,62 +829,96 @@ export default function CurationQueuePage() {
                   <p className="text-sm text-muted-foreground line-clamp-3">{item.content}</p>
                 </div>
 
-                {/* Image Preview Gallery */}
-                {item.attachments && item.attachments.filter(a => a.type === "image").length > 0 && (
+                {/* Multimodal Preview Gallery (Images + Videos) */}
+                {item.attachments && item.attachments.filter(a => a.type === "image" || a.type === "video").length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">
-                        Imagens ({item.attachments.filter(a => a.type === "image").length})
-                      </span>
+                      {item.attachments.filter(a => a.type === "image").length > 0 && (
+                        <>
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">
+                            Imagens ({item.attachments.filter(a => a.type === "image").length})
+                          </span>
+                        </>
+                      )}
+                      {item.attachments.filter(a => a.type === "video").length > 0 && (
+                        <>
+                          <Video className="h-4 w-4 text-muted-foreground ml-4" />
+                          <span className="text-sm font-medium">
+                            Vídeos ({item.attachments.filter(a => a.type === "video").length})
+                          </span>
+                        </>
+                      )}
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                      {item.attachments.filter(a => a.type === "image").map((img, idx) => (
+                      {item.attachments.filter(a => a.type === "image" || a.type === "video").map((media, idx) => (
                         <div 
                           key={idx} 
                           className="relative group rounded-md overflow-hidden border border-border cursor-pointer hover-elevate" 
-                          data-testid={`image-preview-${idx}`}
+                          data-testid={`media-preview-${media.type}-${idx}`}
                           onClick={() => {
-                            // NOVO: Usa base64 se disponível (CURADORIA HITL)
-                            const imageUrl = img.base64 
-                              ? `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}`
-                              : img.url;
-                            setSelectedImageUrl(imageUrl);
-                            setSelectedImageDesc(img.description || img.filename);
-                            setImagePreviewOpen(true);
+                            // Usa base64 se disponível (CURADORIA HITL)
+                            const mediaUrl = media.base64 
+                              ? `data:${media.mimeType || (media.type === 'video' ? 'video/mp4' : 'image/jpeg')};base64,${media.base64}`
+                              : media.url;
+                            setSelectedMediaUrl(mediaUrl);
+                            setSelectedMediaType(media.type as "image" | "video");
+                            setSelectedMediaDesc(media.description || media.filename);
+                            setMediaPreviewOpen(true);
                           }}
                         >
-                          <img 
-                            src={img.base64 ? `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}` : img.url}
-                            alt={img.description || img.filename}
-                            className="w-full h-32 object-cover"
-                            loading="lazy"
-                          />
+                          {media.type === "image" ? (
+                            <img 
+                              src={media.base64 ? `data:${media.mimeType || 'image/jpeg'};base64,${media.base64}` : media.url}
+                              alt={media.description || media.filename}
+                              className="w-full h-32 object-cover"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="relative w-full h-32 bg-black flex items-center justify-center">
+                              <Play className="h-12 w-12 text-white opacity-80" />
+                              <video 
+                                src={media.url}
+                                className="absolute inset-0 w-full h-full object-cover opacity-50"
+                                muted
+                                playsInline
+                              />
+                            </div>
+                          )}
+                          {/* Media Type Badge */}
+                          <div className="absolute top-1 left-1">
+                            <Badge 
+                              variant="secondary" 
+                              className="text-xs font-semibold shadow-md"
+                            >
+                              {media.type === "video" ? "Vídeo" : "Imagem"}
+                            </Badge>
+                          </div>
                           {/* Image Duplication Badge */}
-                          {img.imageDuplicationStatus === 'exact' && (
+                          {media.type === "image" && media.imageDuplicationStatus === 'exact' && (
                             <div className="absolute top-1 right-1">
                               <Badge 
                                 variant="destructive" 
                                 className="text-xs font-semibold shadow-md flex items-center gap-1"
-                                title={`Duplicata exata (${img.imageSimilarityScore || 100}%)`}
+                                title={`Duplicata exata (${media.imageSimilarityScore || 100}%)`}
                               >
                                 <AlertCircle className="h-3 w-3" />
-                                {img.imageSimilarityScore || 100}%
+                                {media.imageSimilarityScore || 100}%
                               </Badge>
                             </div>
                           )}
-                          {img.imageDuplicationStatus === 'near' && (
+                          {media.type === "image" && media.imageDuplicationStatus === 'near' && (
                             <div className="absolute top-1 right-1">
                               <Badge 
                                 className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold shadow-md flex items-center gap-1" 
-                                title={`Imagem similar (${img.imageSimilarityScore || 80}%)`}
+                                title={`Imagem similar (${media.imageSimilarityScore || 80}%)`}
                               >
                                 <AlertTriangle className="h-3 w-3" />
-                                {img.imageSimilarityScore || 80}%
+                                {media.imageSimilarityScore || 80}%
                               </Badge>
                             </div>
                           )}
-                          {img.imageDuplicationStatus === 'unique' && (
+                          {media.type === "image" && media.imageDuplicationStatus === 'unique' && (
                             <div className="absolute top-1 right-1">
                               <Badge 
                                 className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold shadow-md flex items-center gap-1" 
@@ -896,13 +931,13 @@ export default function CurationQueuePage() {
                           )}
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <span className="text-white text-xs flex items-center gap-1">
-                              <Scan className="h-3 w-3" />
-                              Ver imagem
+                              {media.type === "video" ? <Play className="h-4 w-4" /> : <Scan className="h-3 w-3" />}
+                              {media.type === "video" ? "Reproduzir vídeo" : "Ver imagem"}
                             </span>
                           </div>
-                          {img.description && (
+                          {media.description && (
                             <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 line-clamp-2">
-                              {img.description}
+                              {media.description}
                             </div>
                           )}
                         </div>
@@ -1322,21 +1357,33 @@ export default function CurationQueuePage() {
         </TabsContent>
       </Tabs>
 
-      {/* Image Preview Modal */}
-      <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0" data-testid="dialog-image-preview">
+      {/* Media Preview Modal (Images + Videos) */}
+      <Dialog open={mediaPreviewOpen} onOpenChange={setMediaPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0" data-testid="dialog-media-preview">
           <DialogHeader className="p-6 pb-2">
-            <DialogTitle>{selectedImageDesc}</DialogTitle>
+            <DialogTitle>{selectedMediaDesc}</DialogTitle>
             <DialogDescription>
-              Clique fora da imagem ou pressione ESC para fechar
+              Clique fora da mídia ou pressione ESC para fechar
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto p-6 pt-2">
-            <img 
-              src={selectedImageUrl} 
-              alt={selectedImageDesc}
-              className="w-full h-auto rounded-md border border-border"
-            />
+            {selectedMediaType === "image" ? (
+              <img 
+                src={selectedMediaUrl} 
+                alt={selectedMediaDesc}
+                className="w-full h-auto rounded-md border border-border"
+              />
+            ) : (
+              <video 
+                src={selectedMediaUrl}
+                controls
+                autoPlay
+                className="w-full h-auto rounded-md border border-border bg-black"
+                data-testid="video-player"
+              >
+                Seu navegador não suporta a tag de vídeo.
+              </video>
+            )}
           </div>
         </DialogContent>
       </Dialog>
