@@ -485,4 +485,43 @@ export function registerNamespaceRoutes(app: Router) {
       });
     }
   });
+
+  /**
+   * POST /api/namespaces/garbage-collect
+   * 
+   * Manual trigger for garbage collection of orphaned namespaces and agents
+   * 
+   * Query params:
+   * - dryRun: boolean (default: false) - If true, only reports what would be deleted
+   * 
+   * Returns: {
+   *   namespacesDeleted: number,
+   *   agentsDeleted: number,
+   *   orphanedNamespaces: string[],
+   *   orphanedAgents: string[],
+   *   errors: string[]
+   * }
+   */
+  app.post("/namespaces/garbage-collect", async (req: Request, res: Response) => {
+    try {
+      const { namespaceGarbageCollector } = await import("../services/namespace-garbage-collector");
+      const dryRun = req.query.dryRun === "true";
+
+      console.log(`[Namespaces] 🗑️ Manual garbage collection triggered${dryRun ? ' (DRY RUN)' : ''}...`);
+
+      const result = await namespaceGarbageCollector.collectGarbage(dryRun);
+
+      res.json({
+        success: true,
+        dryRun,
+        result,
+      });
+    } catch (error) {
+      console.error("Error running garbage collection:", error);
+      res.status(500).json({
+        error: "Failed to run garbage collection",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 }

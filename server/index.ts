@@ -6,6 +6,7 @@ import { registerRoutes } from "./routes";
 import "./workers/link-capture-worker"; // Auto-start worker
 import { setupVite, serveStatic, log } from "./vite";
 import { fileCleanup } from "./cleanup/file-cleanup";
+import { namespaceGarbageCollector } from "./services/namespace-garbage-collector";
 import { setupAuth } from "./replitAuth";
 import { autoRecovery } from "./federated/auto-recovery";
 import { queryMonitoringMiddleware } from "./middleware/query-monitoring";
@@ -93,6 +94,9 @@ app.use((req, res, next) => {
   
   // Iniciar scan semanal de duplicados na KB (executa todo domingo às 02:00 UTC)
   fileCleanup.startKBDeduplicationScan();
+  
+  // Iniciar Garbage Collection de namespaces/agentes órfãos (executa diariamente às 03:00 UTC / 00:00 Brasília)
+  namespaceGarbageCollector.start();
   
   // Iniciar sistema de auto-recuperação de treinamento federado
   autoRecovery.start();
