@@ -43,6 +43,7 @@ import { CreateAgentForm } from "@/components/agents/CreateAgentForm";
 import { CreateSubAgentForm } from "@/components/agents/CreateSubAgentForm";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useLanguage } from "@/lib/i18n";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 type Agent = {
   id: string;
@@ -58,6 +59,7 @@ type Agent = {
 };
 
 export default function AgentsPage() {
+  useScrollToTop();
   const { t } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("list");

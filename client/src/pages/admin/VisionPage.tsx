@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Eye, CheckCircle2, XCircle, Clock, TrendingUp, Zap, AlertCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/lib/i18n";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 interface QuotaStatus {
   used: number;
@@ -36,6 +37,7 @@ interface UsageStats {
 }
 
 export default function VisionPage() {
+  useScrollToTop();
   const { t } = useLanguage();
   const { data: quotaStatus, isLoading: quotaLoading } = useQuery<{
     success: boolean;

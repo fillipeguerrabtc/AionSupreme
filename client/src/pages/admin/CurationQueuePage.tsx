@@ -28,9 +28,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { useLanguage } from "@/lib/i18n";
 import { AbsorptionPreviewModal } from "@/components/AbsorptionPreviewModal";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 interface CurationItem {
   id: string;
@@ -66,6 +66,7 @@ interface CurationItem {
 }
 
 export default function CurationQueuePage() {
+  useScrollToTop();
   const { t } = useLanguage();
   const [selectedItem, setSelectedItem] = useState<CurationItem | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -99,7 +100,6 @@ export default function CurationQueuePage() {
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editTags, setEditTags] = useState("");
-  const [editNamespaces, setEditNamespaces] = useState<string[]>([]);
   const [editNote, setEditNote] = useState("");
   
   const { toast } = useToast();
@@ -168,7 +168,7 @@ export default function CurationQueuePage() {
 
   // Edit mutation
   const editMutation = useMutation({
-    mutationFn: async (data: { id: string; title: string; content: string; tags: string[]; suggestedNamespaces: string[]; note: string }) => {
+    mutationFn: async (data: { id: string; title: string; content: string; tags: string[]; note: string }) => {
       const res = await apiRequest("/api/admin/curation/edit", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -292,7 +292,7 @@ export default function CurationQueuePage() {
   // Scan image duplicates mutation (perceptual hashing)
   const scanImageDuplicatesMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("/api/curation/scan-image-duplicates", {
+      const res = await apiRequest("/api/admin/curation/scan-image-duplicates", {
         method: "POST",
       });
       return res.json();
@@ -442,7 +442,6 @@ export default function CurationQueuePage() {
     setEditTitle(item.title);
     setEditContent(item.content);
     setEditTags(item.tags.join(", "));
-    setEditNamespaces(item.suggestedNamespaces);
     setEditNote(item.note || "");
     setEditDialogOpen(true);
   };
@@ -455,7 +454,6 @@ export default function CurationQueuePage() {
       title: editTitle,
       content: editContent,
       tags: editTags.split(",").map(t => t.trim()).filter(Boolean),
-      suggestedNamespaces: editNamespaces,
       note: editNote,
     });
   };
@@ -951,7 +949,7 @@ export default function CurationQueuePage() {
           <DialogHeader>
             <DialogTitle>Editar Item de Curadoria</DialogTitle>
             <DialogDescription>
-              Ajuste título, tags e namespaces antes de aprovar
+              Ajuste título e tags antes de aprovar
             </DialogDescription>
           </DialogHeader>
 
@@ -1038,15 +1036,6 @@ export default function CurationQueuePage() {
                 onChange={(e) => setEditTags(e.target.value)}
                 placeholder="tag1, tag2, tag3"
                 data-testid="input-edit-tags"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Namespaces</Label>
-              <NamespaceSelector 
-                value={editNamespaces} 
-                onChange={setEditNamespaces}
-                allowWildcard={true}
               />
             </div>
 

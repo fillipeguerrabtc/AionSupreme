@@ -16,6 +16,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Search, Image as ImageIcon, Trash2, ExternalLink, FileImage } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/i18n";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 interface ImageSearchResult {
   id: number;
@@ -29,6 +30,7 @@ interface ImageSearchResult {
 }
 
 export default function ImageSearchPage() {
+  useScrollToTop();
   const { t } = useLanguage();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");

@@ -26,8 +26,10 @@ import { useToast } from "@/hooks/use-toast";
 import type { Document } from "@shared/schema";
 import { AionLogo } from "@/components/AionLogo";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 export default function KnowledgeBasePage() {
+  useScrollToTop();
   const { toast } = useToast();
   const [showAddText, setShowAddText] = useState(false);
   const [showAddUrl, setShowAddUrl] = useState(false);

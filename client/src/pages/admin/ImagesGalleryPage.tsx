@@ -36,6 +36,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/lib/i18n";
+import { useScrollToTop } from "@/hooks/useScrollToTop";
 
 interface ImageItem {
   id: string;
