@@ -3765,12 +3765,20 @@ export function registerRoutes(app: Express): Server {
       console.log(`[Adapter Upload] Worker ${workerId} uploaded adapter for job ${jobId}, step ${step} (${req.file.size} bytes, ${numExamples} examples)`);
       
       // Check if we have enough adapters to aggregate
-      // (for now, we trigger aggregation manually via separate endpoint)
+      const { adapterAggregator } = await import("./federated/adapter-aggregator");
+      const shouldAggregate = await adapterAggregator.shouldAggregate(jobId, step, 2);
+      
+      if (shouldAggregate) {
+        console.log(`[Adapter Upload] Triggering aggregation for job ${jobId}, step ${step}`);
+        // Aggregate in background (non-blocking)
+        adapterAggregator.aggregate(jobId, step).catch(console.error);
+      }
       
       res.json({
         success: true,
         adapterId: uploadRecord.id,
         message: `Adapter uploaded successfully (${req.file.size} bytes)`,
+        shouldAggregate,
       });
       
     } catch (error: unknown) {
@@ -3781,6 +3789,46 @@ export function registerRoutes(app: Express): Server {
         await fs.unlink(req.file.path).catch(() => {});
       }
       
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+  
+  // POST /api/training/adapters/:jobId/:step/aggregate - Manually trigger aggregation
+  app.post("/api/training/adapters/:jobId/:step/aggregate", requireAuth, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const step = parseInt(req.params.step);
+      
+      if (isNaN(jobId) || isNaN(step)) {
+        return res.status(400).json({ error: "Invalid jobId or step" });
+      }
+      
+      const { adapterAggregator } = await import("./federated/adapter-aggregator");
+      
+      // Check if there are adapters to aggregate (need at least 2 for meaningful aggregation)
+      const shouldAggregate = await adapterAggregator.shouldAggregate(jobId, step, 2);
+      
+      if (!shouldAggregate) {
+        return res.status(400).json({ 
+          error: "Not enough adapters for aggregation (need at least 2 workers)" 
+        });
+      }
+      
+      // Trigger aggregation
+      console.log(`[Manual Aggregation] Triggered for job ${jobId}, step ${step}`);
+      const result = await adapterAggregator.aggregate(jobId, step);
+      
+      if (!result.success) {
+        return res.status(500).json({ error: result.error });
+      }
+      
+      res.json({
+        success: true,
+        checkpointPath: result.checkpointPath,
+        message: "Aggregation completed successfully",
+      });
+      
+    } catch (error: unknown) {
       res.status(500).json({ error: getErrorMessage(error) });
     }
   });

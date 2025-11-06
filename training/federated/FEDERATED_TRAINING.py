@@ -313,45 +313,58 @@ for epoch in range(epochs):
                 print(f"  Step {global_step}/{max_steps} | Loss: {avg_loss:.4f}")
                 running_loss = 0.0
             
-            # Sync gradients with AION
+            # Sync PEFT adapters with AION (HOT RELOAD)
             if global_step % SYNC_INTERVAL == 0:
                 print(f"\n{'='*80}")
-                print(f"📤 Syncing gradients at step {global_step}...")
+                print(f"📤 Uploading PEFT adapter at step {global_step}...")
                 print('='*80)
                 
                 try:
-                    # Extract gradients
-                    gradients = {}
-                    for name, param in model.named_parameters():
-                        if param.grad is not None:
-                            gradients[name] = param.grad.cpu().numpy().tolist()
+                    import tarfile
+                    import tempfile
                     
-                    # Send to AION
-                    sync_payload = {
-                        'jobId': JOB_ID,
-                        'workerId': WORKER_ID,
-                        'step': global_step,
-                        'localStep': local_step,
-                        'localLoss': avg_loss,
-                        'gradients': gradients,
-                        'numExamples': min(BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS, len(dataset) - i),
-                    }
+                    # Save PEFT adapter to temporary directory
+                    adapter_dir = f"/tmp/adapter-job{JOB_ID}-worker{WORKER_ID}-step{global_step}"
+                    os.makedirs(adapter_dir, exist_ok=True)
                     
-                    sync_response = requests.post(
-                        f"{AION_URL}/api/training/gradients",
-                        json=sync_payload,
-                        timeout=30
-                    )
-                    sync_response.raise_for_status()
-                    sync_data = sync_response.json()
+                    # Save adapter using PEFT (includes adapter_model.bin, adapter_config.json)
+                    model.save_pretrained(adapter_dir)
+                    tokenizer.save_pretrained(adapter_dir)
                     
-                    print(f"✅ Gradients sent successfully!")
+                    # Compress to .tar.gz
+                    tar_path = f"/tmp/adapter-job{JOB_ID}-worker{WORKER_ID}-step{global_step}.tar.gz"
+                    with tarfile.open(tar_path, "w:gz") as tar:
+                        tar.add(adapter_dir, arcname=".")
+                    
+                    # Upload adapter file via multipart
+                    with open(tar_path, 'rb') as f:
+                        files = {'adapter': f}
+                        data = {
+                            'numExamples': min(BATCH_SIZE * GRADIENT_ACCUMULATION_STEPS, len(dataset) - i)
+                        }
+                        
+                        sync_response = requests.post(
+                            f"{AION_URL}/api/training/adapters/{JOB_ID}/{WORKER_ID}/{global_step}",
+                            files=files,
+                            data=data,
+                            timeout=300  # Longer timeout for file upload
+                        )
+                        sync_response.raise_for_status()
+                        sync_data = sync_response.json()
+                    
+                    print(f"✅ Adapter uploaded successfully! ({os.path.getsize(tar_path) / 1024 / 1024:.2f} MB)")
                     print(f"   Should aggregate: {sync_data.get('shouldAggregate', False)}")
                     
-                    # If aggregation happened, download new checkpoint
-                    if sync_data.get('checkpointPath'):
-                        print(f"📥 Downloading updated checkpoint...")
+                    # Cleanup temporary files
+                    import shutil
+                    shutil.rmtree(adapter_dir, ignore_errors=True)
+                    os.remove(tar_path)
+                    
+                    # If aggregation happened, download and hot reload new checkpoint
+                    if sync_data.get('shouldAggregate'):
+                        print(f"📥 Downloading aggregated checkpoint...")
                         
+                        # Get download URL
                         checkpoint_response = requests.get(
                             f"{AION_URL}/api/training/checkpoints/{JOB_ID}",
                             timeout=30
@@ -359,11 +372,43 @@ for epoch in range(epochs):
                         
                         if checkpoint_response.status_code == 200:
                             checkpoint_data = checkpoint_response.json()
-                            checkpoint = checkpoint_data['checkpoint']
+                            download_url = checkpoint_data.get('downloadUrl')
                             
-                            # Apply aggregated gradients
-                            # (Simplified: just log for now)
-                            print(f"✅ Checkpoint received (step {checkpoint['step']})")
+                            if download_url:
+                                # Download aggregated adapter
+                                download_response = requests.get(download_url, stream=True, timeout=300)
+                                download_response.raise_for_status()
+                                
+                                checkpoint_tar_path = f"/tmp/checkpoint-job{JOB_ID}-step{global_step}.tar.gz"
+                                with open(checkpoint_tar_path, 'wb') as f:
+                                    for chunk in download_response.iter_content(chunk_size=8192):
+                                        f.write(chunk)
+                                
+                                # Extract checkpoint
+                                checkpoint_extract_dir = f"/tmp/checkpoint-job{JOB_ID}-step{global_step}"
+                                os.makedirs(checkpoint_extract_dir, exist_ok=True)
+                                
+                                with tarfile.open(checkpoint_tar_path, "r:gz") as tar:
+                                    tar.extractall(checkpoint_extract_dir)
+                                
+                                # Hot reload adapter WITHOUT restarting training
+                                try:
+                                    from peft import PeftModel
+                                    
+                                    # Load aggregated adapter (replaces current adapter)
+                                    model.load_adapter(checkpoint_extract_dir, adapter_name="aggregated")
+                                    model.set_adapter("aggregated")
+                                    
+                                    print(f"✅ Hot reloaded aggregated checkpoint!")
+                                    print(f"   Training continues seamlessly without restart...")
+                                    
+                                    # Cleanup
+                                    os.remove(checkpoint_tar_path)
+                                    shutil.rmtree(checkpoint_extract_dir, ignore_errors=True)
+                                    
+                                except Exception as reload_error:
+                                    print(f"⚠️  Hot reload failed: {reload_error}")
+                                    print("   Continuing with current adapter...")
                         
                     print('='*80 + "\n")
                     

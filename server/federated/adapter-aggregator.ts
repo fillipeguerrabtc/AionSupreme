@@ -23,6 +23,7 @@ interface AggregationResult {
 class AdapterAggregator {
   private pythonScriptPath = path.join(process.cwd(), "server/federated/aggregate-adapters.py");
   private checkpointsDir = "/tmp/checkpoints/adapters";
+  private aggregationLocks: Map<string, Promise<AggregationResult>> = new Map();
 
   constructor() {
     // Ensure checkpoints directory exists
@@ -51,8 +52,36 @@ class AdapterAggregator {
 
   /**
    * Aggregate adapters for a specific job and step using Python script
+   * Uses mutex to prevent concurrent aggregations for same (jobId, step)
    */
   async aggregate(jobId: number, step: number): Promise<AggregationResult> {
+    const lockKey = `${jobId}-${step}`;
+    
+    // Check if aggregation already in progress
+    const existingLock = this.aggregationLocks.get(lockKey);
+    if (existingLock) {
+      log.info(`[AdapterAggregator] Aggregation already in progress for job ${jobId}, step ${step}, waiting...`);
+      return existingLock;
+    }
+    
+    // Create new aggregation promise
+    const aggregationPromise = this._performAggregation(jobId, step);
+    
+    // Store lock
+    this.aggregationLocks.set(lockKey, aggregationPromise);
+    
+    // Cleanup lock when done
+    aggregationPromise.finally(() => {
+      this.aggregationLocks.delete(lockKey);
+    });
+    
+    return aggregationPromise;
+  }
+
+  /**
+   * Internal aggregation implementation (called by aggregate() with lock)
+   */
+  private async _performAggregation(jobId: number, step: number): Promise<AggregationResult> {
     try {
       log.info(`[AdapterAggregator] Starting aggregation for job ${jobId}, step ${step}`);
 
@@ -115,13 +144,12 @@ class AdapterAggregator {
         .values({
           jobId,
           step,
+          globalLoss: 0.0, // PEFT adapters don't have loss at aggregation time
           checkpointType: "peft_adapter",
-          checkpointPath,
-          fileSize: (await fs.stat(checkpointPath)).size,
-          metrics: {
-            num_workers: adapters.length,
-            total_examples: adapters.reduce((sum, a) => sum + a.numExamples, 0),
-          },
+          storagePath: checkpointPath,
+          modelSize: (await fs.stat(checkpointPath)).size,
+          contributingWorkers: adapters.length,
+          aggregationMethod: "fedavg",
         })
         .returning();
 
@@ -158,9 +186,10 @@ class AdapterAggregator {
 
       return { success: true, checkpointPath };
 
-    } catch (error) {
-      log.error("[AdapterAggregator] Aggregation failed:", error);
-      return { success: false, error: String(error) };
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      log.error(`[AdapterAggregator] Aggregation failed: ${errorMsg}`);
+      return { success: false, error: errorMsg };
     }
   }
 
@@ -251,7 +280,8 @@ class AdapterAggregator {
       });
 
       python.on("error", (error) => {
-        log.error("[AdapterAggregator] Failed to spawn Python process:", error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        log.error(`[AdapterAggregator] Failed to spawn Python process: ${errorMsg}`);
         reject(error);
       });
     });
