@@ -162,7 +162,7 @@ export class ModelDeploymentService {
 
       // STEP 4: Notify GPU workers to reload model
       console.log('\n   📢 [4/5] Notificando GPU workers...');
-      const notifiedWorkers = await this.notifyWorkers(modelVersion, job.latestCheckpoint);
+      const notifiedWorkers = await this.notifyWorkers(modelVersion, job.id, job.latestCheckpoint);
       console.log(`   ✅ ${notifiedWorkers} worker(s) notificados`);
 
       // STEP 5: Mark job as deployed
@@ -305,7 +305,7 @@ export class ModelDeploymentService {
   /**
    * Notify all online GPU workers to reload model
    */
-  private async notifyWorkers(modelVersion: string, checkpointPath: string): Promise<number> {
+  private async notifyWorkers(modelVersion: string, jobId: number, checkpointPath: string): Promise<number> {
     try {
       // Get all online workers
       const workers = await db.query.gpuWorkers.findMany({
@@ -329,7 +329,9 @@ export class ModelDeploymentService {
             `${worker.ngrokUrl}/reload_model`,
             {
               version: modelVersion,
-              checkpoint_url: `${process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:5000'}/api/training/checkpoints/${checkpointPath}`,
+              job_id: jobId,
+              checkpoint_url: `${process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:5000'}/api/training/checkpoints/${jobId}/download`,
+              lora_path: checkpointPath,
             },
             {
               timeout: 5000,

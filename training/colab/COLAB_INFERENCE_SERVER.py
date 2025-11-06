@@ -220,10 +220,111 @@ async def chat_completions(request: ChatCompletionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class ReloadModelRequest(BaseModel):
+    version: str
+    job_id: int
+    checkpoint_url: str
+    lora_path: str
+
+@app.post("/reload_model")
+async def reload_model(request: ReloadModelRequest):
+    """
+    Hot reload model with new checkpoint (ZERO DOWNTIME)
+    Called by AION after federated training completes
+    
+    IMPORTANT: checkpoint_url points to BINARY .pt file, not JSON!
+    """
+    global model, tokenizer
+    
+    try:
+        print(f"\n🔄 [Hot Reload] Versão {request.version} (Job #{request.job_id})")
+        print(f"   Checkpoint URL: {request.checkpoint_url}")
+        print(f"   LoRA path: {request.lora_path}")
+        
+        # Download new checkpoint (BINARY .pt file)
+        import requests
+        import tempfile
+        
+        print("   📥 [1/4] Downloading checkpoint BINÁRIO (.pt)...")
+        response = requests.get(request.checkpoint_url, timeout=30, stream=True)
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail=f"Failed to download checkpoint: HTTP {response.status_code}")
+        
+        # Save binary checkpoint to temp directory
+        checkpoint_dir = f"/tmp/aion_checkpoint_job_{request.job_id}"
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        
+        checkpoint_file = os.path.join(checkpoint_dir, "checkpoint.pt")
+        
+        # Write binary file
+        with open(checkpoint_file, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        
+        print(f"   ✓ Checkpoint binário salvo em {checkpoint_file}")
+        print(f"   ✓ Tamanho: {os.path.getsize(checkpoint_file) / 1024 / 1024:.1f} MB")
+        
+        # If lora_path is a remote URL, use it directly
+        # If it's a local path, try to infer from checkpoint
+        if request.lora_path.startswith('http'):
+            lora_location = request.lora_path
+            print(f"   🌐 [2/4] LoRA path é remoto: {lora_location}")
+        else:
+            # For local paths, use the checkpoint directory
+            lora_location = checkpoint_dir
+            print(f"   📁 [2/4] Usando checkpoint local: {lora_location}")
+        
+        print(f"   🔧 [3/4] Recarregando LoRA adapters...")
+        
+        # Reload LoRA adapters WITHOUT restarting server
+        from peft import PeftModel, PeftConfig
+        
+        try:
+            # Try to load config from lora_location
+            new_config = PeftConfig.from_pretrained(lora_location)
+            
+            # Reload model with new adapters
+            model = PeftModel.from_pretrained(base_model, lora_location)
+            model.eval()
+            
+            # Reload tokenizer
+            tokenizer = AutoTokenizer.from_pretrained(lora_location)
+            tokenizer.pad_token = tokenizer.eos_token
+            
+            print(f"   ✅ [4/4] Modelo recarregado com sucesso!")
+            print(f"   📦 Version: {request.version}")
+            print(f"   🎯 Job ID: {request.job_id}")
+            print(f"   💾 Checkpoint: {checkpoint_file}")
+            
+            return {
+                "status": "success",
+                "version": request.version,
+                "job_id": request.job_id,
+                "checkpoint_size_mb": os.path.getsize(checkpoint_file) / 1024 / 1024,
+                "message": "Model reloaded successfully (zero downtime)"
+            }
+            
+        except Exception as load_error:
+            # If loading from checkpoint fails, keep old model
+            print(f"   ⚠️  Falha ao carregar LoRA: {load_error}")
+            print(f"   💡 Mantendo modelo anterior ativo (sem downtime)")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Failed to load LoRA adapters: {str(load_error)}"
+            )
+        
+    except Exception as e:
+        print(f"   ❌ Hot reload failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Hot reload failed: {str(e)}")
+
 print("✓ API FastAPI configurada!")
 print("✓ Endpoints:")
 print("   - GET  /health")
 print("   - POST /v1/chat/completions")
+print("   - POST /reload_model (Hot Reload)")
 
 # %% [code]
 # ==============================================================================
