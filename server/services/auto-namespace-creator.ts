@@ -141,6 +141,48 @@ export async function autoCreateNamespacesAndAgents(
 
         result.agentsCreated.push(agentName);
         console.log(`[Auto-Creator] ✅ Agente criado: "${agentName}" (ID: ${newAgent.id})`);
+
+        // ✅ CRÍTICO: Registrar agente no agentRegistry para MoE Router
+        // Sem isso, o agente não é detectado pelo MoE Router até restart do servidor!
+        try {
+          const { agentRegistry } = await import("../agent/registry");
+          const { registerAgent: registerAgentRuntime } = await import("../agent/runtime");
+          const { agentsStorage } = await import("../storage");
+          
+          // Buscar tools do agente (seguindo padrão do loader.ts)
+          const agentTools = await agentsStorage.getAgentTools(newAgent.id);
+          const toolNames = agentTools.map(t => t.name);
+          
+          // Construir objeto Agent seguindo EXATAMENTE o padrão do loader.ts
+          const agentForRegistry = {
+            id: newAgent.id,
+            name: newAgent.name,
+            slug: newAgent.slug,
+            type: (newAgent.type || "specialist") as "specialist" | "generalist" | "router-only",
+            agentTier: newAgent.agentTier || undefined,
+            assignedNamespaces: newAgent.assignedNamespaces || [], // CRÍTICO para hierarchical orchestration
+            description: newAgent.description || undefined,
+            systemPrompt: newAgent.systemPrompt || undefined,
+            ragNamespaces: newAgent.ragNamespaces || [], // LEGACY field, mas necessário
+            allowedTools: toolNames, // Buscar tools reais do DB
+            policy: newAgent.policy || {},
+            budgetLimit: newAgent.budgetLimit || undefined,
+            escalationAgent: newAgent.escalationAgent || undefined,
+            inferenceConfig: newAgent.inferenceConfig || {},
+            metadata: newAgent.metadata || {},
+          };
+          
+          // Registrar no registry (para MoE Router encontrar)
+          agentRegistry.registerAgent(agentForRegistry);
+          
+          // Registrar no runtime (para AgentExecutor funcionar)
+          await registerAgentRuntime(agentForRegistry);
+          
+          console.log(`[Auto-Creator] ✅ Agente registrado no MoE Router: "${agentName}" com ${toolNames.length} tools`);
+        } catch (error: any) {
+          console.error(`[Auto-Creator] ⚠️ Erro ao registrar agente no registry:`, error.message);
+          // Não falha a criação se registro falhar - agente estará no DB e será carregado no próximo restart
+        }
       } else {
         console.log(`[Auto-Creator] ⚠️ Agente "${agentSlug}" já existe, pulando criação`);
       }
