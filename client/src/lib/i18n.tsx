@@ -40,6 +40,21 @@ interface Translations {
     subtitle: string;
     newChat: string;
     conversations: string;
+    languageDetected: string;
+    switchedTo: string;
+    tooManyFiles: string;
+    maxFilesAllowed: string;
+    transcriptionFailed: string;
+    transcriptionComplete: string;
+    audioTranscribed: string;
+    transcriptionError: string;
+    transcriptionRetry: string;
+    microphoneAccessDenied: string;
+    allowMicrophoneAccess: string;
+    recordAudio: string;
+    stopRecording: string;
+    filesAttached: string;
+    filesReady: string;
   };
   
   // Admin Dashboard
@@ -435,6 +450,17 @@ interface Translations {
       status: string;
       health: string;
       tempo: string;
+      time: {
+        never: string;
+        na: string;
+        shuttingDown: string;
+        secondsAgo: string;
+        minutesAgo: string;
+        hoursAgo: string;
+        hourUnit: string;
+        minuteUnit: string;
+        secondUnit: string;
+      };
       requests: string;
       latency: string;
       lastUsed: string;
@@ -453,6 +479,12 @@ interface Translations {
       noWorkers: string;
       noWorkersDesc: string;
       confirmDelete: string;
+      toast: {
+        workerRemoved: string;
+        workerRemovedDesc: string;
+        error: string;
+        errorRemovingWorker: string;
+      };
     };
     
     // Federated Training

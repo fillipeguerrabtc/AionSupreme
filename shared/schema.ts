@@ -184,6 +184,8 @@ export const conversations = pgTable("conversations", {
   projectIdx: index("conversations_project_idx").on(table.projectId),
   expiresIdx: index("conversations_expires_idx").on(table.expiresAt),
   namespaceIdx: index("conversations_namespace_idx").on(table.namespace),
+  // Composite index for meta-learning queries (namespace + date ordering)
+  namespaceCreatedIdx: index("conversations_namespace_created_idx").on(table.namespace, table.createdAt),
 }));
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({ 
@@ -961,6 +963,8 @@ export const trainingJobs = pgTable("training_jobs", {
 }, (table) => ({
   statusIdx: index("training_jobs_status_idx").on(table.status),
   deployedIdx: index("training_jobs_deployed_idx").on(table.deployed),
+  // Composite index for admin dashboard queries (status + date ordering)
+  statusCreatedIdx: index("training_jobs_status_created_idx").on(table.status, table.createdAt),
 }));
 
 export const insertTrainingJobSchema = createInsertSchema(trainingJobs).omit({ 
@@ -1011,6 +1015,8 @@ export const trainingWorkers = pgTable("training_workers", {
   jobIdx: index("training_workers_job_idx").on(table.jobId),
   workerIdx: index("training_workers_worker_idx").on(table.workerId),
   statusIdx: index("training_workers_status_idx").on(table.status),
+  // Composite index for job monitoring queries (job + status)
+  jobStatusIdx: index("training_workers_job_status_idx").on(table.jobId, table.status),
 }));
 
 export const insertTrainingWorkerSchema = createInsertSchema(trainingWorkers).omit({ 
@@ -1606,6 +1612,8 @@ export const curationQueue = pgTable("curation_queue", {
   expiresAtIdx: index("curation_queue_expires_at_idx").on(table.expiresAt), // Index for daily cleanup job
   contentHashIdx: index("curation_queue_content_hash_idx").on(table.contentHash), // Index for O(1) duplicate lookup
   duplicationStatusIdx: index("curation_queue_duplication_status_idx").on(table.duplicationStatus), // Index for filtering by dedup status
+  // Composite index for admin dashboard queries (status + date ordering)
+  statusSubmittedIdx: index("curation_queue_status_submitted_idx").on(table.status, table.submittedAt),
 }));
 
 export const insertCurationQueueSchema = createInsertSchema(curationQueue).omit({ 
@@ -1655,6 +1663,8 @@ export const linkCaptureJobs = pgTable("link_capture_jobs", {
 }, (table) => ({
   statusIdx: index("link_capture_jobs_status_idx").on(table.status),
   createdAtIdx: index("link_capture_jobs_created_at_idx").on(table.createdAt),
+  // Composite index for admin dashboard queries (status + date ordering)
+  statusCreatedIdx: index("link_capture_jobs_status_created_idx").on(table.status, table.createdAt),
 }));
 
 export const insertLinkCaptureJobSchema = createInsertSchema(linkCaptureJobs).omit({ 
