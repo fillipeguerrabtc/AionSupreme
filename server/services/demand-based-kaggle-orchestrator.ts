@@ -27,6 +27,8 @@ import { gpuWorkers } from '../../shared/schema';
 import { eq, sql } from 'drizzle-orm';
 import { gpuCooldownManager } from './gpu-cooldown-manager';
 import { tosComplianceMonitor } from './tos-compliance-monitor';
+import { kaggleAutomationService } from './kaggle-automation-service';
+import { secretsVault } from './security/secrets-vault';
 
 interface StartOptions {
   reason: string;
@@ -140,20 +142,55 @@ export class DemandBasedKaggleOrchestrator {
         };
       }
       
-      // 5. START SESSION!
+      // 5. GET KAGGLE CREDENTIALS FROM SECRETS VAULT
+      const credentials = await secretsVault.retrieveSecret('kaggle-main', 'kaggle');
+      
+      if (!credentials) {
+        console.error('[DemandBasedKaggle] ❌ No Kaggle credentials found!');
+        return {
+          success: false,
+          error: 'Kaggle credentials not configured - please add via Admin Panel',
+        };
+      }
+      
+      const { username, apiKey } = credentials.decrypted as { username: string; apiKey: string };
+      
+      // 6. GET AION BASE URL
+      const aionBaseUrl = process.env.REPL_SLUG 
+        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+        : 'http://localhost:5000';
+      
+      console.log(`[DemandBasedKaggle] 📋 AION Base URL: ${aionBaseUrl}`);
+      
+      // 7. START KAGGLE KERNEL AUTOMATICALLY!
       console.log(`[DemandBasedKaggle] ✅ Starting Kaggle GPU session...`);
       
-      // Update worker status
+      const provisionResult = await kaggleAutomationService.createAndStartWorker(
+        username,
+        aionBaseUrl,
+        worker.id
+      );
+      
+      if (!provisionResult.success) {
+        console.error(`[DemandBasedKaggle] ❌ Failed to start kernel: ${provisionResult.error}`);
+        return {
+          success: false,
+          error: provisionResult.error || 'Failed to start Kaggle kernel',
+        };
+      }
+      
+      // 8. UPDATE WORKER STATUS (kernel created and running)
       await db
         .update(gpuWorkers)
         .set({
-          status: 'online',
+          status: 'pending', // Will become 'online' when worker registers
           sessionStartedAt: new Date(),
+          ngrokUrl: 'pending', // Worker will update this when it registers
           updatedAt: new Date(),
         })
         .where(eq(gpuWorkers.id, worker.id));
       
-      // Record session start
+      // 9. RECORD SESSION START (for quota tracking)
       await gpuCooldownManager.recordSessionStart(worker.id);
       
       this.activeSessionWorkerId = worker.id;
@@ -161,14 +198,12 @@ export class DemandBasedKaggleOrchestrator {
       
       console.log(
         `[DemandBasedKaggle] 🚀 Session started - Worker ${worker.id}\n` +
+        `  Kernel: ${provisionResult.kernelId}\n` +
+        `  URL: ${provisionResult.kernelUrl}\n` +
         `  Reason: ${options.reason}\n` +
         `  Estimated: ${options.estimatedDurationMinutes}min\n` +
         `  Weekly quota: ${cooldownStatus.weeklyUsageHours?.toFixed(2) || 0}h / 28h`
       );
-      
-      // TODO: Actually start Kaggle notebook via KaggleOrchestrator
-      // For now, this is a placeholder - real implementation would call:
-      // await kaggleOrchestrator.startSession({ workerId: worker.id, ... })
       
       return {
         success: true,
@@ -186,6 +221,10 @@ export class DemandBasedKaggleOrchestrator {
   
   /**
    * Stop Kaggle GPU session
+   * 
+   * NOTE: Kaggle kernels run until completion or timeout (9h max).
+   * This method marks the session as stopped and updates quota tracking.
+   * The kernel itself will auto-terminate when job completes.
    */
   async stopSession(): Promise<{ success: boolean; error?: string }> {
     try {
@@ -201,7 +240,7 @@ export class DemandBasedKaggleOrchestrator {
       const sessionDurationMinutes = sessionDurationSeconds / 60;
       
       console.log(
-        `[DemandBasedKaggle] 🛑 Stopping session - Worker ${workerId}\n` +
+        `[DemandBasedKaggle] 🛑 Marking session as stopped - Worker ${workerId}\n` +
         `  Duration: ${sessionDurationMinutes.toFixed(1)}min`
       );
       
@@ -222,10 +261,11 @@ export class DemandBasedKaggleOrchestrator {
       this.activeSessionWorkerId = null;
       this.sessionStartTime = null;
       
-      console.log(`[DemandBasedKaggle] ✅ Session stopped successfully`);
+      console.log(`[DemandBasedKaggle] ✅ Session stopped successfully (kernel will auto-terminate)`);
       
-      // TODO: Actually stop Kaggle notebook via KaggleOrchestrator
-      // await kaggleOrchestrator.stopSession(workerId)
+      // NOTE: Kaggle kernels auto-terminate when job completes.
+      // No need to manually stop the kernel - it's designed to run until done.
+      // The worker notebook code handles cleanup and shutdown automatically.
       
       return { success: true };
       
@@ -240,6 +280,10 @@ export class DemandBasedKaggleOrchestrator {
   
   /**
    * Auto-stop session after job completion
+   * 
+   * Checks if worker went offline (job completed) and cleans up state.
+   * The worker self-terminates after completing its job, so we just
+   * need to detect when it's gone offline and update our tracking.
    */
   async autoStopAfterJobCompletion(): Promise<void> {
     if (!this.activeSessionWorkerId) {
@@ -248,17 +292,53 @@ export class DemandBasedKaggleOrchestrator {
     
     console.log('[DemandBasedKaggle] 🔍 Checking if job completed...');
     
-    // TODO: Check if training/inference jobs are done
-    // For now, this is a placeholder - real implementation would check:
-    // - Training queue empty?
-    // - No pending inference requests?
-    // If yes → stopSession()
+    // Check if worker is still online
+    const worker = await db.query.gpuWorkers.findFirst({
+      where: eq(gpuWorkers.id, this.activeSessionWorkerId),
+    });
     
-    const shouldStop = false; // Placeholder
+    if (!worker) {
+      // Worker was deleted (job failed or manually removed)
+      console.log('[DemandBasedKaggle] ⚠️ Worker not found - clearing session state');
+      this.activeSessionWorkerId = null;
+      this.sessionStartTime = null;
+      return;
+    }
     
-    if (shouldStop) {
-      console.log('[DemandBasedKaggle] ✅ Job completed - auto-stopping');
-      await this.stopSession();
+    // Check if worker went offline (job completed)
+    if (worker.status === 'offline' || worker.status === 'failed') {
+      const sessionStart = this.sessionStartTime!;
+      const now = new Date();
+      const sessionDurationSeconds = Math.floor((now.getTime() - sessionStart.getTime()) / 1000);
+      const sessionDurationMinutes = sessionDurationSeconds / 60;
+      
+      console.log(
+        `[DemandBasedKaggle] ✅ Job completed - Worker ${worker.id} offline\n` +
+        `  Duration: ${sessionDurationMinutes.toFixed(1)}min\n` +
+        `  Status: ${worker.status}`
+      );
+      
+      // Update quota tracking (if not already done)
+      if (worker.sessionStartedAt) {
+        await gpuCooldownManager.recordSessionEnd(worker.id, sessionDurationSeconds);
+        
+        // Update worker to clear session
+        await db
+          .update(gpuWorkers)
+          .set({
+            sessionStartedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(gpuWorkers.id, worker.id));
+      }
+      
+      // Clear our local state
+      this.activeSessionWorkerId = null;
+      this.sessionStartTime = null;
+      
+      console.log('[DemandBasedKaggle] 🎉 Session completed and cleaned up');
+    } else {
+      console.log(`[DemandBasedKaggle] ⏳ Job still running - Worker ${worker.id} status: ${worker.status}`);
     }
   }
   
