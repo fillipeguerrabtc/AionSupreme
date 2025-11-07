@@ -29,6 +29,12 @@ interface Translations {
     };
   };
 
+  // Not Found Page
+  notFound: {
+    title: string;
+    message: string;
+  };
+
   // Chat Interface
   chat: {
     welcome: string;
@@ -1047,6 +1053,10 @@ const translations: Record<Language, Translations> = {
         failed: "Falhou",
       },
     },
+    notFound: {
+      title: "404 Página Não Encontrada",
+      message: "Esqueceu de adicionar a página ao roteador?",
+    },
     chat: {
       welcome: "Bem-vindo ao AION",
       welcomeDesc: "Simples e Sofisticado.",
@@ -2027,6 +2037,10 @@ const translations: Record<Language, Translations> = {
         failed: "Failed",
       },
     },
+    notFound: {
+      title: "404 Page Not Found",
+      message: "Did you forget to add the page to the router?",
+    },
     chat: {
       welcome: "Welcome to AION",
       welcomeDesc: "Simple and Sophisticated.",
@@ -3006,6 +3020,10 @@ const translations: Record<Language, Translations> = {
         processing: "Procesando",
         failed: "Fallado",
       },
+    },
+    notFound: {
+      title: "404 Página No Encontrada",
+      message: "¿Olvidaste agregar la página al enrutador?",
     },
     chat: {
       welcome: "Bienvenido a AION",
