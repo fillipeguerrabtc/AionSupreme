@@ -179,12 +179,12 @@ export default function CurationQueuePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
-      toast({ title: "Item atualizado com sucesso!" });
+      toast({ title: t.common.updateSuccess });
       setEditDialogOpen(false);
       setSelectedItem(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao atualizar item", description: error.message, variant: "destructive" });
+      toast({ title: t.common.updateError, description: error.message, variant: "destructive" });
     },
   });
 
@@ -201,12 +201,12 @@ export default function CurationQueuePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
-      toast({ title: "Item aprovado e publicado com sucesso!" });
+      toast({ title: t.common.approvedSuccess });
       setApproveDialogOpen(false);
       setSelectedItem(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao aprovar item", description: error.message, variant: "destructive" });
+      toast({ title: t.common.approveError, description: error.message, variant: "destructive" });
     },
   });
 
@@ -232,7 +232,7 @@ export default function CurationQueuePage() {
       setSelectedIds(new Set());
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao aprovar itens", description: error.message, variant: "destructive" });
+      toast({ title: t.common.approveError, description: error.message, variant: "destructive" });
     },
   });
 
@@ -360,7 +360,7 @@ export default function CurationQueuePage() {
       setApproveAllDialogOpen(false);
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao aprovar todos os itens", description: error.message, variant: "destructive" });
+      toast({ title: t.common.approveError, description: error.message, variant: "destructive" });
     },
   });
 
@@ -386,7 +386,7 @@ export default function CurationQueuePage() {
       setBulkRejectNote("");
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao rejeitar itens", description: error.message, variant: "destructive" });
+      toast({ title: t.common.rejectError, description: error.message, variant: "destructive" });
     },
   });
 
@@ -411,7 +411,7 @@ export default function CurationQueuePage() {
       setBulkRejectNote("");
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao rejeitar todos os itens", description: error.message, variant: "destructive" });
+      toast({ title: t.common.rejectError, description: error.message, variant: "destructive" });
     },
   });
 
@@ -428,13 +428,13 @@ export default function CurationQueuePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
-      toast({ title: "Item rejeitado" });
+      toast({ title: t.common.rejectedSuccess });
       setRejectDialogOpen(false);
       setSelectedItem(null);
       setRejectNote("");
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao rejeitar item", description: error.message, variant: "destructive" });
+      toast({ title: t.common.rejectError, description: error.message, variant: "destructive" });
     },
   });
 
@@ -490,7 +490,7 @@ export default function CurationQueuePage() {
 
   const handleBulkApprove = () => {
     if (selectedIds.size === 0) {
-      toast({ title: "Selecione pelo menos um item", variant: "destructive" });
+      toast({ title: t.common.selectAtLeastOne, variant: "destructive" });
       return;
     }
     setBulkApproveDialogOpen(true);
@@ -502,7 +502,7 @@ export default function CurationQueuePage() {
 
   const handleBulkReject = () => {
     if (selectedIds.size === 0) {
-      toast({ title: "Selecione pelo menos um item", variant: "destructive" });
+      toast({ title: t.common.selectAtLeastOne, variant: "destructive" });
       return;
     }
     setBulkRejectDialogOpen(true);

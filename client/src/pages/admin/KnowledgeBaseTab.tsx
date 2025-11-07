@@ -232,7 +232,7 @@ export default function KnowledgeBaseTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images"] });
       setDeleteImageFilename(null);
-      toast({ title: "Imagem removida com sucesso!" });
+      toast({ title: t.common.removedSuccess });
     },
   });
 

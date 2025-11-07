@@ -27,6 +27,18 @@ interface Translations {
     inactive: string;
     created: string;
     statusText: string;
+    addedSuccess: string;
+    removedSuccess: string;
+    approvedSuccess: string;
+    rejectedSuccess: string;
+    approveError: string;
+    rejectError: string;
+    selectAtLeastOne: string;
+    search: string;
+    processingFiles: string;
+    files: string;
+    processedAndIndexed: string;
+    failedToProcess: string;
     status: {
       ready: string;
       processing: string;
@@ -1218,6 +1230,18 @@ const translations: Record<Language, Translations> = {
       inactive: "Inativo",
       created: "Criado em",
       statusText: "Status",
+      addedSuccess: "Adicionado com sucesso!",
+      removedSuccess: "Removido com sucesso!",
+      approvedSuccess: "Aprovado com sucesso!",
+      rejectedSuccess: "Rejeitado",
+      approveError: "Erro ao aprovar",
+      rejectError: "Erro ao rejeitar",
+      selectAtLeastOne: "Selecione pelo menos um item",
+      search: "Pesquisa",
+      processingFiles: "Processando",
+      files: "arquivo(s)",
+      processedAndIndexed: "processado(s) e indexado(s)",
+      failedToProcess: "Falha ao processar arquivos",
       status: {
         ready: "Pronto",
         processing: "Processando",
@@ -2363,6 +2387,18 @@ const translations: Record<Language, Translations> = {
       inactive: "Inactive",
       created: "Created at",
       statusText: "Status",
+      addedSuccess: "Added successfully!",
+      removedSuccess: "Removed successfully!",
+      approvedSuccess: "Approved successfully!",
+      rejectedSuccess: "Rejected",
+      approveError: "Error approving",
+      rejectError: "Error rejecting",
+      selectAtLeastOne: "Select at least one item",
+      search: "Search",
+      processingFiles: "Processing",
+      files: "file(s)",
+      processedAndIndexed: "processed and indexed",
+      failedToProcess: "Failed to process files",
       status: {
         ready: "Ready",
         processing: "Processing",
@@ -3508,6 +3544,18 @@ const translations: Record<Language, Translations> = {
       inactive: "Inactivo",
       created: "Creado en",
       statusText: "Estado",
+      addedSuccess: "Agregado exitosamente!",
+      removedSuccess: "Eliminado exitosamente!",
+      approvedSuccess: "Aprobado exitosamente!",
+      rejectedSuccess: "Rechazado",
+      approveError: "Error al aprobar",
+      rejectError: "Error al rechazar",
+      selectAtLeastOne: "Seleccione al menos un elemento",
+      search: "Búsqueda",
+      processingFiles: "Procesando",
+      files: "archivo(s)",
+      processedAndIndexed: "procesado(s) e indexado(s)",
+      failedToProcess: "Error al procesar archivos",
       status: {
         ready: "Listo",
         processing: "Procesando",

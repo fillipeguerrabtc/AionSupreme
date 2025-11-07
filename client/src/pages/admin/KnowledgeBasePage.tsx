@@ -74,7 +74,7 @@ export default function KnowledgeBasePage() {
       setNewTextTitle("");
       setNewTextContent("");
       setNewNamespaces([]);
-      toast({ title: "Conhecimento adicionado com sucesso!" });
+      toast({ title: t.common.addedSuccess });
     },
   });
 
@@ -93,7 +93,7 @@ export default function KnowledgeBasePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setShowAddUrl(false);
       setUrlToLearn("");
-      toast({ title: "Conteúdo do link aprendido com sucesso!" });
+      toast({ title: t.common.addedSuccess });
     },
   });
 
@@ -113,8 +113,8 @@ export default function KnowledgeBasePage() {
       setShowWebSearch(false);
       setSearchQuery("");
       toast({ 
-        title: `${data.documentsIndexed || 0} novos conhecimentos adicionados!`,
-        description: `Pesquisa: "${searchQuery}"`,
+        title: `${data.documentsIndexed || 0} ${t.common.addedSuccess}`,
+        description: `${t.common.search}: "${searchQuery}"`,
       });
     },
   });
@@ -136,7 +136,7 @@ export default function KnowledgeBasePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setEditingDoc(null);
       setEditNamespaces([]);
-      toast({ title: "Documento e namespaces atualizados!" });
+      toast({ title: t.common.updateSuccess });
     },
   });
 
@@ -148,7 +148,7 @@ export default function KnowledgeBasePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
-      toast({ title: "Documento removido!" });
+      toast({ title: t.common.removedSuccess });
     },
   });
 
@@ -233,8 +233,8 @@ export default function KnowledgeBasePage() {
               });
 
               toast({
-                title: "Fazendo upload...",
-                description: `Processando ${files.length} arquivo(s)...`,
+                title: t.common.loading,
+                description: `${t.common.processingFiles} ${files.length} ${t.common.files}...`,
               });
 
               try {
@@ -247,20 +247,20 @@ export default function KnowledgeBasePage() {
 
                 if (response.ok) {
                   toast({
-                    title: "Upload concluído!",
-                    description: `${result.processed} arquivo(s) processado(s) e indexado(s)`,
+                    title: t.common.success,
+                    description: `${result.processed} ${t.common.processedAndIndexed}`,
                   });
                   queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
                 } else {
                   toast({
-                    title: "Erro no upload",
-                    description: result.error || "Falha ao processar arquivos",
+                    title: t.common.error,
+                    description: result.error || t.common.failedToProcess,
                     variant: "destructive",
                   });
                 }
               } catch (error: any) {
                 toast({
-                  title: "Erro",
+                  title: t.common.error,
                   description: error.message,
                   variant: "destructive",
                 });
