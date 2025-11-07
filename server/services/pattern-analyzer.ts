@@ -22,46 +22,50 @@ class PatternAnalyzer {
   private readonly EFFECTIVENESS_THRESHOLD = 0.7;
   private readonly MIN_USAGE_FOR_ANALYSIS = 5;
 
-  analyzeAgentEffectiveness(): EffectivenessMetrics[] {
-    const agentStats = usageTracker.getAgentStats();
+  async analyzeAgentEffectiveness(): Promise<EffectivenessMetrics[]> {
+    const agentStats = await usageTracker.getAgentStats();
     
-    return agentStats
-      .filter(stat => stat.totalUses >= this.MIN_USAGE_FOR_ANALYSIS)
-      .map(stat => {
-        // SUCCESS RATE: REAL do QueryMonitor (100% production-ready)
-        const realAgentStats = queryMonitor.getAgentStats(stat.entityId);
-        
-        // SKIP agents sem dados suficientes de telemetria
-        // Não assume zero = real - retorna null para filtrar depois
-        if (realAgentStats.totalQueries === 0) {
-          return null;
-        }
-        
-        const successRate = realAgentStats.successRate / 100;  // Convert percentage to 0-1
-        const avgLatency = realAgentStats.avgLatency;
-        
-        const effectivenessScore = this.calculateEffectivenessScore(
-          successRate,
-          avgLatency,
-          stat.totalUses
-        );
+    const metrics = await Promise.all(
+      agentStats
+        .filter(stat => stat.totalUses >= this.MIN_USAGE_FOR_ANALYSIS)
+        .map(async stat => {
+          // SUCCESS RATE: REAL do QueryMonitor (100% production-ready)
+          const realAgentStats = await queryMonitor.getAgentStatsById(stat.entityId);
+          
+          // SKIP agents sem dados suficientes de telemetria
+          // Não assume zero = real - retorna null para filtrar depois
+          if (!realAgentStats || realAgentStats.totalQueries === 0) {
+            return null;
+          }
+          
+          const successRate = realAgentStats.successRate / 100;  // Convert percentage to 0-1
+          const avgLatency = realAgentStats.avgLatency;
+          
+          const effectivenessScore = this.calculateEffectivenessScore(
+            successRate,
+            avgLatency,
+            stat.totalUses
+          );
 
-        return {
-          agentId: stat.entityId,
-          agentName: stat.entityName,
-          successRate,
-          avgLatency,
-          usageCount: stat.totalUses,
-          effectivenessScore,
-        };
-      })
-      .filter(metric => metric !== null) // Remove agents sem telemetria
+          return {
+            agentId: stat.entityId,
+            agentName: stat.entityName,
+            successRate,
+            avgLatency,
+            usageCount: stat.totalUses,
+            effectivenessScore,
+          };
+        })
+    );
+    
+    return metrics
+      .filter((metric): metric is EffectivenessMetrics => metric !== null)
       .sort((a, b) => b.effectivenessScore - a.effectivenessScore);
   }
 
-  analyzeNamespaceQuality(): NamespaceQuality[] {
-    const namespaceStats = usageTracker.getNamespaceStats();
-    const qualityStats = usageTracker.getNamespaceQualityStats();
+  async analyzeNamespaceQuality(): Promise<NamespaceQuality[]> {
+    const namespaceStats = await usageTracker.getNamespaceStats();
+    const qualityStats = await usageTracker.getNamespaceQualityStats();
     
     // Criar mapa de namespace -> avgRelevance REAL
     const relevanceMap = new Map<string, number>();
@@ -115,10 +119,10 @@ class PatternAnalyzer {
     return avgRelevance * 0.7 + usageWeight * 0.3;
   }
 
-  generateInsightsForTraining(): string[] {
+  async generateInsightsForTraining(): Promise<string[]> {
     const insights: string[] = [];
     
-    const agentMetrics = this.analyzeAgentEffectiveness();
+    const agentMetrics = await this.analyzeAgentEffectiveness();
     const topAgents = agentMetrics.slice(0, 3);
     const underperformingAgents = agentMetrics
       .filter(a => a.effectivenessScore < this.EFFECTIVENESS_THRESHOLD)
@@ -138,7 +142,7 @@ class PatternAnalyzer {
       );
     }
 
-    const namespaceQuality = this.analyzeNamespaceQuality();
+    const namespaceQuality = await this.analyzeNamespaceQuality();
     const topNamespaces = namespaceQuality.slice(0, 3);
 
     if (topNamespaces.length > 0) {
@@ -152,7 +156,7 @@ class PatternAnalyzer {
   }
 
   async feedbackToTrainingCollector(): Promise<void> {
-    const insights = this.generateInsightsForTraining();
+    const insights = await this.generateInsightsForTraining();
     
     console.log("[PatternAnalyzer] 🔍 Análise de padrões de uso:");
     insights.forEach(insight => {
@@ -160,7 +164,7 @@ class PatternAnalyzer {
     });
 
     if (insights.length > 0) {
-      const trainingExamples = this.generateTrainingDataFromPatterns();
+      const trainingExamples = await this.generateTrainingDataFromPatterns();
       
       if (trainingExamples.length > 0) {
         console.log(`[PatternAnalyzer] 📊 Gerando ${trainingExamples.length} TrainingExamples...`);
@@ -180,9 +184,9 @@ class PatternAnalyzer {
     }
   }
 
-  generateTrainingDataFromPatterns(): TrainingExample[] {
+  async generateTrainingDataFromPatterns(): Promise<TrainingExample[]> {
     const trainingData: TrainingExample[] = [];
-    const agentMetrics = this.analyzeAgentEffectiveness();
+    const agentMetrics = await this.analyzeAgentEffectiveness();
     const topAgents = agentMetrics.slice(0, 3);
 
     for (const agent of topAgents) {

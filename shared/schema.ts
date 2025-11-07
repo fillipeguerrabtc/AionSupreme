@@ -871,15 +871,26 @@ export const gpuWorkers = pgTable("gpu_workers", {
   maxWeeklySeconds: integer("max_weekly_seconds"), // 108000 for Kaggle (30h), null for Colab
   weekStartedAt: timestamp("week_started_at"), // Week boundary for quota reset
   
+  // 🔥 NEW: Cooldown & Daily/Weekly Tracking (Architect recommendation)
+  cooldownUntil: timestamp("cooldown_until"), // Block usage until this time (Colab 36h cooldown)
+  dailyUsageHours: real("daily_usage_hours").notNull().default(0), // Hours used today (Kaggle 4h/day)
+  weeklyUsageHours: real("weekly_usage_hours").notNull().default(0), // Hours used this week
+  lastDailyReset: timestamp("last_daily_reset"), // Last daily reset timestamp
+  
+  // 🔥 NEW: Cost tracking (prepare for paid tier)
+  costPerHour: real("cost_per_hour").notNull().default(0), // $0 for free, $0.34 for RunPod, etc
+  totalCostUsd: real("total_cost_usd").notNull().default(0), // Accumulated cost
+  
   // Provider-specific limits
   providerLimits: jsonb("provider_limits").$type<{
-    max_session_hours: number; // 12 for Colab, 12 for Kaggle GPU, 9 for Kaggle CPU
-    max_weekly_hours?: number; // 30 for Kaggle, null for Colab
+    max_session_hours: number; // 11 for Colab, 4 for Kaggle daily
+    max_daily_hours?: number; // 4 for Kaggle, null for Colab
+    max_weekly_hours?: number; // 28 for Kaggle (4h×7 with 2h buffer), null for Colab
+    cooldown_hours?: number; // 36 for Colab, null for Kaggle
     idle_timeout_minutes?: number; // 90 for Colab, varies for Kaggle
-    safety_margin_hours: number; // 1h default - stop this many hours before limit
+    safety_margin_hours?: number; // Not used anymore (using exact limits now)
   }>().default({
-    max_session_hours: 12,
-    safety_margin_hours: 1,
+    max_session_hours: 11,
   }),
   
   // Timestamps
