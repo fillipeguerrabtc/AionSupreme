@@ -38,6 +38,7 @@ import express from "express";
 import { optionalAuth } from "./replitAuth";
 import { requireAuth, requireAdmin, requirePermission, getUserId } from "./middleware/auth";
 import { i18nMiddleware } from "./i18n/middleware"; // SECURITY FIX: Protect admin routes
+import { csrfProtection } from "./middleware/csrf"; // 🔒 CSRF Protection for admin routes
 import { DatasetProcessor } from "./training/datasets/dataset-processor";
 import { DatasetValidator } from "./training/datasets/dataset-validator";
 import { db } from "./db";
@@ -109,6 +110,7 @@ export function registerRoutes(app: Express): Server {
   // Previously mounted on /api which blocked ALL /api routes including /api/conversations
   // Now correctly isolated to /api/admin/* only
   const adminSubRouter = express.Router();
+  adminSubRouter.use(csrfProtection); // 🔒 CSRF protection - require X-Requested-With header for state-changing requests
   adminSubRouter.use(requireAdmin); // All routes under this router require admin role
   
   // Registrar rotas de gerenciamento de usuários
@@ -135,7 +137,7 @@ export function registerRoutes(app: Express): Server {
   registerVisionRoutes(adminSubRouter);
   
   // Registrar rotas de Meta-Learning (autonomous learning system)
-  registerMetaLearningRoutes(adminSubRouter);
+  registerMetaLearningRoutes(adminSubRouter as any);
   
   // Registrar rotas de KB Images (busca semântica de imagens na base de conhecimento)
   registerKbImagesRoutes(adminSubRouter);
@@ -428,13 +430,13 @@ export function registerRoutes(app: Express): Server {
       await pool.query("SELECT 1");
       const latency = Date.now() - start;
       
-      checks.services.database = {
+      (checks.services as any).database = {
         status: "saudável",
         latency: `${latency}ms`,
       };
     } catch (error: unknown) {
       allHealthy = false;
-      checks.services.database = {
+      (checks.services as any).database = {
         status: "indisponível",
         error: getErrorMessage(error),
       };
@@ -443,12 +445,12 @@ export function registerRoutes(app: Express): Server {
     // Verificação das APIs gratuitas
     try {
       const apiStatus = freeLLMProviders.getHealthStatus();
-      checks.services.freeAPIs = {
+      (checks.services as any).freeAPIs = {
         status: "saudável",
         providers: apiStatus,
       };
     } catch (error: unknown) {
-      checks.services.freeAPIs = {
+      (checks.services as any).freeAPIs = {
         status: "degradado",
         error: getErrorMessage(error),
       };
@@ -457,12 +459,12 @@ export function registerRoutes(app: Express): Server {
     // Verificação do OpenAI
     try {
       const hasOpenAI = !!process.env.OPENAI_API_KEY;
-      checks.services.openai = {
+      (checks.services as any).openai = {
         status: hasOpenAI ? "healthy" : "not_configured",
         configured: hasOpenAI,
       };
     } catch (error: unknown) {
-      checks.services.openai = {
+      (checks.services as any).openai = {
         status: "unknown",
         error: getErrorMessage(error),
       };
@@ -473,13 +475,13 @@ export function registerRoutes(app: Express): Server {
       const gpuStatus = gpuOrchestrator.getStatus();
       const activeWorkers = gpuStatus.endpoints.filter(e => e.status === 'online').length;
       const totalWorkers = gpuStatus.endpoints.length;
-      checks.services.gpuPool = {
+      (checks.services as any).gpuPool = {
         status: activeWorkers > 0 ? "healthy" : "no_workers",
         activeWorkers,
         totalWorkers,
       };
     } catch (error: unknown) {
-      checks.services.gpuPool = {
+      (checks.services as any).gpuPool = {
         status: "degraded",
         error: getErrorMessage(error),
       };
@@ -530,7 +532,7 @@ export function registerRoutes(app: Express): Server {
       
       console.log(`[Chat API] Recebidas ${messages.length} mensagens no histórico`);
       console.log(`[Chat API] Multi-Agent Mode: ${useMultiAgent ? 'ENABLED' : 'DISABLED'}`);
-      console.log(`[Chat API] Últimas 3 mensagens:`, messages.slice(-3).map((m) => ({
+      console.log(`[Chat API] Últimas 3 mensagens:`, messages.slice(-3).map((m: any) => ({
         role: m.role,
         preview: m.content?.substring(0, 50)
       })));
@@ -1069,7 +1071,7 @@ export function registerRoutes(app: Express): Server {
         );
         
         // ✅ Track search quality (relevance scores)
-        const relevanceScores = results.map((r) => r.similarity || r.score || 0);
+        const relevanceScores = results.map((r: any) => r.similarity || r.score || 0);
         if (relevanceScores.length > 0) {
           await usageTracker.trackNamespaceSearchQuality(namespace, relevanceScores);
         }
@@ -1110,7 +1112,7 @@ export function registerRoutes(app: Express): Server {
       
       const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
         name,
-        async (input: unknown) => fn(input),
+        async (input: unknown) => (fn as any)(input),
       ]));
       
       const result = await reactEngine.execute(goal, conversation_id || 1, message_id || 1, tools);
@@ -1886,14 +1888,14 @@ export function registerRoutes(app: Express): Server {
                 createdAt: doc.createdAt,
                 documentId: doc.id,
                 documentTitle: doc.title,
-                namespace: doc.namespace
+                namespace: (doc as any).namespace
               });
             });
         }
       });
 
       // Ordenar por data de criação (mais recente primeiro)
-      allImages.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      allImages.sort((a, b) => new Date(b.createdAt as any).getTime() - new Date(a.createdAt as any).getTime());
 
       res.json({
         total: allImages.length,
@@ -2395,7 +2397,7 @@ export function registerRoutes(app: Express): Server {
       
       const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
         name,
-        async (input: unknown) => fn(input),
+        async (input: unknown) => (fn as any)(input),
       ]));
       
       const result = await hierarchicalPlanner.executePlan(
@@ -2783,7 +2785,7 @@ export function registerRoutes(app: Express): Server {
         };
       } else {
         // OAuth authentication - fetch from database
-        userData = await storage.getUser(userId);
+        userData = (await storage.getUser(userId)) || {};
       }
       
       // SECURITY: Load user roles for RBAC
@@ -3280,7 +3282,7 @@ export function registerRoutes(app: Express): Server {
       // Create tools Map
       const tools = new Map(Object.entries(agentTools).map(([name, fn]) => [
         name,
-        async (input: unknown) => fn(input),
+        async (input: unknown) => (fn as any)(input),
       ]));
       
       // Configure max iterations
@@ -4410,7 +4412,7 @@ export function registerRoutes(app: Express): Server {
       const timeline = timelineResult.map((row) => ({
         date: row.date,
         count: Number(row.count) || 0,
-        avgScore: parseFloat(row.avgScore || '0')
+        avgScore: parseFloat(String(row.avgScore || '0'))
       }));
 
       // Calculate efficiency metrics
@@ -5465,7 +5467,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/gpu/workers/notebooks - List all managed notebooks
   app.get("/api/gpu/workers/notebooks", requireAuth, async (req, res) => {
     try {
-      const { gpuWorkers: gpuWorkersTable } = await import("@/shared/schema");
+      const { gpuWorkers: gpuWorkersTable } = await import("../shared/schema");
       const workers = await db.query.gpuWorkers.findMany({
         where: eq(gpuWorkersTable.autoManaged, true),
         orderBy: (workers, { desc }) => [desc(workers.createdAt)],
@@ -5494,7 +5496,7 @@ export function registerRoutes(app: Express): Server {
   // PATCH /api/gpu/workers/notebooks/:id - Update notebook config
   app.patch("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
     try {
-      const { gpuWorkers: gpuWorkersTable } = await import("@/shared/schema");
+      const { gpuWorkers: gpuWorkersTable } = await import("../shared/schema");
       const workerId = parseInt(req.params.id);
       const { notebookUrl, description } = req.body;
       
@@ -5523,7 +5525,7 @@ export function registerRoutes(app: Express): Server {
   // DELETE /api/gpu/workers/notebooks/:id - Remove notebook from pool
   app.delete("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
     try {
-      const { gpuWorkers: gpuWorkersTable } = await import("@/shared/schema");
+      const { gpuWorkers: gpuWorkersTable } = await import("../shared/schema");
       const workerId = parseInt(req.params.id);
       
       // Stop session if running
@@ -5531,9 +5533,10 @@ export function registerRoutes(app: Express): Server {
       await orchestratorService.stopGPU(workerId);
       
       // Delete worker
-      const [deleted] = await db.delete(gpuWorkersTable)
+      const deletedResult = await db.delete(gpuWorkersTable)
         .where(eq(gpuWorkersTable.id, workerId))
         .returning();
+      const deleted = (deletedResult as any)[0];
       
       if (!deleted) {
         return res.status(404).json({ error: "Worker not found" });

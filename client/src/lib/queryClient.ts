@@ -55,6 +55,10 @@ export async function apiRequest(
     
     const res = await fetch(url, {
       ...options,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest', // 🔒 CSRF protection
+        ...options.headers,
+      },
       credentials: "include",
     });
     
@@ -68,7 +72,10 @@ export async function apiRequest(
   
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest', // 🔒 CSRF protection
+      ...(data ? { "Content-Type": "application/json" } : {}),
+    },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -84,6 +91,9 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(queryKey.join("/") as string, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest', // 🔒 CSRF protection
+      },
       credentials: "include",
     });
 
