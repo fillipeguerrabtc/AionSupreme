@@ -658,7 +658,7 @@ export function registerRoutes(app: Express): Server {
           conversationId: null, // Sem ID de conversa para chats standalone
           userMessage,
           assistantResponse: result.content,
-          source: result.source || "unknown",
+          source: (result.source === "web-fallback" || result.source === "openai-fallback") ? "free-api" : (result.source || "openai"),
           provider: result.provider,
         }).catch((err: unknown) => {
           console.error('[AutoLearning] Failed to process chat:', getErrorMessage(err));
@@ -881,59 +881,60 @@ export function registerRoutes(app: Express): Server {
       const imageAttachments = [];
       
       if (files && files.length > 0) {
-        const { curationStore } = await import("./curation/store");
-        const imagesDir = path.join(process.cwd(), "attached_assets", "chat_images");
-        
-        // Garantir que diretório de imagens do chat existe
-        if (!fsSync.existsSync(imagesDir)) {
-          fsSync.mkdirSync(imagesDir, { recursive: true });
-        }
+        const { attachmentService } = await import("./services/attachment-service");
+        const { db: dbConn } = await import("./db");
+        const { curationQueue } = await import("@shared/schema");
+        const { nanoid } = await import("nanoid");
         
         const processedFiles = await Promise.all(
           files.map(async (file) => {
             const mimeType = fileProcessor.detectMimeType(file.originalname);
             const processed = await fileProcessor.processFile(file.path, mimeType);
             
-            // NOVO: Se é imagem, salva permanentemente e envia para curadoria
-            if (mimeType.startsWith('image/')) {
+            // ✅ OPÇÃO B: Todos anexos vão para curadoria HITL (curation_storage/pending/)
+            if (mimeType.startsWith('image/') || mimeType.startsWith('video/') || mimeType.startsWith('audio/')) {
               try {
-                // Copia imagem de /tmp para pasta permanente
-                const ext = path.extname(file.originalname);
-                const filename = `chat_${Date.now()}_${Math.random().toString(36).substring(7)}${ext}`;
-                const permanentPath = path.join(imagesDir, filename);
+                // Determinar tipo de arquivo
+                let fileType: 'image' | 'video' | 'audio' | 'document';
+                if (mimeType.startsWith('image/')) fileType = 'image';
+                else if (mimeType.startsWith('video/')) fileType = 'video';
+                else if (mimeType.startsWith('audio/')) fileType = 'audio';
+                else fileType = 'document';
                 
-                await fs.copyFile(file.path, permanentPath);
-                const stats = await fs.stat(permanentPath);
-                const relativePath = path.relative(process.cwd(), permanentPath);
+                // Criar entrada na curation queue PRIMEIRO (precisa do ID)
+                const curationId = nanoid();
+                const description = processed.extractedText || `${fileType} enviado pelo usuário no chat`;
                 
-                const imageAttachment = {
-                  type: 'image' as const,
-                  url: `/${relativePath}`,
-                  filename: filename,
-                  mimeType: mimeType,
-                  size: stats.size,
-                  description: processed.extractedText || 'Imagem enviada pelo usuário no chat'
-                };
-                
-                imageAttachments.push(imageAttachment);
-                
-                // Envia para curadoria (usando db.insert direto para incluir attachments)
-                const { curationQueue, insertCurationQueueSchema } = await import("@shared/schema");
-                const { db: dbConn } = await import("./db");
-                
-                await dbConn.insert(curationQueue).values({
-                  title: `[CHAT IMAGEM] ${file.originalname}`,
-                  content: `**Enviado no chat**\n**Conversa ID:** ${conversationId || 'desconhecida'}\n\n**Descrição AI:** ${processed.extractedText || 'Sem descrição'}\n\n**Arquivo original:** ${file.originalname}`,
-                  suggestedNamespaces: ['kb/chat', 'kb/images'],
-                  tags: ['imagem', 'chat', 'usuario', mimeType],
-                  attachments: [imageAttachment],
-                  status: "pending" as const,
-                  submittedBy: 'chat-user'
+                // Salvar arquivo em curation_storage/pending/ via AttachmentService PRIMEIRO
+                const tempAttachmentId = await attachmentService.uploadToPending({
+                  curationId,
+                  file,
+                  fileType,
+                  description,
                 });
                 
-                console.log(`[Chat] 🖼️ Imagem enviada para curadoria: ${filename}`);
+                // Criar curation item COM attachments linkados
+                const [curationItem] = await dbConn.insert(curationQueue).values({
+                  id: curationId,
+                  title: `[CHAT ${fileType.toUpperCase()}] ${file.originalname}`,
+                  content: `**Enviado no chat**\n**Conversa ID:** ${conversationId || 'desconhecida'}\n\n**Descrição AI:** ${description}\n\n**Arquivo original:** ${file.originalname}`,
+                  suggestedNamespaces: ['kb/chat', `kb/${fileType}s`],
+                  tags: [fileType, 'chat', 'usuario', mimeType],
+                  status: "pending" as const,
+                  submittedBy: 'chat-user',
+                  attachments: [{
+                    type: fileType,
+                    url: `/curation_storage/pending/${file.originalname}`, // URL temporária
+                    filename: file.originalname,
+                    mimeType: file.mimetype,
+                    size: file.size,
+                    description,
+                  }] as any, // Inline attachment para compatibilidade com schema existente
+                }).returning();
+                
+                console.log(`[Chat] 📎 ${fileType} enviado para curadoria: ${file.originalname} (ID: ${curationId}, Attachment: ${tempAttachmentId})`);
               } catch (error: unknown) {
-                console.error(`[Chat] ⚠️ Erro ao processar imagem ${file.originalname}:`, getErrorMessage(error));
+                console.error(`[Chat] ⚠️ Erro ao processar ${file.originalname}:`, getErrorMessage(error));
               }
             }
             
@@ -3901,7 +3902,7 @@ export function registerRoutes(app: Express): Server {
       // Save to database
       const [savedDataset] = await db
         .insert(datasets)
-        .values(result.dataset)
+        .values([result.dataset as any])
         .returning();
 
       res.json({
@@ -5123,13 +5124,21 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Serve learned images statically (from crawler)
+  // Serve learned images statically (from crawler) - DEPRECATED, use kb_storage/images
   const learnedImagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
   app.use('/attached_assets/learned_images', express.static(learnedImagesDir));
   
   // Serve chat images statically (from user uploads in chat)
   const chatImagesDir = path.join(process.cwd(), 'attached_assets', 'chat_images');
   app.use('/attached_assets/chat_images', express.static(chatImagesDir));
+
+  // Serve KB storage statically (PERMANENT storage after HITL approval)
+  const kbStorageDir = path.join(process.cwd(), 'kb_storage');
+  app.use('/kb_storage', express.static(kbStorageDir));
+  
+  // Serve curation storage statically (PENDING HITL approval)
+  const curationStorageDir = path.join(process.cwd(), 'curation_storage');
+  app.use('/curation_storage', express.static(curationStorageDir));
 
   // ============================================================================
   // ⚡ FASE 2 - C3: KB REBUILD ASYNC ROUTES

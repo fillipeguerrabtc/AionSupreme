@@ -56,10 +56,7 @@ export class DeduplicationService {
       })
       .from(documents)
       .where(
-        and(
-          eq(documents.tenantId, tenantId),
-          sql`${documents.metadata}->>'contentHash' = ${hash}`
-        )
+        sql`${documents.metadata}->>'contentHash' = ${hash}`
       )
       .limit(1);
 
@@ -116,10 +113,7 @@ export class DeduplicationService {
         .from(embeddings)
         .innerJoin(documents, eq(embeddings.documentId, documents.id))
         .where(
-          and(
-            eq(embeddings.tenantId, tenantId),
-            eq(documents.status, 'indexed')
-          )
+          eq(documents.status, 'indexed')
         )
         .orderBy(sql`${embeddings.id} DESC`) // Mais recentes primeiro
         .limit(100);
@@ -136,7 +130,6 @@ export class DeduplicationService {
         .from(curationQueue)
         .where(
           and(
-            eq(curationQueue.tenantId, tenantId),
             eq(curationQueue.status, 'pending'),
             sql`${curationQueue.embedding} IS NOT NULL`
           )
@@ -312,10 +305,7 @@ export class DeduplicationService {
       })
       .from(documents)
       .where(
-        and(
-          eq(documents.tenantId, tenantId),
-          eq(documents.contentHash, hash)
-        )
+        eq(documents.contentHash, hash)
       )
       .limit(1);
 
@@ -339,7 +329,6 @@ export class DeduplicationService {
       .from(curationQueue)
       .where(
         and(
-          eq(curationQueue.tenantId, tenantId),
           eq(curationQueue.contentHash, hash),
           sql`${curationQueue.status} IN ('pending', 'approved')` // Don't block if rejected
         )
@@ -406,10 +395,7 @@ export class DeduplicationService {
       .from(embeddings)
       .innerJoin(documents, eq(embeddings.documentId, documents.id))
       .where(
-        and(
-          eq(embeddings.tenantId, tenantId),
-          eq(documents.status, 'indexed')
-        )
+        eq(documents.status, 'indexed')
       )
       .limit(100);
 
@@ -425,7 +411,6 @@ export class DeduplicationService {
       .from(curationQueue)
       .where(
         and(
-          eq(curationQueue.tenantId, tenantId),
           eq(curationQueue.status, 'pending'),
           sql`${curationQueue.embedding} IS NOT NULL`, // Only items already scanned
           sql`${curationQueue.id} != ${itemId}` // Exclude current item
@@ -515,10 +500,7 @@ export class DeduplicationService {
       .select()
       .from(curationQueue)
       .where(
-        and(
-          eq(curationQueue.tenantId, tenantId),
-          eq(curationQueue.status, 'pending')
-        )
+        eq(curationQueue.status, 'pending')
       );
 
     const results = {

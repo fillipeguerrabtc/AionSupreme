@@ -104,9 +104,10 @@ export class AttachmentService {
 
   /**
    * Move arquivo de pending → kb_storage/ (aprovação)
-   * Atualiza storagePath no banco
+   * Atualiza storagePath no banco com relative path web-accessible
+   * Retorna relative URL para uso na KB
    */
-  async moveToKB(options: MoveToKBOptions): Promise<void> {
+  async moveToKB(options: MoveToKBOptions): Promise<string> {
     const { attachmentId, targetSubfolder } = options;
 
     // Buscar attachment
@@ -134,22 +135,28 @@ export class AttachmentService {
     // Verificar se origem existe
     if (!fs.existsSync(attachment.storagePath)) {
       console.warn(`[AttachmentService] ⚠️ Source file not found: ${attachment.storagePath}`);
-      return;
+      // Retornar relative path mesmo se arquivo não existe (pode ter sido movido antes)
+      return `/kb_storage/${subfolder}/${filename}`;
     }
 
     // Move arquivo
     await fs.promises.rename(attachment.storagePath, destPath);
 
-    // Atualizar DB + REMOVER tempBase64 (economia de espaço)
+    // Gerar relative URL web-accessible
+    const relativeUrl = `/kb_storage/${subfolder}/${filename}`;
+
+    // Atualizar DB com relative path + REMOVER tempBase64 (economia de espaço)
     await db.update(curationAttachments)
       .set({ 
-        storagePath: destPath,
+        storagePath: relativeUrl, // Salvar relative path ao invés de absolute
         tempBase64: null, // Limpar base64 após aprovação
         updatedAt: new Date(),
       })
       .where(eq(curationAttachments.id, attachmentId));
 
-    console.log(`[AttachmentService] ✅ Moved to KB: ${filename} → ${subfolder}/`);
+    console.log(`[AttachmentService] ✅ Moved to KB: ${filename} → ${relativeUrl}`);
+    
+    return relativeUrl;
   }
 
   /**
@@ -205,7 +212,7 @@ export class AttachmentService {
     // Apenas limpa base64 de attachments APROVADOS (já em kb_storage)
     const result = await db.update(curationAttachments)
       .set({ tempBase64: null, updatedAt: new Date() })
-      .where(eq(curationAttachments.tempBase64, null)) // WHERE tempBase64 IS NOT NULL (Drizzle limitation workaround)
+      .where(isNotNull(curationAttachments.tempBase64)) // WHERE tempBase64 IS NOT NULL
       .returning({ id: curationAttachments.id });
 
     console.log(`[AttachmentService] 🧹 Cleaned ${result.length} old base64 previews`);

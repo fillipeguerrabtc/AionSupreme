@@ -55,6 +55,10 @@ export class ImageGenerator {
         response_format: "url",
       });
 
+      if (!response.data || response.data.length === 0) {
+        throw new Error("DALL-E returned no image data");
+      }
+
       const imageData = response.data[0];
       const imageUrl = imageData.url;
       const revisedPrompt = imageData.revised_prompt || prompt;

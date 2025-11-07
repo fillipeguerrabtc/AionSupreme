@@ -296,7 +296,8 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       );
 
       // ✅ CRÍTICO: Deduplica namespaces (se 2+ consolidaram para o mesmo)
-      finalNamespaces = [...new Set(finalNamespaces.filter(ns => ns && ns.trim()))];
+      const uniqueNamespaces = new Set(finalNamespaces.filter(ns => ns && ns.trim()));
+      finalNamespaces = Array.from(uniqueNamespaces);
 
       if (Object.keys(creationResult.consolidatedMapping).length > 0) {
         console.log(`[Curation] 🔄 Namespaces consolidados:`, creationResult.consolidatedMapping);
