@@ -248,6 +248,51 @@ export class ProviderAlternationService {
   getState(): AlternationState {
     return { ...this.state };
   }
+
+  /**
+   * 🔥 EMERGENCY OVERRIDE: Forçar fallback quando provider recomendado sem quota
+   * 
+   * CASO DE USO:
+   * - Colab sem quota → Kaggle (fallback emergency)
+   * - Kaggle sem quota → Colab (fallback emergency)
+   * 
+   * IMPORTANT: Registra override no history para auditoria!
+   */
+  async overrideFallback(provider: Provider, reason: string): Promise<void> {
+    console.log(`[ProviderAlternation] ⚠️  EMERGENCY OVERRIDE: Forçando ${provider}`);
+    console.log(`[ProviderAlternation] 📝 Razão: ${reason}`);
+    
+    // 🔥 CRITICAL: Para forçar provider, precisamos fazer o OPOSTO dele parecer "stopped"
+    // Se queremos forçar 'colab', fazemos lastProviderStopped = 'kaggle'
+    // Se queremos forçar 'kaggle', fazemos lastProviderStopped = 'colab'
+    const oppositeProvider: Provider = provider === 'colab' ? 'kaggle' : 'colab';
+    
+    this.state.lastProviderStopped = oppositeProvider;
+    this.state.lastProviderStarted = oppositeProvider; // Double guarantee!
+    
+    // Adicionar entry no history para audit trail
+    this.state.stopHistory.push({
+      provider: oppositeProvider,
+      timestamp: new Date(),
+    });
+    
+    // Manter apenas últimos 20 registros
+    if (this.state.stopHistory.length > 20) {
+      this.state.stopHistory.shift();
+    }
+    
+    // Persistir no PostgreSQL
+    await this.persist();
+    
+    // Validar que override funcionou
+    const nextRecommended = this.getNextProviderToStart();
+    if (nextRecommended !== provider) {
+      console.error(`[ProviderAlternation] ❌ Override FALHOU: esperado ${provider}, got ${nextRecommended}`);
+      throw new Error(`Override failed - expected ${provider} but got ${nextRecommended}`);
+    }
+    
+    console.log(`[ProviderAlternation] ✅ Override validado: próximo recomendado = ${provider}`);
+  }
 }
 
 // Singleton

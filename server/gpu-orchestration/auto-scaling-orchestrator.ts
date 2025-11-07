@@ -212,29 +212,54 @@ export class AutoScalingOrchestrator {
         const availableGPUs = await this.detectAllGPUs();
         
         if (availableGPUs.colab.length > 0 || availableGPUs.kaggle.length > 0) {
-          // 🔥 Selecionar próximo provider baseado em alternância
+          // 🔥 SIMPLIFIED: Check BOTH pools for quota upfront
           const nextProvider = providerAlternationService.getNextProviderToStart();
+          const alternativeProvider: Provider = nextProvider === 'colab' ? 'kaggle' : 'colab';
           
-          const candidatePool = nextProvider === 'colab' ? availableGPUs.colab : availableGPUs.kaggle;
+          const recommendedPool = nextProvider === 'colab' ? availableGPUs.colab : availableGPUs.kaggle;
+          const alternativePool = alternativeProvider === 'colab' ? availableGPUs.colab : availableGPUs.kaggle;
           
-          if (candidatePool.length > 0) {
-            // Verificar se algum pode iniciar (quota disponível)
-            for (const workerId of candidatePool) {
+          // Find first worker with quota in recommended pool
+          let recommendedWorkerId: number | null = null;
+          for (const workerId of recommendedPool) {
+            const quotaStatus = await quotaManager.getQuotaStatus(workerId);
+            if (quotaStatus?.canStart) {
+              recommendedWorkerId = workerId;
+              break;
+            }
+          }
+          
+          // If recommended has quota, use it (NO override needed!)
+          if (recommendedWorkerId !== null) {
+            console.log(`[AutoScale] 🔄 Restart automático: ${nextProvider} GPU #${recommendedWorkerId}`);
+            await sleepHuman(3000);
+            await this.startGPU(recommendedWorkerId);
+          } else {
+            // Recommended pool exhausted - find first worker with quota in alternative pool
+            let alternativeWorkerId: number | null = null;
+            for (const workerId of alternativePool) {
               const quotaStatus = await quotaManager.getQuotaStatus(workerId);
-              
               if (quotaStatus?.canStart) {
-                console.log(`[AutoScale] 🔄 Restart automático: ${nextProvider} GPU #${workerId}`);
-                
-                // Delay humano antes de start
-                await sleepHuman(3000); // 2.1s - 3.9s
-                
-                await this.startGPU(workerId);
-                
-                // 🔥 Registrar provider started (ASYNC!)
-                await providerAlternationService.recordProviderStarted(nextProvider);
-                
-                break; // Apenas 1 restart por ciclo (conservador!)
+                alternativeWorkerId = workerId;
+                break;
               }
+            }
+            
+            if (alternativeWorkerId !== null) {
+              // Alternative has quota - Override + Start
+              console.log(`[AutoScale] ⚠️  ${nextProvider} sem quota → Fallback emergency: ${alternativeProvider}`);
+              
+              await providerAlternationService.overrideFallback(
+                alternativeProvider,
+                `${nextProvider} quota exhausted - emergency fallback`
+              );
+              
+              console.log(`[AutoScale] 🔄 Fallback restart: ${alternativeProvider} GPU #${alternativeWorkerId}`);
+              await sleepHuman(3000);
+              await this.startGPU(alternativeWorkerId);
+            } else {
+              // BOTH pools exhausted
+              console.log(`[AutoScale] ⚠️  AMBOS providers sem quota (dual exhaustion) - aguardando recovery`);
             }
           }
         }
@@ -645,10 +670,19 @@ export class AutoScalingOrchestrator {
       throw new Error(`Worker ${workerId} não encontrado`);
     }
 
-    // CRITICAL: Verificar quota antes de iniciar
+    // 🔥 CRITICAL: Verificar quota antes de iniciar
     const quotaStatus = await quotaManager.getQuotaStatus(workerId);
     if (!quotaStatus?.canStart) {
       console.log(`[AutoScale] ⚠️  GPU #${workerId} não pode iniciar: ${quotaStatus?.reason || 'quota exhausted'}`);
+      return;
+    }
+
+    // 🔥 CRITICAL: Enforçar alternância Colab↔Kaggle (ToS compliance!)
+    const provider = worker.provider as Provider;
+    if (!providerAlternationService.canStartProvider(provider)) {
+      const recommended = providerAlternationService.getNextProviderToStart();
+      console.log(`[AutoScale] 🚫 ToS VIOLATION BLOCKED: Tentou iniciar ${provider} mas recomendado é ${recommended}`);
+      console.log(`[AutoScale] 💡 Pattern atual: ${providerAlternationService.getAlternationPattern()}`);
       return;
     }
 
