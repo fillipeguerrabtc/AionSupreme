@@ -34,7 +34,7 @@ interface GpuWorker {
     max_concurrent?: number;
     metadata?: any;
   };
-  status: "healthy" | "unhealthy" | "offline" | "pending";
+  status: "healthy" | "unhealthy" | "offline" | "pending" | "online";
   lastHealthCheck?: string;
   lastHealthCheckError?: string;
   requestCount: number;
