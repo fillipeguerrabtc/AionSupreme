@@ -247,7 +247,7 @@ export class GPUDeletionService {
         return { deletedAssignments: 0, failedJobs: 0, totalAffected: 0 };
       }
 
-      const affectedJobIds = [...new Set(assignments.map(a => a.jobId))];
+      const affectedJobIds = Array.from(new Set(assignments.map(a => a.jobId)));
 
       // 2. Delete training_workers entries
       await db

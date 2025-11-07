@@ -318,6 +318,26 @@ export class SchedulerService {
       errorCount: 0,
     });
 
+    // 🔥 JOB 13: Auto-Stop Detection - A cada 5 minutos (ON-DEMAND job completion detection)
+    this.register({
+      name: 'kaggle-auto-stop-detection',
+      schedule: '*/5 * * * *', // A cada 5 minutos
+      task: async () => {
+        try {
+          const { demandBasedKaggleOrchestrator } = await import('./demand-based-kaggle-orchestrator');
+          
+          // Check if active job completed and auto-stop
+          await demandBasedKaggleOrchestrator.autoStopAfterJobCompletion();
+        } catch (error: any) {
+          // Silent error - não é crítico se falhar
+          logger.error(`Auto-stop detection error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
     logger.info(`SchedulerService: ${this.jobs.size} jobs registrados`);
   }
 
