@@ -251,6 +251,51 @@ export class KaggleCLIService {
   }
 
   /**
+   * Detect if response is HTML error page (not JSON/text)
+   */
+  private isHTMLErrorResponse(output: string): boolean {
+    const trimmed = output.trim().toLowerCase();
+    return trimmed.startsWith('<!doctype') || 
+           trimmed.startsWith('<html') ||
+           trimmed.includes('<head>') ||
+           trimmed.includes('<body>');
+  }
+
+  /**
+   * Parse Kaggle error to user-friendly message
+   */
+  private parseKaggleError(output: string, errorMessage: string): string {
+    // Check for HTML error page
+    if (this.isHTMLErrorResponse(output)) {
+      return 'Kaggle API returned an error page (possibly invalid credentials, rate limit, or service unavailable). Please verify your username and API key are correct.';
+    }
+
+    // Check for common error patterns
+    if (output.toLowerCase().includes('unauthorized') || 
+        output.toLowerCase().includes('401')) {
+      return 'Invalid Kaggle credentials. Please check your username and API key.';
+    }
+
+    if (output.toLowerCase().includes('forbidden') || 
+        output.toLowerCase().includes('403')) {
+      return 'Access forbidden. Your Kaggle API key may not have the required permissions.';
+    }
+
+    if (output.toLowerCase().includes('rate limit') || 
+        output.toLowerCase().includes('429')) {
+      return 'Kaggle API rate limit exceeded. Please try again in a few minutes.';
+    }
+
+    if (output.toLowerCase().includes('not found') || 
+        output.toLowerCase().includes('404')) {
+      return 'Kaggle resource not found. The kernel or dataset may not exist.';
+    }
+
+    // Return original error if no pattern matches
+    return `Kaggle CLI error: ${errorMessage}`;
+  }
+
+  /**
    * Execute Kaggle CLI command
    */
   async execute(args: string[]): Promise<{ stdout: string; stderr: string }> {
@@ -262,11 +307,24 @@ export class KaggleCLIService {
 
     try {
       const { stdout, stderr } = await execAsync(command);
+
+      // Check if response is HTML error page
+      if (this.isHTMLErrorResponse(stdout) || this.isHTMLErrorResponse(stderr)) {
+        const errorMsg = this.parseKaggleError(stdout + stderr, 'HTML error page received');
+        throw new Error(errorMsg);
+      }
+
       return { stdout, stderr };
 
     } catch (error: any) {
       console.error(`[Kaggle CLI] Command failed: ${command}`);
-      throw new Error(`Kaggle CLI error: ${error.message}`);
+      console.error(`[Kaggle CLI] Error output:`, error.stdout || error.stderr || error.message);
+
+      // Parse error to user-friendly message
+      const output = (error.stdout || '') + (error.stderr || '');
+      const userFriendlyError = this.parseKaggleError(output, error.message);
+
+      throw new Error(userFriendlyError);
     }
   }
 
