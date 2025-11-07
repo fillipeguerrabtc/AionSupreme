@@ -108,13 +108,13 @@ export default function FederatedTrainingTab() {
       setDatasetDescription("");
       setSelectedFile(null);
       toast({
-        title: "✅ Dataset Uploaded",
-        description: "Dataset processed successfully",
+        title: t.admin.federatedTraining.toast.datasetUploaded,
+        description: t.admin.federatedTraining.toast.datasetUploadedDesc,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "❌ Upload Failed",
+        title: t.admin.federatedTraining.toast.uploadFailed,
         description: error.message,
         variant: "destructive",
       });
@@ -131,12 +131,12 @@ export default function FederatedTrainingTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "✅ Dataset Deleted",
+        title: t.admin.federatedTraining.toast.datasetDeleted,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "❌ Delete Failed",
+        title: t.admin.federatedTraining.toast.deleteFailed,
         description: error.message,
         variant: "destructive",
       });
@@ -155,8 +155,8 @@ export default function FederatedTrainingTab() {
 
     if (!selectedDatasetId) {
       toast({
-        title: "⚠️ Dataset Required",
-        description: "Please select a dataset for training",
+        title: t.admin.federatedTraining.toast.datasetRequired,
+        description: t.admin.federatedTraining.toast.datasetRequiredDesc,
         variant: "destructive",
       });
       return;
@@ -168,8 +168,8 @@ export default function FederatedTrainingTab() {
     if (selectedDatasetId === 'kb-auto' || selectedDatasetId === 'kb-high-quality') {
       try {
         toast({
-          title: "🔄 Generating Dataset from KB...",
-          description: "Collecting high-quality conversations for training",
+          title: t.admin.federatedTraining.toast.generatingDataset,
+          description: t.admin.federatedTraining.toast.generatingDatasetDesc,
         });
 
         const response = await apiRequest("/api/training/datasets/generate-from-kb", {
@@ -187,18 +187,17 @@ export default function FederatedTrainingTab() {
           throw new Error(result.error || 'Failed to generate dataset');
         }
 
-        finalDatasetId = result.dataset.id.toString(); // Store as string temporarily
+        finalDatasetId = result.dataset.id.toString();
         
         toast({
-          title: "✅ Dataset Generated!",
-          description: `Created ${result.stats.totalConversations} training examples (avg score: ${result.stats.avgScore.toFixed(1)})`,
+          title: t.admin.federatedTraining.toast.datasetGenerated,
+          description: `${result.stats.totalConversations} ${t.admin.federatedTraining.toast.datasetGeneratedDesc} ${result.stats.avgScore.toFixed(1)})`,
         });
 
-        // Refresh datasets list
         queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       } catch (error: any) {
         toast({
-          title: "❌ Dataset Generation Failed",
+          title: t.admin.federatedTraining.toast.datasetGenerationFailed,
           description: error.message,
           variant: "destructive",
         });
@@ -229,8 +228,8 @@ export default function FederatedTrainingTab() {
   const handleUploadDataset = () => {
     if (!datasetName.trim()) {
       toast({
-        title: "⚠️ Name Required",
-        description: "Please enter a dataset name",
+        title: t.admin.federatedTraining.toast.nameRequired,
+        description: t.admin.federatedTraining.toast.nameRequiredDesc,
         variant: "destructive",
       });
       return;
@@ -238,8 +237,8 @@ export default function FederatedTrainingTab() {
 
     if (!selectedFile) {
       toast({
-        title: "⚠️ File Required",
-        description: "Please select a file to upload",
+        title: t.admin.federatedTraining.toast.fileRequired,
+        description: t.admin.federatedTraining.toast.fileRequiredDesc,
         variant: "destructive",
       });
       return;
@@ -362,23 +361,23 @@ export default function FederatedTrainingTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dataset-select">Dataset para Treinamento</Label>
+              <Label htmlFor="dataset-select">{t.admin.federatedTraining.datasetSelector.label}</Label>
               <Select value={selectedDatasetId} onValueChange={setSelectedDatasetId}>
                 <SelectTrigger data-testid="select-dataset">
-                  <SelectValue placeholder="Selecionar dataset..." />
+                  <SelectValue placeholder={t.admin.federatedTraining.datasetSelector.placeholder} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="kb-auto">📚 Auto-Generated from KB (Recommended)</SelectItem>
-                  <SelectItem value="kb-high-quality">⭐ KB High-Quality Only (score ≥ 80)</SelectItem>
+                  <SelectItem value="kb-auto">{t.admin.federatedTraining.datasetSelector.autoGenerated}</SelectItem>
+                  <SelectItem value="kb-high-quality">{t.admin.federatedTraining.datasetSelector.highQuality}</SelectItem>
                   {datasets && datasets.map((dataset: any) => (
                     <SelectItem key={dataset.id} value={dataset.id.toString()}>
-                      📁 {dataset.name} ({dataset.totalExamples} examples)
+                      📁 {dataset.name} ({dataset.totalExamples} {t.admin.federatedTraining.datasetManagement.examples.toLowerCase()})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Auto-generated datasets use high-quality conversations from your Knowledge Base for continuous learning
+                {t.admin.federatedTraining.datasetSelector.autoDesc}
               </p>
             </div>
           </div>
@@ -481,7 +480,7 @@ export default function FederatedTrainingTab() {
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" data-testid={`badge-workers-${job.id}`}>
                           <Users className="w-3 h-3 mr-1" />
-                          {job.activeWorkers} workers
+                          {job.activeWorkers} {t.admin.federatedTraining.jobDetails.workers}
                         </Badge>
                         <Badge variant="outline">
                           {job.modelType}
@@ -493,9 +492,9 @@ export default function FederatedTrainingTab() {
                     {/* Progress Bar */}
                     <div>
                       <div className="flex justify-between text-sm mb-2">
-                        <span>Progress</span>
+                        <span>{t.admin.federatedTraining.jobDetails.progress}</span>
                         <span className="font-medium">
-                          {job.currentStep} / {job.totalSteps} steps
+                          {job.currentStep} / {job.totalSteps} {t.admin.federatedTraining.jobDetails.steps}
                           ({((job.currentStep / job.totalSteps) * 100).toFixed(1)}%)
                         </span>
                       </div>
@@ -508,19 +507,19 @@ export default function FederatedTrainingTab() {
                     {/* Metrics */}
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
-                        <div className="text-muted-foreground">Global Loss</div>
+                        <div className="text-muted-foreground">{t.admin.federatedTraining.jobDetails.globalLoss}</div>
                         <div className="font-medium" data-testid={`text-loss-${job.id}`}>
-                          {job.globalLoss?.toFixed(4) || 'N/A'}
+                          {job.globalLoss?.toFixed(4) || t.admin.federatedTraining.jobDetails.na}
                         </div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground">Best Loss</div>
+                        <div className="text-muted-foreground">{t.admin.federatedTraining.jobDetails.bestLoss}</div>
                         <div className="font-medium">
-                          {job.bestLoss?.toFixed(4) || 'N/A'}
+                          {job.bestLoss?.toFixed(4) || t.admin.federatedTraining.jobDetails.na}
                         </div>
                       </div>
                       <div>
-                        <div className="text-muted-foreground">Completed Chunks</div>
+                        <div className="text-muted-foreground">{t.admin.federatedTraining.jobDetails.completedChunks}</div>
                         <div className="font-medium">
                           {job.completedChunks} / {job.totalChunks}
                         </div>
@@ -534,12 +533,12 @@ export default function FederatedTrainingTab() {
                         variant="outline"
                         data-testid={`button-view-${job.id}`}
                       >
-                        View Details
+                        {t.admin.federatedTraining.jobDetails.viewDetails}
                       </Button>
                       {job.status === 'running' ? (
-                        <Button size="sm" variant="outline">Pause</Button>
+                        <Button size="sm" variant="outline">{t.admin.federatedTraining.jobDetails.pause}</Button>
                       ) : job.status === 'paused' ? (
-                        <Button size="sm">Resume</Button>
+                        <Button size="sm">{t.admin.federatedTraining.jobDetails.resume}</Button>
                       ) : null}
                     </div>
                   </CardContent>
@@ -557,10 +556,10 @@ export default function FederatedTrainingTab() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="w-5 h-5" />
-                Training Datasets
+                {t.admin.federatedTraining.datasetManagement.title}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Upload and manage datasets for federated training
+                {t.admin.federatedTraining.datasetManagement.subtitle}
               </p>
             </div>
             <Button 
@@ -569,7 +568,7 @@ export default function FederatedTrainingTab() {
               data-testid="button-upload-dataset"
             >
               <Upload className="w-4 h-4 mr-2" />
-              Upload Dataset
+              {t.admin.federatedTraining.datasetManagement.uploadButton}
             </Button>
           </div>
         </CardHeader>
@@ -577,8 +576,8 @@ export default function FederatedTrainingTab() {
           {datasets.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Upload className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No datasets uploaded yet</p>
-              <p className="text-sm">Upload a dataset to start training</p>
+              <p>{t.admin.federatedTraining.datasetManagement.noDatasets}</p>
+              <p className="text-sm">{t.admin.federatedTraining.datasetManagement.noDatasetsDesc}</p>
             </div>
           ) : (
             <div className="grid gap-3">
@@ -601,13 +600,13 @@ export default function FederatedTrainingTab() {
                       onClick={() => deleteDataset.mutate(dataset.id)}
                       data-testid={`button-delete-dataset-${dataset.id}`}
                     >
-                      Delete
+                      {t.admin.federatedTraining.datasetManagement.delete}
                     </Button>
                   </div>
                   <div className="flex gap-4 text-sm text-muted-foreground">
-                    <span>Type: {dataset.datasetType}</span>
-                    <span>Examples: {dataset.totalExamples}</span>
-                    <span>Size: {(dataset.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+                    <span>{t.admin.federatedTraining.datasetManagement.type}: {dataset.datasetType}</span>
+                    <span>{t.admin.federatedTraining.datasetManagement.examples}: {dataset.totalExamples}</span>
+                    <span>{t.admin.federatedTraining.datasetManagement.size}: {(dataset.fileSize / 1024 / 1024).toFixed(2)} {t.admin.federatedTraining.datasetManagement.mbUnit}</span>
                     <Badge variant={dataset.isValid ? "default" : "destructive"}>
                       {dataset.status}
                     </Badge>

@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, Server, Code2, Zap } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useLanguage } from "@/lib/i18n";
 
 interface AddWorkerDialogProps {
   open: boolean;
@@ -23,6 +24,7 @@ interface AddWorkerDialogProps {
 }
 
 export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"kaggle" | "colab">("kaggle");
 
@@ -53,16 +55,16 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/status"] });
       toast({
-        title: "Kaggle Worker Provisioning",
-        description: `Notebook "${data.notebookName}" criado com sucesso! GPU será registrada em ~2-3 minutos.`,
+        title: t.admin.addGpuWorker.kaggle.success,
+        description: `Notebook "${data.notebookName}" ${t.admin.addGpuWorker.kaggle.successDesc}`,
       });
       onOpenChange(false);
       resetForm();
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao provisionar Kaggle",
-        description: error.message || "Falha ao criar notebook Kaggle",
+        title: t.admin.addGpuWorker.kaggle.error,
+        description: error.message || t.admin.addGpuWorker.kaggle.errorDesc,
         variant: "destructive",
       });
     },
@@ -85,16 +87,16 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/status"] });
       toast({
-        title: "Colab Worker Provisioning",
-        description: `Notebook provisionado com sucesso! GPU será registrada em ~3-5 minutos.`,
+        title: t.admin.addGpuWorker.colab.success,
+        description: t.admin.addGpuWorker.colab.successDesc,
       });
       onOpenChange(false);
       resetForm();
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao provisionar Colab",
-        description: error.message || "Falha ao orquestrar notebook Colab",
+        title: t.admin.addGpuWorker.colab.error,
+        description: error.message || t.admin.addGpuWorker.colab.errorDesc,
         variant: "destructive",
       });
     },
@@ -113,8 +115,8 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
     e.preventDefault();
     if (!kaggleUsername || !kaggleKey) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Username e API Key são obrigatórios",
+        title: t.admin.addGpuWorker.kaggle.requiredFields,
+        description: t.admin.addGpuWorker.kaggle.requiredFieldsDesc,
         variant: "destructive",
       });
       return;
@@ -126,8 +128,8 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
     e.preventDefault();
     if (!colabEmail || !colabPassword) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Email e senha do Google são obrigatórios",
+        title: t.admin.addGpuWorker.colab.requiredFields,
+        description: t.admin.addGpuWorker.colab.requiredFieldsDesc,
         variant: "destructive",
       });
       return;
@@ -141,10 +143,10 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Server className="w-5 h-5" />
-            Adicionar GPU Worker
+            {t.admin.addGpuWorker.title}
           </DialogTitle>
           <DialogDescription>
-            Provisione automaticamente notebooks Kaggle ou Colab como GPU workers
+            {t.admin.addGpuWorker.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -152,11 +154,11 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="kaggle" data-testid="tab-kaggle">
               <Code2 className="w-4 h-4 mr-2" />
-              Kaggle (API)
+              {t.admin.addGpuWorker.kaggleTab}
             </TabsTrigger>
             <TabsTrigger value="colab" data-testid="tab-colab">
               <Zap className="w-4 h-4 mr-2" />
-              Google Colab
+              {t.admin.addGpuWorker.colabTab}
             </TabsTrigger>
           </TabsList>
 
@@ -164,18 +166,18 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
           <TabsContent value="kaggle" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Kaggle Notebook (100% Automático)</CardTitle>
+                <CardTitle className="text-lg">{t.admin.addGpuWorker.kaggle.title}</CardTitle>
                 <CardDescription>
-                  30h/semana gratuito, P100 GPU, API oficial, zero manual
+                  {t.admin.addGpuWorker.kaggle.subtitle}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleKaggleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="kaggle-username">Kaggle Username *</Label>
+                    <Label htmlFor="kaggle-username">{t.admin.addGpuWorker.kaggle.username}</Label>
                     <Input
                       id="kaggle-username"
-                      placeholder="seu-username"
+                      placeholder={t.admin.addGpuWorker.kaggle.usernamePlaceholder}
                       value={kaggleUsername}
                       onChange={(e) => setKaggleUsername(e.target.value)}
                       disabled={kaggleMutation.isPending}
@@ -184,26 +186,26 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="kaggle-key">Kaggle API Key *</Label>
+                    <Label htmlFor="kaggle-key">{t.admin.addGpuWorker.kaggle.apiKey}</Label>
                     <Input
                       id="kaggle-key"
                       type="password"
-                      placeholder="Sua API Key (do kaggle.json)"
+                      placeholder={t.admin.addGpuWorker.kaggle.apiKeyPlaceholder}
                       value={kaggleKey}
                       onChange={(e) => setKaggleKey(e.target.value)}
                       disabled={kaggleMutation.isPending}
                       data-testid="input-kaggle-key"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Obtenha em: kaggle.com/settings → API → Create New Token
+                      {t.admin.addGpuWorker.kaggle.apiKeyHelp}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="notebook-name">Nome do Notebook (opcional)</Label>
+                    <Label htmlFor="notebook-name">{t.admin.addGpuWorker.kaggle.notebookName}</Label>
                     <Input
                       id="notebook-name"
-                      placeholder="aion-gpu-worker"
+                      placeholder={t.admin.addGpuWorker.kaggle.notebookNamePlaceholder}
                       value={notebookName}
                       onChange={(e) => setNotebookName(e.target.value)}
                       disabled={kaggleMutation.isPending}
@@ -213,12 +215,12 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
 
                   <Alert>
                     <AlertDescription className="text-sm">
-                      <strong>Como funciona:</strong>
+                      <strong>{t.admin.addGpuWorker.kaggle.howItWorks}</strong>
                       <ol className="list-decimal list-inside mt-2 space-y-1">
-                        <li>API cria notebook automaticamente</li>
-                        <li>Notebook executa script AION GPU worker</li>
-                        <li>Worker se registra via ngrok (~2min)</li>
-                        <li>GPU aparece aqui com status "Healthy"</li>
+                        <li>{t.admin.addGpuWorker.kaggle.step1}</li>
+                        <li>{t.admin.addGpuWorker.kaggle.step2}</li>
+                        <li>{t.admin.addGpuWorker.kaggle.step3}</li>
+                        <li>{t.admin.addGpuWorker.kaggle.step4}</li>
                       </ol>
                     </AlertDescription>
                   </Alert>
@@ -230,7 +232,7 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
                       onClick={() => onOpenChange(false)}
                       disabled={kaggleMutation.isPending}
                     >
-                      Cancelar
+                      {t.admin.addGpuWorker.kaggle.cancel}
                     </Button>
                     <Button
                       type="submit"
@@ -238,7 +240,7 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
                       data-testid="button-provision-kaggle"
                     >
                       {kaggleMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                      Provisionar Kaggle
+                      {kaggleMutation.isPending ? t.admin.addGpuWorker.kaggle.provisioning : t.admin.addGpuWorker.kaggle.provision}
                     </Button>
                   </div>
                 </form>
@@ -250,19 +252,19 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
           <TabsContent value="colab" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Google Colab (Puppeteer)</CardTitle>
+                <CardTitle className="text-lg">{t.admin.addGpuWorker.colab.title}</CardTitle>
                 <CardDescription>
-                  GPU gratuita T4, orquestração via Puppeteer (sem API pública)
+                  {t.admin.addGpuWorker.colab.subtitle}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleColabSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="colab-email">Email do Google *</Label>
+                    <Label htmlFor="colab-email">{t.admin.addGpuWorker.colab.email}</Label>
                     <Input
                       id="colab-email"
                       type="email"
-                      placeholder="seu-email@gmail.com"
+                      placeholder={t.admin.addGpuWorker.colab.emailPlaceholder}
                       value={colabEmail}
                       onChange={(e) => setColabEmail(e.target.value)}
                       disabled={colabMutation.isPending}
@@ -271,47 +273,47 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="colab-password">Senha do Google *</Label>
+                    <Label htmlFor="colab-password">{t.admin.addGpuWorker.colab.password}</Label>
                     <Input
                       id="colab-password"
                       type="password"
-                      placeholder="Sua senha"
+                      placeholder={t.admin.addGpuWorker.colab.passwordPlaceholder}
                       value={colabPassword}
                       onChange={(e) => setColabPassword(e.target.value)}
                       disabled={colabMutation.isPending}
                       data-testid="input-colab-password"
                     />
                     <p className="text-xs text-muted-foreground">
-                      ⚠️ Credenciais armazenadas com criptografia AES-256
+                      {t.admin.addGpuWorker.colab.passwordHelp}
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="colab-notebook-url">Notebook URL (opcional)</Label>
+                    <Label htmlFor="colab-notebook-url">{t.admin.addGpuWorker.colab.notebookUrl}</Label>
                     <Input
                       id="colab-notebook-url"
-                      placeholder="https://colab.research.google.com/drive/..."
+                      placeholder={t.admin.addGpuWorker.colab.notebookUrlPlaceholder}
                       value={colabNotebookUrl}
                       onChange={(e) => setColabNotebookUrl(e.target.value)}
                       disabled={colabMutation.isPending}
                       data-testid="input-colab-notebook-url"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Deixe vazio para criar novo notebook automaticamente
+                      {t.admin.addGpuWorker.colab.notebookUrlHelp}
                     </p>
                   </div>
 
                   <Alert className="bg-yellow-500/10 border-yellow-500/20">
                     <AlertDescription className="text-sm">
-                      <strong>⚡ Como funciona (Puppeteer):</strong>
+                      <strong>{t.admin.addGpuWorker.colab.howItWorks}</strong>
                       <ol className="list-decimal list-inside mt-2 space-y-1">
-                        <li>Puppeteer faz login no Google (headless)</li>
-                        <li>Cria/abre notebook no Colab</li>
-                        <li>Executa script AION GPU worker</li>
-                        <li>Worker se registra via ngrok (~3-5min)</li>
+                        <li>{t.admin.addGpuWorker.colab.step1}</li>
+                        <li>{t.admin.addGpuWorker.colab.step2}</li>
+                        <li>{t.admin.addGpuWorker.colab.step3}</li>
+                        <li>{t.admin.addGpuWorker.colab.step4}</li>
                       </ol>
                       <p className="mt-2 text-xs">
-                        ⏱️ Tempo estimado: 3-5 minutos (login + provisioning)
+                        {t.admin.addGpuWorker.colab.estimatedTime}
                       </p>
                     </AlertDescription>
                   </Alert>
@@ -323,7 +325,7 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
                       onClick={() => onOpenChange(false)}
                       disabled={colabMutation.isPending}
                     >
-                      Cancelar
+                      {t.admin.addGpuWorker.colab.cancel}
                     </Button>
                     <Button
                       type="submit"
@@ -331,7 +333,7 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
                       data-testid="button-provision-colab"
                     >
                       {colabMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                      Provisionar Colab
+                      {colabMutation.isPending ? t.admin.addGpuWorker.colab.provisioning : t.admin.addGpuWorker.colab.provision}
                     </Button>
                   </div>
                 </form>

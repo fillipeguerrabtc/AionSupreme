@@ -155,8 +155,8 @@ export default function NamespacesPage() {
   const handleCreate = async () => {
     if (!createName.trim()) {
       toast({ 
-        title: "Nome obrigatório", 
-        description: "Por favor, insira um nome para o namespace",
+        title: t.admin.namespaces.validation.nameRequired, 
+        description: t.admin.namespaces.validation.nameRequiredDesc,
         variant: "destructive" 
       });
       return;
@@ -166,8 +166,8 @@ export default function NamespacesPage() {
     if (createMode === "root") {
       if (createName.includes("/")) {
         toast({ 
-          title: "Formato inválido para namespace raiz", 
-          description: "Namespace raiz não pode conter '/'",
+          title: t.admin.namespaces.validation.invalidRootFormat, 
+          description: t.admin.namespaces.validation.rootNoSlash,
           variant: "destructive" 
         });
         return;
@@ -176,8 +176,8 @@ export default function NamespacesPage() {
       // Sub-namespace must have parent
       if (!parentNamespace) {
         toast({ 
-          title: "Namespace pai obrigatório", 
-          description: "Selecione o namespace pai para criar um sub-namespace",
+          title: t.admin.namespaces.validation.parentRequired, 
+          description: t.admin.namespaces.validation.selectParentDesc,
           variant: "destructive" 
         });
         return;
@@ -185,8 +185,8 @@ export default function NamespacesPage() {
       
       if (!createName.includes("/")) {
         toast({ 
-          title: "Formato inválido", 
-          description: "Sub-namespace deve estar no formato pai/filho",
+          title: t.admin.namespaces.validation.invalidFormat, 
+          description: t.admin.namespaces.validation.subFormatError,
           variant: "destructive" 
         });
         return;
@@ -194,7 +194,7 @@ export default function NamespacesPage() {
 
       if (!createName.startsWith(parentNamespace + "/")) {
         toast({ 
-          title: "Formato inválido", 
+          title: t.admin.namespaces.validation.invalidFormat, 
           description: `Sub-namespace deve começar com "${parentNamespace}/"`,
           variant: "destructive" 
         });
@@ -220,13 +220,13 @@ export default function NamespacesPage() {
               }),
             });
             toast({ 
-              title: "Conteúdo adicionado à fila de curadoria!", 
+              title: t.admin.namespaces.toast.contentQueued, 
               description: "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base" 
             });
           } catch (error) {
             toast({ 
-              title: "Erro ao indexar conteúdo", 
-              description: error instanceof Error ? error.message : "Erro desconhecido",
+              title: t.admin.namespaces.toast.indexError, 
+              description: error instanceof Error ? error.message : t.admin.namespaces.toast.unknownError,
               variant: "destructive" 
             });
           }
@@ -250,7 +250,7 @@ export default function NamespacesPage() {
       }, {
         onSuccess: async (newNamespace) => {
           toast({ 
-            title: "Versão customizada criada!", 
+            title: t.admin.namespaces.toast.customVersionCreated, 
             description: `Namespace "${editName}" foi criado baseado no namespace de sistema.` 
           });
           
@@ -266,13 +266,13 @@ export default function NamespacesPage() {
                 }),
               });
               toast({ 
-                title: "Conteúdo adicionado à fila de curadoria!", 
+                title: t.admin.namespaces.toast.contentQueued, 
                 description: "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base" 
               });
             } catch (error) {
               toast({ 
-                title: "Erro ao indexar conteúdo", 
-                description: error instanceof Error ? error.message : "Erro desconhecido",
+                title: t.admin.namespaces.toast.indexError, 
+                description: error instanceof Error ? error.message : t.admin.namespaces.toast.unknownError,
                 variant: "destructive" 
               });
             }
@@ -304,13 +304,13 @@ export default function NamespacesPage() {
                 }),
               });
               toast({ 
-                title: "Conteúdo adicionado à fila de curadoria!", 
+                title: t.admin.namespaces.toast.contentQueued, 
                 description: "O conteúdo adicional aguarda aprovação humana antes de ser indexado na Knowledge Base" 
               });
             } catch (error) {
               toast({ 
-                title: "Erro ao indexar conteúdo", 
-                description: error instanceof Error ? error.message : "Erro desconhecido",
+                title: t.admin.namespaces.toast.indexError, 
+                description: error instanceof Error ? error.message : t.admin.namespaces.toast.unknownError,
                 variant: "destructive" 
               });
             }
@@ -374,8 +374,8 @@ export default function NamespacesPage() {
               <DialogTitle>{createMode === "root" ? t.admin.namespaces.createRoot : t.admin.namespaces.createSub}</DialogTitle>
               <DialogDescription>
                 {createMode === "root" 
-                  ? "Crie um novo namespace raiz para organizar conhecimento por área" 
-                  : "Crie um sub-namespace dentro de uma área existente"}
+                  ? t.admin.namespaces.createRootDesc 
+                  : t.admin.namespaces.createSubDesc}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
@@ -415,10 +415,10 @@ export default function NamespacesPage() {
               {/* Parent namespace selector (only for sub mode) */}
               {createMode === "sub" && (
                 <div className="space-y-2">
-                  <Label htmlFor="parent-namespace">Namespace Pai *</Label>
+                  <Label htmlFor="parent-namespace">{t.admin.namespaces.parent} *</Label>
                   <Input
                     id="parent-namespace"
-                    placeholder="Ex: atendimento, financas"
+                    placeholder={t.admin.namespaces.rootPlaceholder}
                     value={parentNamespace}
                     onChange={(e) => {
                       const parent = e.target.value.trim();
@@ -438,16 +438,16 @@ export default function NamespacesPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="create-name">
-                  {createMode === "root" ? "Nome do Namespace *" : "Nome Completo *"}
+                  {createMode === "root" ? t.admin.namespaces.rootNameLabel : t.admin.namespaces.fullNameLabel}
                 </Label>
                 <Input
                   id="create-name"
                   placeholder={
                     createMode === "root"
-                      ? "Ex: projetos, vendas, documentacao"
+                      ? t.admin.namespaces.rootNameExample
                       : parentNamespace
                       ? `${parentNamespace}/...`
-                      : "Ex: financas/impostos, tech/apis"
+                      : t.admin.namespaces.subNameExample
                   }
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
@@ -455,17 +455,17 @@ export default function NamespacesPage() {
                 />
                 <p className="text-xs text-muted-foreground">
                   {createMode === "root" 
-                    ? "Nome único sem '/' para namespace raiz"
-                    : "Formato: namespace-pai/sub-namespace"
+                    ? t.admin.namespaces.rootNameHint
+                    : t.admin.namespaces.subNameHint
                   }
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-description">Descrição</Label>
+                <Label htmlFor="create-description">{t.admin.namespaces.description}</Label>
                 <Textarea
                   id="create-description"
-                  placeholder="Descreva o tipo de conteúdo deste namespace..."
+                  placeholder={t.admin.namespaces.descriptionPlaceholder}
                   value={createDescription}
                   onChange={(e) => setCreateDescription(e.target.value)}
                   rows={3}
@@ -491,7 +491,7 @@ export default function NamespacesPage() {
                 <Label htmlFor="create-content">Conteúdo Inicial (Opcional)</Label>
                 <Textarea
                   id="create-content"
-                  placeholder="Cole textos ou documentos para o Agente Curador indexar..."
+                  placeholder={t.admin.namespaces.contentPlaceholder}
                   value={createContent}
                   onChange={(e) => setCreateContent(e.target.value)}
                   rows={5}
@@ -508,14 +508,14 @@ export default function NamespacesPage() {
                   onClick={() => setIsCreateOpen(false)}
                   data-testid="button-cancel-create"
                 >
-                  Cancelar
+                  {t.admin.namespaces.cancel}
                 </Button>
                 <Button
                   onClick={handleCreate}
                   disabled={createMutation.isPending}
                   data-testid="button-submit-create"
                 >
-                  {createMutation.isPending ? "Criando..." : "Criar Namespace"}
+                  {createMutation.isPending ? t.admin.namespaces.creating : t.admin.namespaces.create}
                 </Button>
               </div>
             </div>
@@ -534,16 +534,16 @@ export default function NamespacesPage() {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="text-center py-8 text-muted-foreground">Carregando...</p>
+            <p className="text-center py-8 text-muted-foreground">{t.common.loading}</p>
           ) : (
             <div className="w-full overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12"></TableHead>
-                    <TableHead className="whitespace-nowrap">Nome</TableHead>
-                    <TableHead className="whitespace-nowrap">Descrição</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Ações</TableHead>
+                    <TableHead className="whitespace-nowrap">{t.admin.namespaces.name}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t.admin.namespaces.description}</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">{t.admin.namespaces.actions}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -640,8 +640,8 @@ export default function NamespacesPage() {
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
               {selectedNamespace?.id?.toString().startsWith("predefined-") 
-                ? "Criar Versão Customizada" 
-                : "Editar Namespace"}
+                ? t.admin.namespaces.editCustomVersion 
+                : t.admin.namespaces.editNamespace}
             </DialogTitle>
             <DialogDescription>
               {selectedNamespace?.id?.toString().startsWith("predefined-")
@@ -656,7 +656,7 @@ export default function NamespacesPage() {
                 id="edit-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                placeholder="Ex: atendimento, financas/impostos"
+                placeholder={t.admin.namespaces.rootPlaceholder}
                 data-testid="input-edit-namespace-name"
               />
               <p className="text-xs text-muted-foreground">
@@ -668,7 +668,7 @@ export default function NamespacesPage() {
               <Label htmlFor="edit-description">Descrição</Label>
               <Textarea
                 id="edit-description"
-                placeholder="Descreva o tipo de conteúdo deste namespace..."
+                placeholder={t.admin.namespaces.descriptionPlaceholder}
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
                 rows={3}
@@ -691,7 +691,7 @@ export default function NamespacesPage() {
               <Label htmlFor="edit-content">Adicionar Conteúdo (Opcional)</Label>
               <Textarea
                 id="edit-content"
-                placeholder="Cole textos ou documentos para o Agente Curador indexar..."
+                placeholder={t.admin.namespaces.contentPlaceholder}
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 rows={5}
@@ -716,7 +716,7 @@ export default function NamespacesPage() {
                 disabled={updateMutation.isPending}
                 data-testid="button-submit-edit"
               >
-                {updateMutation.isPending ? "Salvando..." : "Salvar Alterações"}
+                {updateMutation.isPending ? t.admin.namespaces.saving : t.admin.namespaces.save}
               </Button>
             </div>
           </div>

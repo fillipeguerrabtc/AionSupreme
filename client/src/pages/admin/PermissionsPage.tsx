@@ -47,18 +47,18 @@ interface SubmoduleDefinition {
   actions: string[];
 }
 
-const createPermissionSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
-  module: z.string().min(1, "Módulo é obrigatório"),
-  submodule: z.string().min(1, "Submódulo é obrigatório"),
-  actions: z.array(z.string()).min(1, "Selecione pelo menos uma ação"),
-  description: z.string().optional(),
-});
-
-type CreatePermissionForm = z.infer<typeof createPermissionSchema>;
-
 export default function PermissionsPage() {
   const { t } = useLanguage();
+  
+  const createPermissionSchema = z.object({
+    name: z.string().min(1, t.admin.permissions.validation.nameRequired),
+    module: z.string().min(1, t.admin.permissions.validation.moduleRequired),
+    submodule: z.string().min(1, t.admin.permissions.validation.submoduleRequired),
+    actions: z.array(z.string()).min(1, t.admin.permissions.validation.actionsRequired),
+    description: z.string().optional(),
+  });
+  
+  type CreatePermissionForm = z.infer<typeof createPermissionSchema>;
   const { toast } = useToast();
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set(["all"]));
   
@@ -152,13 +152,13 @@ export default function PermissionsPage() {
       form.reset();
       toast({
         title: t.common.success,
-        description: "Permissões criadas com sucesso",
+        description: t.admin.permissions.toasts.createSuccess,
       });
     },
     onError: (error: any) => {
       toast({
         title: t.common.error,
-        description: error.message || "Erro ao criar permissões",
+        description: error.message || t.admin.permissions.toasts.createError,
         variant: "destructive",
       });
     },
@@ -178,13 +178,13 @@ export default function PermissionsPage() {
       setSelectedPermission(null);
       toast({
         title: t.common.success,
-        description: "Permissão excluída com sucesso",
+        description: t.admin.permissions.toasts.deleteSuccess,
       });
     },
     onError: (error: any) => {
       toast({
         title: t.common.error,
-        description: error.message || "Erro ao excluir permissão",
+        description: error.message || t.admin.permissions.toasts.deleteError,
         variant: "destructive",
       });
     },
@@ -204,13 +204,13 @@ export default function PermissionsPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/roles', variables.roleId, 'permissions'] });
       toast({
         title: t.common.success,
-        description: "Permissão atribuída com sucesso",
+        description: t.admin.permissions.toasts.assignSuccess,
       });
     },
     onError: (error: any) => {
       toast({
         title: t.common.error,
-        description: error.message || "Erro ao atribuir permissão",
+        description: error.message || t.admin.permissions.toasts.assignError,
         variant: "destructive",
       });
     },
@@ -228,13 +228,13 @@ export default function PermissionsPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/roles', variables.roleId, 'permissions'] });
       toast({
         title: t.common.success,
-        description: "Permissão revogada com sucesso",
+        description: t.admin.permissions.toasts.revokeSuccess,
       });
     },
     onError: (error: any) => {
       toast({
         title: t.common.error,
-        description: error.message || "Erro ao revogar permissão",
+        description: error.message || t.admin.permissions.toasts.revokeError,
         variant: "destructive",
       });
     },
@@ -310,20 +310,20 @@ export default function PermissionsPage() {
         </div>
         <Button onClick={handleOpenCreateDialog} data-testid="button-create-permission">
           <Plus className="w-4 h-4 mr-2" />
-          Nova Permissão
+          {t.admin.permissions.crud.createButton}
         </Button>
       </div>
 
       {loading ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
-            Carregando...
+            {t.common.loading}
           </CardContent>
         </Card>
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Matriz de Permissões</CardTitle>
+            <CardTitle>{t.admin.permissions.matrix.title}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {Object.entries(permissionsByModule).map(([module, permissions]) => {
@@ -400,7 +400,7 @@ export default function PermissionsPage() {
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-create-permission">
           <DialogHeader>
-            <DialogTitle>Nova Permissão</DialogTitle>
+            <DialogTitle>{t.admin.permissions.crud.createTitle}</DialogTitle>
           </DialogHeader>
           
           <Form {...form}>
@@ -410,9 +410,9 @@ export default function PermissionsPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nome*</FormLabel>
+                    <FormLabel>{t.admin.permissions.crud.nameLabel}*</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Ex: Visualizar Usuários" data-testid="input-permission-name" />
+                      <Input {...field} placeholder={t.admin.permissions.crud.namePlaceholder} data-testid="input-permission-name" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -424,11 +424,11 @@ export default function PermissionsPage() {
                 name="module"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Módulo*</FormLabel>
+                    <FormLabel>{t.admin.permissions.crud.moduleLabel}*</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-module">
-                          <SelectValue placeholder="Selecione um módulo" />
+                          <SelectValue placeholder={t.admin.permissions.placeholders.selectModule} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -449,7 +449,7 @@ export default function PermissionsPage() {
                 name="submodule"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Submódulo*</FormLabel>
+                    <FormLabel>{t.admin.permissions.crud.submoduleLabel}*</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
@@ -457,7 +457,7 @@ export default function PermissionsPage() {
                     >
                       <FormControl>
                         <SelectTrigger data-testid="select-submodule">
-                          <SelectValue placeholder={!watchModule ? "Selecione um módulo primeiro" : "Selecione um submódulo"} />
+                          <SelectValue placeholder={!watchModule ? t.admin.permissions.placeholders.selectModuleFirst : t.admin.permissions.placeholders.selectSubmodule} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -478,7 +478,7 @@ export default function PermissionsPage() {
                 name="actions"
                 render={() => (
                   <FormItem>
-                    <FormLabel>Ações* (selecione pelo menos uma)</FormLabel>
+                    <FormLabel>{t.admin.permissions.crud.actionsLabel}*</FormLabel>
                     <div className="space-y-2">
                       {selectedSubmoduleDef?.actions.map(action => (
                         <FormField
@@ -509,7 +509,7 @@ export default function PermissionsPage() {
                         />
                       ))}
                       {!watchSubmodule && (
-                        <p className="text-sm text-muted-foreground">Selecione um submódulo para ver as ações disponíveis</p>
+                        <p className="text-sm text-muted-foreground">{t.admin.permissions.helpers.selectSubmoduleToSeeActions}</p>
                       )}
                     </div>
                     <FormMessage />
@@ -522,9 +522,9 @@ export default function PermissionsPage() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Descrição (opcional)</FormLabel>
+                    <FormLabel>{t.admin.permissions.crud.descriptionLabel}</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Descreva o que esta permissão permite..." data-testid="textarea-description" />
+                      <Textarea {...field} placeholder={t.admin.permissions.crud.descriptionPlaceholder} data-testid="textarea-description" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -533,7 +533,7 @@ export default function PermissionsPage() {
 
               {previewCodes.length > 0 && (
                 <div className="p-4 bg-muted rounded-lg">
-                  <Label className="text-sm font-semibold mb-2 block">Códigos que serão gerados:</Label>
+                  <Label className="text-sm font-semibold mb-2 block">{t.admin.permissions.helpers.codesPreview}</Label>
                   <div className="space-y-1">
                     {previewCodes.map(code => (
                       <div key={code} className="flex items-center gap-2 text-sm font-mono">
@@ -547,14 +547,14 @@ export default function PermissionsPage() {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancelar
+                  {t.admin.permissions.crud.cancel}
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={createPermissionMutation.isPending}
                   data-testid="button-submit-permission"
                 >
-                  {createPermissionMutation.isPending ? "Criando..." : "Criar Permissões"}
+                  {createPermissionMutation.isPending ? t.admin.permissions.crud.creating : t.admin.permissions.crud.create}
                 </Button>
               </DialogFooter>
             </form>
@@ -566,29 +566,29 @@ export default function PermissionsPage() {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent data-testid="dialog-delete-permission">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>{t.admin.permissions.crud.deleteTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a permissão <strong>{selectedPermission?.name}</strong>?
+              {t.admin.permissions.crud.deleteConfirm} <strong>{selectedPermission?.name}</strong>?
               {permissionUsage && permissionUsage.inUse && (
                 <div className="mt-3 p-3 bg-destructive/10 rounded-md">
-                  <p className="text-destructive font-semibold">⚠️ Permissão em uso:</p>
+                  <p className="text-destructive font-semibold">{t.admin.permissions.helpers.permissionInUse}</p>
                   <ul className="mt-2 space-y-1 text-sm">
-                    <li>• {permissionUsage.roleCount} role(s)</li>
-                    <li>• {permissionUsage.userCount} usuário(s)</li>
+                    <li>• {permissionUsage.roleCount} {t.admin.permissions.crud.rolesUsing}</li>
+                    <li>• {permissionUsage.userCount} {t.admin.permissions.crud.usersUsing}</li>
                   </ul>
-                  <p className="mt-2 text-xs">A exclusão removerá essa permissão de todos os roles e usuários.</p>
+                  <p className="mt-2 text-xs">{t.admin.permissions.crud.usageWarning}</p>
                 </div>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{t.admin.permissions.crud.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedPermission && deletePermissionMutation.mutate(selectedPermission.id)}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-confirm-delete"
             >
-              {deletePermissionMutation.isPending ? "Excluindo..." : "Excluir"}
+              {deletePermissionMutation.isPending ? t.admin.permissions.crud.deleting : t.admin.permissions.crud.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
