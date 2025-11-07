@@ -20,6 +20,7 @@ import {
   LogOut,
   Shield,
   ListTodo,
+  Brain,
 } from "lucide-react";
 import {
   Sidebar,
@@ -124,6 +125,13 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
       icon: Sparkles,
       value: "evolution",
       testId: "nav-evolution",
+      requiredPermission: "settings:system:read",
+    },
+    {
+      title: t.meta.dashboard.title,
+      icon: Brain,
+      value: "meta-learning",
+      testId: "nav-meta-learning",
       requiredPermission: "settings:system:read",
     },
     {

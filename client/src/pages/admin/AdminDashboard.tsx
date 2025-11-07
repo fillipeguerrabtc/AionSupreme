@@ -22,6 +22,7 @@ import GPUManagementTab from "./GPUManagementTab";
 import FederatedTrainingTab from "./FederatedTrainingTab";
 import AutoEvolutionTab from "./AutoEvolutionTab";
 import DatasetsTab from "./DatasetsTab";
+import MetaLearningDashboard from "../meta-learning-dashboard";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -781,6 +782,11 @@ export default function AdminDashboard() {
                 <div className="space-y-6">
                   <AutoEvolutionTab />
                 </div>
+              )}
+
+              {/* Meta-Learning Tab */}
+              {activeTab === "meta-learning" && (
+                <MetaLearningDashboard />
               )}
 
               {/* Datasets Tab */}
