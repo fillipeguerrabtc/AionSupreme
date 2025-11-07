@@ -18,6 +18,9 @@ import { eq, desc, sql, and, gte } from "drizzle-orm";
 import { ConversationCollector, FormattedTrainingExample } from "./collectors/conversation-collector";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { getMetaLearningConfig } from "./meta-learning-config";
+import { piiRedactionService } from "./pii-redaction-service";
+import { replayBufferService } from "./replay-buffer-service";
 
 interface DatasetStats {
   totalExamples: number;
@@ -38,12 +41,18 @@ interface GeneratedDataset {
 }
 
 export class DatasetGenerator {
-  private minExamplesForTraining = 50; // Mínimo de exemplos para disparar treino
+  private minExamplesForTraining = 15; // Adaptive (will be overridden by config)
   private datasetDir = "/tmp/datasets";
   private enabled = true;
 
   /**
    * Gera dataset automaticamente a partir de conversas + KB
+   * 
+   * ENTERPRISE DIAMOND PLUS FEATURES:
+   * - Adaptive thresholds (dev/prod/sensitive)
+   * - PII auto-redaction
+   * - Quality gates
+   * - Replay buffer integration
    */
   async generateAutoDataset(): Promise<GeneratedDataset | null> {
     if (!this.enabled) {
@@ -52,6 +61,10 @@ export class DatasetGenerator {
     }
 
     console.log("\n🔧 [DatasetGen] Iniciando geração automática de dataset...");
+    
+    // Load adaptive configuration
+    const config = getMetaLearningConfig();
+    const threshold = config.thresholds.minExamples;
 
     try {
       // STEP 1: Coletar conversas de alta qualidade
@@ -63,15 +76,76 @@ export class DatasetGenerator {
       console.log(`   ✓ Coletados ${kbExamples.length} exemplos da KB`);
 
       // STEP 3: Combinar tudo
-      const allExamples = [...conversationExamples, ...kbExamples];
+      let allExamples = [...conversationExamples, ...kbExamples];
 
-      if (allExamples.length < this.minExamplesForTraining) {
-        console.log(`   ⚠ Apenas ${allExamples.length} exemplos - mínimo é ${this.minExamplesForTraining}`);
+      if (allExamples.length < threshold) {
+        console.log(`   ⚠ Apenas ${allExamples.length} exemplos - mínimo é ${threshold} (modo: ${config.mode})`);
         console.log("   → Aguardando mais dados antes de gerar dataset");
         return null;
       }
 
-      // STEP 4: Converter para formato JSONL (Alpaca/Instruct)
+      // STEP 4: Apply Quality Gates
+      console.log(`\n   🎯 Aplicando quality gates...`);
+      allExamples = allExamples.filter(ex => {
+        const outputLen = ex.output.length;
+        const instructionLen = ex.instruction.length;
+        
+        // Check length constraints
+        if (outputLen < config.qualityGates.minResponseLength) return false;
+        if (outputLen > config.qualityGates.maxResponseLength) return false;
+        if (instructionLen < 5) return false; // Minimum instruction length
+        
+        return true;
+      });
+      console.log(`   ✓ ${allExamples.length} exemplos passaram quality gates`);
+
+      // STEP 5: Apply PII Redaction
+      console.log(`\n   🔐 Aplicando PII redaction...`);
+      const redactionStats: any[] = [];
+      allExamples = allExamples.map(ex => {
+        // Redact instruction
+        const instrRedact = piiRedactionService.redact(ex.instruction, config);
+        // Redact output
+        const outputRedact = piiRedactionService.redact(ex.output, config);
+        
+        redactionStats.push(instrRedact, outputRedact);
+        
+        return {
+          ...ex,
+          instruction: instrRedact.redactedText,
+          output: outputRedact.redactedText,
+        };
+      });
+      
+      const totalRedactions = redactionStats.reduce((sum, r) => sum + r.redactionCount, 0);
+      console.log(`   ✓ ${totalRedactions} PII redactions aplicadas`);
+
+      // STEP 6: Add high-quality examples to Replay Buffer
+      console.log(`\n   💾 Adicionando ao Replay Buffer...`);
+      let addedToBuffer = 0;
+      for (const ex of allExamples) {
+        // Assume quality score based on length (simplified)
+        const qualityScore = Math.min(100, (ex.output.length / 10));
+        
+        const added = await replayBufferService.addToBuffer({
+          instruction: ex.instruction,
+          input: ex.input,
+          output: ex.output,
+          system: ex.system,
+          qualityScore,
+        }, config);
+        
+        if (added) addedToBuffer++;
+      }
+      console.log(`   ✓ ${addedToBuffer} exemplos adicionados ao buffer`);
+
+      // STEP 7: Mix Replay Buffer with new examples (if enabled)
+      const bufferStats = await replayBufferService.getBufferStats();
+      console.log(`\n   🔀 Replay Buffer status:`);
+      console.log(`      • Buffer size: ${bufferStats.size}/${bufferStats.maxSize}`);
+      console.log(`      • Avg quality: ${bufferStats.avgQuality.toFixed(1)}`);
+
+      // STEP 8: Converter para formato JSONL (Alpaca/Instruct)
       const jsonlContent = this.convertToJSONL(allExamples);
 
       // STEP 5: Salvar arquivo

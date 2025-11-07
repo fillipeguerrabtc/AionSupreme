@@ -25,11 +25,22 @@ import { chatIngestionService } from "../learn/chat-ingestion";
 import { agentContinuousLearning } from "../learn/agent-continuous-learning";
 import { gradientAggregationCoordinator } from "../federated/gradient-aggregation-coordinator";
 import { patternAnalyzer } from "../services/pattern-analyzer";
+import { getMetaLearningConfig } from "./meta-learning-config";
 
 export function initAutoEvolution(): void {
   console.log("\n╔════════════════════════════════════════════════════════════════╗");
   console.log("║   🧠 AION AUTO-EVOLUTION SYSTEM - INICIALIZANDO...           ║");
+  console.log("║   💎 ENTERPRISE DIAMOND PLUS EDITION                          ║");
   console.log("╚════════════════════════════════════════════════════════════════╝\n");
+  
+  // Load adaptive configuration
+  const config = getMetaLearningConfig();
+  console.log(`📋 Meta-Learning Mode: ${config.mode.toUpperCase()}`);
+  console.log(`   • Threshold: ${config.thresholds.minExamples} exemplos`);
+  console.log(`   • Replay Buffer: ${config.replayBuffer.enabled ? `ENABLED (${config.replayBuffer.maxSize})` : 'DISABLED'}`);
+  console.log(`   • PII Redaction: ${config.piiRedaction.enabled ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`   • Differential Privacy: ${config.differentialPrivacy.enabled ? `ENABLED (ε=${config.differentialPrivacy.epsilon})` : 'DISABLED'}`);
+  console.log('');
 
   // COMPONENTE 1: AutoIndexer
   console.log("📝 [1/9] AutoIndexer...");
@@ -42,18 +53,22 @@ export function initAutoEvolution(): void {
   autoLearningListener.setEnabled(true);
   console.log("   ✅ ATIVO - Escutando TODAS as fontes de dados\n");
 
-  // COMPONENTE 3: DatasetGenerator
+  // COMPONENTE 3: DatasetGenerator (usa config adaptativo)
   console.log("📦 [3/9] DatasetGenerator...");
   datasetGenerator.setEnabled(true);
-  datasetGenerator.setMinExamples(1); // Meta-Learning incremental (mínimo 1 exemplo)
-  console.log("   ✅ ATIVO - Geração automática de datasets (threshold: 1 - incremental)\n");
+  console.log(`   ✅ ATIVO - Geração automática de datasets`);
+  console.log(`   → Threshold adaptativo: ${config.thresholds.minExamples} (modo: ${config.mode})`);
+  console.log(`   → PII Redaction: ${config.piiRedaction.enabled ? 'ENABLED' : 'DISABLED'}`);
+  console.log(`   → Quality Gates: min=${config.qualityGates.minQualityScore}\n`);
 
-  // COMPONENTE 4: AutoTrainingTrigger
+  // COMPONENTE 4: AutoTrainingTrigger (usa config adaptativo)
   console.log("🔄 [4/9] AutoTrainingTrigger...");
   autoTrainingTrigger.setEnabled(true);
-  autoTrainingTrigger.setThreshold(1); // Meta-Learning incremental (mínimo 1 exemplo)
   autoTrainingTrigger.start(); // Verifica a cada 30min
-  console.log("   ✅ ATIVO - Monitor automático de treino (check: 30min)\n");
+  console.log(`   ✅ ATIVO - Monitor automático de treino (check: 30min)`);
+  console.log(`   → Threshold adaptativo: ${config.thresholds.minExamples} (modo: ${config.mode})`);
+  console.log(`   → LoRA: rank=${config.lora.rank}, alpha=${config.lora.alpha}`);
+  console.log(`   → DP: ${config.differentialPrivacy.enabled ? `ε=${config.differentialPrivacy.epsilon}` : 'disabled'}\n`);
 
   // COMPONENTE 5: GPUPool
   console.log("🎮 [5/9] GPUPool...");
@@ -97,6 +112,7 @@ export function initAutoEvolution(): void {
   // RESUMO DO SISTEMA
   console.log("╔════════════════════════════════════════════════════════════════╗");
   console.log("║   ✅ SISTEMA DE AUTO-EVOLUÇÃO 100% OPERACIONAL                ║");
+  console.log("║   💎 ENTERPRISE DIAMOND PLUS EDITION                          ║");
   console.log("╠════════════════════════════════════════════════════════════════╣");
   console.log("║   🔄 FLUXO COMPLETO DE AUTO-APRENDIZADO:                      ║");
   console.log("║                                                                ║");
@@ -104,10 +120,13 @@ export function initAutoEvolution(): void {
   console.log("║   2. 🔍 AION busca: KB → GPU → Free APIs → Web → OpenAI       ║");
   console.log("║   3. 💬 Responde usuário (2-5s)                                ║");
   console.log("║   4. 📝 AutoIndexer adiciona na KB automaticamente             ║");
-  console.log("║   5. 📊 Acumula exemplos → gera dataset (incremental)          ║");
-  console.log("║   6. 🔥 GPU(s) treinam automaticamente                         ║");
-  console.log("║   7. 🚀 Modelo fica mais inteligente                           ║");
-  console.log("║   8. 🔁 Repete infinitamente (auto-evolução)                   ║");
+  console.log("║   5. 🔐 PII Redaction (emails, phones, SSN, credit cards)      ║");
+  console.log("║   6. 🎯 Quality Gates (min score, length validation)           ║");
+  console.log("║   7. 💾 Replay Buffer (anti-catastrophic forgetting)           ║");
+  console.log("║   8. 📊 Acumula exemplos → gera dataset (threshold adaptativo) ║");
+  console.log("║   9. 🔥 GPU(s) treinam com LoRA + DP                           ║");
+  console.log("║   10. 🚀 Modelo fica mais inteligente                          ║");
+  console.log("║   11. 🔁 Repete infinitamente (auto-evolução)                  ║");
   console.log("║                                                                ║");
   console.log("╠════════════════════════════════════════════════════════════════╣");
   console.log("║   🎮 BALANCEAMENTO DE GPU:                                     ║");

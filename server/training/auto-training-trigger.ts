@@ -19,6 +19,8 @@ import { trainingJobs } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { datasetSplitter } from "../federated/dataset-splitter";
 import { gradientAggregator } from "../federated/gradient-aggregator";
+import { getMetaLearningConfig } from "./meta-learning-config";
+import { differentialPrivacyService } from "./differential-privacy-service";
 
 interface TrainingConfig {
   model: string;
@@ -35,24 +37,9 @@ interface TrainingConfig {
 }
 
 export class AutoTrainingTrigger {
-  private minExamplesThreshold = 1; // Mínimo de exemplos para disparar treino (Meta-Learning incremental)
   private checkIntervalMs = 30 * 60 * 1000; // 30 minutos
   private intervalId: NodeJS.Timeout | null = null;
   private enabled = true;
-
-  private defaultConfig: TrainingConfig = {
-    model: "llama3-8b",
-    lora: {
-      r: 8,
-      alpha: 16,
-      dropout: 0.05,
-    },
-    training: {
-      epochs: 3,
-      batchSize: 4,
-      learningRate: 2e-4,
-    },
-  };
 
   /**
    * Inicia monitoramento automático
@@ -87,6 +74,11 @@ export class AutoTrainingTrigger {
 
   /**
    * Verifica condições e dispara treino se necessário
+   * 
+   * ENTERPRISE DIAMOND PLUS FEATURES:
+   * - Adaptive thresholds based on environment
+   * - Differential Privacy budget tracking
+   * - Quality gates enforcement
    */
   private async checkAndTrigger(): Promise<void> {
     if (!this.enabled) {
@@ -94,18 +86,23 @@ export class AutoTrainingTrigger {
     }
 
     console.log("\n🤖 [AutoTrain] Verificando condições para auto-treino...");
+    
+    // Load adaptive configuration
+    const config = getMetaLearningConfig();
+    const threshold = config.thresholds.minExamples;
 
     try {
       // CONDIÇÃO 1: Verificar exemplos pendentes
       const pendingExamples = await datasetGenerator.checkPendingExamples();
       console.log(`   📊 Exemplos pendentes: ${pendingExamples}`);
+      console.log(`   🎯 Threshold (modo ${config.mode}): ${threshold} exemplos`);
 
-      if (pendingExamples < this.minExamplesThreshold) {
-        console.log(`   ⚠ Insuficiente - precisa de ${this.minExamplesThreshold} exemplos`);
+      if (pendingExamples < threshold) {
+        console.log(`   ⚠ Insuficiente - precisa de ${threshold} exemplos`);
         return;
       }
 
-      console.log(`   ✅ Threshold atingido! (${pendingExamples} >= ${this.minExamplesThreshold})`);
+      console.log(`   ✅ Threshold atingido! (${pendingExamples} >= ${threshold})`);
 
       // CONDIÇÃO 2: Verificar GPUs disponíveis
       const onlineWorkers = await GPUPool.getOnlineWorkers();
@@ -132,7 +129,7 @@ export class AutoTrainingTrigger {
       // TODAS AS CONDIÇÕES OK! 🚀
       console.log("\n   🎯 TODAS CONDIÇÕES OK - INICIANDO AUTO-TREINO!");
 
-      await this.triggerTraining();
+      await this.triggerTraining(config);
     } catch (error: any) {
       console.error(`[AutoTrain] ❌ Erro no check:`, error.message);
     }
@@ -141,7 +138,7 @@ export class AutoTrainingTrigger {
   /**
    * Dispara treino automaticamente
    */
-  private async triggerTraining(): Promise<void> {
+  private async triggerTraining(config: ReturnType<typeof getMetaLearningConfig>): Promise<void> {
     try {
       // STEP 1: Gerar dataset automaticamente
       console.log("\n   📦 [1/3] Gerando dataset...");
@@ -154,22 +151,55 @@ export class AutoTrainingTrigger {
 
       console.log(`   ✅ Dataset gerado: ${dataset.examplesCount} exemplos`);
 
-      // STEP 2: Criar job de treino
+      // STEP 2: Criar job de treino com LoRA + DP config
       console.log("\n   🔧 [2/3] Criando job de treino...");
       
+      // Initialize DP budget tracking
+      const sessionId = `training_${Date.now()}`;
+      const dpBudget = differentialPrivacyService.initializeBudget(sessionId, config);
+      
       const [job] = await db.insert(trainingJobs).values({
-        name: `Auto-Training ${new Date().toISOString()}`,
-        description: `Treino automático com ${dataset.examplesCount} exemplos`,
-        model: this.defaultConfig.model,
+        name: `Auto-Training ${config.mode} ${new Date().toISOString()}`,
+        description: `Treino automático com ${dataset.examplesCount} exemplos (modo: ${config.mode})`,
+        model: "llama3-8b", // Default model
         datasetId: dataset.datasetId,
         status: "pending",
         config: {
-          ...this.defaultConfig,
+          // LoRA configuration (parameter-efficient fine-tuning)
+          lora: {
+            r: config.lora.rank,
+            alpha: config.lora.alpha,
+            dropout: config.lora.dropout,
+            targetModules: config.lora.targetModules,
+          },
+          // Training parameters
+          training: {
+            epochs: config.training.epochs,
+            batchSize: config.training.batchSize,
+            learningRate: config.training.learningRate,
+            warmupSteps: config.training.warmupSteps,
+            gradientAccumulationSteps: config.training.gradientAccumulationSteps,
+          },
+          // Differential Privacy (if enabled)
+          differentialPrivacy: {
+            enabled: config.differentialPrivacy.enabled,
+            epsilon: dpBudget.epsilon,
+            delta: dpBudget.delta,
+            gradientClipNorm: config.differentialPrivacy.gradientClipNorm,
+            noiseMultiplier: config.differentialPrivacy.noiseMultiplier,
+            sessionId,
+          },
+          // Meta info
           autoTriggered: true,
+          mode: config.mode,
+          replayBufferEnabled: config.replayBuffer.enabled,
         },
       } as any).returning();
 
       console.log(`   ✅ Job criado: ID ${job.id}`);
+      if (config.differentialPrivacy.enabled) {
+        console.log(`   🔐 DP enabled: ε=${dpBudget.epsilon}, δ=${dpBudget.delta}`);
+      }
 
       // STEP 3: Verificar quantas GPUs disponíveis
       console.log("\n   🎮 [3/5] Verificando GPUs disponíveis...");
@@ -183,8 +213,9 @@ export class AutoTrainingTrigger {
       console.log(`   ✅ ${availableWorkers.length} GPU(s) disponível(is)`);
 
       // STEP 4: Distribuir treino (Federated ou Single)
-      if (availableWorkers.length > 1 && dataset.examplesCount >= 10) {
-        // FEDERATED LEARNING - Múltiplas GPUs (mínimo 10 exemplos para dividir)
+      const federatedThreshold = config.thresholds.federatedMinimum;
+      if (availableWorkers.length > 1 && dataset.examplesCount >= federatedThreshold) {
+        // FEDERATED LEARNING - Múltiplas GPUs
         console.log("\n   🌐 [4/5] MODO FEDERADO - Dividindo dataset...");
         
         // Buscar dataset real do banco para pegar storagePath
@@ -237,9 +268,17 @@ export class AutoTrainingTrigger {
           
           return GPUPool.startTraining(worker.id, job.id, {
             datasetPath: chunkUrl, // URL que workers remotos podem baixar
-            modelName: this.defaultConfig.model,
-            loraConfig: this.defaultConfig.lora,
-            trainingArgs: this.defaultConfig.training,
+            modelName: "llama3-8b",
+            loraConfig: {
+              r: config.lora.rank,
+              alpha: config.lora.alpha,
+              dropout: config.lora.dropout,
+            },
+            trainingArgs: {
+              epochs: config.training.epochs,
+              batchSize: config.training.batchSize,
+              learningRate: config.training.learningRate,
+            },
           });
         });
 
@@ -265,9 +304,17 @@ export class AutoTrainingTrigger {
         
         await GPUPool.startTraining(worker.id, job.id, {
           datasetPath: String(dataset.datasetId),
-          modelName: this.defaultConfig.model,
-          loraConfig: this.defaultConfig.lora,
-          trainingArgs: this.defaultConfig.training,
+          modelName: "llama3-8b",
+          loraConfig: {
+            r: config.lora.rank,
+            alpha: config.lora.alpha,
+            dropout: config.lora.dropout,
+          },
+          trainingArgs: {
+            epochs: config.training.epochs,
+            batchSize: config.training.batchSize,
+            learningRate: config.training.learningRate,
+          },
         });
 
         console.log("\n   🚀 AUTO-TREINO INICIADO!");
@@ -285,15 +332,8 @@ export class AutoTrainingTrigger {
    */
   async triggerNow(): Promise<void> {
     console.log("\n🚀 [AutoTrain] Disparo MANUAL iniciado...");
-    await this.triggerTraining();
-  }
-
-  /**
-   * Configurar threshold
-   */
-  setThreshold(min: number): void {
-    this.minExamplesThreshold = min;
-    console.log(`[AutoTrain] Threshold atualizado: ${min} exemplos`);
+    const config = getMetaLearningConfig();
+    await this.triggerTraining(config);
   }
 
   /**
