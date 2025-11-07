@@ -83,7 +83,7 @@ export default function ChatPage() {
         const response = await apiRequest("/api/conversations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: "New Chat" }),
+          body: JSON.stringify({ title: t.chat.newChat }),
         });
         const newConv = await response.json();
         
@@ -97,8 +97,8 @@ export default function ChatPage() {
         localStorage.removeItem('currentConversationId');
         // Show error to user
         toast({
-          title: "Error",
-          description: "Failed to initialize conversation. Please refresh the page.",
+          title: t.chat.error,
+          description: `${t.chat.failedToInitialize}. ${t.chat.pleaseRefresh}`,
           variant: "destructive",
         });
       }
@@ -131,8 +131,8 @@ export default function ChatPage() {
     } catch (error) {
       console.error("Failed to load conversation:", error);
       toast({
-        title: "Error",
-        description: "Failed to load conversation",
+        title: t.chat.error,
+        description: t.chat.failedToLoad,
         variant: "destructive",
       });
     }
@@ -144,7 +144,7 @@ export default function ChatPage() {
       const response = await apiRequest("/api/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "New Chat" }),
+        body: JSON.stringify({ title: t.chat.newChat }),
       });
       const newConv = await response.json();
       
@@ -162,8 +162,8 @@ export default function ChatPage() {
     } catch (error) {
       console.error("Failed to create new conversation:", error);
       toast({
-        title: "Error",
-        description: "Failed to create new conversation",
+        title: t.chat.error,
+        description: t.chat.failedToCreate,
         variant: "destructive",
       });
     }
@@ -171,7 +171,7 @@ export default function ChatPage() {
 
   const sendMutation = useMutation({
     mutationFn: async ({ userMessage, files }: { userMessage: string; files?: File[] }) => {
-      if (!conversationId) throw new Error("No conversation active");
+      if (!conversationId) throw new Error(t.chat.noConversationActive);
       
       const currentMessages = [...messages, { role: "user" as const, content: userMessage }];
       
@@ -264,8 +264,8 @@ export default function ChatPage() {
       console.error("Erro ao enviar mensagem:", error);
       setMessages(prev => prev.slice(0, -1));
       toast({
-        title: "Error",
-        description: error.message || "Failed to send message",
+        title: t.chat.error,
+        description: error.message || t.chat.failedToSend,
         variant: "destructive",
       });
     },
@@ -351,9 +351,10 @@ export default function ChatPage() {
       if (detectedLang && detectedLang !== language) {
         console.log(`[Language Detection] Realtime: ${language} → ${detectedLang}`);
         setLanguage(detectedLang);
+        const langName = detectedLang === "pt-BR" ? "Português" : detectedLang === "es-ES" ? "Español" : "English";
         toast({
-          title: "Language detected",
-          description: `Switched to ${detectedLang === "pt-BR" ? "Português" : detectedLang === "es-ES" ? "Español" : "English"}`,
+          title: t.chat.languageDetected,
+          description: `${t.chat.switchedTo} ${langName}`,
         });
       }
     }
@@ -431,8 +432,8 @@ export default function ChatPage() {
     const files = Array.from(e.target.files || []);
     if (files.length + attachedFiles.length > 5) {
       toast({
-        title: "Muitos arquivos",
-        description: "Máximo de 5 arquivos permitidos",
+        title: t.chat.tooManyFiles,
+        description: t.chat.maxFilesAllowed,
         variant: "destructive",
       });
       return;
@@ -442,8 +443,8 @@ export default function ChatPage() {
     
     // Show success toast
     toast({
-      title: "Arquivo(s) anexado(s)",
-      description: `${files.length} arquivo(s) pronto(s) para envio. A IA irá analisar o conteúdo.`,
+      title: t.chat.filesAttached,
+      description: `${files.length} ${t.chat.filesReady}`,
     });
   };
 
@@ -465,7 +466,7 @@ export default function ChatPage() {
         : '';
       
       if (!mimeType) {
-        throw new Error("Seu navegador não suporta gravação de áudio");
+        throw new Error(t.chat.browserNoAudioSupport);
       }
       
       const recorder = new MediaRecorder(stream, { mimeType });
@@ -493,20 +494,20 @@ export default function ChatPage() {
           if (!response.ok) {
             const errorText = await response.text();
             console.error("[Transcription Error]:", errorText);
-            throw new Error(errorText || "Transcription failed");
+            throw new Error(errorText || t.chat.transcriptionFailed);
           }
           const data = await response.json();
           setInput(prev => prev + (prev ? " " : "") + data.text);
           
           toast({
-            title: "Transcrição completa",
-            description: "Áudio transcrito com sucesso!",
+            title: t.chat.transcriptionComplete,
+            description: t.chat.audioTranscribed,
           });
         } catch (error: any) {
           console.error("Transcription error:", error);
           toast({
-            title: "Erro na transcrição",
-            description: error.message || "Falha ao transcrever áudio. Tente novamente.",
+            title: t.chat.transcriptionError,
+            description: error.message || t.chat.transcriptionRetry,
             variant: "destructive",
           });
         }
@@ -520,8 +521,8 @@ export default function ChatPage() {
     } catch (error: any) {
       console.error("Recording error:", error);
       toast({
-        title: "Acesso ao microfone negado",
-        description: error.message || "Permita acesso ao microfone para gravar áudio",
+        title: t.chat.microphoneAccessDenied,
+        description: error.message || t.chat.allowMicrophoneAccess,
         variant: "destructive",
       });
     }
@@ -673,7 +674,7 @@ export default function ChatPage() {
                 <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
                   <img 
                     src="/system/cat.gif" 
-                    alt="Gatinho"
+                    alt={t.chat.imageAlt}
                     className="w-full h-full object-cover"
                     data-testid="icon-bot"
                   />
@@ -712,7 +713,7 @@ export default function ChatPage() {
               <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
                 <img 
                   src="/system/cat.gif" 
-                  alt="Gatinho"
+                  alt={t.chat.imageAlt}
                   className="w-full h-full object-cover"
                   data-testid="icon-bot-streaming"
                 />
@@ -740,7 +741,7 @@ export default function ChatPage() {
               <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
                 <img 
                   src="/system/cat.gif" 
-                  alt="Gatinho"
+                  alt={t.chat.imageAlt}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -797,7 +798,7 @@ export default function ChatPage() {
               disabled={sendMutation.isPending}
               className="shrink-0 hover-elevate"
               data-testid="button-attach"
-              title="Attach files (images, videos, documents)"
+              title={t.chat.attachFilesHint}
             >
               <Paperclip className="w-5 h-5" />
             </Button>
@@ -810,7 +811,7 @@ export default function ChatPage() {
               disabled={sendMutation.isPending}
               className={`shrink-0 hover-elevate ${isRecording ? "text-destructive animate-pulse" : ""}`}
               data-testid="button-record"
-              title={isRecording ? "Stop recording" : "Record audio"}
+              title={isRecording ? t.chat.stopRecording : t.chat.recordAudio}
             >
               {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </Button>
@@ -823,7 +824,7 @@ export default function ChatPage() {
               disabled={sendMutation.isPending || streamingChat.isStreaming}
               className={`shrink-0 hover-elevate ${useStreaming ? "text-primary" : "text-muted-foreground"}`}
               data-testid="button-toggle-streaming"
-              title={useStreaming ? "Streaming ON (real-time)" : "Streaming OFF"}
+              title={useStreaming ? t.chat.streamingOn : t.chat.streamingOff}
             >
               <Zap className={`w-5 h-5 ${useStreaming ? "fill-current" : ""}`} />
             </Button>
@@ -917,7 +918,7 @@ export default function ChatPage() {
                 <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
                   <img 
                     src="/system/cat.gif" 
-                    alt="Gatinho"
+                    alt={t.chat.imageAlt}
                     className="w-full h-full object-cover"
                     data-testid="icon-bot"
                   />
@@ -956,7 +957,7 @@ export default function ChatPage() {
               <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white">
                 <img 
                   src="/system/cat.gif" 
-                  alt="Gatinho"
+                  alt={t.chat.imageAlt}
                   className="w-full h-full object-cover"
                   data-testid="icon-bot-streaming"
                 />
@@ -984,7 +985,7 @@ export default function ChatPage() {
               <div className="rounded-full h-16 w-16 flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-border bg-white animate-pulse">
                 <img 
                   src="/system/cat.gif" 
-                  alt="Gatinho"
+                  alt={t.chat.imageAlt}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -1041,7 +1042,7 @@ export default function ChatPage() {
               disabled={sendMutation.isPending}
               className="shrink-0 hover-elevate"
               data-testid="button-attach"
-              title="Attach files (images, videos, documents)"
+              title={t.chat.attachFilesHint}
             >
               <Paperclip className="w-5 h-5" />
             </Button>
@@ -1054,7 +1055,7 @@ export default function ChatPage() {
               disabled={sendMutation.isPending}
               className={`shrink-0 hover-elevate ${isRecording ? "text-destructive animate-pulse" : ""}`}
               data-testid="button-record"
-              title={isRecording ? "Stop recording" : "Record audio"}
+              title={isRecording ? t.chat.stopRecording : t.chat.recordAudio}
             >
               {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </Button>
@@ -1067,7 +1068,7 @@ export default function ChatPage() {
               disabled={sendMutation.isPending || streamingChat.isStreaming}
               className={`shrink-0 hover-elevate ${useStreaming ? "text-primary" : "text-muted-foreground"}`}
               data-testid="button-toggle-streaming"
-              title={useStreaming ? "Streaming ON (real-time)" : "Streaming OFF"}
+              title={useStreaming ? t.chat.streamingOn : t.chat.streamingOff}
             >
               <Zap className={`w-5 h-5 ${useStreaming ? "fill-current" : ""}`} />
             </Button>

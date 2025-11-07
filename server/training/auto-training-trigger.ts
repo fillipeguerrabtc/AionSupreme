@@ -35,7 +35,7 @@ interface TrainingConfig {
 }
 
 export class AutoTrainingTrigger {
-  private minExamplesThreshold = 100; // Mínimo de exemplos para disparar treino
+  private minExamplesThreshold = 1; // Mínimo de exemplos para disparar treino (Meta-Learning incremental)
   private checkIntervalMs = 30 * 60 * 1000; // 30 minutos
   private intervalId: NodeJS.Timeout | null = null;
   private enabled = true;
@@ -183,8 +183,8 @@ export class AutoTrainingTrigger {
       console.log(`   ✅ ${availableWorkers.length} GPU(s) disponível(is)`);
 
       // STEP 4: Distribuir treino (Federated ou Single)
-      if (availableWorkers.length > 1 && dataset.examplesCount >= 100) {
-        // FEDERATED LEARNING - Múltiplas GPUs
+      if (availableWorkers.length > 1 && dataset.examplesCount >= 10) {
+        // FEDERATED LEARNING - Múltiplas GPUs (mínimo 10 exemplos para dividir)
         console.log("\n   🌐 [4/5] MODO FEDERADO - Dividindo dataset...");
         
         // Buscar dataset real do banco para pegar storagePath

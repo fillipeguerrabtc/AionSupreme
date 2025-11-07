@@ -49,7 +49,6 @@ export function CreateAgentForm() {
       agentTier: "agent",
       assignedNamespaces: [],
       type: "specialist",
-      tenantId: 1,
     },
   });
 

@@ -55,6 +55,18 @@ interface Translations {
     stopRecording: string;
     filesAttached: string;
     filesReady: string;
+    error: string;
+    failedToInitialize: string;
+    pleaseRefresh: string;
+    failedToLoad: string;
+    failedToCreate: string;
+    failedToSend: string;
+    noConversationActive: string;
+    browserNoAudioSupport: string;
+    attachFilesHint: string;
+    streamingOn: string;
+    streamingOff: string;
+    imageAlt: string;
   };
   
   // Admin Dashboard
@@ -1045,6 +1057,33 @@ const translations: Record<Language, Translations> = {
       subtitle: "",
       newChat: "Nova Conversa",
       conversations: "Conversas",
+      languageDetected: "Idioma detectado",
+      switchedTo: "Alterado para",
+      tooManyFiles: "Muitos arquivos",
+      maxFilesAllowed: "Máximo de 5 arquivos permitidos",
+      transcriptionFailed: "Transcrição falhou",
+      transcriptionComplete: "Transcrição completa",
+      audioTranscribed: "Áudio transcrito com sucesso!",
+      transcriptionError: "Erro na transcrição",
+      transcriptionRetry: "Falha ao transcrever áudio. Tente novamente.",
+      microphoneAccessDenied: "Acesso ao microfone negado",
+      allowMicrophoneAccess: "Permita acesso ao microfone para gravar áudio",
+      recordAudio: "Gravar áudio",
+      stopRecording: "Parar gravação",
+      filesAttached: "Arquivo(s) anexado(s)",
+      filesReady: "arquivo(s) pronto(s) para envio. A IA irá analisar o conteúdo.",
+      error: "Erro",
+      failedToInitialize: "Falha ao inicializar conversa",
+      pleaseRefresh: "Por favor, atualize a página.",
+      failedToLoad: "Falha ao carregar conversa",
+      failedToCreate: "Falha ao criar nova conversa",
+      failedToSend: "Falha ao enviar mensagem",
+      noConversationActive: "Nenhuma conversa ativa",
+      browserNoAudioSupport: "Seu navegador não suporta gravação de áudio",
+      attachFilesHint: "Anexar arquivos (imagens, vídeos, documentos)",
+      streamingOn: "Streaming ATIVO (tempo real)",
+      streamingOff: "Streaming DESLIGADO",
+      imageAlt: "Imagem",
     },
     admin: {
       title: "AION Admin",
@@ -1998,6 +2037,33 @@ const translations: Record<Language, Translations> = {
       subtitle: "",
       newChat: "New Chat",
       conversations: "Conversations",
+      languageDetected: "Language detected",
+      switchedTo: "Switched to",
+      tooManyFiles: "Too many files",
+      maxFilesAllowed: "Maximum of 5 files allowed",
+      transcriptionFailed: "Transcription failed",
+      transcriptionComplete: "Transcription complete",
+      audioTranscribed: "Audio transcribed successfully!",
+      transcriptionError: "Transcription error",
+      transcriptionRetry: "Failed to transcribe audio. Please try again.",
+      microphoneAccessDenied: "Microphone access denied",
+      allowMicrophoneAccess: "Please allow microphone access to record audio",
+      recordAudio: "Record audio",
+      stopRecording: "Stop recording",
+      filesAttached: "File(s) attached",
+      filesReady: "file(s) ready to send. AI will analyze the content.",
+      error: "Error",
+      failedToInitialize: "Failed to initialize conversation",
+      pleaseRefresh: "Please refresh the page.",
+      failedToLoad: "Failed to load conversation",
+      failedToCreate: "Failed to create new conversation",
+      failedToSend: "Failed to send message",
+      noConversationActive: "No conversation active",
+      browserNoAudioSupport: "Your browser does not support audio recording",
+      attachFilesHint: "Attach files (images, videos, documents)",
+      streamingOn: "Streaming ON (real-time)",
+      streamingOff: "Streaming OFF",
+      imageAlt: "Image",
     },
     admin: {
       title: "AION Admin",
@@ -2951,6 +3017,33 @@ const translations: Record<Language, Translations> = {
       subtitle: "",
       newChat: "Nueva Conversación",
       conversations: "Conversaciones",
+      languageDetected: "Idioma detectado",
+      switchedTo: "Cambiado a",
+      tooManyFiles: "Demasiados archivos",
+      maxFilesAllowed: "Máximo de 5 archivos permitidos",
+      transcriptionFailed: "Transcripción falló",
+      transcriptionComplete: "Transcripción completa",
+      audioTranscribed: "Audio transcrito con éxito!",
+      transcriptionError: "Error en la transcripción",
+      transcriptionRetry: "Error al transcribir audio. Inténtalo de nuevo.",
+      microphoneAccessDenied: "Acceso al micrófono denegado",
+      allowMicrophoneAccess: "Permite acceso al micrófono para grabar audio",
+      recordAudio: "Grabar audio",
+      stopRecording: "Detener grabación",
+      filesAttached: "Archivo(s) adjunto(s)",
+      filesReady: "archivo(s) listo(s) para enviar. La IA analizará el contenido.",
+      error: "Error",
+      failedToInitialize: "Error al inicializar conversación",
+      pleaseRefresh: "Por favor, actualiza la página.",
+      failedToLoad: "Error al cargar conversación",
+      failedToCreate: "Error al crear nueva conversación",
+      failedToSend: "Error al enviar mensaje",
+      noConversationActive: "No hay conversación activa",
+      browserNoAudioSupport: "Tu navegador no soporta grabación de audio",
+      attachFilesHint: "Adjuntar archivos (imágenes, videos, documentos)",
+      streamingOn: "Streaming ACTIVO (tiempo real)",
+      streamingOff: "Streaming DESACTIVADO",
+      imageAlt: "Imagen",
     },
     admin: {
       title: "AION Admin",

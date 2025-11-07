@@ -45,13 +45,13 @@ export function initAutoEvolution(): void {
   // COMPONENTE 3: DatasetGenerator
   console.log("📦 [3/9] DatasetGenerator...");
   datasetGenerator.setEnabled(true);
-  datasetGenerator.setMinExamples(100); // 100 exemplos para disparar
-  console.log("   ✅ ATIVO - Geração automática de datasets (threshold: 100)\n");
+  datasetGenerator.setMinExamples(1); // Meta-Learning incremental (mínimo 1 exemplo)
+  console.log("   ✅ ATIVO - Geração automática de datasets (threshold: 1 - incremental)\n");
 
   // COMPONENTE 4: AutoTrainingTrigger
   console.log("🔄 [4/9] AutoTrainingTrigger...");
   autoTrainingTrigger.setEnabled(true);
-  autoTrainingTrigger.setThreshold(100); // 100 exemplos mínimo
+  autoTrainingTrigger.setThreshold(1); // Meta-Learning incremental (mínimo 1 exemplo)
   autoTrainingTrigger.start(); // Verifica a cada 30min
   console.log("   ✅ ATIVO - Monitor automático de treino (check: 30min)\n");
 
@@ -104,7 +104,7 @@ export function initAutoEvolution(): void {
   console.log("║   2. 🔍 AION busca: KB → GPU → Free APIs → Web → OpenAI       ║");
   console.log("║   3. 💬 Responde usuário (2-5s)                                ║");
   console.log("║   4. 📝 AutoIndexer adiciona na KB automaticamente             ║");
-  console.log("║   5. 📊 Acumula 100 exemplos → gera dataset                    ║");
+  console.log("║   5. 📊 Acumula exemplos → gera dataset (incremental)          ║");
   console.log("║   6. 🔥 GPU(s) treinam automaticamente                         ║");
   console.log("║   7. 🚀 Modelo fica mais inteligente                           ║");
   console.log("║   8. 🔁 Repete infinitamente (auto-evolução)                   ║");
