@@ -658,6 +658,75 @@ export function registerGpuRoutes(app: Router) {
   });
 
   /**
+   * POST /api/gpu/kaggle/provision
+   * Provision Kaggle notebook (bootstrap + create notebook + start GPU)
+   */
+  app.post("/gpu/kaggle/provision", async (req: Request, res: Response) => {
+    try {
+      const { username, key, notebookName } = req.body;
+
+      if (!username || !key) {
+        return res.status(400).json({ error: "username and key required" });
+      }
+
+      console.log(`[Kaggle Provision] Starting provisioning for ${username}...`);
+
+      const { kaggleCLIService } = await import('../services/kaggle-cli-service');
+      
+      const bootstrapResult = await kaggleCLIService.bootstrap();
+      if (!bootstrapResult.success) {
+        return res.status(500).json({ 
+          error: `Bootstrap failed: ${bootstrapResult.error}` 
+        });
+      }
+
+      const addAccountResult = await kaggleCLIService.addAccount(username, key);
+      if (!addAccountResult) {
+        return res.status(500).json({ 
+          error: "Failed to add Kaggle account to SecretsVault" 
+        });
+      }
+
+      const notebookId = `aion-gpu-worker-${Date.now()}`;
+      const finalNotebookName = notebookName || notebookId;
+
+      const workerData = {
+        provider: "kaggle",
+        accountId: username,
+        ngrokUrl: `http://pending-${Date.now()}.ngrok.io`,
+        capabilities: {
+          gpu: "Tesla P100",
+          model: "TinyLlama-1.1B-Chat",
+          vram_gb: 16,
+          max_concurrent: 1,
+          metadata: {
+            workerName: finalNotebookName,
+            maxSessionHours: 9,
+            platform: "kaggle",
+          }
+        } as any,
+        status: "pending",
+        lastHealthCheck: new Date(),
+      };
+
+      const [worker] = await db.insert(gpuWorkers).values(workerData).returning();
+
+      console.log(`[Kaggle Provision] ✅ Worker registered (ID: ${worker.id}), notebook: ${finalNotebookName}`);
+
+      res.json({
+        success: true,
+        notebookName: finalNotebookName,
+        workerId: worker.id,
+        status: "pending",
+        message: `Kaggle worker "${finalNotebookName}" provisioned successfully. Waiting for notebook to start...`,
+      });
+    } catch (error: any) {
+      console.error("[Kaggle Provision] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * ==========================================
    * GOOGLE COLAB ORCHESTRATION (Puppeteer)
    * ==========================================
