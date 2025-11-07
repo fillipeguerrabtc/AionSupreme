@@ -278,7 +278,7 @@ export class KaggleCLIService {
 
     if (output.toLowerCase().includes('forbidden') || 
         output.toLowerCase().includes('403')) {
-      return 'Access forbidden. Your Kaggle API key may not have the required permissions.';
+      return 'Access forbidden. Your Kaggle account may not be verified. Please verify your phone number at kaggle.com/settings → "Phone Verification" section, then generate a new API token.';
     }
 
     if (output.toLowerCase().includes('rate limit') || 
