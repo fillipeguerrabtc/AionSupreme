@@ -175,6 +175,54 @@ export class SchedulerService {
       errorCount: 0,
     });
 
+    // JOB 9: 🔥 GPU Quota Safety Monitor - A cada 5 minutos (CRITICAL: 70% threshold enforcement)
+    // REDUNDANT BACKUP ao monitoring 60s do AutoScalingOrchestrator
+    // Garante shutdown preventivo mesmo se AutoScaling falhar
+    this.register({
+      name: 'gpu-quota-safety-monitor',
+      schedule: '*/5 * * * *', // A cada 5 minutos
+      task: async () => {
+        try {
+          const { quotaManager } = await import('../gpu-orchestration/intelligent-quota-manager');
+          const { providerAlternationService } = await import('../gpu-orchestration/provider-alternation-service');
+          
+          // 1. Verificar GPUs que atingiram 70% quota
+          const gpusToStop = await quotaManager.getGPUsToStop();
+          
+          if (gpusToStop.length > 0) {
+            logger.warn(`🔥 CRON BACKUP: ${gpusToStop.length} GPUs atingiram 70% quota - Force shutdown!`);
+            
+            // 2. Force-shutdown cada GPU que ultrapassou 70%
+            for (const gpu of gpusToStop) {
+              logger.warn(`🛑 Force-stopping ${gpu.provider} GPU #${gpu.workerId} (quota: ${gpu.utilizationPercent.toFixed(1)}%)`);
+              
+              // Stop via quota manager (atualiza sessão)
+              await quotaManager.stopSession(gpu.workerId);
+              
+              // Registrar provider stopped para alternância
+              await providerAlternationService.recordProviderStopped(gpu.provider as 'colab' | 'kaggle');
+              
+              logger.info(`✅ GPU #${gpu.workerId} shutdown preventivo completo (70% threshold)`);
+            }
+          }
+          
+          // 3. Log status de quotas (silencioso se tudo OK)
+          const allQuotas = await quotaManager.getAllQuotaStatuses();
+          const atRisk = allQuotas.filter(q => q.utilizationPercent >= 60 && q.utilizationPercent < 70);
+          
+          if (atRisk.length > 0) {
+            logger.warn(`⚠️  ${atRisk.length} GPUs acima de 60% quota (approaching 70% limit)`);
+          }
+          
+        } catch (error: any) {
+          logger.error(`❌ GPU quota monitoring error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
     logger.info(`SchedulerService: ${this.jobs.size} jobs registrados`);
   }
 

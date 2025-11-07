@@ -51,15 +51,16 @@ export class IntelligentQuotaManager {
   
   // Quota constants (in seconds)
   // 🔥 UPDATED: 70% threshold para evitar alarmes de abuse!
+  
+  // COLAB LIMITS
   private readonly COLAB_MAX_SESSION = 12 * 3600;  // 12h
   private readonly COLAB_SAFETY = Math.floor(12 * 3600 * 0.7);  // 70% = 8.4h
   
-  private readonly KAGGLE_GPU_MAX_SESSION = 12 * 3600;  // 12h
-  private readonly KAGGLE_GPU_SAFETY = Math.floor(12 * 3600 * 0.7);  // 70% = 8.4h
-  private readonly KAGGLE_CPU_MAX_SESSION = 9 * 3600;   // 9h
-  private readonly KAGGLE_CPU_SAFETY = Math.floor(9 * 3600 * 0.7);   // 70% = 6.3h
+  // KAGGLE LIMITS (GPU only - we don't use CPU)
+  private readonly KAGGLE_MAX_SESSION = 9 * 3600;   // 9h session limit
+  private readonly KAGGLE_SESSION_SAFETY = Math.floor(9 * 3600 * 0.7);  // 70% = 6.3h
   
-  private readonly KAGGLE_WEEKLY_QUOTA = 30 * 3600;     // 30h
+  private readonly KAGGLE_WEEKLY_QUOTA = 30 * 3600;     // 30h/week
   private readonly KAGGLE_WEEKLY_SAFETY = Math.floor(30 * 3600 * 0.7);  // 70% = 21h
   
   /**
@@ -211,6 +212,83 @@ export class IntelligentQuotaManager {
   async getGPUsToStop(): Promise<QuotaStatus[]> {
     const statuses = await this.getAllQuotaStatuses();
     return statuses.filter(s => s.shouldStop);
+  }
+  
+  /**
+   * 🔥 PRE-JOB QUOTA CHECK
+   * Verifica se um job pode ser aceito SEM exceder 70% threshold
+   * 
+   * @param workerId - GPU worker ID
+   * @param estimatedDurationMinutes - Duração estimada do job em minutos
+   * @returns {canAccept: boolean, reason: string, quotaAfterJob: number}
+   */
+  async canAcceptJob(workerId: number, estimatedDurationMinutes: number): Promise<{
+    canAccept: boolean;
+    reason: string;
+    quotaAfterJob: number; // Quota percentage AFTER job completes (against TRUE provider max)
+    wouldExceedThreshold: boolean;
+  }> {
+    const status = await this.getQuotaStatus(workerId);
+    
+    if (!status) {
+      return {
+        canAccept: false,
+        reason: 'Worker not found',
+        quotaAfterJob: 0,
+        wouldExceedThreshold: false,
+      };
+    }
+    
+    // Convert estimated duration to seconds
+    const estimatedSeconds = estimatedDurationMinutes * 60;
+    
+    // Calculate quota AFTER job completion
+    const currentSeconds = status.sessionRuntimeSeconds;
+    const afterJobSeconds = currentSeconds + estimatedSeconds;
+    
+    // 🔥 CRITICAL FIX: Use TRUE provider maximum, NOT safe-session limit
+    // This ensures we compare against the REAL 70% threshold, not a reduced one
+    // Colab: 12h, Kaggle: 9h (GPU only)
+    const trueProviderMax = status.provider === 'kaggle' 
+      ? this.KAGGLE_MAX_SESSION  // 9h for Kaggle
+      : this.COLAB_MAX_SESSION;  // 12h for Colab
+    
+    const quotaAfterJob = (afterJobSeconds / trueProviderMax) * 100;
+    
+    // 🔥 CRITICAL: Check session quota (70% threshold against TRUE max)
+    const wouldExceedSession = quotaAfterJob > 70;
+    
+    // 🔥 CRITICAL: For Kaggle, also check weekly quota (70% threshold)
+    let wouldExceedWeekly = false;
+    let weeklyQuotaPercent = 0;
+    if (status.provider === 'kaggle' && status.weeklyUsedSeconds !== undefined) {
+      const weeklyAfterJob = status.weeklyUsedSeconds + estimatedSeconds;
+      weeklyQuotaPercent = (weeklyAfterJob / this.KAGGLE_WEEKLY_QUOTA) * 100;
+      wouldExceedWeekly = weeklyQuotaPercent > 70;
+    }
+    
+    const wouldExceedThreshold = wouldExceedSession || wouldExceedWeekly;
+    
+    if (wouldExceedThreshold) {
+      const reason = wouldExceedSession 
+        ? `Would exceed 70% session quota (${quotaAfterJob.toFixed(1)}% after job, limit: 70% of ${trueProviderMax/3600}h)`
+        : `Would exceed 70% weekly quota (${weeklyQuotaPercent.toFixed(1)}% after job, Kaggle)`;
+      
+      return {
+        canAccept: false,
+        reason,
+        quotaAfterJob,
+        wouldExceedThreshold: true,
+      };
+    }
+    
+    // Job is safe to accept
+    return {
+      canAccept: true,
+      reason: `Safe to accept (${quotaAfterJob.toFixed(1)}% quota after job, limit: 70%)`,
+      quotaAfterJob,
+      wouldExceedThreshold: false,
+    };
   }
   
   /**

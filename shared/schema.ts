@@ -904,6 +904,191 @@ export type InsertGpuWorker = z.infer<typeof insertGpuWorkerSchema>;
 export type GpuWorker = typeof gpuWorkers.$inferSelect;
 
 // ============================================================================
+// MULTIMODAL MEDIA GENERATION - Autonomous Image/GIF Generation (Colab/Kaggle)
+// ============================================================================
+
+// API Quota Tracking - Tracks external API quotas (Tenor, YouTube, etc)
+export const apiQuotas = pgTable("api_quotas", {
+  id: serial("id").primaryKey(),
+  
+  // API identification
+  provider: text("provider").notNull().unique(), // "tenor" | "youtube" | "giphy" | "other"
+  
+  // Quota limits
+  quotaLimit: integer("quota_limit").notNull(), // Max requests per period
+  quotaPeriod: text("quota_period").notNull(), // "second" | "hour" | "day" | "week" | "month"
+  
+  // Current usage
+  quotaUsed: integer("quota_used").notNull().default(0),
+  quotaRemaining: integer("quota_remaining").notNull(),
+  
+  // Reset tracking
+  periodStartedAt: timestamp("period_started_at").notNull().defaultNow(),
+  nextResetAt: timestamp("next_reset_at").notNull(),
+  
+  // Safety thresholds
+  warningThreshold: real("warning_threshold").notNull().default(0.6), // 60% warning
+  blockThreshold: real("block_threshold").notNull().default(0.7), // 70% block
+  
+  // Status
+  isBlocked: boolean("is_blocked").notNull().default(false),
+  lastWarningAt: timestamp("last_warning_at"),
+  
+  // Metadata
+  metadata: jsonb("metadata").$type<{
+    apiKeyHash?: string; // SHA256 hash for audit
+    costPerRequest?: number;
+    documentsUrl?: string;
+  }>(),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  providerIdx: index("api_quotas_provider_idx").on(table.provider),
+}));
+
+export const insertApiQuotaSchema = createInsertSchema(apiQuotas).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertApiQuota = z.infer<typeof insertApiQuotaSchema>;
+export type ApiQuota = typeof apiQuotas.$inferSelect;
+
+// Generated Media - Historical record of all generated images/GIFs
+export const generatedMedia = pgTable("generated_media", {
+  id: serial("id").primaryKey(),
+  
+  // Media identification
+  type: text("type").notNull(), // "image" | "gif" | "video"
+  prompt: text("prompt").notNull(),
+  
+  // Generation method
+  generationMethod: text("generation_method").notNull(), // "autonomous_colab" | "autonomous_kaggle" | "pollinations" | "dalle" | "tenor" | "other"
+  provider: text("provider"), // "colab" | "kaggle" | "pollinations" | "openai" | "tenor" etc
+  
+  // Output
+  url: text("url").notNull(),
+  localPath: text("local_path"),
+  width: integer("width"),
+  height: integer("height"),
+  durationSeconds: real("duration_seconds"), // For GIFs/videos
+  fileSize: integer("file_size"), // bytes
+  
+  // Performance metrics
+  generationTimeSeconds: real("generation_time_seconds"),
+  costUsd: real("cost_usd").default(0), // 0 for autonomous, >0 for paid APIs
+  
+  // Quality metrics
+  revisedPrompt: text("revised_prompt"), // If API revised the prompt
+  qualityScore: real("quality_score"), // 0-1 if evaluated
+  
+  // KB-aware metadata
+  usedKnowledgeBase: boolean("used_knowledge_base").notNull().default(false),
+  knowledgeBaseContext: text("knowledge_base_context"), // Which KB documents were used
+  
+  // Association
+  conversationId: integer("conversation_id").references(() => conversations.id),
+  userId: varchar("user_id").references(() => users.id),
+  
+  // Metadata
+  metadata: jsonb("metadata").$type<{
+    model?: string; // "stable-diffusion-xl" | "animatediff" | etc
+    steps?: number;
+    cfg_scale?: number;
+    seed?: number;
+    negative_prompt?: string;
+    style?: string;
+  }>(),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  typeIdx: index("generated_media_type_idx").on(table.type),
+  providerIdx: index("generated_media_provider_idx").on(table.provider),
+  conversationIdx: index("generated_media_conversation_idx").on(table.conversationId),
+  createdIdx: index("generated_media_created_idx").on(table.createdAt),
+}));
+
+export const insertGeneratedMediaSchema = createInsertSchema(generatedMedia).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertGeneratedMedia = z.infer<typeof insertGeneratedMediaSchema>;
+export type GeneratedMedia = typeof generatedMedia.$inferSelect;
+
+// Media Generation Jobs - Tracks Colab/Kaggle GPU jobs for image/GIF generation
+export const mediaGenerationJobs = pgTable("media_generation_jobs", {
+  id: serial("id").primaryKey(),
+  
+  // Job identification
+  jobType: text("job_type").notNull(), // "image" | "gif" | "video"
+  prompt: text("prompt").notNull(),
+  
+  // GPU assignment
+  provider: text("provider").notNull(), // "colab" | "kaggle"
+  gpuWorkerId: integer("gpu_worker_id").references(() => gpuWorkers.id),
+  
+  // Status tracking
+  status: text("status").notNull().default("pending"), // "pending" | "queued" | "generating" | "completed" | "failed" | "cancelled"
+  progress: real("progress").notNull().default(0), // 0-1
+  
+  // Timing
+  queuedAt: timestamp("queued_at").notNull().defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  estimatedCompletionAt: timestamp("estimated_completion_at"),
+  
+  // Output
+  resultUrl: text("result_url"),
+  localPath: text("local_path"),
+  errorMessage: text("error_message"),
+  
+  // GPU quota tracking (CRITICAL: 70% threshold enforcement)
+  quotaUsedPercent: real("quota_used_percent"), // Provider quota used BEFORE this job
+  estimatedQuotaCost: real("estimated_quota_cost"), // Estimated hours/quota this job will consume
+  wouldExceedThreshold: boolean("would_exceed_threshold").notNull().default(false), // Would this job exceed 70%?
+  
+  // ToS Compliance tracking
+  isStaggeredRotation: boolean("is_staggered_rotation").notNull().default(false), // Was rotation rule followed?
+  previousProvider: text("previous_provider"), // Last provider used (for rotation validation)
+  rotationViolation: boolean("rotation_violation").notNull().default(false), // Did this violate staggered rotation?
+  
+  // Performance
+  generationTimeSeconds: real("generation_time_seconds"),
+  
+  // Association
+  conversationId: integer("conversation_id").references(() => conversations.id),
+  userId: varchar("user_id").references(() => users.id),
+  generatedMediaId: integer("generated_media_id").references(() => generatedMedia.id), // Link to result
+  
+  // Configuration
+  parameters: jsonb("parameters").$type<{
+    size?: string; // "1024x1024" | "1024x1792" etc
+    quality?: string; // "standard" | "hd"
+    style?: string; // "vivid" | "natural" | "realistic" | "animated"
+    frames?: number; // For GIFs: 16-24
+    fps?: number; // For GIFs: 8-16
+    model?: string; // "stable-diffusion-xl" | "animatediff"
+  }>(),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  statusIdx: index("media_generation_jobs_status_idx").on(table.status),
+  providerIdx: index("media_generation_jobs_provider_idx").on(table.provider),
+  gpuWorkerIdx: index("media_generation_jobs_gpu_worker_idx").on(table.gpuWorkerId),
+  createdIdx: index("media_generation_jobs_created_idx").on(table.createdAt),
+}));
+
+export const insertMediaGenerationJobSchema = createInsertSchema(mediaGenerationJobs).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertMediaGenerationJob = z.infer<typeof insertMediaGenerationJobSchema>;
+export type MediaGenerationJob = typeof mediaGenerationJobs.$inferSelect;
+
+// ============================================================================
 // FEDERATED LEARNING SYSTEM - Distributed Training with Multi-GPU
 // ============================================================================
 

@@ -691,8 +691,10 @@ export class AutoScalingOrchestrator {
       // 3. Iniciar GPU com credenciais validadas
       if (worker.provider === 'colab') {
         await this.colabOrchestrator.startSession({
-          email: credentials.email,
-          password: credentials.password,
+          googleEmail: credentials.email,
+          googlePassword: credentials.password,
+          workerId,
+          notebookUrl: worker.ngrokUrl,
         });
         console.log(`[AutoScale] ✅ Colab #${workerId} iniciado com sucesso`);
         
@@ -700,8 +702,10 @@ export class AutoScalingOrchestrator {
         await providerAlternationService.recordProviderStarted('colab');
       } else if (worker.provider === 'kaggle') {
         await this.kaggleOrchestrator.startSession({
-          username: credentials.username,
-          apiKey: credentials.key,
+          kaggleUsername: credentials.username,
+          kagglePassword: credentials.key,
+          workerId,
+          notebookUrl: worker.ngrokUrl,
         });
         console.log(`[AutoScale] ✅ Kaggle #${workerId} iniciado com sucesso`);
         
@@ -748,7 +752,7 @@ export class AutoScalingOrchestrator {
         console.log(`[AutoScale] ✅ Quota session finalizada para GPU #${workerId}`);
 
         // 🔥 FIX BUG 3: Registrar provider stopped para alternância!
-        await providerAlternationService.recordProviderStopped(worker.provider);
+        await providerAlternationService.recordProviderStopped(worker.provider as Provider);
       } catch (error: any) {
         console.error(`[AutoScale] ❌ Erro ao finalizar quota session #${workerId}:`, error.message);
       }
