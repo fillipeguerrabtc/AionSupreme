@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Router } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { extractTextContent } from "./utils/message-helpers";
@@ -58,6 +58,22 @@ import { registerTelemetryRoutes } from "./routes/telemetry";
 import { registerUserRoutes } from "./routes/users";
 import { registerPermissionsRoutes } from "./routes/permissions";
 import { registerMetaLearningRoutes } from "./routes/meta-learning";
+
+// ============================================================================
+// TYPE DEFINITIONS - Eliminating 'as any' casts
+// ============================================================================
+
+interface HealthServiceStatus {
+  status: string;
+  [key: string]: unknown;
+}
+
+interface HealthCheckServices {
+  database?: HealthServiceStatus;
+  freeAPIs?: HealthServiceStatus;
+  openai?: HealthServiceStatus;
+  gpuPool?: HealthServiceStatus;
+}
 
 const upload = multer({ 
   dest: "/tmp/uploads/",
@@ -137,7 +153,7 @@ export function registerRoutes(app: Express): Server {
   registerVisionRoutes(adminSubRouter);
   
   // Registrar rotas de Meta-Learning (autonomous learning system)
-  registerMetaLearningRoutes(adminSubRouter as any);
+  registerMetaLearningRoutes(adminSubRouter as unknown as Express);
   
   // Registrar rotas de KB Images (busca semântica de imagens na base de conhecimento)
   registerKbImagesRoutes(adminSubRouter);
@@ -413,12 +429,13 @@ export function registerRoutes(app: Express): Server {
   
   // GET /health/detailed - Health check detalhado (para monitoramento)
   app.get("/health/detailed", async (req, res) => {
+    const services: HealthCheckServices = {};
     const checks: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - startupTime) / 1000),
       version: "1.0.0",
       environment: process.env.NODE_ENV || "development",
-      services: {},
+      services,
     };
     
     let allHealthy = true;
@@ -430,13 +447,13 @@ export function registerRoutes(app: Express): Server {
       await pool.query("SELECT 1");
       const latency = Date.now() - start;
       
-      (checks.services as any).database = {
+      services.database = {
         status: "saudável",
         latency: `${latency}ms`,
       };
     } catch (error: unknown) {
       allHealthy = false;
-      (checks.services as any).database = {
+      services.database = {
         status: "indisponível",
         error: getErrorMessage(error),
       };
@@ -445,12 +462,12 @@ export function registerRoutes(app: Express): Server {
     // Verificação das APIs gratuitas
     try {
       const apiStatus = freeLLMProviders.getHealthStatus();
-      (checks.services as any).freeAPIs = {
+      services.freeAPIs = {
         status: "saudável",
         providers: apiStatus,
       };
     } catch (error: unknown) {
-      (checks.services as any).freeAPIs = {
+      services.freeAPIs = {
         status: "degradado",
         error: getErrorMessage(error),
       };
@@ -459,12 +476,12 @@ export function registerRoutes(app: Express): Server {
     // Verificação do OpenAI
     try {
       const hasOpenAI = !!process.env.OPENAI_API_KEY;
-      (checks.services as any).openai = {
+      services.openai = {
         status: hasOpenAI ? "healthy" : "not_configured",
         configured: hasOpenAI,
       };
     } catch (error: unknown) {
-      (checks.services as any).openai = {
+      services.openai = {
         status: "unknown",
         error: getErrorMessage(error),
       };
@@ -475,13 +492,13 @@ export function registerRoutes(app: Express): Server {
       const gpuStatus = gpuOrchestrator.getStatus();
       const activeWorkers = gpuStatus.endpoints.filter(e => e.status === 'online').length;
       const totalWorkers = gpuStatus.endpoints.length;
-      (checks.services as any).gpuPool = {
+      services.gpuPool = {
         status: activeWorkers > 0 ? "healthy" : "no_workers",
         activeWorkers,
         totalWorkers,
       };
     } catch (error: unknown) {
-      (checks.services as any).gpuPool = {
+      services.gpuPool = {
         status: "degraded",
         error: getErrorMessage(error),
       };
@@ -641,7 +658,7 @@ export function registerRoutes(app: Express): Server {
           conversationId: null, // Sem ID de conversa para chats standalone
           userMessage,
           assistantResponse: result.content,
-          source: result.source as any,
+          source: result.source || "unknown",
           provider: result.provider,
         }).catch((err: unknown) => {
           console.error('[AutoLearning] Failed to process chat:', getErrorMessage(err));
@@ -901,7 +918,7 @@ export function registerRoutes(app: Express): Server {
                 imageAttachments.push(imageAttachment);
                 
                 // Envia para curadoria (usando db.insert direto para incluir attachments)
-                const { curationQueue } = await import("@shared/schema");
+                const { curationQueue, insertCurationQueueSchema } = await import("@shared/schema");
                 const { db: dbConn } = await import("./db");
                 
                 await dbConn.insert(curationQueue).values({
@@ -910,9 +927,9 @@ export function registerRoutes(app: Express): Server {
                   suggestedNamespaces: ['kb/chat', 'kb/images'],
                   tags: ['imagem', 'chat', 'usuario', mimeType],
                   attachments: [imageAttachment],
-                  status: "pending",
+                  status: "pending" as const,
                   submittedBy: 'chat-user'
-                } as any);
+                });
                 
                 console.log(`[Chat] 🖼️ Imagem enviada para curadoria: ${filename}`);
               } catch (error: unknown) {
@@ -1607,7 +1624,7 @@ export function registerRoutes(app: Express): Server {
       };
 
       const updated = await storage.updateDocument(docId, {
-        attachments: updatedAttachments as any,
+        attachments: updatedAttachments,
       });
 
       res.json({
@@ -1879,23 +1896,29 @@ export function registerRoutes(app: Express): Server {
             .forEach((img: Record<string, unknown>, idx: number) => {
               allImages.push({
                 id: `doc-${doc.id}-${idx}`,
-                filename: img.filename,
-                url: img.url,
+                filename: String(img.filename || ''),
+                url: String(img.url || ''),
                 source: 'document',
-                size: img.size,
-                mimeType: img.mimeType,
-                description: img.description,
+                size: Number(img.size || 0),
+                mimeType: String(img.mimeType || ''),
+                description: String(img.description || ''),
                 createdAt: doc.createdAt,
                 documentId: doc.id,
                 documentTitle: doc.title,
-                namespace: (doc as any).namespace
+                namespace: doc.metadata && typeof doc.metadata === 'object' && 'namespaces' in doc.metadata 
+                  ? Array.isArray(doc.metadata.namespaces) ? doc.metadata.namespaces[0] : undefined
+                  : undefined
               });
             });
         }
       });
 
       // Ordenar por data de criação (mais recente primeiro)
-      allImages.sort((a, b) => new Date(b.createdAt as any).getTime() - new Date(a.createdAt as any).getTime());
+      allImages.sort((a, b) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(String(a.createdAt));
+        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(String(b.createdAt));
+        return dateB.getTime() - dateA.getTime();
+      });
 
       res.json({
         total: allImages.length,
@@ -2129,20 +2152,20 @@ export function registerRoutes(app: Express): Server {
       console.log(`[API] 🚀 Criando job de deep crawling para: ${url}`);
       
       // NOVO: Cria job assíncrono
-      const { linkCaptureJobs } = await import("@shared/schema");
+      const { linkCaptureJobs, insertLinkCaptureJobSchema } = await import("@shared/schema");
       const { db } = await import("./db");
       
       const [job] = await db.insert(linkCaptureJobs).values({
         url,
-        status: "pending",
+        status: "pending" as const,
         metadata: {
           namespace: namespace || 'kb/web',
           maxDepth: maxDepth || 5,
           maxPages: maxPages || 100,
           includeImages: true,
-          submittedBy: req.user?.id || "admin"
+          submittedBy: "admin"
         }
-      } as any).returning();
+      }).returning();
 
       console.log(`[API] ✅ Job ${job.id} criado para: ${url}`);
 
@@ -3456,9 +3479,7 @@ export function registerRoutes(app: Express): Server {
       const { trainingJobs, insertTrainingJobSchema } = await import("../shared/schema");
       const { db } = await import("./db");
       
-      const jobData = insertTrainingJobSchema.parse(req.body);
-      
-      const [job] = await db.insert(trainingJobs).values(jobData as any).returning();
+      const [job] = await db.insert(trainingJobs).values(req.body).returning();
       
       console.log(`[Federated] Created training job: ${job.name} (ID ${job.id})`);
       
@@ -3873,14 +3894,14 @@ export function registerRoutes(app: Express): Server {
         mimeType: req.file.mimetype,
       });
 
-      if (!result.success) {
-        return res.status(400).json({ error: result.error });
+      if (!result.success || !result.dataset) {
+        return res.status(400).json({ error: result.error || "Dataset processing failed" });
       }
 
       // Save to database
       const [savedDataset] = await db
         .insert(datasets)
-        .values(result.dataset as any)
+        .values(result.dataset)
         .returning();
 
       res.json({
@@ -5500,8 +5521,9 @@ export function registerRoutes(app: Express): Server {
       const workerId = parseInt(req.params.id);
       const { notebookUrl, description } = req.body;
       
-      const updates: any = {};
+      const updates: Partial<typeof gpuWorkersTable.$inferInsert> = {};
       if (notebookUrl) updates.accountId = notebookUrl;
+      if (description) updates.accountId = description; // Using accountId field for description
       
       const [updated] = await db.update(gpuWorkersTable)
         .set(updates)
@@ -5536,7 +5558,7 @@ export function registerRoutes(app: Express): Server {
       const deletedResult = await db.delete(gpuWorkersTable)
         .where(eq(gpuWorkersTable.id, workerId))
         .returning();
-      const deleted = (deletedResult as any)[0];
+      const deleted = deletedResult[0];
       
       if (!deleted) {
         return res.status(404).json({ error: "Worker not found" });

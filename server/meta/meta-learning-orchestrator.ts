@@ -261,97 +261,102 @@ export class MetaLearningOrchestrator {
   /**
    * STAGE 1: Check for new curated data from ALL KB sources
    * Now accesses: conversations, documents, images, videos, links, YouTube - EVERYTHING in KB!
+   * ⚡ PARALLELIZED: All 5 count queries run in parallel using Promise.all()
    */
   private async checkNewCuratedData(namespace?: string): Promise<PipelineResult> {
     try {
-      logger.info("📊 Stage 1: Checking for new data from ALL KB sources", { namespace });
+      logger.info("📊 Stage 1: Checking for new data from ALL KB sources (PARALLELIZED)", { namespace });
 
-      // 1. Approved training data from curation queue (with namespace filtering via JOIN)
-      // ✅ FIX 1: Now properly filters by namespace using JOIN with conversations table
-      let trainingCount = 0;
-      if (namespace) {
-        // JOIN with conversations to filter by namespace
-        logger.info("🔍 FIX 1 VERIFICATION: Filtering trainingDataCollection by namespace via JOIN", { namespace });
-        const trainingData = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(trainingDataCollection)
-          .innerJoin(conversations, eq(trainingDataCollection.conversationId, conversations.id))
-          .where(sql`${trainingDataCollection.status} = 'approved' AND ${conversations.namespace} = ${namespace}`);
-        trainingCount = Number(trainingData[0]?.count || 0);
-        logger.info("✅ FIX 1: Namespace-filtered training data count", { namespace, trainingCount });
-      } else {
-        // No namespace filter - count all
-        const trainingData = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(trainingDataCollection)
-          .where(eq(trainingDataCollection.status, "approved"));
-        trainingCount = Number(trainingData[0]?.count || 0);
-      }
+      // ⚡ PARALLELIZATION: Run all 5 count queries in parallel
+      const [trainingCount, documentsCount, conversationsCount, curationCount, sourcesCount] = await Promise.all([
+        // 1. Approved training data from curation queue (with namespace filtering via JOIN)
+        (async () => {
+          if (namespace) {
+            logger.info("🔍 FIX 1 VERIFICATION: Filtering trainingDataCollection by namespace via JOIN", { namespace });
+            const trainingData = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(trainingDataCollection)
+              .innerJoin(conversations, eq(trainingDataCollection.conversationId, conversations.id))
+              .where(sql`${trainingDataCollection.status} = 'approved' AND ${conversations.namespace} = ${namespace}`);
+            const count = Number(trainingData[0]?.count || 0);
+            logger.info("✅ FIX 1: Namespace-filtered training data count", { namespace, count });
+            return count;
+          } else {
+            const trainingData = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(trainingDataCollection)
+              .where(eq(trainingDataCollection.status, "approved"));
+            return Number(trainingData[0]?.count || 0);
+          }
+        })(),
 
-      // 2. Documents from KB (PDFs, DOCX, XLSX, TXT, etc) - with namespace filtering
-      let documentsCount = 0;
-      if (namespace) {
-        // Filter by namespace using JSONB array contains
-        const docs = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(documents)
-          .where(sql`${documents.status} = 'indexed' AND ${documents.metadata}::jsonb->'namespaces' @> ${JSON.stringify([namespace])}::jsonb`);
-        documentsCount = Number(docs[0]?.count || 0);
-      } else {
-        const docs = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(documents)
-          .where(eq(documents.status, "indexed"));
-        documentsCount = Number(docs[0]?.count || 0);
-      }
+        // 2. Documents from KB (PDFs, DOCX, XLSX, TXT, etc) - with namespace filtering
+        (async () => {
+          if (namespace) {
+            const docs = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(documents)
+              .where(sql`${documents.status} = 'indexed' AND ${documents.metadata}::jsonb->'namespaces' @> ${JSON.stringify([namespace])}::jsonb`);
+            return Number(docs[0]?.count || 0);
+          } else {
+            const docs = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(documents)
+              .where(eq(documents.status, "indexed"));
+            return Number(docs[0]?.count || 0);
+          }
+        })(),
 
-      // 3. Conversations and messages (with namespace filtering)
-      let conversationsCount = 0;
-      if (namespace) {
-        const convs = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(conversations)
-          .where(eq(conversations.namespace, namespace));
-        conversationsCount = Number(convs[0]?.count || 0);
-      } else {
-        const convs = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(conversations);
-        conversationsCount = Number(convs[0]?.count || 0);
-      }
+        // 3. Conversations and messages (with namespace filtering)
+        (async () => {
+          if (namespace) {
+            const convs = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(conversations)
+              .where(eq(conversations.namespace, namespace));
+            return Number(convs[0]?.count || 0);
+          } else {
+            const convs = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(conversations);
+            return Number(convs[0]?.count || 0);
+          }
+        })(),
 
-      // 4. Approved curated content with attachments (images, videos) - with namespace filtering
-      let curationCount = 0;
-      if (namespace) {
-        // Filter by namespace using JSONB array contains
-        const curation = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(curationQueue)
-          .where(sql`${curationQueue.status} = 'approved' AND ${curationQueue.suggestedNamespaces}::jsonb @> ${JSON.stringify([namespace])}::jsonb`);
-        curationCount = Number(curation[0]?.count || 0);
-      } else {
-        const curation = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(curationQueue)
-          .where(eq(curationQueue.status, "approved"));
-        curationCount = Number(curation[0]?.count || 0);
-      }
+        // 4. Approved curated content with attachments (images, videos) - with namespace filtering
+        (async () => {
+          if (namespace) {
+            const curation = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(curationQueue)
+              .where(sql`${curationQueue.status} = 'approved' AND ${curationQueue.suggestedNamespaces}::jsonb @> ${JSON.stringify([namespace])}::jsonb`);
+            return Number(curation[0]?.count || 0);
+          } else {
+            const curation = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(curationQueue)
+              .where(eq(curationQueue.status, "approved"));
+            return Number(curation[0]?.count || 0);
+          }
+        })(),
 
-      // 5. Knowledge sources (web scraping, links, YouTube) - with namespace filtering
-      let sourcesCount = 0;
-      if (namespace) {
-        const sources = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(knowledgeSources)
-          .where(sql`${knowledgeSources.status} = 'active' AND ${knowledgeSources.namespace} = ${namespace}`);
-        sourcesCount = Number(sources[0]?.count || 0);
-      } else {
-        const sources = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(knowledgeSources)
-          .where(eq(knowledgeSources.status, "active"));
-        sourcesCount = Number(sources[0]?.count || 0);
-      }
+        // 5. Knowledge sources (web scraping, links, YouTube) - with namespace filtering
+        (async () => {
+          if (namespace) {
+            const sources = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(knowledgeSources)
+              .where(sql`${knowledgeSources.status} = 'active' AND ${knowledgeSources.namespace} = ${namespace}`);
+            return Number(sources[0]?.count || 0);
+          } else {
+            const sources = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(knowledgeSources)
+              .where(eq(knowledgeSources.status, "active"));
+            return Number(sources[0]?.count || 0);
+          }
+        })()
+      ]);
 
       const totalCount = trainingCount + documentsCount + conversationsCount + curationCount + sourcesCount;
 
@@ -392,12 +397,13 @@ export class MetaLearningOrchestrator {
   /**
    * STAGE 2: Detect data distribution shifts across ALL KB sources
    * Analyzes: conversations, documents, curated content, knowledge sources
+   * ⚡ ALREADY PARALLELIZED: 4 data source fetches + embedding calculations run in parallel
    */
   private async detectDataShifts(namespace?: string): Promise<PipelineResult> {
     try {
-      logger.info("🔍 Stage 2: Detecting data distribution shifts across ALL KB", { namespace });
+      logger.info("🔍 Stage 2: Detecting data distribution shifts across ALL KB (ALREADY PARALLELIZED)", { namespace });
 
-      // Aggregate recent data from ALL sources (with namespace filtering where applicable)
+      // ⚡ ALREADY PARALLELIZED: Fetch all 4 data sources in parallel
       const [trainingData, recentDocs, recentConvs, recentCuration] = await Promise.all([
         // Training data (with namespace filter via JOIN)
         namespace
