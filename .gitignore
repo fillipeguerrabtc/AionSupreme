@@ -5,3 +5,8 @@ server/public
 vite.config.ts.*
 *.tar.gz
 .secrets-backup/
+
+# Attached assets - exclude all files but keep empty subdirectories
+attached_assets/*
+!attached_assets/*/
+!attached_assets/*/.gitkeep
