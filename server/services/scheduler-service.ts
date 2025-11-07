@@ -21,8 +21,8 @@
  * - KB Deduplication: Semanalmente (domingos 02:00 UTC)
  * 🔥 ON-DEMAND GPU JOBS:
  * - Training Queue Monitor: A cada 5min → Trigger Kaggle GPU se ≥25 KBs
- * - Daily Quota Reset: Diário 00:00 UTC → Reset dailyUsageHours
- * - Weekly Quota Reset: Domingo 00:00 UTC → Reset weeklyUsageHours
+ * - Weekly Quota Reset: Domingo 00:00 UTC → Reset weeklyUsageHours (28h/week ONLY)
+ * - Auto-Stop Detection: A cada 5min → Auto-stop após job completion
  */
 
 import * as cron from 'node-cron';
@@ -253,39 +253,9 @@ export class SchedulerService {
       errorCount: 0,
     });
 
-    // 🔥 JOB 11: Daily Quota Reset - Diariamente às 00:00 UTC
-    this.register({
-      name: 'daily-quota-reset',
-      schedule: '0 0 * * *', // 00:00 UTC diário
-      task: async () => {
-        try {
-          logger.info('🔄 Resetting daily GPU quotas (00:00 UTC)');
-          
-          const { db } = await import('../db');
-          const { gpuWorkers } = await import('../../shared/schema');
-          const { eq, sql } = await import('drizzle-orm');
-          
-          // Reset dailyUsageHours para todos os workers
-          const updated = await db
-            .update(gpuWorkers)
-            .set({
-              dailyUsageHours: 0,
-              lastDailyReset: new Date(),
-              updatedAt: new Date(),
-            })
-            .execute();
-          
-          logger.info(`✅ Daily quota reset complete - ${updated.rowCount || 0} workers updated`);
-        } catch (error: any) {
-          logger.error(`Daily quota reset error: ${error.message}`);
-        }
-      },
-      enabled: true,
-      runCount: 0,
-      errorCount: 0,
-    });
-
-    // 🔥 JOB 12: Weekly Quota Reset - Domingo 00:00 UTC
+    // ❌ REMOVED JOB 11: Daily Quota Reset - ON-DEMAND strategy has NO daily limits
+    
+    // 🔥 JOB 11: Weekly Quota Reset - Domingo 00:00 UTC
     this.register({
       name: 'weekly-quota-reset',
       schedule: '0 0 * * 0', // Domingo 00:00 UTC
@@ -318,7 +288,7 @@ export class SchedulerService {
       errorCount: 0,
     });
 
-    // 🔥 JOB 13: Auto-Stop Detection - A cada 5 minutos (ON-DEMAND job completion detection)
+    // 🔥 JOB 12: Auto-Stop Detection - A cada 5 minutos (ON-DEMAND job completion detection)
     this.register({
       name: 'kaggle-auto-stop-detection',
       schedule: '*/5 * * * *', // A cada 5 minutos
