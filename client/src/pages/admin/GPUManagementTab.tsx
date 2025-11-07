@@ -69,7 +69,7 @@ export default function GPUManagementTab() {
   // Fetch GPU workers
   const { data: gpuData, isLoading } = useQuery({
     queryKey: ["/api/gpu/status"],
-    refetchInterval: 10000, // Refresh every 10s
+    refetchInterval: showAddWorkerDialog || editingWorker ? false : 30000, // Pause refetch when modal is open, otherwise refresh every 30s
   });
 
   const workers: GpuWorker[] = (gpuData as any)?.workers || [];
