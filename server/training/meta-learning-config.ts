@@ -153,8 +153,8 @@ export const META_LEARNING_CONFIGS: Record<MetaLearningMode, MetaLearningConfig>
     mode: 'production',
     
     thresholds: {
-      minExamples: 15, // Threshold moderado
-      federatedMinimum: 10,
+      minExamples: 25, // Threshold seguro para privacidade (cohort protection)
+      federatedMinimum: 50,
     },
     
     lora: {
@@ -179,8 +179,8 @@ export const META_LEARNING_CONFIGS: Record<MetaLearningMode, MetaLearningConfig>
     },
     
     differentialPrivacy: {
-      enabled: true, // ATIVO em production
-      epsilon: 3.0, // Privacy moderada (quase zero accuracy loss)
+      enabled: false, // DESABILITADO - requer custom workers com Opacus
+      epsilon: 3.0, // (Preparado para futuro - workers com DP-SGD)
       delta: 1e-5,
       gradientClipNorm: 1.0,
       noiseMultiplier: 1.1,
@@ -215,8 +215,8 @@ export const META_LEARNING_CONFIGS: Record<MetaLearningMode, MetaLearningConfig>
     mode: 'sensitive',
     
     thresholds: {
-      minExamples: 25, // Threshold alto (cohort privacy)
-      federatedMinimum: 15,
+      minExamples: 50, // Threshold MUITO alto (cohort privacy protection)
+      federatedMinimum: 100, // Federado requer dobro para garantir safety
     },
     
     lora: {
@@ -241,11 +241,11 @@ export const META_LEARNING_CONFIGS: Record<MetaLearningMode, MetaLearningConfig>
     },
     
     differentialPrivacy: {
-      enabled: true, // SEMPRE ATIVO
-      epsilon: 1.0, // Privacy forte (ε < 1.0 = HIPAA-grade)
+      enabled: false, // DESABILITADO - requer custom workers com Opacus/TF Privacy
+      epsilon: 1.0, // (Preparado para futuro - HIPAA-grade DP-SGD)
       delta: 1e-6,
-      gradientClipNorm: 0.8, // Clipping mais agressivo
-      noiseMultiplier: 1.5, // Ruído maior
+      gradientClipNorm: 0.8,
+      noiseMultiplier: 1.5,
     },
     
     piiRedaction: {

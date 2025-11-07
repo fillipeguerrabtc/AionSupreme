@@ -34,23 +34,55 @@ export interface RedactionResult {
 }
 
 export class PIIRedactionService {
-  // Regex patterns for PII detection
-  private readonly EMAIL_REGEX = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+  // ========== IMPROVED REGEX PATTERNS (2025 Best Practices) ==========
   
-  // Phone patterns (US, BR, international)
-  private readonly PHONE_REGEX = /(?:\+?1[-.\s]?)?\(?([0-9]{2,3})\)?[-.\s]?([0-9]{3,4})[-.\s]?([0-9]{4})|(?:\+55[-.\s]?)?\(?([0-9]{2})\)?[-.\s]?([0-9]{4,5})[-.\s]?([0-9]{4})/g;
+  // Email: mais robusto, suporta novos TLDs
+  private readonly EMAIL_REGEX = /\b[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}\b/g;
   
-  // SSN (US: 123-45-6789)
-  private readonly SSN_REGEX = /\b\d{3}-\d{2}-\d{4}\b/g;
+  // Phone: expansão para mais formatos (US, BR, UK, etc)
+  private readonly PHONE_REGEX = /(?:\+?1[-.\s]?)?\(?([0-9]{2,3})\)?[-.\s]?([0-9]{3,4})[-.\s]?([0-9]{4})|(?:\+55[-.\s]?)?\(?([0-9]{2})\)?[-.\s]?([0-9]{4,5})[-.\s]?([0-9]{4})|(?:\+44[-.\s]?)?(?:\(0\)[-.\s]?)?([0-9]{2,4})[-.\s]?([0-9]{3,4})[-.\s]?([0-9]{3,4})/g;
   
-  // CPF (BR: 123.456.789-01)
-  private readonly CPF_REGEX = /\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/g;
+  // SSN (US: 123-45-6789) + formatos sem hífens
+  private readonly SSN_REGEX = /\b\d{3}-?\d{2}-?\d{4}\b/g;
   
-  // Credit card (basic pattern, validated with Luhn)
-  private readonly CREDIT_CARD_REGEX = /\b(?:\d{4}[-\s]?){3}\d{4}\b/g;
+  // CPF (BR: 123.456.789-01) + formatos sem pontos
+  private readonly CPF_REGEX = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g;
   
-  // Common name prefixes (basic NER - pode ser melhorado com library real)
-  private readonly NAME_PREFIXES = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.', 'Sr.', 'Sra.', 'Dra.'];
+  // CNPJ (BR corporate ID: 12.345.678/0001-90)
+  private readonly CNPJ_REGEX = /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g;
+  
+  // Credit card: mais formatos (American Express, Diners, etc)
+  private readonly CREDIT_CARD_REGEX = /\b(?:\d{4}[-\s]?){3}\d{4}\b|\b3[47]\d{2}[-\s]?\d{6}[-\s]?\d{5}\b/g;
+  
+  // IP Address (pode conter dados sensíveis em logs)
+  private readonly IP_ADDRESS_REGEX = /\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g;
+  
+  // URLs com query params (podem conter tokens/IDs)
+  private readonly URL_WITH_PARAMS_REGEX = /https?:\/\/[^\s]+\?[^\s]+/g;
+  
+  // Common name prefixes (expandido)
+  private readonly NAME_PREFIXES = [
+    'Mr.', 'Mrs.', 'Ms.', 'Miss', 'Dr.', 'Prof.', 'Sr.', 'Sra.', 'Dra.', 
+    'Rev.', 'Hon.', 'Eng.', 'Adv.', 'Ph.D', 'MD', 'Esq.'
+  ];
+  
+  // Padrão para detectar nomes completos (capitalização)
+  // Detecta: "Maria Silva", "John Doe", etc
+  private readonly FULL_NAME_REGEX = /\b([A-Z][a-z]{2,})\s+([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?)\b/g;
+  
+  // Common false positives (países, cidades, empresas)
+  private readonly NAME_FALSE_POSITIVES = [
+    // Países
+    'United States', 'United Kingdom', 'New Zealand', 'South Africa', 'North Korea', 'South Korea',
+    // Cidades (US)
+    'New York', 'Los Angeles', 'San Francisco', 'Las Vegas', 'San Diego', 'San Jose', 'Santa Barbara',
+    // Cidades (BR)
+    'São Paulo', 'Rio Janeiro', 'Belo Horizonte', 'Porto Alegre',
+    // Tech companies
+    'Google Cloud', 'Microsoft Azure', 'Amazon Web', 'Apple Inc', 'Meta Platforms', 'Open AI',
+    // Common phrases
+    'Thank You', 'Best Regards', 'Kind Regards', 'Dear Sir', 'Dear Madam'
+  ];
   
   /**
    * Redact PII from text according to configuration
@@ -77,7 +109,7 @@ export class PIIRedactionService {
       redactedText = this.redactPhones(redactedText, redactions);
     }
     
-    // 3. Redact SSN
+    // 3. Redact SSN/CPF/CNPJ
     if (config.piiRedaction.redactSSN) {
       redactedText = this.redactSSN(redactedText, redactions);
     }
@@ -87,10 +119,16 @@ export class PIIRedactionService {
       redactedText = this.redactCreditCards(redactedText, redactions);
     }
     
-    // 5. Redact names (basic)
+    // 5. Redact names (improved pattern matching)
     if (config.piiRedaction.redactNames) {
       redactedText = this.redactNames(redactedText, redactions);
     }
+    
+    // 6. Redact IP addresses (optional - pode conter dados sensíveis)
+    redactedText = this.redactIPAddresses(redactedText, redactions);
+    
+    // 7. Redact URLs with query params (podem conter tokens)
+    redactedText = this.redactSensitiveURLs(redactedText, redactions);
     
     return {
       redactedText,
@@ -213,22 +251,16 @@ export class PIIRedactionService {
   }
   
   /**
-   * Redact names (basic NER - pode ser melhorado)
-   * 
-   * NOTE: Este é um NER básico. Para production real com healthcare/finance,
-   * considere usar biblioteca dedicada como:
-   * - spaCy (Python NER)
-   * - Comprehend Medical (AWS)
-   * - Cloud Natural Language (Google)
+   * Redact names (IMPROVED - detects more patterns)
    */
   private redactNames(text: string, redactions: RedactionResult['redactions']): string {
     let result = text;
     
-    // Pattern 1: Prefixo + Nome (e.g., "Dr. Silva")
+    // 1. Detectar nomes com prefixos (Mr. John Doe)
     for (const prefix of this.NAME_PREFIXES) {
-      const pattern = new RegExp(`${prefix}\\s+([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)?)`, 'g');
-      result = result.replace(pattern, (match, offset) => {
-        const replacement = `${prefix} [NAME_REDACTED]`;
+      const regex = new RegExp(`${prefix.replace('.', '\\.')}\\s+([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)?)`, 'g');
+      result = result.replace(regex, (match, name, offset) => {
+        const replacement = '[NAME_REDACTED]';
         redactions.push({
           type: 'name',
           original: match,
@@ -239,26 +271,121 @@ export class PIIRedactionService {
       });
     }
     
-    // Pattern 2: Nome completo com maiúsculas (e.g., "João Silva Santos")
-    // Heurística: 2-3 palavras consecutivas com primeira letra maiúscula
-    const namePattern = /\b([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/g;
-    result = result.replace(namePattern, (match, offset) => {
-      // Verificar se não é começo de frase (evitar falsos positivos)
-      const charBefore = result[offset - 1];
-      if (charBefore && charBefore !== '.' && charBefore !== '!' && charBefore !== '?') {
-        const replacement = '[NAME_REDACTED]';
-        redactions.push({
-          type: 'name',
-          original: match,
-          replacement,
-          position: offset,
-        });
-        return replacement;
+    // 2. Detectar nomes completos capitalizados (Maria Silva, John Doe)
+    // CRITICAL: False-positive filtering para evitar redação excessiva
+    result = result.replace(this.FULL_NAME_REGEX, (match, firstName, lastName, offset) => {
+      // Guard 1: Skip whitelist false positives (países, cidades, empresas)
+      if (this.NAME_FALSE_POSITIVES.some(fp => match === fp || match.includes(fp))) {
+        return match;
       }
-      return match;
+      
+      // Guard 2: Skip if preceded/followed by corporate indicators
+      const before = text.substring(Math.max(0, offset - 20), offset);
+      const after = text.substring(offset + match.length, offset + match.length + 20);
+      if (/\b(Inc\.|LLC|Ltd\.|Corp\.|Company|Technologies|Solutions)\b/i.test(before + after)) {
+        return match;
+      }
+      
+      // Guard 3: Skip if part of sentence start (Capitalized At Start)
+      const charBefore = text[offset - 1];
+      if (!charBefore || charBefore === '.' || charBefore === '!' || charBefore === '?' || charBefore === '\n') {
+        return match; // Likely sentence start, not a name
+      }
+      
+      // Guard 4: Skip common day/month names
+      const timeIndicators = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
+                             'August', 'September', 'October', 'November', 'December',
+                             'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      if (timeIndicators.some(t => match.includes(t))) {
+        return match;
+      }
+      
+      // Passed all guards - likely a real name
+      const replacement = '[NAME_REDACTED]';
+      redactions.push({
+        type: 'name',
+        original: match,
+        replacement,
+        position: offset,
+      });
+      return replacement;
     });
     
     return result;
+  }
+  
+  /**
+   * Redact IP addresses (skip private/local ranges per RFC1918)
+   */
+  private redactIPAddresses(text: string, redactions: RedactionResult['redactions']): string {
+    return text.replace(this.IP_ADDRESS_REGEX, (match, offset) => {
+      // Skip RFC1918 private ranges + localhost + link-local
+      const isPrivate = 
+        match.startsWith('127.') ||           // Localhost
+        match.startsWith('10.') ||            // Private Class A
+        match.startsWith('192.168.') ||       // Private Class C
+        match.startsWith('172.16.') ||        // Private Class B (16-31)
+        match.startsWith('172.17.') ||
+        match.startsWith('172.18.') ||
+        match.startsWith('172.19.') ||
+        match.startsWith('172.20.') ||
+        match.startsWith('172.21.') ||
+        match.startsWith('172.22.') ||
+        match.startsWith('172.23.') ||
+        match.startsWith('172.24.') ||
+        match.startsWith('172.25.') ||
+        match.startsWith('172.26.') ||
+        match.startsWith('172.27.') ||
+        match.startsWith('172.28.') ||
+        match.startsWith('172.29.') ||
+        match.startsWith('172.30.') ||
+        match.startsWith('172.31.') ||
+        match.startsWith('169.254.');          // Link-local
+      
+      if (isPrivate) {
+        return match; // Keep private IPs (not sensitive)
+      }
+      
+      const replacement = '[IP_REDACTED]';
+      redactions.push({
+        type: 'name', // Reutilizando type
+        original: match,
+        replacement,
+        position: offset,
+      });
+      return replacement;
+    });
+  }
+  
+  /**
+   * Redact URLs with query parameters (podem conter tokens/IDs)
+   */
+  private redactSensitiveURLs(text: string, redactions: RedactionResult['redactions']): string {
+    return text.replace(this.URL_WITH_PARAMS_REGEX, (match, offset) => {
+      try {
+        // Extrair apenas query params
+        const url = new URL(match);
+        const hasSensitiveParams = ['token', 'api_key', 'key', 'secret', 'password', 'auth', 'session'].some(
+          param => url.searchParams.has(param)
+        );
+        
+        if (hasSensitiveParams) {
+          const replacement = `${url.origin}${url.pathname}[PARAMS_REDACTED]`;
+          redactions.push({
+            type: 'name', // Reutilizando type
+            original: match,
+            replacement,
+            position: offset,
+          });
+          return replacement;
+        }
+        
+        return match; // Keep URL se não tem params sensíveis
+      } catch (err) {
+        // Invalid URL, manter original
+        return match;
+      }
+    });
   }
   
   /**

@@ -36,10 +36,10 @@ export function initAutoEvolution(): void {
   // Load adaptive configuration
   const config = getMetaLearningConfig();
   console.log(`📋 Meta-Learning Mode: ${config.mode.toUpperCase()}`);
-  console.log(`   • Threshold: ${config.thresholds.minExamples} exemplos`);
+  console.log(`   • Threshold: ${config.thresholds.minExamples} exemplos (cohort privacy protection)`);
   console.log(`   • Replay Buffer: ${config.replayBuffer.enabled ? `ENABLED (${config.replayBuffer.maxSize})` : 'DISABLED'}`);
-  console.log(`   • PII Redaction: ${config.piiRedaction.enabled ? 'ENABLED' : 'DISABLED'}`);
-  console.log(`   • Differential Privacy: ${config.differentialPrivacy.enabled ? `ENABLED (ε=${config.differentialPrivacy.epsilon})` : 'DISABLED'}`);
+  console.log(`   • PII Redaction: ${config.piiRedaction.enabled ? 'ENABLED (10+ patterns)' : 'DISABLED'}`);
+  console.log(`   • LoRA: rank=${config.lora.rank} (parameter-efficient, reduces memorization)`);
   console.log('');
 
   // COMPONENTE 1: AutoIndexer
@@ -68,7 +68,7 @@ export function initAutoEvolution(): void {
   console.log(`   ✅ ATIVO - Monitor automático de treino (check: 30min)`);
   console.log(`   → Threshold adaptativo: ${config.thresholds.minExamples} (modo: ${config.mode})`);
   console.log(`   → LoRA: rank=${config.lora.rank}, alpha=${config.lora.alpha}`);
-  console.log(`   → DP: ${config.differentialPrivacy.enabled ? `ε=${config.differentialPrivacy.epsilon}` : 'disabled'}\n`);
+  console.log(`   → Privacy: Heuristics (threshold + LoRA + replay + PII redaction)\n`);
 
   // COMPONENTE 5: GPUPool
   console.log("🎮 [5/9] GPUPool...");
@@ -120,11 +120,11 @@ export function initAutoEvolution(): void {
   console.log("║   2. 🔍 AION busca: KB → GPU → Free APIs → Web → OpenAI       ║");
   console.log("║   3. 💬 Responde usuário (2-5s)                                ║");
   console.log("║   4. 📝 AutoIndexer adiciona na KB automaticamente             ║");
-  console.log("║   5. 🔐 PII Redaction (emails, phones, SSN, credit cards)      ║");
+  console.log("║   5. 🔐 PII Redaction (10+ patterns: email, phone, SSN, etc)   ║");
   console.log("║   6. 🎯 Quality Gates (min score, length validation)           ║");
   console.log("║   7. 💾 Replay Buffer (anti-catastrophic forgetting)           ║");
   console.log("║   8. 📊 Acumula exemplos → gera dataset (threshold adaptativo) ║");
-  console.log("║   9. 🔥 GPU(s) treinam com LoRA + DP                           ║");
+  console.log("║   9. 🔥 GPU(s) treinam com LoRA (parameter-efficient)          ║");
   console.log("║   10. 🚀 Modelo fica mais inteligente                          ║");
   console.log("║   11. 🔁 Repete infinitamente (auto-evolução)                  ║");
   console.log("║                                                                ║");

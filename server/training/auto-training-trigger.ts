@@ -20,7 +20,6 @@ import { eq, desc } from "drizzle-orm";
 import { datasetSplitter } from "../federated/dataset-splitter";
 import { gradientAggregator } from "../federated/gradient-aggregator";
 import { getMetaLearningConfig } from "./meta-learning-config";
-import { differentialPrivacyService } from "./differential-privacy-service";
 
 interface TrainingConfig {
   model: string;
@@ -151,12 +150,8 @@ export class AutoTrainingTrigger {
 
       console.log(`   ✅ Dataset gerado: ${dataset.examplesCount} exemplos`);
 
-      // STEP 2: Criar job de treino com LoRA + DP config
+      // STEP 2: Criar job de treino com LoRA + Privacy Heuristics
       console.log("\n   🔧 [2/3] Criando job de treino...");
-      
-      // Initialize DP budget tracking
-      const sessionId = `training_${Date.now()}`;
-      const dpBudget = differentialPrivacyService.initializeBudget(sessionId, config);
       
       const [job] = await db.insert(trainingJobs).values({
         name: `Auto-Training ${config.mode} ${new Date().toISOString()}`,
@@ -180,14 +175,13 @@ export class AutoTrainingTrigger {
             warmupSteps: config.training.warmupSteps,
             gradientAccumulationSteps: config.training.gradientAccumulationSteps,
           },
-          // Differential Privacy (if enabled)
-          differentialPrivacy: {
-            enabled: config.differentialPrivacy.enabled,
-            epsilon: dpBudget.epsilon,
-            delta: dpBudget.delta,
-            gradientClipNorm: config.differentialPrivacy.gradientClipNorm,
-            noiseMultiplier: config.differentialPrivacy.noiseMultiplier,
-            sessionId,
+          // Privacy Heuristics (threshold + LoRA + replay + PII)
+          privacy: {
+            mode: 'heuristics',
+            threshold: config.thresholds.minExamples,
+            piiRedaction: config.piiRedaction.enabled,
+            replayBuffer: config.replayBuffer.enabled,
+            loraRank: config.lora.rank,
           },
           // Meta info
           autoTriggered: true,
@@ -197,9 +191,7 @@ export class AutoTrainingTrigger {
       } as any).returning();
 
       console.log(`   ✅ Job criado: ID ${job.id}`);
-      if (config.differentialPrivacy.enabled) {
-        console.log(`   🔐 DP enabled: ε=${dpBudget.epsilon}, δ=${dpBudget.delta}`);
-      }
+      console.log(`   🔐 Privacy: Heuristics (threshold=${config.thresholds.minExamples}, LoRA=${config.lora.rank}, PII=${config.piiRedaction.enabled})`);
 
       // STEP 3: Verificar quantas GPUs disponíveis
       console.log("\n   🎮 [3/5] Verificando GPUs disponíveis...");
