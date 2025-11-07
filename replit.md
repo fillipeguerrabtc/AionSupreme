@@ -3,6 +3,56 @@
 ## Overview
 AION is an enterprise-grade autonomous AI system designed for robustness, flexibility, and self-operation, extending beyond current LLM limitations. It features configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agents using POMDP with a ReAct framework, and professional video generation. The system provides a chat interface for end-users and an administrative dashboard with a 7-Trait Personality Equalizer. Operating in a single-tenant mode for optimized deployment and cost efficiency, AION's business vision is to deliver a self-sustaining, continuously evolving AI that learns and improves autonomously, reducing reliance on external APIs over time. It incorporates production-ready autonomous meta-learning capabilities, including a Meta-Learner Service, an Adaptive Mixture of Experts (ShiftEx MoE), a Personalized expert selection (PM-MoE Aggregator), and a Self-Improvement Engine for autonomous code analysis and patching.
 
+## Recent Changes (November 2025)
+
+### Meta-Learning Multimodal KB Expansion
+- **Comprehensive KB Access**: Meta-Learning pipeline (`checkNewCuratedData` and `detectDataShifts`) now queries ALL 5 knowledge base sources:
+  - `trainingDataCollection` (approved training examples)
+  - `documents` (PDF, DOCX, XLSX, TXT, manual text)
+  - `conversations` (chat messages and user interactions)
+  - `curationQueue` (approved curated content with attachments)
+  - `knowledgeSources` (web scraping, links, YouTube transcripts)
+- **Data Source Breakdown**: Pipeline provides detailed count breakdown across all sources for transparency
+- **Shift Detection Enhanced**: `detectDataShifts` analyzes recent data from ALL sources in parallel for comprehensive MMD calculation
+
+### Namespace Isolation Fix (CRITICAL)
+- **Schema Updates**: Added `namespace: text("namespace")` field to `conversations` and `knowledgeSources` tables with indexes for multi-tenant isolation
+  - Migration executed via `npm run db:push` (Drizzle auto-migration)
+  - Indexes created: `conversations_namespace_idx`, `knowledge_sources_namespace_idx`
+  - Nullable field allows gradual adoption (NULL = global/unscoped data)
+- **Backfill Strategy**: Existing records remain with `namespace = NULL` (treated as global data)
+  - Future records can be tagged with namespace during creation
+  - Optional: run manual backfill SQL to assign namespaces to historical data based on semantic analysis
+  - No immediate action required - system works with mixed NULL/scoped data
+- **Complete Filtering**: ALL 5 KB sources now respect namespace parameter:
+  - `trainingDataCollection`: Direct namespace match
+  - `documents`: JSONB array contains filter on `metadata.namespaces`
+  - `conversations`: Direct namespace match (NEW field - `eq(conversations.namespace, namespace)`)
+  - `curationQueue`: JSONB array contains filter on `suggestedNamespaces`
+  - `knowledgeSources`: Direct namespace match (NEW field - `eq(knowledgeSources.namespace, namespace)`)
+- **Cross-Tenant Protection**: Namespace-scoped pipeline runs now guarantee isolation between different tenants/domains
+  - When `namespace` parameter provided: filters ALL 5 sources
+  - When `namespace` omitted: queries ALL data (global mode)
+- **API/Storage Contract Changes**:
+  - Meta-Learning Orchestrator: `checkNewCuratedData(namespace?)` and `detectDataShifts(namespace?)` now filter all sources
+  - Storage layer: No changes required (schema-only update)
+  - Frontend: No changes required (backend-only filtering)
+- **TypeScript Clean**: Fixed circular reference errors in `moeExperts` schema (self-referencing foreign keys)
+
+### Admin Interface Consolidation
+- **Hierarchical Menu**: Reduced from 21 flat navigation items to 8 logical categories with visual grouping:
+  1. **Command Center**: Overview dashboard
+  2. **Analytics & Monitoring**: Telemetry, Token Monitoring, History, Cost History
+  3. **Knowledge & Vision**: KB, Images, Image Search, Vision System
+  4. **Autonomous AI**: Meta-Learning (includes Auto-Evolution metrics)
+  5. **Training Fabric**: Datasets, Jobs, Federated Training
+  6. **Operations**: GPU Management, Curation Queue
+  7. **Access Governance**: Agents, Users, Permissions
+  8. **System Configuration**: Namespaces, Lifecycle, Settings
+- **Auto-Evolution Integration**: Standalone Auto-Evolution tab removed, metrics consolidated into Meta-Learning dashboard to reduce redundancy
+- **Full i18n Coverage**: All 8 categories translated across PT-BR (default), EN-US, ES-ES
+- **All Features Accessible**: Complete preservation of original 21 features through hierarchical organization
+
 ## User Preferences
 Estilo de comunicação preferido: Linguagem simples e cotidiana.
 
