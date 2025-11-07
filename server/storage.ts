@@ -510,12 +510,15 @@ export class DatabaseStorage implements IStorage {
     const results = await db
       .select({
         id: conversations.id,
-        tenantId: conversations.tenantId,
         userId: conversations.userId,
         projectId: conversations.projectId,
         title: conversations.title,
         createdAt: conversations.createdAt,
         updatedAt: conversations.updatedAt,
+        namespace: conversations.namespace,
+        lastActivityAt: conversations.lastActivityAt,
+        expiresAt: conversations.expiresAt,
+        archivedAt: conversations.archivedAt,
         messagesCount: sql<number>`COUNT(${messages.id})::int`
       })
       .from(conversations)
