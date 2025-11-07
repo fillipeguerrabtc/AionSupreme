@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -14,15 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
 import { COMMON_TIMEZONES, getCurrentDateTimeInTimezone } from "@/lib/datetime";
-import TokenMonitoring from "./TokenMonitoring";
-import KnowledgeBaseTab from "./KnowledgeBaseTab";
-import TokenHistoryTab from "./TokenHistoryTab";
-import CostHistoryTab from "./CostHistoryTab";
-import GPUManagementTab from "./GPUManagementTab";
-import FederatedTrainingTab from "./FederatedTrainingTab";
-import AutoEvolutionTab from "./AutoEvolutionTab";
-import DatasetsTab from "./DatasetsTab";
-import MetaLearningDashboard from "../meta-learning-dashboard";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,17 +30,27 @@ import {
 } from "@/components/ui/dialog";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
-import AgentsPage from "./AgentsPage";
-import CurationQueuePage from "./CurationQueuePage";
-import JobsPage from "./JobsPage";
-import UsersPage from "./UsersPage";
-import PermissionsPage from "./PermissionsPage";
-import NamespacesPage from "./NamespacesPage";
-import ImagesGalleryPage from "./ImagesGalleryPage";
-import ImageSearchPage from "./ImageSearchPage";
-import LifecyclePoliciesTab from "./LifecyclePoliciesTab";
-import VisionPage from "./VisionPage";
-import TelemetriaPage from "./TelemetriaPage";
+
+const TokenMonitoring = lazy(() => import("./TokenMonitoring"));
+const KnowledgeBaseTab = lazy(() => import("./KnowledgeBaseTab"));
+const TokenHistoryTab = lazy(() => import("./TokenHistoryTab"));
+const CostHistoryTab = lazy(() => import("./CostHistoryTab"));
+const GPUManagementTab = lazy(() => import("./GPUManagementTab"));
+const FederatedTrainingTab = lazy(() => import("./FederatedTrainingTab"));
+const AutoEvolutionTab = lazy(() => import("./AutoEvolutionTab"));
+const DatasetsTab = lazy(() => import("./DatasetsTab"));
+const MetaLearningDashboard = lazy(() => import("../meta-learning-dashboard"));
+const AgentsPage = lazy(() => import("./AgentsPage"));
+const CurationQueuePage = lazy(() => import("./CurationQueuePage"));
+const JobsPage = lazy(() => import("./JobsPage"));
+const UsersPage = lazy(() => import("./UsersPage"));
+const PermissionsPage = lazy(() => import("./PermissionsPage"));
+const NamespacesPage = lazy(() => import("./NamespacesPage"));
+const ImagesGalleryPage = lazy(() => import("./ImagesGalleryPage"));
+const ImageSearchPage = lazy(() => import("./ImageSearchPage"));
+const LifecyclePoliciesTab = lazy(() => import("./LifecyclePoliciesTab"));
+const VisionPage = lazy(() => import("./VisionPage"));
+const TelemetriaPage = lazy(() => import("./TelemetriaPage"));
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -730,124 +732,162 @@ export default function AdminDashboard() {
 
               {/* Telemetria Tab */}
               {activeTab === "telemetry" && (
-                <div className="space-y-6">
-                  <TelemetriaPage />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <TelemetriaPage />
+                  </div>
+                </Suspense>
               )}
 
               {/* Token Monitoring Tab - TEMPORARILY DISABLED */}
               {activeTab === "tokens" && (
-                <div className="space-y-6">
-                  <TokenMonitoring initialTab={tokenSubtab} />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <TokenMonitoring initialTab={tokenSubtab} />
+                  </div>
+                </Suspense>
               )}
 
               {/* Token History Tab */}
               {activeTab === "history" && (
-                <div className="space-y-6">
-                  <TokenHistoryTab />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <TokenHistoryTab />
+                  </div>
+                </Suspense>
               )}
 
               {/* Cost History Tab */}
               {activeTab === "cost" && (
-                <div className="space-y-6">
-                  <CostHistoryTab />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <CostHistoryTab />
+                  </div>
+                </Suspense>
               )}
 
               {/* Knowledge Base Tab */}
               {activeTab === "knowledge" && (
-                <div className="space-y-6">
-                  <KnowledgeBaseTab />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <KnowledgeBaseTab />
+                  </div>
+                </Suspense>
               )}
 
               {/* GPU Management Tab */}
               {activeTab === "gpu" && (
-                <div className="space-y-6">
-                  <GPUManagementTab />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <GPUManagementTab />
+                  </div>
+                </Suspense>
               )}
 
               {/* Federated Training Tab */}
               {activeTab === "federated" && (
-                <div className="space-y-6">
-                  <FederatedTrainingTab />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <FederatedTrainingTab />
+                  </div>
+                </Suspense>
               )}
 
               {/* Meta-Learning Tab (includes Auto-Evolution metrics) */}
               {activeTab === "meta-learning" && (
-                <MetaLearningDashboard />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <MetaLearningDashboard />
+                </Suspense>
               )}
 
               {/* Datasets Tab */}
               {activeTab === "datasets" && (
-                <DatasetsTab />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <DatasetsTab />
+                </Suspense>
               )}
 
               {/* Agents Tab */}
               {activeTab === "agents" && (
-                <div className="space-y-6">
-                  <AgentsPage />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <AgentsPage />
+                  </div>
+                </Suspense>
               )}
 
               {/* Users Tab */}
               {activeTab === "users" && (
-                <div className="space-y-6">
-                  <UsersPage />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <UsersPage />
+                  </div>
+                </Suspense>
               )}
 
               {/* Permissions Tab */}
               {activeTab === "permissions" && (
-                <div className="space-y-6">
-                  <PermissionsPage />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <PermissionsPage />
+                  </div>
+                </Suspense>
               )}
 
               {activeTab === "curation" && (
-                <div className="space-y-6">
-                  <CurationQueuePage />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <CurationQueuePage />
+                  </div>
+                </Suspense>
               )}
 
               {activeTab === "jobs" && (
-                <div className="space-y-6">
-                  <JobsPage />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <JobsPage />
+                  </div>
+                </Suspense>
               )}
 
               {activeTab === "images" && (
-                <div className="space-y-6">
-                  <ImagesGalleryPage />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <ImagesGalleryPage />
+                  </div>
+                </Suspense>
               )}
 
               {activeTab === "image-search" && (
-                <div className="space-y-6">
-                  <ImageSearchPage />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <ImageSearchPage />
+                  </div>
+                </Suspense>
               )}
 
               {activeTab === "vision" && (
-                <div className="space-y-6">
-                  <VisionPage />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <VisionPage />
+                  </div>
+                </Suspense>
               )}
 
               {activeTab === "namespaces" && (
-                <div className="space-y-6">
-                  <NamespacesPage />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <NamespacesPage />
+                  </div>
+                </Suspense>
               )}
 
               {activeTab === "lifecycle" && (
-                <div className="space-y-6">
-                  <LifecyclePoliciesTab />
-                </div>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <LifecyclePoliciesTab />
+                  </div>
+                </Suspense>
               )}
 
               {/* Settings Tab */}

@@ -6,12 +6,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "./lib/i18n";
 import { usePageTitle } from "./hooks/usePageTitle";
 import ChatPage from "@/pages/chat/ChatPage";
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import GPUDashboard from "@/pages/admin/gpu-dashboard";
-import MetaLearningDashboard from "@/pages/meta-learning-dashboard";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/not-found";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const GPUDashboard = lazy(() => import("@/pages/admin/gpu-dashboard"));
+const MetaLearningDashboard = lazy(() => import("@/pages/meta-learning-dashboard"));
 
 function ProtectedRoute({ component: Component }: { component: any }) {
   const [location, setLocation] = useLocation();
@@ -61,15 +63,17 @@ function Router() {
   usePageTitle();
   
   return (
-    <Switch>
-      <Route path="/" component={ChatPage} />
-      <Route path="/login" component={Login} />
-      <Route path="/admin/meta-learning" component={() => <ProtectedRoute component={MetaLearningDashboard} />} />
-      <Route path="/admin/gpu-dashboard" component={() => <ProtectedRoute component={GPUDashboard} />} />
-      <Route path="/admin" component={() => <ProtectedRoute component={AdminDashboard} />} />
-      <Route path="/admin/:section" component={() => <ProtectedRoute component={AdminDashboard} />} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Switch>
+        <Route path="/" component={ChatPage} />
+        <Route path="/login" component={Login} />
+        <Route path="/admin/meta-learning" component={() => <ProtectedRoute component={MetaLearningDashboard} />} />
+        <Route path="/admin/gpu-dashboard" component={() => <ProtectedRoute component={GPUDashboard} />} />
+        <Route path="/admin" component={() => <ProtectedRoute component={AdminDashboard} />} />
+        <Route path="/admin/:section" component={() => <ProtectedRoute component={AdminDashboard} />} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 
