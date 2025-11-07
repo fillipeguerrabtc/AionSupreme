@@ -19,6 +19,10 @@
  * - Secrets Cleanup: A cada 24 horas (03:00 UTC)
  * - Namespace GC: Diariamente às 03:00 UTC
  * - KB Deduplication: Semanalmente (domingos 02:00 UTC)
+ * 🔥 ON-DEMAND GPU JOBS:
+ * - Training Queue Monitor: A cada 5min → Trigger Kaggle GPU se ≥25 KBs
+ * - Daily Quota Reset: Diário 00:00 UTC → Reset dailyUsageHours
+ * - Weekly Quota Reset: Domingo 00:00 UTC → Reset weeklyUsageHours
  */
 
 import * as cron from 'node-cron';
@@ -216,6 +220,97 @@ export class SchedulerService {
           
         } catch (error: any) {
           logger.error(`❌ GPU quota monitoring error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 10: Training Queue Monitor - A cada 5 minutos (ON-DEMAND Kaggle trigger)
+    this.register({
+      name: 'training-queue-monitor',
+      schedule: '*/5 * * * *', // A cada 5 minutos
+      task: async () => {
+        try {
+          const { trainingQueueMonitor } = await import('./training-queue-monitor');
+          
+          // Check queue and trigger if needed
+          const status = await trainingQueueMonitor.getQueueStatus();
+          
+          if (status.shouldTriggerGPU) {
+            logger.info(`🚀 Training queue trigger: ${status.readyForTraining} KBs ready - Starting Kaggle GPU`);
+            
+            const { demandBasedKaggleOrchestrator } = await import('./demand-based-kaggle-orchestrator');
+            await demandBasedKaggleOrchestrator.startForTraining(status.readyForTraining);
+          }
+        } catch (error: any) {
+          logger.error(`Training queue monitor error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 11: Daily Quota Reset - Diariamente às 00:00 UTC
+    this.register({
+      name: 'daily-quota-reset',
+      schedule: '0 0 * * *', // 00:00 UTC diário
+      task: async () => {
+        try {
+          logger.info('🔄 Resetting daily GPU quotas (00:00 UTC)');
+          
+          const { db } = await import('../db');
+          const { gpuWorkers } = await import('../../shared/schema');
+          const { eq, sql } = await import('drizzle-orm');
+          
+          // Reset dailyUsageHours para todos os workers
+          const updated = await db
+            .update(gpuWorkers)
+            .set({
+              dailyUsageHours: 0,
+              lastDailyReset: new Date(),
+              updatedAt: new Date(),
+            })
+            .execute();
+          
+          logger.info(`✅ Daily quota reset complete - ${updated.rowCount || 0} workers updated`);
+        } catch (error: any) {
+          logger.error(`Daily quota reset error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 12: Weekly Quota Reset - Domingo 00:00 UTC
+    this.register({
+      name: 'weekly-quota-reset',
+      schedule: '0 0 * * 0', // Domingo 00:00 UTC
+      task: async () => {
+        try {
+          logger.info('🔄 Resetting weekly GPU quotas (Sunday 00:00 UTC)');
+          
+          const { db } = await import('../db');
+          const { gpuWorkers } = await import('../../shared/schema');
+          const { eq, sql } = await import('drizzle-orm');
+          
+          // Reset weeklyUsageHours para todos os workers
+          const updated = await db
+            .update(gpuWorkers)
+            .set({
+              weeklyUsageHours: 0,
+              weeklyUsageSeconds: 0,
+              weekStartedAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .execute();
+          
+          logger.info(`✅ Weekly quota reset complete - ${updated.rowCount || 0} workers updated`);
+        } catch (error: any) {
+          logger.error(`Weekly quota reset error: ${error.message}`);
         }
       },
       enabled: true,

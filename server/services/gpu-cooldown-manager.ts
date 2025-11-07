@@ -129,29 +129,15 @@ export class GPUCooldownManager {
   }
   
   /**
-   * Kaggle daily limit enforcement (4h/day)
+   * Kaggle weekly quota enforcement (28h/week ON-DEMAND)
+   * ❌ REMOVED daily limit - can use all 28h in one day if needed!
    */
   private async checkKaggleDailyLimit(worker: any): Promise<CooldownStatus> {
-    const dailyUsageHours = worker.dailyUsageHours || 0;
     const weeklyUsageHours = worker.weeklyUsageHours || 0;
     
-    // Check daily limit (4h/day)
-    const dailyRemainingHours = Math.max(0, QUOTA_LIMITS.KAGGLE.SAFE_DAILY_HOURS - dailyUsageHours);
+    // ❌ REMOVED: Daily limit check (ON-DEMAND strategy)
+    // Only check weekly limit (28h/week)
     
-    if (dailyRemainingHours <= 0) {
-      return {
-        workerId: worker.id,
-        provider: 'kaggle',
-        canStart: false,
-        reason: `Daily limit reached - ${dailyUsageHours.toFixed(2)}h of 4h used today`,
-        dailyUsageHours,
-        dailyRemainingHours: 0,
-        weeklyUsageHours,
-        weeklyRemainingHours: Math.max(0, QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS - weeklyUsageHours),
-      };
-    }
-    
-    // Check weekly limit (28h/week)
     const weeklyRemainingHours = Math.max(0, QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS - weeklyUsageHours);
     
     if (weeklyRemainingHours <= 0) {
@@ -160,21 +146,17 @@ export class GPUCooldownManager {
         provider: 'kaggle',
         canStart: false,
         reason: `Weekly limit reached - ${weeklyUsageHours.toFixed(2)}h of 28h used this week`,
-        dailyUsageHours,
-        dailyRemainingHours,
         weeklyUsageHours,
         weeklyRemainingHours: 0,
       };
     }
     
-    // OK to start
+    // OK to start - weekly quota available
     return {
       workerId: worker.id,
       provider: 'kaggle',
       canStart: true,
-      reason: `OK to start - ${dailyRemainingHours.toFixed(2)}h daily / ${weeklyRemainingHours.toFixed(2)}h weekly remaining`,
-      dailyUsageHours,
-      dailyRemainingHours,
+      reason: `OK to start - ${weeklyRemainingHours.toFixed(2)}h of 28h remaining this week`,
       weeklyUsageHours,
       weeklyRemainingHours,
     };

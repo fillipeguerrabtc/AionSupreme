@@ -11,8 +11,7 @@
  * MONITORED METRICS:
  * ✅ Colab session duration (11h limit)
  * ✅ Colab cooldown compliance (36h minimum)
- * ✅ Kaggle daily usage (4h limit)
- * ✅ Kaggle weekly quota (28h limit)
+ * ✅ Kaggle weekly quota (28h limit ON-DEMAND, NO daily limit)
  * ✅ Session frequency patterns (detect abuse)
  * 
  * FEATURES:
@@ -210,59 +209,23 @@ export class ToSComplianceMonitor {
   }
   
   /**
-   * Monitor Kaggle compliance (daily + weekly limits)
+   * Monitor Kaggle compliance (ON-DEMAND weekly quota only)
+   * ❌ REMOVED daily limits - can use all 28h in one day if needed!
    */
   private async monitorKaggleCompliance(worker: any): Promise<ComplianceStatus> {
     const alerts: ComplianceAlert[] = [];
     const recommendations: string[] = [];
     
-    const dailyUsageHours = worker.dailyUsageHours || 0;
     const weeklyUsageHours = worker.weeklyUsageHours || 0;
     const now = new Date();
     
-    // Check daily limit (4h/day)
-    const dailyLimit = QUOTA_LIMITS.KAGGLE.SAFE_DAILY_HOURS;
-    const dailyUtilization = dailyUsageHours / dailyLimit;
+    // ❌ REMOVED: Daily limit checks (ON-DEMAND strategy)
+    // Only monitor weekly quota (28h/week)
     
-    // WARNING: 60% of 4h = 2.4h
-    if (dailyUtilization >= this.WARNING_THRESHOLD && dailyUtilization < QUOTA_LIMITS.WARNING_THRESHOLDS.KAGGLE_DAILY_PERCENT) {
-      alerts.push({
-        workerId: worker.id,
-        provider: 'kaggle',
-        severity: 'warning',
-        threshold: this.WARNING_THRESHOLD,
-        currentUsage: dailyUsageHours,
-        limit: dailyLimit,
-        message: `Daily usage approaching limit: ${dailyUsageHours.toFixed(2)}h of 4h (${(dailyUtilization * 100).toFixed(1)}%)`,
-        timestamp: now,
-        metric: 'daily_usage',
-      });
-      
-      recommendations.push(`${(dailyLimit - dailyUsageHours).toFixed(2)}h remaining today`);
-    }
-    
-    // CRITICAL: 100% of 4h = 4h
-    if (dailyUtilization >= QUOTA_LIMITS.SAFE_THRESHOLDS.KAGGLE_DAILY_PERCENT) {
-      alerts.push({
-        workerId: worker.id,
-        provider: 'kaggle',
-        severity: 'critical',
-        threshold: QUOTA_LIMITS.SAFE_THRESHOLDS.KAGGLE_DAILY_PERCENT,
-        currentUsage: dailyUsageHours,
-        limit: dailyLimit,
-        message: `Daily limit reached: ${dailyUsageHours.toFixed(2)}h of 4h - NO MORE TODAY`,
-        timestamp: now,
-        metric: 'daily_usage',
-      });
-      
-      recommendations.push('🔥 Daily limit reached - Wait for UTC midnight reset');
-    }
-    
-    // Check weekly limit (28h/week)
     const weeklyLimit = QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS;
     const weeklyUtilization = weeklyUsageHours / weeklyLimit;
     
-    // WARNING: 80% of 28h = 22.4h
+    // WARNING: 60% of 28h = 16.8h
     if (weeklyUtilization >= QUOTA_LIMITS.WARNING_THRESHOLDS.KAGGLE_WEEKLY_PERCENT && weeklyUtilization < QUOTA_LIMITS.SAFE_THRESHOLDS.KAGGLE_WEEKLY_PERCENT) {
       alerts.push({
         workerId: worker.id,
@@ -293,7 +256,7 @@ export class ToSComplianceMonitor {
         metric: 'weekly_usage',
       });
       
-      recommendations.push('🔥 Weekly limit reached - Wait for Monday UTC reset');
+      recommendations.push('🔥 Weekly limit reached - Wait for Sunday UTC reset');
     }
     
     // Assess risk level

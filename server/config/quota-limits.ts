@@ -45,24 +45,27 @@ export const QUOTA_LIMITS = {
   },
 
   /**
-   * KAGGLE FREE TIER (CONSERVATIVE STRATEGY)
-   * ==========================================
-   * - 🔥 Daily limit: 4h/day (guaranteed minimum, excellent ToS compliance)
+   * KAGGLE FREE TIER (ON-DEMAND STRATEGY)
+   * =======================================
    * - 🔥 Weekly quota: 30h GPU/week → Use 28h (30h - 2h safety buffer)
-   * - Session limit: 9h max (but we cap at 4h/day for better distribution)
+   * - ❌ NO daily limit (can use all 28h in one day if needed!)
+   * - Session limit: 9h max per individual session
    * - Concurrent: 1 notebook only
    * - We use: GPU only (not CPU)
    * 
-   * PATTERN: 4h/day × 7 days = 28h/week (93.3% of 30h limit, 7% buffer)
-   * RISK LEVEL: ZERO (excellent safety margin, well below ToS limits)
+   * PATTERN: ON-DEMAND (start/stop based on workload triggers)
+   * - Trigger 1: ≥25 KBs ready for training
+   * - Trigger 2: Heavy inference (image gen, large semantic search)
+   * - Auto-shutdown: After job completion
+   * 
+   * FLEXIBILITY: Can run 28h in 2 days OR spread across 7 days
+   * RISK LEVEL: ZERO (93.3% of weekly limit, 7% buffer)
    */
   KAGGLE: {
     MAX_SESSION_HOURS: 9,             // Hard limit per session
     
-    // 🔥 NEW: Daily limit strategy (4h/day guaranteed minimum)
-    MAX_DAILY_HOURS: 4,               // 4h/day conservative daily cap
-    SAFE_DAILY_HOURS: 4,              // 4h/day = 28h/week total
-    SAFE_DAILY_SECONDS: 4 * 3600,     // 14400s
+    // ❌ REMOVED: Daily limits (ON-DEMAND strategy doesn't need them)
+    // Weekly quota is the ONLY limit
     
     // Weekly quota (with 2h safety buffer)
     MAX_WEEKLY_HOURS: 30,
@@ -88,9 +91,8 @@ export const QUOTA_LIMITS = {
     COLAB_SESSION_PERCENT: 0.75,      // Warn at 75% (9h of 12h) - 2h before 11h limit
     COLAB_COOLDOWN_REMAINING_HOURS: 6, // Warn when <6h remaining in cooldown
     
-    // Kaggle thresholds
-    KAGGLE_DAILY_PERCENT: 0.75,       // Warn at 75% (3h of 4h) - 1h before daily limit
-    KAGGLE_WEEKLY_PERCENT: 0.80,      // Warn at 80% (24h of 30h) - 4h before 28h limit
+    // Kaggle thresholds (ON-DEMAND - weekly only)
+    KAGGLE_WEEKLY_PERCENT: 0.60,      // Warn at 60% (18h of 30h) - 10h before 28h limit
   },
 
   /**
@@ -103,8 +105,7 @@ export const QUOTA_LIMITS = {
     COLAB_SESSION_PERCENT: 0.917,     // 91.7% of 12h = 11h 🔥 HARD STOP!
     COLAB_COOLDOWN_HOURS: 36,         // 36h minimum cooldown 🔥 STRICT ENFORCEMENT!
     
-    // Kaggle thresholds (4h/day, 28h/week)
-    KAGGLE_DAILY_PERCENT: 1.0,        // 100% of 4h/day = 4h 🔥 HARD STOP!
+    // Kaggle thresholds (ON-DEMAND - 28h/week only, NO daily limit)
     KAGGLE_WEEKLY_PERCENT: 0.933,     // 93.3% of 30h = 28h 🔥 HARD STOP!
   },
 };
@@ -117,14 +118,14 @@ export const QuotaHelpers = {
   /**
    * Get safe session limit for a provider (in seconds)
    * - Colab: 11h session
-   * - Kaggle: 4h daily limit (sessions capped at daily remaining)
+   * - Kaggle: 9h max per session (limited by weekly remaining)
    */
   getSafeSessionSeconds(provider: 'colab' | 'kaggle'): number {
     if (provider === 'colab') {
       return QUOTA_LIMITS.COLAB.SAFE_SESSION_SECONDS;
     }
-    // Kaggle: Use daily limit (4h/day)
-    return QUOTA_LIMITS.KAGGLE.SAFE_DAILY_SECONDS;
+    // Kaggle: 9h max per session
+    return QUOTA_LIMITS.KAGGLE.MAX_SESSION_HOURS * 3600;
   },
 
   /**
@@ -136,11 +137,8 @@ export const QuotaHelpers = {
   },
 
   /**
-   * 🔥 NEW: Check if daily usage is safe (Kaggle only)
+   * ❌ REMOVED: Daily quota check (ON-DEMAND strategy - only weekly matters)
    */
-  isDailySafe(usedSeconds: number): boolean {
-    return usedSeconds < QUOTA_LIMITS.KAGGLE.SAFE_DAILY_SECONDS;
-  },
 
   /**
    * Check if weekly usage is safe (Kaggle only)
@@ -176,11 +174,8 @@ export const QuotaHelpers = {
   },
 
   /**
-   * 🔥 NEW: Get remaining daily quota (Kaggle only)
+   * ❌ REMOVED: Daily quota getter (ON-DEMAND strategy - only weekly matters)
    */
-  getRemainingDailySeconds(usedSeconds: number): number {
-    return Math.max(0, QUOTA_LIMITS.KAGGLE.SAFE_DAILY_SECONDS - usedSeconds);
-  },
 
   /**
    * Get remaining weekly quota (Kaggle only)
@@ -208,10 +203,9 @@ export const QuotaHelpers = {
       // Random between 10.5h and 11h
       return baseSeconds - Math.floor(Math.random() * variationSeconds);
     }
-    // Kaggle: Use daily limit (4h) with slight variation
-    const baseSeconds = QUOTA_LIMITS.KAGGLE.SAFE_DAILY_SECONDS;
-    const variationSeconds = 5 * 60; // ±5min variation
-    return baseSeconds + Math.floor(Math.random() * variationSeconds * 2) - variationSeconds;
+    // Kaggle: ON-DEMAND (no fixed duration - runs until job completes)
+    // Return max session time (9h) - orchestrator will shutdown when job done
+    return QUOTA_LIMITS.KAGGLE.MAX_SESSION_HOURS * 3600;
   },
 
   /**
