@@ -84,20 +84,20 @@ export class ShiftExService {
       });
 
       // Get active experts in the namespace
-      const query = db
+      const whereConditions = [
+        eq(moeExperts.isActive, true),
+        isNull(moeExperts.consolidatedInto)
+      ];
+      
+      if (namespace) {
+        whereConditions.push(eq(moeExperts.namespace, namespace));
+      }
+
+      const experts = await db
         .select()
         .from(moeExperts)
-        .where(
-          and(
-            eq(moeExperts.isActive, true),
-            isNull(moeExperts.consolidatedInto)
-          )
-        )
+        .where(and(...whereConditions))
         .orderBy(desc(moeExperts.usageCount));
-
-      const experts = namespace
-        ? await query.where(eq(moeExperts.namespace, namespace))
-        : await query;
 
       if (experts.length === 0) {
         // No experts yet, this is a new distribution
@@ -254,7 +254,11 @@ export class ShiftExService {
           covariance_summary: distribution.covarianceSummary || null,
           characteristic_samples: distribution.characteristicSamples || []
         },
-        parameters: defaultConfig,
+        parameters: {
+          lora_rank: defaultConfig.loraRank,
+          adapter_alpha: defaultConfig.adapterAlpha,
+          modules_to_save: defaultConfig.modulesToSave,
+        },
         weightsPath: null, // Will be set after training
         weightsChecksum: null,
         spawnedFrom: parentExpertId || null,
@@ -404,19 +408,19 @@ export class ShiftExService {
     try {
       logger.info("🔄 ShiftEx: Starting expert consolidation", { namespace });
 
-      const query = db
+      const whereConditions = [
+        eq(moeExperts.isActive, true),
+        isNull(moeExperts.consolidatedInto)
+      ];
+      
+      if (namespace) {
+        whereConditions.push(eq(moeExperts.namespace, namespace));
+      }
+
+      const experts = await db
         .select()
         .from(moeExperts)
-        .where(
-          and(
-            eq(moeExperts.isActive, true),
-            isNull(moeExperts.consolidatedInto)
-          )
-        );
-
-      const experts = namespace
-        ? await query.where(eq(moeExperts.namespace, namespace))
-        : await query;
+        .where(and(...whereConditions));
 
       let consolidatedCount = 0;
 
@@ -499,25 +503,23 @@ export class ShiftExService {
    * Get active experts for a namespace/domain
    */
   async getActiveExperts(namespace?: string, domain?: string) {
-    let query = db
-      .select()
-      .from(moeExperts)
-      .where(
-        and(
-          eq(moeExperts.isActive, true),
-          isNull(moeExperts.consolidatedInto)
-        )
-      )
-      .orderBy(desc(moeExperts.avgAccuracy));
-
+    const whereConditions = [
+      eq(moeExperts.isActive, true),
+      isNull(moeExperts.consolidatedInto)
+    ];
+    
     if (namespace) {
-      query = query.where(eq(moeExperts.namespace, namespace));
+      whereConditions.push(eq(moeExperts.namespace, namespace));
     }
     if (domain) {
-      query = query.where(eq(moeExperts.domain, domain));
+      whereConditions.push(eq(moeExperts.domain, domain));
     }
 
-    return query;
+    return db
+      .select()
+      .from(moeExperts)
+      .where(and(...whereConditions))
+      .orderBy(desc(moeExperts.avgAccuracy));
   }
 
   /**

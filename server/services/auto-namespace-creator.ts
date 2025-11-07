@@ -147,11 +147,11 @@ export async function autoCreateNamespacesAndAgents(
         try {
           const { agentRegistry } = await import("../agent/registry");
           const { registerAgent: registerAgentRuntime } = await import("../agent/runtime");
-          const { agentsStorage } = await import("../storage");
+          const { agentsStorage } = await import("../storage.agents");
           
           // Buscar tools do agente (seguindo padrão do loader.ts)
           const agentTools = await agentsStorage.getAgentTools(newAgent.id);
-          const toolNames = agentTools.map(t => t.name);
+          const toolNames = agentTools.map((t: any) => t.name);
           
           // Construir objeto Agent seguindo EXATAMENTE o padrão do loader.ts
           const agentForRegistry = {
@@ -159,7 +159,7 @@ export async function autoCreateNamespacesAndAgents(
             name: newAgent.name,
             slug: newAgent.slug,
             type: (newAgent.type || "specialist") as "specialist" | "generalist" | "router-only",
-            agentTier: newAgent.agentTier || undefined,
+            agentTier: (newAgent.agentTier as "agent" | "subagent" | undefined) || undefined,
             assignedNamespaces: newAgent.assignedNamespaces || [], // CRÍTICO para hierarchical orchestration
             description: newAgent.description || undefined,
             systemPrompt: newAgent.systemPrompt || undefined,
@@ -169,7 +169,7 @@ export async function autoCreateNamespacesAndAgents(
             budgetLimit: newAgent.budgetLimit || undefined,
             escalationAgent: newAgent.escalationAgent || undefined,
             inferenceConfig: newAgent.inferenceConfig || {},
-            metadata: newAgent.metadata || {},
+            metadata: (newAgent.metadata || {}) as Record<string, unknown>,
           };
           
           // Registrar no registry (para MoE Router encontrar)

@@ -99,8 +99,7 @@ export class NamespaceClassifier {
         name: namespaces.name,
         description: namespaces.description,
       })
-      .from(namespaces)
-      .where(eq(namespaces.tenantId, tenantId));
+      .from(namespaces);
 
     return results.map(ns => {
       // Detectar subnamespace pela presença de "." no nome
