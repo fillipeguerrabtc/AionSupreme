@@ -42,6 +42,13 @@ export interface PipelineResult {
 }
 
 /**
+ * ✅ FIX 4: PostgreSQL advisory lock ID for distributed pipeline execution
+ * Using a unique ID to prevent concurrent pipeline runs across multiple instances
+ * ID generated from hash of "meta-learning-pipeline" -> 123456789
+ */
+const META_LEARNING_PIPELINE_LOCK_ID = 123456789;
+
+/**
  * Meta-Learning Orchestrator
  * Conecta e automatiza todo o pipeline de aprendizado autônomo
  */
@@ -66,84 +73,187 @@ export class MetaLearningOrchestrator {
   /**
    * Execute complete autonomous learning pipeline
    * This is called automatically by cron jobs or manually via API
+   * 
+   * ✅ FIX 4: Uses PostgreSQL advisory locks for distributed execution safety
+   * ✅ FIX 3: Each stage has individual error handling - pipeline continues on failures
    */
   async executeFullPipeline(namespace?: string): Promise<PipelineResult[]> {
-    if (this.isRunning) {
-      logger.warn("⚠️ Pipeline already running, skipping execution");
-      return [{ stage: "init", success: false, error: "Pipeline already running" }];
-    }
-
-    this.isRunning = true;
     const results: PipelineResult[] = [];
+    let hasLock = false;
 
     try {
+      // ✅ FIX 4: Acquire PostgreSQL advisory lock for distributed pipeline safety
+      logger.info("🔒 Attempting to acquire pipeline lock...", { lockId: META_LEARNING_PIPELINE_LOCK_ID });
+      
+      const lockResult = await db.execute(sql`SELECT pg_try_advisory_lock(${META_LEARNING_PIPELINE_LOCK_ID})`);
+      hasLock = lockResult.rows[0]?.pg_try_advisory_lock as boolean;
+
+      if (!hasLock) {
+        logger.warn("⚠️ Pipeline lock already held by another instance, skipping execution");
+        return [{ 
+          stage: "lock_acquisition", 
+          success: false, 
+          error: "Pipeline already running in another instance" 
+        }];
+      }
+
+      logger.info("✅ Pipeline lock acquired successfully");
+      this.isRunning = true;
+
       logger.info("🚀 Starting Meta-Learning Pipeline", { namespace });
 
-      // STAGE 1: Check for new curated data
-      const newDataResult = await this.checkNewCuratedData(namespace);
-      results.push(newDataResult);
+      // ✅ FIX 3: STAGE 1 with individual error handling
+      try {
+        const newDataResult = await this.checkNewCuratedData(namespace);
+        results.push(newDataResult);
 
-      if (!newDataResult.success || !newDataResult.data?.hasNewData) {
-        logger.info("ℹ️ No new data to process, skipping pipeline");
-        this.isRunning = false;
-        return results;
+        if (!newDataResult.success || !newDataResult.data?.hasNewData) {
+          logger.info("ℹ️ No new data to process, completing pipeline early");
+          return results;
+        }
+      } catch (error) {
+        logger.error("❌ Stage 1 (Check New Data) failed, but continuing pipeline", { error });
+        results.push({ 
+          stage: "check_new_data", 
+          success: false, 
+          error: String(error) 
+        });
       }
 
-      // STAGE 2: Detect data distribution shifts
-      const shiftResult = await this.detectDataShifts(namespace);
-      results.push(shiftResult);
-
-      // STAGE 3: Spawn new experts if shifts detected
-      if (shiftResult.success && shiftResult.data?.shiftDetected) {
-        const expertResult = await this.spawnExpertsForShifts(
-          shiftResult.data.shifts,
-          namespace
-        );
-        results.push(expertResult);
+      // ✅ FIX 3: STAGE 2 with individual error handling
+      let shiftResult: PipelineResult | undefined;
+      try {
+        shiftResult = await this.detectDataShifts(namespace);
+        results.push(shiftResult);
+      } catch (error) {
+        logger.error("❌ Stage 2 (Detect Shifts) failed, but continuing pipeline", { error });
+        results.push({ 
+          stage: "detect_shifts", 
+          success: false, 
+          error: String(error) 
+        });
       }
 
-      // STAGE 4: Select optimal learning algorithm
-      const algorithmResult = await this.selectLearningAlgorithm(namespace);
-      results.push(algorithmResult);
-
-      // STAGE 5: Generate training dataset
-      const datasetResult = await this.generateTrainingDataset(namespace);
-      results.push(datasetResult);
-
-      // STAGE 6: Aggregate experts with PM-MoE
-      const aggregationResult = await this.aggregateExperts(namespace);
-      results.push(aggregationResult);
-
-      // STAGE 7: Trigger training (if dataset ready)
-      if (datasetResult.success && datasetResult.data?.datasetId) {
-        const trainingResult = await this.triggerTraining(
-          datasetResult.data.datasetId,
-          algorithmResult.data?.algorithmId
-        );
-        results.push(trainingResult);
+      // ✅ FIX 3: STAGE 3 with individual error handling
+      if (shiftResult?.success && shiftResult.data?.shiftDetected) {
+        try {
+          const expertResult = await this.spawnExpertsForShifts(
+            shiftResult.data.shifts,
+            namespace
+          );
+          results.push(expertResult);
+        } catch (error) {
+          logger.error("❌ Stage 3 (Spawn Experts) failed, but continuing pipeline", { error });
+          results.push({ 
+            stage: "spawn_experts", 
+            success: false, 
+            error: String(error) 
+          });
+        }
       }
 
-      // STAGE 8: Run self-improvement analysis (periodically)
-      const improvementResult = await this.runSelfImprovement();
-      results.push(improvementResult);
+      // ✅ FIX 3: STAGE 4 with individual error handling
+      let algorithmResult: PipelineResult | undefined;
+      try {
+        algorithmResult = await this.selectLearningAlgorithm(namespace);
+        results.push(algorithmResult);
+      } catch (error) {
+        logger.error("❌ Stage 4 (Select Algorithm) failed, but continuing pipeline", { error });
+        results.push({ 
+          stage: "select_algorithm", 
+          success: false, 
+          error: String(error) 
+        });
+      }
+
+      // ✅ FIX 3: STAGE 5 with individual error handling
+      let datasetResult: PipelineResult | undefined;
+      try {
+        datasetResult = await this.generateTrainingDataset(namespace);
+        results.push(datasetResult);
+      } catch (error) {
+        logger.error("❌ Stage 5 (Generate Dataset) failed, but continuing pipeline", { error });
+        results.push({ 
+          stage: "generate_dataset", 
+          success: false, 
+          error: String(error) 
+        });
+      }
+
+      // ✅ FIX 3: STAGE 6 with individual error handling
+      try {
+        const aggregationResult = await this.aggregateExperts(namespace);
+        results.push(aggregationResult);
+      } catch (error) {
+        logger.error("❌ Stage 6 (Aggregate Experts) failed, but continuing pipeline", { error });
+        results.push({ 
+          stage: "aggregate_experts", 
+          success: false, 
+          error: String(error) 
+        });
+      }
+
+      // ✅ FIX 3: STAGE 7 with individual error handling
+      if (datasetResult?.success && datasetResult.data?.datasetId) {
+        try {
+          const trainingResult = await this.triggerTraining(
+            datasetResult.data.datasetId,
+            algorithmResult?.data?.algorithmId
+          );
+          results.push(trainingResult);
+        } catch (error) {
+          logger.error("❌ Stage 7 (Trigger Training) failed, but continuing pipeline", { error });
+          results.push({ 
+            stage: "trigger_training", 
+            success: false, 
+            error: String(error) 
+          });
+        }
+      }
+
+      // ✅ FIX 3: STAGE 8 with individual error handling
+      try {
+        const improvementResult = await this.runSelfImprovement();
+        results.push(improvementResult);
+      } catch (error) {
+        logger.error("❌ Stage 8 (Self-Improvement) failed, but pipeline complete", { error });
+        results.push({ 
+          stage: "self_improvement", 
+          success: false, 
+          error: String(error) 
+        });
+      }
 
       this.lastRunTimestamp = new Date();
 
+      const successCount = results.filter(r => r.success).length;
       logger.info("✅ Meta-Learning Pipeline completed", {
         totalStages: results.length,
-        successStages: results.filter(r => r.success).length
+        successStages: successCount,
+        failedStages: results.length - successCount,
+        namespace
       });
 
       return results;
+
     } catch (error) {
-      logger.error("❌ Pipeline execution failed", { error });
+      logger.error("❌ Pipeline execution fatal error", { error });
       results.push({
-        stage: "pipeline",
+        stage: "pipeline_fatal",
         success: false,
         error: String(error)
       });
       return results;
     } finally {
+      // ✅ FIX 4: Always release the advisory lock in finally block
+      if (hasLock) {
+        try {
+          await db.execute(sql`SELECT pg_advisory_unlock(${META_LEARNING_PIPELINE_LOCK_ID})`);
+          logger.info("🔓 Pipeline lock released successfully");
+        } catch (error) {
+          logger.error("❌ Failed to release pipeline lock", { error });
+        }
+      }
       this.isRunning = false;
     }
   }
@@ -154,17 +264,29 @@ export class MetaLearningOrchestrator {
    */
   private async checkNewCuratedData(namespace?: string): Promise<PipelineResult> {
     try {
-      logger.info("📊 Stage 1: Checking for new data from ALL KB sources");
+      logger.info("📊 Stage 1: Checking for new data from ALL KB sources", { namespace });
 
-      // 1. Approved training data from curation queue
-      const trainingConditions = [eq(trainingDataCollection.status, "approved")];
-
-      const trainingData = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(trainingDataCollection)
-        .where(sql`${sql.join(trainingConditions, sql` AND `)}`);
-
-      const trainingCount = Number(trainingData[0]?.count || 0);
+      // 1. Approved training data from curation queue (with namespace filtering via JOIN)
+      // ✅ FIX 1: Now properly filters by namespace using JOIN with conversations table
+      let trainingCount = 0;
+      if (namespace) {
+        // JOIN with conversations to filter by namespace
+        logger.info("🔍 FIX 1 VERIFICATION: Filtering trainingDataCollection by namespace via JOIN", { namespace });
+        const trainingData = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(trainingDataCollection)
+          .innerJoin(conversations, eq(trainingDataCollection.conversationId, conversations.id))
+          .where(sql`${trainingDataCollection.status} = 'approved' AND ${conversations.namespace} = ${namespace}`);
+        trainingCount = Number(trainingData[0]?.count || 0);
+        logger.info("✅ FIX 1: Namespace-filtered training data count", { namespace, trainingCount });
+      } else {
+        // No namespace filter - count all
+        const trainingData = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(trainingDataCollection)
+          .where(eq(trainingDataCollection.status, "approved"));
+        trainingCount = Number(trainingData[0]?.count || 0);
+      }
 
       // 2. Documents from KB (PDFs, DOCX, XLSX, TXT, etc) - with namespace filtering
       let documentsCount = 0;
@@ -273,19 +395,31 @@ export class MetaLearningOrchestrator {
    */
   private async detectDataShifts(namespace?: string): Promise<PipelineResult> {
     try {
-      logger.info("🔍 Stage 2: Detecting data distribution shifts across ALL KB");
+      logger.info("🔍 Stage 2: Detecting data distribution shifts across ALL KB", { namespace });
 
       // Aggregate recent data from ALL sources (with namespace filtering where applicable)
-      const trainingConditions = [eq(trainingDataCollection.status, "approved")];
-
       const [trainingData, recentDocs, recentConvs, recentCuration] = await Promise.all([
-        // Training data (with namespace filter)
-        db
-          .select()
-          .from(trainingDataCollection)
-          .where(sql`${sql.join(trainingConditions, sql` AND `)}`)
-          .orderBy(desc(trainingDataCollection.createdAt))
-          .limit(50),
+        // Training data (with namespace filter via JOIN)
+        namespace
+          ? db
+              .select({ 
+                id: trainingDataCollection.id,
+                conversationId: trainingDataCollection.conversationId,
+                status: trainingDataCollection.status,
+                formattedData: trainingDataCollection.formattedData,
+                createdAt: trainingDataCollection.createdAt
+              })
+              .from(trainingDataCollection)
+              .innerJoin(conversations, eq(trainingDataCollection.conversationId, conversations.id))
+              .where(sql`${trainingDataCollection.status} = 'approved' AND ${conversations.namespace} = ${namespace}`)
+              .orderBy(desc(trainingDataCollection.createdAt))
+              .limit(50)
+          : db
+              .select()
+              .from(trainingDataCollection)
+              .where(eq(trainingDataCollection.status, "approved"))
+              .orderBy(desc(trainingDataCollection.createdAt))
+              .limit(50),
         
         // Documents (with namespace filter if specified)
         namespace

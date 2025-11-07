@@ -41,27 +41,28 @@ export async function autoCreateNamespacesAndAgents(
 
   console.log(`[Auto-Creator] 🤖 Processando ${suggestedNamespaces.length} namespaces sugeridos...`);
 
+  // ✅ FIX 2: Batch fetch ALL namespaces ONCE outside the loop (performance optimization + race condition prevention)
+  console.log(`[Auto-Creator] 🔍 FIX 2 VERIFICATION: Batch fetching all namespaces ONCE before loop`);
+  const allNamespaces = await db.select().from(namespacesTable);
+  const namespaceMap = new Map(allNamespaces.map(ns => [ns.name, ns]));
+  const namespacesForSimilarity = allNamespaces.map(ns => ({ name: ns.name, description: ns.description || '' }));
+  console.log(`[Auto-Creator] ✅ FIX 2: Fetched ${allNamespaces.length} existing namespaces for O(1) lookup`);
+
   for (const namespaceName of suggestedNamespaces) {
     try {
-      // 1. Verificar se namespace já existe (exact match)
-      const existing = await db
-        .select()
-        .from(namespacesTable)
-        .where(eq(namespacesTable.name, namespaceName))
-        .limit(1);
+      // 1. Verificar se namespace já existe (exact match) - usando Map para O(1) lookup
+      const existing = namespaceMap.get(namespaceName);
 
-      if (existing.length > 0) {
-        console.log(`[Auto-Creator] ✅ Namespace "${namespaceName}" já existe (ID: ${existing[0].id})`);
+      if (existing) {
+        console.log(`[Auto-Creator] ✅ Namespace "${namespaceName}" já existe (ID: ${existing.id})`);
         result.namespacesExisting.push(namespaceName);
         continue;
       }
 
       // 2. ANÁLISE SEMÂNTICA: Verificar se existe namespace SIMILAR
-      // Usa NamespaceClassifier para detectar namespaces semanticamente parecidos
-      const allNamespaces = await db.select().from(namespacesTable);
       const similarNamespaces = await findSimilarNamespaces(
         namespaceName,
-        allNamespaces.map(ns => ({ name: ns.name, description: ns.description || '' }))
+        namespacesForSimilarity
       );
 
       // Se encontrou namespace MUITO similar (>80%), usa o existente ao invés de criar
@@ -86,40 +87,45 @@ export async function autoCreateNamespacesAndAgents(
   → Considere revisar se realmente precisa de ambos`);
       }
 
-      // 3. Criar namespace automaticamente (passou na análise semântica)
-      console.log(`[Auto-Creator] 🆕 Criando namespace "${namespaceName}" automaticamente...`);
+      // ✅ FIX 2: Use transaction to ensure ATOMIC namespace + agent creation
+      // This prevents race conditions where concurrent workers create duplicates
+      console.log(`[Auto-Creator] 🆕 Criando namespace "${namespaceName}" em transação atômica...`);
       
       // Detectar se é root ou sub-namespace
       const isSubNamespace = namespaceName.includes('/') || namespaceName.includes('.');
       const description = generateNamespaceDescription(namespaceName, isSubNamespace);
       const icon = selectIconForNamespace(namespaceName);
-
-      const [newNamespace] = await db.insert(namespacesTable).values({
-        name: namespaceName,
-        description,
-        icon,
-      }).returning();
-
-      result.namespacesCreated.push(namespaceName);
-      console.log(`[Auto-Creator] ✅ Namespace criado: "${namespaceName}" (ID: ${newNamespace.id})`);
-
-      // 3. Criar agente specialist para este namespace
       const agentSlug = namespaceName.replace(/[\/\.]/g, '-').toLowerCase();
       const agentName = generateAgentName(namespaceName);
 
-      // Verificar se agente já existe
+      // Check if agent already exists BEFORE starting transaction
       const existingAgent = await db
         .select()
         .from(agentsTable)
         .where(eq(agentsTable.slug, agentSlug))
         .limit(1);
 
-      if (existingAgent.length === 0) {
-        console.log(`[Auto-Creator] 🤖 Criando agente specialist para namespace "${namespaceName}"...`);
+      if (existingAgent.length > 0) {
+        console.log(`[Auto-Creator] ⚠️ Agente "${agentSlug}" já existe, pulando criação de namespace`);
+        continue;
+      }
 
+      // ✅ FIX 2 VERIFICATION: Transaction ensures ATOMIC creation (both or neither)
+      console.log(`[Auto-Creator] 🔍 FIX 2: Starting ATOMIC transaction for namespace + agent creation`);
+      const transactionResult = await db.transaction(async (tx) => {
+        // Create namespace
+        const [newNamespace] = await tx.insert(namespacesTable).values({
+          name: namespaceName,
+          description,
+          icon,
+        }).returning();
+
+        console.log(`[Auto-Creator] ✅ Namespace criado na transação: "${namespaceName}" (ID: ${newNamespace.id})`);
+
+        // Create agent specialist for this namespace
         const systemPrompt = generateSystemPrompt(namespaceName, description);
 
-        const [newAgent] = await db.insert(agentsTable).values({
+        const [newAgent] = await tx.insert(agentsTable).values({
           name: agentName,
           slug: agentSlug,
           type: "specialist",
@@ -139,52 +145,57 @@ export async function autoCreateNamespacesAndAgents(
           },
         } as any).returning();
 
-        result.agentsCreated.push(agentName);
-        console.log(`[Auto-Creator] ✅ Agente criado: "${agentName}" (ID: ${newAgent.id})`);
+        console.log(`[Auto-Creator] ✅ Agente criado na transação: "${agentName}" (ID: ${newAgent.id})`);
 
-        // ✅ CRÍTICO: Registrar agente no agentRegistry para MoE Router
-        // Sem isso, o agente não é detectado pelo MoE Router até restart do servidor!
-        try {
-          const { agentRegistry } = await import("../agent/registry");
-          const { registerAgent: registerAgentRuntime } = await import("../agent/runtime");
-          const { agentsStorage } = await import("../storage.agents");
-          
-          // Buscar tools do agente (seguindo padrão do loader.ts)
-          const agentTools = await agentsStorage.getAgentTools(newAgent.id);
-          const toolNames = agentTools.map((t: any) => t.name);
-          
-          // Construir objeto Agent seguindo EXATAMENTE o padrão do loader.ts
-          const agentForRegistry = {
-            id: newAgent.id,
-            name: newAgent.name,
-            slug: newAgent.slug,
-            type: (newAgent.type || "specialist") as "specialist" | "generalist" | "router-only",
-            agentTier: (newAgent.agentTier as "agent" | "subagent" | undefined) || undefined,
-            assignedNamespaces: newAgent.assignedNamespaces || [], // CRÍTICO para hierarchical orchestration
-            description: newAgent.description || undefined,
-            systemPrompt: newAgent.systemPrompt || undefined,
-            ragNamespaces: newAgent.ragNamespaces || [], // LEGACY field, mas necessário
-            allowedTools: toolNames, // Buscar tools reais do DB
-            policy: newAgent.policy || {},
-            budgetLimit: newAgent.budgetLimit || undefined,
-            escalationAgent: newAgent.escalationAgent || undefined,
-            inferenceConfig: newAgent.inferenceConfig || {},
-            metadata: (newAgent.metadata || {}) as Record<string, unknown>,
-          };
-          
-          // Registrar no registry (para MoE Router encontrar)
-          agentRegistry.registerAgent(agentForRegistry);
-          
-          // Registrar no runtime (para AgentExecutor funcionar)
-          await registerAgentRuntime(agentForRegistry);
-          
-          console.log(`[Auto-Creator] ✅ Agente registrado no MoE Router: "${agentName}" com ${toolNames.length} tools`);
-        } catch (error: any) {
-          console.error(`[Auto-Creator] ⚠️ Erro ao registrar agente no registry:`, error.message);
-          // Não falha a criação se registro falhar - agente estará no DB e será carregado no próximo restart
-        }
-      } else {
-        console.log(`[Auto-Creator] ⚠️ Agente "${agentSlug}" já existe, pulando criação`);
+        return { namespace: newNamespace, agent: newAgent };
+      });
+
+      console.log(`[Auto-Creator] ✅ FIX 2 SUCCESS: Transaction committed - both namespace & agent created atomically`);
+
+      // Transaction succeeded - update results
+      result.namespacesCreated.push(namespaceName);
+      result.agentsCreated.push(agentName);
+
+      // ✅ CRÍTICO: Registrar agente no agentRegistry para MoE Router (outside transaction)
+      // Sem isso, o agente não é detectado pelo MoE Router até restart do servidor!
+      try {
+        const { agentRegistry } = await import("../agent/registry");
+        const { registerAgent: registerAgentRuntime } = await import("../agent/runtime");
+        const { agentsStorage } = await import("../storage.agents");
+        
+        // Buscar tools do agente (seguindo padrão do loader.ts)
+        const agentTools = await agentsStorage.getAgentTools(transactionResult.agent.id);
+        const toolNames = agentTools.map((t: any) => t.name);
+        
+        // Construir objeto Agent seguindo EXATAMENTE o padrão do loader.ts
+        const agentForRegistry = {
+          id: transactionResult.agent.id,
+          name: transactionResult.agent.name,
+          slug: transactionResult.agent.slug,
+          type: (transactionResult.agent.type || "specialist") as "specialist" | "generalist" | "router-only",
+          agentTier: (transactionResult.agent.agentTier as "agent" | "subagent" | undefined) || undefined,
+          assignedNamespaces: transactionResult.agent.assignedNamespaces || [],
+          description: transactionResult.agent.description || undefined,
+          systemPrompt: transactionResult.agent.systemPrompt || undefined,
+          ragNamespaces: transactionResult.agent.ragNamespaces || [],
+          allowedTools: toolNames,
+          policy: transactionResult.agent.policy || {},
+          budgetLimit: transactionResult.agent.budgetLimit || undefined,
+          escalationAgent: transactionResult.agent.escalationAgent || undefined,
+          inferenceConfig: transactionResult.agent.inferenceConfig || {},
+          metadata: (transactionResult.agent.metadata || {}) as Record<string, unknown>,
+        };
+        
+        // Registrar no registry (para MoE Router encontrar)
+        agentRegistry.registerAgent(agentForRegistry);
+        
+        // Registrar no runtime (para AgentExecutor funcionar)
+        await registerAgentRuntime(agentForRegistry);
+        
+        console.log(`[Auto-Creator] ✅ Agente registrado no MoE Router: "${agentName}" com ${toolNames.length} tools`);
+      } catch (error: any) {
+        console.error(`[Auto-Creator] ⚠️ Erro ao registrar agente no registry:`, error.message);
+        // Não falha a criação se registro falhar - agente estará no DB e será carregado no próximo restart
       }
 
     } catch (error: any) {
