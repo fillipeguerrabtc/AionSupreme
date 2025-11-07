@@ -27,10 +27,12 @@ import type { Document } from "@shared/schema";
 import { AionLogo } from "@/components/AionLogo";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
+import { useLanguage } from "@/lib/i18n";
 
 export default function KnowledgeBasePage() {
   useScrollToTop();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [showAddText, setShowAddText] = useState(false);
   const [showAddUrl, setShowAddUrl] = useState(false);
   const [showWebSearch, setShowWebSearch] = useState(false);
@@ -323,7 +325,7 @@ export default function KnowledgeBasePage() {
                 data-testid="button-save-new-doc"
               >
                 <Save className="w-4 h-4 mr-2" />
-                {addTextMutation.isPending ? "Salvando..." : "Salvar"}
+                {addTextMutation.isPending ? t.common.saving : t.common.save}
               </Button>
             </CardContent>
           </Card>
@@ -468,7 +470,7 @@ export default function KnowledgeBasePage() {
                               data-testid={`button-save-edit-${doc.id}`}
                             >
                               <Save className="w-4 h-4 mr-2" />
-                              {updateDocMutation.isPending ? "Salvando..." : "Salvar"}
+                              {updateDocMutation.isPending ? t.common.saving : t.common.save}
                             </Button>
                             <Button
                               size="sm"

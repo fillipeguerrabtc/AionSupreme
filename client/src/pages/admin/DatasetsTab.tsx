@@ -978,7 +978,7 @@ export default function DatasetsTab() {
               disabled={updateMutation.isPending || !editName.trim()}
               data-testid="button-confirm-edit"
             >
-              {updateMutation.isPending ? "Salvando..." : "Salvar"}
+              {updateMutation.isPending ? t.common.saving : t.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1128,7 +1128,7 @@ export default function DatasetsTab() {
               disabled={updateTrainingDataMutation.isPending || !editTrainingInstruction.trim() || !editTrainingOutput.trim()}
               data-testid="button-confirm-edit-training"
             >
-              {updateTrainingDataMutation.isPending ? "Salvando..." : "Salvar"}
+              {updateTrainingDataMutation.isPending ? t.common.saving : t.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1082,7 +1082,7 @@ export default function AdminDashboard() {
                     data-testid="button-save-system-prompt"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    {updatePolicy.isPending ? "Salvando..." : "Salvar"}
+                    {updatePolicy.isPending ? t.common.saving : t.common.save}
                   </Button>
                   <Button
                     onClick={() => {

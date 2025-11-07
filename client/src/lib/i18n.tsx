@@ -9,6 +9,11 @@ interface Translations {
     success: string;
     loading: string;
     loadingError: string;
+    save: string;
+    saving: string;
+    cancel: string;
+    delete: string;
+    deleting: string;
     saveSuccess: string;
     saveError: string;
     deleteSuccess: string;
@@ -1195,6 +1200,11 @@ const translations: Record<Language, Translations> = {
       success: "Sucesso",
       loading: "Carregando...",
       loadingError: "Erro ao carregar dados",
+      save: "Salvar",
+      saving: "Salvando...",
+      cancel: "Cancelar",
+      delete: "Excluir",
+      deleting: "Excluindo...",
       saveSuccess: "Salvo com sucesso",
       saveError: "Erro ao salvar",
       deleteSuccess: "Excluído com sucesso",
@@ -2335,6 +2345,11 @@ const translations: Record<Language, Translations> = {
       success: "Success",
       loading: "Loading...",
       loadingError: "Error loading data",
+      save: "Save",
+      saving: "Saving...",
+      cancel: "Cancel",
+      delete: "Delete",
+      deleting: "Deleting...",
       saveSuccess: "Saved successfully",
       saveError: "Error saving",
       deleteSuccess: "Deleted successfully",
@@ -3475,6 +3490,11 @@ const translations: Record<Language, Translations> = {
       success: "Éxito",
       loading: "Cargando...",
       loadingError: "Error al cargar datos",
+      save: "Guardar",
+      saving: "Guardando...",
+      cancel: "Cancelar",
+      delete: "Eliminar",
+      deleting: "Eliminando...",
       saveSuccess: "Guardado exitosamente",
       saveError: "Error al guardar",
       deleteSuccess: "Eliminado exitosamente",

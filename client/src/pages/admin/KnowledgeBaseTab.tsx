@@ -844,7 +844,7 @@ export default function KnowledgeBaseTab() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-bulk-delete-images"
             >
-              {bulkDeleteImagesMutation.isPending ? "Excluindo..." : "Excluir Todas"}
+              {bulkDeleteImagesMutation.isPending ? t.common.deleting : t.common.delete}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

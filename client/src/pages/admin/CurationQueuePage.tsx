@@ -1089,10 +1089,10 @@ export default function CurationQueuePage() {
           {/* Botões fixos no rodapé - sempre visíveis */}
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} data-testid="button-cancel-edit">
-              Cancelar
+              {t.common.cancel}
             </Button>
             <Button onClick={handleSaveEdit} disabled={editMutation.isPending} data-testid="button-save-edit">
-              {editMutation.isPending ? "Salvando..." : "Salvar"}
+              {editMutation.isPending ? t.common.saving : t.common.save}
             </Button>
           </div>
         </DialogContent>
