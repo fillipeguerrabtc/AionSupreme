@@ -29,6 +29,7 @@ import {
 } from "../../shared/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { logger } from "../services/logger-service";
+import { embedText } from "../ai/embedder";
 
 /**
  * Pipeline execution result
@@ -157,9 +158,6 @@ export class MetaLearningOrchestrator {
 
       // 1. Approved training data from curation queue
       const trainingConditions = [eq(trainingDataCollection.status, "approved")];
-      if (namespace) {
-        trainingConditions.push(eq(trainingDataCollection.namespace, namespace));
-      }
 
       const trainingData = await db
         .select({ count: sql<number>`count(*)` })
@@ -279,9 +277,6 @@ export class MetaLearningOrchestrator {
 
       // Aggregate recent data from ALL sources (with namespace filtering where applicable)
       const trainingConditions = [eq(trainingDataCollection.status, "approved")];
-      if (namespace) {
-        trainingConditions.push(eq(trainingDataCollection.namespace, namespace));
-      }
 
       const [trainingData, recentDocs, recentConvs, recentCuration] = await Promise.all([
         // Training data (with namespace filter)
@@ -349,10 +344,63 @@ export class MetaLearningOrchestrator {
         };
       }
 
-      // Calculate aggregated distribution characteristics
+      // 🚀 CRITICAL FIX: Calculate mean embedding from aggregated KB data
+      logger.info("🔍 Calculating mean embedding from aggregated KB data...");
+      
+      // Aggregate text from all KB sources
+      const allTexts: string[] = [
+        ...trainingData.flatMap(t => 
+          (t.formattedData as any[] || []).map((item: any) => 
+            ((item.instruction || '') + ' ' + (item.input || '') + ' ' + (item.output || '')).trim()
+          )
+        ),
+        ...recentDocs.map(d => (d.content as string)?.substring(0, 500) || ''),
+        ...recentConvs.map(c => c.title || ''),
+        ...recentCuration.map(cu => (cu.content as string)?.substring(0, 500) || '')
+      ].filter(t => t.trim().length > 0);
+
+      // Calculate mean embedding (sample max 50 texts for performance)
+      let meanEmbedding: number[] = [];
+      if (allTexts.length > 0) {
+        try {
+          const samplesToEmbed = allTexts.slice(0, Math.min(50, allTexts.length));
+          const embeddings = await Promise.all(
+            samplesToEmbed.map(text => embedText(text).catch(() => null))
+          );
+          
+          // Filter out failed embeddings
+          const validEmbeddings = embeddings.filter((e): e is number[] => e !== null);
+          
+          if (validEmbeddings.length > 0) {
+            // Calculate mean vector
+            const embeddingDim = validEmbeddings[0].length;
+            meanEmbedding = new Array(embeddingDim).fill(0);
+            
+            for (const embedding of validEmbeddings) {
+              for (let i = 0; i < embeddingDim; i++) {
+                meanEmbedding[i] += embedding[i];
+              }
+            }
+            
+            // Normalize by count
+            for (let i = 0; i < embeddingDim; i++) {
+              meanEmbedding[i] /= validEmbeddings.length;
+            }
+            
+            logger.info(`✅ Mean embedding calculated from ${validEmbeddings.length} samples (dim: ${embeddingDim})`);
+          } else {
+            logger.warn("⚠️ No valid embeddings generated, using empty mean embedding");
+          }
+        } catch (error) {
+          logger.error("❌ Failed to calculate mean embedding", { error });
+        }
+      }
+
+      // Calculate aggregated distribution characteristics with meanEmbedding
       const distribution = {
         samples_count: totalSamples,
         domain: namespace || "general",
+        meanEmbedding,  // ✅ CRITICAL: Add mean embedding for MMD calculation
         sources_breakdown: {
           training: trainingData.length,
           documents: recentDocs.length,
@@ -361,14 +409,17 @@ export class MetaLearningOrchestrator {
         }
       };
 
-      logger.info("📊 Analyzing distribution from aggregated KB data:", distribution);
+      logger.info("📊 Analyzing distribution from aggregated KB data:", {
+        ...distribution,
+        meanEmbeddingDim: meanEmbedding.length
+      });
 
       // Detect shift using ShiftEx
       const shiftDetection = await this.shiftEx.detectShift(distribution, namespace);
 
-      logger.info(`${shiftDetection.shiftDetected ? "⚠️" : "✅"} Shift detection complete`, {
-        shiftDetected: shiftDetection.shiftDetected,
-        mmdDistance: shiftDetection.mmdDistance,
+      logger.info(`${shiftDetection.isSignificant ? "⚠️" : "✅"} Shift detection complete`, {
+        isSignificant: shiftDetection.isSignificant,
+        mmdScore: shiftDetection.mmdScore,
         totalSamples
       });
 
@@ -376,8 +427,8 @@ export class MetaLearningOrchestrator {
         stage: "detect_shifts",
         success: true,
         data: {
-          shiftDetected: shiftDetection.shiftDetected,
-          shifts: shiftDetection.shiftDetected ? [shiftDetection] : [],
+          shiftDetected: shiftDetection.isSignificant,
+          shifts: shiftDetection.isSignificant ? [shiftDetection] : [],
           distribution
         }
       };
@@ -408,7 +459,7 @@ export class MetaLearningOrchestrator {
           shift.newDistribution,
           namespace,
           undefined,
-          "drift"
+          "shift_detected"
         );
         spawnedExperts.push(expertId);
       }
@@ -438,7 +489,8 @@ export class MetaLearningOrchestrator {
       logger.info("🧠 Stage 4: Selecting learning algorithm");
 
       // Get default algorithm or learn a new one
-      const defaultAlgorithm = await this.metaLearner.getDefaultAlgorithm();
+      const algorithms = await this.metaLearner.listAlgorithms();
+      const defaultAlgorithm = algorithms.find(a => a.isDefault);
 
       if (defaultAlgorithm) {
         logger.info(`✅ Using default algorithm: ${defaultAlgorithm.name}`);
@@ -453,10 +505,11 @@ export class MetaLearningOrchestrator {
       logger.info("📚 No default algorithm, learning new one");
 
       const taskDistribution = {
-        task_family: "continual_learning",
-        num_tasks: 10,
-        task_characteristics: {
-          domain: namespace || "general"
+        domains: [namespace || "general"],
+        numTasks: 10,
+        dataCharacteristics: {
+          avgSamplesPerTask: 100,
+          temporalPattern: "sequential" as const
         }
       };
 
@@ -500,12 +553,12 @@ export class MetaLearningOrchestrator {
         };
       }
 
-      logger.info(`✅ Dataset generated: ${result.id}`);
+      logger.info(`✅ Dataset generated: ${result.datasetId}`);
 
       return {
         stage: "generate_dataset",
         success: true,
-        data: { datasetId: result.id }
+        data: { datasetId: result.datasetId }
       };
     } catch (error) {
       logger.error("❌ Failed to generate dataset", { error });

@@ -211,10 +211,9 @@ Respond in JSON format:
 }`;
 
     try {
-      const response = await this.llmClient.complete({
+      const response = await this.llmClient.chatCompletion({
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        responseFormat: { type: "json_object" }
+        temperature: 0.7
       });
 
       const design = JSON.parse(response.content);
