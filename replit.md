@@ -46,6 +46,34 @@ The backend uses Node.js and TypeScript with Express.js and PostgreSQL via Drizz
 ### System Design Decisions
 Key decisions include single-tenant architecture and externalized JSON behavioral configurations for dynamic updates. Comprehensive observability and telemetry include query monitoring, granular hierarchical usage analytics, a modern dashboard with Recharts visualizations, PostgreSQL trigram indexes for optimized search performance, and 29 production-ready REST endpoints for metric access.
 
+### Security & Credentials Management
+
+**ENTERPRISE-DIAMOND SECURITY (Kaggle Official Best Practices):**
+
+The system follows official Kaggle API documentation best practices for credential management:
+
+1. **SecretsVault (AES-256-GCM)**: All API credentials (Kaggle username + key, Colab email + password) are encrypted using industry-standard AES-256-GCM before storage in PostgreSQL.
+
+2. **Manual Entry > File Upload**: Per Kaggle's enterprise recommendations, credentials are entered manually (username + API key) rather than uploaded as kaggle.json files. This approach:
+   - ✅ Goes directly to encrypted SecretsVault
+   - ✅ Supports full audit logging
+   - ✅ Enables credential rotation without file management
+   - ✅ Eliminates file exposure risk (Git commits, backups, logs)
+   - ✅ Never persists credentials as plain files
+
+3. **Runtime Environment Variables**: Credentials are injected as `KAGGLE_USERNAME` and `KAGGLE_KEY` environment variables at runtime, following Kaggle's recommended production pattern.
+
+4. **Multi-Account Support**: SecretsVault manages multiple team member accounts (Fillipe + team) with individual quota tracking and automated provisioning, compliant with Kaggle/Colab Terms of Service.
+
+5. **Error Handling**: Production-grade error detection identifies when Kaggle API returns HTML error pages (invalid credentials, rate limits) instead of JSON, preventing raw parse errors and providing user-friendly messages like "Invalid Kaggle credentials" instead of technical JSON errors.
+
+**Security Priority Ranking (per Kaggle Official Documentation):**
+1. ✅ Secrets Manager (HashiCorp Vault, AWS Secrets Manager) → **AION implements SecretsVault (AES-256-GCM)**
+2. ✅ Environment Variables (KAGGLE_USERNAME + KAGGLE_KEY) → **AION uses this via SecretsVault**
+3. ⚠️  File kaggle.json local (chmod 600) → **Only for local dev, NEVER production**
+4. ❌ Upload de arquivo JSON → **Security risk, not recommended**
+5. ❌ Hardcoded em código → **Never allowed**
+
 ## External Dependencies
 
 ### Third-Party Services
