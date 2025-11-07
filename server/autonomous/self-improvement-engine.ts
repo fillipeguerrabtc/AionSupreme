@@ -351,7 +351,7 @@ Respond in JSON format:
         validationStatus: "pending",
         applicationStatus: "proposed",
         requiresHumanReview: proposal.severity === "critical" || proposal.requiresReview || false,
-        notes: proposal.notes || null
+        reviewNotes: proposal.notes || null
       }).returning();
 
       logger.info("✅ Self-Improvement: Improvement proposed", {
