@@ -1,16 +1,22 @@
 /**
- * KAGGLE CLI SERVICE - PRODUCTION-GRADE
- * ======================================
+ * KAGGLE CLI SERVICE - PRODUCTION-GRADE (ENTERPRISE-DIAMOND)
+ * ===========================================================
  * 
- * Gerenciamento completo do Kaggle CLI com bootstrap automático
+ * Gerenciamento completo do Kaggle CLI seguindo BEST PRACTICES OFICIAIS
  * 
  * FEATURES:
- * ✅ Auto-install Kaggle CLI (via pip)
- * ✅ Credentials via SecretsVault (encrypted!)
- * ✅ Multi-account support
- * ✅ Auto-provision ~/.kaggle/kaggle.json
+ * ✅ Auto-install Kaggle CLI (via UPM)
+ * ✅ Credentials via SecretsVault (AES-256-GCM encrypted!)
+ * ✅ Environment variables authentication (Kaggle official method #1)
+ * ✅ Multi-account support with quota tracking
  * ✅ CLI health checks
  * ✅ Account rotation for quota management
+ * ✅ Production-grade error handling (HTML error detection)
+ * 
+ * AUTHENTICATION METHOD (per Kaggle official docs):
+ * 1. ✅ Environment Variables (KAGGLE_USERNAME + KAGGLE_KEY) ← USED BY AION
+ * 2. Config File (~/.kaggle/kaggle.json)
+ * 3. Custom Config Dir (KAGGLE_CONFIG_DIR)
  * 
  * INTEGRATION:
  * - SecretsVault: Encrypted storage de API keys
@@ -18,8 +24,6 @@
  * - Quota Manager: Rotation quando account atinge limites
  */
 
-import fs from 'fs/promises';
-import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { secretsVault } from './security/secrets-vault';
@@ -44,15 +48,13 @@ interface KaggleCLIStatus {
 }
 
 export class KaggleCLIService {
-  private readonly KAGGLE_DIR: string;
-  private readonly CREDENTIALS_PATH: string;
   private accounts: Map<string, KaggleAccount> = new Map();
   private currentAccount: string | null = null;
+  private accountsLoaded: boolean = false;
 
   constructor() {
-    const homeDir = process.env.HOME || process.env.USERPROFILE || '/root';
-    this.KAGGLE_DIR = path.join(homeDir, '.kaggle');
-    this.CREDENTIALS_PATH = path.join(this.KAGGLE_DIR, 'kaggle.json');
+    // No file-based config needed! Using environment variables (Kaggle method #1)
+    // Accounts will be lazy-loaded from SecretsVault on first use
   }
 
   /**
@@ -85,6 +87,7 @@ export class KaggleCLIService {
 
       // 4. Load accounts from SecretsVault
       await this.loadAccountsFromVault();
+      this.accountsLoaded = true; // Mark as loaded to avoid duplicate vault reads
 
       // 5. Configure default account
       if (this.accounts.size > 0) {
@@ -103,6 +106,15 @@ export class KaggleCLIService {
       console.error('[Kaggle CLI] ❌ Bootstrap failed:', error.message);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * Ensure accounts are loaded from SecretsVault (lazy loading)
+   */
+  private async ensureAccountsLoaded(): Promise<void> {
+    if (this.accountsLoaded) return;
+    await this.loadAccountsFromVault();
+    this.accountsLoaded = true;
   }
 
   /**
@@ -169,40 +181,24 @@ export class KaggleCLIService {
   }
 
   /**
-   * Set active account (atualiza ~/.kaggle/kaggle.json)
+   * Set active account (via environment variables - Kaggle official method #1)
+   * No file writing needed! Env vars override config files.
    */
   async setActiveAccount(username: string): Promise<boolean> {
     try {
+      // Ensure accounts are loaded from vault
+      await this.ensureAccountsLoaded();
+
       const account = this.accounts.get(username);
 
       if (!account) {
         throw new Error(`Account ${username} not found`);
       }
 
-      // Ensure .kaggle directory exists
-      await fs.mkdir(this.KAGGLE_DIR, { recursive: true });
-
-      // Write credentials file
-      const credentials = {
-        username: account.username,
-        key: account.apiKey,
-      };
-
-      await fs.writeFile(
-        this.CREDENTIALS_PATH,
-        JSON.stringify(credentials, null, 2)
-      );
-
-      // Set permissions (0600 for security)
-      try {
-        await fs.chmod(this.CREDENTIALS_PATH, 0o600);
-      } catch {
-        // Windows doesn't support chmod
-      }
-
       this.currentAccount = username;
 
       console.log(`[Kaggle CLI] ✅ Active account: ${username}`);
+      console.log(`[Kaggle CLI] Using env vars (KAGGLE_USERNAME + KAGGLE_KEY) - official method #1`);
 
       return true;
 
@@ -215,7 +211,10 @@ export class KaggleCLIService {
   /**
    * Get next available account (quota rotation)
    */
-  getNextAvailableAccount(): string | null {
+  async getNextAvailableAccount(): Promise<string | null> {
+    // Ensure accounts are loaded from vault
+    await this.ensureAccountsLoaded();
+
     for (const [username, account] of Array.from(this.accounts.entries())) {
       if (!account.isActive) continue;
 
@@ -232,7 +231,10 @@ export class KaggleCLIService {
   /**
    * Update account quota usage
    */
-  updateAccountQuota(username: string, usedSeconds: number): void {
+  async updateAccountQuota(username: string, usedSeconds: number): Promise<void> {
+    // Ensure accounts are loaded from vault
+    await this.ensureAccountsLoaded();
+
     const account = this.accounts.get(username);
     if (account) {
       account.weeklyQuotaUsed += usedSeconds;
@@ -243,7 +245,10 @@ export class KaggleCLIService {
   /**
    * Reset weekly quotas (call every Monday 00:00 UTC)
    */
-  resetWeeklyQuotas(): void {
+  async resetWeeklyQuotas(): Promise<void> {
+    // Ensure accounts are loaded from vault
+    await this.ensureAccountsLoaded();
+
     for (const account of Array.from(this.accounts.values())) {
       account.weeklyQuotaUsed = 0;
     }
@@ -296,17 +301,34 @@ export class KaggleCLIService {
   }
 
   /**
-   * Execute Kaggle CLI command
+   * Execute Kaggle CLI command with environment variables
+   * Uses KAGGLE_USERNAME + KAGGLE_KEY (official authentication method #1)
    */
   async execute(args: string[]): Promise<{ stdout: string; stderr: string }> {
+    // Ensure accounts are loaded from vault
+    await this.ensureAccountsLoaded();
+
     if (!this.currentAccount) {
       throw new Error('No active Kaggle account. Call setActiveAccount() first.');
+    }
+
+    const account = this.accounts.get(this.currentAccount);
+    if (!account) {
+      throw new Error(`Account ${this.currentAccount} not found in memory`);
     }
 
     const command = `kaggle ${args.join(' ')}`;
 
     try {
-      const { stdout, stderr } = await execAsync(command);
+      // Inject credentials as environment variables (Kaggle official method #1)
+      // These override any config file (priority: env vars > config file)
+      const { stdout, stderr } = await execAsync(command, {
+        env: {
+          ...process.env,
+          KAGGLE_USERNAME: account.username,
+          KAGGLE_KEY: account.apiKey,
+        },
+      });
 
       // Check if response is HTML error page
       if (this.isHTMLErrorResponse(stdout) || this.isHTMLErrorResponse(stderr)) {
@@ -332,10 +354,13 @@ export class KaggleCLIService {
    * Get CLI status
    */
   async getStatus(): Promise<KaggleCLIStatus> {
+    // Ensure accounts are loaded to check if credentials exist
+    await this.ensureAccountsLoaded();
+
     const pythonAvailable = await this.checkPython();
     const pipAvailable = await this.checkPip();
     const installed = await this.checkKaggleCLI();
-    const credentialsConfigured = await this.checkCredentials();
+    const credentialsConfigured = this.accounts.size > 0;
     const version = installed ? await this.getVersion() : undefined;
 
     return {
@@ -351,7 +376,10 @@ export class KaggleCLIService {
   /**
    * List all accounts
    */
-  listAccounts(): Array<{ username: string; quotaUsed: number; quotaRemaining: number }> {
+  async listAccounts(): Promise<Array<{ username: string; quotaUsed: number; quotaRemaining: number }>> {
+    // Ensure accounts are loaded from vault
+    await this.ensureAccountsLoaded();
+
     return Array.from(this.accounts.values()).map(account => ({
       username: account.username,
       quotaUsed: account.weeklyQuotaUsed,
@@ -360,8 +388,15 @@ export class KaggleCLIService {
   }
 
   // ===================================================================
-  // PRIVATE HELPERS
+  // PRIVATE/INTERNAL HELPERS
   // ===================================================================
+
+  /**
+   * Internal: Check if accounts are loaded (sync version for internal use)
+   */
+  private areAccountsLoaded(): boolean {
+    return this.accountsLoaded;
+  }
 
   private async checkPython(): Promise<boolean> {
     try {
@@ -443,14 +478,6 @@ export class KaggleCLIService {
     }
   }
 
-  private async checkCredentials(): Promise<boolean> {
-    try {
-      await fs.access(this.CREDENTIALS_PATH);
-      return true;
-    } catch {
-      return false;
-    }
-  }
 
   private async loadAccountsFromVault(): Promise<void> {
     try {
@@ -496,4 +523,6 @@ export const KaggleCLIAPI = {
   getStatus: () => kaggleCLIService.getStatus(),
   listAccounts: () => kaggleCLIService.listAccounts(),
   getNextAvailable: () => kaggleCLIService.getNextAvailableAccount(),
+  updateQuota: (username: string, usedSeconds: number) => kaggleCLIService.updateAccountQuota(username, usedSeconds),
+  resetQuotas: () => kaggleCLIService.resetWeeklyQuotas(),
 };
