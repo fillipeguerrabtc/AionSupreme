@@ -611,12 +611,13 @@ export class MetaLearningOrchestrator {
         success: true,
         data: { expertIds: spawnedExperts }
       };
-    } catch (error) {
-      logger.error("❌ Failed to spawn experts", { error });
+    } catch (error: any) {
+      const errorMessage = error?.message || String(error);
+      logger.error("❌ Failed to spawn experts", { error: errorMessage, stack: error?.stack });
       return {
         stage: "spawn_experts",
         success: false,
-        error: String(error)
+        error: errorMessage
       };
     }
   }

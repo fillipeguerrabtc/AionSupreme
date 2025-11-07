@@ -43,10 +43,9 @@ export interface CodeAnalysis {
  * Proposed code change
  */
 export interface ProposedChange {
-  file_path: string;
+  path: string;
   changes: string;
   diff?: string;
-  rationale: string;
 }
 
 /**
@@ -83,7 +82,7 @@ export class SelfImprovementEngine {
 
       // Default targets if none specified
       const paths = targetPaths || [
-        "server/services/llm-client.ts",
+        "server/model/llm-client.ts",
         "server/routes/meta-learning.ts",
         "server/meta/meta-learner-service.ts"
       ];
@@ -255,10 +254,9 @@ Respond in JSON format:
 }`;
 
       try {
-        const response = await this.llmClient.complete({
+        const response = await this.llmClient.chatCompletion({
           messages: [{ role: "user", content: prompt }],
-          temperature: 0.2,
-          responseFormat: { type: "json_object" }
+          temperature: 0.2
         });
 
         const result = JSON.parse(response.content);
@@ -415,19 +413,18 @@ Respond in JSON format:
     "risks": ["string"]
   },
   "files_to_modify": [{
-    "file_path": "string",
+    "path": "string",
     "changes": "string",
-    "rationale": "string"
+    "diff": "string (optional)"
   }],
   "requiresReview": boolean,
   "notes": "string"
 }`;
 
     try {
-      const response = await this.llmClient.complete({
+      const response = await this.llmClient.chatCompletion({
         messages: [{ role: "user", content: prompt }],
-        temperature: 0.3, // Lower temperature for code changes
-        responseFormat: { type: "json_object" }
+        temperature: 0.3 // Lower temperature for code changes
       });
 
       return JSON.parse(response.content);
@@ -452,9 +449,9 @@ Respond in JSON format:
       problemDescription: firstIssue?.description || "Code quality improvement needed",
       rootCause: "Identified via automated analysis",
       files_to_modify: analysis.map(a => ({
-        file_path: a.file_path,
+        path: a.file_path,
         changes: "To be determined",
-        rationale: a.suggestions.join("; ")
+        diff: a.suggestions.join("; ")
       })),
       requiresReview: true
     };
