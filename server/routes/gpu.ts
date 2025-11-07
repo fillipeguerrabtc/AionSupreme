@@ -711,15 +711,45 @@ export function registerGpuRoutes(app: Router) {
 
       const [worker] = await db.insert(gpuWorkers).values(workerData).returning();
 
-      console.log(`[Kaggle Provision] ✅ Worker registered (ID: ${worker.id}), notebook: ${finalNotebookName}`);
+      console.log(`[Kaggle Provision] ✅ Worker DB entry created (ID: ${worker.id})`);
 
+      // 4. ✨ NEW: Automatic notebook creation via Kaggle API!
+      const { kaggleAutomationService } = await import('../services/kaggle-automation-service');
+
+      const aionBaseUrl = process.env.REPL_ID 
+        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+        : `http://localhost:5000`;
+
+      console.log(`[Kaggle Provision] 📤 Creating kernel automatically...`);
+      console.log(`   → AION URL: ${aionBaseUrl}`);
+      console.log(`   → Worker ID: ${worker.id}`);
+
+      // Fire async (don't block response)
+      kaggleAutomationService.createAndStartWorker(
+        username,
+        aionBaseUrl,
+        worker.id
+      ).then(result => {
+        if (result.success) {
+          console.log(`[Kaggle Provision] ✅ Kernel created: ${result.kernelId}`);
+          console.log(`   → URL: ${result.kernelUrl}`);
+          console.log(`   → Worker will register automatically!`);
+        } else {
+          console.error(`[Kaggle Provision] ❌ Automation failed: ${result.error}`);
+        }
+      }).catch(error => {
+        console.error(`[Kaggle Provision] ❌ Automation error:`, error.message);
+      });
+
+      // Respond immediately (notebook creation is async)
       res.json({
         success: true,
         notebookName: finalNotebookName,
         workerId: worker.id,
-        status: "pending",
-        message: `Kaggle worker "${finalNotebookName}" provisioned successfully. Waiting for notebook to start...`,
+        status: "provisioning",
+        message: `Kaggle notebook is being created automatically with GPU enabled! Worker ${worker.id} will appear online in ~2-3 minutes.`,
       });
+
     } catch (error: any) {
       console.error("[Kaggle Provision] Error:", error);
       res.status(500).json({ error: error.message });
