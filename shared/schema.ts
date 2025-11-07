@@ -172,6 +172,9 @@ export const conversations = pgTable("conversations", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   
+  // Namespace for multi-tenant isolation (CRITICAL for Meta-Learning filtering)
+  namespace: text("namespace"), // null = global, otherwise scoped to namespace
+  
   // Lifecycle management fields
   lastActivityAt: timestamp("last_activity_at"), // Last message timestamp (for idle detection)
   expiresAt: timestamp("expires_at"), // Optional expiration (if retention policy applied)
@@ -180,6 +183,7 @@ export const conversations = pgTable("conversations", {
   userIdx: index("conversations_user_idx").on(table.userId),
   projectIdx: index("conversations_project_idx").on(table.projectId),
   expiresIdx: index("conversations_expires_idx").on(table.expiresAt),
+  namespaceIdx: index("conversations_namespace_idx").on(table.namespace),
 }));
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({ 
@@ -508,6 +512,9 @@ export const knowledgeSources = pgTable("knowledge_sources", {
     qualityThreshold?: number;
   }>(),
   
+  // Namespace for multi-tenant isolation (CRITICAL for Meta-Learning filtering)
+  namespace: text("namespace"), // null = global, otherwise scoped to namespace
+  
   // Status
   lastScrapedAt: timestamp("last_scraped_at"),
   nextScheduledAt: timestamp("next_scheduled_at"),
@@ -520,6 +527,7 @@ export const knowledgeSources = pgTable("knowledge_sources", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
+  namespaceIdx: index("knowledge_sources_namespace_idx").on(table.namespace),
 }));
 
 export const insertKnowledgeSourceSchema = createInsertSchema(knowledgeSources).omit({ id: true, createdAt: true, updatedAt: true });
@@ -2251,7 +2259,7 @@ export const moeExperts = pgTable("moe_experts", {
   numSamplesProcessed: integer("num_samples_processed").notNull().default(0),
   
   // Expert lifecycle
-  spawnedFrom: integer("spawned_from").references(() => moeExperts.id), // Parent expert ID
+  spawnedFrom: integer("spawned_from").references((): any => moeExperts.id), // Parent expert ID (self-reference)
   spawnReason: varchar("spawn_reason", { length: 100 }), // "shift_detected" | "specialization" | "consolidation"
   
   // MMD (Maximum Mean Discrepancy) tracking for shift detection
@@ -2263,7 +2271,7 @@ export const moeExperts = pgTable("moe_experts", {
   maintenanceCost: real("maintenance_cost").notNull().default(0), // Cost to keep active
   
   // Consolidation tracking
-  consolidatedInto: integer("consolidated_into").references(() => moeExperts.id), // If merged
+  consolidatedInto: integer("consolidated_into").references((): any => moeExperts.id), // If merged (self-reference)
   consolidatedAt: timestamp("consolidated_at"),
   
   // Status

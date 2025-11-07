@@ -6,9 +6,8 @@ import {
   Database,
   Server,
   Cpu,
-  Sparkles,
+  Brain,
   FileText,
-  Settings as SettingsIcon,
   Users,
   UserCog,
   ClipboardCheck,
@@ -20,7 +19,7 @@ import {
   LogOut,
   Shield,
   ListTodo,
-  Brain,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -63,197 +62,235 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
     return "A";
   };
 
-  const menuItems = [
+  // Organized menu structure with 8 categories
+  const menuCategories = [
     {
-      title: t.admin.tabs.overview,
-      icon: LayoutDashboard,
-      value: "overview",
-      testId: "nav-overview",
-      requiredPermission: "dashboard:overview:read",
+      label: t.admin.sidebar.categories.commandCenter,
+      items: [
+        {
+          title: t.admin.tabs.overview,
+          icon: LayoutDashboard,
+          value: "overview",
+          testId: "nav-overview",
+          requiredPermission: "dashboard:overview:read",
+        },
+      ],
     },
     {
-      title: t.admin.tabs.telemetry,
-      icon: BarChart3,
-      value: "telemetry",
-      testId: "nav-telemetry",
-      requiredPermission: "telemetry:metrics:read",
+      label: t.admin.sidebar.categories.analytics,
+      items: [
+        {
+          title: t.admin.tabs.telemetry,
+          icon: BarChart3,
+          value: "telemetry",
+          testId: "nav-telemetry",
+          requiredPermission: "telemetry:metrics:read",
+        },
+        {
+          title: t.admin.tabs.tokenMonitoring,
+          icon: Activity,
+          value: "tokens",
+          testId: "nav-tokens",
+          requiredPermission: "telemetry:metrics:read",
+        },
+        {
+          title: t.admin.tabs.history,
+          icon: Clock,
+          value: "history",
+          testId: "nav-history",
+          requiredPermission: "telemetry:usage:read",
+        },
+        {
+          title: t.admin.tabs.costHistory,
+          icon: DollarSign,
+          value: "cost",
+          testId: "nav-cost",
+          requiredPermission: "telemetry:usage:read",
+        },
+      ],
     },
     {
-      title: t.admin.tabs.tokenMonitoring,
-      icon: Activity,
-      value: "tokens",
-      testId: "nav-tokens",
-      requiredPermission: "telemetry:metrics:read",
+      label: t.admin.sidebar.categories.knowledgeVision,
+      items: [
+        {
+          title: t.admin.tabs.knowledgeBase,
+          icon: Database,
+          value: "knowledge",
+          testId: "nav-knowledge",
+          requiredPermission: "kb:documents:read",
+        },
+        {
+          title: t.admin.knowledgeBase.imagesTab,
+          icon: Image,
+          value: "images",
+          testId: "nav-images",
+          requiredPermission: "kb:images:read",
+        },
+        {
+          title: t.admin.imageSearch.title,
+          icon: Eye,
+          value: "image-search",
+          testId: "nav-image-search",
+          requiredPermission: "kb:images:read",
+        },
+        {
+          title: t.admin.vision.title,
+          icon: Eye,
+          value: "vision",
+          testId: "nav-vision",
+          requiredPermission: "vision:status:read",
+        },
+      ],
     },
     {
-      title: t.admin.tabs.history,
-      icon: Clock,
-      value: "history",
-      testId: "nav-history",
-      requiredPermission: "telemetry:usage:read",
+      label: t.admin.sidebar.categories.autonomousAI,
+      items: [
+        {
+          title: t.meta.dashboard.title,
+          icon: Brain,
+          value: "meta-learning",
+          testId: "nav-meta-learning",
+          requiredPermission: "settings:system:read",
+        },
+      ],
     },
     {
-      title: t.admin.tabs.costHistory,
-      icon: DollarSign,
-      value: "cost",
-      testId: "nav-cost",
-      requiredPermission: "telemetry:usage:read",
+      label: t.admin.sidebar.categories.trainingFabric,
+      items: [
+        {
+          title: t.admin.tabs.datasets,
+          icon: FileText,
+          value: "datasets",
+          testId: "nav-datasets",
+          requiredPermission: "training:datasets:read",
+        },
+        {
+          title: t.admin.jobs.title,
+          icon: ListTodo,
+          value: "jobs",
+          testId: "nav-jobs",
+          requiredPermission: "curation:queue:read",
+        },
+        {
+          title: t.admin.tabs.federatedTraining,
+          icon: Cpu,
+          value: "federated",
+          testId: "nav-federated",
+          requiredPermission: "training:jobs:read",
+        },
+      ],
     },
     {
-      title: t.admin.tabs.knowledgeBase,
-      icon: Database,
-      value: "knowledge",
-      testId: "nav-knowledge",
-      requiredPermission: "kb:documents:read",
+      label: t.admin.sidebar.categories.operations,
+      items: [
+        {
+          title: t.admin.tabs.gpuManagement,
+          icon: Server,
+          value: "gpu",
+          testId: "nav-gpu",
+          requiredPermission: "gpu:pool:read",
+        },
+        {
+          title: t.admin.tabs.curation,
+          icon: ClipboardCheck,
+          value: "curation",
+          testId: "nav-curation",
+          requiredPermission: "curation:queue:read",
+        },
+      ],
     },
     {
-      title: t.admin.tabs.gpuManagement,
-      icon: Server,
-      value: "gpu",
-      testId: "nav-gpu",
-      requiredPermission: "gpu:pool:read",
+      label: t.admin.sidebar.categories.accessGovernance,
+      items: [
+        {
+          title: t.admin.tabs.agents,
+          icon: Users,
+          value: "agents",
+          testId: "nav-agents",
+          requiredPermission: "agents:list:read",
+        },
+        {
+          title: t.admin.userManagement.title,
+          icon: UserCog,
+          value: "users",
+          testId: "nav-users",
+          requiredPermission: "users:list:read",
+        },
+        {
+          title: t.admin.permissions.title,
+          icon: Shield,
+          value: "permissions",
+          testId: "nav-permissions",
+          requiredPermission: "roles:permissions:manage",
+        },
+      ],
     },
     {
-      title: t.admin.tabs.federatedTraining,
-      icon: Cpu,
-      value: "federated",
-      testId: "nav-federated",
-      requiredPermission: "training:jobs:read",
-    },
-    {
-      title: t.admin.tabs.autoEvolution,
-      icon: Sparkles,
-      value: "evolution",
-      testId: "nav-evolution",
-      requiredPermission: "settings:system:read",
-    },
-    {
-      title: t.meta.dashboard.title,
-      icon: Brain,
-      value: "meta-learning",
-      testId: "nav-meta-learning",
-      requiredPermission: "settings:system:read",
-    },
-    {
-      title: t.admin.tabs.datasets,
-      icon: FileText,
-      value: "datasets",
-      testId: "nav-datasets",
-      requiredPermission: "training:datasets:read",
-    },
-    {
-      title: t.admin.tabs.agents,
-      icon: Users,
-      value: "agents",
-      testId: "nav-agents",
-      requiredPermission: "agents:list:read",
-    },
-    {
-      title: t.admin.userManagement.title,
-      icon: UserCog,
-      value: "users",
-      testId: "nav-users",
-      requiredPermission: "users:list:read",
-    },
-    {
-      title: t.admin.permissions.title,
-      icon: Shield,
-      value: "permissions",
-      testId: "nav-permissions",
-      requiredPermission: "roles:permissions:manage",
-    },
-    {
-      title: t.admin.tabs.curation,
-      icon: ClipboardCheck,
-      value: "curation",
-      testId: "nav-curation",
-      requiredPermission: "curation:queue:read",
-    },
-    {
-      title: t.admin.jobs.title,
-      icon: ListTodo,
-      value: "jobs",
-      testId: "nav-jobs",
-      requiredPermission: "curation:queue:read",
-    },
-    {
-      title: t.admin.knowledgeBase.imagesTab,
-      icon: Image,
-      value: "images",
-      testId: "nav-images",
-      requiredPermission: "kb:images:read",
-    },
-    {
-      title: t.admin.imageSearch.title,
-      icon: Eye,
-      value: "image-search",
-      testId: "nav-image-search",
-      requiredPermission: "kb:images:read",
-    },
-    {
-      title: t.admin.vision.title,
-      icon: Eye,
-      value: "vision",
-      testId: "nav-vision",
-      requiredPermission: "vision:status:read",
-    },
-    {
-      title: t.admin.namespaces.title,
-      icon: FolderTree,
-      value: "namespaces",
-      testId: "nav-namespaces",
-      requiredPermission: "namespaces:list:read",
-    },
-    {
-      title: t.admin.lifecycle.title,
-      icon: Timer,
-      value: "lifecycle",
-      testId: "nav-lifecycle",
-      requiredPermission: "settings:policies:read",
-    },
-    {
-      title: t.admin.tabs.settings,
-      icon: SettingsIcon,
-      value: "settings",
-      testId: "nav-settings",
-      requiredPermission: "settings:policies:read",
+      label: t.admin.sidebar.categories.systemConfig,
+      items: [
+        {
+          title: t.admin.namespaces.title,
+          icon: FolderTree,
+          value: "namespaces",
+          testId: "nav-namespaces",
+          requiredPermission: "namespaces:list:read",
+        },
+        {
+          title: t.admin.lifecycle.title,
+          icon: Timer,
+          value: "lifecycle",
+          testId: "nav-lifecycle",
+          requiredPermission: "settings:policies:read",
+        },
+        {
+          title: t.admin.tabs.settings,
+          icon: SettingsIcon,
+          value: "settings",
+          testId: "nav-settings",
+          requiredPermission: "settings:policies:read",
+        },
+      ],
     },
   ];
-
-  // Filter menu items based on user permissions
-  const visibleMenuItems = menuItems.filter(item => {
-    // If no permission required, always show
-    if (!item.requiredPermission) return true;
-    // Otherwise, check if user has the required permission
-    return hasPermission(item.requiredPermission);
-  });
 
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>{t.admin.sidebar.navigation}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {visibleMenuItems.map((item) => (
-                <SidebarMenuItem key={item.value}>
-                  <SidebarMenuButton
-                    onClick={() => {
-                      onTabChange(item.value);
-                      if (isMobile) setOpenMobile(false);
-                    }}
-                    isActive={activeTab === item.value}
-                    data-testid={item.testId}
-                    tooltip={item.title}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {menuCategories.map((category, index) => {
+          // Filter items based on permissions
+          const visibleItems = category.items.filter((item) =>
+            item.requiredPermission ? hasPermission(item.requiredPermission) : true
+          );
+
+          // Only render category if it has visible items
+          if (visibleItems.length === 0) return null;
+
+          return (
+            <SidebarGroup key={index}>
+              <SidebarGroupLabel>{category.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {visibleItems.map((item) => (
+                    <SidebarMenuItem key={item.value}>
+                      <SidebarMenuButton
+                        onClick={() => {
+                          onTabChange(item.value);
+                          if (isMobile) setOpenMobile(false);
+                        }}
+                        isActive={activeTab === item.value}
+                        data-testid={item.testId}
+                        tooltip={item.title}
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/40 p-4">

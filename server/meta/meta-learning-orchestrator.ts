@@ -168,37 +168,70 @@ export class MetaLearningOrchestrator {
 
       const trainingCount = Number(trainingData[0]?.count || 0);
 
-      // 2. Documents from KB (PDFs, DOCX, XLSX, TXT, etc)
-      const documentConditions = [eq(documents.status, "indexed")];
-      const documentsData = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(documents)
-        .where(sql`${sql.join(documentConditions, sql` AND `)}`);
+      // 2. Documents from KB (PDFs, DOCX, XLSX, TXT, etc) - with namespace filtering
+      let documentsCount = 0;
+      if (namespace) {
+        // Filter by namespace using JSONB array contains
+        const docs = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(documents)
+          .where(sql`${documents.status} = 'indexed' AND ${documents.metadata}::jsonb->'namespaces' @> ${JSON.stringify([namespace])}::jsonb`);
+        documentsCount = Number(docs[0]?.count || 0);
+      } else {
+        const docs = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(documents)
+          .where(eq(documents.status, "indexed"));
+        documentsCount = Number(docs[0]?.count || 0);
+      }
 
-      const documentsCount = Number(documentsData[0]?.count || 0);
+      // 3. Conversations and messages (with namespace filtering)
+      let conversationsCount = 0;
+      if (namespace) {
+        const convs = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(conversations)
+          .where(eq(conversations.namespace, namespace));
+        conversationsCount = Number(convs[0]?.count || 0);
+      } else {
+        const convs = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(conversations);
+        conversationsCount = Number(convs[0]?.count || 0);
+      }
 
-      // 3. Conversations and messages
-      const conversationsData = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(conversations);
+      // 4. Approved curated content with attachments (images, videos) - with namespace filtering
+      let curationCount = 0;
+      if (namespace) {
+        // Filter by namespace using JSONB array contains
+        const curation = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(curationQueue)
+          .where(sql`${curationQueue.status} = 'approved' AND ${curationQueue.suggestedNamespaces}::jsonb @> ${JSON.stringify([namespace])}::jsonb`);
+        curationCount = Number(curation[0]?.count || 0);
+      } else {
+        const curation = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(curationQueue)
+          .where(eq(curationQueue.status, "approved"));
+        curationCount = Number(curation[0]?.count || 0);
+      }
 
-      const conversationsCount = Number(conversationsData[0]?.count || 0);
-
-      // 4. Approved curated content with attachments (images, videos)
-      const curationData = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(curationQueue)
-        .where(eq(curationQueue.status, "approved"));
-
-      const curationCount = Number(curationData[0]?.count || 0);
-
-      // 5. Knowledge sources (web scraping, links, YouTube)
-      const sourcesData = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(knowledgeSources)
-        .where(eq(knowledgeSources.status, "active"));
-
-      const sourcesCount = Number(sourcesData[0]?.count || 0);
+      // 5. Knowledge sources (web scraping, links, YouTube) - with namespace filtering
+      let sourcesCount = 0;
+      if (namespace) {
+        const sources = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(knowledgeSources)
+          .where(sql`${knowledgeSources.status} = 'active' AND ${knowledgeSources.namespace} = ${namespace}`);
+        sourcesCount = Number(sources[0]?.count || 0);
+      } else {
+        const sources = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(knowledgeSources)
+          .where(eq(knowledgeSources.status, "active"));
+        sourcesCount = Number(sources[0]?.count || 0);
+      }
 
       const totalCount = trainingCount + documentsCount + conversationsCount + curationCount + sourcesCount;
 
@@ -244,38 +277,64 @@ export class MetaLearningOrchestrator {
     try {
       logger.info("🔍 Stage 2: Detecting data distribution shifts across ALL KB");
 
-      // Aggregate recent data from ALL sources
+      // Aggregate recent data from ALL sources (with namespace filtering where applicable)
+      const trainingConditions = [eq(trainingDataCollection.status, "approved")];
+      if (namespace) {
+        trainingConditions.push(eq(trainingDataCollection.namespace, namespace));
+      }
+
       const [trainingData, recentDocs, recentConvs, recentCuration] = await Promise.all([
-        // Training data
+        // Training data (with namespace filter)
         db
           .select()
           .from(trainingDataCollection)
-          .where(eq(trainingDataCollection.status, "approved"))
+          .where(sql`${sql.join(trainingConditions, sql` AND `)}`)
           .orderBy(desc(trainingDataCollection.createdAt))
           .limit(50),
         
-        // Documents
-        db
-          .select()
-          .from(documents)
-          .where(eq(documents.status, "indexed"))
-          .orderBy(desc(documents.createdAt))
-          .limit(30),
+        // Documents (with namespace filter if specified)
+        namespace
+          ? db
+              .select()
+              .from(documents)
+              .where(sql`${documents.status} = 'indexed' AND ${documents.metadata}::jsonb->'namespaces' @> ${JSON.stringify([namespace])}::jsonb`)
+              .orderBy(desc(documents.createdAt))
+              .limit(30)
+          : db
+              .select()
+              .from(documents)
+              .where(eq(documents.status, "indexed"))
+              .orderBy(desc(documents.createdAt))
+              .limit(30),
         
-        // Conversations
-        db
-          .select()
-          .from(conversations)
-          .orderBy(desc(conversations.createdAt))
-          .limit(20),
+        // Conversations (with namespace filter if specified)
+        namespace
+          ? db
+              .select()
+              .from(conversations)
+              .where(eq(conversations.namespace, namespace))
+              .orderBy(desc(conversations.createdAt))
+              .limit(20)
+          : db
+              .select()
+              .from(conversations)
+              .orderBy(desc(conversations.createdAt))
+              .limit(20),
         
-        // Curated content
-        db
-          .select()
-          .from(curationQueue)
-          .where(eq(curationQueue.status, "approved"))
-          .orderBy(desc(curationQueue.createdAt))
-          .limit(30)
+        // Curated content (with namespace filter if specified)
+        namespace
+          ? db
+              .select()
+              .from(curationQueue)
+              .where(sql`${curationQueue.status} = 'approved' AND ${curationQueue.suggestedNamespaces}::jsonb @> ${JSON.stringify([namespace])}::jsonb`)
+              .orderBy(desc(curationQueue.createdAt))
+              .limit(30)
+          : db
+              .select()
+              .from(curationQueue)
+              .where(eq(curationQueue.status, "approved"))
+              .orderBy(desc(curationQueue.createdAt))
+              .limit(30)
       ]);
 
       const totalSamples = trainingData.length + recentDocs.length + 

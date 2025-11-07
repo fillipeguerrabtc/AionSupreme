@@ -68,6 +68,16 @@ interface Translations {
     // Sidebar
     sidebar: {
       navigation: string;
+      categories: {
+        commandCenter: string;
+        analytics: string;
+        knowledgeVision: string;
+        autonomousAI: string;
+        trainingFabric: string;
+        operations: string;
+        accessGovernance: string;
+        systemConfig: string;
+      };
     };
     
     // Overview Tab
@@ -1027,6 +1037,16 @@ const translations: Record<Language, Translations> = {
 
       sidebar: {
         navigation: "Navegação",
+        categories: {
+          commandCenter: "Centro de Comando",
+          analytics: "Analytics & Monitoramento",
+          knowledgeVision: "Conhecimento & Visão",
+          autonomousAI: "IA Autônoma",
+          trainingFabric: "Fábrica de Treinamento",
+          operations: "Operações",
+          accessGovernance: "Governança de Acesso",
+          systemConfig: "Configuração do Sistema",
+        },
       },
       
       overview: {
@@ -1970,6 +1990,16 @@ const translations: Record<Language, Translations> = {
 
       sidebar: {
         navigation: "Navigation",
+        categories: {
+          commandCenter: "Command Center",
+          analytics: "Analytics & Monitoring",
+          knowledgeVision: "Knowledge & Vision",
+          autonomousAI: "Autonomous AI",
+          trainingFabric: "Training Fabric",
+          operations: "Operations",
+          accessGovernance: "Access Governance",
+          systemConfig: "System Configuration",
+        },
       },
       
       overview: {
@@ -2913,6 +2943,16 @@ const translations: Record<Language, Translations> = {
 
       sidebar: {
         navigation: "Navegación",
+        categories: {
+          commandCenter: "Centro de Comando",
+          analytics: "Analíticas y Monitoreo",
+          knowledgeVision: "Conocimiento y Visión",
+          autonomousAI: "IA Autónoma",
+          trainingFabric: "Fábrica de Entrenamiento",
+          operations: "Operaciones",
+          accessGovernance: "Gobernanza de Acceso",
+          systemConfig: "Configuración del Sistema",
+        },
       },
       
       overview: {
