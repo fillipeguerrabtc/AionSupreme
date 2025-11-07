@@ -50,15 +50,17 @@ interface GPUSelectionResult {
 export class IntelligentQuotaManager {
   
   // Quota constants (in seconds)
+  // 🔥 UPDATED: 70% threshold para evitar alarmes de abuse!
   private readonly COLAB_MAX_SESSION = 12 * 3600;  // 12h
-  private readonly COLAB_SAFETY = 11 * 3600;       // 11h (1h margin)
+  private readonly COLAB_SAFETY = Math.floor(12 * 3600 * 0.7);  // 70% = 8.4h
   
   private readonly KAGGLE_GPU_MAX_SESSION = 12 * 3600;  // 12h
-  private readonly KAGGLE_GPU_SAFETY = 11 * 3600;       // 11h (1h margin)
+  private readonly KAGGLE_GPU_SAFETY = Math.floor(12 * 3600 * 0.7);  // 70% = 8.4h
   private readonly KAGGLE_CPU_MAX_SESSION = 9 * 3600;   // 9h
-  private readonly KAGGLE_CPU_SAFETY = 8 * 3600;        // 8h (1h margin)
+  private readonly KAGGLE_CPU_SAFETY = Math.floor(9 * 3600 * 0.7);   // 70% = 6.3h
   
   private readonly KAGGLE_WEEKLY_QUOTA = 30 * 3600;     // 30h
+  private readonly KAGGLE_WEEKLY_SAFETY = Math.floor(30 * 3600 * 0.7);  // 70% = 21h
   
   /**
    * Get current quota status for a specific GPU worker
@@ -90,9 +92,10 @@ export class IntelligentQuotaManager {
     const utilization = (sessionRuntime / maxSessionSeconds) * 100;
     
     // Decision: should stop?
+    // 🔥 UPDATED: Para em 70% session + 70% weekly (Kaggle)
     const shouldStop = 
-      sessionRuntime >= maxSessionSeconds ||  // Reached safety limit
-      (worker.provider === 'kaggle' && weeklyRemaining !== undefined && weeklyRemaining <= 0);  // Weekly quota exhausted
+      sessionRuntime >= maxSessionSeconds ||  // Reached 70% session safety limit
+      (worker.provider === 'kaggle' && weeklyUsed >= this.KAGGLE_WEEKLY_SAFETY);  // Reached 70% weekly quota (21h)
     
     // Decision: can start?
     const canStart = 
@@ -294,15 +297,16 @@ export class IntelligentQuotaManager {
   
   /**
    * Get default max session duration based on provider
+   * 🔥 RETURNS 70% SAFETY THRESHOLD (not max!)
    */
   private getDefaultMaxSession(provider: 'colab' | 'kaggle', capabilities: any): number {
     if (provider === 'colab') {
-      return this.COLAB_SAFETY;  // 11h
+      return this.COLAB_SAFETY;  // 70% de 12h = 8.4h
     }
     
     // Kaggle: check if GPU or CPU
     const isGPU = capabilities?.gpu && capabilities.gpu !== 'CPU';
-    return isGPU ? this.KAGGLE_GPU_SAFETY : this.KAGGLE_CPU_SAFETY;
+    return isGPU ? this.KAGGLE_GPU_SAFETY : this.KAGGLE_CPU_SAFETY;  // 70% de 12h/9h
   }
   
   /**

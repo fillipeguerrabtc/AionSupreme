@@ -3,6 +3,16 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from 'drizzle-orm';
 
+// 🔥 NEW: Provider Alternation State (Persistence)
+export const providerAlternationState = pgTable('provider_alternation_state', {
+  id: serial('id').primaryKey(),
+  lastProviderStarted: varchar('last_provider_started', { length: 10 }), // 'colab' | 'kaggle' | null
+  lastProviderStopped: varchar('last_provider_stopped', { length: 10 }),  // 'colab' | 'kaggle' | null
+  startHistory: jsonb('start_history').default([]),  // Array de { provider, timestamp }
+  stopHistory: jsonb('stop_history').default([]),    // Array de { provider, timestamp }
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // ============================================================================
 // SESSIONS - Session storage (required for Replit Auth)
 // blueprint:javascript_log_in_with_replit

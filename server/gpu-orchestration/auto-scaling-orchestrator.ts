@@ -60,6 +60,7 @@ import { KaggleOrchestrator } from './kaggle-orchestrator';
 import { quotaManager } from './intelligent-quota-manager';
 import { QUOTA_LIMITS } from '../config/quota-limits';
 import { retrieveKaggleCredentials, retrieveGoogleCredentials } from '../services/security/secrets-vault';
+import { providerAlternationService, sleepHuman, getProgressiveDelay, type Provider } from './provider-alternation-service';
 
 interface GPUGroup {
   id: string;
@@ -86,6 +87,7 @@ export class AutoScalingOrchestrator {
   private currentSchedule: RotationSchedule | null = null;
   private rotationTimers: NodeJS.Timeout[] = [];
   private poolMonitorInterval: NodeJS.Timeout | null = null;
+  private quotaMonitorInterval: NodeJS.Timeout | null = null;  // 🔥 NEW: Quota monitoring
   private lastKnownPoolSize: number = 0;
 
   constructor() {
@@ -98,6 +100,9 @@ export class AutoScalingOrchestrator {
    */
   async startAutoScaling(): Promise<RotationSchedule> {
     console.log('[AutoScale] 🚀 Iniciando Auto-Scaling Orchestrator...');
+
+    // 🔥 0. Inicializar Provider Alternation (carregar state do PostgreSQL)
+    await providerAlternationService.initialize();
 
     // 1. Detectar todas GPUs disponíveis
     const availableGPUs = await this.detectAllGPUs();
@@ -126,6 +131,9 @@ export class AutoScalingOrchestrator {
 
     // 4. Iniciar monitoramento de mudanças no pool
     this.startPoolMonitoring();
+
+    // 5. 🔥 NEW: Iniciar monitoring contínuo de quota (60s)
+    this.startQuotaMonitoring();
 
     return schedule;
   }
@@ -162,6 +170,81 @@ export class AutoScalingOrchestrator {
     }, 60000); // 60s
 
     console.log('[AutoScale] 👀 Pool monitoring ativo (check: 60s)');
+  }
+
+  /**
+   * 🔥 NEW: MONITORING CONTÍNUO DE QUOTA (60s)
+   * 
+   * Verifica quota a cada 60s e realiza:
+   * 1. Shutdown preventivo se atingir 70%
+   * 2. Restart automático após cooldown
+   * 3. Alternância inteligente Colab ↔ Kaggle
+   */
+  private startQuotaMonitoring(): void {
+    // Parar monitor anterior se existir
+    if (this.quotaMonitorInterval) {
+      clearInterval(this.quotaMonitorInterval);
+    }
+
+    console.log('[AutoScale] 🔍 Iniciando Quota Monitoring (check: 60s)...');
+
+    // Monitorar a cada 60 segundos
+    this.quotaMonitorInterval = setInterval(async () => {
+      try {
+        // 1. Verificar GPUs que precisam parar (70% quota)
+        const gpusToStop = await quotaManager.getGPUsToStop();
+
+        if (gpusToStop.length > 0) {
+          console.log(`[AutoScale] ⚠️ ${gpusToStop.length} GPUs atingiram 70% quota - Shutdown preventivo!`);
+
+          for (const gpu of gpusToStop) {
+            await this.stopGPU(gpu.workerId);
+            
+            // 🔥 Registrar provider stopped para alternância (ASYNC!)
+            await providerAlternationService.recordProviderStopped(gpu.provider);
+
+            // 🔥 Aguardar delay humano antes de próximo stop
+            await sleepHuman(2000); // 1.4s - 2.6s
+          }
+        }
+
+        // 2. Tentar restart inteligente se há quota disponível
+        const availableGPUs = await this.detectAllGPUs();
+        
+        if (availableGPUs.colab.length > 0 || availableGPUs.kaggle.length > 0) {
+          // 🔥 Selecionar próximo provider baseado em alternância
+          const nextProvider = providerAlternationService.getNextProviderToStart();
+          
+          const candidatePool = nextProvider === 'colab' ? availableGPUs.colab : availableGPUs.kaggle;
+          
+          if (candidatePool.length > 0) {
+            // Verificar se algum pode iniciar (quota disponível)
+            for (const workerId of candidatePool) {
+              const quotaStatus = await quotaManager.getQuotaStatus(workerId);
+              
+              if (quotaStatus?.canStart) {
+                console.log(`[AutoScale] 🔄 Restart automático: ${nextProvider} GPU #${workerId}`);
+                
+                // Delay humano antes de start
+                await sleepHuman(3000); // 2.1s - 3.9s
+                
+                await this.startGPU(workerId);
+                
+                // 🔥 Registrar provider started (ASYNC!)
+                await providerAlternationService.recordProviderStarted(nextProvider);
+                
+                break; // Apenas 1 restart por ciclo (conservador!)
+              }
+            }
+          }
+        }
+
+      } catch (error: any) {
+        console.error('[AutoScale] Erro no quota monitoring:', error.message);
+      }
+    }, 60000); // 60s
+
+    console.log('[AutoScale] ✅ Quota monitoring ativo (check: 60s, shutdown: 70%, alternância: Colab↔Kaggle)');
   }
 
   /**
@@ -210,8 +293,8 @@ export class AutoScalingOrchestrator {
   /**
    * ESTRATÉGIA 1: 3 Grupos (6+ Colabs)
    * 
-   * Colab: T=0h → 11h (3 grupos escalonados)
-   * Kaggle: T=2h → 6h (4h/dia, 3 grupos distribuídos ao longo da semana)
+   * 🔥 UPDATED: Colab 8.4h (70% de 12h) → Shutdown preventivo!
+   * Kaggle: 4h/dia (conservador)
    * 
    * Resultado: Sempre 2-3 Colabs + 0-1 Kaggle online
    */
@@ -219,12 +302,12 @@ export class AutoScalingOrchestrator {
     const colabPerGroup = Math.ceil(gpus.colab.length / 3);
     const groups: GPUGroup[] = [];
 
-    // Colab groups (11h cada, escalonados)
+    // Colab groups (8.4h = 70% cada, escalonados)
     groups.push({
       id: 'Colab-A',
       workers: gpus.colab.slice(0, colabPerGroup),
       provider: 'colab',
-      estimatedDurationHours: 11,
+      estimatedDurationHours: 8.4,  // 🔥 70% de 12h
       startOffsetHours: 0,
     });
     
@@ -233,7 +316,7 @@ export class AutoScalingOrchestrator {
         id: 'Colab-B',
         workers: gpus.colab.slice(colabPerGroup, colabPerGroup * 2),
         provider: 'colab',
-        estimatedDurationHours: 11,
+        estimatedDurationHours: 8.4,  // 🔥 70% de 12h
         startOffsetHours: 4,
       });
     }
@@ -243,7 +326,7 @@ export class AutoScalingOrchestrator {
         id: 'Colab-C',
         workers: gpus.colab.slice(colabPerGroup * 2),
         provider: 'colab',
-        estimatedDurationHours: 11,
+        estimatedDurationHours: 8.4,  // 🔥 70% de 12h
         startOffsetHours: 8,
       });
     }
@@ -296,8 +379,8 @@ export class AutoScalingOrchestrator {
   /**
    * ESTRATÉGIA 2: 2 Grupos (3-5 Colabs)
    * 
-   * Colab: T=0h → 11h (2 grupos escalonados)
-   * Kaggle: T=3h → 7h, T=15h → 19h (4h cada, 2 grupos)
+   * 🔥 UPDATED: Colab 8.4h (70%)
+   * Kaggle: 4h cada (conservador)
    * 
    * Resultado: Sempre 1-2 Colabs + 0-1 Kaggle online
    */
@@ -305,12 +388,12 @@ export class AutoScalingOrchestrator {
     const colabPerGroup = Math.ceil(gpus.colab.length / 2);
     const groups: GPUGroup[] = [];
 
-    // Colab groups (11h cada)
+    // Colab groups (8.4h = 70% cada)
     groups.push({
       id: 'Colab-A',
       workers: gpus.colab.slice(0, colabPerGroup),
       provider: 'colab',
-      estimatedDurationHours: 11,
+      estimatedDurationHours: 8.4,  // 🔥 70% de 12h
       startOffsetHours: 0,
     });
     
@@ -319,7 +402,7 @@ export class AutoScalingOrchestrator {
         id: 'Colab-B',
         workers: gpus.colab.slice(colabPerGroup),
         provider: 'colab',
-        estimatedDurationHours: 11,
+        estimatedDurationHours: 8.4,  // 🔥 70% de 12h
         startOffsetHours: 6,
       });
     }
@@ -362,19 +445,19 @@ export class AutoScalingOrchestrator {
   /**
    * ESTRATÉGIA 3: Rotação Mista (1-2 Colabs)
    * 
-   * Colab: Sempre online (rotação simples)
+   * 🔥 UPDATED: Colab 8.4h (70%)
    * Kaggle: Complemento (2-3 sessões de 4h/dia)
    */
   private createMixedRotation(gpus: { colab: number[]; kaggle: number[] }): RotationSchedule {
     const groups: GPUGroup[] = [];
 
-    // Grupo A: Colabs (sempre online)
+    // Grupo A: Colabs (8.4h cada)
     if (gpus.colab.length > 0) {
       groups.push({
         id: 'Colab-Backbone',
         workers: gpus.colab,
         provider: 'colab',
-        estimatedDurationHours: 11,
+        estimatedDurationHours: 8.4,  // 🔥 70% de 12h
         startOffsetHours: 0,
       });
     }
@@ -488,13 +571,32 @@ export class AutoScalingOrchestrator {
 
   /**
    * INICIAR GRUPO DE GPUs
+   * 
+   * 🔥 UPDATED: Delay humano progressivo entre workers
    */
   private async startGroup(group: GPUGroup): Promise<void> {
     console.log(`[AutoScale] 🚀 Iniciando Grupo ${group.id} (${group.workers.length} GPUs)...`);
 
-    const results = await Promise.allSettled(
-      group.workers.map(workerId => this.startGPU(workerId))
-    );
+    // 🔥 NEW: Start workers com delay progressivo (não todos ao mesmo tempo!)
+    const results = [];
+    
+    for (let i = 0; i < group.workers.length; i++) {
+      const workerId = group.workers[i];
+      
+      // Delay progressivo: 3s, 4s, 5s, ...
+      if (i > 0) {
+        const delay = getProgressiveDelay(i, 3000);
+        console.log(`[AutoScale] ⏳ Aguardando ${(delay / 1000).toFixed(1)}s antes de iniciar próximo worker...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      try {
+        await this.startGPU(workerId);
+        results.push({ status: 'fulfilled', workerId });
+      } catch (error) {
+        results.push({ status: 'rejected', workerId, error });
+      }
+    }
 
     const successful = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
@@ -593,12 +695,18 @@ export class AutoScalingOrchestrator {
           password: credentials.password,
         });
         console.log(`[AutoScale] ✅ Colab #${workerId} iniciado com sucesso`);
+        
+        // 🔥 FIX: Registrar provider started APÓS sucesso!
+        await providerAlternationService.recordProviderStarted('colab');
       } else if (worker.provider === 'kaggle') {
         await this.kaggleOrchestrator.startSession({
           username: credentials.username,
           apiKey: credentials.key,
         });
         console.log(`[AutoScale] ✅ Kaggle #${workerId} iniciado com sucesso`);
+        
+        // 🔥 FIX: Registrar provider started APÓS sucesso!
+        await providerAlternationService.recordProviderStarted('kaggle');
       }
     } catch (error: any) {
       console.error(`[AutoScale] ❌ Erro ao iniciar GPU #${workerId}:`, error.message);
@@ -638,6 +746,9 @@ export class AutoScalingOrchestrator {
       try {
         await quotaManager.stopSession(workerId);
         console.log(`[AutoScale] ✅ Quota session finalizada para GPU #${workerId}`);
+
+        // 🔥 FIX BUG 3: Registrar provider stopped para alternância!
+        await providerAlternationService.recordProviderStopped(worker.provider);
       } catch (error: any) {
         console.error(`[AutoScale] ❌ Erro ao finalizar quota session #${workerId}:`, error.message);
       }
