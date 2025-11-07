@@ -2,22 +2,22 @@
  * GPU COOLDOWN MANAGER
  * ====================
  * 
- * Enforces ToS-compliant cooldown periods and daily limits for free GPU providers.
+ * Enforces ToS-compliant cooldown periods and quota limits for free GPU providers.
  * 
- * 🔥 CONSERVATIVE STRATEGY (Architect-approved):
- * - Kaggle: 4h/day limit (28h/week total, 2h safety buffer)
+ * 🔥 ON-DEMAND STRATEGY (Architect-approved):
+ * - Kaggle: 28h/week ONLY (NO daily limits - can use all 28h in one day!)
  * - Colab: 36h cooldown between 11h sessions (3x/week, moderate risk)
  * 
  * FEATURES:
  * ✅ PostgreSQL persistence (survives restarts)
- * ✅ Daily usage tracking with UTC midnight reset
+ * ✅ Weekly usage tracking with Sunday midnight reset
  * ✅ Cooldown enforcement with timestamp validation
- * ✅ Automatic quota reset (daily for Kaggle, per-session for Colab)
+ * ✅ Automatic quota reset (weekly for Kaggle, per-session for Colab)
  * ✅ Thread-safe operations with database transactions
  * 
  * INTEGRATION:
- * - Called by AutoScalingOrchestrator before starting sessions
- * - Updates gpuWorkers table (cooldownUntil, dailyUsageHours, weeklyUsageHours)
+ * - Called by DemandBasedKaggleOrchestrator before starting sessions
+ * - Updates gpuWorkers table (cooldownUntil, weeklyUsageHours)
  * - Triggers ToSComplianceMonitor alerts when approaching limits
  */
 
@@ -36,9 +36,7 @@ interface CooldownStatus {
   cooldownUntil?: Date | null;
   cooldownRemainingSeconds?: number;
   
-  // Kaggle-specific
-  dailyUsageHours?: number;
-  dailyRemainingHours?: number;
+  // Kaggle-specific (WEEKLY ONLY - NO daily limits)
   weeklyUsageHours?: number;
   weeklyRemainingHours?: number;
 }
@@ -73,7 +71,7 @@ export class GPUCooldownManager {
     if (provider === 'colab') {
       return await this.checkColabCooldown(worker);
     } else if (provider === 'kaggle') {
-      return await this.checkKaggleDailyLimit(worker);
+      return await this.checkKaggleWeeklyQuota(worker);
     }
     
     return {
@@ -130,14 +128,10 @@ export class GPUCooldownManager {
   
   /**
    * Kaggle weekly quota enforcement (28h/week ON-DEMAND)
-   * ❌ REMOVED daily limit - can use all 28h in one day if needed!
+   * ✅ NO daily limits - can use all 28h in one day if needed!
    */
-  private async checkKaggleDailyLimit(worker: any): Promise<CooldownStatus> {
+  private async checkKaggleWeeklyQuota(worker: any): Promise<CooldownStatus> {
     const weeklyUsageHours = worker.weeklyUsageHours || 0;
-    
-    // ❌ REMOVED: Daily limit check (ON-DEMAND strategy)
-    // Only check weekly limit (28h/week)
-    
     const weeklyRemainingHours = Math.max(0, QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS - weeklyUsageHours);
     
     if (weeklyRemainingHours <= 0) {
@@ -234,15 +228,14 @@ export class GPUCooldownManager {
         return { success: true, cooldownUntil: cooldownEnd };
         
       } else if (provider === 'kaggle') {
-        // Update daily and weekly usage
-        const currentDailyUsage = worker.dailyUsageHours || 0;
+        // Update weekly usage ONLY (ON-DEMAND strategy - no daily limits)
         const currentWeeklyUsage = worker.weeklyUsageHours || 0;
         
         await db
           .update(gpuWorkers)
           .set({
-            dailyUsageHours: currentDailyUsage + durationHours,
             weeklyUsageHours: currentWeeklyUsage + durationHours,
+            weeklyUsageSeconds: (worker.weeklyUsageSeconds || 0) + sessionDurationSeconds,
             sessionDurationSeconds: 0,
             sessionStartedAt: null,
             updatedAt: now,
@@ -251,8 +244,7 @@ export class GPUCooldownManager {
         
         console.log(
           `[GPUCooldownManager] 📊 Kaggle usage updated - Worker ${workerId} ` +
-          `(+${durationHours.toFixed(2)}h → daily: ${(currentDailyUsage + durationHours).toFixed(2)}h, ` +
-          `weekly: ${(currentWeeklyUsage + durationHours).toFixed(2)}h)`
+          `(+${durationHours.toFixed(2)}h → weekly: ${(currentWeeklyUsage + durationHours).toFixed(2)}h/28h)`
         );
         
         return { success: true };
@@ -267,29 +259,9 @@ export class GPUCooldownManager {
   }
   
   /**
-   * Reset daily quotas (called by scheduler at UTC midnight)
+   * ❌ REMOVED: resetDailyQuotas() 
+   * ON-DEMAND strategy has NO daily limits - only weekly resets needed
    */
-  async resetDailyQuotas(): Promise<{ success: boolean; resetCount: number; error?: string }> {
-    try {
-      console.log('[GPUCooldownManager] 🔄 Resetting daily quotas (UTC midnight)...');
-      
-      const result = await db
-        .update(gpuWorkers)
-        .set({
-          dailyUsageHours: 0,
-          updatedAt: new Date(),
-        })
-        .where(eq(gpuWorkers.provider, 'kaggle'))
-        .returning({ id: gpuWorkers.id });
-      
-      console.log(`[GPUCooldownManager] ✅ Reset ${result.length} Kaggle workers`);
-      
-      return { success: true, resetCount: result.length };
-    } catch (error: any) {
-      console.error('[GPUCooldownManager] Error resetting daily quotas:', error);
-      return { success: false, resetCount: 0, error: error.message };
-    }
-  }
   
   /**
    * Reset weekly quotas (called by scheduler every Monday 00:00 UTC)

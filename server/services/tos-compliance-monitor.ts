@@ -38,7 +38,7 @@ interface ComplianceAlert {
   limit: number;
   message: string;
   timestamp: Date;
-  metric: 'session_duration' | 'daily_usage' | 'weekly_usage' | 'cooldown';
+  metric: 'session_duration' | 'weekly_usage' | 'cooldown';
 }
 
 interface ComplianceStatus {
