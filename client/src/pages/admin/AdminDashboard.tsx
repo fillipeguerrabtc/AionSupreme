@@ -1048,7 +1048,7 @@ export default function AdminDashboard() {
                       data-testid="button-save-changes"
                     >
                       <Save className="w-4 h-4 mr-2" />
-                      {updatePolicy.isPending ? "Salvando..." : "Salvar Alterações"}
+                      {updatePolicy.isPending ? t.common.saving : t.common.save}
                     </Button>
                   </div>
                 </CardContent>
