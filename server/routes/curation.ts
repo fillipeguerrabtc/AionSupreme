@@ -180,30 +180,6 @@ export function registerCurationRoutes(app: Router) {
         reviewedBy
       );
 
-      // ✨ NOVO: Adicionar ao dataset de treino se houver trainingData
-      if (item.trainingData && Array.isArray(item.trainingData) && item.trainingData.length > 0) {
-        const { trainingDataCollection } = await import("../../shared/schema");
-        
-        for (const trainingPair of item.trainingData) {
-          await db.insert(trainingDataCollection).values({
-            source: item.contentType || 'curation',
-            instruction: trainingPair.instruction || '',
-            input: trainingPair.input || '',
-            output: trainingPair.output || '',
-            quality: 'high', // Aprovado por humano = alta qualidade
-            metadata: {
-              curationId: item.id,
-              publishedId,
-              sourceUrl: item.sourceUrl,
-              reviewedBy,
-            },
-            isUsedInTraining: false, // Será marcado como true quando for incluído em um job
-          } as any);
-        }
-
-        console.log(`✅ ${item.trainingData.length} pares de treino adicionados ao dataset`);
-      }
-
       // Emitir eventos para indexador
       await publishEvent("DOC_UPDATED", {
         docId: publishedId,
@@ -212,12 +188,6 @@ export function registerCurationRoutes(app: Router) {
 
       await publishEvent("AGENT_NAMESPACES_CHANGED", {
         namespaces: item.suggestedNamespaces,
-      });
-
-      // ✨ NOVO: Emitir evento de novos dados de treino disponíveis
-      await publishEvent("TRAINING_DATA_ADDED", {
-        count: item.trainingData?.length || 0,
-        curationId: item.id,
       });
 
       res.json({ item, publishedId });
@@ -304,28 +274,6 @@ export function registerCurationRoutes(app: Router) {
             reviewedBy
           );
 
-          // Adicionar ao dataset de treino
-          if (item.trainingData && Array.isArray(item.trainingData) && item.trainingData.length > 0) {
-            const { trainingDataCollection } = await import("../../shared/schema");
-            
-            for (const trainingPair of item.trainingData) {
-              await db.insert(trainingDataCollection).values({
-                source: item.contentType || 'curation',
-                instruction: trainingPair.instruction || '',
-                input: trainingPair.input || '',
-                output: trainingPair.output || '',
-                quality: 'high',
-                metadata: {
-                  curationId: item.id,
-                  publishedId,
-                  sourceUrl: item.sourceUrl,
-                  reviewedBy,
-                },
-                isUsedInTraining: false,
-              } as any);
-            }
-          }
-
           await publishEvent("DOC_UPDATED", {
             docId: publishedId,
             namespaces: item.suggestedNamespaces,
@@ -333,11 +281,6 @@ export function registerCurationRoutes(app: Router) {
 
           await publishEvent("AGENT_NAMESPACES_CHANGED", {
             namespaces: item.suggestedNamespaces,
-          });
-
-          await publishEvent("TRAINING_DATA_ADDED", {
-            count: item.trainingData?.length || 0,
-            curationId: item.id,
           });
 
           results.approved++;

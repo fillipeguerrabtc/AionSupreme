@@ -346,7 +346,7 @@ export default function TelemetriaPage() {
                   Execuções de Agentes
                 </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
-                  {hierarchicalOverview ? hierarchicalOverview.agents.totalUses.toLocaleString() : "..."}
+                  {hierarchicalOverview?.agents?.totalUses?.toLocaleString() || "..."}
                 </div>
                 <CardDescription className="text-xs flex items-center gap-2">
                   <Badge variant="outline" className="text-[10px]">
@@ -367,7 +367,7 @@ export default function TelemetriaPage() {
                   Buscas em Namespaces
                 </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
-                  {hierarchicalOverview ? hierarchicalOverview.namespaces.totalSearches.toLocaleString() : "..."}
+                  {hierarchicalOverview?.namespaces?.totalSearches?.toLocaleString() || "..."}
                 </div>
                 <CardDescription className="text-xs flex items-center gap-2">
                   <Badge variant="outline" className="text-[10px]">

@@ -1625,6 +1625,53 @@ export type InsertCurationQueue = z.infer<typeof insertCurationQueueSchema>;
 export type CurationQueue = typeof curationQueue.$inferSelect;
 
 // ============================================================================
+// CURATION_ATTACHMENTS - Armazenamento permanente de anexos da curadoria
+// ============================================================================
+export const curationAttachments = pgTable("curation_attachments", {
+  id: serial("id").primaryKey(),
+  curationId: varchar("curation_id").notNull().references(() => curationQueue.id, { onDelete: 'cascade' }),
+  
+  // Arquivo
+  fileType: varchar("file_type", { length: 20 }).notNull(), // "image" | "video" | "audio" | "document"
+  storagePath: text("storage_path").notNull(), // Caminho permanente: curation_storage/pending/filename
+  originalFilename: varchar("original_filename", { length: 255 }).notNull(),
+  mimeType: varchar("mime_type", { length: 100 }).notNull(),
+  size: integer("size").notNull(), // bytes
+  
+  // Checksums para integridade
+  md5Hash: varchar("md5_hash", { length: 32 }),
+  sha256Hash: varchar("sha256_hash", { length: 64 }),
+  
+  // Metadata adicional
+  sourceUrl: text("source_url"), // URL original se foi baixado da web
+  description: text("description"), // Descrição AI para imagens
+  
+  // Base64 temporário (apenas para preview durante curadoria, limpo após aprovação)
+  tempBase64: text("temp_base64"), // Removido após aprovação para economizar espaço
+  
+  // Image deduplication (se aplicável)
+  perceptualHash: varchar("perceptual_hash", { length: 16 }), // dHash para imagens
+  imageDuplicationStatus: varchar("image_duplication_status", { length: 20 }), // "unique" | "exact" | "near"
+  imageSimilarityScore: real("image_similarity_score"), // 0-100%
+  imageDuplicateOfId: integer("image_duplicate_of_id"), // ID do attachment duplicado
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  curationIdIdx: index("curation_attachments_curation_id_idx").on(table.curationId),
+  md5HashIdx: index("curation_attachments_md5_hash_idx").on(table.md5Hash),
+  perceptualHashIdx: index("curation_attachments_perceptual_hash_idx").on(table.perceptualHash),
+}));
+
+export const insertCurationAttachmentSchema = createInsertSchema(curationAttachments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertCurationAttachment = z.infer<typeof insertCurationAttachmentSchema>;
+export type CurationAttachment = typeof curationAttachments.$inferSelect;
+
+// ============================================================================
 // LINK CAPTURE JOBS - Sistema de Jobs para Deep Crawling com progresso
 // ============================================================================
 export const linkCaptureJobs = pgTable("link_capture_jobs", {
