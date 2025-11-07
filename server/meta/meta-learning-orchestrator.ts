@@ -21,7 +21,11 @@ import {
   trainingDataCollection, 
   datasets,
   uploadedAdapters,
-  moeExperts
+  moeExperts,
+  documents,
+  conversations,
+  curationQueue,
+  knowledgeSources
 } from "../../shared/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { logger } from "../services/logger-service";
@@ -144,33 +148,82 @@ export class MetaLearningOrchestrator {
   }
 
   /**
-   * STAGE 1: Check for new curated data
+   * STAGE 1: Check for new curated data from ALL KB sources
+   * Now accesses: conversations, documents, images, videos, links, YouTube - EVERYTHING in KB!
    */
   private async checkNewCuratedData(namespace?: string): Promise<PipelineResult> {
     try {
-      logger.info("📊 Stage 1: Checking for new curated data");
+      logger.info("📊 Stage 1: Checking for new data from ALL KB sources");
 
-      // Get count of approved but not yet used training data
-      const conditions = [eq(trainingDataCollection.status, "approved")];
+      // 1. Approved training data from curation queue
+      const trainingConditions = [eq(trainingDataCollection.status, "approved")];
       if (namespace) {
-        conditions.push(eq(trainingDataCollection.namespace, namespace));
+        trainingConditions.push(eq(trainingDataCollection.namespace, namespace));
       }
 
-      const newData = await db
+      const trainingData = await db
         .select({ count: sql<number>`count(*)` })
         .from(trainingDataCollection)
-        .where(sql`${sql.join(conditions, sql` AND `)}`);
+        .where(sql`${sql.join(trainingConditions, sql` AND `)}`);
 
-      const count = Number(newData[0]?.count || 0);
+      const trainingCount = Number(trainingData[0]?.count || 0);
 
-      logger.info(`📊 Found ${count} new approved training examples`);
+      // 2. Documents from KB (PDFs, DOCX, XLSX, TXT, etc)
+      const documentConditions = [eq(documents.status, "indexed")];
+      const documentsData = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(documents)
+        .where(sql`${sql.join(documentConditions, sql` AND `)}`);
+
+      const documentsCount = Number(documentsData[0]?.count || 0);
+
+      // 3. Conversations and messages
+      const conversationsData = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(conversations);
+
+      const conversationsCount = Number(conversationsData[0]?.count || 0);
+
+      // 4. Approved curated content with attachments (images, videos)
+      const curationData = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(curationQueue)
+        .where(eq(curationQueue.status, "approved"));
+
+      const curationCount = Number(curationData[0]?.count || 0);
+
+      // 5. Knowledge sources (web scraping, links, YouTube)
+      const sourcesData = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(knowledgeSources)
+        .where(eq(knowledgeSources.status, "active"));
+
+      const sourcesCount = Number(sourcesData[0]?.count || 0);
+
+      const totalCount = trainingCount + documentsCount + conversationsCount + curationCount + sourcesCount;
+
+      logger.info(`📊 KB Content Summary:`, {
+        trainingExamples: trainingCount,
+        documents: documentsCount,
+        conversations: conversationsCount,
+        curatedContent: curationCount,
+        knowledgeSources: sourcesCount,
+        total: totalCount
+      });
 
       return {
         stage: "check_new_data",
         success: true,
         data: {
-          hasNewData: count > 0,
-          count
+          hasNewData: totalCount > 0,
+          count: totalCount,
+          breakdown: {
+            trainingExamples: trainingCount,
+            documents: documentsCount,
+            conversations: conversationsCount,
+            curatedContent: curationCount,
+            knowledgeSources: sourcesCount
+          }
         }
       };
     } catch (error) {
@@ -184,21 +237,52 @@ export class MetaLearningOrchestrator {
   }
 
   /**
-   * STAGE 2: Detect data distribution shifts
+   * STAGE 2: Detect data distribution shifts across ALL KB sources
+   * Analyzes: conversations, documents, curated content, knowledge sources
    */
   private async detectDataShifts(namespace?: string): Promise<PipelineResult> {
     try {
-      logger.info("🔍 Stage 2: Detecting data distribution shifts");
+      logger.info("🔍 Stage 2: Detecting data distribution shifts across ALL KB");
 
-      // Get recent training data to analyze distribution
-      const recentData = await db
-        .select()
-        .from(trainingDataCollection)
-        .where(eq(trainingDataCollection.status, "approved"))
-        .orderBy(desc(trainingDataCollection.createdAt))
-        .limit(100);
+      // Aggregate recent data from ALL sources
+      const [trainingData, recentDocs, recentConvs, recentCuration] = await Promise.all([
+        // Training data
+        db
+          .select()
+          .from(trainingDataCollection)
+          .where(eq(trainingDataCollection.status, "approved"))
+          .orderBy(desc(trainingDataCollection.createdAt))
+          .limit(50),
+        
+        // Documents
+        db
+          .select()
+          .from(documents)
+          .where(eq(documents.status, "indexed"))
+          .orderBy(desc(documents.createdAt))
+          .limit(30),
+        
+        // Conversations
+        db
+          .select()
+          .from(conversations)
+          .orderBy(desc(conversations.createdAt))
+          .limit(20),
+        
+        // Curated content
+        db
+          .select()
+          .from(curationQueue)
+          .where(eq(curationQueue.status, "approved"))
+          .orderBy(desc(curationQueue.createdAt))
+          .limit(30)
+      ]);
 
-      if (recentData.length === 0) {
+      const totalSamples = trainingData.length + recentDocs.length + 
+                          recentConvs.length + recentCuration.length;
+
+      if (totalSamples === 0) {
+        logger.info("ℹ️ No data available for shift detection");
         return {
           stage: "detect_shifts",
           success: true,
@@ -206,18 +290,27 @@ export class MetaLearningOrchestrator {
         };
       }
 
-      // Calculate distribution characteristics (simplified)
+      // Calculate aggregated distribution characteristics
       const distribution = {
-        samples_count: recentData.length,
-        domain: namespace || "general"
+        samples_count: totalSamples,
+        domain: namespace || "general",
+        sources_breakdown: {
+          training: trainingData.length,
+          documents: recentDocs.length,
+          conversations: recentConvs.length,
+          curated: recentCuration.length
+        }
       };
+
+      logger.info("📊 Analyzing distribution from aggregated KB data:", distribution);
 
       // Detect shift using ShiftEx
       const shiftDetection = await this.shiftEx.detectShift(distribution, namespace);
 
       logger.info(`${shiftDetection.shiftDetected ? "⚠️" : "✅"} Shift detection complete`, {
         shiftDetected: shiftDetection.shiftDetected,
-        mmdDistance: shiftDetection.mmdDistance
+        mmdDistance: shiftDetection.mmdDistance,
+        totalSamples
       });
 
       return {
@@ -225,7 +318,8 @@ export class MetaLearningOrchestrator {
         success: true,
         data: {
           shiftDetected: shiftDetection.shiftDetected,
-          shifts: shiftDetection.shiftDetected ? [shiftDetection] : []
+          shifts: shiftDetection.shiftDetected ? [shiftDetection] : [],
+          distribution
         }
       };
     } catch (error) {
