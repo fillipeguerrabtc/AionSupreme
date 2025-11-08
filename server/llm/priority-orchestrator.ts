@@ -50,6 +50,7 @@ export interface PriorityRequest {
   maxTokens?: number;
   unrestricted?: boolean;  // UNRESTRICTED mode = bypasses all filters
   forcedSource?: 'web' | 'kb' | 'free-apis';  // Force specific source when user explicitly requests it
+  language?: "pt-BR" | "en-US" | "es-ES";  // 🔥 FIX: Language for response generation
 }
 
 export interface PriorityResponse {
@@ -174,6 +175,42 @@ export async function generateWithPriority(req: PriorityRequest): Promise<Priori
   
   const userMessage = req.messages[req.messages.length - 1]?.content || '';
   const isTimeSensitive = isTimeSensitiveQuery(userMessage);
+  
+  // 🔥 FIX: Inject language directive if specified (defensive - works even if caller didn't pre-inject)
+  if (req.language) {
+    console.log(`   🌍 Language directive: ${req.language}`);
+    
+    const languageNames: Record<string, string> = {
+      "pt-BR": "Portuguese (Brazil)",
+      "en-US": "English",
+      "es-ES": "Spanish"
+    };
+    
+    const languageName = languageNames[req.language];
+    const languageInstruction = `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌍 LANGUAGE DIRECTIVE 🌍
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️⚠️⚠️ CRITICAL INSTRUCTION ⚠️⚠️⚠️
+YOU MUST RESPOND 100% IN ${languageName.toUpperCase()} ONLY!
+The user is writing in ${languageName}. DO NOT use any other language.
+This instruction takes ABSOLUTE PRIORITY.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+    
+    // Find or create system message and ensure language instruction is present
+    const systemMessageIndex = req.messages.findIndex(m => m.role === 'system');
+    if (systemMessageIndex >= 0) {
+      // Check if language instruction already exists (avoid duplication)
+      if (!req.messages[systemMessageIndex].content.includes('LANGUAGE DIRECTIVE')) {
+        req.messages[systemMessageIndex].content += languageInstruction;
+      }
+    } else {
+      // No system message - create one with language instruction
+      req.messages.unshift({
+        role: 'system',
+        content: `You are AION, an advanced AI assistant.${languageInstruction}`
+      });
+    }
+  }
   
   // ============================================================================
   // STEP -1: Check System Prompt (highest priority, ZERO consumption)

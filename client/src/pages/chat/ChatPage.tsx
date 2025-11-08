@@ -74,7 +74,7 @@ export default function ChatPage() {
               const unsavedMessages = prev.filter(m => 
                 !m.id && 
                 m.role === "assistant" &&
-                m.conversationId === Number(savedConvId) // Only keep messages for this conversation
+                m.conversationId === Number(savedConvId) // STRICT: Only keep messages for this conversation
               );
               const backendMessages = msgs.map((m: any) => ({
                 id: m.id,
@@ -135,7 +135,7 @@ export default function ChatPage() {
         const unsavedMessages = prev.filter(m => 
           !m.id && 
           m.role === "assistant" &&
-          m.conversationId === selectedConvId // Only keep messages for this conversation
+          m.conversationId === selectedConvId // STRICT: Only keep messages for this conversation
         );
         const backendMessages = msgs.map((m: any) => ({
           id: m.id,

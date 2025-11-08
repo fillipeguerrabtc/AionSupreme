@@ -692,7 +692,8 @@ export function registerRoutes(app: Express): Server {
         messages: fullMessages,
         temperature: policy.temperature,
         topP: policy.topP,
-        unrestricted: isUnrestricted  // Auto-fallback quando true
+        unrestricted: isUnrestricted,  // Auto-fallback quando true
+        language: detectedLanguage  // 🔥 FIX: Pass detected language for multi-language support
       });
       
       // Registrar métricas
@@ -886,7 +887,8 @@ export function registerRoutes(app: Express): Server {
         messages: fullMessages,
         temperature: policy.temperature,
         topP: policy.topP,
-        unrestricted: isUnrestricted
+        unrestricted: isUnrestricted,
+        language: detectedLanguage as "pt-BR" | "en-US" | "es-ES"  // 🔥 FIX: Pass detected language for multi-language support
       });
       
       fullResponse = result.content;
@@ -3506,7 +3508,8 @@ export function registerRoutes(app: Express): Server {
           topP: 0.9,
           maxTokens: 4000,
           unrestricted: true,  // Always allow when user explicitly requests a source
-          forcedSource: explicitRequest.source  // Force specific source
+          forcedSource: explicitRequest.source,  // Force specific source
+          language: detectedLanguage as "pt-BR" | "en-US" | "es-ES"  // 🔥 FIX: Pass detected language for multi-language support
         };
         
         const orchestratorResult = await generateWithPriority(orchestratorRequest);
