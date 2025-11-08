@@ -234,6 +234,14 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
 // ============================================================================
 // HUGGINGFACE CLIENT
 // ============================================================================
+/**
+ * ✅ P2.4: HuggingFace Inference API (2025)
+ * - Free Tier: Monthly credits (few hundred requests/hour)
+ * - Model Size Limit: 10GB max for free tier
+ * - Returns 429 when exceeding rate limits
+ * - Billing: Pay-as-you-go based on compute time (after credits exhausted)
+ * - Retry logic: 1s/2s/4s exponential backoff for 429/503/504
+ */
 
 async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
   const apiKey = process.env.HUGGINGFACE_API_KEY;
@@ -250,38 +258,92 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
     })
     .join('\n');
 
-  const response = await fetch(
-    `https://api-inference.huggingface.co/models/${model}`,
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: req.maxTokens || 1024,
-          temperature: req.temperature || 0.7,
-          top_p: req.topP || 0.9,
-          return_full_text: false
+  // ✅ P2.4: Retry logic for rate limits (429) and transient errors (503/504)
+  const maxRetries = 3;
+  const retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
+  
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(
+        `https://api-inference.huggingface.co/models/${model}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: {
+              max_new_tokens: req.maxTokens || 1024,
+              temperature: req.temperature || 0.7,
+              top_p: req.topP || 0.9,
+              return_full_text: false
+            }
+          })
         }
-      })
+      );
+
+      // ✅ P2.4: Enhanced error handling with detailed error messages
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error: any = new Error(`HuggingFace API error (${response.status}): ${errorText}`);
+        error.status = response.status;
+        throw error;
+      }
+
+      const data = await response.json();
+      usageStats.huggingface.today++;
+
+      // ✅ P2.4: Token tracking (estimate tokens since HF doesn't provide usage stats)
+      const promptLength = prompt.length;
+      const responseText = data[0]?.generated_text || '';
+      const responseLength = responseText.length;
+      
+      // Rough estimation: ~4 characters per token
+      const promptTokens = Math.ceil(promptLength / 4);
+      const completionTokens = Math.ceil(responseLength / 4);
+      const totalTokens = promptTokens + completionTokens;
+      
+      await trackTokenUsage({
+        provider: 'huggingface',
+        model: 'mistralai/Mistral-7B-Instruct-v0.3',
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        // cost: not provided → huggingface is free tier (monthly credits), returns $0.00
+        requestType: 'chat',
+        success: true
+      });
+
+      return {
+        text: responseText,
+        provider: 'huggingface',
+        model,
+        tokensUsed: totalTokens
+      };
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if error is retryable (429, 503, 504)
+      const isRetryable = error.status === 429 || error.status === 503 || error.status === 504;
+      
+      if (!isRetryable || attempt === maxRetries) {
+        // Non-retryable error or max retries reached
+        throw error;
+      }
+      
+      // Wait before retry
+      const delay = retryDelays[attempt];
+      console.log(`[HuggingFace] Rate limit hit (${error.status}), retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
-  );
-
-  if (!response.ok) {
-    throw new Error(`HuggingFace API error: ${response.statusText}`);
   }
-
-  const data = await response.json();
-  usageStats.huggingface.today++;
-
-  return {
-    text: data[0].generated_text,
-    provider: 'huggingface',
-    model
-  };
+  
+  // This should never be reached, but TypeScript needs it
+  throw lastError || new Error('HuggingFace API request failed after retries');
 }
 
 // ============================================================================
