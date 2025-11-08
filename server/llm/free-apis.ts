@@ -86,6 +86,14 @@ const usageStats = {
 // ============================================================================
 // GROQ CLIENT
 // ============================================================================
+/**
+ * ✅ P2.3: Groq Free Tier (2025)
+ * - Rate Limits: ~6,000 TPM (tokens per minute), varies by model
+ * - Returns 429 when exceeding rate limits
+ * - OpenAI-compatible API
+ * - Models: llama-3.3-70b-versatile, llama-3.1-8b-instant, DeepSeek R1
+ * - Retry logic: 1s/2s/4s exponential backoff for 429/503/504
+ */
 
 async function callGroq(req: LLMRequest): Promise<LLMResponse> {
   const apiKey = process.env.GROQ_API_KEY;
@@ -96,40 +104,69 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
     baseURL: 'https://api.groq.com/openai/v1'
   });
 
-  const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',  // Updated Oct 2025 - replaces deprecated llama-3.1-70b-versatile
-    messages: req.messages,
-    max_tokens: req.maxTokens || 1024,
-    temperature: req.temperature || 0.7,
-    top_p: req.topP || 0.9
-  });
-
-  usageStats.groq.today++;
-
-  // ✅ PRODUCTION: Track real usage from Groq API
-  const promptTokens = response.usage?.prompt_tokens || 0;
-  const completionTokens = response.usage?.completion_tokens || 0;
-  const totalTokens = response.usage?.total_tokens || 0;
+  // ✅ P2.3: Retry logic for rate limits (429) and transient errors (503/504)
+  const maxRetries = 3;
+  const retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
   
-  // ✅ P2.2: Groq is FREE tier → cost calculated as $0.00
-  await trackTokenUsage({
-    provider: 'groq',
-    model: 'llama-3.3-70b-versatile',
-    promptTokens,
-    completionTokens,
-    totalTokens,
-    // cost: not provided → groq is free tier, returns $0.00
-    requestType: 'chat',
-    success: true
-  });
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',  // Updated Oct 2025 - replaces deprecated llama-3.1-70b-versatile
+        messages: req.messages,
+        max_tokens: req.maxTokens || 1024,
+        temperature: req.temperature || 0.7,
+        top_p: req.topP || 0.9
+      });
 
-  return {
-    text: response.choices[0].message.content || '',
-    provider: 'groq',
-    model: 'llama-3.3-70b-versatile',
-    tokensUsed: totalTokens
-  };
+      usageStats.groq.today++;
+
+      // ✅ PRODUCTION: Track real usage from Groq API
+      const promptTokens = response.usage?.prompt_tokens || 0;
+      const completionTokens = response.usage?.completion_tokens || 0;
+      const totalTokens = response.usage?.total_tokens || 0;
+      
+      // ✅ P2.2: Groq is FREE tier → cost calculated as $0.00
+      await trackTokenUsage({
+        provider: 'groq',
+        model: 'llama-3.3-70b-versatile',
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        // cost: not provided → groq is free tier, returns $0.00
+        requestType: 'chat',
+        success: true
+      });
+
+      return {
+        text: response.choices[0].message.content || '',
+        provider: 'groq',
+        model: 'llama-3.3-70b-versatile',
+        tokensUsed: totalTokens
+      };
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if error is retryable (429, 503, 504)
+      const isRetryable = error.status === 429 || error.status === 503 || error.status === 504;
+      
+      if (!isRetryable || attempt === maxRetries) {
+        // Non-retryable error or max retries reached
+        throw error;
+      }
+      
+      // Wait before retry
+      const delay = retryDelays[attempt];
+      console.log(`[Groq] Rate limit hit (429), retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  // This should never be reached, but TypeScript needs it
+  throw lastError || new Error('Groq API request failed after retries');
 }
+
 
 // ============================================================================
 // GEMINI CLIENT
