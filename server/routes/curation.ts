@@ -77,30 +77,12 @@ export function registerCurationRoutes(app: Router) {
         }
       }
 
-      // 🔥 TIER 1: Realtime hash-based duplicate detection
-      const duplicateCheck = await deduplicationService.checkCurationRealtimeDuplicate(content);
-      
-      if (duplicateCheck) {
-        const location = duplicateCheck.isPending ? 'curation queue' : 'Knowledge Base';
-        console.log(`[Curation] ❌ Exact duplicate detected in ${location}: "${duplicateCheck.documentTitle}"`);
-        return res.status(409).json({ 
-          error: "Duplicate content detected",
-          isDuplicate: true,
-          isPending: duplicateCheck.isPending,
-          duplicateOf: {
-            id: duplicateCheck.documentId,
-            title: duplicateCheck.documentTitle
-          },
-          message: duplicateCheck.isPending 
-            ? `This content is already pending approval in the curation queue as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`
-            : `This content already exists in the Knowledge Base as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`
-        });
-      }
-
       // Generate hash and normalized content for storage
       const contentHash = generateContentHash(content);
       const normalizedContent = normalizeContent(content);
 
+      // 🔥 TIER 1 DEDUP: addToCuration() now handles duplicate check internally
+      // This ensures universal protection regardless of caller
       const item = await curationStore.addToCuration({
         title,
         content,
@@ -130,6 +112,16 @@ export function registerCurationRoutes(app: Router) {
         } : null,
       });
     } catch (error: any) {
+      // Handle duplicate errors with proper 409 status and rich metadata
+      if (error.name === 'DuplicateContentError') {
+        return res.status(409).json({ 
+          error: "Duplicate content detected",
+          isDuplicate: error.isDuplicate,
+          isPending: error.isPending,
+          duplicateOf: error.duplicateOf,
+          message: error.message
+        });
+      }
       res.status(500).json({ error: error.message });
     }
   });

@@ -9,6 +9,36 @@ import { curatorAgentDetector } from "./curator-agent";
 // Type alias for compatibility with existing code
 export type CurationItem = CurationQueue;
 
+// Custom error for duplicate detection with rich metadata
+export class DuplicateContentError extends Error {
+  public readonly isDuplicate: boolean = true;
+  public readonly isPending: boolean;
+  public readonly duplicateOf: {
+    id: string;
+    title: string;
+  };
+
+  constructor(
+    message: string,
+    isPending: boolean,
+    duplicateId: string,
+    duplicateTitle: string
+  ) {
+    super(message);
+    this.name = 'DuplicateContentError';
+    this.isPending = isPending;
+    this.duplicateOf = {
+      id: duplicateId,
+      title: duplicateTitle
+    };
+    
+    // Maintains proper stack trace for where our error was thrown (only available on V8)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, DuplicateContentError);
+    }
+  }
+}
+
 export const curationStore = {
   /**
    * Adiciona item à fila de curadoria com análise automática (se agente disponível)
@@ -24,6 +54,30 @@ export const curationStore = {
       normalizedContent?: string; // For fuzzy matching
     }
   ): Promise<CurationItem> {
+    // 🔥 UNIVERSAL DUPLICATE CHECK - Protects against all callers, not just endpoints
+    // This ensures duplicate protection even if addToCuration() is called directly
+    if (data.content) {
+      const { deduplicationService } = await import("../services/deduplication-service");
+      const duplicateCheck = await deduplicationService.checkCurationRealtimeDuplicate(data.content);
+      
+      if (duplicateCheck) {
+        const location = duplicateCheck.isPending ? 'curation queue' : 'Knowledge Base';
+        const errorMsg = duplicateCheck.isPending 
+          ? `This content is already pending approval in the curation queue as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`
+          : `This content already exists in the Knowledge Base as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`;
+        
+        console.log(`[Curation] ❌ Duplicate detected in ${location}: "${duplicateCheck.documentTitle}"`);
+        
+        // Throw custom error with rich metadata for API consumers
+        throw new DuplicateContentError(
+          errorMsg,
+          duplicateCheck.isPending ?? false, // Default to false if undefined
+          String(duplicateCheck.documentId), // Convert number to string
+          duplicateCheck.documentTitle || 'Unknown document' // Default if undefined
+        );
+      }
+    }
+    
     // STEP 1: Inserir na fila de curadoria
     const [item] = await db.insert(curationQueueTable).values({
       title: data.title,
