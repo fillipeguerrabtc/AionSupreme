@@ -685,6 +685,24 @@ export function registerRoutes(app: Express): Server {
               }
             }
             
+            // 🧠 AUTO-EVOLUÇÃO: Acionar sistema de auto-aprendizado (multi-agent path)
+            try {
+              const { autoLearningListener } = await import('./events/auto-learning-listener');
+              
+              // Fire and forget - não bloquear resposta
+              autoLearningListener.onChatCompleted({
+                conversationId: conversationId || null,
+                userMessage: lastUserMessage,
+                assistantResponse: agentResult.content,
+                source: "free-api", // Multi-agent usa free APIs
+                provider: "multi-agent",
+              }).catch((err: unknown) => {
+                console.error('[Chat API Multi-Agent] Failed to send to curation:', getErrorMessage(err));
+              });
+            } catch (autoLearnError: unknown) {
+              console.error('[Chat API Multi-Agent] Auto-learning unavailable:', getErrorMessage(autoLearnError));
+            }
+            
             return res.json({
               choices: [{
                 message: {
