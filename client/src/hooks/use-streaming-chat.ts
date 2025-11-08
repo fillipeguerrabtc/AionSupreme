@@ -20,7 +20,7 @@ export interface StreamingChatState {
 }
 
 export interface UseStreamingChatReturn extends StreamingChatState {
-  sendMessage: (message: string, useMultiAgent?: boolean) => void;
+  sendMessage: (message: string, useMultiAgent?: boolean, language?: string) => void;
   cancel: () => void;
 }
 
@@ -37,6 +37,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
   const retryTimeoutRef = useRef<number | null>(null);
   const lastMessageRef = useRef<string | null>(null);
   const lastUseMultiAgentRef = useRef<boolean>(true);
+  const lastLanguageRef = useRef<string | null>(null); // ✅ FIX BUG #2: Persist language for retries
   const MAX_RETRIES = 3;
 
   /**
@@ -85,7 +86,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
         // 🔥 CRITICAL FIX: Limpar mensagem parcial antes de retry para evitar duplicação
         setStreamedMessage("");
         
-        startStream(lastMessageRef.current, lastUseMultiAgentRef.current);
+        startStream(lastMessageRef.current, lastUseMultiAgentRef.current, lastLanguageRef.current);
       }
     }, backoffMs);
   }, []);
@@ -93,18 +94,22 @@ export function useStreamingChat(): UseStreamingChatReturn {
   /**
    * Inicia stream (ou reinicia)
    */
-  const startStream = useCallback((message: string, useMultiAgent: boolean) => {
+  const startStream = useCallback((message: string, useMultiAgent: boolean, language: string | null = null) => {
     // Fechar stream anterior se existir
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
 
-    // Montar URL com query params
+    // ✅ FIX BUG #2 (Multi-language): Adicionar language aos query params
     const params = new URLSearchParams({
       message,
       useMultiAgent: useMultiAgent.toString(),
     });
+    
+    if (language) {
+      params.set('language', language);
+    }
 
     const url = `/api/chat/stream?${params.toString()}`;
 
@@ -163,14 +168,16 @@ export function useStreamingChat(): UseStreamingChatReturn {
 
   /**
    * Envia mensagem e inicia stream
+   * ✅ FIX BUG #2: Aceita language como parâmetro
    */
-  const sendMessage = useCallback((message: string, useMultiAgent = true) => {
+  const sendMessage = useCallback((message: string, useMultiAgent = true, language: string | null = null) => {
     // Cancela stream anterior (se existir) + limpa retry
     cancel();
 
     // Salvar parâmetros para retry
     lastMessageRef.current = message;
     lastUseMultiAgentRef.current = useMultiAgent;
+    lastLanguageRef.current = language; // ✅ FIX BUG #2: Salvar language para retry
 
     // Reset state
     setStreamedMessage("");
@@ -184,7 +191,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
     abortControllerRef.current = new AbortController();
 
     // Iniciar stream
-    startStream(message, useMultiAgent);
+    startStream(message, useMultiAgent, language);
   }, [cancel, startStream]);
 
   /**

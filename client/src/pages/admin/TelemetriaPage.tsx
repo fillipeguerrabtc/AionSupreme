@@ -13,7 +13,14 @@ import {
   TrendingUp,
   Users,
   Database,
-  Zap
+  Zap,
+  TrendingDown,
+  DollarSign,
+  FileText,
+  Sparkles,
+  Globe,
+  Brain,
+  Gauge
 } from "lucide-react";
 import { 
   LineChart, 
@@ -86,6 +93,45 @@ interface HierarchicalOverview {
   };
 }
 
+// ✨ NEW: KB & Chat Analytics interfaces
+interface KbAnalytics {
+  period: string;
+  overview: {
+    totalRequests: number;
+    kbCoverage: number;
+    webUsage: number;
+    freeCoverage: number;
+    paidCoverage: number;
+  };
+  sourceDistribution: Array<{
+    provider: string;
+    requests: number;
+    percentage: number;
+    totalCost: string;
+  }>;
+  costEfficiency: {
+    totalCost: string;
+    paidCost: string;
+    estimatedCostIfAllPaid: string;
+    costSavings: string;
+    savingsPercent: number;
+  };
+  topKnowledgeSources: Array<{
+    id: number;
+    title: string;
+    source: string;
+    filename: string | null;
+    mimeType: string | null;
+    createdAt: Date;
+  }>;
+  qualityMetrics: Array<{
+    provider: string;
+    requests: number;
+    avgCost: number;
+    estimatedLatency: number;
+  }>;
+}
+
 export default function TelemetriaPage() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"system" | "analytics">("system");
@@ -135,6 +181,12 @@ export default function TelemetriaPage() {
   const { data: hierarchicalOverview } = useQuery<HierarchicalOverview>({
     queryKey: ["/api/admin/telemetry/hierarchical-overview"],
     refetchInterval: 10000,
+  });
+
+  // ✨ NEW: Fetch KB & Chat Analytics (métricas valiosas)
+  const { data: kbAnalytics } = useQuery<KbAnalytics>({
+    queryKey: ["/api/admin/analytics/kb-chat"],
+    refetchInterval: 15000, // Auto-refresh every 15s
   });
 
   // Chart colors
@@ -334,31 +386,275 @@ export default function TelemetriaPage() {
           </Card>
         </TabsContent>
 
-        {/* TAB 2: Analytics KB/Chat */}
+        {/* TAB 2: Analytics KB/Chat - ✨ COMPLETAMENTE MODERNIZADO */}
         <TabsContent value="analytics" className="space-y-6">
-          {/* Overview Cards */}
+          {/* ✨ NEW: KB & Chat Analytics Overview */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Total Agent Uses */}
-            <Card className="glass-modern" data-testid="card-agent-uses">
+            {/* KB Coverage */}
+            <Card className="glass-modern" data-testid="card-kb-coverage">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Execuções de Agentes
+                  <Brain className="w-4 h-4" />
+                  KB Coverage
                 </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
-                  {hierarchicalOverview?.agents?.totalUses?.toLocaleString() || "..."}
+                  {kbAnalytics?.overview?.kbCoverage?.toFixed(1) || "0"}%
+                </div>
+                <CardDescription className="text-xs">
+                  {kbAnalytics?.overview?.totalRequests || 0} queries totais
+                </CardDescription>
+                <div className="mt-2">
+                  <Progress 
+                    value={kbAnalytics?.overview?.kbCoverage || 0} 
+                    className="h-2" 
+                  />
+                </div>
+              </CardHeader>
+            </Card>
+
+            {/* Free Coverage */}
+            <Card className="glass-modern" data-testid="card-free-coverage">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  APIs Gratuitas
+                </CardTitle>
+                <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                  {kbAnalytics?.overview?.freeCoverage?.toFixed(1) || "0"}%
                 </div>
                 <CardDescription className="text-xs flex items-center gap-2">
                   <Badge variant="outline" className="text-[10px]">
-                    {hierarchicalOverview?.agents?.rootAgents || 0} Agents
+                    KB: {kbAnalytics?.overview?.kbCoverage?.toFixed(1) || "0"}%
                   </Badge>
                   <Badge variant="secondary" className="text-[10px]">
-                    {hierarchicalOverview?.agents?.subAgents || 0} Sub-Agents
+                    Web: {kbAnalytics?.overview?.webUsage?.toFixed(1) || "0"}%
                   </Badge>
                 </CardDescription>
               </CardHeader>
             </Card>
 
+            {/* Cost Savings */}
+            <Card className="glass-modern" data-testid="card-cost-savings">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <TrendingDown className="w-4 h-4 text-green-500" />
+                  Economia
+                </CardTitle>
+                <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">
+                  {kbAnalytics?.costEfficiency?.savingsPercent?.toFixed(1) || "0"}%
+                </div>
+                <CardDescription className="text-xs">
+                  ${kbAnalytics?.costEfficiency?.costSavings || "0.00"} economizados
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            {/* Total Requests */}
+            <Card className="glass-modern" data-testid="card-total-requests">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  Total de Requests
+                </CardTitle>
+                <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                  {kbAnalytics?.overview?.totalRequests?.toLocaleString() || "0"}
+                </div>
+                <CardDescription className="text-xs">
+                  {kbAnalytics?.period || "7 days"}
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+
+          {/* Source Distribution & Cost Efficiency */}
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+            {/* Source Distribution Pie Chart */}
+            <Card className="glass-modern">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  Distribuição por Fonte
+                </CardTitle>
+                <CardDescription>
+                  Origem das respostas (KB, Web, APIs)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {kbAnalytics?.sourceDistribution && kbAnalytics.sourceDistribution.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={kbAnalytics.sourceDistribution}
+                        dataKey="requests"
+                        nameKey="provider"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label={(entry) => `${entry.provider}: ${entry.percentage}%`}
+                      >
+                        {kbAnalytics.sourceDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value: number, name: string, props: any) => [
+                          `${value} requests (${props.payload.percentage}%)`,
+                          props.payload.provider
+                        ]}
+                      />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    Carregando distribuição...
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Cost Efficiency Details */}
+            <Card className="glass-modern">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5" />
+                  Eficiência de Custos
+                </CardTitle>
+                <CardDescription>
+                  Economia usando KB/Web vs APIs pagas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 rounded-md bg-card/50">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="text-sm font-medium">Custo Total Real</span>
+                    </div>
+                    <span className="text-lg font-bold">${kbAnalytics?.costEfficiency?.totalCost || "0.00"}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-md bg-card/50">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
+                      <span className="text-sm font-medium">Se Tudo Fosse Pago</span>
+                    </div>
+                    <span className="text-lg font-bold">${kbAnalytics?.costEfficiency?.estimatedCostIfAllPaid || "0.00"}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-md bg-green-500/10 border border-green-500/20">
+                    <div className="flex items-center gap-2">
+                      <TrendingDown className="w-4 h-4 text-green-500" />
+                      <span className="text-sm font-medium text-green-600 dark:text-green-400">Economia Total</span>
+                    </div>
+                    <span className="text-xl font-bold text-green-600 dark:text-green-400">
+                      ${kbAnalytics?.costEfficiency?.costSavings || "0.00"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Percentual de Economia</span>
+                    <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                      {kbAnalytics?.costEfficiency?.savingsPercent?.toFixed(1) || "0"}%
+                    </span>
+                  </div>
+                  <Progress 
+                    value={kbAnalytics?.costEfficiency?.savingsPercent || 0} 
+                    className="h-2 mt-2" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Response Quality & Top Knowledge Sources */}
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+            {/* Response Quality by Source */}
+            <Card className="glass-modern">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gauge className="w-5 h-5" />
+                  Qualidade por Fonte
+                </CardTitle>
+                <CardDescription>
+                  Latência média estimada por provider
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {kbAnalytics?.qualityMetrics && kbAnalytics.qualityMetrics.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={kbAnalytics.qualityMetrics}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                      <XAxis dataKey="provider" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} label={{ value: 'ms', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip 
+                        formatter={(value: number) => [`${value}ms`, 'Latência']}
+                      />
+                      <Bar dataKey="estimatedLatency" fill="hsl(var(--primary))" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    Carregando métricas...
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top Knowledge Sources */}
+            <Card className="glass-modern">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Top Fontes de Conhecimento
+                </CardTitle>
+                <CardDescription>
+                  Documentos mais recentemente indexados
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px]">
+                  {kbAnalytics?.topKnowledgeSources && kbAnalytics.topKnowledgeSources.length > 0 ? (
+                    <div className="space-y-2">
+                      {kbAnalytics.topKnowledgeSources.map((doc, idx) => (
+                        <div
+                          key={doc.id}
+                          className="flex items-start gap-3 p-3 rounded-md bg-card/50 hover-elevate"
+                          data-testid={`knowledge-source-${idx}`}
+                        >
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <span className="text-xs font-bold text-primary">{idx + 1}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{doc.title}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-[10px]">
+                                {doc.source}
+                              </Badge>
+                              {doc.mimeType && (
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {doc.mimeType.split('/')[1]}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      Nenhum documento disponível
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ✨ NEW: Hierarchical Analytics */}
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {/* Total Namespace Searches */}
             <Card className="glass-modern" data-testid="card-namespace-searches">
               <CardHeader className="pb-3">

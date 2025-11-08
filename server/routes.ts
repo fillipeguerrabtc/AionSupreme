@@ -56,6 +56,7 @@ import { registerGpuRoutes } from "./routes/gpu";
 import { registerVisionRoutes } from "./routes/vision";
 import { registerKbImagesRoutes } from "./routes/kb-images";
 import { registerQueryMetricsRoutes } from "./routes/query-metrics";
+import { registerKbAnalyticsRoutes } from "./routes/kb-analytics";
 import { registerTelemetryRoutes } from "./routes/telemetry";
 import { registerUserRoutes } from "./routes/users";
 import { registerPermissionsRoutes } from "./routes/permissions";
@@ -166,6 +167,9 @@ export function registerRoutes(app: Express): Server {
   
   // Registrar rotas de métricas de queries (monitoramento de performance)
   registerQueryMetricsRoutes(adminSubRouter);
+  
+  // Registrar rotas de KB & Chat Analytics (análise de uso e eficiência)
+  registerKbAnalyticsRoutes(adminSubRouter);
   
   // Registrar rotas de telemetria (analytics de agentes e namespaces)
   registerTelemetryRoutes(adminSubRouter);
@@ -564,7 +568,7 @@ export function registerRoutes(app: Express): Server {
     const startTime = Date.now();
     
     try {
-      const { messages, useMultiAgent = true } = req.body; // Habilitar multi-agent por padrão
+      const { messages, useMultiAgent = true, language } = req.body; // Habilitar multi-agent por padrão
       
       console.log(`[Chat API] Recebidas ${messages.length} mensagens no histórico`);
       console.log(`[Chat API] Multi-Agent Mode: ${useMultiAgent ? 'ENABLED' : 'DISABLED'}`);
@@ -579,6 +583,10 @@ export function registerRoutes(app: Express): Server {
       // Obter última mensagem do usuário (normalizada para string)
       const lastUserContent = messages[messages.length - 1]?.content || '';
       const lastUserMessage = extractTextContent(lastUserContent);
+      
+      // ✅ FIX BUG #2: Detectar idioma (backend detecta se frontend não enviou)
+      const detectedLanguage = language || enforcementPipeline.detectLanguage(lastUserMessage);
+      console.log(`[Chat API] Detected language: ${detectedLanguage}`);
       
       // 🤖 TENTAR SISTEMA MULTI-AGENTE PRIMEIRO (se habilitado e disponível)
       if (useMultiAgent) {
@@ -634,7 +642,8 @@ export function registerRoutes(app: Express): Server {
       
       // Obter política ou usar PADRÃO SEM RESTRIÇÕES (todas as regras = false)
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
-      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage);
+      // ✅ FIX BUG #2: Passar detectedLanguage para system prompt
+      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage, detectedLanguage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...messages];
       
       // Verificar se sistema está SEM RESTRIÇÕES (todas as regras = false)
@@ -717,11 +726,16 @@ export function registerRoutes(app: Express): Server {
     const startTime = Date.now();
     
     try {
-      const { message, useMultiAgent = "true" } = req.query;
+      const { message, useMultiAgent = "true", language } = req.query;
       
       if (!message || typeof message !== "string") {
         return res.status(400).json({ error: req.t('chat.message_required') });
       }
+      
+      // ✅ FIX BUG #2 (Multi-language): Extract detected language from query params
+      const detectedLanguage = typeof language === "string" ? language : "pt-BR";
+      
+      console.log(`[SSE] Detected language: ${detectedLanguage}`);
       
       // Configurar headers SSE
       res.setHeader("Content-Type", "text/event-stream");
@@ -800,7 +814,8 @@ export function registerRoutes(app: Express): Server {
       console.log("[SSE] Using priority orchestrator");
       
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
-      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, message);
+      // ✅ FIX BUG #2: Passar detectedLanguage para system prompt
+      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, message, detectedLanguage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...messages];
       
       const activeRules = Object.values(policy.rules).filter(v => v === true);
@@ -895,7 +910,7 @@ export function registerRoutes(app: Express): Server {
     const parsedData = JSON.parse(req.body.data || "{}");
     
     try {
-      const { messages, conversationId } = parsedData;
+      const { messages, conversationId, language } = parsedData;
       const files = req.files as Express.Multer.File[];
       
       metricsCollector.recordRequest();
@@ -997,7 +1012,12 @@ export function registerRoutes(app: Express): Server {
       // Obter última mensagem do usuário para detecção de idioma (normalizar para string)
       const lastUserContent2 = messages[messages.length - 1]?.content || '';
       const lastUserMessage = extractTextContent(lastUserContent2);
-      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage);
+      
+      // ✅ FIX BUG #2: Detectar idioma (backend detecta se frontend não enviou)
+      const detectedLanguage = language || enforcementPipeline.detectLanguage(lastUserMessage);
+      console.log(`[Chat Multimodal] Detected language: ${detectedLanguage}`);
+      
+      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage, detectedLanguage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...enrichedMessages];
       
       const result = await llmClient.chatCompletion({
@@ -3349,7 +3369,7 @@ export function registerRoutes(app: Express): Server {
     const startTime = Date.now();
     
     try {
-      const { messages, maxIterations } = req.body;
+      const { messages, maxIterations, language } = req.body;
       
       if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ error: "messages array is required" });
@@ -3363,6 +3383,10 @@ export function registerRoutes(app: Express): Server {
       // Get last user message (normalize to string)
       const lastUserContent3 = messages[messages.length - 1]?.content || '';
       const lastUserMessage = extractTextContent(lastUserContent3);
+      
+      // ✅ FIX BUG #2: Detectar idioma (backend detecta se frontend não enviou)
+      const detectedLanguage = language || enforcementPipeline.detectLanguage(lastUserMessage);
+      console.log(`[Agent Chat] Detected language: ${detectedLanguage}`);
       
       // 🎯 EXPLICIT SOURCE DETECTION: Check if user explicitly requested a specific source
       const explicitRequest = detectExplicitSourceRequest(lastUserMessage);

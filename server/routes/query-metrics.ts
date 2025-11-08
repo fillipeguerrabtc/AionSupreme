@@ -99,10 +99,16 @@ export function registerQueryMetricsRoutes(app: Router) {
   /**
    * GET /api/admin/query-metrics/summary
    * Alias para /stats - retorna estatísticas agregadas
+   * Query params:
+   *   - daysAgo: número de dias atrás (default: 1 para últimas 24h)
    */
   app.get("/query-metrics/summary", async (req: Request, res: Response) => {
     try {
-      const stats = await queryMonitor.getStats();
+      // ✅ PRODUCTION FIX: UI mostra "Últimas 24 horas", agora busca 1 dia real
+      const { daysAgo } = req.query;
+      const days = daysAgo && typeof daysAgo === "string" ? parseInt(daysAgo, 10) : 1;
+      
+      const stats = await queryMonitor.getStats(days);
       
       // Calcular success rate e error rate
       const totalQueries = stats.totalQueries || 0;

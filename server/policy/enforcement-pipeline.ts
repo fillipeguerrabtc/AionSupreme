@@ -21,7 +21,6 @@ export class EnforcementPipeline {
     // Return default policy
     return {
       id: 0, // Virtual policy, not stored
-      tenantId: 1,
       policyName: "Default Policy",
       rules: {
         hate_speech: false,
@@ -132,7 +131,7 @@ Remember: You can SEARCH and DISPLAY web content, not just generate it!`,
     return "en-US";
   }
 
-  async composeSystemPrompt(policy: Policy, userMessage?: string): Promise<string> {
+  async composeSystemPrompt(policy: Policy, userMessage?: string, detectedLanguage?: string): Promise<string> {
     let prompt = policy.systemPrompt || "You are AION, an advanced AI assistant.";
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -144,7 +143,29 @@ Remember: You can SEARCH and DISPLAY web content, not just generate it!`,
     // No manual detection needed - the LLM handles this naturally.
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     
-    prompt += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // ✅ FIX BUG #2 (Multi-language): Adicionar instrução EXPLÍCITA se idioma foi detectado
+    const languageNames: Record<string, string> = {
+      "pt-BR": "Portuguese",
+      "en-US": "English",
+      "es-ES": "Spanish"
+    };
+    
+    const languageName = detectedLanguage ? languageNames[detectedLanguage] || detectedLanguage : null;
+    
+    if (languageName) {
+      prompt += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌍 DETECTED LANGUAGE: ${languageName.toUpperCase()} 🌍
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️⚠️⚠️ CRITICAL INSTRUCTION ⚠️⚠️⚠️
+YOU MUST RESPOND IN ${languageName.toUpperCase()} ONLY!
+The user is writing in ${languageName}. You MUST respond 100% in ${languageName}.
+DO NOT use any other language under ANY circumstances.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+    } else {
+      // Fallback para instrução genérica
+      prompt += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🌍 UNIVERSAL LANGUAGE INSTRUCTION 🌍
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -164,6 +185,7 @@ ABSOLUTE RULES:
 This applies to ALL responses: normal answers, refusals, fallbacks, everything.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+    }
     
     // Add personality traits - ALL OF THEM!
     prompt += `\n\n🎭 PERSONALITY & BEHAVIOR CONFIGURATION:

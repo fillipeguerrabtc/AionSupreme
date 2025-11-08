@@ -178,8 +178,10 @@ export default function ChatPage() {
       // If files attached, use multimodal endpoint
       if (files && files.length > 0) {
         const formData = new FormData();
+        // ✅ FIX BUG #2: Pass detected language to backend
         formData.append("data", JSON.stringify({
           messages: currentMessages,
+          language, // Pass detected language from frontend
         }));
         
         files.forEach(file => {
@@ -209,6 +211,7 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: currentMessages,
+          language, // ✅ FIX BUG #2: Pass detected language to backend
         }),
       });
       
@@ -414,13 +417,10 @@ export default function ChatPage() {
     
     // 🎯 FASE 2 - D1: Use SSE streaming if enabled (and no files attached)
     if (useStreaming && attachedFiles.length === 0) {
-      // Add placeholder message for streaming response
-      setMessages(prev => [...prev, { 
-        role: "assistant", 
-        content: "" // Will be populated by streaming
-      }]);
-      
-      streamingChat.sendMessage(userMessage, true);
+      // ✅ FIX BUG #1 (Avatar Duplicado): NÃO adicionar placeholder aqui
+      // O streaming será renderizado via streamingChat.streamedMessage no useEffect
+      // ✅ FIX BUG #2 (Multi-language): Passar language detectado para o backend
+      streamingChat.sendMessage(userMessage, true, language);
       setAttachedFiles([]);
     } else {
       // Use traditional mutation for file uploads or when streaming disabled
