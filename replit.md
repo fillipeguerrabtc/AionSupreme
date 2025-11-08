@@ -33,6 +33,17 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 - Sempre revisar código com architect antes de marcar como completed
 
 ## Recent Changes (2025-11-08)
+
+**Curation→KB Flow Fix - Automatic Embedding Generation + Namespace Isolation:**
+- **Problem:** Documents approved in curation had zero embeddings, KB search returned 0 results, namespace isolation couldn't be validated. Flow Curation→KB was completely broken.
+- **Root Causes:** (1) Wrong indexDocument() method used (vector store loader vs embedding generator), (2) Content fallback missing (extractedText=NULL but content exists), (3) Metadata namespace field mismatch (namespaces plural array vs namespace singular string), (4) Metadata not corrected in reindexing.
+- **Solution Implemented (3 files modified):**
+  - `server/rag/knowledge-indexer.ts`: reIndexDocument() now uses doc.content fallback + normalizes metadata to namespace (singular) + structured logs
+  - `server/routes/curation.ts`: Approval endpoint generates embeddings automatically with namespace (singular)
+  - `server/routes/curation.ts`: New POST /api/admin/curation/reindex/:id endpoint for orphaned documents
+- **Validation Results:** ✅ Embeddings generated (1 chunk), ✅ KB search works (1 result), ✅ Namespace filtering works (tutoriais namespace), ✅ Namespace isolation works (docs namespace returns 0)
+- **Architect Review:** APPROVED - "Pass – The submitted changes restore automatic embedding generation and namespace-aware search after curation approval and manual reindexing"
+
 **Multi-Language Bug Fix - Complete End-to-End Propagation:**
 - **Problem:** Multi-Agent system wasn't propagating language parameter correctly—EN-US responses returned in Portuguese despite language="en-US" being detected by frontend.
 - **Root Cause:** Language parameter stopped at orchestrator level and wasn't passed to AgentExecutor → priority-orchestrator chain.

@@ -8,7 +8,7 @@ import { ImageProcessor } from "../learn/image-processor";
 import { db } from "../db";
 import { deduplicationService } from "../services/deduplication-service";
 import { generateContentHash, normalizeContent } from "../utils/deduplication";
-import { curationQueue, documents } from "../../shared/schema";
+import { curationQueue, documents, embeddings } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 import { inferMimeType } from "../lib/mime-type-inference";
 
@@ -158,7 +158,7 @@ export function registerCurationRoutes(app: Router) {
 
   /**
    * POST /api/curation/approve
-   * Aprova e publica item + ADICIONA AO DATASET DE TREINO
+   * Aprova e publica item + ADICIONA AO DATASET DE TREINO + GERA EMBEDDINGS
    */
   app.post("/curation/approve", async (req, res) => {
     try {
@@ -172,6 +172,40 @@ export function registerCurationRoutes(app: Router) {
         id,
         reviewedBy
       );
+
+      // 🔥 FIX CRÍTICO: Gerar embeddings automaticamente após aprovação
+      // Busca documento aprovado para obter conteúdo e metadata
+      const [doc] = await db
+        .select()
+        .from(documents)
+        .where(eq(documents.id, parseInt(publishedId)))
+        .limit(1);
+
+      if (!doc) {
+        console.warn(`[Curation] ⚠️ Document ${publishedId} not found after approval`);
+      } else if (!doc.content) {
+        console.warn(`[Curation] ⚠️ Document ${publishedId} has no content (empty or null)`);
+      } else {
+        const { KnowledgeIndexer } = await import("../rag/knowledge-indexer");
+        const indexer = new KnowledgeIndexer();
+        
+        // Indexa documento (chunking + embedding generation + vector store)
+        // IMPORTANTE: VectorStore.search procura por 'namespace' (singular), não 'namespaces' (plural)
+        const namespace = item.suggestedNamespaces && item.suggestedNamespaces.length > 0 
+          ? item.suggestedNamespaces[0]  // Usar primeiro namespace
+          : 'general';  // Fallback para namespace padrão
+        
+        await indexer.indexDocument(
+          parseInt(publishedId),
+          doc.content,
+          { 
+            namespace,  // Singular string, não array!
+            title: item.title,
+          }
+        );
+        
+        console.log(`[Curation] ✅ Embeddings generated for document ${publishedId}`);
+      }
 
       // Emitir eventos para indexador
       await publishEvent("DOC_UPDATED", {
@@ -627,6 +661,96 @@ export function registerCurationRoutes(app: Router) {
         deletedCount: result.curationItemsDeleted,
       });
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/curation/reindex/:documentId
+   * Re-indexa documento órfão (aprovado antes do fix de embeddings)
+   * Gera chunks + embeddings para documentos que não têm
+   */
+  app.post("/curation/reindex/:documentId", async (req, res) => {
+    try {
+      const documentId = parseInt(req.params.documentId);
+
+      if (isNaN(documentId)) {
+        return res.status(400).json({ error: "Invalid document ID" });
+      }
+
+      // Busca documento
+      const [doc] = await db
+        .select()
+        .from(documents)
+        .where(eq(documents.id, documentId))
+        .limit(1);
+
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      if (doc.status !== "indexed") {
+        return res.status(400).json({ 
+          error: `Document status is "${doc.status}", expected "indexed"` 
+        });
+      }
+
+      // Verifica se já tem embeddings
+      const existingEmbeddings = await db
+        .select()
+        .from(embeddings)
+        .where(eq(embeddings.documentId, documentId))
+        .limit(1);
+
+      if (existingEmbeddings.length > 0) {
+        return res.status(400).json({ 
+          error: "Document already has embeddings (not orphaned)" 
+        });
+      }
+
+      // Valida conteúdo antes de indexar (usa content ou extractedText)
+      const contentToIndex = doc.content || doc.extractedText || '';
+      if (contentToIndex.trim() === '') {
+        console.warn(`[Curation] ⚠️ Document ${documentId} has no content (empty or null)`);
+        return res.status(400).json({ 
+          error: `Document has no content to index` 
+        });
+      }
+
+      // Indexa documento (gera embeddings usando knowledgeIndexer)
+      const { KnowledgeIndexer } = await import("../rag/knowledge-indexer");
+      const indexer = new KnowledgeIndexer();
+      
+      // Deleta embeddings existentes primeiro (se houver)
+      const { storage } = await import("../storage");
+      await storage.deleteEmbeddingsByDocument(documentId);
+      
+      // IMPORTANTE: VectorStore.search procura por 'namespace' (singular), não 'namespaces' (plural)
+      const docMetadata = (doc.metadata as any) || {};
+      const namespace = docMetadata.namespaces && docMetadata.namespaces.length > 0
+        ? docMetadata.namespaces[0]  // Usar primeiro namespace
+        : docMetadata.namespace || 'general';  // Fallback para namespace singular ou 'general'
+      
+      // Re-indexa com content existente
+      await indexer.indexDocument(
+        documentId,
+        contentToIndex,
+        { 
+          namespace,  // Singular string, não array!
+          title: doc.title,
+        }
+      );
+
+      console.log(`[Curation] ✅ Re-indexed orphaned document ${documentId}`);
+
+      res.json({
+        success: true,
+        message: `Document ${documentId} re-indexed successfully`,
+        documentId,
+        title: doc.title,
+      });
+    } catch (error: any) {
+      console.error(`[Curation] Re-index error:`, error);
       res.status(500).json({ error: error.message });
     }
   });

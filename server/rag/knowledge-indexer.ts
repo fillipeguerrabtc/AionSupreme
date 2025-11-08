@@ -247,6 +247,7 @@ export class KnowledgeIndexer {
 
   /**
    * Re-index a document (delete old embeddings and create new ones)
+   * Falls back to doc.content when extractedText is empty
    */
   async reIndexDocument(documentId: number): Promise<void> {
     console.log(`[KnowledgeIndexer] Re-indexing document ${documentId}...`);
@@ -256,14 +257,34 @@ export class KnowledgeIndexer {
     
     // Get document to re-index
     const doc = await storage.getDocument(documentId);
-    if (!doc || !doc.extractedText) {
-      throw new Error(`Document ${documentId} not found or has no extracted text`);
+    if (!doc) {
+      throw new Error(`Document ${documentId} not found`);
     }
     
-    // Re-index with existing content
-    await ragService.indexDocument(documentId, doc.extractedText, doc.metadata || {});
+    // Use extractedText OR content as fallback
+    const contentToIndex = doc.extractedText || doc.content || '';
+    if (!contentToIndex || contentToIndex.trim() === '') {
+      console.error(`[KnowledgeIndexer] ❌ Document ${documentId} has no content (extracted_text_length: ${doc.extractedText?.length || 0}, content_length: ${doc.content?.length || 0})`);
+      throw new Error(`Document ${documentId} has no content to index (both extractedText and content are empty)`);
+    }
     
-    console.log(`[KnowledgeIndexer] ✅ Document ${documentId} re-indexed`);
+    console.log(`[KnowledgeIndexer] 📝 Content length: ${contentToIndex.length} chars (source: ${doc.extractedText ? 'extractedText' : 'content'})`);
+    
+    // Extract namespace from metadata (singular string, not array!)
+    // IMPORTANTE: VectorStore.search procura por 'namespace' (singular), não 'namespaces' (plural)
+    const docMetadata = (doc.metadata as any) || {};
+    const namespace = docMetadata.namespace 
+      || (docMetadata.namespaces && docMetadata.namespaces.length > 0 ? docMetadata.namespaces[0] : null)
+      || 'general';  // Fallback para namespace padrão
+    
+    // Re-index with corrected metadata (namespace singular)
+    await ragService.indexDocument(documentId, contentToIndex, {
+      namespace,  // Singular string, não array!
+      title: doc.title,
+      ...docMetadata,  // Preservar outros campos de metadata
+    });
+    
+    console.log(`[KnowledgeIndexer] ✅ Document ${documentId} re-indexed with namespace: ${namespace}`);
   }
 }
 
