@@ -37,9 +37,10 @@ export async function orchestrateAgents(
     budgetUSD?: number;
     tenantId?: number;
     sessionId?: string;
+    language?: string; // 🔥 FIX: Support multi-language responses
   } = {}
 ): Promise<OrchestratorResult> {
-  const { history = [], budgetUSD = 1.0, tenantId = 1, sessionId = "default" } = options;
+  const { history = [], budgetUSD = 1.0, tenantId = 1, sessionId = "default", language = "pt-BR" } = options;
 
   console.log(`[Orchestrator] Starting agent orchestration for query: "${query.substring(0, 80)}..."`);
   
@@ -74,6 +75,7 @@ export async function orchestrateAgents(
       tenantId,
       sessionId,
       budgetUSD,
+      language, // 🔥 FIX: Pass language to agents for multi-language support
     };
 
     const startTime = Date.now();
@@ -100,8 +102,10 @@ export async function orchestrateAgents(
             try {
               const result = await executor.run(agentInput, agentContext);
               const execLatency = Date.now() - execStartTime;
-              // Fix: Pass as number explicitly to avoid TypeScript error
-              queryMonitor.trackAgentQuerySuccess(choice.agentId, execLatency as number);
+              queryMonitor.trackAgentQuerySuccess({
+                agentId: choice.agentId,
+                latencyMs: execLatency
+              });
               return {
                 agentId: choice.agentId,
                 agentName: executor.name,
@@ -110,8 +114,11 @@ export async function orchestrateAgents(
               };
             } catch (execError: any) {
               const execLatency = Date.now() - execStartTime;
-              // Fix: Pass as number explicitly to avoid TypeScript error
-              queryMonitor.trackAgentQueryError(choice.agentId, execError.name || "UnknownError", execLatency as number);
+              queryMonitor.trackAgentQueryError({
+                agentId: choice.agentId,
+                errorType: execError.name || "UnknownError",
+                latencyMs: execLatency
+              });
               throw execError; // Re-throw to be caught by outer catch
             }
           }

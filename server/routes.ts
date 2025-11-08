@@ -645,6 +645,7 @@ export function registerRoutes(app: Express): Server {
               budgetUSD: 1.0,
               tenantId: 1,
               sessionId: "chat-session",
+              language: detectedLanguage, // 🔥 FIX: Pass language to Multi-Agent for multi-language support
             });
             
             const latency = Date.now() - startTime;

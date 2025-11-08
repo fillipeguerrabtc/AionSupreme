@@ -151,6 +151,9 @@ ${ragContext}`;
           messages: conversationMessages,
           temperature: 0.7,
           maxTokens: 1024,
+          language: (ctx.language === "pt-BR" || ctx.language === "en-US" || ctx.language === "es-ES") 
+            ? ctx.language 
+            : undefined, // 🔥 FIX: Type-safe language propagation
         });
         
         const latencyMs = Date.now() - startTime;
