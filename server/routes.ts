@@ -606,10 +606,11 @@ export function registerRoutes(app: Express): Server {
     const startTime = Date.now();
     
     try {
-      const { messages, useMultiAgent = true, language } = req.body; // Habilitar multi-agent por padrão
+      const { messages, useMultiAgent = true, language, conversationId } = req.body; // Accept optional conversationId
       
       console.log(`[Chat API] Recebidas ${messages.length} mensagens no histórico`);
       console.log(`[Chat API] Multi-Agent Mode: ${useMultiAgent ? 'ENABLED' : 'DISABLED'}`);
+      console.log(`[Chat API] ConversationId: ${conversationId || 'null (ephemeral)'}`);
       console.log(`[Chat API] Últimas 3 mensagens:`, messages.slice(-3).map((m: any) => ({
         role: m.role,
         preview: m.content?.substring(0, 50)
@@ -621,6 +622,20 @@ export function registerRoutes(app: Express): Server {
       // Obter última mensagem do usuário (normalizada para string)
       const lastUserContent = messages[messages.length - 1]?.content || '';
       const lastUserMessage = extractTextContent(lastUserContent);
+      
+      // 🔥 FIX: Persist user message BEFORE generation (if conversationId provided)
+      if (conversationId && messages.length > 0) {
+        try {
+          await storage.createMessage({
+            conversationId,
+            role: "user",
+            content: lastUserMessage,
+          });
+          console.log(`[Chat API] 💾 User message persisted to conversation ${conversationId}`);
+        } catch (persistError: unknown) {
+          console.error(`[Chat API] Failed to persist user message:`, getErrorMessage(persistError));
+        }
+      }
       
       // ✅ FIX BUG #2: Use frontend-detected language or auto-detect from message
       const detectedLanguage = language || autoDetectLanguage(lastUserMessage);
@@ -650,6 +665,25 @@ export function registerRoutes(app: Express): Server {
             
             const latency = Date.now() - startTime;
             metricsCollector.recordLatency(latency);
+            
+            // 🔥 FIX: Persist assistant message AFTER generation (multi-agent path)
+            if (conversationId && agentResult.content) {
+              try {
+                await storage.createMessage({
+                  conversationId,
+                  role: "assistant",
+                  content: agentResult.content,
+                  metadata: {
+                    source: "multi-agent",
+                    provider: "multi-agent",
+                    totalCost: agentResult.metadata?.totalCost,
+                  },
+                });
+                console.log(`[Chat API Multi-Agent] 💾 Assistant message persisted to conversation ${conversationId}`);
+              } catch (persistError: unknown) {
+                console.error(`[Chat API Multi-Agent] Failed to persist assistant message:`, getErrorMessage(persistError));
+              }
+            }
             
             return res.json({
               choices: [{
@@ -714,6 +748,25 @@ export function registerRoutes(app: Express): Server {
         { tokensUsed: result.usage?.totalTokens || 0, provider: result.provider }
       );
       
+      // 🔥 FIX: Persist assistant message AFTER generation (if conversationId provided)
+      if (conversationId && result.content) {
+        try {
+          await storage.createMessage({
+            conversationId,
+            role: "assistant",
+            content: result.content,
+            metadata: {
+              source: (result.source === "web-fallback" || result.source === "openai-fallback") ? "free-api" : (result.source || "openai"),
+              provider: result.provider,
+              model: result.model,
+            },
+          });
+          console.log(`[Chat API] 💾 Assistant message persisted to conversation ${conversationId}`);
+        } catch (persistError: unknown) {
+          console.error(`[Chat API] Failed to persist assistant message:`, getErrorMessage(persistError));
+        }
+      }
+      
       // 🧠 AUTO-EVOLUÇÃO: Acionar sistema de auto-aprendizado
       // Isso cria o loop infinito de aprendizado: Chat → KB → Dataset → Treino → Modelo Melhor
       try {
@@ -722,8 +775,9 @@ export function registerRoutes(app: Express): Server {
         const userMessage = extractTextContent(userMessageContent2);
         
         // Fire and forget - não bloquear resposta
+        // 🔥 FIX: Pass real conversationId instead of null
         autoLearningListener.onChatCompleted({
-          conversationId: null, // Sem ID de conversa para chats standalone
+          conversationId: conversationId || null, // Use provided conversationId or null for ephemeral
           userMessage,
           assistantResponse: result.content,
           source: (result.source === "web-fallback" || result.source === "openai-fallback") ? "free-api" : (result.source || "openai"),
@@ -766,7 +820,7 @@ export function registerRoutes(app: Express): Server {
     const startTime = Date.now();
     
     try {
-      const { message, useMultiAgent = "true", language } = req.query;
+      const { message, useMultiAgent = "true", language, conversationId } = req.query;
       
       if (!message || typeof message !== "string") {
         return res.status(400).json({ error: req.t('chat.message_required') });
@@ -776,6 +830,21 @@ export function registerRoutes(app: Express): Server {
       const detectedLanguage = typeof language === "string" ? language : "pt-BR";
       
       console.log(`[SSE] Detected language: ${detectedLanguage}`);
+      console.log(`[SSE] ConversationId: ${conversationId || 'null (ephemeral)'}`);
+      
+      // 🔥 FIX: Persist user message BEFORE generation (if conversationId provided)
+      if (conversationId && typeof conversationId === "string") {
+        try {
+          await storage.createMessage({
+            conversationId,
+            role: "user",
+            content: message,
+          });
+          console.log(`[SSE] 💾 User message persisted to conversation ${conversationId}`);
+        } catch (persistError: unknown) {
+          console.error(`[SSE] Failed to persist user message:`, getErrorMessage(persistError));
+        }
+      }
       
       // Configurar headers SSE
       res.setHeader("Content-Type", "text/event-stream");
@@ -849,11 +918,30 @@ export function registerRoutes(app: Express): Server {
               console.log(`[SSE Multi-Agent] Total cost: $${agentResult.metadata.totalCost}`);
             }
             
+            // 🔥 FIX: Persist assistant message AFTER generation (multi-agent path)
+            if (conversationId && typeof conversationId === "string" && fullResponse) {
+              try {
+                await storage.createMessage({
+                  conversationId,
+                  role: "assistant",
+                  content: fullResponse,
+                  metadata: {
+                    source: "multi-agent",
+                    provider: "multi-agent",
+                    totalCost: agentResult.metadata?.totalCost,
+                  },
+                });
+                console.log(`[SSE Multi-Agent] 💾 Assistant message persisted to conversation ${conversationId}`);
+              } catch (persistError: unknown) {
+                console.error(`[SSE Multi-Agent] Failed to persist assistant message:`, getErrorMessage(persistError));
+              }
+            }
+            
             // Send to curation queue
             try {
               const { autoLearningListener } = await import('./events/auto-learning-listener');
               autoLearningListener.onChatCompleted({
-                conversationId: null,
+                conversationId: (typeof conversationId === "string" ? conversationId : null),
                 userMessage: message,
                 assistantResponse: fullResponse,
                 source: "free-api", // Multi-agent may use free APIs
@@ -945,13 +1033,33 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
+      // 🔥 FIX: Persist assistant message AFTER generation (priority orchestrator path)
+      if (conversationId && typeof conversationId === "string" && fullResponse) {
+        try {
+          await storage.createMessage({
+            conversationId,
+            role: "assistant",
+            content: fullResponse,
+            metadata: {
+              source: (result.source === "web-fallback" || result.source === "openai-fallback") ? "free-api" : (result.source || "openai"),
+              provider: result.provider,
+              model: result.model,
+            },
+          });
+          console.log(`[SSE] 💾 Assistant message persisted to conversation ${conversationId}`);
+        } catch (persistError: unknown) {
+          console.error(`[SSE] Failed to persist assistant message:`, getErrorMessage(persistError));
+        }
+      }
+      
       // 🎯 FIX #5: AUTO-LEARNING - Send to curation queue for HITL review
       try {
         const { autoLearningListener } = await import('./events/auto-learning-listener');
         
         // Fire and forget - não bloquear resposta
+        // 🔥 FIX: Pass real conversationId instead of null
         autoLearningListener.onChatCompleted({
-          conversationId: null, // SSE não tem conversationId persistido
+          conversationId: (typeof conversationId === "string" ? conversationId : null),
           userMessage: message,
           assistantResponse: fullResponse,
           source: (result.source === "web-fallback" || result.source === "openai-fallback") ? "free-api" : (result.source || "openai"),
