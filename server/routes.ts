@@ -45,6 +45,8 @@ import { db } from "./db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { trainingDataCollection, datasets, trainingJobs, uploadedAdapters } from "../shared/schema";
 import { lifecyclePolicyUpdateSchema } from "./validation/lifecycle-policy-schema";
+import { idParamSchema, jobIdParamSchema, jobIdChunkIndexSchema, docIdAttachmentIndexSchema, jobIdWorkerIdStepSchema, jobIdStepSchema, validateParams, validateQuery, validateBody } from "./validation/route-params"; // ✅ FIX P0-2
+import { z } from "zod"; // ✅ FIX P0-2: Import z for inline schemas
 import { registerAgentRoutes } from "./routes/agents";
 import { registerAgentRelationshipRoutes } from "./routes/agent-relationships";
 import { registerCurationRoutes } from "./routes/curation";
@@ -75,10 +77,14 @@ interface HealthCheckServices {
   gpuPool?: HealthServiceStatus;
 }
 
+// ✅ FIX P0-10: Strict multer limits to prevent DoS (max 50MB total per request)
 const upload = multer({ 
   dest: "/tmp/uploads/",
   limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB max
+    fileSize: 10 * 1024 * 1024, // 10MB max per individual file
+    files: 5, // Max 5 files per request (5 × 10MB = 50MB total max)
+    fields: 20, // Max 20 non-file fields
+    fieldSize: 1 * 1024 * 1024, // Max 1MB per field value
   }
 });
 
@@ -318,7 +324,11 @@ export function registerRoutes(app: Express): Server {
   // Download dataset completo
   app.get("/api/datasets/:id/download", requireAuth, async (req, res) => {
     try {
-      const datasetId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters to prevent SQL injection
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: datasetId } = params;
       
       const [dataset] = await db.select().from(datasets).where(eq(datasets.id, datasetId)).limit(1);
       
@@ -344,10 +354,14 @@ export function registerRoutes(app: Express): Server {
   // GET /api/datasets/chunks/:jobId/:chunkIndex/download
   app.get("/api/datasets/chunks/:jobId/:chunkIndex/download", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(jobIdChunkIndexSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { jobId, chunkIndex } = params;
+      
       const { datasetSplitter } = await import("./federated/dataset-splitter");
       const { resolve } = await import("path");
-      const jobId = parseInt(req.params.jobId);
-      const chunkIndex = parseInt(req.params.chunkIndex);
 
       // Obter caminho do chunk
       const chunkPath = datasetSplitter.getChunkPath(jobId, chunkIndex);
@@ -371,8 +385,13 @@ export function registerRoutes(app: Express): Server {
   // GET /api/training/jobs/:jobId/checkpoint
   app.get("/api/training/jobs/:jobId/checkpoint", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(jobIdParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { jobId } = params;
+      
       const { resolve } = await import("path");
-      const jobId = parseInt(req.params.jobId);
 
       // Buscar job para pegar caminho do checkpoint
       const job = await db.query.trainingJobs.findFirst({
@@ -847,6 +866,14 @@ export function registerRoutes(app: Express): Server {
     try {
       if (!req.file) throw new Error(req.t('upload.no_audio_file'));
       
+      // ✅ FIX P0-6: Validate audio file using magic bytes
+      const { validateAudioUpload } = await import("./utils/file-validation");
+      const validation = await validateAudioUpload(req.file.path);
+      
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+      }
+      
       metricsCollector.recordRequest();
       
       // Chamar API OpenAI Whisper
@@ -872,6 +899,20 @@ export function registerRoutes(app: Express): Server {
       const files = req.files as Express.Multer.File[];
       
       metricsCollector.recordRequest();
+      
+      // ✅ FIX P0-6: Validate ALL uploaded files using magic bytes
+      if (files && files.length > 0) {
+        const { validateDocumentUpload } = await import("./utils/file-validation");
+        
+        for (const file of files) {
+          const validation = await validateDocumentUpload(file.path);
+          if (!validation.valid) {
+            return res.status(400).json({ 
+              error: `File validation failed for ${file.originalname}: ${validation.error}` 
+            });
+          }
+        }
+      }
       
       // Obter política ou usar PADRÃO SEM RESTRIÇÕES (todas as regras = false)
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
@@ -1009,6 +1050,16 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/kb/ingest", requireAuth, upload.single("file"), async (req, res) => {
     try {
       if (!req.file) throw new Error(req.t('upload.no_file'));
+      
+      // ✅ FIX P0-6: Validate document file using magic bytes
+      const { validateDocumentUpload } = await import("./utils/file-validation");
+      const validation = await validateDocumentUpload(req.file.path);
+      
+      if (!validation.valid) {
+        // Clean up invalid file
+        await fs.unlink(req.file.path).catch(() => {});
+        return res.status(400).json({ error: validation.error });
+      }
       
       const mimeType = fileProcessor.detectMimeType(req.file.originalname);
       
@@ -1508,7 +1559,11 @@ export function registerRoutes(app: Express): Server {
   // PATCH /api/admin/documents/:id - Atualizar documento
   app.patch("/api/admin/documents/:id", requireAdmin, async (req, res) => {
     try {
-      const docId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: docId } = params;
       const { title, content, metadata } = req.body;
 
       // Obter documento existente para mesclar metadata
@@ -1543,7 +1598,11 @@ export function registerRoutes(app: Express): Server {
   // DELETE /api/admin/documents/:id - Deletar documento KB em cascata
   app.delete("/api/admin/documents/:id", requireAdmin, async (req, res) => {
     try {
-      const docId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: docId } = params;
       
       // Importar serviço de cascata
       const { kbCascadeService } = await import("./services/kb-cascade");
@@ -1601,8 +1660,11 @@ export function registerRoutes(app: Express): Server {
   // PATCH /api/admin/documents/:id/attachments/:index - Atualizar descrição de anexo
   app.patch("/api/admin/documents/:id/attachments/:index", requireAdmin, async (req, res) => {
     try {
-      const docId = parseInt(req.params.id);
-      const attachmentIndex = parseInt(req.params.index);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(docIdAttachmentIndexSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: docId, index: attachmentIndex } = params;
       const { description } = req.body;
 
       if (description === undefined) {
@@ -2192,6 +2254,22 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "No files uploaded" });
       }
 
+      // ✅ FIX P0-6: Validate ALL uploaded files using magic bytes
+      const { validateDocumentUpload } = await import("./utils/file-validation");
+      
+      for (const file of files) {
+        const validation = await validateDocumentUpload(file.path);
+        if (!validation.valid) {
+          // Clean up ALL temp files before returning error
+          for (const f of files) {
+            await fs.unlink(f.path).catch(() => {});
+          }
+          return res.status(400).json({ 
+            error: `File validation failed for ${file.originalname}: ${validation.error}` 
+          });
+        }
+      }
+
       // Import curation store
       const { curationStore } = await import("./curation/store");
 
@@ -2566,7 +2644,11 @@ export function registerRoutes(app: Express): Server {
   // GET /api/files/:id - Download generated file
   app.get("/api/files/:id", requireAuth, async (req, res) => {
     try {
-      const fileId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: fileId } = params;
       const file = await storage.getGeneratedFile(fileId);
       
       if (!file || file.isDeleted) {
@@ -2593,7 +2675,11 @@ export function registerRoutes(app: Express): Server {
   // GET /api/files/:id/download - Force download
   app.get("/api/files/:id/download", requireAuth, async (req, res) => {
     try {
-      const fileId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: fileId } = params;
       const file = await storage.getGeneratedFile(fileId);
       
       if (!file || file.isDeleted) {
@@ -2665,7 +2751,11 @@ export function registerRoutes(app: Express): Server {
   // GET /api/videos/jobs/:id - Get video job status
   app.get("/api/videos/jobs/:id", requireAuth, async (req, res) => {
     try {
-      const jobId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: jobId } = params;
       const status = await videoGenerator.getJobStatus(jobId);
       res.json(status);
     } catch (error: unknown) {
@@ -2676,7 +2766,11 @@ export function registerRoutes(app: Express): Server {
   // GET /api/videos/:id - Download video asset
   app.get("/api/videos/:id", requireAuth, async (req, res) => {
     try {
-      const assetId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: assetId } = params;
       const asset = await storage.getVideoAsset(assetId);
       
       if (!asset || asset.isDeleted) {
@@ -2881,7 +2975,11 @@ export function registerRoutes(app: Express): Server {
   // GET /api/conversations/:id - Get conversation (with strict ownership check)
   app.get("/api/conversations/:id", optionalAuth, async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: conversationId } = params;
       const conversation = await storage.getConversation(conversationId);
       
       if (!conversation) {
@@ -2910,7 +3008,11 @@ export function registerRoutes(app: Express): Server {
   // GET /api/conversations/:id/messages - Get messages (with strict ownership check)
   app.get("/api/conversations/:id/messages", optionalAuth, async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: conversationId } = params;
       
       // Verify ownership first
       const conversation = await storage.getConversation(conversationId);
@@ -2944,7 +3046,11 @@ export function registerRoutes(app: Express): Server {
     const startTime = Date.now();
     
     try {
-      const conversationId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: conversationId } = params;
       const { role, content, attachments, tool_calls, metadata } = req.body;
       
       const message = await storage.createMessage({
@@ -3041,7 +3147,11 @@ export function registerRoutes(app: Express): Server {
   // DELETE /api/conversations/:id - Delete conversation (with strict ownership check)
   app.delete("/api/conversations/:id", optionalAuth, async (req, res) => {
     try {
-      const conversationId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: conversationId } = params;
       const conversation = await storage.getConversation(conversationId);
       
       if (!conversation) {
@@ -3126,7 +3236,11 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).json({ error: "Authentication required" });
       }
       
-      const projectId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: projectId } = params;
       const project = await storage.getProject(projectId);
       
       if (!project) {
@@ -3158,7 +3272,11 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).json({ error: "Authentication required" });
       }
       
-      const projectId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: projectId } = params;
       const project = await storage.getProject(projectId);
       
       if (!project) {
@@ -3533,15 +3651,15 @@ export function registerRoutes(app: Express): Server {
   // GET /api/training/jobs/:id - Get training job details
   app.get("/api/training/jobs/:id", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: jobId } = params;
+      
       const { db } = await import("./db");
       const { trainingJobs, trainingWorkers } = await import("../shared/schema");
       const { eq } = await import("drizzle-orm");
-      
-      const jobId = parseInt(req.params.id);
-      
-      if (isNaN(jobId)) {
-        return res.status(400).json({ error: "Invalid job ID" });
-      }
       
       const job = await db.query.trainingJobs.findFirst({
         where: eq(trainingJobs.id, jobId),
@@ -3568,15 +3686,15 @@ export function registerRoutes(app: Express): Server {
   // POST /api/training/jobs/:id/start - Start training job
   app.post("/api/training/jobs/:id/start", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: jobId } = params;
+      
       const { db } = await import("./db");
       const { trainingJobs } = await import("../shared/schema");
       const { eq } = await import("drizzle-orm");
-      
-      const jobId = parseInt(req.params.id);
-      
-      if (isNaN(jobId)) {
-        return res.status(400).json({ error: "Invalid job ID" });
-      }
       
       const [job] = await db
         .update(trainingJobs)
@@ -3603,15 +3721,15 @@ export function registerRoutes(app: Express): Server {
   // POST /api/training/jobs/:id/pause - Pause training job
   app.post("/api/training/jobs/:id/pause", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: jobId } = params;
+      
       const { db } = await import("./db");
       const { trainingJobs } = await import("../shared/schema");
       const { eq } = await import("drizzle-orm");
-      
-      const jobId = parseInt(req.params.id);
-      
-      if (isNaN(jobId)) {
-        return res.status(400).json({ error: "Invalid job ID" });
-      }
       
       const [job] = await db
         .update(trainingJobs)
@@ -3683,12 +3801,13 @@ export function registerRoutes(app: Express): Server {
   // GET /api/training/checkpoints/:jobId - Get latest checkpoint METADATA
   app.get("/api/training/checkpoints/:jobId", requireAuth, async (req, res) => {
     try {
-      const { gradientAggregator } = await import("./federated/gradient-aggregator");
-      const jobId = parseInt(req.params.jobId);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(jobIdParamSchema, req, res);
+      if (!params) return; // Error response already sent
       
-      if (isNaN(jobId)) {
-        return res.status(400).json({ error: "Invalid job ID" });
-      }
+      const { jobId } = params;
+      
+      const { gradientAggregator } = await import("./federated/gradient-aggregator");
       
       const checkpointPath = await gradientAggregator.getLatestCheckpoint(jobId);
       
@@ -3718,12 +3837,13 @@ export function registerRoutes(app: Express): Server {
   // PUBLIC endpoint (no auth) - workers need to download this
   app.get("/api/training/checkpoints/:jobId/download", async (req, res) => {
     try {
-      const { gradientAggregator } = await import("./federated/gradient-aggregator");
-      const jobId = parseInt(req.params.jobId);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(jobIdParamSchema, req, res);
+      if (!params) return; // Error response already sent
       
-      if (isNaN(jobId)) {
-        return res.status(400).json({ error: "Invalid job ID" });
-      }
+      const { jobId } = params;
+      
+      const { gradientAggregator } = await import("./federated/gradient-aggregator");
       
       const checkpointPath = await gradientAggregator.getLatestCheckpoint(jobId);
       
@@ -3750,14 +3870,11 @@ export function registerRoutes(app: Express): Server {
   // Workers upload complete adapter directories as .tar.gz for aggregation
   app.post("/api/training/adapters/:jobId/:workerId/:step", adapterUpload.single("adapter"), async (req, res) => {
     try {
-      const jobId = parseInt(req.params.jobId);
-      const workerId = parseInt(req.params.workerId);
-      const step = parseInt(req.params.step);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(jobIdWorkerIdStepSchema, req, res);
+      if (!params) return; // Error response already sent
       
-      // Validation
-      if (isNaN(jobId) || isNaN(workerId) || isNaN(step)) {
-        return res.status(400).json({ error: "Invalid jobId, workerId, or step" });
-      }
+      const { jobId, workerId, step } = params;
       
       if (!req.file) {
         return res.status(400).json({ error: "No adapter file uploaded" });
@@ -3824,12 +3941,11 @@ export function registerRoutes(app: Express): Server {
   // POST /api/training/adapters/:jobId/:step/aggregate - Manually trigger aggregation
   app.post("/api/training/adapters/:jobId/:step/aggregate", requireAuth, async (req, res) => {
     try {
-      const jobId = parseInt(req.params.jobId);
-      const step = parseInt(req.params.step);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(jobIdStepSchema, req, res);
+      if (!params) return; // Error response already sent
       
-      if (isNaN(jobId) || isNaN(step)) {
-        return res.status(400).json({ error: "Invalid jobId or step" });
-      }
+      const { jobId, step } = params;
       
       const { adapterAggregator } = await import("./federated/adapter-aggregator");
       
@@ -3957,15 +4073,15 @@ export function registerRoutes(app: Express): Server {
   // GET /api/training/datasets/:id - Get specific dataset
   app.get("/api/training/datasets/:id", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id } = params;
+      
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
       const { eq } = await import("drizzle-orm");
-
-      const id = parseInt(req.params.id);
-
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid dataset ID" });
-      }
 
       const [dataset] = await db
         .select()
@@ -3986,16 +4102,16 @@ export function registerRoutes(app: Express): Server {
   // GET /api/training/datasets/:id/preview - Get dataset content preview
   app.get("/api/training/datasets/:id/preview", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id } = params;
+      const maxLines = parseInt((req.query.maxLines as string) || "50");
+      
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
       const { eq } = await import("drizzle-orm");
-
-      const id = parseInt(req.params.id);
-      const maxLines = parseInt((req.query.maxLines as string) || "50");
-
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid dataset ID" });
-      }
 
       const [dataset] = await db
         .select()
@@ -4029,16 +4145,16 @@ export function registerRoutes(app: Express): Server {
   // PATCH /api/training/datasets/:id - Update dataset metadata
   app.patch("/api/training/datasets/:id", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id } = params;
+      const { name, description } = req.body;
+      
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
       const { eq } = await import("drizzle-orm");
-
-      const id = parseInt(req.params.id);
-      const { name, description } = req.body;
-
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid dataset ID" });
-      }
 
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Name is required" });
@@ -4073,15 +4189,15 @@ export function registerRoutes(app: Express): Server {
   // DELETE /api/training/datasets/:id - Delete dataset
   app.delete("/api/training/datasets/:id", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id } = params;
+      
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
       const { eq } = await import("drizzle-orm");
-
-      const id = parseInt(req.params.id);
-
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid dataset ID" });
-      }
 
       const [dataset] = await db
         .select()
@@ -4158,16 +4274,16 @@ export function registerRoutes(app: Express): Server {
   // GET /api/training/datasets/:id/download - Download dataset file
   app.get("/api/training/datasets/:id/download", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id } = params;
+      
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
       const { eq } = await import("drizzle-orm");
       const fs = await import("fs/promises");
-
-      const id = parseInt(req.params.id);
-
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid dataset ID" });
-      }
 
       const [dataset] = await db
         .select()
@@ -4313,12 +4429,15 @@ export function registerRoutes(app: Express): Server {
   // POST /api/training-data/collect/:conversationId - Collect conversation for training
   app.post("/api/training-data/collect/:conversationId", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(z.object({ 
+        conversationId: z.coerce.number().int().positive().safe() 
+      }), req, res);
+      if (!params) return; // Error response already sent
+      
+      const { conversationId } = params;
+      
       const { ConversationCollector } = await import("./training/collectors/conversation-collector");
-      const conversationId = parseInt(req.params.conversationId);
-
-      if (isNaN(conversationId)) {
-        return res.status(400).json({ error: "Invalid conversation ID" });
-      }
 
       // Get conversation messages
       const messages = await storage.getMessagesByConversation(conversationId);
@@ -4489,7 +4608,12 @@ export function registerRoutes(app: Express): Server {
   // PATCH /api/training-data/:id - Update training data status (approve/reject) or content
   app.patch("/api/training-data/:id", requireAuth, async (req, res) => {
     try {
-      const { z } = await import("zod");
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id } = params;
+      
       const { TrainingDataValidator } = await import("./training/training-data-validator");
       
       const updateSchema = z.object({
@@ -4501,11 +4625,6 @@ export function registerRoutes(app: Express): Server {
           output: z.string(),
         })).optional(),
       });
-      
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid ID" });
-      }
 
       // Validate request body
       const validation = updateSchema.safeParse(req.body);
@@ -4581,10 +4700,11 @@ export function registerRoutes(app: Express): Server {
   // DELETE /api/training-data/:id - Delete training data
   app.delete("/api/training-data/:id", requireAuth, async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid ID" });
-      }
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id } = params;
       
       // Verify item exists
       const existing = await storage.getTrainingDataCollection(id);
@@ -4604,16 +4724,20 @@ export function registerRoutes(app: Express): Server {
   // POST /api/training/jobs/:id/claim-chunk - Claim an available chunk for training
   app.post("/api/training/jobs/:id/claim-chunk", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: jobId } = params;
+      const { workerId } = req.body;
+      
+      if (!workerId) {
+        return res.status(400).json({ error: "Invalid worker ID" });
+      }
+      
       const { db } = await import("./db");
       const { trainingJobs, trainingWorkers } = await import("../shared/schema");
       const { eq, and, or } = await import("drizzle-orm");
-      
-      const jobId = parseInt(req.params.id);
-      const { workerId } = req.body;
-      
-      if (isNaN(jobId) || !workerId) {
-        return res.status(400).json({ error: "Invalid job ID or worker ID" });
-      }
       
       // Get job
       const job = await db.query.trainingJobs.findFirst({
@@ -4678,15 +4802,15 @@ export function registerRoutes(app: Express): Server {
   // GET /api/training/jobs/:id/progress - Get real-time training progress
   app.get("/api/training/jobs/:id/progress", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: jobId } = params;
+      
       const { db } = await import("./db");
       const { trainingJobs, trainingWorkers, gradientUpdates } = await import("../shared/schema");
       const { eq, and, sql } = await import("drizzle-orm");
-      
-      const jobId = parseInt(req.params.id);
-      
-      if (isNaN(jobId)) {
-        return res.status(400).json({ error: "Invalid job ID" });
-      }
       
       // Get job
       const job = await db.query.trainingJobs.findFirst({
@@ -4918,7 +5042,11 @@ export function registerRoutes(app: Express): Server {
   // POST /api/tokens/alerts/:id/acknowledge - Acknowledge an alert
   app.post("/api/tokens/alerts/:id/acknowledge", async (req, res) => {
     try {
-      const alertId = parseInt(req.params.id);
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: alertId } = params;
       await tokenTracker.acknowledgeAlert(alertId);
       res.json({ success: true });
     } catch (error: unknown) {
@@ -5199,13 +5327,11 @@ export function registerRoutes(app: Express): Server {
    */
   app.get("/api/kb/rebuild/:jobId", async (req, res) => {
     try {
-      const jobId = parseInt(req.params.jobId);
-
-      if (isNaN(jobId)) {
-        return res.status(400).json(
-          responseEnvelope.error("Invalid job ID", "INVALID_JOB_ID")
-        );
-      }
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(jobIdParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { jobId } = params;
 
       const status = await rebuildService.getJobStatus(jobId);
 
@@ -5233,13 +5359,11 @@ export function registerRoutes(app: Express): Server {
    */
   app.delete("/api/kb/rebuild/:jobId", async (req, res) => {
     try {
-      const jobId = parseInt(req.params.jobId);
-
-      if (isNaN(jobId)) {
-        return res.status(400).json(
-          responseEnvelope.error("Invalid job ID", "INVALID_JOB_ID")
-        );
-      }
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(jobIdParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { jobId } = params;
 
       const cancelled = await rebuildService.cancelRebuild(jobId);
 
@@ -5273,7 +5397,8 @@ export function registerRoutes(app: Express): Server {
   // LINK CAPTURE JOBS - Endpoints para Jobs de Deep Crawling
   // ============================================================================
 
-  app.get("/api/admin/jobs", async (req, res) => {
+  // ✅ FIX P0-9: Add requireAdmin to prevent unauthorized access
+  app.get("/api/admin/jobs", requireAdmin, async (req, res) => {
     try {
       const { linkCaptureJobs } = await import("@shared/schema");
       const { db } = await import("./db");
@@ -5291,8 +5416,15 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/admin/jobs/:id", async (req, res) => {
+  // ✅ FIX P0-9: Add requireAdmin to prevent unauthorized access
+  app.get("/api/admin/jobs/:id", requireAdmin, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id } = params;
+      
       const { linkCaptureJobs } = await import("@shared/schema");
       const { db } = await import("./db");
       const { eq } = await import("drizzle-orm");
@@ -5300,7 +5432,7 @@ export function registerRoutes(app: Express): Server {
       const [job] = await db
         .select()
         .from(linkCaptureJobs)
-        .where(eq(linkCaptureJobs.id, parseInt(req.params.id)))
+        .where(eq(linkCaptureJobs.id, id))
         .limit(1);
       
       if (!job) {
@@ -5315,12 +5447,15 @@ export function registerRoutes(app: Express): Server {
 
   app.patch("/api/admin/jobs/:id", async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: jobId } = params;
       const { action } = req.body; // "pause" | "resume" | "cancel"
       const { linkCaptureJobs } = await import("@shared/schema");
       const { db } = await import("./db");
       const { eq } = await import("drizzle-orm");
-      
-      const jobId = parseInt(req.params.id);
       
       const updates: any = {};
       
@@ -5382,8 +5517,14 @@ export function registerRoutes(app: Express): Server {
   // POST /api/gpu/orchestrate/stop/:workerId - Stop specific GPU
   app.post("/api/gpu/orchestrate/stop/:workerId", requireAuth, requirePermission("gpu:orchestrate"), async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(z.object({ 
+        workerId: z.coerce.number().int().positive().safe() 
+      }), req, res);
+      if (!params) return; // Error response already sent
+      
+      const { workerId } = params;
       const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
-      const workerId = parseInt(req.params.workerId);
       
       const result = await orchestratorService.stopGPU(workerId);
       
@@ -5423,8 +5564,14 @@ export function registerRoutes(app: Express): Server {
   // GET /api/gpu/quota/:workerId - Get quota status for specific worker
   app.get("/api/gpu/quota/:workerId", requireAuth, async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(z.object({ 
+        workerId: z.coerce.number().int().positive().safe() 
+      }), req, res);
+      if (!params) return; // Error response already sent
+      
+      const { workerId } = params;
       const { quotaManager } = await import("./gpu-orchestration/intelligent-quota-manager");
-      const workerId = parseInt(req.params.workerId);
       
       const status = await quotaManager.getQuotaStatus(workerId);
       
@@ -5526,8 +5673,12 @@ export function registerRoutes(app: Express): Server {
   // PATCH /api/gpu/workers/notebooks/:id - Update notebook config
   app.patch("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: workerId } = params;
       const { gpuWorkers: gpuWorkersTable } = await import("../shared/schema");
-      const workerId = parseInt(req.params.id);
       const { notebookUrl, description } = req.body;
       
       const updates: Partial<typeof gpuWorkersTable.$inferInsert> = {};
@@ -5556,8 +5707,12 @@ export function registerRoutes(app: Express): Server {
   // DELETE /api/gpu/workers/notebooks/:id - Remove notebook from pool
   app.delete("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
     try {
+      // ✅ FIX P0-2: Validate route parameters
+      const params = validateParams(idParamSchema, req, res);
+      if (!params) return; // Error response already sent
+      
+      const { id: workerId } = params;
       const { gpuWorkers: gpuWorkersTable } = await import("../shared/schema");
-      const workerId = parseInt(req.params.id);
       
       // Stop session if running
       const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");

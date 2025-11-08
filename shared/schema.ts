@@ -860,6 +860,11 @@ export const gpuWorkers = pgTable("gpu_workers", {
   autoManaged: boolean("auto_managed").notNull().default(false), // If under Puppeteer orchestrator control
   puppeteerSessionId: text("puppeteer_session_id"), // Browser automation session ID
   
+  // ✅ FIX P0-1: Session reservation & locking (two-phase startup)
+  sessionToken: varchar("session_token", { length: 64 }), // Unique token for atomic session reservation
+  startRequestedAt: timestamp("start_requested_at"), // When session start was requested
+  reservationExpiresAt: timestamp("reservation_expires_at"), // TTL for reservation cleanup (5min)
+  
   // Session runtime tracking (Safety: stop 1h before limits)
   sessionStartedAt: timestamp("session_started_at"), // When current session started
   sessionDurationSeconds: integer("session_duration_seconds").notNull().default(0), // Current runtime
@@ -901,6 +906,7 @@ export const gpuWorkers = pgTable("gpu_workers", {
   providerIdx: index("gpu_workers_provider_idx").on(table.provider),
   statusIdx: index("gpu_workers_status_idx").on(table.status),
   accountIdIdx: index("gpu_workers_account_id_idx").on(table.accountId),
+  sessionTokenIdx: index("gpu_workers_session_token_idx").on(table.sessionToken), // ✅ FIX P0-1
 }));
 
 export const insertGpuWorkerSchema = createInsertSchema(gpuWorkers).omit({ 

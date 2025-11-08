@@ -24,11 +24,12 @@
 
 import { db } from '../db';
 import { gpuWorkers } from '../../shared/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, and, lt } from 'drizzle-orm';
 import { gpuCooldownManager } from './gpu-cooldown-manager';
 import { tosComplianceMonitor } from './tos-compliance-monitor';
 import { kaggleAutomationService } from './kaggle-automation-service';
 import { secretsVault } from './security/secrets-vault';
+import { nanoid } from 'nanoid'; // ✅ FIX P0-1: For session tokens
 
 interface StartOptions {
   reason: string;
@@ -74,57 +75,108 @@ export class DemandBasedKaggleOrchestrator {
   
   /**
    * Start Kaggle GPU session (on-demand)
+   * ✅ FIXED P0-1: Two-phase startup with session token (prevents race conditions)
+   * 
+   * STRATEGY:
+   * PHASE 1 (Transaction): Reserve worker atomically with unique session token
+   * PHASE 2 (External): Call Kaggle API (long-running, outside transaction)
+   * PHASE 3 (Transaction): Verify token + promote to 'pending' status
+   * 
+   * This guarantees only ONE session can be starting at any time, without holding
+   * database locks during the external Kaggle API call.
    */
   private async startSession(options: StartOptions): Promise<{ success: boolean; workerId?: number; error?: string }> {
     try {
       console.log(`[DemandBasedKaggle] 🚀 Start requested: ${options.reason}`);
       
-      // 1. Check if already running
-      if (this.activeSessionWorkerId) {
-        console.log(`[DemandBasedKaggle] ⚠️ Session already active (worker ${this.activeSessionWorkerId})`);
-        return {
-          success: false,
-          workerId: this.activeSessionWorkerId,
-          error: 'Session already running',
-        };
-      }
-      
-      // 2. Get or create Kaggle worker
-      const kaggleWorkers = await db.query.gpuWorkers.findMany({
-        where: sql`provider = 'kaggle'`,
+      // ============================================================================
+      // PHASE 1: ATOMICALLY RESERVE WORKER (SHORT TRANSACTION)
+      // ============================================================================
+      const reservationResult = await db.transaction(async (tx) => {
+        // 1. Lock Kaggle worker row FOR UPDATE (prevents concurrent reservations)
+        const kaggleWorkers = await tx
+          .select()
+          .from(gpuWorkers)
+          .where(sql`provider = 'kaggle'`)
+          .for('update');
+        
+        let worker = kaggleWorkers[0];
+        
+        // 2. Ensure worker exists
+        if (!worker) {
+          console.log('[DemandBasedKaggle] No Kaggle worker found - creating...');
+          
+          const [newWorker] = await tx.insert(gpuWorkers).values({
+            provider: 'kaggle',
+            accountId: 'kaggle-main',
+            ngrokUrl: 'pending',
+            status: 'offline',
+            capabilities: {
+              gpu: 'P100',
+              model: 'pending',
+              tor_enabled: false,
+            },
+            autoManaged: true,
+            maxSessionDurationSeconds: 9 * 3600,
+            maxWeeklySeconds: 28 * 3600,
+            weeklyUsageHours: 0,
+            dailyUsageHours: 0,
+          }).returning();
+          
+          worker = newWorker;
+        }
+        
+        // 3. Check if already reserved or active
+        const now = new Date();
+        const activeStatuses = ['online', 'pending', 'starting'];
+        
+        if (activeStatuses.includes(worker.status)) {
+          // Check if reservation expired (5min TTL)
+          if (worker.reservationExpiresAt && worker.reservationExpiresAt > now) {
+            throw new Error(`Session already active or starting (status: ${worker.status})`);
+          }
+          
+          // Reservation expired - clean it up
+          console.log(`[DemandBasedKaggle] Expired reservation found - cleaning up`);
+        }
+        
+        // 4. Create unique session token and reserve
+        const sessionToken = nanoid(32);
+        const reservationExpiresAt = new Date(now.getTime() + 5 * 60 * 1000); // 5min TTL
+        
+        await tx
+          .update(gpuWorkers)
+          .set({
+            status: 'starting', // ✅ Reserve status
+            sessionToken,
+            startRequestedAt: now,
+            reservationExpiresAt,
+            updatedAt: now,
+          })
+          .where(eq(gpuWorkers.id, worker.id));
+        
+        console.log(
+          `[DemandBasedKaggle] ✅ Worker reserved - ID ${worker.id}, token ${sessionToken.substring(0, 8)}...`
+        );
+        
+        return { workerId: worker.id, sessionToken };
       });
       
-      let worker = kaggleWorkers[0];
+      const { workerId, sessionToken } = reservationResult;
       
-      if (!worker) {
-        // Create worker if doesn't exist
-        console.log('[DemandBasedKaggle] No Kaggle worker found - creating...');
-        
-        const [newWorker] = await db.insert(gpuWorkers).values({
-          provider: 'kaggle',
-          accountId: 'kaggle-main', // Single account strategy
-          ngrokUrl: 'pending',
-          status: 'pending',
-          capabilities: {
-            gpu: 'P100',
-            model: 'pending',
-            tor_enabled: false,
-          },
-          autoManaged: true,
-          maxSessionDurationSeconds: 9 * 3600, // 9h max per session
-          maxWeeklySeconds: 28 * 3600, // 28h/week
-          weeklyUsageHours: 0,
-          dailyUsageHours: 0,
-        }).returning();
-        
-        worker = newWorker;
-      }
+      // ============================================================================
+      // PHASE 2: QUOTA CHECKS + KAGGLE API CALL (OUTSIDE TRANSACTION)
+      // ============================================================================
       
-      // 3. Check quota
-      const cooldownStatus = await gpuCooldownManager.canStartSession(worker.id);
+      // 3. Check quota (if fails, release reservation)
+      const cooldownStatus = await gpuCooldownManager.canStartSession(workerId);
       
       if (!cooldownStatus.canStart) {
         console.log(`[DemandBasedKaggle] ⚠️ Cannot start: ${cooldownStatus.reason}`);
+        
+        // Release reservation
+        await this.releaseReservation(workerId, sessionToken);
+        
         return {
           success: false,
           error: cooldownStatus.reason,
@@ -132,21 +184,29 @@ export class DemandBasedKaggleOrchestrator {
       }
       
       // 4. Check compliance
-      const complianceStatus = await tosComplianceMonitor.monitorWorker(worker.id);
+      const complianceStatus = await tosComplianceMonitor.monitorWorker(workerId);
       
       if (!complianceStatus.isCompliant) {
-        console.log(`[DemandBasedKaggle] ⚠️ Compliance check failed: ${complianceStatus.alerts[0]?.message}`);
+        console.log(`[DemandBasedKaggle] ⚠️ Compliance check failed`);
+        
+        // Release reservation
+        await this.releaseReservation(workerId, sessionToken);
+        
         return {
           success: false,
           error: 'Quota limits reached',
         };
       }
       
-      // 5. GET KAGGLE CREDENTIALS FROM SECRETS VAULT
+      // 5. Get Kaggle credentials
       const credentials = await secretsVault.retrieveSecret('kaggle-main', 'kaggle');
       
       if (!credentials) {
         console.error('[DemandBasedKaggle] ❌ No Kaggle credentials found!');
+        
+        // Release reservation
+        await this.releaseReservation(workerId, sessionToken);
+        
         return {
           success: false,
           error: 'Kaggle credentials not configured - please add via Admin Panel',
@@ -155,49 +215,84 @@ export class DemandBasedKaggleOrchestrator {
       
       const { username, apiKey } = credentials.decrypted as { username: string; apiKey: string };
       
-      // 6. GET AION BASE URL
+      // 6. Get AION base URL
       const aionBaseUrl = process.env.REPL_SLUG 
         ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
         : 'http://localhost:5000';
       
       console.log(`[DemandBasedKaggle] 📋 AION Base URL: ${aionBaseUrl}`);
       
-      // 7. START KAGGLE KERNEL AUTOMATICALLY!
-      console.log(`[DemandBasedKaggle] ✅ Starting Kaggle GPU session...`);
+      // 7. START KAGGLE KERNEL (long-running external call)
+      console.log(`[DemandBasedKaggle] ⚙️ Calling Kaggle API...`);
       
       const provisionResult = await kaggleAutomationService.createAndStartWorker(
         username,
         aionBaseUrl,
-        worker.id
+        workerId
       );
       
       if (!provisionResult.success) {
         console.error(`[DemandBasedKaggle] ❌ Failed to start kernel: ${provisionResult.error}`);
+        
+        // Release reservation
+        await this.releaseReservation(workerId, sessionToken);
+        
         return {
           success: false,
           error: provisionResult.error || 'Failed to start Kaggle kernel',
         };
       }
       
-      // 8. UPDATE WORKER STATUS (kernel created and running)
-      await db
-        .update(gpuWorkers)
-        .set({
-          status: 'pending', // Will become 'online' when worker registers
-          sessionStartedAt: new Date(),
-          ngrokUrl: 'pending', // Worker will update this when it registers
-          updatedAt: new Date(),
-        })
-        .where(eq(gpuWorkers.id, worker.id));
+      // ============================================================================
+      // PHASE 3: VERIFY TOKEN + PROMOTE STATUS (SECOND TRANSACTION)
+      // ============================================================================
       
-      // 9. RECORD SESSION START (for quota tracking)
-      await gpuCooldownManager.recordSessionStart(worker.id);
+      await db.transaction(async (tx) => {
+        // 1. Lock worker row and verify token matches
+        const [worker] = await tx
+          .select()
+          .from(gpuWorkers)
+          .where(eq(gpuWorkers.id, workerId))
+          .for('update');
+        
+        if (!worker) {
+          throw new Error(`Worker ${workerId} not found`);
+        }
+        
+        // 2. Verify session token (prevents conflicts if reservation was hijacked)
+        if (worker.sessionToken !== sessionToken) {
+          throw new Error(
+            `Session token mismatch! Expected ${sessionToken.substring(0, 8)}..., ` +
+            `got ${worker.sessionToken?.substring(0, 8) || 'null'}...`
+          );
+        }
+        
+        // 3. Promote to 'pending' status
+        const now = new Date();
+        await tx
+          .update(gpuWorkers)
+          .set({
+            status: 'pending', // Will become 'online' when worker registers
+            sessionStartedAt: now,
+            ngrokUrl: 'pending', // Worker will update this when it registers
+            sessionToken: null, // Clear token (no longer needed)
+            reservationExpiresAt: null,
+            updatedAt: now,
+          })
+          .where(eq(gpuWorkers.id, workerId));
+        
+        console.log(`[DemandBasedKaggle] ✅ Session promoted to 'pending' - Worker ${workerId}`);
+      });
       
-      this.activeSessionWorkerId = worker.id;
+      // 9. Record session start (for quota tracking)
+      await gpuCooldownManager.recordSessionStart(workerId);
+      
+      this.activeSessionWorkerId = workerId;
       this.sessionStartTime = new Date();
       
       console.log(
-        `[DemandBasedKaggle] 🚀 Session started - Worker ${worker.id}\n` +
+        `[DemandBasedKaggle] 🎉 Session started successfully!\n` +
+        `  Worker ID: ${workerId}\n` +
         `  Kernel: ${provisionResult.kernelId}\n` +
         `  URL: ${provisionResult.kernelUrl}\n` +
         `  Reason: ${options.reason}\n` +
@@ -207,15 +302,67 @@ export class DemandBasedKaggleOrchestrator {
       
       return {
         success: true,
-        workerId: worker.id,
+        workerId,
       };
       
     } catch (error: any) {
-      console.error('[DemandBasedKaggle] Error starting session:', error);
+      console.error('[DemandBasedKaggle] ❌ Error starting session:', error);
+      
+      // Try to release reservation if it was created
+      // (error might have happened before reservation was created, that's OK)
+      try {
+        await db
+          .update(gpuWorkers)
+          .set({
+            status: 'offline',
+            sessionToken: null,
+            startRequestedAt: null,
+            reservationExpiresAt: null,
+            updatedAt: new Date(),
+          })
+          .where(sql`provider = 'kaggle' AND status = 'starting'`);
+      } catch (cleanupError) {
+        console.error('[DemandBasedKaggle] Failed to cleanup reservation:', cleanupError);
+      }
+      
       return {
         success: false,
         error: error.message,
       };
+    }
+  }
+  
+  /**
+   * ✅ FIX P0-1: Release reservation helper
+   * Cleans up failed reservations
+   */
+  private async releaseReservation(workerId: number, sessionToken: string): Promise<void> {
+    try {
+      await db.transaction(async (tx) => {
+        const [worker] = await tx
+          .select()
+          .from(gpuWorkers)
+          .where(eq(gpuWorkers.id, workerId))
+          .for('update');
+        
+        // Only release if token matches (prevent race conditions)
+        if (worker && worker.sessionToken === sessionToken) {
+          await tx
+            .update(gpuWorkers)
+            .set({
+              status: 'offline',
+              sessionToken: null,
+              startRequestedAt: null,
+              reservationExpiresAt: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(gpuWorkers.id, workerId));
+          
+          console.log(`[DemandBasedKaggle] Released reservation for worker ${workerId}`);
+        }
+      });
+    } catch (error) {
+      console.error(`[DemandBasedKaggle] Failed to release reservation:`, error);
     }
   }
   

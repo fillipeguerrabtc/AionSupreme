@@ -65,8 +65,12 @@ export class SchedulerService {
       name: 'chat-ingestion',
       schedule: '0 * * * *', // A cada hora
       task: async () => {
-        logger.info('Scheduler: Executando Chat Ingestion');
-        await chatIngestionService.runAutoCollection();
+        try {
+          logger.info('Scheduler: Executando Chat Ingestion');
+          await chatIngestionService.runAutoCollection();
+        } catch (error: any) {
+          logger.error('[SchedulerService] Error in chat-ingestion:', error);
+        }
       },
       enabled: true,
       runCount: 0,
@@ -78,10 +82,14 @@ export class SchedulerService {
       name: 'dataset-generation',
       schedule: '0 */6 * * *', // 00:00, 06:00, 12:00, 18:00
       task: async () => {
-        logger.info('Scheduler: Executando Dataset Generation');
-        const dataset = await datasetGenerator.generateAutoDataset();
-        if (dataset) {
-          logger.info(`Dataset criado com ${dataset.examplesCount} exemplos`);
+        try {
+          logger.info('Scheduler: Executando Dataset Generation');
+          const dataset = await datasetGenerator.generateAutoDataset();
+          if (dataset) {
+            logger.info(`Dataset criado com ${dataset.examplesCount} exemplos`);
+          }
+        } catch (error: any) {
+          logger.error('[SchedulerService] Error in dataset-generation:', error);
         }
       },
       enabled: true,
@@ -94,11 +102,15 @@ export class SchedulerService {
       name: 'auto-training-trigger',
       schedule: '*/30 * * * *', // :00 e :30 de cada hora
       task: async () => {
-        logger.info('Scheduler: Verificando necessidade de treino');
-        // AutoTrainingTrigger tem métodos privados
-        // Garantimos que está ativo via init-auto-evolution
-        // Este job serve apenas como heartbeat/monitoring
-        logger.info('Scheduler: Auto-training trigger monitorado');
+        try {
+          logger.info('Scheduler: Verificando necessidade de treino');
+          // AutoTrainingTrigger tem métodos privados
+          // Garantimos que está ativo via init-auto-evolution
+          // Este job serve apenas como heartbeat/monitoring
+          logger.info('Scheduler: Auto-training trigger monitorado');
+        } catch (error: any) {
+          logger.error('[SchedulerService] Error in auto-training-trigger:', error);
+        }
       },
       enabled: false, // Desabilitado - AutoTrainingTrigger já tem seu próprio loop
       runCount: 0,
@@ -110,8 +122,12 @@ export class SchedulerService {
       name: 'pattern-analyzer',
       schedule: '0 */2 * * *', // 00:00, 02:00, 04:00, etc
       task: async () => {
-        logger.info('Scheduler: Executando Pattern Analyzer');
-        await patternAnalyzer.feedbackToTrainingCollector();
+        try {
+          logger.info('Scheduler: Executando Pattern Analyzer');
+          await patternAnalyzer.feedbackToTrainingCollector();
+        } catch (error: any) {
+          logger.error('[SchedulerService] Error in pattern-analyzer:', error);
+        }
       },
       enabled: true,
       runCount: 0,
@@ -123,9 +139,13 @@ export class SchedulerService {
       name: 'secrets-cleanup',
       schedule: '0 3 * * *', // 03:00 UTC (00:00 Brasília)
       task: async () => {
-        logger.info('Scheduler: Limpando secrets expirados');
-        const deleted = await secretsVault.cleanupExpired();
-        logger.info(`${deleted} secrets expirados removidos`);
+        try {
+          logger.info('Scheduler: Limpando secrets expirados');
+          const deleted = await secretsVault.cleanupExpired();
+          logger.info(`${deleted} secrets expirados removidos`);
+        } catch (error: any) {
+          logger.error('[SchedulerService] Error in secrets-cleanup:', error);
+        }
       },
       enabled: true,
       runCount: 0,
@@ -137,9 +157,13 @@ export class SchedulerService {
       name: 'model-deployment',
       schedule: '*/1 * * * *', // A cada 1 minuto (mais responsivo)
       task: async () => {
-        const deployed = await modelDeploymentService.checkAndDeployCompletedJobs();
-        if (deployed > 0) {
-          logger.info(`Scheduler: Auto-Deploy concluído - ${deployed} modelo(s) deployed automaticamente`);
+        try {
+          const deployed = await modelDeploymentService.checkAndDeployCompletedJobs();
+          if (deployed > 0) {
+            logger.info(`Scheduler: Auto-Deploy concluído - ${deployed} modelo(s) deployed automaticamente`);
+          }
+        } catch (error: any) {
+          logger.error('[SchedulerService] Error in model-deployment:', error);
         }
       },
       enabled: true,
@@ -152,11 +176,15 @@ export class SchedulerService {
       name: 'quota-telemetry',
       schedule: '* * * * *', // Executa TODOS os minutos
       task: async () => {
-        // Log silencioso - roda a cada minuto, não precisa poluir logs
-        const updated = await quotaTelemetryService.updateAllQuotas();
-        // Só loga se houver workers ou problemas
-        if (updated > 0) {
-          // Logs já são feitos pelo service
+        try {
+          // Log silencioso - roda a cada minuto, não precisa poluir logs
+          const updated = await quotaTelemetryService.updateAllQuotas();
+          // Só loga se houver workers ou problemas
+          if (updated > 0) {
+            // Logs já são feitos pelo service
+          }
+        } catch (error: any) {
+          logger.error('[SchedulerService] Error in quota-telemetry:', error);
         }
       },
       enabled: true,
@@ -169,10 +197,14 @@ export class SchedulerService {
       name: 'meta-learning-pipeline',
       schedule: '0 */3 * * *', // 00:00, 03:00, 06:00, 09:00, 12:00, 15:00, 18:00, 21:00
       task: async () => {
-        logger.info('Scheduler: Executando Meta-Learning Pipeline');
-        const results = await metaLearningOrchestrator.executeFullPipeline();
-        const successCount = results.filter(r => r.success).length;
-        logger.info(`Pipeline completo: ${successCount}/${results.length} stages bem-sucedidos`);
+        try {
+          logger.info('Scheduler: Executando Meta-Learning Pipeline');
+          const results = await metaLearningOrchestrator.executeFullPipeline();
+          const successCount = results.filter(r => r.success).length;
+          logger.info(`Pipeline completo: ${successCount}/${results.length} stages bem-sucedidos`);
+        } catch (error: any) {
+          logger.error('[SchedulerService] Error in meta-learning-pipeline:', error);
+        }
       },
       enabled: true,
       runCount: 0,

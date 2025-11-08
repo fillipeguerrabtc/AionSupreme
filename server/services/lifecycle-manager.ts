@@ -103,68 +103,73 @@ export class LifecycleManager {
    * Run full lifecycle pass for all scheduled modules
    */
   async runLifecyclePass(): Promise<CleanupResult[]> {
-    if (!this.policy) {
-      await this.loadPolicy();
-    }
-
-    const results: CleanupResult[] = [];
-    const now = new Date();
-
-    console.log(`[LifecycleManager] Starting lifecycle pass at ${now.toISOString()}`);
-
-    // Get modules to run based on current time and schedule
-    const modulesToRun = this.getScheduledModules();
-    
-    console.log(`[LifecycleManager] Running cleanup for modules: ${modulesToRun.join(', ')}`);
-
-    for (const moduleName of modulesToRun) {
-      const moduleConfig = this.policy?.modules[moduleName];
-      
-      if (!moduleConfig || !moduleConfig.enabled) {
-        console.log(`[LifecycleManager] Skipping disabled module: ${moduleName}`);
-        continue;
+    try {
+      if (!this.policy) {
+        await this.loadPolicy();
       }
 
-      console.log(`[LifecycleManager] Processing module: ${moduleName}`);
+      const results: CleanupResult[] = [];
+      const now = new Date();
 
-      for (const policy of moduleConfig.policies) {
-        if (!policy.enabled) {
-          console.log(`[LifecycleManager]   Skipping disabled policy: ${policy.name}`);
+      console.log(`[LifecycleManager] Starting lifecycle pass at ${now.toISOString()}`);
+
+      // Get modules to run based on current time and schedule
+      const modulesToRun = this.getScheduledModules();
+      
+      console.log(`[LifecycleManager] Running cleanup for modules: ${modulesToRun.join(', ')}`);
+
+      for (const moduleName of modulesToRun) {
+        const moduleConfig = this.policy?.modules[moduleName];
+        
+        if (!moduleConfig || !moduleConfig.enabled) {
+          console.log(`[LifecycleManager] Skipping disabled module: ${moduleName}`);
           continue;
         }
 
-        try {
-          const result = await this.executePolicy(moduleName, policy);
-          results.push(result);
+        console.log(`[LifecycleManager] Processing module: ${moduleName}`);
 
-          if (this.policy?.auditLog.enabled) {
-            await this.saveAuditLog(result);
+        for (const policy of moduleConfig.policies) {
+          if (!policy.enabled) {
+            console.log(`[LifecycleManager]   Skipping disabled policy: ${policy.name}`);
+            continue;
           }
-        } catch (error) {
-          console.error(`[LifecycleManager] Error executing policy ${policy.name}:`, error);
-          
-          const errorResult: CleanupResult = {
-            module: moduleName,
-            policy: policy.name,
-            recordsDeleted: 0,
-            recordsPreserved: 0,
-            errors: [(error as Error).message],
-            timestamp: new Date(),
-          };
-          
-          results.push(errorResult);
-          
-          // CRITICAL: Audit failed operations for compliance
-          if (this.policy?.auditLog.enabled) {
-            await this.saveAuditLog(errorResult);
+
+          try {
+            const result = await this.executePolicy(moduleName, policy);
+            results.push(result);
+
+            if (this.policy?.auditLog.enabled) {
+              await this.saveAuditLog(result);
+            }
+          } catch (error) {
+            console.error(`[LifecycleManager] Error executing policy ${policy.name}:`, error);
+            
+            const errorResult: CleanupResult = {
+              module: moduleName,
+              policy: policy.name,
+              recordsDeleted: 0,
+              recordsPreserved: 0,
+              errors: [(error as Error).message],
+              timestamp: new Date(),
+            };
+            
+            results.push(errorResult);
+            
+            // CRITICAL: Audit failed operations for compliance
+            if (this.policy?.auditLog.enabled) {
+              await this.saveAuditLog(errorResult);
+            }
           }
         }
       }
-    }
 
-    console.log(`[LifecycleManager] Lifecycle pass complete. ${results.length} policies executed.`);
-    
-    return results;
+      console.log(`[LifecycleManager] Lifecycle pass complete. ${results.length} policies executed.`);
+      
+      return results;
+    } catch (error) {
+      console.error('[LifecycleManager] Error in runLifecyclePass:', error);
+      throw error;
+    }
   }
 
   /**
@@ -226,31 +231,36 @@ export class LifecycleManager {
    * Execute a single policy
    */
   private async executePolicy(moduleName: string, policy: Policy): Promise<CleanupResult> {
-    console.log(`[LifecycleManager]   Executing policy: ${policy.name}`);
+    try {
+      console.log(`[LifecycleManager]   Executing policy: ${policy.name}`);
 
-    // Check if policy uses existing implementation
-    if (policy.implementation) {
-      return await this.executeExistingImplementation(moduleName, policy);
-    }
+      // Check if policy uses existing implementation
+      if (policy.implementation) {
+        return await this.executeExistingImplementation(moduleName, policy);
+      }
 
-    // Route to module-specific handler
-    switch (moduleName) {
-      case 'conversations':
-        return await this.cleanupConversations(policy);
-      case 'trainingData':
-        return await this.cleanupTrainingData(policy);
-      case 'datasets':
-        return await this.cleanupDatasets(policy);
-      case 'knowledgeBase':
-        return await this.cleanupKnowledgeBase(policy);
-      case 'gpu':
-        return await this.cleanupGPU(policy);
-      case 'agents':
-        return await this.cleanupAgents(policy);
-      case 'namespaces':
-        return await this.cleanupNamespaces(policy);
-      default:
-        throw new Error(`No handler for module: ${moduleName}`);
+      // Route to module-specific handler
+      switch (moduleName) {
+        case 'conversations':
+          return await this.cleanupConversations(policy);
+        case 'trainingData':
+          return await this.cleanupTrainingData(policy);
+        case 'datasets':
+          return await this.cleanupDatasets(policy);
+        case 'knowledgeBase':
+          return await this.cleanupKnowledgeBase(policy);
+        case 'gpu':
+          return await this.cleanupGPU(policy);
+        case 'agents':
+          return await this.cleanupAgents(policy);
+        case 'namespaces':
+          return await this.cleanupNamespaces(policy);
+        default:
+          throw new Error(`No handler for module: ${moduleName}`);
+      }
+    } catch (error) {
+      console.error('[LifecycleManager] Error in executePolicy:', error);
+      throw error;
     }
   }
 
@@ -258,329 +268,354 @@ export class LifecycleManager {
    * Execute policy using existing implementation
    */
   private async executeExistingImplementation(moduleName: string, policy: Policy): Promise<CleanupResult> {
-    let recordsDeleted = 0;
+    try {
+      let recordsDeleted = 0;
 
-    if (!policy.implementation) {
-      throw new Error(`Policy ${policy.name} has no implementation`);
+      if (!policy.implementation) {
+        throw new Error(`Policy ${policy.name} has no implementation`);
+      }
+
+      if (policy.implementation.includes('FileCleanup.cleanupExpiredFiles')) {
+        // Already running hourly via FileCleanup service
+        console.log(`[LifecycleManager]     Using existing: FileCleanup.cleanupExpiredFiles()`);
+        recordsDeleted = 0; // Not counted here, handled by FileCleanup
+      } else if (policy.implementation.includes('FileCleanup.cleanupOldTokens')) {
+        // Note: cleanupOldTokens is handled by FileCleanup startup routine
+        // We don't call it directly here to avoid duplication
+        console.log(`[LifecycleManager]     Using existing: FileCleanup.cleanupOldTokens() (via startup routine)`);
+        recordsDeleted = 0;
+      } else if (policy.implementation.includes('curationStore.cleanupExpiredRejectedItems')) {
+        const result = await curationStore.cleanupExpiredRejectedItems();
+        recordsDeleted = result?.curationItemsDeleted || 0;
+      } else if (policy.implementation.includes('curationStore.cleanupOldCurationData')) {
+        const result = await curationStore.cleanupOldCurationData();
+        recordsDeleted = result?.curationItemsDeleted || 0;
+      }
+
+      return {
+        module: moduleName,
+        policy: policy.name,
+        recordsDeleted,
+        recordsPreserved: 0,
+        errors: [],
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      console.error('[LifecycleManager] Error in executeExistingImplementation:', error);
+      throw error;
     }
-
-    if (policy.implementation.includes('FileCleanup.cleanupExpiredFiles')) {
-      // Already running hourly via FileCleanup service
-      console.log(`[LifecycleManager]     Using existing: FileCleanup.cleanupExpiredFiles()`);
-      recordsDeleted = 0; // Not counted here, handled by FileCleanup
-    } else if (policy.implementation.includes('FileCleanup.cleanupOldTokens')) {
-      // Note: cleanupOldTokens is handled by FileCleanup startup routine
-      // We don't call it directly here to avoid duplication
-      console.log(`[LifecycleManager]     Using existing: FileCleanup.cleanupOldTokens() (via startup routine)`);
-      recordsDeleted = 0;
-    } else if (policy.implementation.includes('curationStore.cleanupExpiredRejectedItems')) {
-      const result = await curationStore.cleanupExpiredRejectedItems();
-      recordsDeleted = result?.curationItemsDeleted || 0;
-    } else if (policy.implementation.includes('curationStore.cleanupOldCurationData')) {
-      const result = await curationStore.cleanupOldCurationData();
-      recordsDeleted = result?.curationItemsDeleted || 0;
-    }
-
-    return {
-      module: moduleName,
-      policy: policy.name,
-      recordsDeleted,
-      recordsPreserved: 0,
-      errors: [],
-      timestamp: new Date(),
-    };
   }
 
   /**
    * Cleanup conversations based on policy
    */
   private async cleanupConversations(policy: Policy): Promise<CleanupResult> {
-    const now = new Date();
-    let recordsDeleted = 0;
-    let recordsPreserved = 0;
+    try {
+      const now = new Date();
+      let recordsDeleted = 0;
+      let recordsPreserved = 0;
 
-    if (policy.name === 'archive_inactive') {
-      // Archive conversations inactive for 18 months
-      const archiveThreshold = new Date();
-      archiveThreshold.setMonth(archiveThreshold.getMonth() - 18);
+      if (policy.name === 'archive_inactive') {
+        // Archive conversations inactive for 18 months
+        const archiveThreshold = new Date();
+        archiveThreshold.setMonth(archiveThreshold.getMonth() - 18);
 
-      // Find candidates
-      const candidates = await db
-        .select()
-        .from(conversations)
-        .where(
-          and(
-            sql`${conversations.lastActivityAt} IS NOT NULL`,
-            lt(conversations.lastActivityAt, archiveThreshold),
-            sql`${conversations.archivedAt} IS NULL`
-          )
-        );
-
-      // Check preserve conditions (linked to training data)
-      for (const conv of candidates) {
-        const linkedToTraining = await db
+        // Find candidates
+        const candidates = await db
           .select()
-          .from(trainingDataCollection)
-          .where(eq(trainingDataCollection.conversationId, conv.id))
-          .limit(1);
+          .from(conversations)
+          .where(
+            and(
+              sql`${conversations.lastActivityAt} IS NOT NULL`,
+              lt(conversations.lastActivityAt, archiveThreshold),
+              sql`${conversations.archivedAt} IS NULL`
+            )
+          );
 
-        if (linkedToTraining.length > 0) {
-          recordsPreserved++;
-          continue;
+        // Check preserve conditions (linked to training data)
+        for (const conv of candidates) {
+          const linkedToTraining = await db
+            .select()
+            .from(trainingDataCollection)
+            .where(eq(trainingDataCollection.conversationId, conv.id))
+            .limit(1);
+
+          if (linkedToTraining.length > 0) {
+            recordsPreserved++;
+            continue;
+          }
+
+          // Archive
+          await db
+            .update(conversations)
+            .set({ archivedAt: now })
+            .where(eq(conversations.id, conv.id));
+          
+          recordsDeleted++;
         }
 
-        // Archive
-        await db
-          .update(conversations)
-          .set({ archivedAt: now })
-          .where(eq(conversations.id, conv.id));
-        
-        recordsDeleted++;
-      }
+        console.log(`[LifecycleManager]     Archived ${recordsDeleted} conversations, preserved ${recordsPreserved}`);
+      } else if (policy.name === 'purge_old') {
+        // Delete conversations older than 5 years
+        const purgeThreshold = new Date();
+        purgeThreshold.setFullYear(purgeThreshold.getFullYear() - 5);
 
-      console.log(`[LifecycleManager]     Archived ${recordsDeleted} conversations, preserved ${recordsPreserved}`);
-    } else if (policy.name === 'purge_old') {
-      // Delete conversations older than 5 years
-      const purgeThreshold = new Date();
-      purgeThreshold.setFullYear(purgeThreshold.getFullYear() - 5);
-
-      const candidates = await db
-        .select()
-        .from(conversations)
-        .where(lt(conversations.createdAt, purgeThreshold));
-
-      for (const conv of candidates) {
-        // Check preserve conditions
-        const linkedToTraining = await db
+        const candidates = await db
           .select()
-          .from(trainingDataCollection)
-          .where(eq(trainingDataCollection.conversationId, conv.id))
-          .limit(1);
+          .from(conversations)
+          .where(lt(conversations.createdAt, purgeThreshold));
 
-        if (linkedToTraining.length > 0) {
-          recordsPreserved++;
-          continue;
+        for (const conv of candidates) {
+          // Check preserve conditions
+          const linkedToTraining = await db
+            .select()
+            .from(trainingDataCollection)
+            .where(eq(trainingDataCollection.conversationId, conv.id))
+            .limit(1);
+
+          if (linkedToTraining.length > 0) {
+            recordsPreserved++;
+            continue;
+          }
+
+          // Delete (cascade will handle messages)
+          await db
+            .delete(conversations)
+            .where(eq(conversations.id, conv.id));
+          
+          recordsDeleted++;
         }
 
-        // Delete (cascade will handle messages)
-        await db
-          .delete(conversations)
-          .where(eq(conversations.id, conv.id));
-        
-        recordsDeleted++;
+        console.log(`[LifecycleManager]     Purged ${recordsDeleted} conversations, preserved ${recordsPreserved}`);
       }
 
-      console.log(`[LifecycleManager]     Purged ${recordsDeleted} conversations, preserved ${recordsPreserved}`);
+      return {
+        module: 'conversations',
+        policy: policy.name,
+        recordsDeleted,
+        recordsPreserved,
+        errors: [],
+        timestamp: now,
+      };
+    } catch (error) {
+      console.error('[LifecycleManager] Error in cleanupConversations:', error);
+      throw error;
     }
-
-    return {
-      module: 'conversations',
-      policy: policy.name,
-      recordsDeleted,
-      recordsPreserved,
-      errors: [],
-      timestamp: now,
-    };
   }
 
   /**
    * Cleanup training data based on policy
    */
   private async cleanupTrainingData(policy: Policy): Promise<CleanupResult> {
-    const now = new Date();
-    let recordsDeleted = 0;
-    let recordsPreserved = 0;
+    try {
+      const now = new Date();
+      let recordsDeleted = 0;
+      let recordsPreserved = 0;
 
-    if (policy.name === 'cleanup_stale_jobs') {
-      const threshold = new Date();
-      threshold.setDate(threshold.getDate() - 30);
+      if (policy.name === 'cleanup_stale_jobs') {
+        const threshold = new Date();
+        threshold.setDate(threshold.getDate() - 30);
 
-      const staleJobs = await db
-        .select()
-        .from(trainingJobs)
-        .where(
-          and(
-            inArray(trainingJobs.status, ['completed', 'failed', 'cancelled']),
-            sql`${trainingJobs.completedAt} IS NOT NULL`,
-            lt(trainingJobs.completedAt, threshold)
-          )
-        );
-
-      // Check preservation conditions before deleting
-      for (const job of staleJobs) {
-        // Preserve if checkpoint is actively used by agents
-        if (job.latestCheckpoint) {
-          const agentsUsingCheckpoint = await db
-            .select()
-            .from(agents)
-            .where(
-              sql`${agents.inferenceConfig}->>'adapterIds' @> ${JSON.stringify([job.latestCheckpoint])}`
-            )
-            .limit(1);
-
-          if (agentsUsingCheckpoint.length > 0) {
-            recordsPreserved++;
-            continue; // Skip deletion - checkpoint is in use
-          }
-        }
-
-        // Safe to delete
-        await db
-          .delete(trainingJobs)
-          .where(eq(trainingJobs.id, job.id));
-        
-        recordsDeleted++;
-      }
-
-      console.log(`[LifecycleManager]     Deleted ${recordsDeleted} stale training jobs, preserved ${recordsPreserved}`);
-    } else if (policy.name === 'cleanup_orphaned_collections') {
-      // Delete training data collections with null conversation references
-      const orphanedCollections = await db
-        .select()
-        .from(trainingDataCollection)
-        .where(sql`${trainingDataCollection.conversationId} IS NOT NULL`);
-
-      for (const collection of orphanedCollections) {
-        // Check if conversation exists
-        const convExists = await db
+        const staleJobs = await db
           .select()
-          .from(conversations)
-          .where(eq(conversations.id, collection.conversationId!))
-          .limit(1);
+          .from(trainingJobs)
+          .where(
+            and(
+              inArray(trainingJobs.status, ['completed', 'failed', 'cancelled']),
+              sql`${trainingJobs.completedAt} IS NOT NULL`,
+              lt(trainingJobs.completedAt, threshold)
+            )
+          );
 
-        if (convExists.length === 0) {
+        // Check preservation conditions before deleting
+        for (const job of staleJobs) {
+          // Preserve if checkpoint is actively used by agents
+          if (job.latestCheckpoint) {
+            const agentsUsingCheckpoint = await db
+              .select()
+              .from(agents)
+              .where(
+                sql`${agents.inferenceConfig}->>'adapterIds' @> ${JSON.stringify([job.latestCheckpoint])}`
+              )
+              .limit(1);
+
+            if (agentsUsingCheckpoint.length > 0) {
+              recordsPreserved++;
+              continue; // Skip deletion - checkpoint is in use
+            }
+          }
+
+          // Safe to delete
           await db
-            .delete(trainingDataCollection)
-            .where(eq(trainingDataCollection.id, collection.id));
+            .delete(trainingJobs)
+            .where(eq(trainingJobs.id, job.id));
           
           recordsDeleted++;
         }
+
+        console.log(`[LifecycleManager]     Deleted ${recordsDeleted} stale training jobs, preserved ${recordsPreserved}`);
+      } else if (policy.name === 'cleanup_orphaned_collections') {
+        // Delete training data collections with null conversation references
+        const orphanedCollections = await db
+          .select()
+          .from(trainingDataCollection)
+          .where(sql`${trainingDataCollection.conversationId} IS NOT NULL`);
+
+        for (const collection of orphanedCollections) {
+          // Check if conversation exists
+          const convExists = await db
+            .select()
+            .from(conversations)
+            .where(eq(conversations.id, collection.conversationId!))
+            .limit(1);
+
+          if (convExists.length === 0) {
+            await db
+              .delete(trainingDataCollection)
+              .where(eq(trainingDataCollection.id, collection.id));
+            
+            recordsDeleted++;
+          }
+        }
+
+        console.log(`[LifecycleManager]     Deleted ${recordsDeleted} orphaned training collections`);
       }
 
-      console.log(`[LifecycleManager]     Deleted ${recordsDeleted} orphaned training collections`);
+      return {
+        module: 'trainingData',
+        policy: policy.name,
+        recordsDeleted,
+        recordsPreserved,
+        errors: [],
+        timestamp: now,
+      };
+    } catch (error) {
+      console.error('[LifecycleManager] Error in cleanupTrainingData:', error);
+      throw error;
     }
-
-    return {
-      module: 'trainingData',
-      policy: policy.name,
-      recordsDeleted,
-      recordsPreserved,
-      errors: [],
-      timestamp: now,
-    };
   }
 
   /**
    * Cleanup datasets based on policy (flag-only, no auto-delete)
    */
   private async cleanupDatasets(policy: Policy): Promise<CleanupResult> {
-    // Datasets cleanup is flag-only (handled by platform orphan scan)
-    // No active cleanup here to prevent accidental data loss
-    console.log(`[LifecycleManager]     Datasets cleanup is flag-only (see platform orphan scan)`);
-    
-    return {
-      module: 'datasets',
-      policy: policy.name,
-      recordsDeleted: 0,
-      recordsPreserved: 0,
-      errors: [],
-      timestamp: new Date(),
-    };
+    try {
+      // Datasets cleanup is flag-only (handled by platform orphan scan)
+      // No active cleanup here to prevent accidental data loss
+      console.log(`[LifecycleManager]     Datasets cleanup is flag-only (see platform orphan scan)`);
+      
+      return {
+        module: 'datasets',
+        policy: policy.name,
+        recordsDeleted: 0,
+        recordsPreserved: 0,
+        errors: [],
+        timestamp: new Date(),
+      };
+    } catch (error) {
+      console.error('[LifecycleManager] Error in cleanupDatasets:', error);
+      throw error;
+    }
   }
 
   /**
    * Cleanup knowledge base based on policy
    */
   private async cleanupKnowledgeBase(policy: Policy): Promise<CleanupResult> {
-    const now = new Date();
-    let recordsDeleted = 0;
-    let recordsPreserved = 0;
+    try {
+      const now = new Date();
+      let recordsDeleted = 0;
+      let recordsPreserved = 0;
 
-    if (policy.name === 'cleanup_old_documents') {
-      // DOCUMENT-LEVEL PRESERVATION: Verify if document is referenced by training datasets
-      
-      const threshold = new Date();
-      threshold.setFullYear(threshold.getFullYear() - 5);
+      if (policy.name === 'cleanup_old_documents') {
+        // DOCUMENT-LEVEL PRESERVATION: Verify if document is referenced by training datasets
+        
+        const threshold = new Date();
+        threshold.setFullYear(threshold.getFullYear() - 5);
 
-      const oldDocs = await db
-        .select()
-        .from(documents)
-        .where(lt(documents.createdAt, threshold));
-
-      // Build set of all document IDs referenced by training data/datasets
-      const referencedDocIds = new Set<number>();
-      
-      // Check 1: datasets.sourceDocumentIds[]
-      const allDatasets = await db
-        .select({ sourceDocumentIds: datasets.sourceDocumentIds })
-        .from(datasets);
-      
-      for (const dataset of allDatasets) {
-        if (dataset.sourceDocumentIds) {
-          dataset.sourceDocumentIds.forEach(id => referencedDocIds.add(id));
-        }
-      }
-      
-      // Check 2: trainingDataCollection.metadata.documentIds[]
-      const trainingCollections = await db
-        .select({ metadata: trainingDataCollection.metadata })
-        .from(trainingDataCollection);
-      
-      for (const collection of trainingCollections) {
-        const metadata = collection.metadata as { documentIds?: number[] };
-        if (metadata?.documentIds) {
-          metadata.documentIds.forEach(id => referencedDocIds.add(id));
-        }
-      }
-
-      // Delete or preserve based on document-level verification
-      for (const doc of oldDocs) {
-        if (referencedDocIds.has(doc.id)) {
-          recordsPreserved++;
-        } else {
-          // Safe to delete (embeddings cascade via FK, physical files handled by cleanup service)
-          await db
-            .delete(documents)
-            .where(eq(documents.id, doc.id));
-          
-          recordsDeleted++;
-        }
-      }
-
-      console.log(`[LifecycleManager]     Deleted ${recordsDeleted} KB documents (>5yr, not in training datasets)`);
-      console.log(`[LifecycleManager]     Preserved ${recordsPreserved} KB documents (referenced by training data)`);
-
-    } else if (policy.name === 'cleanup_orphaned_embeddings') {
-      // Delete embeddings without parent documents
-      const allEmbeddings = await db.select().from(embeddings);
-      
-      for (const embedding of allEmbeddings) {
-        const docExists = await db
+        const oldDocs = await db
           .select()
           .from(documents)
-          .where(eq(documents.id, embedding.documentId))
-          .limit(1);
+          .where(lt(documents.createdAt, threshold));
 
-        if (docExists.length === 0) {
-          await db
-            .delete(embeddings)
-            .where(eq(embeddings.id, embedding.id));
-          
-          recordsDeleted++;
+        // Build set of all document IDs referenced by training data/datasets
+        const referencedDocIds = new Set<number>();
+        
+        // Check 1: datasets.sourceDocumentIds[]
+        const allDatasets = await db
+          .select({ sourceDocumentIds: datasets.sourceDocumentIds })
+          .from(datasets);
+        
+        for (const dataset of allDatasets) {
+          if (dataset.sourceDocumentIds) {
+            dataset.sourceDocumentIds.forEach(id => referencedDocIds.add(id));
+          }
         }
+        
+        // Check 2: trainingDataCollection.metadata.documentIds[]
+        const trainingCollections = await db
+          .select({ metadata: trainingDataCollection.metadata })
+          .from(trainingDataCollection);
+        
+        for (const collection of trainingCollections) {
+          const metadata = collection.metadata as { documentIds?: number[] };
+          if (metadata?.documentIds) {
+            metadata.documentIds.forEach(id => referencedDocIds.add(id));
+          }
+        }
+
+        // Delete or preserve based on document-level verification
+        for (const doc of oldDocs) {
+          if (referencedDocIds.has(doc.id)) {
+            recordsPreserved++;
+          } else {
+            // Safe to delete (embeddings cascade via FK, physical files handled by cleanup service)
+            await db
+              .delete(documents)
+              .where(eq(documents.id, doc.id));
+            
+            recordsDeleted++;
+          }
+        }
+
+        console.log(`[LifecycleManager]     Deleted ${recordsDeleted} KB documents (>5yr, not in training datasets)`);
+        console.log(`[LifecycleManager]     Preserved ${recordsPreserved} KB documents (referenced by training data)`);
+
+      } else if (policy.name === 'cleanup_orphaned_embeddings') {
+        // Delete embeddings without parent documents
+        const allEmbeddings = await db.select().from(embeddings);
+        
+        for (const embedding of allEmbeddings) {
+          const docExists = await db
+            .select()
+            .from(documents)
+            .where(eq(documents.id, embedding.documentId))
+            .limit(1);
+
+          if (docExists.length === 0) {
+            await db
+              .delete(embeddings)
+              .where(eq(embeddings.id, embedding.id));
+            
+            recordsDeleted++;
+          }
+        }
+
+        console.log(`[LifecycleManager]     Deleted ${recordsDeleted} orphaned embeddings`);
       }
 
-      console.log(`[LifecycleManager]     Deleted ${recordsDeleted} orphaned embeddings`);
+      return {
+        module: 'knowledgeBase',
+        policy: policy.name,
+        recordsDeleted,
+        recordsPreserved,
+        errors: [],
+        timestamp: now,
+      };
+    } catch (error) {
+      console.error('[LifecycleManager] Error in cleanupKnowledgeBase:', error);
+      throw error;
     }
-
-    return {
-      module: 'knowledgeBase',
-      policy: policy.name,
-      recordsDeleted,
-      recordsPreserved,
-      errors: [],
-      timestamp: now,
-    };
   }
 
   /**
@@ -589,18 +624,23 @@ export class LifecycleManager {
    * Workers offline/error are kept until manually removed by user
    */
   private async cleanupGPU(policy: Policy): Promise<CleanupResult> {
-    const now = new Date();
-    
-    console.log(`[LifecycleManager]     Skipped - GPU workers are NEVER auto-deleted (user must manually remove)`);
+    try {
+      const now = new Date();
+      
+      console.log(`[LifecycleManager]     Skipped - GPU workers are NEVER auto-deleted (user must manually remove)`);
 
-    return {
-      module: 'gpu',
-      policy: policy.name,
-      recordsDeleted: 0,
-      recordsPreserved: 0,
-      errors: [],
-      timestamp: now,
-    };
+      return {
+        module: 'gpu',
+        policy: policy.name,
+        recordsDeleted: 0,
+        recordsPreserved: 0,
+        errors: [],
+        timestamp: now,
+      };
+    } catch (error) {
+      console.error('[LifecycleManager] Error in cleanupGPU:', error);
+      throw error;
+    }
   }
 
   /**
@@ -608,18 +648,23 @@ export class LifecycleManager {
    * DELETE is now hard delete, no gc_disabled_agents policy needed
    */
   private async cleanupAgents(policy: Policy): Promise<CleanupResult> {
-    const now = new Date();
-    
-    console.log('[LifecycleManager]     Skipped - agents use hard delete (no soft delete)');
+    try {
+      const now = new Date();
+      
+      console.log('[LifecycleManager]     Skipped - agents use hard delete (no soft delete)');
 
-    return {
-      module: 'agents',
-      policy: policy.name,
-      recordsDeleted: 0,
-      recordsPreserved: 0,
-      errors: [],
-      timestamp: now,
-    };
+      return {
+        module: 'agents',
+        policy: policy.name,
+        recordsDeleted: 0,
+        recordsPreserved: 0,
+        errors: [],
+        timestamp: now,
+      };
+    } catch (error) {
+      console.error('[LifecycleManager] Error in cleanupAgents:', error);
+      throw error;
+    }
   }
 
   /**
@@ -627,18 +672,23 @@ export class LifecycleManager {
    * DELETE is now hard delete via CASCADE, no gc_disabled_namespaces policy needed
    */
   private async cleanupNamespaces(policy: Policy): Promise<CleanupResult> {
-    const now = new Date();
-    
-    console.log('[LifecycleManager]     Skipped - namespaces use hard delete with CASCADE (no soft delete)');
+    try {
+      const now = new Date();
+      
+      console.log('[LifecycleManager]     Skipped - namespaces use hard delete with CASCADE (no soft delete)');
 
-    return {
-      module: 'namespaces',
-      policy: policy.name,
-      recordsDeleted: 0,
-      recordsPreserved: 0,
-      errors: [],
-      timestamp: now,
-    };
+      return {
+        module: 'namespaces',
+        policy: policy.name,
+        recordsDeleted: 0,
+        recordsPreserved: 0,
+        errors: [],
+        timestamp: now,
+      };
+    } catch (error) {
+      console.error('[LifecycleManager] Error in cleanupNamespaces:', error);
+      throw error;
+    }
   }
 
   /**

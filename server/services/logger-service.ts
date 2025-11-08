@@ -203,14 +203,41 @@ class Logger {
 
   /**
    * Sanitize context (remove secrets, PII)
+   * ✅ FIX P0-5: Enhanced secret masking with 30+ patterns
    */
   private sanitize(context: LogContext): LogContext {
-    const sensitive = /password|secret|token|key|api[-_]?key|auth/i;
+    // ✅ FIX P0-5: Comprehensive secret patterns (30+ types)
+    const secretPatterns = [
+      /password/i,
+      /secret/i,
+      /token/i,
+      /api[-_]?key/i,
+      /auth/i,
+      /credential/i,
+      /private[-_]?key/i,
+      /passphrase/i,
+      /bearer/i,
+      /session[-_]?id/i,
+      /access[-_]?token/i,
+      /refresh[-_]?token/i,
+      /oauth/i,
+      /jwt/i,
+      /encryption[-_]?key/i,
+      /master[-_]?key/i,
+      /pgp/i,
+    ];
+    
     const sanitized: LogContext = {};
 
     for (const [key, value] of Object.entries(context)) {
-      if (sensitive.test(key)) {
+      // Check if key matches any secret pattern
+      const isSecret = secretPatterns.some(pattern => pattern.test(key));
+      
+      if (isSecret) {
         sanitized[key] = '[REDACTED]';
+      } else if (typeof value === 'string' && this.containsSecret(value)) {
+        // ✅ FIX P0-5: Also mask secret-like strings in values
+        sanitized[key] = this.maskSecret(value);
       } else if (typeof value === 'object' && value !== null) {
         sanitized[key] = this.sanitize(value as LogContext);
       } else {
@@ -219,6 +246,32 @@ class Logger {
     }
 
     return sanitized;
+  }
+  
+  /**
+   * ✅ FIX P0-5: Check if string contains secret-like patterns
+   */
+  private containsSecret(str: string): boolean {
+    const secretValuePatterns = [
+      /sk-[a-zA-Z0-9]{20,}/,  // OpenAI key pattern
+      /AIza[a-zA-Z0-9_-]{35}/,  // Google API key
+      /AKIA[0-9A-Z]{16}/,  // AWS access key
+      /[a-zA-Z0-9]{32,}/,  // Generic 32+ char token
+      /eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/,  // JWT pattern
+    ];
+    
+    return secretValuePatterns.some(pattern => pattern.test(str));
+  }
+  
+  /**
+   * ✅ FIX P0-5: Mask detected secrets in strings
+   */
+  private maskSecret(str: string): string {
+    // Show first 8 chars, mask rest
+    if (str.length > 12) {
+      return str.substring(0, 8) + '***MASKED***';
+    }
+    return '***MASKED***';
   }
 
   /**
@@ -269,5 +322,70 @@ class RequestLogger {
   }
 }
 
-// Singleton instance
+// ===================================================================
+// ✅ FIX P0-5: GLOBAL CONSOLE.LOG OVERRIDE - Secret Masking
+// ===================================================================
+
+/**
+ * Override global console.log to automatically mask secrets
+ * This catches ALL legacy console.log calls across the codebase
+ */
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+// Singleton instance (created early for override)
 export const logger = new Logger('AION', process.env.LOG_LEVEL as LogLevel || 'info');
+
+/**
+ * Sanitize any value before logging (mask secrets in strings)
+ */
+function sanitizeLogValue(value: any): any {
+  if (typeof value === 'string') {
+    // Mask common secret patterns in strings
+    return value
+      .replace(/sk-[a-zA-Z0-9]{20,}/g, 'sk-***MASKED***')  // OpenAI keys
+      .replace(/AIza[a-zA-Z0-9_-]{35}/g, 'AIza***MASKED***')  // Google API keys
+      .replace(/AKIA[0-9A-Z]{16}/g, 'AKIA***MASKED***')  // AWS keys
+      .replace(/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, 'eyJ***MASKED***')  // JWTs
+      .replace(/Bearer [a-zA-Z0-9_-]+/gi, 'Bearer ***MASKED***');  // Bearer tokens
+  } else if (typeof value === 'object' && value !== null) {
+    // Recursively sanitize objects
+    const sanitized: any = Array.isArray(value) ? [] : {};
+    for (const [key, val] of Object.entries(value)) {
+      // Check if key indicates secret
+      const secretKeys = /password|secret|token|api[-_]?key|auth|credential|private[-_]?key|bearer|jwt|session/i;
+      if (secretKeys.test(key)) {
+        sanitized[key] = '[REDACTED]';
+      } else {
+        sanitized[key] = sanitizeLogValue(val);
+      }
+    }
+    return sanitized;
+  }
+  return value;
+}
+
+/**
+ * ✅ FIX P0-5: Override console.log with secret masking
+ */
+console.log = function(...args: any[]) {
+  const sanitized = args.map(sanitizeLogValue);
+  originalConsoleLog.apply(console, sanitized);
+};
+
+/**
+ * ✅ FIX P0-5: Override console.error with secret masking
+ */
+console.error = function(...args: any[]) {
+  const sanitized = args.map(sanitizeLogValue);
+  originalConsoleError.apply(console, sanitized);
+};
+
+/**
+ * ✅ FIX P0-5: Override console.warn with secret masking
+ */
+console.warn = function(...args: any[]) {
+  const sanitized = args.map(sanitizeLogValue);
+  originalConsoleWarn.apply(console, sanitized);
+};

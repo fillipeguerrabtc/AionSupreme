@@ -45,12 +45,17 @@ export class AttachmentService {
    * Calcula MD5 e SHA256 de um arquivo
    */
   private async calculateChecksums(filePath: string): Promise<{ md5: string; sha256: string }> {
-    const fileBuffer = await fs.promises.readFile(filePath);
-    
-    const md5 = crypto.createHash('md5').update(fileBuffer).digest('hex');
-    const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
-    
-    return { md5, sha256 };
+    try {
+      const fileBuffer = await fs.promises.readFile(filePath);
+      
+      const md5 = crypto.createHash('md5').update(fileBuffer).digest('hex');
+      const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+      
+      return { md5, sha256 };
+    } catch (error) {
+      console.error('[AttachmentService] Error in calculateChecksums:', error);
+      throw error;
+    }
   }
 
   /**
@@ -58,48 +63,53 @@ export class AttachmentService {
    * Retorna registro criado na tabela curation_attachments
    */
   async uploadToPending(options: UploadOptions): Promise<number> {
-    const { curationId, file, fileType, sourceUrl, description } = options;
+    try {
+      const { curationId, file, fileType, sourceUrl, description } = options;
 
-    // Gerar nome único: timestamp_random_originalname
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(7);
-    const safeFilename = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const uniqueFilename = `${timestamp}_${random}_${safeFilename}`;
+      // Gerar nome único: timestamp_random_originalname
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(7);
+      const safeFilename = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const uniqueFilename = `${timestamp}_${random}_${safeFilename}`;
 
-    // Path de destino
-    const destPath = path.join(CURATION_STORAGE.PENDING, uniqueFilename);
+      // Path de destino
+      const destPath = path.join(CURATION_STORAGE.PENDING, uniqueFilename);
 
-    // Copiar arquivo
-    await fs.promises.copyFile(file.path, destPath);
+      // Copiar arquivo
+      await fs.promises.copyFile(file.path, destPath);
 
-    // Calcular checksums
-    const { md5, sha256 } = await this.calculateChecksums(destPath);
+      // Calcular checksums
+      const { md5, sha256 } = await this.calculateChecksums(destPath);
 
-    // Gerar base64 temporário para preview (apenas imagens pequenas)
-    let tempBase64: string | undefined;
-    if (fileType === 'image' && file.size < 5 * 1024 * 1024) { // Máx 5MB
-      const buffer = await fs.promises.readFile(destPath);
-      tempBase64 = `data:${file.mimetype};base64,${buffer.toString('base64')}`;
+      // Gerar base64 temporário para preview (apenas imagens pequenas)
+      let tempBase64: string | undefined;
+      if (fileType === 'image' && file.size < 5 * 1024 * 1024) { // Máx 5MB
+        const buffer = await fs.promises.readFile(destPath);
+        tempBase64 = `data:${file.mimetype};base64,${buffer.toString('base64')}`;
+      }
+
+      // Inserir registro
+      const [attachment] = await db.insert(curationAttachments).values({
+        curationId,
+        fileType,
+        storagePath: destPath,
+        originalFilename: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        md5Hash: md5,
+        sha256Hash: sha256,
+        sourceUrl,
+        description,
+        tempBase64,
+      }).returning();
+
+      console.log(`[AttachmentService] ✅ Uploaded: ${uniqueFilename} (${fileType}, ${file.size} bytes)`);
+
+      return attachment.id;
+    } catch (error) {
+      console.error('[AttachmentService] Error in uploadToPending:', error);
+      throw error;
     }
-
-    // Inserir registro
-    const [attachment] = await db.insert(curationAttachments).values({
-      curationId,
-      fileType,
-      storagePath: destPath,
-      originalFilename: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      md5Hash: md5,
-      sha256Hash: sha256,
-      sourceUrl,
-      description,
-      tempBase64,
-    }).returning();
-
-    console.log(`[AttachmentService] ✅ Uploaded: ${uniqueFilename} (${fileType}, ${file.size} bytes)`);
-
-    return attachment.id;
   }
 
   /**
@@ -108,55 +118,60 @@ export class AttachmentService {
    * Retorna relative URL para uso na KB
    */
   async moveToKB(options: MoveToKBOptions): Promise<string> {
-    const { attachmentId, targetSubfolder } = options;
+    try {
+      const { attachmentId, targetSubfolder } = options;
 
-    // Buscar attachment
-    const [attachment] = await db.select().from(curationAttachments).where(eq(curationAttachments.id, attachmentId));
-    if (!attachment) {
-      throw new Error(`Attachment ${attachmentId} not found`);
+      // Buscar attachment
+      const [attachment] = await db.select().from(curationAttachments).where(eq(curationAttachments.id, attachmentId));
+      if (!attachment) {
+        throw new Error(`Attachment ${attachmentId} not found`);
+      }
+
+      // Auto-detect subfolder se não especificado
+      let subfolder = targetSubfolder;
+      if (!subfolder) {
+        if (attachment.fileType === 'image') subfolder = 'images';
+        else if (attachment.fileType === 'document') subfolder = 'documents';
+        else subfolder = 'media';
+      }
+
+      // Determinar destino
+      const kbBasePath = subfolder === 'images' ? KB_STORAGE.IMAGES :
+                         subfolder === 'documents' ? KB_STORAGE.DOCUMENTS :
+                         KB_STORAGE.MEDIA;
+
+      const filename = path.basename(attachment.storagePath);
+      const destPath = path.join(kbBasePath, filename);
+
+      // Verificar se origem existe
+      if (!fs.existsSync(attachment.storagePath)) {
+        console.warn(`[AttachmentService] ⚠️ Source file not found: ${attachment.storagePath}`);
+        // Retornar relative path mesmo se arquivo não existe (pode ter sido movido antes)
+        return `/kb_storage/${subfolder}/${filename}`;
+      }
+
+      // Move arquivo
+      await fs.promises.rename(attachment.storagePath, destPath);
+
+      // Gerar relative URL web-accessible
+      const relativeUrl = `/kb_storage/${subfolder}/${filename}`;
+
+      // Atualizar DB com relative path + REMOVER tempBase64 (economia de espaço)
+      await db.update(curationAttachments)
+        .set({ 
+          storagePath: relativeUrl, // Salvar relative path ao invés de absolute
+          tempBase64: null, // Limpar base64 após aprovação
+          updatedAt: new Date(),
+        })
+        .where(eq(curationAttachments.id, attachmentId));
+
+      console.log(`[AttachmentService] ✅ Moved to KB: ${filename} → ${relativeUrl}`);
+      
+      return relativeUrl;
+    } catch (error) {
+      console.error('[AttachmentService] Error in moveToKB:', error);
+      throw error;
     }
-
-    // Auto-detect subfolder se não especificado
-    let subfolder = targetSubfolder;
-    if (!subfolder) {
-      if (attachment.fileType === 'image') subfolder = 'images';
-      else if (attachment.fileType === 'document') subfolder = 'documents';
-      else subfolder = 'media';
-    }
-
-    // Determinar destino
-    const kbBasePath = subfolder === 'images' ? KB_STORAGE.IMAGES :
-                       subfolder === 'documents' ? KB_STORAGE.DOCUMENTS :
-                       KB_STORAGE.MEDIA;
-
-    const filename = path.basename(attachment.storagePath);
-    const destPath = path.join(kbBasePath, filename);
-
-    // Verificar se origem existe
-    if (!fs.existsSync(attachment.storagePath)) {
-      console.warn(`[AttachmentService] ⚠️ Source file not found: ${attachment.storagePath}`);
-      // Retornar relative path mesmo se arquivo não existe (pode ter sido movido antes)
-      return `/kb_storage/${subfolder}/${filename}`;
-    }
-
-    // Move arquivo
-    await fs.promises.rename(attachment.storagePath, destPath);
-
-    // Gerar relative URL web-accessible
-    const relativeUrl = `/kb_storage/${subfolder}/${filename}`;
-
-    // Atualizar DB com relative path + REMOVER tempBase64 (economia de espaço)
-    await db.update(curationAttachments)
-      .set({ 
-        storagePath: relativeUrl, // Salvar relative path ao invés de absolute
-        tempBase64: null, // Limpar base64 após aprovação
-        updatedAt: new Date(),
-      })
-      .where(eq(curationAttachments.id, attachmentId));
-
-    console.log(`[AttachmentService] ✅ Moved to KB: ${filename} → ${relativeUrl}`);
-    
-    return relativeUrl;
   }
 
   /**
@@ -164,59 +179,79 @@ export class AttachmentService {
    * Remove arquivo físico + registro do DB
    */
   async deleteFromPending(attachmentId: number): Promise<void> {
-    // Buscar attachment
-    const [attachment] = await db.select().from(curationAttachments).where(eq(curationAttachments.id, attachmentId));
-    if (!attachment) {
-      console.warn(`[AttachmentService] ⚠️ Attachment ${attachmentId} not found (already deleted?)`);
-      return;
-    }
+    try {
+      // Buscar attachment
+      const [attachment] = await db.select().from(curationAttachments).where(eq(curationAttachments.id, attachmentId));
+      if (!attachment) {
+        console.warn(`[AttachmentService] ⚠️ Attachment ${attachmentId} not found (already deleted?)`);
+        return;
+      }
 
-    // Delete arquivo físico se existir
-    if (fs.existsSync(attachment.storagePath)) {
-      await fs.promises.unlink(attachment.storagePath);
-      console.log(`[AttachmentService] 🗑️ Deleted file: ${path.basename(attachment.storagePath)}`);
-    }
+      // Delete arquivo físico se existir
+      if (fs.existsSync(attachment.storagePath)) {
+        await fs.promises.unlink(attachment.storagePath);
+        console.log(`[AttachmentService] 🗑️ Deleted file: ${path.basename(attachment.storagePath)}`);
+      }
 
-    // Delete registro do DB (cascade delete via FK)
-    await db.delete(curationAttachments).where(eq(curationAttachments.id, attachmentId));
+      // Delete registro do DB (cascade delete via FK)
+      await db.delete(curationAttachments).where(eq(curationAttachments.id, attachmentId));
+    } catch (error) {
+      console.error('[AttachmentService] Error in deleteFromPending:', error);
+      throw error;
+    }
   }
 
   /**
    * Busca attachment por MD5 (deduplicação exata)
    */
   async findByMD5(md5Hash: string): Promise<typeof curationAttachments.$inferSelect | null> {
-    const [attachment] = await db.select()
-      .from(curationAttachments)
-      .where(eq(curationAttachments.md5Hash, md5Hash))
-      .limit(1);
+    try {
+      const [attachment] = await db.select()
+        .from(curationAttachments)
+        .where(eq(curationAttachments.md5Hash, md5Hash))
+        .limit(1);
 
-    return attachment || null;
+      return attachment || null;
+    } catch (error) {
+      console.error('[AttachmentService] Error in findByMD5:', error);
+      throw error;
+    }
   }
 
   /**
    * Busca attachments de uma curation
    */
   async getAttachmentsByCuration(curationId: string) {
-    return await db.select()
-      .from(curationAttachments)
-      .where(eq(curationAttachments.curationId, curationId));
+    try {
+      return await db.select()
+        .from(curationAttachments)
+        .where(eq(curationAttachments.curationId, curationId));
+    } catch (error) {
+      console.error('[AttachmentService] Error in getAttachmentsByCuration:', error);
+      throw error;
+    }
   }
 
   /**
    * Cleanup: Remove base64 de attachments antigos (economia de espaço)
    */
   async cleanupOldBase64(daysOld: number = 7): Promise<number> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
-    // Apenas limpa base64 de attachments APROVADOS (já em kb_storage)
-    const result = await db.update(curationAttachments)
-      .set({ tempBase64: null, updatedAt: new Date() })
-      .where(isNotNull(curationAttachments.tempBase64)) // WHERE tempBase64 IS NOT NULL
-      .returning({ id: curationAttachments.id });
+      // Apenas limpa base64 de attachments APROVADOS (já em kb_storage)
+      const result = await db.update(curationAttachments)
+        .set({ tempBase64: null, updatedAt: new Date() })
+        .where(isNotNull(curationAttachments.tempBase64)) // WHERE tempBase64 IS NOT NULL
+        .returning({ id: curationAttachments.id });
 
-    console.log(`[AttachmentService] 🧹 Cleaned ${result.length} old base64 previews`);
-    return result.length;
+      console.log(`[AttachmentService] 🧹 Cleaned ${result.length} old base64 previews`);
+      return result.length;
+    } catch (error) {
+      console.error('[AttachmentService] Error in cleanupOldBase64:', error);
+      throw error;
+    }
   }
 }
 

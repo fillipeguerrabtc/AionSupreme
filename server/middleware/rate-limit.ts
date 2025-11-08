@@ -288,9 +288,19 @@ export function rateLimitMiddleware(
   const ip = req.ip || req.socket.remoteAddress || "unknown";
   const key = `system:${ip}`;
 
-  // Check per-minute limit
+  // ✅ FIX P0-10: Check per-minute limit
   if (rateLimiter.shouldLimit(key, "minute")) {
     return sendRateLimitError(res, 60);
+  }
+
+  // ✅ FIX P0-10: Check per-hour limit
+  if (rateLimiter.shouldLimit(key, "hour")) {
+    return sendRateLimitError(res, 3600);
+  }
+
+  // ✅ FIX P0-10: Check per-day limit  
+  if (rateLimiter.shouldLimit(key, "day")) {
+    return sendRateLimitError(res, 86400);
   }
 
   // Add complete rate limit headers for all windows (minute/hour/day)

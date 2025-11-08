@@ -1,6 +1,9 @@
 // ⚡ FASE 1 - Fail-fast ENV Check (DEVE SER PRIMEIRO IMPORT)
 import "./scripts/check-env";
 
+// ✅ FIX P0-5: Import logger early to activate console.log override (secret masking)
+import "./services/logger-service";
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import "./workers/link-capture-worker"; // Auto-start worker
@@ -29,12 +32,19 @@ declare module 'http' {
     rawBody: unknown
   }
 }
+
+// ✅ FIX P0-10: Add request size limits to prevent DoS attacks
+// 50MB limit for file uploads, 10MB for JSON payloads
 app.use(express.json({
+  limit: '10mb', // Max JSON payload size
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ 
+  limit: '10mb', // Max form data size
+  extended: false 
+}));
 
 // Middleware de monitoramento de latência de queries
 app.use(queryMonitoringMiddleware);

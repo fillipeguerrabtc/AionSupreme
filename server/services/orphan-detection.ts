@@ -42,60 +42,65 @@ export interface OrphanDetectionResult {
  * @returns Detection result with fix/delete actions
  */
 export async function detectOrphanedAgents(): Promise<OrphanDetectionResult> {
-  // Step 1: Get all valid namespace names from DB
-  const allNamespaces = await db.select().from(namespaces);
-  const validNamespaceSet = new Set(allNamespaces.map((ns) => ns.name));
-  const validNamespaceArray = Array.from(validNamespaceSet);
+  try {
+    // Step 1: Get all valid namespace names from DB
+    const allNamespaces = await db.select().from(namespaces);
+    const validNamespaceSet = new Set(allNamespaces.map((ns) => ns.name));
+    const validNamespaceArray = Array.from(validNamespaceSet);
 
-  // Step 2: Get ALL agents (enabled + disabled)
-  const allAgents = await db.select().from(agents);
+    // Step 2: Get ALL agents (enabled + disabled)
+    const allAgents = await db.select().from(agents);
 
-  // Step 3: Identify agents with invalid namespaces
-  const agentsWithIssues: AgentWithInvalidNamespaces[] = [];
-  let canAutoFix = 0;
-  let needsReview = 0;
+    // Step 3: Identify agents with invalid namespaces
+    const agentsWithIssues: AgentWithInvalidNamespaces[] = [];
+    let canAutoFix = 0;
+    let needsReview = 0;
 
-  for (const agent of allAgents) {
-    // SKIP agents with null/empty namespaces (may be legitimate)
-    if (!agent.assignedNamespaces || agent.assignedNamespaces.length === 0) {
-      continue;
-    }
+    for (const agent of allAgents) {
+      // SKIP agents with null/empty namespaces (may be legitimate)
+      if (!agent.assignedNamespaces || agent.assignedNamespaces.length === 0) {
+        continue;
+      }
 
-    // Separate valid and invalid namespaces
-    const validNs = agent.assignedNamespaces.filter((ns) => validNamespaceSet.has(ns));
-    const invalidNs = agent.assignedNamespaces.filter((ns) => !validNamespaceSet.has(ns));
+      // Separate valid and invalid namespaces
+      const validNs = agent.assignedNamespaces.filter((ns) => validNamespaceSet.has(ns));
+      const invalidNs = agent.assignedNamespaces.filter((ns) => !validNamespaceSet.has(ns));
 
-    // Only report agents with at least one invalid namespace
-    if (invalidNs.length > 0) {
-      const canAutoFixThis = validNs.length > 0;
-      
-      agentsWithIssues.push({
-        id: agent.id,
-        slug: agent.slug,
-        name: agent.name,
-        agentTier: agent.agentTier,
-        assignedNamespaces: agent.assignedNamespaces,
-        invalidNamespaces: invalidNs,
-        validNamespaces: validNs,
-        canAutoFix: canAutoFixThis,
-      });
+      // Only report agents with at least one invalid namespace
+      if (invalidNs.length > 0) {
+        const canAutoFixThis = validNs.length > 0;
+        
+        agentsWithIssues.push({
+          id: agent.id,
+          slug: agent.slug,
+          name: agent.name,
+          agentTier: agent.agentTier,
+          assignedNamespaces: agent.assignedNamespaces,
+          invalidNamespaces: invalidNs,
+          validNamespaces: validNs,
+          canAutoFix: canAutoFixThis,
+        });
 
-      if (canAutoFixThis) {
-        canAutoFix++;
-      } else {
-        needsReview++;
+        if (canAutoFixThis) {
+          canAutoFix++;
+        } else {
+          needsReview++;
+        }
       }
     }
-  }
 
-  return {
-    agentsWithIssues,
-    canAutoFix,
-    needsReview,
-    totalIssues: agentsWithIssues.length,
-    validNamespaces: validNamespaceArray,
-    scannedAgents: allAgents.length,
-  };
+    return {
+      agentsWithIssues,
+      canAutoFix,
+      needsReview,
+      totalIssues: agentsWithIssues.length,
+      validNamespaces: validNamespaceArray,
+      scannedAgents: allAgents.length,
+    };
+  } catch (error) {
+    console.error('[OrphanDetection] Error in detectOrphanedAgents:', error);
+    throw error;
+  }
 }
 
 /**
@@ -116,40 +121,45 @@ export async function autoFixOrphanedAgents(): Promise<{
   skipped: number;
   total: number;
 }> {
-  const { agentsWithIssues } = await detectOrphanedAgents();
+  try {
+    const { agentsWithIssues } = await detectOrphanedAgents();
 
-  if (agentsWithIssues.length === 0) {
-    return { fixed: 0, skipped: 0, total: 0 };
-  }
-
-  let fixed = 0;
-  let skipped = 0;
-
-  await db.transaction(async (tx) => {
-    for (const agent of agentsWithIssues) {
-      if (agent.canAutoFix) {
-        // FIX: Update assigned_namespaces to remove invalid ones
-        await tx
-          .update(agents)
-          .set({
-            assignedNamespaces: agent.validNamespaces,
-            updatedAt: new Date(),
-          })
-          .where(eq(agents.id, agent.id));
-        
-        fixed++;
-        console.log(`[Orphan Auto-Fix] ✓ Fixed ${agent.slug}: removed invalid ${agent.invalidNamespaces.join(", ")}, kept ${agent.validNamespaces.join(", ")}`);
-      } else {
-        // SKIP: Zero valid namespaces - requires manual review
-        skipped++;
-        console.log(`[Orphan Auto-Fix] ⚠️  Skipped ${agent.slug}: zero valid namespaces - manual review required`);
-      }
+    if (agentsWithIssues.length === 0) {
+      return { fixed: 0, skipped: 0, total: 0 };
     }
-  });
 
-  return {
-    fixed,
-    skipped,
-    total: agentsWithIssues.length,
-  };
+    let fixed = 0;
+    let skipped = 0;
+
+    await db.transaction(async (tx) => {
+      for (const agent of agentsWithIssues) {
+        if (agent.canAutoFix) {
+          // FIX: Update assigned_namespaces to remove invalid ones
+          await tx
+            .update(agents)
+            .set({
+              assignedNamespaces: agent.validNamespaces,
+              updatedAt: new Date(),
+            })
+            .where(eq(agents.id, agent.id));
+          
+          fixed++;
+          console.log(`[Orphan Auto-Fix] ✓ Fixed ${agent.slug}: removed invalid ${agent.invalidNamespaces.join(", ")}, kept ${agent.validNamespaces.join(", ")}`);
+        } else {
+          // SKIP: Zero valid namespaces - requires manual review
+          skipped++;
+          console.log(`[Orphan Auto-Fix] ⚠️  Skipped ${agent.slug}: zero valid namespaces - manual review required`);
+        }
+      }
+    });
+
+    return {
+      fixed,
+      skipped,
+      total: agentsWithIssues.length,
+    };
+  } catch (error) {
+    console.error('[OrphanDetection] Error in autoFixOrphanedAgents:', error);
+    throw error;
+  }
 }
