@@ -18,7 +18,8 @@ export interface MetaLearningConfig {
   
   // Adaptive Thresholds
   thresholds: {
-    minExamples: number;
+    minKBItems: number; // ✅ BLOCKER #2 FIX: Renamed from minExamples - conta KB items aprovados
+    minExamples: number; // @deprecated - mantido para backward compatibility
     federatedMinimum: number; // Mínimo para distribuir entre GPUs
   };
   
@@ -91,7 +92,8 @@ export const META_LEARNING_CONFIGS: Record<MetaLearningMode, MetaLearningConfig>
     mode: 'development',
     
     thresholds: {
-      minExamples: 5, // Threshold baixo para testes
+      minKBItems: 5, // ✅ BLOCKER #2 FIX: KB items threshold (baixo para dev/testes)
+      minExamples: 5, // @deprecated - mantido para backward compatibility
       federatedMinimum: 10,
     },
     
@@ -153,7 +155,8 @@ export const META_LEARNING_CONFIGS: Record<MetaLearningMode, MetaLearningConfig>
     mode: 'production',
     
     thresholds: {
-      minExamples: 25, // Threshold seguro para privacidade (cohort protection)
+      minKBItems: 25, // ✅ BLOCKER #2 FIX: 25 KB items (conforme spec original)
+      minExamples: 25, // @deprecated - mantido para backward compatibility
       federatedMinimum: 50,
     },
     
@@ -215,7 +218,8 @@ export const META_LEARNING_CONFIGS: Record<MetaLearningMode, MetaLearningConfig>
     mode: 'sensitive',
     
     thresholds: {
-      minExamples: 50, // Threshold MUITO alto (cohort privacy protection)
+      minKBItems: 50, // ✅ BLOCKER #2 FIX: Threshold MUITO alto (cohort privacy protection)
+      minExamples: 50, // @deprecated - mantido para backward compatibility
       federatedMinimum: 100, // Federado requer dobro para garantir safety
     },
     
@@ -286,7 +290,7 @@ export function getMetaLearningConfig(): MetaLearningConfig {
   
   const config = META_LEARNING_CONFIGS[mode];
   console.log(`[MetaLearning] 📋 Loaded config: ${mode.toUpperCase()} mode`);
-  console.log(`   • Threshold: ${config.thresholds.minExamples} examples`);
+  console.log(`   • Threshold: ${config.thresholds.minKBItems} KB items`); // ✅ BLOCKER #2 FIX
   console.log(`   • Replay Buffer: ${config.replayBuffer.enabled ? 'ENABLED' : 'DISABLED'} (${config.replayBuffer.maxSize} size)`);
   console.log(`   • Differential Privacy: ${config.differentialPrivacy.enabled ? `ENABLED (ε=${config.differentialPrivacy.epsilon})` : 'DISABLED'}`);
   console.log(`   • PII Redaction: ${config.piiRedaction.enabled ? 'ENABLED' : 'DISABLED'}`);

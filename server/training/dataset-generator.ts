@@ -514,6 +514,7 @@ export class DatasetGenerator {
 
   /**
    * Verifica se há exemplos suficientes para gerar dataset
+   * @deprecated Use checkPendingKBItems() instead - conta training examples (conversas+KB)
    */
   async checkPendingExamples(): Promise<number> {
     try {
@@ -539,6 +540,45 @@ export class DatasetGenerator {
       return totalPending;
     } catch (error: any) {
       console.error(`[DatasetGen] Erro ao contar exemplos:`, error.message);
+      return 0;
+    }
+  }
+
+  /**
+   * ✅ BLOCKER #2 FIX: Verifica KB items aprovados e prontos para training
+   * 
+   * Conta apenas documentos da Knowledge Base que:
+   * 1. Foram aprovados via HITL (curationQueue.status = 'approved')
+   * 2. Já foram indexados (documents table)
+   * 3. Ainda não foram usados em nenhum dataset
+   * 
+   * @returns Quantidade de KB items prontos para treino
+   */
+  async checkPendingKBItems(): Promise<number> {
+    try {
+      // Buscar todos os documentos que vieram de curation aprovada
+      const approvedDocs = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(documents)
+        .where(
+          and(
+            // Documentos que vieram de upload/manual/url (não de chat)
+            sql`${documents.source} IN ('upload', 'manual', 'url', 'web-search', 'youtube')`,
+            // Que ainda não foram usados em dataset
+            sql`NOT EXISTS (
+              SELECT 1 FROM ${datasets} d 
+              WHERE d.description LIKE '%' || ${documents.id} || '%'
+            )`
+          )
+        );
+
+      const totalKBItems = Number(approvedDocs[0]?.count || 0);
+      
+      console.log(`[DatasetGen] 📚 KB items prontos para treino: ${totalKBItems}`);
+      
+      return totalKBItems;
+    } catch (error: any) {
+      console.error(`[DatasetGen] Erro ao contar KB items:`, error.message);
       return 0;
     }
   }

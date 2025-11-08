@@ -27,6 +27,7 @@ import fsSync from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
 import { VisionCascade } from "./vision-cascade";
+import { storagePaths } from "../config/storage-paths";
 
 export interface ProcessedImage {
   localPath: string;
@@ -49,15 +50,15 @@ export interface ProcessedImageTemp {
 }
 
 export class ImageProcessor {
-  private imagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
+  // ✅ BLOCKER #1 FIX: Storage PERMANENTE (data/learned_images)
+  // NÃO mais attached_assets (temporário, limpa a cada commit!)
+  private imagesDir = storagePaths.learnedImages;
   private maxImageSize = 10 * 1024 * 1024; // 10MB max
   private visionCascade: VisionCascade;
 
   constructor() {
-    if (!fsSync.existsSync(this.imagesDir)) {
-      fsSync.mkdirSync(this.imagesDir, { recursive: true });
-    }
-    
+    // Pasta já criada por storagePaths.getStoragePaths()
+    console.log(`[ImageProcessor] ✅ Using PERMANENT storage: ${this.imagesDir}`);
     this.visionCascade = new VisionCascade();
   }
 

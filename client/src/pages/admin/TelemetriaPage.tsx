@@ -350,10 +350,10 @@ export default function TelemetriaPage() {
                 </div>
                 <CardDescription className="text-xs flex items-center gap-2">
                   <Badge variant="outline" className="text-[10px]">
-                    {hierarchicalOverview?.agents.rootAgents || 0} Agents
+                    {hierarchicalOverview?.agents?.rootAgents || 0} Agents
                   </Badge>
                   <Badge variant="secondary" className="text-[10px]">
-                    {hierarchicalOverview?.agents.subAgents || 0} Sub-Agents
+                    {hierarchicalOverview?.agents?.subAgents || 0} Sub-Agents
                   </Badge>
                 </CardDescription>
               </CardHeader>
@@ -371,10 +371,10 @@ export default function TelemetriaPage() {
                 </div>
                 <CardDescription className="text-xs flex items-center gap-2">
                   <Badge variant="outline" className="text-[10px]">
-                    {hierarchicalOverview?.namespaces.rootNamespaces || 0} Root
+                    {hierarchicalOverview?.namespaces?.rootNamespaces || 0} Root
                   </Badge>
                   <Badge variant="secondary" className="text-[10px]">
-                    {hierarchicalOverview?.namespaces.subNamespaces || 0} Sub
+                    {hierarchicalOverview?.namespaces?.subNamespaces || 0} Sub
                   </Badge>
                 </CardDescription>
               </CardHeader>
@@ -415,11 +415,11 @@ export default function TelemetriaPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Agents Raiz</span>
-                    <span className="font-bold">{hierarchicalOverview?.agents.rootAgents || 0}</span>
+                    <span className="font-bold">{hierarchicalOverview?.agents?.rootAgents || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Sub-Agents</span>
-                    <span className="font-bold">{hierarchicalOverview?.agents.subAgents || 0}</span>
+                    <span className="font-bold">{hierarchicalOverview?.agents?.subAgents || 0}</span>
                   </div>
                 </div>
               </CardHeader>

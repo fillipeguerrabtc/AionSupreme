@@ -211,7 +211,8 @@ class OpenAIBillingSyncService {
       logger.info(`[OpenAI Billing Sync] ✅ Sync completo: ${syncedCount} novos registros, ${skippedCount} já existentes`);
 
     } catch (error: any) {
-      const truncatedError = this.truncateError(error.message || String(error));
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      const truncatedError = this.truncateError(errorMessage);
       logger.error(`[OpenAI Billing Sync] ❌ Erro ao sincronizar: ${truncatedError}`);
       throw new Error(truncatedError);
     }
@@ -249,8 +250,10 @@ class OpenAIBillingSyncService {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        throw { status: response.status, message: error };
+        const errorText = await response.text();
+        const error = new Error(`OpenAI API error (${response.status}): ${errorText.substring(0, 200)}`);
+        (error as any).status = response.status;
+        throw error;
       }
 
       return await response.json();
@@ -306,7 +309,8 @@ class OpenAIBillingSyncService {
 
     // Sync imediato na inicialização (com retry automático)
     this.syncBillingData(30).catch(err => {
-      const truncatedError = this.truncateError(err.message || String(err));
+      const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+      const truncatedError = this.truncateError(errorMessage);
       logger.error(`[OpenAI Billing Sync] Erro no sync inicial: ${truncatedError}`);
     });
 
@@ -316,7 +320,8 @@ class OpenAIBillingSyncService {
     this.syncInterval = setInterval(() => {
       logger.info("[OpenAI Billing Sync] ⏰ Executando sync automático...");
       this.syncBillingData(30).catch(err => {
-        const truncatedError = this.truncateError(err.message || String(err));
+        const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+        const truncatedError = this.truncateError(errorMessage);
         logger.error(`[OpenAI Billing Sync] Erro no sync automático: ${truncatedError}`);
       });
     }, SYNC_INTERVAL_MS);
@@ -337,7 +342,8 @@ class OpenAIBillingSyncService {
     
     // Sync em background (não aguarda)
     this.syncBillingData(7).catch(err => {
-      const truncatedError = this.truncateError(err.message || String(err));
+      const errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
+      const truncatedError = this.truncateError(errorMessage);
       logger.error(`[OpenAI Billing Sync] Erro no sync manual: ${truncatedError}`);
     });
   }

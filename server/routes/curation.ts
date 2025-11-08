@@ -10,6 +10,7 @@ import { deduplicationService } from "../services/deduplication-service";
 import { generateContentHash, normalizeContent } from "../utils/deduplication";
 import { curationQueue, documents } from "../../shared/schema";
 import { eq } from "drizzle-orm";
+import { inferMimeType } from "../lib/mime-type-inference";
 
 export function registerCurationRoutes(app: Router) {
   /**
@@ -532,15 +533,49 @@ export function registerCurationRoutes(app: Router) {
         }
 
         try {
-          // Processa imagem com Vision Cascade
-          const processed = await imageProcessor.processImage(
-            attachment.url,
+          // ✅ BLOCKER #1 FIX: Validação robusta + inferência de mimeType + skip gracioso
+          let imageInput: string;
+          
+          // Caso 1: Tem base64 (infere mimeType se necessário)
+          if (attachment.base64) {
+            // Se mimeType está missing, infere de filename/magic bytes
+            if (!attachment.mimeType || attachment.mimeType.trim() === '') {
+              attachment.mimeType = inferMimeType(attachment.filename, attachment.base64);
+              console.log(`   🔧 MimeType inferred for ${attachment.filename}: ${attachment.mimeType}`);
+            }
+            imageInput = `data:${attachment.mimeType};base64,${attachment.base64}`;
+          } 
+          // Caso 2: Tem URL HTTP
+          else if (attachment.url) {
+            imageInput = attachment.url;
+          } 
+          // Caso 3: Não tem nem URL nem base64 (text-only, metadata-only)
+          else {
+            console.log(`   ⚠️ Skipping ${attachment.filename}: sem URL nem base64 (text-only ou metadata-only)`);
+            results.push({
+              filename: attachment.filename,
+              description: attachment.description || "N/A (sem source data)",
+              error: "Attachment sem source data (text-only)",
+            });
+            continue; // ← SKIP gracioso ao invés de throw error!
+          }
+
+          const processed = await imageProcessor.processImageForCuration(
+            imageInput,
             attachment.filename
           );
 
           if (processed && processed.description) {
             // Atualiza attachment com description gerada
             attachment.description = processed.description;
+            // Garante que base64 está preservado (para attachments com URL que foram baixados)
+            if (!attachment.base64 && processed.base64) {
+              attachment.base64 = processed.base64;
+              // Garante mimeType também
+              if (!attachment.mimeType && processed.mimeType) {
+                attachment.mimeType = processed.mimeType;
+              }
+            }
             results.push({
               filename: attachment.filename,
               description: processed.description,

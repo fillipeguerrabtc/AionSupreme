@@ -89,6 +89,29 @@ export class DemandBasedKaggleOrchestrator {
     try {
       console.log(`[DemandBasedKaggle] 🚀 Start requested: ${options.reason}`);
       
+      // ✅ BLOCKER #3 FIX: COLAB-FIRST POLICY
+      // Verifica se já há algum worker online (especialmente Colab free)
+      // Se houver, NÃO ativa Kaggle (economiza quota on-demand de 28h/week)
+      const { GPUPool } = await import('../gpu/pool');
+      const onlineWorkers = await GPUPool.getOnlineWorkers();
+      
+      if (onlineWorkers.length > 0) {
+        const colabWorkers = onlineWorkers.filter(w => w.provider === 'colab');
+        const otherWorkers = onlineWorkers.filter(w => w.provider !== 'colab' && w.provider !== 'kaggle');
+        
+        console.log(`[DemandBasedKaggle] ✅ Workers já online: ${onlineWorkers.length}`);
+        console.log(`   • Colab: ${colabWorkers.length}`);
+        console.log(`   • Outros: ${otherWorkers.length}`);
+        console.log(`   → Não ativando Kaggle (economizando quota on-demand)`);
+        
+        return {
+          success: false,
+          error: `Worker já disponível (${onlineWorkers[0].provider}) - Kaggle não necessário`,
+        };
+      }
+      
+      console.log(`[DemandBasedKaggle] 📊 Nenhum worker online - prosseguindo com ativação Kaggle`);
+      
       // ============================================================================
       // PHASE 1: ATOMICALLY RESERVE WORKER (SHORT TRANSACTION)
       // ============================================================================
@@ -199,9 +222,9 @@ export class DemandBasedKaggleOrchestrator {
       }
       
       // 5. Get Kaggle credentials
-      const credentials = await secretsVault.retrieveSecret('kaggle-main', 'kaggle');
+      const credentialsRaw = await secretsVault.retrieve('kaggle-main');
       
-      if (!credentials) {
+      if (!credentialsRaw) {
         console.error('[DemandBasedKaggle] ❌ No Kaggle credentials found!');
         
         // Release reservation
@@ -213,7 +236,8 @@ export class DemandBasedKaggleOrchestrator {
         };
       }
       
-      const { username, apiKey } = credentials.decrypted as { username: string; apiKey: string };
+      const credentials = JSON.parse(credentialsRaw);
+      const { username, apiKey } = credentials as { username: string; apiKey: string };
       
       // 6. Get AION base URL
       const aionBaseUrl = process.env.REPL_SLUG 

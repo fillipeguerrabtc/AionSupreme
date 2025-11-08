@@ -88,20 +88,21 @@ export class AutoTrainingTrigger {
     
     // Load adaptive configuration
     const config = getMetaLearningConfig();
-    const threshold = config.thresholds.minExamples;
+    const threshold = config.thresholds.minKBItems; // ✅ BLOCKER #2 FIX: Use minKBItems
 
     try {
-      // CONDIÇÃO 1: Verificar exemplos pendentes
-      const pendingExamples = await datasetGenerator.checkPendingExamples();
-      console.log(`   📊 Exemplos pendentes: ${pendingExamples}`);
-      console.log(`   🎯 Threshold (modo ${config.mode}): ${threshold} exemplos`);
+      // ✅ BLOCKER #2 FIX: Usar checkPendingKBItems() em vez de checkPendingExamples()
+      // Conta APENAS KB items (documentos aprovados), não conversas
+      const pendingKBItems = await datasetGenerator.checkPendingKBItems();
+      console.log(`   📚 KB items pendentes: ${pendingKBItems}`);
+      console.log(`   🎯 Threshold (modo ${config.mode}): ${threshold} KB items`);
 
-      if (pendingExamples < threshold) {
-        console.log(`   ⚠ Insuficiente - precisa de ${threshold} exemplos`);
+      if (pendingKBItems < threshold) {
+        console.log(`   ⚠ Insuficiente - precisa de ${threshold} KB items`);
         return;
       }
 
-      console.log(`   ✅ Threshold atingido! (${pendingExamples} >= ${threshold})`);
+      console.log(`   ✅ Threshold atingido! (${pendingKBItems} >= ${threshold} KB items)`);
 
       // CONDIÇÃO 2: Verificar GPUs disponíveis
       const onlineWorkers = await GPUPool.getOnlineWorkers();
