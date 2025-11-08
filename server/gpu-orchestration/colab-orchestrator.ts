@@ -33,6 +33,8 @@ import { createCursor } from 'ghost-cursor';
 import { db } from '../db';
 import { gpuWorkers } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { gpuCooldownManager } from '../services/gpu-cooldown-manager';
+import { QUOTA_LIMITS } from '../config/quota-limits';
 
 // ✅ P2.8: Add stealth plugin for maximum anti-detection
 puppeteer.use(StealthPlugin());
@@ -56,6 +58,8 @@ interface ColabSession {
   sessionId: string;
   ngrokUrl?: string;
   keepAliveInterval?: NodeJS.Timeout;
+  autoShutdownTimeout?: NodeJS.Timeout; // ✅ CRITICAL FIX: Auto-shutdown at 11h
+  sessionStartTime: Date; // ✅ CRITICAL FIX: Track session duration
   cursor: any; // ghost-cursor instance
 }
 
@@ -82,10 +86,29 @@ export class ColabOrchestrator {
   
   /**
    * ✅ P2.8: Start Colab notebook session (ENTERPRISE 2025)
+   * ✅ CRITICAL FIX: Integrated with GPUCooldownManager for quota enforcement
    */
   async startSession(config: ColabConfig): Promise<{ success: boolean; ngrokUrl?: string; error?: string }> {
     try {
       console.log(`[Colab] 🚀 Starting ENTERPRISE session for worker ${config.workerId}...`);
+      
+      // ============================================================================
+      // STEP 0: CHECK COOLDOWN/QUOTA (CRITICAL - PRODUCTION BLOCKER FIX)
+      // ============================================================================
+      
+      const cooldownStatus = await gpuCooldownManager.canStartSession(config.workerId);
+      
+      if (!cooldownStatus.canStart) {
+        console.error(
+          `[Colab] 🚫 Cannot start session - ${cooldownStatus.reason}`
+        );
+        return {
+          success: false,
+          error: `Cooldown/quota violation: ${cooldownStatus.reason}`
+        };
+      }
+      
+      console.log(`[Colab] ✅ Cooldown check passed - ${cooldownStatus.reason}`);
       
       // ============================================================================
       // STEP 1: LAUNCH BROWSER WITH ANTI-DETECTION
@@ -235,6 +258,8 @@ export class ColabOrchestrator {
       // STEP 6: FINALIZE SESSION
       // ============================================================================
       
+      const sessionStartTime = new Date();
+      
       const session: ColabSession = {
         browser,
         page,
@@ -242,14 +267,27 @@ export class ColabOrchestrator {
         sessionId,
         ngrokUrl,
         cursor,
+        sessionStartTime,
       };
       
       this.activeSessions.set(config.workerId, session);
+      
+      // ✅ CRITICAL FIX: Record session start in quota manager
+      await gpuCooldownManager.recordSessionStart(config.workerId);
       
       // Start keep-alive (prevent idle disconnect)
       session.keepAliveInterval = setInterval(async () => {
         await this.keepAliveHumanized(config.workerId);
       }, this.KEEP_ALIVE_INTERVAL);
+      
+      // ✅ CRITICAL FIX: Auto-shutdown at 11h limit (enforce quota)
+      const safeSessionMilliseconds = QUOTA_LIMITS.COLAB.SAFE_SESSION_SECONDS * 1000;
+      session.autoShutdownTimeout = setTimeout(async () => {
+        console.warn(
+          `[Colab] ⚠️  Session limit reached (11h) - auto-shutdown worker ${config.workerId}`
+        );
+        await this.stopSession(config.workerId);
+      }, safeSessionMilliseconds);
       
       // Update database
       await db.update(gpuWorkers)
@@ -260,7 +298,7 @@ export class ColabOrchestrator {
         })
         .where(eq(gpuWorkers.id, config.workerId));
       
-      console.log(`[Colab] 🎉 Session started successfully!`);
+      console.log(`[Colab] 🎉 Session started successfully! Auto-shutdown in 11h.`);
       return { success: true, ngrokUrl };
       
     } catch (error) {
@@ -271,6 +309,7 @@ export class ColabOrchestrator {
   
   /**
    * ✅ P2.8: Stop Colab session gracefully
+   * ✅ CRITICAL FIX: Integrated with GPUCooldownManager for quota enforcement
    */
   async stopSession(workerId: number): Promise<{ success: boolean; error?: string }> {
     try {
@@ -282,9 +321,21 @@ export class ColabOrchestrator {
       
       console.log(`[Colab] 🛑 Stopping session for worker ${workerId}...`);
       
-      // Stop keep-alive
+      // ✅ CRITICAL FIX: Calculate session duration
+      const sessionEndTime = new Date();
+      const sessionDurationMs = sessionEndTime.getTime() - session.sessionStartTime.getTime();
+      const sessionDurationSeconds = Math.floor(sessionDurationMs / 1000);
+      const sessionDurationHours = (sessionDurationSeconds / 3600).toFixed(2);
+      
+      console.log(`[Colab] ⏱️  Session duration: ${sessionDurationHours}h`);
+      
+      // Stop timers
       if (session.keepAliveInterval) {
         clearInterval(session.keepAliveInterval);
+      }
+      
+      if (session.autoShutdownTimeout) {
+        clearTimeout(session.autoShutdownTimeout);
       }
       
       // Stop runtime in Colab (humanized)
@@ -296,6 +347,9 @@ export class ColabOrchestrator {
       // Remove from active sessions
       this.activeSessions.delete(workerId);
       
+      // ✅ CRITICAL FIX: Record session end + apply 36h cooldown
+      await gpuCooldownManager.recordSessionEnd(workerId, sessionDurationSeconds);
+      
       // Update database
       await db.update(gpuWorkers)
         .set({
@@ -304,7 +358,7 @@ export class ColabOrchestrator {
         })
         .where(eq(gpuWorkers.id, workerId));
       
-      console.log(`[Colab] ✅ Session stopped successfully`);
+      console.log(`[Colab] ✅ Session stopped successfully (${sessionDurationHours}h runtime)`);
       return { success: true };
       
     } catch (error) {
