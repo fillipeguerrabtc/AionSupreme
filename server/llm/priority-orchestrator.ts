@@ -294,6 +294,11 @@ This instruction takes ABSOLUTE PRIORITY.
             source: 'kb',
             provider: 'knowledge-base',
             model: 'rag-mmr',
+            usage: {
+              promptTokens: 0,
+              completionTokens: 0,
+              totalTokens: 0
+            },
             attachments: attachments.length > 0 ? attachments : undefined,
             metadata: {
               kbResults: kbResult.topResults.length,
@@ -320,6 +325,11 @@ This instruction takes ABSOLUTE PRIORITY.
           source: 'web-fallback',
           provider: webFallback.provider,
           model: webFallback.model,
+          usage: {
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0
+          },
           metadata: {
             webSearchPerformed: true,
             documentsIndexed: webFallback.documentsIndexed,
@@ -385,6 +395,11 @@ This instruction takes ABSOLUTE PRIORITY.
           source: 'kb',
           provider: 'knowledge-base',
           model: 'rag-mmr',
+          usage: {
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0
+          },
           metadata: {
             kbResults: kbResult.topResults.length,
             kbConfidence: kbResult.confidence
@@ -487,6 +502,11 @@ This instruction takes ABSOLUTE PRIORITY.
         source: 'kb',
         provider: 'knowledge-base',
         model: 'rag-mmr',
+        usage: {
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0
+        },
         metadata: {
           kbResults: kbResult.topResults.length,
           kbConfidence: kbResult.confidence
@@ -624,6 +644,11 @@ This instruction takes ABSOLUTE PRIORITY.
           source: 'free-api', // Treated as free API (no cost)
           provider: 'gpu-pool',
           model: 'custom-lora',
+          usage: {
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0
+          },
           metadata: {
             latencyMs: gpuResult.latencyMs,
             workerId: gpuResult.workerId
@@ -667,6 +692,11 @@ This instruction takes ABSOLUTE PRIORITY.
           source: 'web-fallback',
           provider: webFallback.provider,
           model: webFallback.model,
+          usage: {
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0
+          },
           metadata: {
             refusalDetected: true,
             webSearchPerformed: true,
@@ -730,11 +760,11 @@ This instruction takes ABSOLUTE PRIORITY.
         source: 'free-api',
         provider: freeResponse.provider,
         model: freeResponse.model,
-        usage: freeResponse.tokensUsed ? {
+        usage: {
           promptTokens: 0,
-          completionTokens: freeResponse.tokensUsed,
-          totalTokens: freeResponse.tokensUsed
-        } : undefined
+          completionTokens: freeResponse.tokensUsed || 0,
+          totalTokens: freeResponse.tokensUsed || 0
+        }
       };
     }
     
@@ -774,6 +804,11 @@ This instruction takes ABSOLUTE PRIORITY.
         source: 'web-fallback',
         provider: webFallback.provider,
         model: webFallback.model,
+        usage: {
+          promptTokens: 0,
+          completionTokens: 0,
+          totalTokens: 0
+        },
         metadata: {
           refusalDetected: true,
           webSearchPerformed: true,
@@ -814,6 +849,11 @@ This instruction takes ABSOLUTE PRIORITY.
       source: 'web-fallback',
       provider: webFallback.provider,
       model: webFallback.model,
+      usage: {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0
+      },
       metadata: {
         webSearchPerformed: true,
         documentsIndexed: webFallback.documentsIndexed,
