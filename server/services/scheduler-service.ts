@@ -340,6 +340,143 @@ export class SchedulerService {
       errorCount: 0,
     });
 
+    // 🔥 JOB 13: Colab Cooldown Enforcer - A cada 5 minutos (11h + 36h rest cycle)
+    // CRITICAL: Google Colab has strict usage limits - we MUST enforce rest periods
+    // - Session limit: 11h (with 1h safety margin from 12h max)
+    // - Mandatory rest: 36h after each session
+    this.register({
+      name: 'colab-cooldown-enforcer',
+      schedule: '*/5 * * * *', // A cada 5 minutos
+      task: async () => {
+        try {
+          const { db } = await import('../db');
+          const { gpuWorkers } = await import('../../shared/schema');
+          const { eq, and, lt, isNotNull, sql } = await import('drizzle-orm');
+          
+          // 1. Find Colab workers that exceeded 11h session (auto-stop + cooldown)
+          const now = new Date();
+          const elevenHoursAgo = new Date(now.getTime() - 11 * 60 * 60 * 1000);
+          
+          const runningColabs = await db
+            .select()
+            .from(gpuWorkers)
+            .where(
+              and(
+                eq(gpuWorkers.provider, 'colab'),
+                eq(gpuWorkers.status, 'healthy'),
+                lt(gpuWorkers.sessionStartedAt, elevenHoursAgo)
+              )
+            );
+          
+          // 2. Stop each GPU that exceeded 11h and set 36h cooldown
+          for (const worker of runningColabs) {
+            const sessionDuration = worker.sessionStartedAt 
+              ? (now.getTime() - worker.sessionStartedAt.getTime()) / (1000 * 60 * 60)
+              : 0;
+            
+            logger.warn(`🛑 Colab GPU #${worker.id} exceeded 11h (${sessionDuration.toFixed(1)}h) - Force shutdown + 36h cooldown`);
+            
+            // 🔥 CRITICAL FIX: Actually stop the Colab session (not just DB update)
+            // This terminates the browser, stops runtime, and prevents quota burn
+            // IMPORTANT: Use singleton instance to access activeSessions map!
+            try {
+              const { colabOrchestrator } = await import('../gpu-orchestration/colab-orchestrator');
+              
+              const stopResult = await colabOrchestrator.stopSession(worker.id);
+              
+              if (stopResult.success) {
+                logger.info(`✅ Colab GPU #${worker.id} session terminated successfully`);
+              } else {
+                logger.error(`❌ Failed to stop Colab GPU #${worker.id}: ${stopResult.error}`);
+                
+                // Fallback: Force DB update even if session stop failed
+                // This prevents infinite retry loops
+                const cooldownUntil = new Date(now.getTime() + 36 * 60 * 60 * 1000);
+                
+                await db
+                  .update(gpuWorkers)
+                  .set({
+                    status: 'offline',
+                    cooldownUntil,
+                    sessionDurationSeconds: Math.floor((now.getTime() - (worker.sessionStartedAt?.getTime() || now.getTime())) / 1000),
+                    updatedAt: now,
+                  })
+                  .where(eq(gpuWorkers.id, worker.id));
+                
+                logger.warn(`⚠️  Colab GPU #${worker.id} marked offline despite stop failure (prevents runaway session)`);
+              }
+            } catch (stopError: any) {
+              logger.error(`❌ Exception stopping Colab GPU #${worker.id}: ${stopError.message}`);
+              
+              // Fallback: Force DB update to prevent infinite retries
+              const cooldownUntil = new Date(now.getTime() + 36 * 60 * 60 * 1000);
+              
+              await db
+                .update(gpuWorkers)
+                .set({
+                  status: 'offline',
+                  cooldownUntil,
+                  sessionDurationSeconds: Math.floor((now.getTime() - (worker.sessionStartedAt?.getTime() || now.getTime())) / 1000),
+                  updatedAt: now,
+                })
+                .where(eq(gpuWorkers.id, worker.id));
+              
+              logger.warn(`⚠️  Colab GPU #${worker.id} marked offline after exception (defensive fallback)`);
+            }
+          }
+          
+          // 3. Check for workers in cooldown and log when they'll be available
+          const inCooldown = await db
+            .select()
+            .from(gpuWorkers)
+            .where(
+              and(
+                eq(gpuWorkers.provider, 'colab'),
+                isNotNull(gpuWorkers.cooldownUntil),
+                sql`${gpuWorkers.cooldownUntil} > ${now}`
+              )
+            );
+          
+          if (inCooldown.length > 0) {
+            for (const worker of inCooldown) {
+              const hoursRemaining = worker.cooldownUntil 
+                ? (worker.cooldownUntil.getTime() - now.getTime()) / (1000 * 60 * 60)
+                : 0;
+              
+              if (hoursRemaining > 0) {
+                logger.info(`⏳ Colab GPU #${worker.id} in cooldown - ${hoursRemaining.toFixed(1)}h remaining`);
+              }
+            }
+          }
+          
+          // 4. Clear expired cooldowns
+          const clearedCooldowns = await db
+            .update(gpuWorkers)
+            .set({
+              cooldownUntil: null,
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(gpuWorkers.provider, 'colab'),
+                isNotNull(gpuWorkers.cooldownUntil),
+                sql`${gpuWorkers.cooldownUntil} <= ${now}`
+              )
+            );
+          
+          if (clearedCooldowns.rowCount && clearedCooldowns.rowCount > 0) {
+            logger.info(`✅ Cleared ${clearedCooldowns.rowCount} expired Colab cooldowns`);
+          }
+          
+        } catch (error: any) {
+          logger.error(`Colab cooldown enforcer error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
     logger.info(`SchedulerService: ${this.jobs.size} jobs registrados`);
   }
 

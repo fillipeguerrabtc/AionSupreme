@@ -435,9 +435,15 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       }
     }
 
-    // Index approved content into Knowledge Base vector store with namespace metadata
+    // 🔥 FIX CRÍTICO: Index approved content with NAMESPACE (singular, not namespaces plural!)
+    // VectorStore.search expects 'namespace' (singular string), not 'namespaces' (array)
+    const primaryNamespace = finalNamespaces && finalNamespaces.length > 0 
+      ? finalNamespaces[0]  // Use first namespace
+      : 'general';  // Fallback to default namespace
+    
     await knowledgeIndexer.indexDocument(newDoc.id, contentToIndex, {
-      namespaces: finalNamespaces, // ← USA NAMESPACES CONSOLIDADOS!
+      namespace: primaryNamespace, // ← Singular string for VectorStore compatibility!
+      title: item.title,
       tags: item.tags,
       source: "curation_approved",
       curationId: item.id,

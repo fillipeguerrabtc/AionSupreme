@@ -464,8 +464,12 @@ This instruction takes ABSOLUTE PRIORITY.
   
   console.log('\n📚 [STEP 1/5] Searching KNOWLEDGE BASE (RAG)...');
   
+  // 🔥 CRITICAL: Declare shouldTryGPU BEFORE try block so it's accessible in catch
+  let shouldTryGPU = false;
+  let kbResult: Awaited<ReturnType<typeof searchWithConfidence>> | null = null;
+  
   try {
-    const kbResult = await searchWithConfidence(userMessage, {
+    kbResult = await searchWithConfidence(userMessage, {
       limit: 5
       // Note: threshold τ = 0.6 is hardcoded in searchWithConfidence
     });
@@ -514,7 +518,16 @@ This instruction takes ABSOLUTE PRIORITY.
       };
     }
     
-    console.log('   ⚠ KB confidence too low, proceeding to GPU Pool...');
+    // 🔥 CRITICAL FIX: Only try GPU if KB actually found relevant content
+    // GPU is expensive (28h/week quota), so we MUST verify KB has useful results first
+    shouldTryGPU = kbResult.topResults.length > 0 && kbResult.confidence >= 0.6;
+    
+    if (shouldTryGPU) {
+      console.log(`   ⚠ KB confidence moderate (${(kbResult.confidence * 100).toFixed(1)}%), trying GPU Pool for enhanced response...`);
+    } else {
+      console.log(`   ⚠ KB confidence too low (${(kbResult.confidence * 100).toFixed(1)}%) or no results - SKIPPING GPU Pool to save quota`);
+      console.log(`   → Proceeding directly to FREE APIs (Groq/Gemini/HuggingFace)...`);
+    }
     
     // Track KB search attempt (failed due to low confidence)
     await trackTokenUsage({
@@ -564,13 +577,17 @@ This instruction takes ABSOLUTE PRIORITY.
         };
       } catch (webError: any) {
         console.error('   ✗ Web search failed:', webError.message);
-        console.log('   → Proceeding to GPU Pool...');
+        if (shouldTryGPU) {
+          console.log('   → Proceeding to GPU Pool...');
+        } else {
+          console.log('   → Skipping GPU Pool (no KB content), proceeding to Free APIs...');
+        }
       }
     }
     
   } catch (error: any) {
     console.error('   ✗ KB search failed:', error.message);
-    console.log('   → Proceeding to GPU Pool...');
+    console.log('   → SKIPPING GPU Pool (KB unavailable), proceeding to Free APIs...');
     
     // Track KB search failure
     await trackTokenUsage({
@@ -589,130 +606,140 @@ This instruction takes ABSOLUTE PRIORITY.
         indexedDocuments: 0
       }
     });
+    
+    // Skip GPU if KB completely failed
+    shouldTryGPU = false;
   }
   
   // ============================================================================
   // STEP 2: GPU POOL (Custom LoRA-trained LLMs with Load Balancing)
+  // 🔥 ONLY ACTIVATED IF KB FOUND RELEVANT CONTENT (confidence >= 0.6)
   // ============================================================================
   
-  console.log('\n🎮 [STEP 2/5] Trying GPU POOL (Multi-GPU Load Balancing)...');
-  
-  try {
-    const { gpuLoadBalancer } = await import('../gpu/load-balancer');
+  if (shouldTryGPU) {
+    console.log('\n🎮 [STEP 2/5] Trying GPU POOL (Multi-GPU Load Balancing)...');
+    console.log(`   ℹ️  GPU activated because KB found ${kbResult?.topResults.length || 0} relevant results`);
     
-    const gpuResult = await gpuLoadBalancer.executeLLMRequest(
-      req.messages.map(m => ({
-        role: m.role,
-        content: m.content
-      })),
-      {
-        max_tokens: req.maxTokens || 2048,
-        temperature: req.temperature || 0.7,
-        top_p: req.topP || 0.9,
-        stream: false
-      }
-    );
-    
-    if (gpuResult.success && gpuResult.response) {
-      console.log(`   ✓ GPU worker responded (ID: ${gpuResult.workerId}, latency: ${gpuResult.latencyMs}ms)`);
+    try {
+      const { gpuLoadBalancer } = await import('../gpu/load-balancer');
       
-      // Check for refusal
-      const refusalCheck = detectRefusal(gpuResult.response);
+      const gpuResult = await gpuLoadBalancer.executeLLMRequest(
+        req.messages.map(m => ({
+          role: m.role,
+          content: m.content
+        })),
+        {
+          max_tokens: req.maxTokens || 2048,
+          temperature: req.temperature || 0.7,
+          top_p: req.topP || 0.9,
+          stream: false
+        }
+      );
       
-      if (!refusalCheck.isRefusal) {
-        console.log('   ✅ GPU Pool provided direct answer (no refusal)!');
-        console.log('='.repeat(80) + '\n');
+      if (gpuResult.success && gpuResult.response) {
+        console.log(`   ✓ GPU worker responded (ID: ${gpuResult.workerId}, latency: ${gpuResult.latencyMs}ms)`);
         
-        // Track GPU usage (FREE, no cost)
-        await trackTokenUsage({
-          provider: 'gpu-pool' as any,
-          model: 'custom-lora',
-          promptTokens: 0,
-          completionTokens: 0,
-          totalTokens: 0,
-          cost: 0,
-          requestType: 'chat',
-          success: true,
-          metadata: {
-            workerId: gpuResult.workerId,
-            latencyMs: gpuResult.latencyMs
-          } as any
-        });
+        // Check for refusal
+        const refusalCheck = detectRefusal(gpuResult.response);
         
-        return {
-          content: gpuResult.response,
-          source: 'free-api', // Treated as free API (no cost)
-          provider: 'gpu-pool',
-          model: 'custom-lora',
-          usage: {
+        if (!refusalCheck.isRefusal) {
+          console.log('   ✅ GPU Pool provided direct answer (no refusal)!');
+          console.log('='.repeat(80) + '\n');
+          
+          // Track GPU usage (FREE, no cost)
+          await trackTokenUsage({
+            provider: 'gpu-pool' as any,
+            model: 'custom-lora',
             promptTokens: 0,
             completionTokens: 0,
-            totalTokens: 0
-          },
-          metadata: {
-            latencyMs: gpuResult.latencyMs,
-            workerId: gpuResult.workerId
-          } as any
-        };
-      }
-      
-      // Refusal detected in GPU!
-      console.log(`   ⚠ REFUSAL detected in GPU response (confidence: ${(refusalCheck.confidence * 100).toFixed(1)}%)`);
-      
-      if (req.unrestricted) {
-        console.log('   🚀 UNRESTRICTED mode = ON → Activating WEB FALLBACK...');
+            totalTokens: 0,
+            cost: 0,
+            requestType: 'chat',
+            success: true,
+            metadata: {
+              workerId: gpuResult.workerId,
+              latencyMs: gpuResult.latencyMs
+            } as any
+          });
+          
+          return {
+            content: gpuResult.response,
+            source: 'free-api', // Treated as free API (no cost)
+            provider: 'gpu-pool',
+            model: 'custom-lora',
+            usage: {
+              promptTokens: 0,
+              completionTokens: 0,
+              totalTokens: 0
+            },
+            metadata: {
+              latencyMs: gpuResult.latencyMs,
+              workerId: gpuResult.workerId
+            } as any
+          };
+        }
         
-        // Track failed GPU attempt
-        await trackTokenUsage({
-          provider: 'gpu-pool' as any,
-          model: 'custom-lora',
-          promptTokens: 0,
-          completionTokens: 0,
-          totalTokens: 0,
-          cost: 0,
-          requestType: 'chat',
-          success: false
-        });
+        // Refusal detected in GPU!
+        console.log(`   ⚠ REFUSAL detected in GPU response (confidence: ${(refusalCheck.confidence * 100).toFixed(1)}%)`);
         
-        // Execute automatic web fallback
-        const webFallback = await executeWebFallback(userMessage);
-        
-        // Track web fallback usage
-        await trackWebSearch(
-          'web',
-          webFallback.model,
-          webFallback.searchMetadata
-        );
-        
-        console.log('   ✅ Web fallback completed successfully!');
-        console.log('='.repeat(80) + '\n');
-        
-        return {
-          content: webFallback.content,
-          source: 'web-fallback',
-          provider: webFallback.provider,
-          model: webFallback.model,
-          usage: {
+        if (req.unrestricted) {
+          console.log('   🚀 UNRESTRICTED mode = ON → Activating WEB FALLBACK...');
+          
+          // Track failed GPU attempt
+          await trackTokenUsage({
+            provider: 'gpu-pool' as any,
+            model: 'custom-lora',
             promptTokens: 0,
             completionTokens: 0,
-            totalTokens: 0
-          },
-          metadata: {
-            refusalDetected: true,
-            webSearchPerformed: true,
-            documentsIndexed: webFallback.documentsIndexed
-          }
-        };
+            totalTokens: 0,
+            cost: 0,
+            requestType: 'chat',
+            success: false
+          });
+          
+          // Execute automatic web fallback
+          const webFallback = await executeWebFallback(userMessage);
+          
+          // Track web fallback usage
+          await trackWebSearch(
+            'web',
+            webFallback.model,
+            webFallback.searchMetadata
+          );
+          
+          console.log('   ✅ Web fallback completed successfully!');
+          console.log('='.repeat(80) + '\n');
+          
+          return {
+            content: webFallback.content,
+            source: 'web-fallback',
+            provider: webFallback.provider,
+            model: webFallback.model,
+            usage: {
+              promptTokens: 0,
+              completionTokens: 0,
+              totalTokens: 0
+            },
+            metadata: {
+              refusalDetected: true,
+              webSearchPerformed: true,
+              documentsIndexed: webFallback.documentsIndexed
+            }
+          };
+        } else {
+          console.log('   ⚠ UNRESTRICTED mode = OFF → Respecting refusal, proceeding to Free APIs');
+        }
       } else {
-        console.log('   ⚠ UNRESTRICTED mode = OFF → Respecting refusal, proceeding to Free APIs');
+        console.log(`   ⚠ GPU Pool unavailable or failed: ${gpuResult.error || 'Unknown error'}`);
+        console.log('   → Proceeding to Free APIs...');
       }
-    } else {
-      console.log(`   ⚠ GPU Pool unavailable or failed: ${gpuResult.error || 'Unknown error'}`);
+    } catch (error: any) {
+      console.error('   ✗ GPU Pool failed:', error.message);
       console.log('   → Proceeding to Free APIs...');
     }
-  } catch (error: any) {
-    console.error('   ✗ GPU Pool failed:', error.message);
-    console.log('   → Proceeding to Free APIs...');
+  } else {
+    console.log('\n⏭️  [STEP 2/5] SKIPPING GPU POOL - No relevant KB content found');
+    console.log('   ℹ️  GPU quota preserved (28h/week), using FREE APIs instead');
   }
   
   // ============================================================================

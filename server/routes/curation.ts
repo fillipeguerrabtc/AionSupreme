@@ -173,39 +173,8 @@ export function registerCurationRoutes(app: Router) {
         reviewedBy
       );
 
-      // 🔥 FIX CRÍTICO: Gerar embeddings automaticamente após aprovação
-      // Busca documento aprovado para obter conteúdo e metadata
-      const [doc] = await db
-        .select()
-        .from(documents)
-        .where(eq(documents.id, parseInt(publishedId)))
-        .limit(1);
-
-      if (!doc) {
-        console.warn(`[Curation] ⚠️ Document ${publishedId} not found after approval`);
-      } else if (!doc.content) {
-        console.warn(`[Curation] ⚠️ Document ${publishedId} has no content (empty or null)`);
-      } else {
-        const { KnowledgeIndexer } = await import("../rag/knowledge-indexer");
-        const indexer = new KnowledgeIndexer();
-        
-        // Indexa documento (chunking + embedding generation + vector store)
-        // IMPORTANTE: VectorStore.search procura por 'namespace' (singular), não 'namespaces' (plural)
-        const namespace = item.suggestedNamespaces && item.suggestedNamespaces.length > 0 
-          ? item.suggestedNamespaces[0]  // Usar primeiro namespace
-          : 'general';  // Fallback para namespace padrão
-        
-        await indexer.indexDocument(
-          parseInt(publishedId),
-          doc.content,
-          { 
-            namespace,  // Singular string, não array!
-            title: item.title,
-          }
-        );
-        
-        console.log(`[Curation] ✅ Embeddings generated for document ${publishedId}`);
-      }
+      // ✅ Embeddings já foram gerados automaticamente dentro de approveAndPublish()
+      // Não é necessário gerar novamente aqui!
 
       // Emitir eventos para indexador
       await publishEvent("DOC_UPDATED", {
