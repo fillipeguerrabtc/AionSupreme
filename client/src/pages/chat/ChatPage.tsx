@@ -68,13 +68,25 @@ export default function ChatPage() {
             const msgs = await msgsResponse.json();
             
             setConversationId(Number(savedConvId));
-            setMessages(msgs.map((m: any) => ({
-              id: m.id,
-              role: m.role,
-              content: m.content,
-              conversationId: m.conversationId,
-              attachments: m.attachments,
-            })));
+            
+            // 🔥 FIX: Preserve unsaved streaming messages ONLY for THIS conversation
+            setMessages(prev => {
+              const unsavedMessages = prev.filter(m => 
+                !m.id && 
+                m.role === "assistant" &&
+                m.conversationId === Number(savedConvId) // Only keep messages for this conversation
+              );
+              const backendMessages = msgs.map((m: any) => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                conversationId: m.conversationId,
+                attachments: m.attachments,
+              }));
+              
+              // Merge: backend messages + unsaved streaming messages (scoped to this conversation)
+              return [...backendMessages, ...unsavedMessages];
+            });
             return;
           }
         }
@@ -117,13 +129,25 @@ export default function ChatPage() {
       const msgs = await msgsResponse.json();
       
       setConversationId(selectedConvId);
-      setMessages(msgs.map((m: any) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        conversationId: m.conversationId,
-        attachments: m.attachments,
-      })));
+      
+      // 🔥 FIX: Preserve unsaved streaming messages ONLY for THIS conversation
+      setMessages(prev => {
+        const unsavedMessages = prev.filter(m => 
+          !m.id && 
+          m.role === "assistant" &&
+          m.conversationId === selectedConvId // Only keep messages for this conversation
+        );
+        const backendMessages = msgs.map((m: any) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          conversationId: m.conversationId,
+          attachments: m.attachments,
+        }));
+        
+        // Merge: backend messages + unsaved streaming messages (scoped to this conversation)
+        return [...backendMessages, ...unsavedMessages];
+      });
       
       if (isAuthenticated) {
         localStorage.setItem('currentConversationId', selectedConvId.toString());
@@ -274,27 +298,33 @@ export default function ChatPage() {
     },
   });
 
-  // 🎯 FASE 2 - D1: Update placeholder message in real-time during streaming
+  // 🎯 FASE 2 - D1: When streaming completes, add assistant message to messages array
+  // This ensures the message persists even if conversation is refetched
   useEffect(() => {
-    if (streamingChat.isStreaming && streamingChat.streamedMessage) {
+    if (streamingChat.completedSuccessfully && streamingChat.streamedMessage && conversationId) {
       setMessages(prev => {
-        const updated = [...prev];
-        const lastMsg = updated[updated.length - 1];
+        // Check if message already exists (prevent duplicates)
+        const hasStreamedMessage = prev.some(m => 
+          m.role === "assistant" && 
+          m.content === streamingChat.streamedMessage &&
+          !m.id // No ID means it's from this streaming session
+        );
         
-        // Update last message if it's assistant and doesn't have ID (placeholder)
-        if (lastMsg && lastMsg.role === "assistant" && !lastMsg.id) {
-          updated[updated.length - 1] = {
-            ...lastMsg,
+        if (!hasStreamedMessage) {
+          return [...prev, {
+            role: "assistant",
             content: streamingChat.streamedMessage,
-          };
+            conversationId: conversationId, // 🔥 FIX: Tag with current conversation ID
+            // No ID yet - will be added when saved to backend
+          }];
         }
         
-        return updated;
+        return prev;
       });
     }
-  }, [streamingChat.streamedMessage, streamingChat.isStreaming]);
+  }, [streamingChat.completedSuccessfully, streamingChat.streamedMessage, conversationId]);
   
-  // 🎯 FASE 2 - D1: Save streamed message ONLY when completed successfully (não durante retry)
+  // 🎯 FASE 2 - D1: Save streamed message to backend and update with ID
   useEffect(() => {
     if (streamingChat.completedSuccessfully && streamingChat.streamedMessage && conversationId) {
       const saveStreamedMessage = async () => {
@@ -309,18 +339,23 @@ export default function ChatPage() {
           });
           const savedMsg = await response.json();
           
-          // Update last message with saved ID
+          // Update the message with backend ID (find by content match since we don't have temp ID)
           setMessages(prev => {
             const updated = [...prev];
-            const lastMsg = updated[updated.length - 1];
-            if (lastMsg && lastMsg.role === "assistant" && !lastMsg.id) {
-              updated[updated.length - 1] = {
-                ...lastMsg,
+            const msgIndex = updated.findIndex(m => 
+              m.role === "assistant" && 
+              m.content === streamingChat.streamedMessage &&
+              !m.id // Find the unsaved message
+            );
+            
+            if (msgIndex !== -1) {
+              updated[msgIndex] = {
+                ...updated[msgIndex],
                 id: savedMsg.id,
                 conversationId: savedMsg.conversationId,
-                content: streamingChat.streamedMessage,
               };
             }
+            
             return updated;
           });
         } catch (error) {

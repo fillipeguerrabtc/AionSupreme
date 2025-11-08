@@ -107,6 +107,44 @@ const adapterUpload = multer({
 
 const startupTime = Date.now();
 
+// ============================================================================
+// HELPER: Auto-detect language from message content
+// ============================================================================
+function autoDetectLanguage(message: string): "pt-BR" | "en-US" | "es-ES" {
+  const msg = message.toLowerCase();
+  
+  // Portuguese strong indicators (including accents and common words)
+  const ptStrongIndicators = /(olá|você|está|não|sim|obrigad|português|tchau|tudo bem|bom dia|boa tarde|boa noite)/i;
+  const ptIndicators = /\b(é|muito|como|que|para|com|por|seu|sua|ele|ela|fazer|ter|ser|quando|onde|porque|qual|quem|algum|nenhum)\b/gi;
+  
+  // Spanish strong indicators
+  const esStrongIndicators = /(hola|usted|está|sí|gracias|español|adiós|buenos días|buenas tardes|buenas noches)/i;
+  const esIndicators = /\b(es|muy|cómo|qué|para|con|por|su|él|ella|hacer|tener|ser|cuando|donde|porque|cual|quien|algún|ningún)\b/gi;
+  
+  // English strong indicators
+  const enStrongIndicators = /(hello|you|are|yes|no|thanks|thank you|goodbye|good morning|good afternoon|good evening)/i;
+  const enIndicators = /\b(is|very|how|what|for|with|by|his|her|him|do|have|be|when|where|because|which|who|any|some|none)\b/gi;
+  
+  // Check strong indicators first (high confidence)
+  if (ptStrongIndicators.test(message)) return "pt-BR";
+  if (esStrongIndicators.test(message)) return "es-ES";
+  if (enStrongIndicators.test(message)) return "en-US";
+  
+  // Count weaker indicators
+  const ptCount = (msg.match(ptIndicators) || []).length;
+  const esCount = (msg.match(esIndicators) || []).length;
+  const enCount = (msg.match(enIndicators) || []).length;
+  
+  // Return language with most matches (with threshold)
+  if (ptCount > esCount && ptCount > enCount && ptCount >= 2) return "pt-BR";
+  if (esCount > ptCount && esCount > enCount && esCount >= 2) return "es-ES";
+  if (enCount > ptCount && enCount > esCount && enCount >= 2) return "en-US";
+  
+  // Default to pt-BR if no clear winner (but with lower confidence)
+  console.log(`[Language Detection] No clear language detected, defaulting to pt-BR (pt:${ptCount}, es:${esCount}, en:${enCount})`);
+  return "pt-BR";
+}
+
 export function registerRoutes(app: Express): Server {
   // Aplicar middleware de auditoria globalmente (leve)
   app.use(auditMiddleware);
@@ -584,9 +622,9 @@ export function registerRoutes(app: Express): Server {
       const lastUserContent = messages[messages.length - 1]?.content || '';
       const lastUserMessage = extractTextContent(lastUserContent);
       
-      // ✅ FIX BUG #2: Detectar idioma (backend detecta se frontend não enviou)
-      const detectedLanguage = language || enforcementPipeline.detectLanguage(lastUserMessage);
-      console.log(`[Chat API] Detected language: ${detectedLanguage}`);
+      // ✅ FIX BUG #2: Use frontend-detected language or auto-detect from message
+      const detectedLanguage = language || autoDetectLanguage(lastUserMessage);
+      console.log(`[Chat API] Language: ${detectedLanguage} ${!language ? '(auto-detected)' : '(frontend)'}`);
       
       // 🤖 TENTAR SISTEMA MULTI-AGENTE PRIMEIRO (se habilitado e disponível)
       if (useMultiAgent) {
@@ -802,6 +840,29 @@ export function registerRoutes(app: Express): Server {
               metadata: agentResult.metadata
             });
             
+            // 🎯 FIX #4 & #5: Token tracking + Auto-learning for multi-agent path
+            // Note: Multi-agent doesn't expose token usage in metadata, skip token tracking
+            // Cost tracking is handled via agentResult.metadata.totalCost
+            if (agentResult.metadata?.totalCost) {
+              console.log(`[SSE Multi-Agent] Total cost: $${agentResult.metadata.totalCost}`);
+            }
+            
+            // Send to curation queue
+            try {
+              const { autoLearningListener } = await import('./events/auto-learning-listener');
+              autoLearningListener.onChatCompleted({
+                conversationId: null,
+                userMessage: message,
+                assistantResponse: fullResponse,
+                source: "free-api", // Multi-agent may use free APIs
+                provider: "multi-agent",
+              }).catch((err: unknown) => {
+                console.error('[SSE Multi-Agent] Failed to send to curation:', getErrorMessage(err));
+              });
+            } catch (autoLearnError: unknown) {
+              console.error('[SSE Multi-Agent] Auto-learning unavailable:', getErrorMessage(autoLearnError));
+            }
+            
             res.end();
             return;
           }
@@ -861,6 +922,46 @@ export function registerRoutes(app: Express): Server {
         model: result.model,
         usage: result.usage
       });
+      
+      // 🎯 FIX #4: TOKEN TRACKING - Track token usage for SSE streaming
+      if (result.usage && result.provider) {
+        try {
+          const { trackTokenUsage } = await import('./monitoring/token-tracker');
+          await trackTokenUsage({
+            provider: result.provider === 'multi-agent' ? 'openai' : (result.provider as any),
+            model: result.model || 'unknown',
+            promptTokens: result.usage.promptTokens || 0,
+            completionTokens: result.usage.completionTokens || 0,
+            totalTokens: result.usage.totalTokens || 0,
+            requestType: 'chat',
+            success: true
+          });
+          console.log(`[SSE] Token usage tracked: ${result.usage.totalTokens} tokens`);
+        } catch (trackError) {
+          console.error('[SSE] Failed to track tokens:', trackError);
+        }
+      }
+      
+      // 🎯 FIX #5: AUTO-LEARNING - Send to curation queue for HITL review
+      try {
+        const { autoLearningListener } = await import('./events/auto-learning-listener');
+        
+        // Fire and forget - não bloquear resposta
+        autoLearningListener.onChatCompleted({
+          conversationId: null, // SSE não tem conversationId persistido
+          userMessage: message,
+          assistantResponse: fullResponse,
+          source: (result.source === "web-fallback" || result.source === "openai-fallback") ? "free-api" : (result.source || "openai"),
+          provider: result.provider,
+        }).catch((err: unknown) => {
+          console.error('[SSE] Failed to send to curation queue:', getErrorMessage(err));
+        });
+        
+        console.log(`[SSE] Chat sent to curation queue for HITL review`);
+      } catch (autoLearnError: unknown) {
+        // Não falhar a requisição se curadoria falhar
+        console.error('[SSE] Auto-learning system unavailable:', getErrorMessage(autoLearnError));
+      }
       
       res.end();
       
@@ -1013,9 +1114,9 @@ export function registerRoutes(app: Express): Server {
       const lastUserContent2 = messages[messages.length - 1]?.content || '';
       const lastUserMessage = extractTextContent(lastUserContent2);
       
-      // ✅ FIX BUG #2: Detectar idioma (backend detecta se frontend não enviou)
-      const detectedLanguage = language || enforcementPipeline.detectLanguage(lastUserMessage);
-      console.log(`[Chat Multimodal] Detected language: ${detectedLanguage}`);
+      // ✅ FIX BUG #2: Use frontend-detected language or auto-detect from message
+      const detectedLanguage = language || autoDetectLanguage(lastUserMessage);
+      console.log(`[Chat Multimodal] Language: ${detectedLanguage} ${!language ? '(auto-detected)' : '(frontend)'}`);
       
       const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage, detectedLanguage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...enrichedMessages];
@@ -3384,9 +3485,9 @@ export function registerRoutes(app: Express): Server {
       const lastUserContent3 = messages[messages.length - 1]?.content || '';
       const lastUserMessage = extractTextContent(lastUserContent3);
       
-      // ✅ FIX BUG #2: Detectar idioma (backend detecta se frontend não enviou)
-      const detectedLanguage = language || enforcementPipeline.detectLanguage(lastUserMessage);
-      console.log(`[Agent Chat] Detected language: ${detectedLanguage}`);
+      // ✅ FIX BUG #2: Use frontend-detected language or auto-detect from message
+      const detectedLanguage = language || autoDetectLanguage(lastUserMessage);
+      console.log(`[Agent Chat] Language: ${detectedLanguage} ${!language ? '(auto-detected)' : '(frontend)'}`);
       
       // 🎯 EXPLICIT SOURCE DETECTION: Check if user explicitly requested a specific source
       const explicitRequest = detectExplicitSourceRequest(lastUserMessage);
