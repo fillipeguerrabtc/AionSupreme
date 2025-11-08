@@ -178,8 +178,11 @@ app.use((req, res, next) => {
       openAIBillingSync.startAutoSync();
       openRouterBillingSync.startAutoSync();
       geminiBillingSync.startAutoSync();
-    } catch (err) {
-      console.error('⚠️ Failed to initialize billing sync:', err);
+    } catch (err: any) {
+      console.error('⚠️ Failed to initialize billing sync:');
+      console.error('Error message:', err?.message || 'No message');
+      console.error('Error stack:', err?.stack || 'No stack');
+      console.error('Full error object:', JSON.stringify(err, null, 2));
     }
   });
 })();

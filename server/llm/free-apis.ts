@@ -111,13 +111,14 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
   const completionTokens = response.usage?.completion_tokens || 0;
   const totalTokens = response.usage?.total_tokens || 0;
   
+  // ✅ P2.2: Groq is FREE tier → cost calculated as $0.00
   await trackTokenUsage({
     provider: 'groq',
     model: 'llama-3.3-70b-versatile',
     promptTokens,
     completionTokens,
     totalTokens,
-    cost: 0,  // Free API
+    // cost: not provided → groq is free tier, returns $0.00
     requestType: 'chat',
     success: true
   });
@@ -173,13 +174,14 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
   const completionTokens = response.usageMetadata?.candidatesTokenCount || 0;
   const totalTokens = response.usageMetadata?.totalTokenCount || 0;
   
+  // ✅ P2.2: Cost calculated automatically via token-tracker (2025 pricing)
   await trackTokenUsage({
     provider: 'gemini',
     model: 'gemini-2.0-flash-exp',
     promptTokens,
     completionTokens,
     totalTokens,
-    cost: 0,  // Free API
+    // cost: not provided → calculated automatically from GEMINI_PRICING
     requestType: 'chat',
     success: true
   });
@@ -277,18 +279,18 @@ async function callOpenRouter(req: LLMRequest): Promise<LLMResponse> {
   const data = await response.json();
   usageStats.openrouter.today++;
 
-  // ✅ PRODUCTION: Track real usage from OpenRouter API
+  // ✅ P2.2: OpenRouter cost calculated automatically via token-tracker
   const promptTokens = data.usage?.prompt_tokens || 0;
   const completionTokens = data.usage?.completion_tokens || 0;
   const totalTokens = data.usage?.total_tokens || 0;
   
   await trackTokenUsage({
     provider: 'openrouter',
-    model: 'llama-3.1-8b-instruct',
+    model: 'meta-llama/llama-3.1-8b-instruct:free', // Use full model name for pricing lookup
     promptTokens,
     completionTokens,
     totalTokens,
-    cost: 0,  // Free API
+    // cost: not provided → calculated automatically from OPENROUTER_PRICING
     requestType: 'chat',
     success: true
   });

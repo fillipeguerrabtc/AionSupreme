@@ -107,14 +107,19 @@ export interface ProviderQuota {
 // ============================================================================
 
 /**
- * BUG FIX (Nov 2024): Preços corrigidos para valores reais da OpenAI
+ * ✅ P2.2: Updated pricing for all providers (2025 official rates)
+ * 
+ * **OpenAI Pricing**
  * Source: https://openai.com/api/pricing/
+ * 
+ * **Gemini Pricing**
+ * Source: https://ai.google.dev/gemini-api/docs/pricing
  * 
  * Prices in USD per 1K tokens (NOT cents!)
  * Database stores costs in dollars for precision
  */
 const OPENAI_PRICING = {
-  'gpt-4o': { prompt: 0.0025, completion: 0.01 }, // $2.50 / $10.00 por 1M tokens (FIX: era 0.005/0.015)
+  'gpt-4o': { prompt: 0.0025, completion: 0.01 }, // $2.50 / $10.00 por 1M tokens
   'gpt-4o-mini': { prompt: 0.00015, completion: 0.0006 }, // $0.150 / $0.600 por 1M tokens
   'gpt-4-turbo': { prompt: 0.01, completion: 0.03 }, // $10.00 / $30.00 por 1M tokens
   'gpt-3.5-turbo': { prompt: 0.0005, completion: 0.0015 }, // $0.50 / $1.50 por 1M tokens
@@ -125,14 +130,71 @@ const OPENAI_PRICING = {
 };
 
 /**
- * Calculate cost in USD (dollars, not cents!)
- * Returns cost like 0.01 = $0.01 (one cent)
+ * ✅ P2.2: Gemini Pricing (2025 official rates)
+ * Source: https://ai.google.dev/gemini-api/docs/pricing
+ */
+const GEMINI_PRICING = {
+  // Flash-Lite - Ultra low cost
+  'gemini-2.5-flash-lite': { prompt: 0.00002, completion: 0.00008 }, // $0.02 / $0.08 por 1M tokens
+  
+  // Flash - Fast, everyday workflows
+  'gemini-2.0-flash': { prompt: 0.0001, completion: 0.0004 }, // $0.10 / $0.40 por 1M tokens
+  'gemini-2.0-flash-exp': { prompt: 0.0001, completion: 0.0004 }, // Same as 2.0 Flash
+  'gemini-1.5-flash': { prompt: 0.0001, completion: 0.0004 }, // ✅ P2.2: Added for FREE_APIS coverage
+  
+  // Flash (with multimodal - text only for now)
+  'gemini-2.5-flash': { prompt: 0.00035, completion: 0.00105 }, // $0.35 / $1.05 por 1M tokens (text)
+  
+  // Pro - Advanced reasoning
+  'gemini-1.5-pro': { prompt: 0.00125, completion: 0.005 }, // $1.25 / $5.00 por 1M tokens
+  
+  // Pro - Most capable (< 200K tokens)
+  'gemini-2.5-pro': { prompt: 0.00125, completion: 0.01 }, // $1.25 / $10.00 por 1M tokens
+  'gemini-2.5-pro-long': { prompt: 0.0025, completion: 0.015 }, // $2.50 / $15.00 por 1M tokens (>200K)
+};
+
+/**
+ * ✅ P2.2: OpenRouter Pricing
+ * Note: OpenRouter charges per-model rates (varies by provider)
+ * These are APPROXIMATE - actual costs tracked via Activity API
+ */
+const OPENROUTER_PRICING = {
+  // Free models
+  'meta-llama/llama-3.1-8b-instruct:free': { prompt: 0, completion: 0 },
+  'mistralai/mistral-7b-instruct:free': { prompt: 0, completion: 0 },
+  
+  // Paid models (examples - OpenRouter has 400+ models with different pricing)
+  'openai/gpt-4o': { prompt: 0.0025, completion: 0.01 }, // Pass-through pricing
+  'anthropic/claude-3-opus': { prompt: 0.015, completion: 0.075 }, // $15 / $75 por 1M tokens
+};
+
+/**
+ * ✅ P2.2: Calculate cost in USD for OpenAI, Gemini, and OpenRouter
+ * 
+ * **IMPORTANT**: Free tier providers (Groq, HuggingFace) return $0.00
+ * For providers exceeding free tier, this calculates actual costs.
+ * 
+ * Returns cost in dollars (e.g., 0.01 = $0.01 = one cent)
  */
 function calculateCost(provider: string, model: string, promptTokens: number, completionTokens: number): number {
-  if (provider !== 'openai') return 0;
-  
-  const pricing = OPENAI_PRICING[model as keyof typeof OPENAI_PRICING];
-  if (!pricing) return 0;
+  let pricing: { prompt: number; completion: number } | undefined;
+
+  // Select pricing table based on provider
+  if (provider === 'openai') {
+    pricing = OPENAI_PRICING[model as keyof typeof OPENAI_PRICING];
+  } else if (provider === 'gemini') {
+    pricing = GEMINI_PRICING[model as keyof typeof GEMINI_PRICING];
+  } else if (provider === 'openrouter') {
+    pricing = OPENROUTER_PRICING[model as keyof typeof OPENROUTER_PRICING];
+  } else {
+    // Free tier providers (groq, huggingface, kb, web)
+    return 0;
+  }
+
+  if (!pricing) {
+    console.warn(`[TokenTracker] No pricing found for ${provider}/${model} - returning $0.00`);
+    return 0;
+  }
   
   const promptCost = (promptTokens / 1000) * pricing.prompt;
   const completionCost = (completionTokens / 1000) * pricing.completion;

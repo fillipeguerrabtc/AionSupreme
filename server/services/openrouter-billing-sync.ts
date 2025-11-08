@@ -40,7 +40,7 @@
 import { db } from "../db";
 import { openai_billing_sync } from "@shared/schema";
 import { eq } from "drizzle-orm";
-import { logger } from "../utils/logger";
+import { log as logger } from "../utils/logger"; // ✅ P2.1: Import correct logger export
 
 class OpenRouterBillingSyncService {
   private syncInterval: NodeJS.Timeout | null = null;

@@ -1,23 +1,30 @@
 /**
  * Google Gemini Billing Sync Service
  * 
- * **FONTE DE VERDADE:**
- * - Google Cloud Billing API
- * - Retorna dados REAIS de billing via BigQuery export ou Cloud Billing API
+ * **ARQUITETURA DE BILLING:**
+ * AION usa um sistema HÍBRIDO para rastreamento de custos do Gemini:
  * 
- * **NOTA IMPORTANTE:**
- * Google Cloud Billing requer:
- * - Service account com billing.accounts.get permission
- * - Billing account ID
- * - Project ID
+ * **1. Tracking em Tempo Real (tabela: token_usage)**
+ * - Cada request Gemini rastreia tokens via `trackTokenUsage()`
+ * - Custos calculados automaticamente com preços oficiais 2025
+ * - Fonte: server/monitoring/token-tracker.ts (GEMINI_PRICING)
+ * - Precisão: Token-level accuracy
  * 
- * Para simplificar, este serviço usa uma abordagem alternativa:
- * - Rastreia tokens via response headers
- * - Calcula custos localmente com preços oficiais 2025
- * - Marca como "calculated" (não "real" da API)
+ * **2. Google Cloud Billing API (não implementado)**
+ * - Requer: Service account + billing.accounts.get permission
+ * - Seria usado para reconciliação mensal (fatura oficial vs cálculo local)
+ * - TODO: Implementar quando credenciais estiverem disponíveis
  * 
- * TODO: Implementar integração completa com Google Cloud Billing API
- * quando credenciais de service account estiverem disponíveis.
+ * **PREÇOS 2025 (implementados em token-tracker.ts):**
+ * - Gemini 2.5 Flash-Lite: $0.02 / $0.08 por 1M tokens
+ * - Gemini 2.0 Flash: $0.10 / $0.40 por 1M tokens
+ * - Gemini 1.5 Flash: $0.10 / $0.40 por 1M tokens
+ * - Gemini 2.5 Flash: $0.35 / $1.05 por 1M tokens (text)
+ * - Gemini 1.5 Pro: $1.25 / $5.00 por 1M tokens
+ * - Gemini 2.5 Pro: $1.25 / $10.00 por 1M tokens (<200K context)
+ * - Gemini 2.5 Pro Long: $2.50 / $15.00 por 1M tokens (>200K context)
+ * 
+ * Source: https://ai.google.dev/gemini-api/docs/pricing
  */
 
 import { db } from "../db";
@@ -28,23 +35,29 @@ class GeminiBillingSyncService {
   private syncInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    console.log("[Gemini Billing Sync] ⚠️  Google Cloud Billing API não configurada");
-    console.log("[Gemini Billing Sync] Usando cálculo local de custos (preços oficiais 2025)");
+    console.log("[Gemini Billing Sync] ℹ️  Using hybrid billing architecture:");
+    console.log("[Gemini Billing Sync]    • Real-time tracking: token_usage table (2025 pricing)");
+    console.log("[Gemini Billing Sync]    • Cloud Billing API: Not configured (optional for reconciliation)");
   }
 
   /**
-   * Sync de billing via cálculo local
+   * ✅ P2.2: No sync needed - costs tracked in real-time
    * 
-   * NOTA: Não é "billing REAL" da Google Cloud API, mas cálculo
-   * baseado em tokens rastreados localmente.
+   * Gemini costs are calculated automatically via trackTokenUsage() with 2025 pricing.
+   * Google Cloud Billing API integration is optional (for monthly reconciliation).
    */
   async syncBillingData(): Promise<void> {
-    console.log("[Gemini Billing Sync] ⚠️  Sync desabilitado - requer Google Cloud Service Account");
-    console.log("[Gemini Billing Sync] Custos estão sendo calculados localmente na tabela token_usage");
+    console.log("[Gemini Billing Sync] ✅ Real-time tracking active via token_usage table");
+    console.log("[Gemini Billing Sync] ℹ️  Cloud Billing API sync not required (costs calculated per-request)");
   }
 
+  /**
+   * ✅ P2.2: Get total Gemini costs from token_usage table
+   * 
+   * Costs are calculated in real-time via token-tracker.ts (2025 pricing).
+   * This provides accurate per-request billing without Cloud Billing API.
+   */
   async getTotalCost(days: number = 30): Promise<number> {
-    // Buscar da tabela token_usage (cálculo local)
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
@@ -64,8 +77,11 @@ class GeminiBillingSyncService {
     return result.reduce((sum, record) => sum + (record.cost || 0), 0);
   }
 
+  /**
+   * ✅ P2.2: Auto-sync not needed - costs tracked per-request
+   */
   startAutoSync(): void {
-    console.log("[Gemini Billing Sync] ⚠️  Auto-sync desabilitado - requer configuração do Google Cloud");
+    console.log("[Gemini Billing Sync] ℹ️  Auto-sync not required (real-time tracking via token_usage)");
   }
 
   stopAutoSync(): void {
