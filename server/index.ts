@@ -161,6 +161,14 @@ app.use((req, res, next) => {
       console.error('⚠️ Failed to initialize auto-evolution:', err);
     }
     
+    // ✅ P1.3: Backfill provider column for existing billing records (runs BEFORE billing syncs)
+    try {
+      const { billingBackfillService } = await import('./services/billing-backfill-service');
+      await billingBackfillService.runBackfill();
+    } catch (err) {
+      console.error('⚠️ Failed to run billing backfill:', err);
+    }
+    
     // 💰 Initialize Billing Sync Services (fetch REAL costs from provider APIs)
     try {
       const { openAIBillingSync } = await import('./services/openai-billing-sync');
