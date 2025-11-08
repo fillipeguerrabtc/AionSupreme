@@ -7,9 +7,9 @@
  * - Limpo a cada commit
  * - Apenas para assets gerados/temporários
  * 
- * PERMANENTE (data/):
+ * PERMANENTE (kb_storage/, curation_storage/, data/):
  * - Persistente entre commits
- * - Para imagens aprovadas, modelos treinados, etc
+ * - Para imagens aprovadas, modelos treinados, curadoria HITL
  */
 
 import * as path from 'path';
@@ -37,27 +37,77 @@ function ensureDir(dirPath: string): void {
   }
 }
 
+// ========================================
+// MODERN STORAGE ARCHITECTURE (2025)
+// ========================================
+
+const rootDir = process.cwd();
+
+// 🗂️ PERMANENT STORAGE - KB (Knowledge Base)
+export const KB_STORAGE = {
+  ROOT: path.join(rootDir, 'kb_storage'),
+  IMAGES: path.join(rootDir, 'kb_storage', 'images'),
+  DOCUMENTS: path.join(rootDir, 'kb_storage', 'documents'),
+  MEDIA: path.join(rootDir, 'kb_storage', 'media'),
+};
+
+// 🔄 CURATION STORAGE - HITL (Human-in-the-Loop)
+export const CURATION_STORAGE = {
+  ROOT: path.join(rootDir, 'curation_storage'),
+  PENDING: path.join(rootDir, 'curation_storage', 'pending'),
+};
+
+// ⚡ TEMPORARY STORAGE - attached_assets/
+// NOTE: NEW uploads use curation_storage/pending/, but chat_images/ kept for backward compatibility
+export const TEMP_STORAGE = {
+  ROOT: path.join(rootDir, 'attached_assets'),
+  UPLOADS: path.join(rootDir, 'attached_assets', 'temp_uploads'),
+  CHAT_IMAGES: path.join(rootDir, 'attached_assets', 'chat_images'), // Backward compatibility
+  GENERATED: path.join(rootDir, 'attached_assets', 'generated_images'),
+};
+
+// 📦 LEGACY DATA STORAGE (backward compatibility)
+const dataDir = path.join(rootDir, 'data');
+
+/**
+ * Ensure all storage directories exist
+ */
+export function ensureStorageDirectories(): void {
+  // KB Storage (permanent)
+  ensureDir(KB_STORAGE.ROOT);
+  ensureDir(KB_STORAGE.IMAGES);
+  ensureDir(KB_STORAGE.DOCUMENTS);
+  ensureDir(KB_STORAGE.MEDIA);
+
+  // Curation Storage (pending HITL approval)
+  ensureDir(CURATION_STORAGE.ROOT);
+  ensureDir(CURATION_STORAGE.PENDING);
+
+  // Temporary Storage
+  ensureDir(TEMP_STORAGE.ROOT);
+  ensureDir(TEMP_STORAGE.UPLOADS);
+  ensureDir(TEMP_STORAGE.CHAT_IMAGES); // Backward compatibility
+  ensureDir(TEMP_STORAGE.GENERATED);
+
+  // Legacy data/ storage (backward compatibility)
+  ensureDir(dataDir);
+  ensureDir(path.join(dataDir, 'learned_images'));
+  ensureDir(path.join(dataDir, 'datasets'));
+  ensureDir(path.join(dataDir, 'trained_models'));
+}
+
 export function getStoragePaths(): StoragePaths {
-  const rootDir = process.cwd();
-  
   // ✅ PERMANENTE - data/ (persiste entre commits)
-  const dataDir = path.join(rootDir, 'data');
   const learnedImages = path.join(dataDir, 'learned_images');
   const datasets = path.join(dataDir, 'datasets');
   const trainedModels = path.join(dataDir, 'trained_models');
   
   // ⚠️ TEMPORÁRIO - attached_assets/ (limpa a cada commit)
-  const tempUploads = path.join(rootDir, 'attached_assets', 'temp_uploads');
-  const tempAssets = path.join(rootDir, 'attached_assets');
+  const tempUploads = TEMP_STORAGE.UPLOADS;
+  const tempAssets = TEMP_STORAGE.ROOT;
   
-  // Garante que pastas PERMANENTES existem
-  ensureDir(dataDir);
-  ensureDir(learnedImages);
-  ensureDir(datasets);
-  ensureDir(trainedModels);
-  
-  // Garante que pastas TEMPORÁRIAS existem
-  ensureDir(tempUploads);
+  // Garante que TODAS as pastas existem
+  ensureStorageDirectories();
   
   return {
     learnedImages,

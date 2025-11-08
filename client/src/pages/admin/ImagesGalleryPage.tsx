@@ -42,7 +42,7 @@ interface ImageItem {
   id: string;
   filename: string;
   url: string;
-  source: 'crawler' | 'chat' | 'document';
+  source: 'crawler' | 'chat' | 'pending' | 'kb' | 'document';
   size: number;
   mimeType: string;
   createdAt: string;
@@ -57,6 +57,8 @@ interface ImagesResponse {
   sources: {
     crawler: number;
     chat: number;
+    pending: number;
+    kb: number;
     document: number;
   };
   images: ImageItem[];
@@ -211,9 +213,11 @@ export default function ImagesGalleryPage() {
   };
 
   const getSourceBadge = (source: string) => {
-    const variants: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
+    const variants: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
       crawler: { label: 'Web Crawler', variant: 'default' },
-      chat: { label: 'Chat Upload', variant: 'secondary' },
+      chat: { label: 'Chat (Legacy)', variant: 'secondary' },
+      pending: { label: 'Pending HITL', variant: 'destructive' },
+      kb: { label: 'KB Approved', variant: 'outline' },
       document: { label: 'Knowledge Base', variant: 'outline' }
     };
     return variants[source] || { label: source, variant: 'outline' };
@@ -248,10 +252,10 @@ export default function ImagesGalleryPage() {
         {/* IMAGES TAB */}
         <TabsContent value="images" className="space-y-6 mt-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Total de Imagens</CardTitle>
+                <CardTitle className="text-sm font-medium">Total</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{imagesData?.total || 0}</div>
@@ -259,7 +263,7 @@ export default function ImagesGalleryPage() {
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Web Crawler</CardTitle>
+                <CardTitle className="text-sm font-medium">Crawler</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{imagesData?.sources.crawler || 0}</div>
@@ -267,7 +271,7 @@ export default function ImagesGalleryPage() {
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Chat Uploads</CardTitle>
+                <CardTitle className="text-sm font-medium">Chat (Legacy)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{imagesData?.sources.chat || 0}</div>
@@ -275,7 +279,23 @@ export default function ImagesGalleryPage() {
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">Knowledge Base</CardTitle>
+                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{imagesData?.sources.pending || 0}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">KB Approved</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{imagesData?.sources.kb || 0}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Documents</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{imagesData?.sources.document || 0}</div>
@@ -305,8 +325,10 @@ export default function ImagesGalleryPage() {
                       <SelectContent>
                         <SelectItem value="all">Todas as fontes</SelectItem>
                         <SelectItem value="crawler">Web Crawler</SelectItem>
-                        <SelectItem value="chat">Chat Upload</SelectItem>
-                        <SelectItem value="document">Knowledge Base</SelectItem>
+                        <SelectItem value="chat">Chat (Legacy)</SelectItem>
+                        <SelectItem value="pending">Pending HITL</SelectItem>
+                        <SelectItem value="kb">KB Approved</SelectItem>
+                        <SelectItem value="document">Documents</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select value={namespaceFilter} onValueChange={setNamespaceFilter}>

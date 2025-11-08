@@ -2047,7 +2047,7 @@ export function registerRoutes(app: Express): Server {
           });
       }
 
-      // 2. Imagens do chat (uploads de usuário)
+      // 2. Chat images (legacy - backward compatibility)
       const chatImagesDir = path.join(process.cwd(), 'attached_assets', 'chat_images');
       if (fsSync.existsSync(chatImagesDir)) {
         const chatFiles = fsSync.readdirSync(chatImagesDir);
@@ -2068,7 +2068,49 @@ export function registerRoutes(app: Express): Server {
           });
       }
 
-      // 3. Imagens de documentos aprovados (KB)
+      // 3. Images from curation storage (PENDING HITL approval - NEW)
+      const curationStorageDir = path.join(process.cwd(), 'curation_storage', 'pending');
+      if (fsSync.existsSync(curationStorageDir)) {
+        const curationFiles = fsSync.readdirSync(curationStorageDir);
+        curationFiles
+          .filter((f: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(f))
+          .forEach((filename: string) => {
+            const filepath = path.join(curationStorageDir, filename);
+            const stats = fsSync.statSync(filepath);
+            allImages.push({
+              id: `pending-${filename}`,
+              filename,
+              url: `/curation_storage/pending/${filename}`,
+              source: 'pending',
+              size: stats.size,
+              createdAt: stats.birthtime,
+              mimeType: filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)?.[0].substring(1) || 'image'
+            });
+          });
+      }
+
+      // 4. Images from KB storage (APPROVED after HITL - NEW)
+      const kbStorageImagesDir = path.join(process.cwd(), 'kb_storage', 'images');
+      if (fsSync.existsSync(kbStorageImagesDir)) {
+        const kbFiles = fsSync.readdirSync(kbStorageImagesDir);
+        kbFiles
+          .filter((f: string) => /\.(jpg|jpeg|png|gif|webp)$/i.test(f))
+          .forEach((filename: string) => {
+            const filepath = path.join(kbStorageImagesDir, filename);
+            const stats = fsSync.statSync(filepath);
+            allImages.push({
+              id: `kb-${filename}`,
+              filename,
+              url: `/kb_storage/images/${filename}`,
+              source: 'kb',
+              size: stats.size,
+              createdAt: stats.birthtime,
+              mimeType: filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)?.[0].substring(1) || 'image'
+            });
+          });
+      }
+      
+      // 5. Imagens de documentos aprovados (KB)
       const { documents } = await import("@shared/schema");
       const docsWithImages = await db
         .select()
@@ -2111,6 +2153,8 @@ export function registerRoutes(app: Express): Server {
         sources: {
           crawler: allImages.filter(i => i.source === 'crawler').length,
           chat: allImages.filter(i => i.source === 'chat').length,
+          pending: allImages.filter(i => i.source === 'pending').length,
+          kb: allImages.filter(i => i.source === 'kb').length,
           document: allImages.filter(i => i.source === 'document').length
         },
         images: allImages
@@ -2159,7 +2203,7 @@ export function registerRoutes(app: Express): Server {
               errors.push(`File not found: ${filename}`);
             }
           } else if (source === 'chat') {
-            // Delete from chat_images
+            // Delete from chat_images (legacy - backward compatibility)
             const filename = parts.slice(1).join('-');
             const filepath = path.join(process.cwd(), 'attached_assets', 'chat_images', filename);
             
@@ -2171,9 +2215,43 @@ export function registerRoutes(app: Express): Server {
             if (fsSync.existsSync(filepath)) {
               fsSync.unlinkSync(filepath);
               deletedCount++;
-              console.log(`[DELETE Images] ✓ Deleted: ${filename}`);
+              console.log(`[DELETE Images] ✓ Deleted from chat: ${filename}`);
             } else {
-              errors.push(`File not found: ${filename}`);
+              errors.push(`File not found in chat_images: ${filename}`);
+            }
+          } else if (source === 'pending') {
+            // Delete from curation_storage/pending/ (NEW)
+            const filename = parts.slice(1).join('-');
+            const filepath = path.join(process.cwd(), 'curation_storage', 'pending', filename);
+            
+            if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+              errors.push(`Invalid filename: ${filename}`);
+              continue;
+            }
+
+            if (fsSync.existsSync(filepath)) {
+              fsSync.unlinkSync(filepath);
+              deletedCount++;
+              console.log(`[DELETE Images] ✓ Deleted from pending: ${filename}`);
+            } else {
+              errors.push(`File not found in pending: ${filename}`);
+            }
+          } else if (source === 'kb') {
+            // Delete from kb_storage/images/ (NEW)
+            const filename = parts.slice(1).join('-');
+            const filepath = path.join(process.cwd(), 'kb_storage', 'images', filename);
+            
+            if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+              errors.push(`Invalid filename: ${filename}`);
+              continue;
+            }
+
+            if (fsSync.existsSync(filepath)) {
+              fsSync.unlinkSync(filepath);
+              deletedCount++;
+              console.log(`[DELETE Images] ✓ Deleted from KB: ${filename}`);
+            } else {
+              errors.push(`File not found in KB: ${filename}`);
             }
           } else if (source === 'doc') {
             // Images from documents - don't delete (managed by document lifecycle)
@@ -5383,16 +5461,16 @@ export function registerRoutes(app: Express): Server {
   // Serve learned images statically (from crawler) - DEPRECATED, use kb_storage/images
   const learnedImagesDir = path.join(process.cwd(), 'attached_assets', 'learned_images');
   app.use('/attached_assets/learned_images', express.static(learnedImagesDir));
-  
-  // Serve chat images statically (from user uploads in chat)
+
+  // Serve chat images statically (legacy - backward compatibility)
   const chatImagesDir = path.join(process.cwd(), 'attached_assets', 'chat_images');
   app.use('/attached_assets/chat_images', express.static(chatImagesDir));
 
-  // Serve KB storage statically (PERMANENT storage after HITL approval)
+  // Serve KB storage statically (PERMANENT storage after HITL approval - NEW)
   const kbStorageDir = path.join(process.cwd(), 'kb_storage');
   app.use('/kb_storage', express.static(kbStorageDir));
   
-  // Serve curation storage statically (PENDING HITL approval)
+  // Serve curation storage statically (PENDING HITL approval - NEW)
   const curationStorageDir = path.join(process.cwd(), 'curation_storage');
   app.use('/curation_storage', express.static(curationStorageDir));
 
