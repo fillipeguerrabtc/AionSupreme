@@ -194,8 +194,9 @@ class OpenAIBillingSyncService {
         // ✅ FIX: Calculate total cost from results array
         const totalCost = lineItems.reduce((sum, item) => sum + item.cost, 0);
 
-        // ✅ FIX: Remove tenantId (table doesn't have this column)
+        // ✅ P1.4: Insert with provider='openai'
         await db.insert(openai_billing_sync).values({
+          provider: "openai", // ✅ P1.4: Strict provider isolation
           startTime: bucketStartTime,
           endTime: bucketEndTime,
           totalCost, // Custo REAL da fatura (sum of all line items)
@@ -268,8 +269,7 @@ class OpenAIBillingSyncService {
   /**
    * Buscar custo total REAL dos últimos N dias (SOMENTE OpenAI)
    * 
-   * ✅ FIX: Filters by source to prevent mixing OpenRouter/Gemini costs
-   * Handles legacy rows (NULL source) + new rows ("openai_costs_api_v2025")
+   * ✅ P1.4: Uses provider column for strict isolation (replaces source/periodKey heuristics)
    * 
    * @param days Número de dias (padrão: 30)
    * @returns Custo total em USD (dados REAIS da OpenAI)
@@ -278,31 +278,20 @@ class OpenAIBillingSyncService {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
-    // ✅ FIX REGRESSION: Filter by source to avoid mixing providers
-    // Accept legacy rows (source = openai_costs_api) OR new format (openai_costs_api_v2025)
-    // Exclude OpenRouter (openrouter-*) and Gemini (gemini-*) via periodKey
-    const { or, and, notLike } = await import("drizzle-orm");
+    // ✅ P1.4: Filter by provider column (strict, performant, safe)
+    const { and, gte } = await import("drizzle-orm");
     
     const result = await db
       .select()
       .from(openai_billing_sync)
       .where(
         and(
-          // Source must be OpenAI (handles NULL for backfilled records)
-          or(
-            eq(openai_billing_sync.source, "openai_costs_api_v2025"),
-            eq(openai_billing_sync.source, "openai_costs_api")
-          ),
-          // Exclude other providers by periodKey pattern
-          notLike(openai_billing_sync.periodKey, "openrouter-%"),
-          notLike(openai_billing_sync.periodKey, "gemini-%")
+          eq(openai_billing_sync.provider, "openai"), // ✅ P1.4: Provider column (indexed!)
+          gte(openai_billing_sync.startTime, cutoffDate)
         )
       );
 
-    // Filtrar últimos N dias e somar
-    const recentRecords = result.filter(r => new Date(r.startTime) >= cutoffDate);
-    const totalCost = recentRecords.reduce((sum, record) => sum + (record.totalCost || 0), 0);
-
+    const totalCost = result.reduce((sum, record) => sum + (record.totalCost || 0), 0);
     return totalCost;
   }
 

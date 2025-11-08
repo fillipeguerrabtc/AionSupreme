@@ -92,9 +92,9 @@ class OpenRouterBillingSyncService {
           tokens: model.tokens || 0
         }));
 
-        // Salvar no banco
+        // ✅ P1.4: Insert with provider='openrouter'
         await db.insert(openai_billing_sync).values({
-          tenantId: 1,
+          provider: "openrouter", // ✅ P1.4: Strict provider isolation
           startTime: date,
           endTime: new Date(date.getTime() + 86400000), // +1 dia
           totalCost,
@@ -115,24 +115,28 @@ class OpenRouterBillingSyncService {
   }
 
   /**
-   * Buscar custo total REAL dos últimos N dias
+   * Buscar custo total REAL dos últimos N dias (SOMENTE OpenRouter)
+   * 
+   * ✅ P1.4: Uses provider column for strict isolation
    */
   async getTotalCost(days: number = 30): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
+    const { gte, and } = await import("drizzle-orm");
+
+    // ✅ P1.4: Filter by provider column (strict, performant, safe)
     const result = await db
       .select()
       .from(openai_billing_sync)
-      .where(eq(openai_billing_sync.tenantId, 1));
-
-    // Filtrar apenas registros do OpenRouter
-    const openrouterRecords = result.filter(r => 
-      r.source === "openrouter_activity_api" && 
-      new Date(r.startTime) >= cutoffDate
-    );
+      .where(
+        and(
+          eq(openai_billing_sync.provider, "openrouter"), // ✅ P1.4: Provider column (indexed!)
+          gte(openai_billing_sync.startTime, cutoffDate)
+        )
+      );
     
-    return openrouterRecords.reduce((sum, record) => sum + (record.totalCost || 0), 0);
+    return result.reduce((sum, record) => sum + (record.totalCost || 0), 0);
   }
 
   /**
