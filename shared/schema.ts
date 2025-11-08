@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, unique, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from 'drizzle-orm';
@@ -794,8 +794,15 @@ export type TokenAlert = typeof tokenAlerts.$inferSelect;
 // ============================================================================
 // OPENAI_BILLING_SYNC - Real billing data from OpenAI Costs API
 // ============================================================================
+
+// ✅ P1 FIX: Provider ENUM for strict type safety and query performance
+export const billingProviderEnum = pgEnum("billing_provider", ["openai", "openrouter", "gemini"]);
+
 export const openai_billing_sync = pgTable("openai_billing_sync", {
   id: serial("id").primaryKey(),
+  
+  // ✅ P1 FIX: Provider column for strict isolation between billing sources
+  provider: billingProviderEnum("provider").notNull().default("openai"),
   
   // Time period (from OpenAI Costs API)
   startTime: timestamp("start_time").notNull(), // Unix timestamp converted to timestamp
@@ -812,13 +819,15 @@ export const openai_billing_sync = pgTable("openai_billing_sync", {
   
   // Metadata
   syncedAt: timestamp("synced_at").notNull().defaultNow(), // When we fetched this data
-  source: text("source").notNull().default("openai_costs_api"), // Always "openai_costs_api"
+  source: text("source").notNull().default("openai_costs_api_v2025"), // ✅ P1 FIX: Updated default to v2025
   
   // Deduplication: ensure we don't sync the same period twice
-  periodKey: text("period_key").notNull().unique(), // Format: "YYYY-MM-DD" for daily buckets
+  periodKey: text("period_key").notNull().unique(), // Format: "YYYY-MM-DD" for daily buckets or "provider-YYYY-MM-DD"
 }, (table) => ({
   periodKeyIdx: index("openai_billing_period_key_idx").on(table.periodKey),
   startTimeIdx: index("openai_billing_start_time_idx").on(table.startTime),
+  // ✅ P1 FIX: Index on provider for fast filtering by provider
+  providerIdx: index("openai_billing_provider_idx").on(table.provider),
 }));
 
 export const insertOpenAIBillingSyncSchema = createInsertSchema(openai_billing_sync).omit({ id: true, syncedAt: true });
