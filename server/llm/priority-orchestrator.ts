@@ -458,6 +458,22 @@ This instruction takes ABSOLUTE PRIORITY.
       try {
         const kbResult = await searchWithConfidence(userMessage, { limit: 5 });
         
+        // Determine source based on confidence
+        const hasResults = kbResult.topResults.length > 0;
+        const highConfidence = kbResult.confidence >= 0.7;
+        
+        const forcedKbMetadata: KBMetadata = {
+          query: userMessage.substring(0, 200),
+          resultsCount: kbResult.topResults.length,
+          confidence: kbResult.confidence,
+          // Use 'kb-own' only for high confidence, 'fallback-needed' for low/no results
+          sourceUsed: hasResults && highConfidence ? 'kb-own' : 'fallback-needed',
+          kbUsed: hasResults && highConfidence,
+          reason: !hasResults ? 'no-results' : !highConfidence ? 'low-confidence' : undefined,
+          sources: [],
+          indexedDocuments: 0
+        };
+        
         await trackTokenUsage({
           provider: 'kb',
           model: 'rag-mmr',
@@ -466,13 +482,8 @@ This instruction takes ABSOLUTE PRIORITY.
           totalTokens: 0,
           cost: 0,
           requestType: 'chat',
-          success: kbResult.topResults.length > 0,
-          metadata: {
-            query: userMessage.substring(0, 200),
-            sources: [],
-            resultsCount: kbResult.topResults.length,
-            indexedDocuments: 0
-          }
+          success: hasResults,
+          metadata: forcedKbMetadata
         });
         
         if (kbResult.topResults.length === 0) {

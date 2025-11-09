@@ -713,7 +713,7 @@ export const tokenUsage = pgTable("token_usage", {
   requestType: text("request_type").notNull(), // "chat" | "embedding" | "transcription" | "image" | "search"
   success: boolean("success").notNull().default(true),
   
-  // Metadata for web searches (URLs, titles, sources)
+  // Metadata for web searches (URLs, titles, sources) and KB tracking
   metadata: jsonb("metadata").$type<{
     query?: string;
     sources?: Array<{
@@ -724,6 +724,11 @@ export const tokenUsage = pgTable("token_usage", {
     }>;
     resultsCount?: number;
     indexedDocuments?: number;
+    // KB-specific fields
+    confidence?: number;
+    sourceUsed?: 'kb-own' | 'fallback-needed' | 'kb-error';
+    kbUsed?: boolean;
+    reason?: string;
   }>(),
   
   timestamp: timestamp("timestamp").notNull().defaultNow(),
