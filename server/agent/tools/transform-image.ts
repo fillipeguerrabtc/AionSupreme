@@ -34,8 +34,9 @@ interface TransformImageInput {
 
 /**
  * KB Similarity Search - Find best matching image from knowledge base
+ * PRODUCTION REQUIREMENT: ALWAYS returns best match, caller decides GPU usage based on similarity
  */
-async function findKBImage(searchQuery: string): Promise<{ url: string; description: string } | null> {
+async function findKBImage(searchQuery: string): Promise<{ url: string; description: string; similarity: number } | null> {
   try {
     console.log(`[TransformImage] 🔍 Searching KB for: "${searchQuery}"`);
     
@@ -88,15 +89,16 @@ async function findKBImage(searchQuery: string): Promise<{ url: string; descript
       };
     });
 
-    // Sort by similarity and get best match
+    // Sort by similarity and ALWAYS return best match
     scoredResults.sort((a, b) => b.similarity - a.similarity);
     const bestMatch = scoredResults[0];
     
-    console.log(`[TransformImage] ✅ Found KB image (similarity: ${bestMatch.similarity.toFixed(3)}): ${bestMatch.url}`);
+    console.log(`[TransformImage] ✅ Found best KB match (similarity: ${bestMatch.similarity.toFixed(3)}): ${bestMatch.url}`);
     
     return {
       url: bestMatch.url,
-      description: bestMatch.description
+      description: bestMatch.description,
+      similarity: bestMatch.similarity
     };
   } catch (error: any) {
     console.error(`[TransformImage] ❌ KB search failed:`, error.message);
@@ -138,27 +140,48 @@ export async function transformImage(input: TransformImageInput): Promise<AgentO
 
     console.log(`[TransformImage Tool] Transforming image: "${prompt.slice(0, 60)}..."`);
 
-    // 1. Determine reference image source
+    // 1. Determine reference image source and validate GPU usage criteria
     let imageUrl: string | null = null;
     let imageSource = '';
+    let kbConfidence: number | null = null;
+    let useGPU = false;
     
     if (kbSearchQuery) {
-      // KB Similarity Search
+      // KB Similarity Search - always returns best match
       const kbImage = await findKBImage(kbSearchQuery);
-      if (kbImage) {
-        imageUrl = kbImage.url;
-        imageSource = `KB search: "${kbSearchQuery}" (found: ${kbImage.description.slice(0, 50)}...)`;
-      } else {
+      
+      if (!kbImage) {
+        // No images in KB at all
         return {
-          observation: `Nenhuma imagem encontrada na Knowledge Base para: "${kbSearchQuery}"`,
+          observation: `❌ KB Search: Nenhuma imagem encontrada na Knowledge Base para: "${kbSearchQuery}"`,
           success: false,
           errorMessage: 'KB search returned no results'
         };
       }
+      
+      // Use best match - decide GPU usage based on confidence threshold
+      imageUrl = kbImage.url;
+      kbConfidence = kbImage.similarity;
+      useGPU = kbConfidence >= 0.7; // PRODUCTION REQUIREMENT: GPU ONLY if confidence >= 0.7
+      
+      if (useGPU) {
+        imageSource = `KB search (HIGH confidence: ${kbConfidence.toFixed(3)} >= 0.7): "${kbSearchQuery}"`;
+        console.log(`[TransformImage] ✅ GPU usage APPROVED (confidence: ${kbConfidence.toFixed(3)})`);
+      } else {
+        imageSource = `KB search (LOW confidence: ${kbConfidence.toFixed(3)} < 0.7): "${kbSearchQuery}"`;
+        console.log(`[TransformImage] ⚠️ GPU usage DENIED - Using best match WITHOUT GPU (similarity: ${kbConfidence.toFixed(3)})`);
+      }
+      
     } else if (referenceImage) {
-      // Direct URL/path
+      // Direct URL/path - NO GPU usage (no confidence metric)
+      // User requirement: GPU ONLY for KB-based inference with confidence >= 0.7
       imageUrl = referenceImage;
       imageSource = `Direct reference: ${referenceImage}`;
+      kbConfidence = null;
+      useGPU = false; // No KB confidence metric available
+      
+      console.log(`[TransformImage] 🚫 GPU usage DENIED (direct upload, no KB confidence metric)`);
+      
     } else {
       return {
         observation: `Você deve fornecer 'referenceImage' (URL) ou 'kbSearchQuery' (busca semântica na KB)`,
@@ -173,12 +196,14 @@ export async function transformImage(input: TransformImageInput): Promise<AgentO
     const imageBuffer = await downloadImage(imageUrl);
     
     // 3. Generate transformed image via CASCADE
+    // CRITICAL: Pass useGPU flag to enforce confidence-based GPU gating
     const result = await imageGenCascade.generateImageFromImage({
       prompt,
       imageBuffer,
       strength,
       quality,
       style,
+      useGPU, // Production requirement: GPU ONLY if confidence >= 0.7
     });
 
     console.log(`[TransformImage Tool] ✅ Image transformed via ${result.provider}: ${result.localPath}`);

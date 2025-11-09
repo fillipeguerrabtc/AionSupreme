@@ -89,34 +89,43 @@ export class ImageGenerationCascade {
 
   /**
    * Gera imagem usando cascade automático (GPU-First)
+   * 
+   * PRODUCTION REQUIREMENT: useGPU flag enforces confidence >= 0.7 threshold
+   * When useGPU=false, GPU workers are completely skipped (Pollinations → DALL-E only)
    */
   async generateImage(params: {
     prompt: string;
     size?: "1024x1024" | "1024x1792" | "1792x1024";
     quality?: "standard" | "hd";
     style?: "vivid" | "natural";
+    useGPU?: boolean; // CRITICAL: GPU gating flag (default: true for backward compat)
   }): Promise<ImageGenResult> {
     const startTime = Date.now();
     
     // Reset quotas se necessário (a cada 24h)
     this.resetQuotasIfNeeded();
 
-    const { prompt, size = "1024x1024", quality = "standard", style = "vivid" } = params;
+    const { prompt, size = "1024x1024", quality = "standard", style = "vivid", useGPU = true } = params;
 
-    // 🚀 PRIORITY 1: SD-XL GPU Workers (100% LOCAL, zero cost)
-    const gpuWorkers = await this.discoverGPUWorkers();
-    if (gpuWorkers.length > 0) {
-      for (const worker of gpuWorkers) {
-        try {
-          const result = await this.trySDXL(worker.endpoint, prompt, size);
-          console.log(`[ImageGenCascade] ✅ SD-XL GPU Worker ${worker.id} (${Date.now() - startTime}ms) - LOCAL & FREE`);
-          return result;
-        } catch (error: any) {
-          console.warn(`[ImageGenCascade] ⚠️ SD-XL Worker ${worker.id} falhou: ${error.message}`);
-          // Continue to next worker
+    // 🎯 PRODUCTION GATING: Skip GPU workers entirely if useGPU=false
+    if (useGPU) {
+      // 🚀 PRIORITY 1: SD-XL GPU Workers (100% LOCAL, zero cost)
+      const gpuWorkers = await this.discoverGPUWorkers();
+      if (gpuWorkers.length > 0) {
+        for (const worker of gpuWorkers) {
+          try {
+            const result = await this.trySDXL(worker.endpoint, prompt, size);
+            console.log(`[ImageGenCascade] ✅ SD-XL GPU Worker ${worker.id} (${Date.now() - startTime}ms) - LOCAL & FREE`);
+            return result;
+          } catch (error: any) {
+            console.warn(`[ImageGenCascade] ⚠️ SD-XL Worker ${worker.id} falhou: ${error.message}`);
+            // Continue to next worker
+          }
         }
+        console.log(`[ImageGenCascade] ⚠️ All GPU workers failed, falling back to external APIs`);
       }
-      console.log(`[ImageGenCascade] ⚠️ All GPU workers failed, falling back to external APIs`);
+    } else {
+      console.log(`[ImageGenCascade] 🚫 GPU WORKERS SKIPPED - useGPU=false (confidence < 0.7 or direct upload)`);
     }
 
     // 2. Tenta Pollinations.ai (100% GRÁTIS, sem API key)
@@ -150,6 +159,9 @@ export class ImageGenerationCascade {
   /**
    * Generate image from reference image (img2img transformation)
    * GPU-First approach: SD-XL GPU Workers → External APIs
+   * 
+   * PRODUCTION REQUIREMENT: useGPU flag enforces confidence >= 0.7 threshold
+   * GPU workers are ONLY called when useGPU=true (KB-based with high confidence)
    */
   async generateImageFromImage(params: {
     prompt: string;
@@ -157,14 +169,25 @@ export class ImageGenerationCascade {
     strength?: number;
     quality?: "standard" | "hd";
     style?: "vivid" | "natural";
+    useGPU?: boolean; // CRITICAL: GPU gating flag (default: true for backward compat)
   }): Promise<ImageGenResult> {
     const startTime = Date.now();
-    const { prompt, imageBuffer, strength = 0.75, quality = "standard", style = "vivid" } = params;
+    const { prompt, imageBuffer, strength = 0.75, quality = "standard", style = "vivid", useGPU = true } = params;
 
     console.log(`[ImageGenCascade] 🎨 Img2Img transformation: "${prompt.slice(0, 60)}..."`);
 
-    // 🚀 PRIORITY 1: SD-XL GPU Workers (img2img endpoint)
+    // 🎯 PRODUCTION GATING: Enforce confidence-based GPU usage
+    if (!useGPU) {
+      console.log(`[ImageGenCascade] 🚫 GPU USAGE DENIED - Confidence threshold not met or direct upload`);
+      console.log(`[ImageGenCascade] ℹ️ Skipping GPU workers, falling back to text2img`);
+      // CRITICAL: Pass useGPU=false to prevent GPU workers in fallback
+      return await this.generateImage({ prompt, quality, style, useGPU: false });
+    }
+
+    // 🚀 PRIORITY 1: SD-XL GPU Workers (img2img endpoint) - ONLY if useGPU=true
+    console.log(`[ImageGenCascade] ✅ GPU USAGE APPROVED - High-confidence KB match (>= 0.7)`);
     const gpuWorkers = await this.discoverGPUWorkers();
+    
     if (gpuWorkers.length > 0) {
       for (const worker of gpuWorkers) {
         try {
@@ -176,11 +199,14 @@ export class ImageGenerationCascade {
         }
       }
       console.log(`[ImageGenCascade] ⚠️ All GPU workers failed for img2img, falling back to text2img`);
+    } else {
+      console.log(`[ImageGenCascade] ⚠️ No GPU workers available, falling back to text2img`);
     }
 
     // Fallback: Use text2img with original prompt (no img2img support in free APIs)
+    // CRITICAL: Pass useGPU flag to prevent GPU workers in fallback path
     console.log(`[ImageGenCascade] ℹ️ No img2img support in external APIs, using text2img as fallback`);
-    return await this.generateImage({ prompt, quality, style });
+    return await this.generateImage({ prompt, quality, style, useGPU });
   }
 
   /**
