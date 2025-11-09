@@ -1,15 +1,40 @@
 import { storage } from "./storage";
+import { db } from "./db";
+import { tools, agentTools } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 
 /**
  * Seed database with initial data
- * Creates default configuration policy
+ * Creates default configuration policy + tools + agent-tools mapping
  * SINGLE-TENANT: No tenant creation needed, tenantId defaults to 1
  */
 export async function seedDatabase() {
   try {
     console.log("🌱 Seeding database...");
 
-    // Create default configuration policy
+    // STEP 1: Ensure core tools exist
+    const coreTools = [
+      { id: "kb_search", name: "Knowledge Base Search", slug: "kb-search", type: "kb_search" },
+      { id: "web_search", name: "Web Search", slug: "web-search", type: "web_search" },
+      { id: "generate_image", name: "Generate Image", slug: "generate-image", type: "image_generation" },
+      { id: "vision_cascade", name: "Vision Analysis", slug: "vision-cascade", type: "vision" },
+    ];
+
+    for (const tool of coreTools) {
+      const existing = await db.select().from(tools).where(eq(tools.id, tool.id)).limit(1);
+      if (existing.length === 0) {
+        await db.insert(tools).values({
+          id: tool.id,
+          name: tool.name,
+          slug: tool.slug,
+          type: tool.type,
+          enabled: true,
+        });
+        console.log(`✅ Created tool: ${tool.name}`);
+      }
+    }
+
+    // STEP 2: Create default configuration policy
     const defaultPolicy = await storage.createPolicy({
       policyName: "Default Policy",
       
@@ -62,6 +87,24 @@ Provide helpful, direct, and complete responses to user questions. Your behavior
 
     console.log(`✅ Created default policy: ${defaultPolicy.policyName}`);
     console.log(`   - Enabled tools: ${defaultPolicy.enabledTools.join(", ")}`);
+
+    // STEP 3: Associate tools with default agent (AION assistant)
+    const defaultAgentId = "aion-assistant-general-001"; // From agent config.json
+    const toolsToAssociate = ["kb_search", "web_search", "generate_image"];
+
+    for (const toolId of toolsToAssociate) {
+      const existing = await db.select().from(agentTools)
+        .where(and(eq(agentTools.agentId, defaultAgentId), eq(agentTools.toolId, toolId)))
+        .limit(1);
+      
+      if (existing.length === 0) {
+        await db.insert(agentTools).values({
+          agentId: defaultAgentId,
+          toolId: toolId,
+        });
+        console.log(`✅ Associated tool "${toolId}" with agent "${defaultAgentId}"`);
+      }
+    }
 
     console.log("\n🎉 Database seeded successfully!");
     

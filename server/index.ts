@@ -89,6 +89,10 @@ app.use((req, res, next) => {
   const { seedRBAC } = await import("./seed-rbac");
   await seedRBAC();
   
+  // 🔧 CRITICAL: Seed database BEFORE loading agents (tools must exist first)
+  const { seedDatabase } = await import("./seed");
+  await seedDatabase();
+  
   // Carregar sistema multi-agente do banco de dados
   const { loadAgentsFromDatabase } = await import("./agent/loader");
   await loadAgentsFromDatabase(); // Modo single-tenant

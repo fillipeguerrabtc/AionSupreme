@@ -16,7 +16,7 @@ import { knowledgeIndexer } from "./rag/knowledge-indexer";
 import { generateWithPriority } from "./llm/priority-orchestrator";
 import { hierarchicalPlanner } from "./agent/hierarchical-planner";
 import * as tokenTracker from "./monitoring/token-tracker";
-import { seedDatabase } from "./seed";
+// NOTE: seedDatabase moved to index.ts to run BEFORE agent loader
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 import { sendSuccess, sendValidationError, sendServerError, responseEnvelope } from "./utils/response";
 import { auditMiddleware } from "./middleware/audit";
@@ -158,8 +158,7 @@ export function registerRoutes(app: Express): Server {
   // PRODUCTION-READY: Auth is handled per-route using optionalAuth or requireAuth
   // This allows fine-grained control - chat works without auth, admin requires auth
   
-  // Popular banco de dados na inicialização
-  seedDatabase().catch(console.error);
+  // NOTE: seedDatabase moved to index.ts BEFORE agent loader (correct initialization order)
 
   // ========================================
   // ADMIN SUB-ROUTES - PROTECTED WITH requireAdmin
