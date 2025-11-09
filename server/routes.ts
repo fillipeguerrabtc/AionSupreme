@@ -61,6 +61,7 @@ import { registerTelemetryRoutes } from "./routes/telemetry";
 import { registerUserRoutes } from "./routes/users";
 import { registerPermissionsRoutes } from "./routes/permissions";
 import { registerMetaLearningRoutes } from "./routes/meta-learning";
+import { registerBackupRoutes } from "./routes/backup";
 
 // ============================================================================
 // TYPE DEFINITIONS - Eliminating 'as any' casts
@@ -198,6 +199,9 @@ export function registerRoutes(app: Express): Server {
   
   // Registrar rotas de Meta-Learning (autonomous learning system)
   registerMetaLearningRoutes(adminSubRouter as unknown as Express);
+  
+  // Registrar rotas de Backup & Recovery (enterprise database backup/restore system)
+  registerBackupRoutes(adminSubRouter);
   
   // Registrar rotas de KB Images (busca semântica de imagens na base de conhecimento)
   registerKbImagesRoutes(adminSubRouter);
