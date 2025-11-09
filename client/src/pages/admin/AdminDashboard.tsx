@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap, Server, Cpu, Clock, Eye } from "lucide-react";
+import { Settings, Database, FileText, Activity, MessageSquare, Shield, Sparkles, Languages, Save, BarChart3, DollarSign, Search, Globe, Zap, Server, Cpu, Clock, Eye, Upload, Download, Trash2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
@@ -1158,6 +1158,64 @@ export default function AdminDashboard() {
                   <Save className="w-4 h-4 mr-2" />
                   {saveTimezoneMutation.isPending ? t.admin.settings.timezone.saving : t.admin.settings.timezone.save}
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Database Management */}
+            <Card className="glass-modern hover-elevate animate-slide-up" style={{ animationDelay: "400ms" }}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="w-5 h-5 text-primary" />
+                  <span className="gradient-text">{t.admin.settings.databaseManagement.header}</span>
+                </CardTitle>
+                <CardDescription>
+                  {t.admin.settings.databaseManagement.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Backup Actions */}
+                <div className="grid grid-cols-1 gap-4">
+                  <Button
+                    className="bg-primary hover-elevate active-elevate-2 w-full"
+                    data-testid="button-create-backup"
+                  >
+                    <Database className="w-4 h-4 mr-2" />
+                    {t.admin.settings.databaseManagement.actions.createBackup}
+                  </Button>
+                </div>
+
+                {/* Restore Section */}
+                <div className="space-y-3 p-4 rounded-xl bg-card/50 border border-border/50">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Upload className="w-4 h-4" />
+                    {t.admin.settings.databaseManagement.actions.restoreBackup}
+                  </Label>
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      accept=".sql,.backup"
+                      className="text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer cursor-pointer flex-1"
+                      data-testid="input-upload-backup"
+                    />
+                    <Button
+                      variant="outline"
+                      className="hover-elevate active-elevate-2"
+                      data-testid="button-restore-backup"
+                    >
+                      {t.admin.settings.databaseManagement.actions.restoreBackup}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <AlertCircle className="w-3 h-3" />
+                    {t.admin.settings.databaseManagement.restore.warningMessage}
+                  </p>
+                </div>
+
+                {/* Backup History - Placeholder for future tasks */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium">{t.admin.settings.databaseManagement.history.title}</h4>
+                  <p className="text-sm text-muted-foreground">{t.admin.settings.databaseManagement.history.empty}</p>
+                </div>
               </CardContent>
             </Card>
                 </div>

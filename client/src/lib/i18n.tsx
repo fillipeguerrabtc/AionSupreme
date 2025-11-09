@@ -730,6 +730,43 @@ interface Translations {
         saved: string;
         saveError: string;
       };
+      databaseManagement: {
+        header: string;
+        description: string;
+        actions: {
+          createBackup: string;
+          downloadBackup: string;
+          restoreBackup: string;
+          uploadFile: string;
+          creating: string;
+          restoring: string;
+        };
+        history: {
+          title: string;
+          empty: string;
+          columns: {
+            date: string;
+            size: string;
+            type: string;
+            status: string;
+            actions: string;
+          };
+        };
+        restore: {
+          confirmTitle: string;
+          confirmMessage: string;
+          warningMessage: string;
+          confirm: string;
+          cancel: string;
+        };
+        toasts: {
+          backupCreated: string;
+          backupDownloaded: string;
+          restoreSuccess: string;
+          restoreError: string;
+          uploadError: string;
+        };
+      };
     };
     
     // User Management
@@ -1900,6 +1937,43 @@ const translations: Record<Language, Translations> = {
           saved: "Fuso horário salvo com sucesso!",
           saveError: "Erro ao salvar fuso horário",
         },
+        databaseManagement: {
+          header: "Gerenciamento de Banco de Dados",
+          description: "Crie backups completos do banco de dados e restaure de backups anteriores",
+          actions: {
+            createBackup: "Criar Backup",
+            downloadBackup: "Baixar",
+            restoreBackup: "Restaurar Backup",
+            uploadFile: "Enviar arquivo de backup",
+            creating: "Criando backup...",
+            restoring: "Restaurando...",
+          },
+          history: {
+            title: "Histórico de Backups",
+            empty: "Nenhum backup encontrado",
+            columns: {
+              date: "Data",
+              size: "Tamanho",
+              type: "Tipo",
+              status: "Status",
+              actions: "Ações",
+            },
+          },
+          restore: {
+            confirmTitle: "Confirmar Restauração",
+            confirmMessage: "Tem certeza que deseja restaurar este backup?",
+            warningMessage: "Esta ação criará um snapshot de segurança do estado atual antes de restaurar. Todos os dados serão substituídos pelo conteúdo do backup.",
+            confirm: "Restaurar",
+            cancel: "Cancelar",
+          },
+          toasts: {
+            backupCreated: "Backup criado com sucesso!",
+            backupDownloaded: "Backup baixado com sucesso!",
+            restoreSuccess: "Banco de dados restaurado com sucesso!",
+            restoreError: "Erro ao restaurar backup",
+            uploadError: "Erro ao enviar arquivo de backup",
+          },
+        },
       },
       
       userManagement: {
@@ -3057,6 +3131,43 @@ const translations: Record<Language, Translations> = {
           saved: "Timezone saved successfully!",
           saveError: "Error saving timezone",
         },
+        databaseManagement: {
+          header: "Database Management",
+          description: "Create full database backups and restore from previous backups",
+          actions: {
+            createBackup: "Create Backup",
+            downloadBackup: "Download",
+            restoreBackup: "Restore Backup",
+            uploadFile: "Upload backup file",
+            creating: "Creating backup...",
+            restoring: "Restoring...",
+          },
+          history: {
+            title: "Backup History",
+            empty: "No backups found",
+            columns: {
+              date: "Date",
+              size: "Size",
+              type: "Type",
+              status: "Status",
+              actions: "Actions",
+            },
+          },
+          restore: {
+            confirmTitle: "Confirm Restore",
+            confirmMessage: "Are you sure you want to restore this backup?",
+            warningMessage: "This action will create a safety snapshot of the current state before restoring. All data will be replaced with the backup content.",
+            confirm: "Restore",
+            cancel: "Cancel",
+          },
+          toasts: {
+            backupCreated: "Backup created successfully!",
+            backupDownloaded: "Backup downloaded successfully!",
+            restoreSuccess: "Database restored successfully!",
+            restoreError: "Error restoring backup",
+            uploadError: "Error uploading backup file",
+          },
+        },
       },
       
       userManagement: {
@@ -4213,6 +4324,43 @@ const translations: Record<Language, Translations> = {
           saving: "Guardando...",
           saved: "¡Zona horaria guardada con éxito!",
           saveError: "Error al guardar zona horaria",
+        },
+        databaseManagement: {
+          header: "Gestión de Base de Datos",
+          description: "Crea copias de seguridad completas de la base de datos y restaura desde copias anteriores",
+          actions: {
+            createBackup: "Crear Copia",
+            downloadBackup: "Descargar",
+            restoreBackup: "Restaurar Copia",
+            uploadFile: "Subir archivo de copia",
+            creating: "Creando copia...",
+            restoring: "Restaurando...",
+          },
+          history: {
+            title: "Historial de Copias",
+            empty: "No se encontraron copias",
+            columns: {
+              date: "Fecha",
+              size: "Tamaño",
+              type: "Tipo",
+              status: "Estado",
+              actions: "Acciones",
+            },
+          },
+          restore: {
+            confirmTitle: "Confirmar Restauración",
+            confirmMessage: "¿Estás seguro de que deseas restaurar esta copia?",
+            warningMessage: "Esta acción creará una instantánea de seguridad del estado actual antes de restaurar. Todos los datos serán reemplazados con el contenido de la copia.",
+            confirm: "Restaurar",
+            cancel: "Cancelar",
+          },
+          toasts: {
+            backupCreated: "¡Copia creada con éxito!",
+            backupDownloaded: "¡Copia descargada con éxito!",
+            restoreSuccess: "¡Base de datos restaurada con éxito!",
+            restoreError: "Error al restaurar copia",
+            uploadError: "Error al subir archivo de copia",
+          },
         },
       },
       
