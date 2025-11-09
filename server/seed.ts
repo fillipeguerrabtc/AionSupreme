@@ -54,8 +54,8 @@ Provide helpful, direct, and complete responses to user questions. Your behavior
       maxRequestsPerMinute: 100,
       maxCostPerDay: 100.0,
       
-      // All tools enabled by default
-      enabledTools: ["SearchWeb", "KB.Search", "Exec", "CallAPI"],
+      // All tools enabled by default (including image generation)
+      enabledTools: ["SearchWeb", "KB.Search", "Exec", "CallAPI", "GenerateImage"],
       
       isActive: true,
     });
