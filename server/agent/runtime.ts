@@ -1,6 +1,8 @@
 import type { Agent, AgentExecutor, AgentInput, AgentOutput, AgentRunContext } from "./types";
 import { generateWithPriority } from "../llm/priority-orchestrator";
 import { ragService } from "../rag/vector-store";
+import { ReActEngine } from "./react-engine";
+import { agentTools } from "./tools";
 
 const cache = new Map<string, AgentExecutor>();
 

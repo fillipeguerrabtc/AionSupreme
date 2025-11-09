@@ -237,11 +237,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: validation.error });
       }
 
-      // Criar diretório de ícones customizados se não existir
-      const iconsDir = path.join(process.cwd(), "attached_assets", "custom_icons");
-      if (!fsSync.existsSync(iconsDir)) {
-        await fs.mkdir(iconsDir, { recursive: true });
-      }
+      // ✅ FIX P0: Usar KB_STORAGE permanente em vez de attached_assets (temporário)
+      const { KB_STORAGE } = await import("./config/storage-paths");
+      const iconsDir = KB_STORAGE.CUSTOM_ICONS;
 
       // Gerar nome único para o arquivo
       const timestamp = Date.now();
@@ -252,8 +250,8 @@ export function registerRoutes(app: Express): Server {
       // Mover arquivo do temp para destino final
       await fs.rename(file.path, destPath);
 
-      // Retornar URL pública do ícone
-      const publicUrl = `/attached_assets/custom_icons/${filename}`;
+      // Retornar URL pública do ícone (servir kb_storage/ via static)
+      const publicUrl = `/kb_storage/media/custom_icons/${filename}`;
       
       res.json({ 
         success: true,

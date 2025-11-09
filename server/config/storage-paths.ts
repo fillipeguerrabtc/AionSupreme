@@ -49,6 +49,7 @@ export const KB_STORAGE = {
   IMAGES: path.join(rootDir, 'kb_storage', 'images'),
   DOCUMENTS: path.join(rootDir, 'kb_storage', 'documents'),
   MEDIA: path.join(rootDir, 'kb_storage', 'media'),
+  CUSTOM_ICONS: path.join(rootDir, 'kb_storage', 'media', 'custom_icons'),
 };
 
 // 🔄 CURATION STORAGE - HITL (Human-in-the-Loop)
@@ -78,6 +79,7 @@ export function ensureStorageDirectories(): void {
   ensureDir(KB_STORAGE.IMAGES);
   ensureDir(KB_STORAGE.DOCUMENTS);
   ensureDir(KB_STORAGE.MEDIA);
+  ensureDir(KB_STORAGE.CUSTOM_ICONS);
 
   // Curation Storage (pending HITL approval)
   ensureDir(CURATION_STORAGE.ROOT);
