@@ -2801,3 +2801,68 @@ export const insertImprovementValidationSchema = createInsertSchema(improvementV
 });
 export type InsertImprovementValidation = z.infer<typeof insertImprovementValidationSchema>;
 export type ImprovementValidation = typeof improvementValidations.$inferSelect;
+
+// ============================================================================
+// BACKUP OPERATIONS - Enterprise Backup/Recovery System
+// Track all database backup and restore operations with audit trail
+// ============================================================================
+export const backupOperations = pgTable("backup_operations", {
+  id: serial("id").primaryKey(),
+  
+  // Operation type
+  operationType: varchar("operation_type", { length: 10 }).notNull(), // "backup" | "restore"
+  
+  // User who initiated the operation
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'set null' }),
+  
+  // File information
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileSizeBytes: integer("file_size_bytes"),
+  fileChecksum: varchar("file_checksum", { length: 64 }), // SHA-256 hash
+  
+  // Backup metadata
+  metadata: jsonb("metadata").$type<{
+    schemaVersion: string;
+    dumpType: string; // "pg_dump" | "drizzle_json" | "neon_branch"
+    compression: string; // "gzip" | "none"
+    encrypted: boolean;
+    tableCount: number;
+    rowCount?: number;
+  }>(),
+  
+  // Operation status
+  status: varchar("status", { length: 20 }).notNull().default("in_progress"), // "in_progress" | "completed" | "failed" | "cancelled"
+  progress: integer("progress").default(0), // 0-100 percentage
+  
+  // Timing
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+  durationMs: integer("duration_ms"),
+  
+  // Error handling
+  errorMessage: text("error_message"),
+  errorDetails: jsonb("error_details"),
+  
+  // Pre-restore safety snapshot ID (for restore operations) - stored as plain integer to avoid circular reference
+  safetySnapshotId: integer("safety_snapshot_id"),
+  
+  // Download/Upload information
+  storageLocation: text("storage_location"), // Local path or signed URL
+  expiresAt: timestamp("expires_at"), // For temporary download links
+  
+  // IP and user agent for audit
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+}, (table) => ({
+  operationTypeIdx: index("backup_operations_operation_type_idx").on(table.operationType),
+  statusIdx: index("backup_operations_status_idx").on(table.status),
+  userIdIdx: index("backup_operations_user_id_idx").on(table.userId),
+  startedAtIdx: index("backup_operations_started_at_idx").on(table.startedAt),
+}));
+
+export const insertBackupOperationSchema = createInsertSchema(backupOperations).omit({ 
+  id: true, 
+  startedAt: true 
+});
+export type InsertBackupOperation = z.infer<typeof insertBackupOperationSchema>;
+export type BackupOperation = typeof backupOperations.$inferSelect;
