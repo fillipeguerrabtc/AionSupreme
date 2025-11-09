@@ -19,8 +19,9 @@ import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
 import { db } from "../db";
-import { gpuWorkers } from "../db/schema";
+import { gpuWorkers } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import FormData from "form-data";
 
 export type ImageGenProvider = 'sd-xl-gpu' | 'pollinations' | 'dalle3' | 'none';
 
@@ -147,6 +148,42 @@ export class ImageGenerationCascade {
   }
 
   /**
+   * Generate image from reference image (img2img transformation)
+   * GPU-First approach: SD-XL GPU Workers → External APIs
+   */
+  async generateImageFromImage(params: {
+    prompt: string;
+    imageBuffer: Buffer;
+    strength?: number;
+    quality?: "standard" | "hd";
+    style?: "vivid" | "natural";
+  }): Promise<ImageGenResult> {
+    const startTime = Date.now();
+    const { prompt, imageBuffer, strength = 0.75, quality = "standard", style = "vivid" } = params;
+
+    console.log(`[ImageGenCascade] 🎨 Img2Img transformation: "${prompt.slice(0, 60)}..."`);
+
+    // 🚀 PRIORITY 1: SD-XL GPU Workers (img2img endpoint)
+    const gpuWorkers = await this.discoverGPUWorkers();
+    if (gpuWorkers.length > 0) {
+      for (const worker of gpuWorkers) {
+        try {
+          const result = await this.trySDXLImg2Img(worker.endpoint, prompt, imageBuffer, strength);
+          console.log(`[ImageGenCascade] ✅ SD-XL GPU Worker ${worker.id} img2img (${Date.now() - startTime}ms) - LOCAL & FREE`);
+          return result;
+        } catch (error: any) {
+          console.warn(`[ImageGenCascade] ⚠️ SD-XL Worker ${worker.id} img2img falhou: ${error.message}`);
+        }
+      }
+      console.log(`[ImageGenCascade] ⚠️ All GPU workers failed for img2img, falling back to text2img`);
+    }
+
+    // Fallback: Use text2img with original prompt (no img2img support in free APIs)
+    console.log(`[ImageGenCascade] ℹ️ No img2img support in external APIs, using text2img as fallback`);
+    return await this.generateImage({ prompt, quality, style });
+  }
+
+  /**
    * Tenta SD-XL GPU Worker (FastAPI endpoint)
    */
   private async trySDXL(endpoint: string, prompt: string, size: string): Promise<ImageGenResult> {
@@ -194,6 +231,63 @@ export class ImageGenerationCascade {
       success: true,
       width: imageData.width || width,
       height: imageData.height || height,
+    };
+  }
+
+  /**
+   * Try SD-XL GPU Worker img2img endpoint
+   */
+  private async trySDXLImg2Img(
+    endpoint: string,
+    prompt: string,
+    imageBuffer: Buffer,
+    strength: number
+  ): Promise<ImageGenResult> {
+    console.log(`[SD-XL GPU] Img2Img transformation via ${endpoint}: "${prompt.slice(0, 60)}..."`);
+    
+    // Prepare multipart/form-data
+    const formData = new FormData();
+    formData.append('prompt', prompt);
+    formData.append('image', imageBuffer, { filename: 'reference.png' });
+    formData.append('strength', strength.toString());
+    formData.append('num_inference_steps', '30');
+    formData.append('guidance_scale', '7.5');
+    
+    // Call FastAPI /generate/img2img endpoint
+    const response = await axios.post(
+      `${endpoint}/generate/img2img`,
+      formData,
+      {
+        timeout: 120000, // 2 min timeout
+        headers: {
+          ...formData.getHeaders(),
+        }
+      }
+    );
+
+    if (!response.data || !response.data.success || !response.data.image) {
+      throw new Error("SD-XL worker img2img returned invalid response");
+    }
+
+    const imageData = response.data.image;
+    
+    // Decode base64 image
+    const imageBufferOutput = Buffer.from(imageData.base64, 'base64');
+    
+    // Save locally
+    const filename = `sd-xl-img2img-${crypto.randomBytes(16).toString("hex")}.png`;
+    const localPath = await this.saveImage(imageBufferOutput, filename);
+    
+    // Generate relative URL
+    const relativeUrl = `/kb_storage/generated_images/${filename}`;
+
+    return {
+      imageUrl: relativeUrl,
+      localPath,
+      provider: 'sd-xl-gpu',
+      success: true,
+      width: imageData.width || 1024,
+      height: imageData.height || 1024,
     };
   }
 
