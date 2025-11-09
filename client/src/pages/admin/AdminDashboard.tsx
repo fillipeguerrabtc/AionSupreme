@@ -70,6 +70,10 @@ export default function AdminDashboard() {
   // State for full prompt preview
   const [showFullPrompt, setShowFullPrompt] = useState(false);
   const [fullPrompt, setFullPrompt] = useState("");
+  
+  // State for database restore
+  const [selectedBackupFile, setSelectedBackupFile] = useState<File | null>(null);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
 
   const { data: policy, error, isLoading } = useQuery({
     queryKey: ["/api/admin/policies"],
@@ -367,6 +371,40 @@ export default function AdminDashboard() {
         description: error.message || t.admin.settings.databaseManagement.toasts.restoreError,
         variant: "destructive" 
       });
+    },
+  });
+
+  // Mutation to restore database from backup
+  const restoreBackupMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('backup', file); // FIXED: Changed from 'file' to 'backup' to match backend multer config
+      
+      const res = await apiRequest(`/api/admin/backup/restore`, {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "Unknown error" }));
+        throw new Error(errorData.message || t.admin.settings.databaseManagement.toasts.restoreError);
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: t.admin.settings.databaseManagement.toasts.restoreSuccess });
+      setSelectedBackupFile(null);
+      setShowRestoreConfirm(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/backup/list"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: t.admin.settings.databaseManagement.toasts.restoreError,
+        description: error.message || t.admin.settings.databaseManagement.toasts.restoreError,
+        variant: "destructive" 
+      });
+      setShowRestoreConfirm(false);
     },
   });
 
@@ -1248,16 +1286,28 @@ export default function AdminDashboard() {
                   <div className="flex gap-2">
                     <input
                       type="file"
-                      accept=".sql,.backup"
+                      accept=".sql.gz"
+                      onChange={(e) => setSelectedBackupFile(e.target.files?.[0] || null)}
                       className="text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer cursor-pointer flex-1"
                       data-testid="input-upload-backup"
                     />
                     <Button
+                      onClick={() => {
+                        if (!selectedBackupFile) {
+                          toast({ 
+                            title: t.admin.settings.databaseManagement.toasts.uploadError,
+                            variant: "destructive" 
+                          });
+                          return;
+                        }
+                        setShowRestoreConfirm(true);
+                      }}
+                      disabled={!selectedBackupFile || restoreBackupMutation.isPending}
                       variant="outline"
                       className="hover-elevate active-elevate-2"
                       data-testid="button-restore-backup"
                     >
-                      {t.admin.settings.databaseManagement.actions.restoreBackup}
+                      {restoreBackupMutation.isPending ? t.admin.settings.databaseManagement.actions.restoring : t.admin.settings.databaseManagement.actions.restoreBackup}
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
@@ -1310,6 +1360,51 @@ export default function AdminDashboard() {
               data-testid="button-close-full-prompt"
             >
               {t.admin.behavior.previewModal.close}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Confirmar Restore de Backup */}
+      <Dialog open={showRestoreConfirm} onOpenChange={setShowRestoreConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              {t.admin.settings.databaseManagement.restore.confirmTitle}
+            </DialogTitle>
+            <DialogDescription>
+              {t.admin.settings.databaseManagement.restore.confirmMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+              <p className="text-sm text-destructive font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {t.admin.settings.databaseManagement.restore.warningMessage}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button
+              onClick={() => setShowRestoreConfirm(false)}
+              variant="outline"
+              disabled={restoreBackupMutation.isPending}
+              data-testid="button-cancel-restore"
+            >
+              {t.admin.settings.databaseManagement.restore.cancel}
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedBackupFile) {
+                  restoreBackupMutation.mutate(selectedBackupFile);
+                }
+              }}
+              disabled={restoreBackupMutation.isPending}
+              className="bg-destructive hover-elevate active-elevate-2"
+              data-testid="button-confirm-restore"
+            >
+              {restoreBackupMutation.isPending ? t.admin.settings.databaseManagement.actions.restoring : t.admin.settings.databaseManagement.restore.confirm}
             </Button>
           </div>
         </DialogContent>
