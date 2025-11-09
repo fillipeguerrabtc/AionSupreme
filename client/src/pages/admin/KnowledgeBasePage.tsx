@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,9 +31,22 @@ import { AionLogo } from "@/components/AionLogo";
 import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { useLanguage } from "@/lib/i18n";
+import { useLocation } from "wouter";
 
 export default function KnowledgeBasePage() {
   useScrollToTop();
+  const [location] = useLocation();
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  // Scroll ScrollArea to top when page loads
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = 0;
+      }
+    }
+  }, [location]);
   const { toast } = useToast();
   const { t } = useLanguage();
   const [showAddText, setShowAddText] = useState(false);
@@ -466,7 +479,7 @@ export default function KnowledgeBasePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[600px]">
+            <ScrollArea ref={scrollAreaRef} className="h-[600px]">
               <div className="space-y-2">
                 {isLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Carregando...</div>
