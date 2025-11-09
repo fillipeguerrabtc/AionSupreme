@@ -42,6 +42,7 @@ import * as zlib from 'zlib';
 import { pipeline } from 'stream/promises';
 import { storage } from '../storage';
 import type { InsertBackupOperation, BackupOperation } from '@shared/schema';
+import { log } from '../utils/logger';
 
 const execAsync = promisify(exec);
 
@@ -89,8 +90,8 @@ export class BackupService {
   private async ensureBackupsDirectory(): Promise<void> {
     try {
       await fs.mkdir(this.BACKUPS_DIR, { recursive: true });
-    } catch (error) {
-      console.error('[BackupService] Failed to create backups directory:', error);
+    } catch (error: any) {
+      log.error({ error: error.message, backupsDir: this.BACKUPS_DIR }, 'Failed to create backups directory');
     }
   }
 
@@ -125,7 +126,7 @@ export class BackupService {
 
       return { allowed: true };
     } catch (error: any) {
-      console.error('[BackupService] Rate limit check failed:', error);
+      log.error({ userId, error: error.message }, 'Rate limit check failed');
       return { allowed: true }; // Allow on error (fail open)
     }
   }
@@ -165,7 +166,7 @@ export class BackupService {
       // Check if pg_dump is available
       const pgDumpAvailable = await this.checkPgDumpAvailable();
       if (!pgDumpAvailable) {
-        console.warn('[BackupService] pg_dump not available, falling back to Drizzle export');
+        log.warn({ userId }, 'pg_dump not available, falling back to Drizzle export');
         return await this.createDrizzleBackup(userId, ipAddress, userAgent);
       }
 
@@ -197,7 +198,13 @@ export class BackupService {
 
       const createdOperation = await storage.createBackupOperation(operation);
       operationId = createdOperation.id;
-      console.log(`[BackupService] Backup operation #${operationId} started by user ${userId}`);
+      log.info({ 
+        operationId, 
+        userId, 
+        operationType: operation.operationType, 
+        skipRateLimit,
+        ipAddress 
+      }, 'Backup operation started');
 
       // Execute pg_dump with streaming compression
       await this.executePgDump(filePath, operationId);
@@ -224,7 +231,13 @@ export class BackupService {
         },
       });
 
-      console.log(`[BackupService] ✅ Backup completed: ${fileName} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+      log.info({ 
+        operationId, 
+        userId, 
+        fileName, 
+        fileSizeMB: (stats.size / 1024 / 1024).toFixed(2),
+        checksum 
+      }, 'Backup completed successfully');
 
       // Cleanup old backups
       await this.cleanupOldBackups();
@@ -239,7 +252,7 @@ export class BackupService {
       };
 
     } catch (error: any) {
-      console.error('[BackupService] Backup failed:', error);
+      log.error({ userId, operationId, error: error.message, stack: error.stack }, 'Backup failed');
 
       // Update operation record with error
       if (operationId) {
@@ -383,10 +396,10 @@ export class BackupService {
       for (const file of toDelete) {
         const filePath = path.join(this.BACKUPS_DIR, file);
         await fs.unlink(filePath);
-        console.log(`[BackupService] Deleted old backup: ${file}`);
+        log.info({ fileName: file }, 'Deleted old backup file');
       }
-    } catch (error) {
-      console.error('[BackupService] Cleanup failed:', error);
+    } catch (error: any) {
+      log.error({ error: error.message }, 'Backup cleanup failed');
     }
   }
 
@@ -413,7 +426,7 @@ export class BackupService {
       }
 
       // 2. Create safety snapshot BEFORE restore (bypass rate limiting)
-      console.log('[BackupService] Creating safety snapshot before restore...');
+      log.info({ userId, ipAddress }, 'Creating safety snapshot before restore');
       const safetyResult = await this._createBackupInternal({
         userId,
         ipAddress,
@@ -445,7 +458,13 @@ export class BackupService {
 
       const createdOperation = await storage.createBackupOperation(operation);
       operationId = createdOperation.id;
-      console.log(`[BackupService] Restore operation #${operationId} started by user ${userId}`);
+      log.info({ 
+        operationId, 
+        userId, 
+        fileName: operation.fileName, 
+        safetySnapshotId, 
+        ipAddress 
+      }, 'Restore operation started');
 
       // 4. Execute restore
       await this.executePgRestore(filePath, operationId);
@@ -458,7 +477,7 @@ export class BackupService {
         durationMs: Date.now() - startedAtMs,
       });
 
-      console.log('[BackupService] ✅ Database restored successfully');
+      log.info({ operationId, userId, safetySnapshotId }, 'Database restored successfully');
 
       return {
         success: true,
@@ -467,7 +486,7 @@ export class BackupService {
       };
 
     } catch (error: any) {
-      console.error('[BackupService] Restore failed:', error);
+      log.error({ userId, operationId, safetySnapshotId, error: error.message, stack: error.stack }, 'Restore failed');
 
       // Update operation record with error
       if (operationId) {
@@ -479,7 +498,7 @@ export class BackupService {
       }
 
       // TODO: Restore safety snapshot on failure
-      console.warn('[BackupService] ⚠️  Safety snapshot available for manual recovery:', safetySnapshotId);
+      log.warn({ safetySnapshotId, operationId }, 'Safety snapshot available for manual recovery');
 
       return {
         success: false,

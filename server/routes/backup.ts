@@ -14,6 +14,7 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
+import { reqLog, log } from "../utils/logger";
 
 const upload = multer({
   dest: "/tmp/restore-uploads/",
@@ -52,7 +53,7 @@ const listBackupOperationsSchema = z.object({
 // ============================================================================
 
 export function registerBackupRoutes(app: Router): void {
-  console.log('[Backup Routes] Registering Backup & Recovery API routes...');
+  log.info({ context: 'Backup Routes', module: 'routes/backup' }, 'Registering Backup & Recovery API routes...');
 
   /**
    * POST /api/admin/backup/create
@@ -65,16 +66,28 @@ export function registerBackupRoutes(app: Router): void {
     "/api/admin/backup/create",
     requireAdmin,
     async (req, res) => {
+      const log = reqLog(req);
+      
       try {
         const userId = getUserId(req)!;
         const ipAddress = (req.ip || req.socket.remoteAddress) as string;
         const userAgent = req.get('User-Agent');
 
+        log.info({ userId, ipAddress, userAgent }, 'Backup creation requested');
+
         const result = await backupService.createBackup(userId, ipAddress, userAgent);
 
         if (!result.success) {
+          log.warn({ userId, ipAddress, error: result.error }, 'Backup creation failed (rate limit or validation)');
           return sendValidationError(res, result.error || 'Backup creation failed');
         }
+
+        log.info({ 
+          userId, 
+          operationId: result.operationId, 
+          fileName: result.fileName, 
+          fileSizeBytes: result.fileSizeBytes 
+        }, 'Backup created successfully');
 
         return sendSuccess(res, {
           operationId: result.operationId,
@@ -83,7 +96,8 @@ export function registerBackupRoutes(app: Router): void {
           checksum: result.checksum,
         });
       } catch (error: any) {
-        console.error('[Backup Routes] Create backup error:', error);
+        const userId = getUserId(req);
+        reqLog(req).error({ userId, error: error.message, stack: error.stack }, 'Backup creation error');
         return sendServerError(res, error.message);
       }
     }
@@ -102,10 +116,13 @@ export function registerBackupRoutes(app: Router): void {
     requireAdmin,
     upload.single('backup'),
     async (req, res) => {
+      const log = reqLog(req);
       let uploadedFilePath: string | undefined;
       
       try {
         if (!req.file) {
+          const userId = getUserId(req);
+          log.warn({ userId }, 'Restore failed: No backup file uploaded');
           return sendValidationError(res, 'No backup file uploaded');
         }
 
@@ -113,6 +130,14 @@ export function registerBackupRoutes(app: Router): void {
         const userId = getUserId(req)!;
         const ipAddress = (req.ip || req.socket.remoteAddress) as string;
         const userAgent = req.get('User-Agent');
+
+        log.info({ 
+          userId, 
+          ipAddress, 
+          userAgent, 
+          fileName: req.file.originalname,
+          fileSizeBytes: req.file.size 
+        }, 'Restore operation requested');
 
         const result = await backupService.restoreBackup(
           uploadedFilePath,
@@ -122,21 +147,29 @@ export function registerBackupRoutes(app: Router): void {
         );
 
         if (!result.success) {
+          log.warn({ userId, ipAddress, error: result.error }, 'Restore failed (validation or rate limit)');
           return sendValidationError(res, result.error || 'Restore failed');
         }
+
+        log.info({ 
+          userId, 
+          operationId: result.operationId, 
+          safetySnapshotId: result.safetySnapshotId 
+        }, 'Database restored successfully');
 
         return sendSuccess(res, {
           operationId: result.operationId,
           safetySnapshotId: result.safetySnapshotId,
         });
       } catch (error: any) {
-        console.error('[Backup Routes] Restore error:', error);
+        const userId = getUserId(req);
+        log.error({ userId, error: error.message, stack: error.stack }, 'Restore operation error');
         return sendServerError(res, error.message);
       } finally {
         // Always cleanup uploaded file (prevent disk leak)
         if (uploadedFilePath) {
           await fs.unlink(uploadedFilePath).catch((err) => {
-            console.warn('[Backup Routes] Failed to cleanup uploaded file:', err.message);
+            log.warn({ uploadedFilePath, error: err.message }, 'Failed to cleanup uploaded file');
           });
         }
       }
@@ -155,8 +188,13 @@ export function registerBackupRoutes(app: Router): void {
     "/api/admin/backup/operations",
     requireAdmin,
     async (req, res) => {
+      const log = reqLog(req);
+      
       try {
         const query = listBackupOperationsSchema.parse(req.query);
+        const adminUserId = getUserId(req);
+        
+        log.info({ adminUserId, filterUserId: query.userId, limit: query.limit }, 'Listing backup operations');
         
         const operations = await backupService.listBackupOperations(
           query.userId,
@@ -166,9 +204,10 @@ export function registerBackupRoutes(app: Router): void {
         return sendSuccess(res, { operations });
       } catch (error: any) {
         if (error.name === 'ZodError') {
+          log.warn({ error: error.errors[0].message }, 'Validation error listing operations');
           return sendValidationError(res, error.errors[0].message);
         }
-        console.error('[Backup Routes] List operations error:', error);
+        log.error({ error: error.message }, 'Error listing backup operations');
         return sendServerError(res, error.message);
       }
     }
@@ -185,21 +224,28 @@ export function registerBackupRoutes(app: Router): void {
     "/api/admin/backup/operations/:id",
     requireAdmin,
     async (req, res) => {
+      const log = reqLog(req);
+      
       try {
         const { id } = backupIdSchema.parse(req.params);
+        const adminUserId = getUserId(req);
+        
+        log.info({ adminUserId, operationId: id }, 'Fetching backup operation details');
         
         const operation = await backupService.getBackupOperation(id);
 
         if (!operation) {
+          log.warn({ adminUserId, operationId: id }, 'Backup operation not found');
           return sendNotFound(res, 'Backup operation not found');
         }
 
         return sendSuccess(res, { operation });
       } catch (error: any) {
         if (error.name === 'ZodError') {
+          log.warn({ error: error.errors[0].message }, 'Validation error fetching operation');
           return sendValidationError(res, error.errors[0].message);
         }
-        console.error('[Backup Routes] Get operation error:', error);
+        log.error({ error: error.message }, 'Error fetching backup operation');
         return sendServerError(res, error.message);
       }
     }
@@ -216,12 +262,18 @@ export function registerBackupRoutes(app: Router): void {
     "/api/admin/backup/operations/:id",
     requireAdmin,
     async (req, res) => {
+      const log = reqLog(req);
+      
       try {
         const { id } = backupIdSchema.parse(req.params);
+        const adminUserId = getUserId(req);
+        
+        log.info({ adminUserId, operationId: id }, 'Delete backup operation requested');
         
         const operation = await backupService.getBackupOperation(id);
 
         if (!operation) {
+          log.warn({ adminUserId, operationId: id }, 'Backup operation not found for deletion');
           return sendNotFound(res, 'Backup operation not found');
         }
 
@@ -229,8 +281,9 @@ export function registerBackupRoutes(app: Router): void {
         if (operation.storageLocation) {
           try {
             await fs.unlink(operation.storageLocation);
-          } catch (error) {
-            console.warn(`[Backup Routes] File already deleted or not found: ${operation.storageLocation}`);
+            log.info({ operationId: id, filePath: operation.storageLocation }, 'Backup file deleted');
+          } catch (error: any) {
+            log.warn({ operationId: id, filePath: operation.storageLocation, error: error.message }, 'File already deleted or not found');
           }
         }
 
@@ -240,16 +293,19 @@ export function registerBackupRoutes(app: Router): void {
           completedAt: new Date(),
         });
 
+        log.info({ adminUserId, operationId: id }, 'Backup operation deleted successfully');
+
         return sendSuccess(res, { message: 'Backup operation deleted successfully' });
       } catch (error: any) {
         if (error.name === 'ZodError') {
+          log.warn({ error: error.errors[0].message }, 'Validation error deleting operation');
           return sendValidationError(res, error.errors[0].message);
         }
-        console.error('[Backup Routes] Delete operation error:', error);
+        log.error({ error: error.message }, 'Error deleting backup operation');
         return sendServerError(res, error.message);
       }
     }
   );
 
-  console.log('[Backup Routes] ✅ 5 Backup & Recovery routes registered successfully');
+  log.info({ context: 'Backup Routes', module: 'routes/backup' }, '✅ 5 Backup & Recovery routes registered successfully');
 }
