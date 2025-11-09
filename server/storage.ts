@@ -27,6 +27,7 @@ import {
   namespaceRelevanceRecords, type NamespaceRelevanceRecord, type InsertNamespaceRelevanceRecord,
   queryMetrics, type QueryMetric, type InsertQueryMetric,
   agentQueryResults, type AgentQueryResult, type InsertAgentQueryResult,
+  backupOperations, type BackupOperation, type InsertBackupOperation,
 } from "@shared/schema";
 import { type PermissionAction, generatePermissionCode, validatePermissionSelection } from "@shared/permissions-catalog";
 
@@ -188,6 +189,13 @@ export interface IStorage {
   createTrainingDataCollection(data: InsertTrainingDataCollection): Promise<TrainingDataCollection>;
   updateTrainingDataCollection(id: number, data: Partial<InsertTrainingDataCollection>): Promise<TrainingDataCollection>;
   deleteTrainingDataCollection(id: number): Promise<void>;
+  
+  // Backup Operations (Enterprise Backup/Recovery)
+  getBackupOperation(id: number): Promise<BackupOperation | undefined>;
+  listBackupOperations(userId?: string, limit?: number): Promise<BackupOperation[]>;
+  getRecentBackupOperations(userId: string, hours: number): Promise<BackupOperation[]>;
+  createBackupOperation(operation: InsertBackupOperation): Promise<BackupOperation>;
+  updateBackupOperation(id: number, data: Partial<InsertBackupOperation>): Promise<BackupOperation>;
 }
 
 // ============================================================================
@@ -1164,6 +1172,68 @@ export class DatabaseStorage implements IStorage {
     return query
       .orderBy(desc(agentQueryResults.timestamp))
       .limit(filters?.limit || 1000);
+  }
+
+  // --------------------------------------------------------------------------
+  // BACKUP OPERATIONS - Enterprise Backup/Recovery (PRODUCTION-READY)
+  // --------------------------------------------------------------------------
+  async getBackupOperation(id: number): Promise<BackupOperation | undefined> {
+    const [operation] = await db
+      .select()
+      .from(backupOperations)
+      .where(eq(backupOperations.id, id));
+    return operation;
+  }
+
+  async listBackupOperations(userId?: string, limit = 50): Promise<BackupOperation[]> {
+    let query = db
+      .select()
+      .from(backupOperations)
+      .orderBy(desc(backupOperations.startedAt));
+    
+    if (userId) {
+      query = query.where(eq(backupOperations.userId, userId)) as any;
+    }
+    
+    return await query.limit(limit);
+  }
+
+  async getRecentBackupOperations(userId: string, hours: number): Promise<BackupOperation[]> {
+    const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
+    
+    return await db
+      .select()
+      .from(backupOperations)
+      .where(
+        and(
+          eq(backupOperations.userId, userId),
+          gte(backupOperations.startedAt, cutoffTime),
+          eq(backupOperations.operationType, 'backup')
+        )
+      )
+      .orderBy(desc(backupOperations.startedAt));
+  }
+
+  async createBackupOperation(operation: InsertBackupOperation): Promise<BackupOperation> {
+    const [created] = await db
+      .insert(backupOperations)
+      .values([operation] as any)
+      .returning();
+    return created;
+  }
+
+  async updateBackupOperation(id: number, data: Partial<InsertBackupOperation>): Promise<BackupOperation> {
+    const [updated] = await db
+      .update(backupOperations)
+      .set(data as any)
+      .where(eq(backupOperations.id, id))
+      .returning();
+    
+    if (!updated) {
+      throw new Error(`Backup operation ${id} not found`);
+    }
+    
+    return updated;
   }
 }
 

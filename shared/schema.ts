@@ -2810,7 +2810,7 @@ export const backupOperations = pgTable("backup_operations", {
   id: serial("id").primaryKey(),
   
   // Operation type
-  operationType: varchar("operation_type", { length: 10 }).notNull(), // "backup" | "restore"
+  operationType: varchar("operation_type", { length: 20 }).notNull(), // "backup" | "restore" | "safety_snapshot"
   
   // User who initiated the operation
   userId: varchar("user_id").references(() => users.id, { onDelete: 'set null' }),
