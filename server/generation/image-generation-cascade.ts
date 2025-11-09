@@ -1,13 +1,16 @@
 /**
  * IMAGE GENERATION CASCADE - Sistema de fallback automático para geração de imagens
  * 
- * Cascata de prioridade (Free → Paid):
- * 1. Pollinations.ai (TOTALMENTE GRÁTIS, sem API key, ilimitado)
- * 2. OpenAI DALL-E 3 (PAGO - último recurso)
+ * Cascata de prioridade (GPU-First → Free → Paid):
+ * 1. SD-XL GPU Workers (AION GPU Pool - 100% LOCAL, zero cost per image)
+ * 2. Pollinations.ai (TOTALMENTE GRÁTIS, sem API key, ilimitado)
+ * 3. OpenAI DALL-E 3 (PAGO - último recurso)
  * 
- * Similar ao VisionCascade, mas para geração ao invés de análise
- * 
- * TODO FUTURO: Adicionar HuggingFace FLUX.1-dev quando @huggingface/inference v3 estiver estável
+ * GPU-First Architecture:
+ * - Prioriza workers locais Stable Diffusion XL
+ * - Auto-discovery via GPU Pool System
+ * - Healthcheck e load balancing automáticos
+ * - Fallback para APIs externas se GPU indisponível
  */
 
 import OpenAI from "openai";
@@ -15,8 +18,11 @@ import axios from "axios";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { db } from "../db";
+import { gpuWorkers } from "../db/schema";
+import { eq } from "drizzle-orm";
 
-export type ImageGenProvider = 'pollinations' | 'dalle3' | 'none';
+export type ImageGenProvider = 'sd-xl-gpu' | 'pollinations' | 'dalle3' | 'none';
 
 export interface ImageGenResult {
   imageUrl: string;
@@ -34,6 +40,10 @@ export class ImageGenerationCascade {
   
   // Quotas (reset diariamente)
   private pollinationsQuota = { used: 0, limit: 10000, lastReset: Date.now() }; // Sem limite real
+  
+  // GPU Worker cache (updated every 30s)
+  private gpuWorkerCache: Array<{ id: number; endpoint: string; }> = [];
+  private lastGPUCacheUpdate = 0;
 
   constructor() {
     this.openaiKey = process.env.OPENAI_API_KEY;
@@ -41,7 +51,43 @@ export class ImageGenerationCascade {
   }
 
   /**
-   * Gera imagem usando cascade automático
+   * Auto-discover active SD-XL GPU workers from GPU Pool
+   */
+  private async discoverGPUWorkers(): Promise<Array<{ id: number; endpoint: string; }>> {
+    const now = Date.now();
+    
+    // Cache por 30s para evitar queries excessivas
+    if (now - this.lastGPUCacheUpdate < 30000 && this.gpuWorkerCache.length > 0) {
+      return this.gpuWorkerCache;
+    }
+    
+    try {
+      // Query workers ativos com capability "text2img"
+      const workers = await db.select({
+        id: gpuWorkers.id,
+        endpoint: gpuWorkers.endpoint,
+      })
+      .from(gpuWorkers)
+      .where(eq(gpuWorkers.status, 'ready'))
+      .execute();
+      
+      // Filter workers com endpoint válido
+      const activeWorkers = workers.filter(w => w.endpoint && w.endpoint.startsWith('http'));
+      
+      this.gpuWorkerCache = activeWorkers;
+      this.lastGPUCacheUpdate = now;
+      
+      console.log(`[ImageGenCascade] 🔍 Discovered ${activeWorkers.length} active GPU workers`);
+      
+      return activeWorkers;
+    } catch (error: any) {
+      console.warn(`[ImageGenCascade] ⚠️ Failed to discover GPU workers: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Gera imagem usando cascade automático (GPU-First)
    */
   async generateImage(params: {
     prompt: string;
@@ -56,7 +102,23 @@ export class ImageGenerationCascade {
 
     const { prompt, size = "1024x1024", quality = "standard", style = "vivid" } = params;
 
-    // 1. Tenta Pollinations.ai primeiro (100% GRÁTIS, sem API key)
+    // 🚀 PRIORITY 1: SD-XL GPU Workers (100% LOCAL, zero cost)
+    const gpuWorkers = await this.discoverGPUWorkers();
+    if (gpuWorkers.length > 0) {
+      for (const worker of gpuWorkers) {
+        try {
+          const result = await this.trySDXL(worker.endpoint, prompt, size);
+          console.log(`[ImageGenCascade] ✅ SD-XL GPU Worker ${worker.id} (${Date.now() - startTime}ms) - LOCAL & FREE`);
+          return result;
+        } catch (error: any) {
+          console.warn(`[ImageGenCascade] ⚠️ SD-XL Worker ${worker.id} falhou: ${error.message}`);
+          // Continue to next worker
+        }
+      }
+      console.log(`[ImageGenCascade] ⚠️ All GPU workers failed, falling back to external APIs`);
+    }
+
+    // 2. Tenta Pollinations.ai (100% GRÁTIS, sem API key)
     if (this.hasQuota('pollinations')) {
       try {
         const result = await this.tryPollinations(prompt, size);
@@ -69,7 +131,7 @@ export class ImageGenerationCascade {
       console.log(`[ImageGenCascade] ⏭️ Pollinations.ai quota esgotada (${this.pollinationsQuota.used}/${this.pollinationsQuota.limit})`);
     }
 
-    // 2. Último recurso: DALL-E 3 (PAGO)
+    // 3. Último recurso: DALL-E 3 (PAGO)
     if (this.openaiKey) {
       try {
         const result = await this.tryDALLE3(prompt, size, quality, style);
@@ -82,6 +144,57 @@ export class ImageGenerationCascade {
     }
 
     throw new Error("Todas as APIs de geração de imagens falharam. Verifique as configurações e tente novamente.");
+  }
+
+  /**
+   * Tenta SD-XL GPU Worker (FastAPI endpoint)
+   */
+  private async trySDXL(endpoint: string, prompt: string, size: string): Promise<ImageGenResult> {
+    const [width, height] = size.split("x").map(Number);
+    
+    console.log(`[SD-XL GPU] Generating image via ${endpoint}: "${prompt.slice(0, 60)}..."`);
+    
+    // Call FastAPI /generate/text2img endpoint
+    const response = await axios.post(
+      `${endpoint}/generate/text2img`,
+      {
+        prompt,
+        width,
+        height,
+        num_inference_steps: 30,
+        guidance_scale: 7.5,
+        num_images: 1,
+      },
+      {
+        timeout: 120000, // 2 min timeout (GPU generation takes time)
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
+
+    if (!response.data || !response.data.success || !response.data.images || response.data.images.length === 0) {
+      throw new Error("SD-XL worker returned invalid response");
+    }
+
+    const imageData = response.data.images[0];
+    
+    // Decode base64 image
+    const imageBuffer = Buffer.from(imageData.base64, 'base64');
+    
+    // Save locally
+    const filename = `sd-xl-${crypto.randomBytes(16).toString("hex")}.png`;
+    const localPath = await this.saveImage(imageBuffer, filename);
+    
+    // Generate relative URL
+    const relativeUrl = `/kb_storage/generated_images/${filename}`;
+
+    return {
+      imageUrl: relativeUrl,
+      localPath,
+      provider: 'sd-xl-gpu',
+      success: true,
+      width: imageData.width || width,
+      height: imageData.height || height,
+    };
   }
 
   /**
@@ -216,15 +329,29 @@ export class ImageGenerationCascade {
   }
 
   /**
-   * Retorna status das quotas
+   * Retorna status das quotas e GPU workers
    */
-  getQuotaStatus() {
+  async getQuotaStatus() {
+    const gpuWorkers = await this.discoverGPUWorkers();
+    
     return {
+      gpuWorkers: {
+        count: gpuWorkers.length,
+        available: gpuWorkers.length > 0,
+        endpoints: gpuWorkers.map(w => w.endpoint),
+      },
       pollinations: {
         used: this.pollinationsQuota.used,
         limit: this.pollinationsQuota.limit,
         available: this.pollinationsQuota.limit - this.pollinationsQuota.used,
       },
+      cascade: {
+        priority: [
+          gpuWorkers.length > 0 ? 'SD-XL GPU (LOCAL & FREE)' : null,
+          'Pollinations.ai (FREE)',
+          'DALL-E 3 (PAID)'
+        ].filter(Boolean)
+      }
     };
   }
 }
