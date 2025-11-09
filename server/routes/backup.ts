@@ -14,6 +14,7 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
+import * as fsSync from "fs";
 import { reqLog, log } from "../utils/logger";
 
 const upload = multer({
@@ -57,16 +58,17 @@ export function registerBackupRoutes(app: Router): void {
 
   /**
    * POST /api/admin/backup/create
-   * Create a new database backup
+   * Create a new database backup and stream it directly to the client
    * 
    * Security: Super-admin only, rate-limited by BackupService (1/hour), audit logged
-   * Returns: Operation ID, filename, file size
+   * Returns: Binary stream (.sql.gz file) - file is deleted after download
    */
   app.post(
     "/api/admin/backup/create",
     requireAdmin,
     async (req, res) => {
       const log = reqLog(req);
+      let tempFilePath: string | undefined;
       
       try {
         const userId = getUserId(req)!;
@@ -82,23 +84,55 @@ export function registerBackupRoutes(app: Router): void {
           return sendValidationError(res, result.error || 'Backup creation failed');
         }
 
+        tempFilePath = result.filePath;
+
         log.info({ 
           userId, 
           operationId: result.operationId, 
           fileName: result.fileName, 
           fileSizeBytes: result.fileSizeBytes 
-        }, 'Backup created successfully');
+        }, 'Backup created, streaming to client');
 
-        return sendSuccess(res, {
-          operationId: result.operationId,
-          fileName: result.fileName,
-          fileSizeBytes: result.fileSizeBytes,
-          checksum: result.checksum,
+        // Stream the file directly to the client
+        res.setHeader('Content-Type', 'application/gzip');
+        res.setHeader('Content-Disposition', `attachment; filename="${result.fileName}"`);
+        res.setHeader('Content-Length', result.fileSizeBytes!.toString());
+
+        const fileStream = fsSync.createReadStream(tempFilePath!);
+        
+        fileStream.on('end', async () => {
+          // Delete the temporary file after streaming
+          try {
+            await fs.unlink(tempFilePath!);
+            log.info({ fileName: result.fileName, filePath: tempFilePath }, 'Temporary backup file deleted after download');
+          } catch (error: any) {
+            log.error({ error: error.message, filePath: tempFilePath }, 'Failed to delete temporary backup file');
+          }
         });
+
+        fileStream.on('error', (error) => {
+          log.error({ error: error.message }, 'Error streaming backup file');
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to stream backup file' });
+          }
+        });
+
+        fileStream.pipe(res);
+
       } catch (error: any) {
         const userId = getUserId(req);
         reqLog(req).error({ userId, error: error.message, stack: error.stack }, 'Backup creation error');
-        return sendServerError(res, error.message);
+        
+        // Cleanup temp file on error
+        if (tempFilePath) {
+          try {
+            await fs.unlink(tempFilePath);
+          } catch {}
+        }
+        
+        if (!res.headersSent) {
+          return sendServerError(res, error.message);
+        }
       }
     }
   );

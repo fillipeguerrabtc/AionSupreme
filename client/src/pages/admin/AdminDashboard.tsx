@@ -322,6 +322,7 @@ export default function AdminDashboard() {
   });
 
   // Mutation to create database backup
+  // NOTE: Backend now streams the file directly (not saved on server)
   const createBackupMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest(`/api/admin/backup/create`, {
@@ -336,24 +337,19 @@ export default function AdminDashboard() {
         throw new Error(errorData.message || t.admin.settings.databaseManagement.toasts.restoreError);
       }
       
-      const data = await res.json();
+      // Backend now returns the file directly as a stream
+      const blob = await res.blob();
       
-      if (!data.filename) {
-        throw new Error(t.admin.settings.databaseManagement.toasts.restoreError);
-      }
+      // Extract filename from Content-Disposition header
+      const contentDisposition = res.headers.get('Content-Disposition');
+      const filenameMatch = contentDisposition?.match(/filename="(.+?)"/);
+      const filename = filenameMatch?.[1] || `aion_backup_${new Date().toISOString()}.sql.gz`;
       
-      return data;
+      return { blob, filename };
     },
     onSuccess: async (data) => {
-      // Auto-download the backup file
-      const downloadRes = await apiRequest(`/api/admin/backup/download/${data.filename}`);
-      
-      if (!downloadRes.ok) {
-        throw new Error(t.admin.settings.databaseManagement.toasts.backupDownloaded);
-      }
-      
-      const blob = await downloadRes.blob();
-      const url = window.URL.createObjectURL(blob);
+      // Download the backup file received from backend
+      const url = window.URL.createObjectURL(data.blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = data.filename;

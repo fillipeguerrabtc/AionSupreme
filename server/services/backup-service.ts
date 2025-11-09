@@ -74,24 +74,24 @@ interface RestoreResult {
 }
 
 export class BackupService {
-  private readonly BACKUPS_DIR = path.join(process.cwd(), 'kb_storage', 'backups');
-  private readonly MAX_BACKUPS_TO_KEEP = 10; // Keep last 10 backups
+  private readonly TEMP_BACKUPS_DIR = path.join(process.cwd(), 'kb_storage', 'temp_backups'); // Temporary storage only
   private readonly RATE_LIMIT_HOURS = 1; // 1 backup per hour
   private readonly DATABASE_URL = process.env.DATABASE_URL!;
   private readonly SCHEMA_VERSION = '1.0.0'; // Increment when schema changes
 
   constructor() {
-    this.ensureBackupsDirectory();
+    this.ensureTempBackupsDirectory();
   }
 
   /**
-   * Ensure backups directory exists
+   * Ensure temporary backups directory exists
+   * NOTE: Files in this directory are temporary and deleted after download/use
    */
-  private async ensureBackupsDirectory(): Promise<void> {
+  private async ensureTempBackupsDirectory(): Promise<void> {
     try {
-      await fs.mkdir(this.BACKUPS_DIR, { recursive: true });
+      await fs.mkdir(this.TEMP_BACKUPS_DIR, { recursive: true });
     } catch (error: any) {
-      log.error({ error: error.message, backupsDir: this.BACKUPS_DIR }, 'Failed to create backups directory');
+      log.error({ error: error.message, tempBackupsDir: this.TEMP_BACKUPS_DIR }, 'Failed to create temp backups directory');
     }
   }
 
@@ -173,10 +173,10 @@ export class BackupService {
       // Store start time for duration calculation
       const startedAtMs = Date.now();
 
-      // Generate filename
+      // Generate filename (temporary - will be deleted after download)
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileName = `aion_backup_${timestamp}.sql.gz`;
-      const filePath = path.join(this.BACKUPS_DIR, fileName);
+      const filePath = path.join(this.TEMP_BACKUPS_DIR, fileName);
 
       // Create operation record
       const operation: InsertBackupOperation = {
@@ -237,10 +237,7 @@ export class BackupService {
         fileName, 
         fileSizeMB: (stats.size / 1024 / 1024).toFixed(2),
         checksum 
-      }, 'Backup completed successfully');
-
-      // Cleanup old backups
-      await this.cleanupOldBackups();
+      }, 'Backup completed successfully (temporary file - will be deleted after download)');
 
       return {
         success: true,
@@ -376,30 +373,32 @@ export class BackupService {
   }
 
   /**
-   * Cleanup old backups (keep last N)
+   * Cleanup old temporary backups (removes files older than 1 hour)
+   * This is a safety mechanism in case files weren't deleted after download
    */
-  private async cleanupOldBackups(): Promise<void> {
+  async cleanupOldTempBackups(): Promise<void> {
     try {
-      const files = await fs.readdir(this.BACKUPS_DIR);
+      const files = await fs.readdir(this.TEMP_BACKUPS_DIR);
       const backupFiles = files.filter(f => f.startsWith('aion_backup_') && f.endsWith('.sql.gz'));
+      const now = Date.now();
+      const ONE_HOUR = 60 * 60 * 1000;
 
-      if (backupFiles.length <= this.MAX_BACKUPS_TO_KEEP) {
-        return;
-      }
-
-      // Sort by timestamp (filename contains timestamp)
-      backupFiles.sort();
-
-      // Delete oldest backups
-      const toDelete = backupFiles.slice(0, backupFiles.length - this.MAX_BACKUPS_TO_KEEP);
-      
-      for (const file of toDelete) {
-        const filePath = path.join(this.BACKUPS_DIR, file);
-        await fs.unlink(filePath);
-        log.info({ fileName: file }, 'Deleted old backup file');
+      for (const file of backupFiles) {
+        const filePath = path.join(this.TEMP_BACKUPS_DIR, file);
+        try {
+          const stats = await fs.stat(filePath);
+          const age = now - stats.mtimeMs;
+          
+          if (age > ONE_HOUR) {
+            await fs.unlink(filePath);
+            log.info({ fileName: file, ageHours: (age / ONE_HOUR).toFixed(2) }, 'Deleted old temporary backup file');
+          }
+        } catch (error: any) {
+          log.error({ error: error.message, fileName: file }, 'Failed to check/delete temp backup file');
+        }
       }
     } catch (error: any) {
-      log.error({ error: error.message }, 'Backup cleanup failed');
+      log.error({ error: error.message }, 'Temp backup cleanup failed');
     }
   }
 
