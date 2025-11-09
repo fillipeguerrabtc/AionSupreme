@@ -42,6 +42,33 @@ function buildRAGContext(results: Awaited<ReturnType<typeof searchRAG>>): string
 /**
  * Run agent with ReAct engine (when tools are enabled)
  */
+/**
+ * 🔧 CRITICAL: Tool Name Mapping Layer
+ * 
+ * Maps database tool names (from policies/agent_tools) to agentTools registry keys.
+ * This bridge is REQUIRED because:
+ * - DB stores human-readable names: "Knowledge Base Search", "Web Search", etc.
+ * - Code uses short keys: "KBSearch", "SearchWeb", etc.
+ * 
+ * ⚠️ MAINTENANCE: Keep this aligned with:
+ *   1. server/agent/tools/index.ts (agentTools registry)
+ *   2. server/seed.ts (default policy tool names)
+ *   3. Database policies table (enabled_tools column)
+ * 
+ * 🚨 If adding new tools:
+ *   1. Add to agentTools registry in tools/index.ts
+ *   2. Add mapping here: "DB Name" → "RegistryKey"
+ *   3. Add to default policy in seed.ts
+ *   4. Monitor logs for unmapped tool warnings
+ */
+const TOOL_NAME_MAP: Record<string, keyof typeof agentTools> = {
+  "Knowledge Base Search": "KBSearch",
+  "Web Search": "SearchWeb",
+  "Generate Image": "GenerateImage",
+  "Search Videos": "SearchVideos",
+  "Search Images": "SearchImages",
+};
+
 async function runWithReActEngine(
   input: AgentInput,
   ctx: AgentRunContext,
@@ -53,10 +80,14 @@ async function runWithReActEngine(
   // Build available tools map from agent's allowedTools
   const availableTools = new Map();
   for (const toolName of agent.allowedTools) {
-    if (agentTools[toolName as keyof typeof agentTools]) {
-      availableTools.set(toolName, agentTools[toolName as keyof typeof agentTools]);
+    // Map DB tool name to registry key
+    const toolKey = TOOL_NAME_MAP[toolName] || toolName;
+    
+    if (agentTools[toolKey as keyof typeof agentTools]) {
+      availableTools.set(toolKey, agentTools[toolKey as keyof typeof agentTools]);
+      console.log(`[AgentExecutor] ✅ Registered tool: "${toolName}" → ${toolKey}`);
     } else {
-      console.warn(`[AgentExecutor] Tool "${toolName}" not found in agentTools registry`);
+      console.warn(`[AgentExecutor] ⚠️ Tool "${toolName}" (mapped to "${toolKey}") not found in agentTools registry`);
     }
   }
   
