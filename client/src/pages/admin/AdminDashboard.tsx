@@ -317,6 +317,59 @@ export default function AdminDashboard() {
     },
   });
 
+  // Mutation to create database backup
+  const createBackupMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest(`/api/admin/backup/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: "Unknown error" }));
+        throw new Error(errorData.message || t.admin.settings.databaseManagement.toasts.restoreError);
+      }
+      
+      const data = await res.json();
+      
+      if (!data.filename) {
+        throw new Error(t.admin.settings.databaseManagement.toasts.restoreError);
+      }
+      
+      return data;
+    },
+    onSuccess: async (data) => {
+      // Auto-download the backup file
+      const downloadRes = await apiRequest(`/api/admin/backup/download/${data.filename}`);
+      
+      if (!downloadRes.ok) {
+        throw new Error(t.admin.settings.databaseManagement.toasts.backupDownloaded);
+      }
+      
+      const blob = await downloadRes.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({ title: t.admin.settings.databaseManagement.toasts.backupCreated });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/backup/list"] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: t.admin.settings.databaseManagement.toasts.restoreError,
+        description: error.message || t.admin.settings.databaseManagement.toasts.restoreError,
+        variant: "destructive" 
+      });
+    },
+  });
+
   // Handler to save all pending changes
   const handleSaveChanges = () => {
     const updates: any = {};
@@ -1176,11 +1229,13 @@ export default function AdminDashboard() {
                 {/* Backup Actions */}
                 <div className="grid grid-cols-1 gap-4">
                   <Button
+                    onClick={() => createBackupMutation.mutate()}
+                    disabled={createBackupMutation.isPending}
                     className="bg-primary hover-elevate active-elevate-2 w-full"
                     data-testid="button-create-backup"
                   >
                     <Database className="w-4 h-4 mr-2" />
-                    {t.admin.settings.databaseManagement.actions.createBackup}
+                    {createBackupMutation.isPending ? t.admin.settings.databaseManagement.actions.creating : t.admin.settings.databaseManagement.actions.createBackup}
                   </Button>
                 </div>
 
