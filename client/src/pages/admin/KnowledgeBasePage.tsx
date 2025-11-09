@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Upload, 
@@ -39,6 +42,8 @@ export default function KnowledgeBasePage() {
   const [newTextTitle, setNewTextTitle] = useState("");
   const [newTextContent, setNewTextContent] = useState("");
   const [urlToLearn, setUrlToLearn] = useState("");
+  const [crawlMode, setCrawlMode] = useState<"single" | "deep">("single");
+  const [downloadMedia, setDownloadMedia] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingDoc, setEditingDoc] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -85,6 +90,8 @@ export default function KnowledgeBasePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: urlToLearn,
+          mode: crawlMode,
+          downloadMedia: downloadMedia,
         }),
       });
       return res.json();
@@ -93,6 +100,8 @@ export default function KnowledgeBasePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setShowAddUrl(false);
       setUrlToLearn("");
+      setCrawlMode("single");
+      setDownloadMedia(false);
       toast({ title: t.common.addedSuccess });
     },
   });
@@ -357,6 +366,44 @@ export default function KnowledgeBasePage() {
                 onChange={(e) => setUrlToLearn(e.target.value)}
                 data-testid="input-url-to-learn"
               />
+              
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">Modo de Aprendizado:</Label>
+                <RadioGroup
+                  value={crawlMode}
+                  onValueChange={(value) => setCrawlMode(value as "single" | "deep")}
+                  data-testid="radio-group-crawl-mode"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="single" id="single" data-testid="radio-single-page" />
+                    <Label htmlFor="single" className="cursor-pointer font-normal">
+                      📄 Aprender da Página - Scan completo somente desta página/link
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="deep" id="deep" data-testid="radio-deep-crawl" />
+                    <Label htmlFor="deep" className="cursor-pointer font-normal">
+                      🌐 Aprender Completo - Scan de todas as páginas e sublinks
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+              
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox
+                  id="download-media"
+                  checked={downloadMedia}
+                  onCheckedChange={(checked) => setDownloadMedia(checked as boolean)}
+                  data-testid="checkbox-download-media"
+                />
+                <Label
+                  htmlFor="download-media"
+                  className="cursor-pointer font-normal text-sm"
+                >
+                  📷 Baixar também imagens e vídeos (além do texto)
+                </Label>
+              </div>
+              
               <Button
                 onClick={() => learnFromUrlMutation.mutate()}
                 disabled={!urlToLearn || learnFromUrlMutation.isPending}

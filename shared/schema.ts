@@ -1923,6 +1923,7 @@ export const linkCaptureJobs = pgTable("link_capture_jobs", {
   // Metadata (opções do crawler, namespace, etc)
   metadata: jsonb("metadata").$type<{
     namespace?: string;
+    mode?: "single" | "deep"; // NEW: Modo de aprendizado
     maxDepth?: number;
     maxPages?: number;
     includeImages?: boolean;

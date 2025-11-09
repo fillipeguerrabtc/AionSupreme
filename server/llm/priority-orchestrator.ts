@@ -1,11 +1,15 @@
 /**
  * AION Supreme - Priority Orchestrator
- * ORDEM OBRIGATÓRIA:
- * 1. Knowledge Base (RAG Search)
- * 2. GPU Pool (Multi-GPU Load Balancing with Custom LoRA LLMs)
+ * NOVA ORDEM OBRIGATÓRIA (GPU-FIRST ARCHITECTURE):
+ * 1. Knowledge Base (RAG) → Se encontrar: Ativa GPU → Inferência → Desliga GPU
+ * 2. Web Search → Se encontrar: Ativa GPU → Inferência → Desliga GPU → Curadoria HITL
  * 3. Free APIs (Groq → Gemini → HF → OpenRouter) com auto-fallback
- * 4. Web Search (se recusa detectada)
- * 5. OpenAI (último recurso, pago) com auto-fallback
+ * 4. OpenAI (último recurso, pago) com auto-fallback
+ * 
+ * REGRAS GPU:
+ * - GPU SEMPRE desliga imediatamente após inferência completar
+ * - Web search NUNCA usa APIs externas (usa GPU própria para processar)
+ * - Prioriza recursos internos (GPU + Web) antes de consumir APIs externas
  */
 
 import { semanticSearch, searchWithConfidence, type SearchResult } from '../ai/rag-service';
@@ -79,6 +83,106 @@ export interface PriorityResponse {
     explicitRequestFulfilled?: boolean;
     noAPIConsumption?: boolean;
   };
+}
+
+// ============================================================================
+// HELPER: Run GPU Inference with Auto-Shutdown
+// ============================================================================
+
+// Singleton instance of DemandBasedKaggleOrchestrator (cached to prevent multiple starts)
+let _demandKaggleOrchestrator: any = null;
+
+async function getDemandKaggleOrchestrator() {
+  if (!_demandKaggleOrchestrator) {
+    const { DemandBasedKaggleOrchestrator } = await import('../services/demand-based-kaggle-orchestrator');
+    _demandKaggleOrchestrator = new DemandBasedKaggleOrchestrator();
+  }
+  return _demandKaggleOrchestrator;
+}
+
+/**
+ * Executes inference using GPU with automatic shutdown after completion.
+ * This is the CORE helper for GPU-first architecture.
+ * 
+ * @param messages - Conversation messages for inference
+ * @param options - Inference options (temperature, maxTokens, etc)
+ * @returns Inference response or null if GPU unavailable/failed
+ */
+async function runGpuInference(
+  messages: Array<{ role: string; content: string }>,
+  options: {
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+  } = {}
+): Promise<{ content: string; workerId: number; latencyMs: number } | null> {
+  console.log('   🎮 [GPU] Attempting GPU inference...');
+  
+  try {
+    const { gpuLoadBalancer } = await import('../gpu/load-balancer');
+    
+    const gpuResult = await gpuLoadBalancer.executeLLMRequest(
+      messages,
+      {
+        max_tokens: options.maxTokens || 2048,
+        temperature: options.temperature || 0.7,
+        top_p: options.topP || 0.9,
+        stream: false
+      }
+    );
+    
+    if (!gpuResult.success || !gpuResult.response) {
+      console.log(`   ⚠️ GPU inference failed: ${gpuResult.error || 'Unknown error'}`);
+      return null;
+    }
+    
+    console.log(`   ✅ GPU inference successful (Worker ${gpuResult.workerId}, ${gpuResult.latencyMs}ms)`);
+    
+    // Track GPU usage (FREE, no cost) - wrapped in try/catch to prevent tracking errors from aborting valid responses
+    try {
+      await trackTokenUsage({
+        provider: 'gpu-internal' as any,
+        model: (gpuResult as any).model || 'kaggle-llm',
+        promptTokens: (gpuResult as any).tokenUsage?.promptTokens || 0,
+        completionTokens: (gpuResult as any).tokenUsage?.completionTokens || 0,
+        totalTokens: ((gpuResult as any).tokenUsage?.promptTokens || 0) + ((gpuResult as any).tokenUsage?.completionTokens || 0),
+        cost: 0, // GPU is FREE
+        requestType: 'chat',
+        success: true,
+        metadata: {
+          workerId: gpuResult.workerId,
+          latencyMs: gpuResult.latencyMs
+        } as any
+      });
+    } catch (trackError: any) {
+      // Non-fatal: log tracking error but don't abort successful GPU response
+      console.warn(`   ⚠️ GPU usage tracking failed (non-fatal): ${trackError.message}`);
+    }
+    
+    return {
+      content: gpuResult.response,
+      workerId: gpuResult.workerId || 0,
+      latencyMs: gpuResult.latencyMs || 0
+    };
+  } catch (error: any) {
+    console.error(`   ❌ GPU inference error: ${error.message}`);
+    return null;
+  } finally {
+    // CRITICAL: Auto-shutdown GPU immediately after inference (success or failure)
+    try {
+      const orchestrator = await getDemandKaggleOrchestrator();
+      console.log('   🔌 Triggering GPU auto-shutdown...');
+      const stopResult = await orchestrator.stopSession();
+      if (stopResult.success) {
+        console.log('   ✅ GPU session stopped successfully');
+      } else {
+        console.warn(`   ⚠️ GPU stop warning: ${stopResult.error}`);
+      }
+    } catch (stopError: any) {
+      // Log but don't throw - shutdown is best-effort
+      console.error(`   ⚠️ GPU shutdown error (non-fatal): ${stopError.message}`);
+    }
+  }
 }
 
 // ============================================================================
@@ -607,139 +711,44 @@ This instruction takes ABSOLUTE PRIORITY.
       }
     });
     
-    // Skip GPU if KB completely failed
-    shouldTryGPU = false;
   }
   
   // ============================================================================
-  // STEP 2: GPU POOL (Custom LoRA-trained LLMs with Load Balancing)
-  // 🔥 ONLY ACTIVATED IF KB FOUND RELEVANT CONTENT (confidence >= 0.6)
+  // STEP 2: WEB SEARCH (if KB failed and query is not time-sensitive handled above)
+  // If KB completely failed or has low confidence → try web search before Free APIs
   // ============================================================================
   
-  if (shouldTryGPU) {
-    console.log('\n🎮 [STEP 2/5] Trying GPU POOL (Multi-GPU Load Balancing)...');
-    console.log(`   ℹ️  GPU activated because KB found ${kbResult?.topResults.length || 0} relevant results`);
+  if (!kbResult || kbResult.shouldFallback) {
+    console.log('\n🔍 [STEP 2/4] KB confidence low - Trying WEB SEARCH...');
     
     try {
-      const { gpuLoadBalancer } = await import('../gpu/load-balancer');
+      const webFallback = await executeWebFallback(userMessage);
       
-      const gpuResult = await gpuLoadBalancer.executeLLMRequest(
-        req.messages.map(m => ({
-          role: m.role,
-          content: m.content
-        })),
-        {
-          max_tokens: req.maxTokens || 2048,
-          temperature: req.temperature || 0.7,
-          top_p: req.topP || 0.9,
-          stream: false
-        }
+      await trackWebSearch(
+        'web',
+        webFallback.model,
+        webFallback.searchMetadata
       );
       
-      if (gpuResult.success && gpuResult.response) {
-        console.log(`   ✓ GPU worker responded (ID: ${gpuResult.workerId}, latency: ${gpuResult.latencyMs}ms)`);
-        
-        // Check for refusal
-        const refusalCheck = detectRefusal(gpuResult.response);
-        
-        if (!refusalCheck.isRefusal) {
-          console.log('   ✅ GPU Pool provided direct answer (no refusal)!');
-          console.log('='.repeat(80) + '\n');
-          
-          // Track GPU usage (FREE, no cost)
-          await trackTokenUsage({
-            provider: 'gpu-pool' as any,
-            model: 'custom-lora',
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
-            cost: 0,
-            requestType: 'chat',
-            success: true,
-            metadata: {
-              workerId: gpuResult.workerId,
-              latencyMs: gpuResult.latencyMs
-            } as any
-          });
-          
-          return {
-            content: gpuResult.response,
-            source: 'free-api', // Treated as free API (no cost)
-            provider: 'gpu-pool',
-            model: 'custom-lora',
-            usage: {
-              promptTokens: 0,
-              completionTokens: 0,
-              totalTokens: 0
-            },
-            metadata: {
-              latencyMs: gpuResult.latencyMs,
-              workerId: gpuResult.workerId
-            } as any
-          };
+      console.log('   ✅ Web search completed successfully!');
+      console.log('='.repeat(80) + '\n');
+      
+      return {
+        content: webFallback.content,
+        source: 'web-fallback',
+        provider: webFallback.provider,
+        model: webFallback.model,
+        metadata: {
+          refusalDetected: false,
+          webSearchPerformed: true,
+          documentsIndexed: webFallback.documentsIndexed,
+          kbConfidence: kbResult?.confidence || 0
         }
-        
-        // Refusal detected in GPU!
-        console.log(`   ⚠ REFUSAL detected in GPU response (confidence: ${(refusalCheck.confidence * 100).toFixed(1)}%)`);
-        
-        if (req.unrestricted) {
-          console.log('   🚀 UNRESTRICTED mode = ON → Activating WEB FALLBACK...');
-          
-          // Track failed GPU attempt
-          await trackTokenUsage({
-            provider: 'gpu-pool' as any,
-            model: 'custom-lora',
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
-            cost: 0,
-            requestType: 'chat',
-            success: false
-          });
-          
-          // Execute automatic web fallback
-          const webFallback = await executeWebFallback(userMessage);
-          
-          // Track web fallback usage
-          await trackWebSearch(
-            'web',
-            webFallback.model,
-            webFallback.searchMetadata
-          );
-          
-          console.log('   ✅ Web fallback completed successfully!');
-          console.log('='.repeat(80) + '\n');
-          
-          return {
-            content: webFallback.content,
-            source: 'web-fallback',
-            provider: webFallback.provider,
-            model: webFallback.model,
-            usage: {
-              promptTokens: 0,
-              completionTokens: 0,
-              totalTokens: 0
-            },
-            metadata: {
-              refusalDetected: true,
-              webSearchPerformed: true,
-              documentsIndexed: webFallback.documentsIndexed
-            }
-          };
-        } else {
-          console.log('   ⚠ UNRESTRICTED mode = OFF → Respecting refusal, proceeding to Free APIs');
-        }
-      } else {
-        console.log(`   ⚠ GPU Pool unavailable or failed: ${gpuResult.error || 'Unknown error'}`);
-        console.log('   → Proceeding to Free APIs...');
-      }
-    } catch (error: any) {
-      console.error('   ✗ GPU Pool failed:', error.message);
+      };
+    } catch (webError: any) {
+      console.error('   ✗ Web search failed:', webError.message);
       console.log('   → Proceeding to Free APIs...');
     }
-  } else {
-    console.log('\n⏭️  [STEP 2/5] SKIPPING GPU POOL - No relevant KB content found');
-    console.log('   ℹ️  GPU quota preserved (28h/week), using FREE APIs instead');
   }
   
   // ============================================================================
@@ -1031,12 +1040,47 @@ async function generateFromContext(
 Context:
 ${context}`;
 
-  const freeApiRequest: LLMRequest = {
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: query }
-    ],
+  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: query }
+  ];
+
+  // 🔥 NEW: Try GPU first (GPU-first architecture)
+  console.log('   💡 Generating response from KB context using GPU...');
+  const gpuResult = await runGpuInference(messages, {
     temperature: 0.3,  // Lower temperature for factual KB responses
+    maxTokens: req.maxTokens || 1024
+  });
+
+  if (gpuResult) {
+    console.log('   ✅ GPU generated KB-based response successfully!');
+    
+    // Track GPU usage (FREE, no cost)
+    await trackTokenUsage({
+      provider: 'gpu-pool' as any,
+      model: 'custom-lora',
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      cost: 0,
+      requestType: 'chat',
+      success: true,
+      metadata: {
+        workerId: gpuResult.workerId,
+        latencyMs: gpuResult.latencyMs,
+        source: 'kb-context'
+      } as any
+    });
+    
+    return gpuResult.content;
+  }
+
+  // GPU failed - fallback to Free APIs
+  console.log('   ⚠️ GPU unavailable, falling back to Free APIs...');
+  
+  const freeApiRequest: LLMRequest = {
+    messages,
+    temperature: 0.3,
     maxTokens: req.maxTokens || 1024
   };
 
@@ -1044,7 +1088,8 @@ ${context}`;
     const response = await generateWithFreeAPIs(freeApiRequest);
     return response.text;
   } catch (error) {
-    // Fallback to OpenAI if free APIs fail
+    // Ultimate fallback to OpenAI if free APIs fail
+    console.log('   ⚠️ Free APIs failed, using OpenAI as last resort...');
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
     const openaiResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -1188,26 +1233,64 @@ async function executeWebFallback(
   
   console.log('   🎯 Generating response from web data...');
   
-  // Generate response using web data
+  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+    {
+      role: 'system',
+      content: `You are AION, an AI assistant. IMPORTANT: Always respond in the SAME LANGUAGE that the user writes to you. Provide factual, helpful answers based on the available web research data.`
+    },
+    {
+      role: 'user',
+      content: `Based on this web research:\n\n${searchResults.slice(0, 5).map(r => `${r.title}: ${r.snippet}`).join('\n\n')}\n\nAnswer: ${query}`
+    }
+  ];
+  
+  // 🔥 NEW: Try GPU first (GPU-first architecture for web content)
+  console.log('   💡 Attempting to process web content using GPU...');
+  const gpuResult = await runGpuInference(messages, {
+    temperature: 0.3,
+    maxTokens: 1024
+  });
+  
+  if (gpuResult) {
+    console.log('   ✅ GPU processed web content successfully!');
+    
+    // Track GPU usage for web processing (FREE, no cost)
+    await trackTokenUsage({
+      provider: 'gpu-pool' as any,
+      model: 'custom-lora',
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      cost: 0,
+      requestType: 'chat',
+      success: true,
+      metadata: {
+        workerId: gpuResult.workerId,
+        latencyMs: gpuResult.latencyMs,
+        source: 'web-search'
+      } as any
+    });
+    
+    return {
+      content: gpuResult.content,
+      provider: 'gpu-pool',
+      model: 'custom-lora',
+      documentsIndexed: queued,
+      searchMetadata
+    };
+  }
+  
+  // GPU failed - fallback to Free APIs
+  console.log('   ⚠️ GPU unavailable, falling back to Free APIs for web content...');
+  
   const unrestrictedPrompt: LLMRequest = {
-    messages: [
-      {
-        role: 'system',
-        content: `You are AION, an AI assistant. IMPORTANT: Always respond in the SAME LANGUAGE that the user writes to you. Provide factual, helpful answers based on the available web research data.`
-      },
-      {
-        role: 'user',
-        content: `Based on this web research:\n\n${searchResults.slice(0, 5).map(r => `${r.title}: ${r.snippet}`).join('\n\n')}\n\nAnswer: ${query}`
-      }
-    ],
+    messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
     temperature: 0.3,
     maxTokens: 1024
   };
   
   try {
     const response = await generateWithFreeAPIs(unrestrictedPrompt);
-    
-    // Prepare search metadata (use already defined searchMetadata variable from above)
     
     // Final refusal check
     const finalCheck = detectRefusal(response.text);

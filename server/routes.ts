@@ -2561,17 +2561,28 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // POST /api/admin/learn-from-url - Deep crawl website with all sublinks + images (ASYNC JOB!)
-  // NOVO: Cria job assíncrono para processamento em background
+  // POST /api/admin/learn-from-url - Crawl website (single page or deep crawl)
+  // NOVO: Suporta 2 modos: "single" (apenas a página) ou "deep" (crawl completo)
   app.post("/api/admin/learn-from-url", requireAdmin, async (req, res) => {
     try {
-      const { url, namespace, maxDepth, maxPages } = req.body;
+      const { 
+        url, 
+        namespace, 
+        mode = "single", // "single" | "deep"
+        downloadMedia = false,
+        maxDepth, 
+        maxPages 
+      } = req.body;
 
       if (!url) {
         return res.status(400).json({ error: "URL is required" });
       }
 
-      console.log(`[API] 🚀 Criando job de deep crawling para: ${url}`);
+      const isSinglePage = mode === "single";
+      const crawlType = isSinglePage ? "single-page scan" : "deep crawl";
+      
+      console.log(`[API] 🚀 Criando job de ${crawlType} para: ${url}`);
+      console.log(`[API]    Mode: ${mode}, Download Media: ${downloadMedia}`);
       
       // NOVO: Cria job assíncrono
       const { linkCaptureJobs, insertLinkCaptureJobSchema } = await import("@shared/schema");
@@ -2582,18 +2593,21 @@ export function registerRoutes(app: Express): Server {
         status: "pending" as const,
         metadata: {
           namespace: namespace || 'kb/web',
-          maxDepth: maxDepth || 5,
-          maxPages: maxPages || 100,
-          includeImages: true,
+          mode: mode,
+          maxDepth: isSinglePage ? 0 : (maxDepth || 5), // 0 = single page only
+          maxPages: isSinglePage ? 1 : (maxPages || 100),
+          includeImages: downloadMedia,
           submittedBy: "admin"
         }
       }).returning();
 
-      console.log(`[API] ✅ Job ${job.id} criado para: ${url}`);
+      console.log(`[API] ✅ Job ${job.id} criado: ${crawlType} com ${downloadMedia ? 'mídia' : 'apenas texto'}`);
 
       res.json({ 
-        message: `Job de deep crawling criado! Acompanhe o progresso em Jobs.`,
+        message: `Job de ${crawlType} criado! Acompanhe o progresso em Jobs.`,
         jobId: job.id,
+        mode: mode,
+        downloadMedia: downloadMedia,
         status: "job_created",
         job
       });
