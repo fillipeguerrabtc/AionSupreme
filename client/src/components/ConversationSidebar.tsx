@@ -28,6 +28,8 @@ export function ConversationSidebar({
   const { data: allConversations = [], isLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/conversations"],
     enabled: isAuthenticated,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Filter conversations by selected project AND only show conversations with messages

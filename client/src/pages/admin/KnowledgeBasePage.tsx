@@ -367,12 +367,13 @@ export default function KnowledgeBasePage() {
                 data-testid="input-url-to-learn"
               />
               
-              <div className="space-y-3">
+              <div className="space-y-3 border border-dashed border-accent/30 p-4 rounded-md">
                 <Label className="text-sm font-semibold">Modo de Aprendizado:</Label>
                 <RadioGroup
                   value={crawlMode}
                   onValueChange={(value) => setCrawlMode(value as "single" | "deep")}
                   data-testid="radio-group-crawl-mode"
+                  className="space-y-2"
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="single" id="single" data-testid="radio-single-page" />
@@ -389,7 +390,7 @@ export default function KnowledgeBasePage() {
                 </RadioGroup>
               </div>
               
-              <div className="flex items-center space-x-2 pt-2">
+              <div className="flex items-center space-x-2 pt-2 border border-dashed border-accent/30 p-3 rounded-md">
                 <Checkbox
                   id="download-media"
                   checked={downloadMedia}
