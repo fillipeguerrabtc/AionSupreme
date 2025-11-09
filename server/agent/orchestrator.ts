@@ -38,9 +38,11 @@ export async function orchestrateAgents(
     tenantId?: number;
     sessionId?: string;
     language?: string; // 🔥 FIX: Support multi-language responses
+    conversationId?: number; // 🔧 Task #30.1: ReAct tool persistence
+    messageId?: number; // 🔧 Task #30.1: ReAct tool persistence
   } = {}
 ): Promise<OrchestratorResult> {
-  const { history = [], budgetUSD = 1.0, tenantId = 1, sessionId = "default", language = "pt-BR" } = options;
+  const { history = [], budgetUSD = 1.0, tenantId = 1, sessionId = "default", language = "pt-BR", conversationId, messageId } = options;
 
   console.log(`[Orchestrator] Starting agent orchestration for query: "${query.substring(0, 80)}..."`);
   
@@ -76,6 +78,8 @@ export async function orchestrateAgents(
       sessionId,
       budgetUSD,
       language, // 🔥 FIX: Pass language to agents for multi-language support
+      conversationId, // 🔧 Task #30.1: Pass to ReAct for tool persistence
+      messageId, // 🔧 Task #30.1: Pass to ReAct for tool persistence
     };
 
     const startTime = Date.now();

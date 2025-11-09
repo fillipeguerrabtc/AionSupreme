@@ -650,26 +650,56 @@ export function registerRoutes(app: Express): Server {
           if (availableAgents.length > 0) {
             console.log(`[Chat API] 🤖 Using Multi-Agent System (${availableAgents.length} agents available)`);
             
+            // 🔧 Task #30.1: Create assistant message BEFORE execution to get messageId
+            let assistantMessageId: number | undefined;
+            if (conversationId) {
+              try {
+                const assistantMsg = await storage.createMessage({
+                  conversationId,
+                  role: "assistant",
+                  content: "", // Empty content, will be updated after generation
+                });
+                assistantMessageId = assistantMsg.id;
+                console.log(`[Chat API] 💾 Assistant message pre-created (id: ${assistantMessageId}) for tool persistence`);
+              } catch (persistError: unknown) {
+                console.error(`[Chat API] Failed to pre-create assistant message:`, getErrorMessage(persistError));
+              }
+            }
+            
             // Passar histórico EXCLUINDO a última mensagem do usuário (para evitar duplicação)
             const historyWithoutLastTurn = messages.slice(0, -1);
             
-            const agentResult = await orchestrateAgents(lastUserMessage, {
-              history: historyWithoutLastTurn, // Apenas turnos anteriores, consulta atual adicionada separadamente
-              budgetUSD: 1.0,
-              tenantId: 1,
-              sessionId: "chat-session",
-              language: detectedLanguage, // 🔥 FIX: Pass language to Multi-Agent for multi-language support
-            });
+            let agentResult;
+            try {
+              agentResult = await orchestrateAgents(lastUserMessage, {
+                history: historyWithoutLastTurn, // Apenas turnos anteriores, consulta atual adicionada separadamente
+                budgetUSD: 1.0,
+                tenantId: 1,
+                sessionId: "chat-session",
+                language: detectedLanguage, // 🔥 FIX: Pass language to Multi-Agent for multi-language support
+                conversationId, // 🔧 Task #30.1: Pass for ReAct tool persistence
+                messageId: assistantMessageId, // 🔧 Task #30.1: Pass for ReAct tool persistence
+              });
+            } catch (orchestrationError: unknown) {
+              // 🔧 FIX: Clean up empty message on error
+              if (conversationId && assistantMessageId) {
+                try {
+                  await storage.deleteMessage(assistantMessageId);
+                  console.log(`[Chat API] 🗑️ Deleted empty assistant message (id: ${assistantMessageId}) after error`);
+                } catch (deleteError: unknown) {
+                  console.error(`[Chat API] Failed to delete empty message:`, getErrorMessage(deleteError));
+                }
+              }
+              throw orchestrationError; // Re-throw to be caught by outer catch
+            }
             
             const latency = Date.now() - startTime;
             metricsCollector.recordLatency(latency);
             
-            // 🔥 FIX: Persist assistant message AFTER generation (multi-agent path)
-            if (conversationId && agentResult.content) {
+            // 🔧 Task #30.1: UPDATE assistant message with final content
+            if (conversationId && assistantMessageId && agentResult.content) {
               try {
-                await storage.createMessage({
-                  conversationId,
-                  role: "assistant",
+                await storage.updateMessage(assistantMessageId, {
                   content: agentResult.content,
                   metadata: {
                     source: "multi-agent",
@@ -677,9 +707,9 @@ export function registerRoutes(app: Express): Server {
                     totalCost: agentResult.metadata?.totalCost,
                   },
                 });
-                console.log(`[Chat API Multi-Agent] 💾 Assistant message persisted to conversation ${conversationId}`);
+                console.log(`[Chat API Multi-Agent] 💾 Assistant message updated (id: ${assistantMessageId})`);
               } catch (persistError: unknown) {
-                console.error(`[Chat API Multi-Agent] Failed to persist assistant message:`, getErrorMessage(persistError));
+                console.error(`[Chat API Multi-Agent] Failed to update assistant message:`, getErrorMessage(persistError));
               }
             }
             

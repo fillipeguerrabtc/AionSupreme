@@ -40,6 +40,83 @@ function buildRAGContext(results: Awaited<ReturnType<typeof searchRAG>>): string
 }
 
 /**
+ * Run agent with ReAct engine (when tools are enabled)
+ */
+async function runWithReActEngine(
+  input: AgentInput,
+  ctx: AgentRunContext,
+  agent: Agent,
+  startTime: number
+): Promise<AgentOutput> {
+  console.log(`[AgentExecutor] Starting ReAct execution for agent "${agent.name}"`);
+  
+  // Build available tools map from agent's allowedTools
+  const availableTools = new Map();
+  for (const toolName of agent.allowedTools) {
+    if (agentTools[toolName as keyof typeof agentTools]) {
+      availableTools.set(toolName, agentTools[toolName as keyof typeof agentTools]);
+    } else {
+      console.warn(`[AgentExecutor] Tool "${toolName}" not found in agentTools registry`);
+    }
+  }
+  
+  // Add Finish tool (always available)
+  if (!availableTools.has("Finish")) {
+    availableTools.set("Finish", agentTools.Finish);
+  }
+  
+  console.log(`[AgentExecutor] Available tools: ${Array.from(availableTools.keys()).join(", ")}`);
+  
+  // Initialize ReAct engine
+  const reactEngine = new ReActEngine();
+  
+  // 🔧 CRITICAL: Get conversationId and messageId from context
+  // These are REQUIRED for tool execution persistence (FK constraints)
+  // NOTE: This function should only be called when IDs are valid (checked in run())
+  const conversationId = ctx.conversationId!;
+  const messageId = ctx.messageId!;
+  
+  const result = await reactEngine.execute(
+    input.query,
+    conversationId,
+    messageId,
+    availableTools
+  );
+  
+  const latencyMs = Date.now() - startTime;
+  
+  // Convert ReAct result to AgentOutput
+  const finalAnswer = result.finalAnswer || "No answer generated";
+  
+  // Collect all attachments from steps
+  const allAttachments: Array<{type: "image"|"video"|"document"; url: string; filename: string; mimeType: string; size?: number}> = [];
+  for (const step of result.steps) {
+    if (step.observation.attachments) {
+      for (const att of step.observation.attachments) {
+        allAttachments.push({
+          type: att.type as "image"|"video"|"document",
+          url: att.url,
+          filename: att.filename,
+          mimeType: att.mimeType,
+          size: att.size,
+        });
+      }
+    }
+  }
+  
+  console.log(`[AgentExecutor] ReAct completed: ${result.totalSteps} steps, ${allAttachments.length} attachments`);
+  
+  return {
+    text: finalAnswer,
+    citations: [], // TODO: Extract citations from ReAct steps
+    attachments: allAttachments.length > 0 ? allAttachments : undefined,
+    costUSD: 0, // TODO: Aggregate costs from tools
+    tokens: { prompt: 0, completion: 0 }, // TODO: Track tokens
+    latencyMs,
+  };
+}
+
+/**
  * Create an AgentExecutor from Agent config
  * Wraps the config with a REAL run() implementation using LLM + RAG + Tools
  */
@@ -51,6 +128,20 @@ function createAgentExecutor(agent: Agent): AgentExecutor {
       console.log(`[AgentExecutor] Agent "${agent.name}" processing query: "${input.query.substring(0, 80)}..."`);
       
       try {
+        // 🔧 CRITICAL: Check if agent has tools enabled (ReAct mode)
+        const hasTools = agent.allowedTools && agent.allowedTools.length > 0;
+        
+        if (hasTools) {
+          // 🔧 FIX: Require valid IDs for ReAct (to avoid FK violations)
+          if (!ctx.conversationId || !ctx.messageId) {
+            console.warn(`[AgentExecutor] Agent has tools but missing conversationId/messageId - falling back to non-ReAct mode`);
+            // Fall through to legacy path (no tools, direct LLM)
+          } else {
+            console.log(`[AgentExecutor] Agent has ${agent.allowedTools.length} tools enabled, using ReAct engine`);
+            return await runWithReActEngine(input, ctx, agent, startTime);
+          }
+        }
+        
         // STEP 1: Search RAG knowledge base in agent's namespaces
         const ragResults = await searchRAG(
           input.query,

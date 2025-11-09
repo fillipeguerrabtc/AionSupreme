@@ -10,6 +10,9 @@ export interface AgentRunContext {
   parentAgentId?: string;
   depth?: number;
   traceId?: string;
+  // 🔧 ReAct Tool Persistence (Task #30)
+  conversationId?: number;
+  messageId?: number;
 }
 export interface AgentInput {
   query: string;
