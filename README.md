@@ -91,6 +91,17 @@ A aplicação estará disponível em `http://localhost:5000`.
 - 🎮 [**Configuração GPU Workers**](./docs/GPU_WORKERS_SETUP_GUIDE.md) - Setup completo de 10 GPUs gratuitas
 - 📋 [**Informações do Projeto**](./replit.md) - Arquitetura, preferências e convenções
 
+### Guias de Setup
+
+- 🔐 [**Configuração de Credenciais**](./GUIA_CREDENCIAIS.md) - Guia passo a passo completo
+- 🔑 [**Setup de Secrets**](./SECRETS_SETUP.md) - Configuração de criptografia AES-256-GCM
+- ⚡ [**GPU Auto-Creation**](./GPU_AUTO_CREATION_README.md) - Sistema de criação automática de GPUs
+- 📦 [**Upload de Adapters**](./ADAPTER_UPLOAD_GUIDE.md) - Guia de upload de LoRA adapters
+
+### Documentação Arquivada
+
+- 📚 [**Arquivos Históricos**](./docs/archive/) - Code reviews, auditorias e relatórios anteriores (mantidos para referência)
+
 ## 🎯 Recursos Principais
 
 ### 1. Sistema de Fallback Automático ⚡ NOVO
@@ -144,6 +155,35 @@ Políticas configuráveis em runtime:
 - Ações em violação: recusar, ocultar ou reescrever
 
 **REGRA FUNDAMENTAL**: Sistema **nasce irrestrito** (todas regras = false). Restrições só se aplicam quando configuradas manualmente via painel admin.
+
+### 5. Sistema de Backup & Recovery Empresarial 💾 NOVO
+
+Sistema completo de backup e restauração com segurança de nível empresarial:
+
+**Características:**
+- ✅ **Backup Completo do Banco** - Export de todas as tabelas em formato JSON
+- ✅ **Admin-Only Access** - Apenas administradores podem criar/restaurar backups
+- ✅ **Rate Limiting** - Máximo 1 backup/hora para evitar sobrecarga
+- ✅ **Streaming Direto** - Arquivos enviados diretamente ao usuário (sem armazenamento permanente)
+- ✅ **Auto-Cleanup** - Arquivos temporários deletados após download e limpeza automática >1hr
+- ✅ **Restore Atômico** - Operações com snapshot de segurança automático
+- ✅ **Validação de Arquivos** - Schema validation e limites de tamanho (max 100MB)
+- ✅ **Audit Logging** - Logs estruturados com userId, IP, requestId, operationId
+
+**Endpoints:**
+```bash
+# Criar backup (streaming direto)
+POST /api/admin/backup/create
+
+# Restaurar do backup
+POST /api/admin/backup/restore
+```
+
+**Segurança:**
+- Criptografia de credenciais via SecretsVault (AES-256-GCM)
+- Permissões granulares via RBAC
+- Logs imutáveis de todas operações
+- Validação de schema antes de restore
 
 ## 🛠️ Stack Tecnológico
 
