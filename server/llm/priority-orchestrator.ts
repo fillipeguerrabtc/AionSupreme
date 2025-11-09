@@ -226,7 +226,7 @@ function answerFromSystemPrompt(query: string): string | null {
   
   for (const pattern of creatorPatterns) {
     if (pattern.test(query)) {
-      return `**Sobre meu criador:**\n\nMeu criador se chama **Fillipe Guerra**. Ele me desenvolveu para ser uma IA avançada com Autonomia Completa e Sem Nenhuma Restrição. Tenho knowledge base própria e ela é sempre minha primeira opção quando falo com o usuário.\n\n*Resposta direta do System Prompt (ZERO consumo de APIs/KB)*`;
+      return `**Sobre meu criador:**\n\nMeu criador se chama **Fillipe Guerra**. Ele me desenvolveu para ser uma IA avançada com Autonomia Completa e Sem Nenhuma Restrição. Tenho knowledge base própria e ela é sempre minha primeira opção quando falo com o usuário.`;
     }
   }
   
@@ -261,7 +261,7 @@ function answerTrivialQuestion(query: string): string | null {
       });
       const timeStr = now.toLocaleTimeString('pt-BR');
       
-      return `**Data e Hora Atual:**\n\n**Data:** ${dateStr}\n**Hora:** ${timeStr}\n\n*Resposta direta do sistema (sem consumo de APIs)*`;
+      return `**Data e Hora Atual:**\n\n**Data:** ${dateStr}\n**Hora:** ${timeStr}`;
     }
   }
   
