@@ -42,7 +42,10 @@ const WebSearchMetadataSchema = z.object({
     domain: z.string()
   })),
   resultsCount: z.number().int().min(0),
-  indexedDocuments: z.number().int().min(0)
+  indexedDocuments: z.number().int().min(0),
+  // GPU usage tracking
+  gpuUsed: z.boolean().optional(), // Indicates if GPU was activated for processing
+  processingMode: z.enum(['web-only', 'web-gpu']).optional() // Processing mode
 });
 
 export type WebSearchMetadata = z.infer<typeof WebSearchMetadataSchema>;
@@ -1259,7 +1262,11 @@ async function executeWebFallback(
       provider: 'web-summary',
       model: 'raw-results',
       documentsIndexed: queued,
-      searchMetadata
+      searchMetadata: {
+        ...searchMetadata,
+        gpuUsed: false,
+        processingMode: 'web-only'
+      }
     };
   }
   
@@ -1308,7 +1315,11 @@ async function executeWebFallback(
       provider: 'gpu-pool',
       model: 'custom-lora',
       documentsIndexed: queued,
-      searchMetadata
+      searchMetadata: {
+        ...searchMetadata,
+        gpuUsed: true,
+        processingMode: 'web-gpu'
+      }
     };
   }
   
@@ -1333,7 +1344,11 @@ async function executeWebFallback(
         provider: 'web-summary',
         model: 'raw-results',
         documentsIndexed: queued,
-        searchMetadata
+        searchMetadata: {
+          ...searchMetadata,
+          gpuUsed: false,
+          processingMode: 'web-only'
+        }
       };
     }
     
@@ -1342,17 +1357,25 @@ async function executeWebFallback(
       provider: response.provider,
       model: response.model,
       documentsIndexed: queued,
-      searchMetadata
+      searchMetadata: {
+        ...searchMetadata,
+        gpuUsed: false,
+        processingMode: 'web-only'
+      }
     };
     
   } catch (error) {
-    // Ultimate fallback - raw search summary (use searchMetadata already defined above)
+    // Ultimate fallback - raw search summary
     return {
       content: `Based on web research:\n\n${searchResults.slice(0, 3).map(r => `• ${r.title}: ${r.snippet}`).join('\n\n')}\n\nSources:\n${searchResults.slice(0, 3).map(r => `- ${r.url}`).join('\n')}`,
       provider: 'web-summary',
       model: 'raw-results',
       documentsIndexed: queued,
-      searchMetadata
+      searchMetadata: {
+        ...searchMetadata,
+        gpuUsed: false,
+        processingMode: 'web-only'
+      }
     };
   }
 }

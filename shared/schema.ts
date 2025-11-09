@@ -729,6 +729,9 @@ export const tokenUsage = pgTable("token_usage", {
     sourceUsed?: 'kb-own' | 'fallback-needed' | 'kb-error';
     kbUsed?: boolean;
     reason?: string;
+    // Web Search GPU tracking
+    gpuUsed?: boolean;
+    processingMode?: 'web-only' | 'web-gpu';
   }>(),
   
   timestamp: timestamp("timestamp").notNull().defaultNow(),

@@ -211,13 +211,13 @@ CRITICAL BEHAVIOR RULES:
     
     // Add intelligence instructions
     prompt += `\n\n🧠 INTELLIGENCE & CONTEXT:
-- NEVER respond with generic greetings like "Hello! How can I assist you today?" or "Olá! Como posso ajudar você hoje?"
 - ALWAYS provide specific, contextual, and intelligent responses
 - Remember conversation context and build upon it
 - If asked a question, answer it directly and thoroughly
-- If greeted, acknowledge warmly but also demonstrate understanding or ask a relevant follow-up
+- If greeted, respond naturally and briefly - NO need to explain expressions or translations
 - Vary your responses - never be repetitive or robotic
-- Be creative and contextual in EVERY response`;
+- Be conversational and helpful, not didactic or explanatory
+- Keep greetings SHORT (1-2 sentences max) unless user asks for more`;
     
     // Check if there are active rules
     const activeRules = Object.entries(policy.rules).filter(([_, active]) => active);

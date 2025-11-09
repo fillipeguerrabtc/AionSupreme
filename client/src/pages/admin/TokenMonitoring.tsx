@@ -120,6 +120,9 @@ interface WebSearchRecord {
     results_count?: number;
     indexed_count?: number;
     sources?: WebSearchSource[];
+    // GPU usage tracking
+    gpuUsed?: boolean;
+    processingMode?: 'web-only' | 'web-gpu';
   };
 }
 
@@ -1391,9 +1394,23 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                             {new Date(search.timestamp).toLocaleString()}
                           </CardDescription>
                         </div>
-                        <Badge variant="outline" className="bg-cyan-500/10">
-                          {search.metadata?.results_count || 0} {t.admin.tokenMonitoring.common.searches.toLowerCase()}
-                        </Badge>
+                        <div className="flex gap-2 shrink-0">
+                          {/* GPU Usage Badge */}
+                          {search.metadata?.gpuUsed === true && (
+                            <Badge variant="default" className="bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30">
+                              🔥 GPU Usado
+                            </Badge>
+                          )}
+                          {search.metadata?.gpuUsed === false && (
+                            <Badge variant="secondary" className="bg-gray-500/20 text-gray-500 border-gray-500/30">
+                              Web Only
+                            </Badge>
+                          )}
+                          {/* Results Badge */}
+                          <Badge variant="outline" className="bg-cyan-500/10">
+                            {search.metadata?.results_count || 0} resultados
+                          </Badge>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>

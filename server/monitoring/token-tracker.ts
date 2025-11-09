@@ -51,6 +51,9 @@ export interface WebSearchMetadata {
   }>;
   resultsCount: number;
   indexedDocuments?: number;
+  // GPU usage tracking
+  gpuUsed?: boolean; // Indicates if GPU was activated for processing
+  processingMode?: 'web-only' | 'web-gpu'; // Processing mode
 }
 
 export interface KBMetadata {
