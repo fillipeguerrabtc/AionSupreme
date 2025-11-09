@@ -49,10 +49,11 @@ export const ALLOWED_FILE_TYPES = {
   'audio/mpeg': { extensions: ['.mp3'], maxSize: 100 * 1024 * 1024 }, // 100MB
   'audio/wav': { extensions: ['.wav'], maxSize: 100 * 1024 * 1024 },
   'audio/webm': { extensions: ['.webm'], maxSize: 100 * 1024 * 1024 },
+  'audio/mp4': { extensions: ['.mp4', '.m4a'], maxSize: 100 * 1024 * 1024 },
   
-  // Video (for future use)
-  'video/mp4': { extensions: ['.mp4'], maxSize: 500 * 1024 * 1024 }, // 500MB
-  'video/webm': { extensions: ['.webm'], maxSize: 500 * 1024 * 1024 },
+  // Video (includes MediaRecorder audio captures detected as video containers)
+  'video/mp4': { extensions: ['.mp4'], maxSize: 500 * 1024 * 1024 }, // 500MB (or 100MB for audio-only)
+  'video/webm': { extensions: ['.webm'], maxSize: 500 * 1024 * 1024 }, // 500MB (or 100MB for audio-only)
 } as const;
 
 export interface FileValidationResult {
@@ -212,11 +213,21 @@ export async function validateDocumentUpload(filePath: string): Promise<FileVali
 
 /**
  * Validate audio upload (for transcription)
+ * 
+ * NOTE: MediaRecorder outputs are detected as video/webm and video/mp4 by magic bytes
+ * even when they contain only audio, so we whitelist those container types.
  */
 export async function validateAudioUpload(filePath: string): Promise<FileValidationResult> {
   return validateUploadedFile(
     filePath,
-    ['audio/mpeg', 'audio/wav', 'audio/webm'],
+    [
+      'audio/mpeg',  // MP3 files
+      'audio/wav',   // WAV files
+      'audio/webm',  // WebM audio (rare, but possible)
+      'video/webm',  // MediaRecorder WebM output (detected as video container)
+      'audio/mp4',   // MP4 audio (rare, but possible)
+      'video/mp4',   // MediaRecorder MP4 output (detected as video container)
+    ],
     100 * 1024 * 1024 // 100MB max for audio
   );
 }
