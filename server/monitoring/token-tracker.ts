@@ -53,6 +53,17 @@ export interface WebSearchMetadata {
   indexedDocuments?: number;
 }
 
+export interface KBMetadata {
+  query: string;
+  resultsCount: number;
+  confidence?: number;
+  sourceUsed?: 'kb-own' | 'fallback-needed' | 'kb-error';
+  kbUsed?: boolean;
+  reason?: string;
+  sources?: any[];
+  indexedDocuments?: number;
+}
+
 export interface TokenTrackingData {
   provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter' | 'openai' | 'kb' | 'web';
   model: string;
@@ -62,7 +73,7 @@ export interface TokenTrackingData {
   cost?: number;
   requestType: 'chat' | 'embedding' | 'transcription' | 'image' | 'search';
   success: boolean;
-  metadata?: WebSearchMetadata;
+  metadata?: WebSearchMetadata | KBMetadata;
 }
 
 export interface UsageSummary {
@@ -848,6 +859,9 @@ export interface KBSearchHistoryEntry {
   confidence?: number;
   success: boolean;
   timestamp: Date;
+  sourceUsed?: 'kb-own' | 'fallback-needed' | 'kb-error';
+  kbUsed?: boolean;
+  reason?: string;
 }
 
 export async function getKBSearchHistory(
@@ -865,14 +879,20 @@ export async function getKBSearchHistory(
     .orderBy(desc(tokenUsage.timestamp))
     .limit(limit);
   
-  return results.map(r => ({
-    id: r.id,
-    query: (r.metadata as any)?.query || '',
-    resultsCount: (r.metadata as any)?.resultsCount || 0,
-    confidence: (r.metadata as any)?.confidence,
-    success: r.success,
-    timestamp: r.timestamp
-  }));
+  return results.map(r => {
+    const metadata = r.metadata as KBMetadata | undefined;
+    return {
+      id: r.id,
+      query: metadata?.query || '',
+      resultsCount: metadata?.resultsCount || 0,
+      confidence: metadata?.confidence,
+      success: r.success,
+      timestamp: r.timestamp,
+      sourceUsed: metadata?.sourceUsed,
+      kbUsed: metadata?.kbUsed,
+      reason: metadata?.reason
+    };
+  });
 }
 
 // ============================================================================

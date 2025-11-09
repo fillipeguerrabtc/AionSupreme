@@ -22,7 +22,7 @@ import { db } from '../db';
 import { documents, curationQueue } from '@shared/schema';
 import { sql } from 'drizzle-orm';
 import OpenAI from 'openai';
-import { trackTokenUsage } from '../monitoring/token-tracker';
+import { trackTokenUsage, type KBMetadata } from '../monitoring/token-tracker';
 import { z } from 'zod';
 import { GPUPool } from '../gpu/pool';
 import { autoLearningListener } from '../events/auto-learning-listener';
@@ -594,6 +594,14 @@ This instruction takes ABSOLUTE PRIORITY.
       console.log('='.repeat(80) + '\n');
       
       // Track KB usage (no tokens, just request count)
+      const kbMetadata: KBMetadata = {
+        query: userMessage.substring(0, 200),
+        resultsCount: kbResult.topResults.length,
+        confidence: kbResult.confidence,
+        sourceUsed: 'kb-own', // ✅ Answered from KB itself
+        kbUsed: true
+      };
+      
       await trackTokenUsage({
         provider: 'kb',
         model: 'rag-mmr',
@@ -602,7 +610,8 @@ This instruction takes ABSOLUTE PRIORITY.
         totalTokens: 0,
         cost: 0,
         requestType: 'chat',
-        success: true
+        success: true,
+        metadata: kbMetadata
       });
       
       return {
@@ -634,6 +643,17 @@ This instruction takes ABSOLUTE PRIORITY.
     }
     
     // Track KB search attempt (failed due to low confidence)
+    const fallbackMetadata: KBMetadata = {
+      query: userMessage.substring(0, 200),
+      resultsCount: kbResult.topResults.length,
+      confidence: kbResult.confidence,
+      sourceUsed: 'fallback-needed', // ⚠️ KB had results but low confidence
+      kbUsed: false,
+      reason: 'low-confidence',
+      sources: [],
+      indexedDocuments: 0
+    };
+    
     await trackTokenUsage({
       provider: 'kb',
       model: 'rag-mmr',
@@ -643,12 +663,7 @@ This instruction takes ABSOLUTE PRIORITY.
       cost: 0,
       requestType: 'chat',
       success: false,
-      metadata: {
-        query: userMessage.substring(0, 200),
-        sources: [],
-        resultsCount: kbResult.topResults.length,
-        indexedDocuments: 0
-      }
+      metadata: fallbackMetadata
     });
     
     // ⚡ AUTO WEB SEARCH: If KB failed + time-sensitive query → search web immediately
@@ -694,6 +709,17 @@ This instruction takes ABSOLUTE PRIORITY.
     console.log('   → SKIPPING GPU Pool (KB unavailable), proceeding to Free APIs...');
     
     // Track KB search failure
+    const errorMetadata: KBMetadata = {
+      query: userMessage.substring(0, 200),
+      resultsCount: 0,
+      confidence: 0,
+      sourceUsed: 'kb-error', // ❌ KB failed completely
+      kbUsed: false,
+      reason: 'kb-search-error',
+      sources: [],
+      indexedDocuments: 0
+    };
+    
     await trackTokenUsage({
       provider: 'kb',
       model: 'rag-mmr',
@@ -703,12 +729,7 @@ This instruction takes ABSOLUTE PRIORITY.
       cost: 0,
       requestType: 'chat',
       success: false,
-      metadata: {
-        query: userMessage.substring(0, 200),
-        sources: [],
-        resultsCount: 0,
-        indexedDocuments: 0
-      }
+      metadata: errorMetadata
     });
     
   }

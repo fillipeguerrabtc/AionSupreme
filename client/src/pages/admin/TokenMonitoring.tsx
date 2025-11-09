@@ -142,6 +142,9 @@ interface KBSearchHistoryEntry {
   confidence?: number;
   success: boolean;
   timestamp: string;
+  sourceUsed?: 'kb-own' | 'fallback-needed' | 'kb-error';
+  kbUsed?: boolean;
+  reason?: string;
 }
 
 interface FreeAPIHistoryEntry {
@@ -1195,19 +1198,41 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                               {new Date(entry.timestamp).toLocaleString()}
                             </CardDescription>
                           </div>
-                          <Badge variant={entry.success ? "default" : "secondary"} className="shrink-0">
-                            {entry.success ? (
-                              <span className="flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" />
-                                {t.admin.tokenMonitoring.common.success}
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1">
-                                <AlertCircle className="w-3 h-3" />
-                                {t.admin.tokenMonitoring.common.failed}
-                              </span>
+                          <div className="flex gap-2 shrink-0">
+                            {/* Source Badge - Shows WHERE the answer came from */}
+                            {entry.sourceUsed === 'kb-own' && (
+                              <Badge variant="default" className="bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30">
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                KB Próprio
+                              </Badge>
                             )}
-                          </Badge>
+                            {entry.sourceUsed === 'fallback-needed' && (
+                              <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/30">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Fallback Usado
+                              </Badge>
+                            )}
+                            {entry.sourceUsed === 'kb-error' && (
+                              <Badge variant="destructive" className="bg-red-500/20 text-red-500 border-red-500/30 hover:bg-red-500/30">
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Erro KB
+                              </Badge>
+                            )}
+                            {/* Success/Failed Badge */}
+                            <Badge variant={entry.success ? "default" : "secondary"}>
+                              {entry.success ? (
+                                <span className="flex items-center gap-1">
+                                  <CheckCircle2 className="w-3 h-3" />
+                                  {t.admin.tokenMonitoring.common.success}
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />
+                                  {t.admin.tokenMonitoring.common.failed}
+                                </span>
+                              )}
+                            </Badge>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="pt-0">
@@ -1225,6 +1250,16 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                             </div>
                           )}
                         </div>
+                        {/* Show reason for fallback/error if available */}
+                        {entry.reason && entry.sourceUsed !== 'kb-own' && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <span className="text-xs text-muted-foreground">
+                              {entry.reason === 'low-confidence' && '⚠️ Confiança muito baixa, usado fallback para Web/GPU/APIs'}
+                              {entry.reason === 'kb-search-error' && '❌ Erro técnico na busca KB'}
+                              {!['low-confidence', 'kb-search-error'].includes(entry.reason) && `Motivo: ${entry.reason}`}
+                            </span>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
