@@ -793,15 +793,21 @@ This instruction takes ABSOLUTE PRIORITY.
   console.log('\n💸 [STEP 3/5] Trying FREE APIs (27,170 req/day)...');
   
   try {
-    const freeApiRequest: LLMRequest = {
-      messages: req.messages.map(m => ({
-        role: m.role as 'system' | 'user' | 'assistant',
+    // 🔥 USE CENTRALIZED SYSTEM PROMPT (ensures conversational tone!)
+    const { buildSimpleConversation } = await import('./system-prompt');
+    
+    // Extract only user/assistant messages (system will be composed)
+    const chatHistory = req.messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
         content: m.content
-      })),
+      }));
+    
+    const freeApiRequest = await buildSimpleConversation(chatHistory, {
       temperature: req.temperature,
-      topP: req.topP,
       maxTokens: req.maxTokens
-    };
+    });
     
     const freeResponse = await generateWithFreeAPIs(freeApiRequest);
     console.log(`   ✓ Free API responded: ${freeResponse.provider}`);
@@ -1070,27 +1076,15 @@ async function generateFromContext(
   query: string,
   req: PriorityRequest
 ): Promise<string> {
-  const systemPrompt = `You are AION, an AI assistant with access to a curated knowledge base. 
-
-⚠️ CRITICAL LANGUAGE RULE:
-ALWAYS respond in the SAME LANGUAGE that the user writes to you. Never switch languages.
-
-🧠 TONE & BEHAVIOR:
-- Be conversational and helpful, NOT didactic or explanatory
-- If greeted, respond naturally and briefly - NO need to explain expressions or translations
-- Keep greetings SHORT (1-2 sentences max) unless user asks for more
-- Answer questions directly without unnecessary explanations
-- Be human and natural, not like a teacher or dictionary
-
-IMPORTANT: Answer the user's question based ONLY on the following context. If the context doesn't contain enough information, say so clearly.
-
-Context:
-${context}`;
-
-  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: query }
-  ];
+  // 🔥 USE CENTRALIZED SYSTEM PROMPT (ensures conversational tone!)
+  const { buildKBResponse } = await import('./system-prompt');
+  
+  const llmRequest = await buildKBResponse(
+    [{ role: 'user', content: query }],
+    context
+  );
+  
+  const messages = llmRequest.messages;
 
   // 🔥 NEW: Try GPU first (GPU-first architecture)
   console.log('   💡 Generating response from KB context using GPU...');

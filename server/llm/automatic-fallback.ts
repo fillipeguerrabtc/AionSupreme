@@ -133,20 +133,18 @@ export async function generateWithFallback(
     // Step 7: Generate response using indexed knowledge
     console.log('[Fallback] 🎯 Generating response...');
 
-    const unrestrictedPrompt: LLMRequest = {
-      messages: [
-        {
-          role: 'system',
-          content: `You are AION, an AI assistant with access to information from the web and your knowledge base. IMPORTANT: Always respond in the SAME LANGUAGE that the user writes to you. Provide factual, helpful answers based on the available data.`
-        },
-        {
-          role: 'user',
-          content: `Based on the following information from the web:\n\n${searchResults.slice(0, 5).map(r => `${r.title}: ${r.snippet}`).join('\n\n')}\n\nAnswer this question: ${query}`
-        }
-      ],
-      temperature: 0.3,  // Lower temperature for more factual responses
-      maxTokens: 1024
-    };
+    // 🔥 USE CENTRALIZED SYSTEM PROMPT (ensures conversational tone!)
+    const { buildWebResponse } = await import('./system-prompt');
+    
+    const webResultsSummary = searchResults.slice(0, 5)
+      .map(r => `• ${r.title}: ${r.snippet}`)
+      .join('\n\n');
+    
+    const unrestrictedPrompt = await buildWebResponse(
+      [{ role: 'user', content: query }],
+      webResultsSummary,
+      'Provide a helpful, conversational answer based on the web search results above.'
+    );
 
     const unrestrictedResponse = await generateWithFreeAPIs(unrestrictedPrompt);
 
