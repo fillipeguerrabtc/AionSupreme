@@ -39,6 +39,10 @@ export class AutoLearningListener {
 
   /**
    * Processa evento de CHAT COMPLETADO
+   * 
+   * COMPORTAMENTO:
+   * - Se conversationId EXISTS: NÃO enviar para curadoria (aguardar consolidação)
+   * - Se conversationId NULL: enviar imediatamente (mensagens standalone)
    */
   async onChatCompleted(payload: {
     conversationId: number | null;
@@ -49,11 +53,30 @@ export class AutoLearningListener {
   }): Promise<void> {
     if (!this.enabled) return;
 
-    console.log(`\n📝 [AutoLearning] Chat completado - indexando conhecimento...`);
+    console.log(`\n📝 [AutoLearning] Chat completado (conversationId: ${payload.conversationId || 'null'})...`);
 
     try {
-      // ✅ PRODUCTION-READY: Send to curation queue for HITL review
-      // High-quality conversations go through human approval before KB indexing
+      // ✅ NEW BEHAVIOR: Defer submission for conversation-linked messages
+      // They will be consolidated and submitted by ConversationFinalizer
+      if (payload.conversationId !== null) {
+        console.log(`   ⏳ Conversa ${payload.conversationId} - aguardando consolidação`);
+        console.log(`   💡 Mensagem será incluída na transcrição completa da conversa`);
+        
+        // Update conversation's lastActivityAt to track activity
+        const { db } = await import("../db");
+        const { conversations } = await import("@shared/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        await db.update(conversations)
+          .set({ lastActivityAt: new Date() })
+          .where(eq(conversations.id, payload.conversationId));
+        
+        return; // Exit early - don't send to curation queue yet
+      }
+
+      // ✅ STANDALONE MESSAGES: Send immediately (no conversationId)
+      console.log(`   📤 Mensagem standalone - enviando para curadoria imediatamente`);
+      
       const { curationStore } = await import("../curation/store");
       
       const conversationContent = `Q: ${payload.userMessage}\n\nA: ${payload.assistantResponse}`;
@@ -61,12 +84,12 @@ export class AutoLearningListener {
       const item = await curationStore.addToCuration({
         title: payload.userMessage.substring(0, 100),
         content: conversationContent,
-        suggestedNamespaces: ["chat/conversations"],
-        tags: ["chat", payload.source, payload.provider || "unknown"],
+        suggestedNamespaces: ["chat/standalone"],
+        tags: ["chat", "standalone", payload.source, payload.provider || "unknown"],
         submittedBy: "auto-learning",
       });
       
-      console.log(`   ✅ Chat enviado para fila de curadoria (ID: ${item.id})`);
+      console.log(`   ✅ Mensagem standalone enviada para curadoria (ID: ${item.id})`);
       console.log(`   ⚠️ Aguardando aprovação HITL antes de indexar na KB`);
 
       // REMOVED: Direct KB indexing bypass

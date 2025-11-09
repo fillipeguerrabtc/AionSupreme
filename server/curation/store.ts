@@ -52,6 +52,27 @@ export const curationStore = {
       submittedBy?: string;
       contentHash?: string; // For deduplication
       normalizedContent?: string; // For fuzzy matching
+      // Consolidated conversation fields (optional)
+      conversationId?: number;
+      messageTranscript?: Array<{
+        role: "user" | "assistant" | "system";
+        content: string;
+        attachments?: Array<{
+          type: "image" | "video" | "audio" | "document";
+          url: string;
+          filename: string;
+          mimeType: string;
+          size: number;
+        }>;
+        createdAt?: string;
+      }>;
+      attachments?: Array<{
+        type: "image" | "video" | "audio" | "document";
+        url: string;
+        filename: string;
+        mimeType: string;
+        size: number;
+      }>;
     }
   ): Promise<CurationItem> {
     // 🔥 UNIVERSAL DUPLICATE CHECK - Protects against all callers, not just endpoints
@@ -88,6 +109,10 @@ export const curationStore = {
       submittedBy: data.submittedBy,
       contentHash: data.contentHash, // Store for O(1) dedup lookups
       normalizedContent: data.normalizedContent, // Store for fuzzy matching
+      // Consolidated conversation fields (if provided)
+      conversationId: data.conversationId,
+      messageTranscript: data.messageTranscript as any, // JSONB field
+      attachments: data.attachments as any, // JSONB field
     }).returning();
 
     // STEP 2: Tentar análise automática em background (não bloqueia)

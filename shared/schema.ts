@@ -1832,6 +1832,21 @@ export const curationQueue = pgTable("curation_queue", {
   similarityScore: real("similarity_score"), // Cosine similarity score (0-1) if near-duplicate
   duplicateOfId: varchar("duplicate_of_id", { length: 50 }), // Reference to original KB document if duplicate
   
+  // Consolidated chat conversations (HITL review for full chat sessions)
+  conversationId: integer("conversation_id").references(() => conversations.id), // Optional: link to conversation
+  messageTranscript: jsonb("message_transcript").$type<Array<{
+    role: "user" | "assistant" | "system";
+    content: string;
+    attachments?: Array<{
+      type: "image" | "video" | "audio" | "document";
+      url: string;
+      filename: string;
+      mimeType: string;
+      size: number;
+    }>;
+    createdAt?: string; // ISO timestamp
+  }>>(), // Full conversation transcript for consolidated chat submissions
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
@@ -1841,6 +1856,7 @@ export const curationQueue = pgTable("curation_queue", {
   expiresAtIdx: index("curation_queue_expires_at_idx").on(table.expiresAt), // Index for daily cleanup job
   contentHashIdx: index("curation_queue_content_hash_idx").on(table.contentHash), // Index for O(1) duplicate lookup
   duplicationStatusIdx: index("curation_queue_duplication_status_idx").on(table.duplicationStatus), // Index for filtering by dedup status
+  conversationIdx: index("curation_queue_conversation_idx").on(table.conversationId), // Index for conversation-linked curation items
   // Composite index for admin dashboard queries (status + date ordering)
   statusSubmittedIdx: index("curation_queue_status_submitted_idx").on(table.status, table.submittedAt),
 }));

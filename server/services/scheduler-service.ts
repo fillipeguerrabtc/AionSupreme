@@ -477,6 +477,31 @@ export class SchedulerService {
       errorCount: 0,
     });
 
+    // 🔥 JOB 14: Conversation Finalizer - A cada 10 minutos (Consolidate inactive chats for curation)
+    // CRITICAL: Detects conversations that have been idle for 10+ minutes
+    // Consolidates all messages into a single curation item with full transcript + attachments
+    this.register({
+      name: 'conversation-finalizer',
+      schedule: '*/10 * * * *', // A cada 10 minutos
+      task: async () => {
+        try {
+          const { conversationFinalizer } = await import('../curation/conversation-finalizer');
+          
+          // Finalize conversations inactive for 10+ minutes
+          const finalized = await conversationFinalizer.finalizeInactiveConversations(10);
+          
+          if (finalized > 0) {
+            logger.info(`✅ Conversation Finalizer: ${finalized} conversas consolidadas e enviadas para curadoria`);
+          }
+        } catch (error: any) {
+          logger.error(`Conversation finalizer error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
     logger.info(`SchedulerService: ${this.jobs.size} jobs registrados`);
   }
 
