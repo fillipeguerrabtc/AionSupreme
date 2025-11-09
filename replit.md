@@ -32,6 +32,31 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 - Sempre adicionar data-testid para testes E2E
 - Sempre revisar código com architect antes de marcar como completed
 
+## Recent Changes
+
+### 2025-11-09 - ReAct Engine Integration Complete ✅
+**Tasks #27-31 Production-Ready & Architect Approved**
+
+- **✅ Tool Name Mapping Layer**: Implemented production-ready TOOL_NAME_MAP in runtime.ts to bridge DB tool names ("Knowledge Base Search", "Web Search") to agentTools registry keys ("KBSearch", "SearchWeb", "GenerateImage"). Fully documented with maintenance guidelines for future tool additions.
+
+- **✅ End-to-End Validation**: Successfully tested image generation via ReAct engine:
+  - 3 tool_executions persisted in PostgreSQL (2 failures + 1 success with intelligent auto-retry)
+  - Image generated and saved to kb_storage/generated_images/ (permanent storage)
+  - ReAct completed in 4 steps with 1 attachment
+  - Assistant message updated correctly with proper FK constraints
+  - HITL curation flow triggered automatically for quality control
+
+- **✅ Persistence Architecture**: Bulletproof message/tool execution persistence:
+  - routes.ts creates assistant message BEFORE orchestration (prevents FK violations)
+  - Updates content AFTER completion (ensures data integrity)
+  - Deletes empty messages on failure (no orphaned records)
+
+- **✅ Initialization Order Fix**: Resolved seed/loader race condition by moving seedDatabase() call to index.ts BEFORE loadAgentsFromDatabase() to ensure tools table is populated before agents attempt to load their tool references.
+
+- **✅ Custom Icons Migration**: Moved all custom icons from attached_assets/ (temporary) to kb_storage/media/custom_icons/ (permanent storage) to comply with production persistence requirements.
+
+**Architect Review**: All tasks reviewed and approved for production deployment. Recommendations implemented: comprehensive documentation added, logging enhanced for unmapped tools monitoring.
+
 ## System Architecture
 
 ### Core System Design
