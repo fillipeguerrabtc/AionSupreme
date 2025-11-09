@@ -34,6 +34,48 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 
 ## Recent Changes
 
+### 2025-11-09 - Stable Diffusion XL Integration Complete ✅
+**Tasks #32-35 Production-Ready & Architect Approved**
+
+- **✅ SD-XL GPU Worker Template** (`kb_storage/gpu_workers/sd_xl/`):
+  - FastAPI server with text2img and img2img endpoints
+  - Auto-registers with GPU Pool via heartbeat system
+  - Dockerfile optimized for Kaggle/Modal deployment
+  - Production-grade error handling, logging, structured responses
+  - Health check endpoint for monitoring
+  - Deployment scripts: `deploy_kaggle.py` (Kaggle Notebooks API), `deploy_modal.py` (Modal serverless)
+
+- **✅ ImageGenerationCascade GPU-First Integration**:
+  - Priority chain: SD-XL GPU Workers → Pollinations → DALL-E
+  - Auto-discovery via GPU Pool heartbeat system
+  - Quota tracking for all providers (hourly reset)
+  - Production-grade fallback handling
+  - Comprehensive telemetry and structured logging
+  - 100% free GPU workers (zero cost for high-confidence KB matches)
+
+- **✅ KB Similarity-Based img2img Tool** (`transform-image`):
+  - CRITICAL PRODUCTION REQUIREMENT: GPU usage ONLY when KB similarity >= 0.7
+  - Three execution paths:
+    * High-confidence KB match (>= 0.7): Uses GPU workers (free, local)
+    * Low-confidence KB match (< 0.7): Skips GPU, uses Pollinations/DALL-E
+    * Direct image upload: Skips GPU (no confidence metric), uses Pollinations/DALL-E
+  - Semantic KB search with cosine similarity scoring
+  - Returns best available match (no random selection)
+  - `useGPU` flag propagates through entire cascade (no bypass paths)
+  - Comprehensive logging for compliance verification and audit trails
+
+- **✅ Tool Registration**: TransformImage registered in agentTools registry with proper Zod schema, agent permission system, and KB integration
+
+- **✅ GPU Gating Architecture** (Multiple Architect Iterations):
+  - findKBImage() returns best match + similarity score (no threshold rejection)
+  - transformImage() sets useGPU flag based on confidence threshold
+  - generateImageFromImage() respects useGPU at all branches (early return + fallback)
+  - generateImage() skips GPU discovery entirely when useGPU=false
+  - Production compliance: GPU workers NEVER invoked for low-confidence or direct uploads
+  - Design validated through 5+ architect review cycles to eliminate all bypass paths
+
+**Architect Review**: All tasks reviewed and approved for production deployment. GPU gating strictly enforces confidence >= 0.7 requirement with no bypass paths. System ready for QA validation.
+
 ### 2025-11-09 - ReAct Engine Integration Complete ✅
 **Tasks #27-31 Production-Ready & Architect Approved**
 
