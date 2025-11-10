@@ -5925,7 +5925,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // GET /api/gpu/orchestrate/status - Get orchestrator status + quota info
-  app.get("/api/gpu/orchestrate/status", requireAuth, async (req, res) => {
+  app.get("/api/gpu/orchestrate/status", requireAuth, requirePermission("gpu:view"), async (req, res) => {
     try {
       const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
       
@@ -5940,7 +5940,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // GET /api/gpu/quota/:workerId - Get quota status for specific worker
-  app.get("/api/gpu/quota/:workerId", requireAuth, async (req, res) => {
+  app.get("/api/gpu/quota/:workerId", requireAuth, requirePermission("gpu:view"), async (req, res) => {
     try {
       // ✅ FIX P0-2: Validate route parameters
       const params = validateParams(z.object({ 
@@ -6031,7 +6031,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // GET /api/gpu/workers/notebooks - List all managed notebooks
-  app.get("/api/gpu/workers/notebooks", requireAuth, async (req, res) => {
+  app.get("/api/gpu/workers/notebooks", requireAuth, requirePermission("gpu:view"), async (req, res) => {
     try {
       const { gpuWorkers: gpuWorkersTable } = await import("../shared/schema");
       const workers = await db.query.gpuWorkers.findMany({
