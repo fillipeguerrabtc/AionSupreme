@@ -5973,10 +5973,10 @@ export function registerRoutes(app: Express): Server {
     try {
       const { provider, email, password, kaggleUsername, kaggleKey, useGPU, title } = req.body;
       
-      // Validate required fields
-      if (!provider || !email) {
+      // Validate provider
+      if (!provider) {
         return res.status(400).json({ 
-          error: "Missing required fields: provider, email" 
+          error: "Missing required field: provider" 
         });
       }
       
@@ -5986,10 +5986,21 @@ export function registerRoutes(app: Express): Server {
         });
       }
       
-      if (provider === 'kaggle' && (!kaggleUsername || !kaggleKey)) {
-        return res.status(400).json({
-          error: "Kaggle requires 'kaggleUsername' and 'kaggleKey'"
-        });
+      // Validate provider-specific fields
+      if (provider === 'kaggle') {
+        if (!kaggleUsername || !kaggleKey) {
+          return res.status(400).json({
+            error: "Kaggle requires 'kaggleUsername' and 'kaggleKey'"
+          });
+        }
+      }
+      
+      if (provider === 'colab') {
+        if (!email || !password) {
+          return res.status(400).json({
+            error: "Colab requires 'email' and 'password'"
+          });
+        }
       }
       
       // CREATE GPU AUTOMATICAMENTE via GPU Manager
