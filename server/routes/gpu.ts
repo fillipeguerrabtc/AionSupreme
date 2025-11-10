@@ -658,6 +658,66 @@ export function registerGpuRoutes(app: Router) {
   });
 
   /**
+   * POST /api/gpu/kaggle/test-credentials-raw
+   * RAW Kaggle test - returns EXACT CLI output for debugging
+   */
+  app.post("/api/gpu/kaggle/test-credentials-raw", async (req: Request, res: Response) => {
+    try {
+      const { username, key } = req.body;
+      
+      if (!username || !key) {
+        return res.status(400).json({ error: "Username and API key required" });
+      }
+
+      console.log(`[Kaggle RAW Test] Testing ${username}...`);
+
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      // Execute EXACT same command as our service
+      const command = `kaggle kernels list --user ${username}`;
+      
+      try {
+        const { stdout, stderr } = await execAsync(command, {
+          env: {
+            ...process.env,
+            KAGGLE_USERNAME: username,
+            KAGGLE_KEY: key,
+          },
+        });
+
+        console.log(`[Kaggle RAW Test] ✅ Command executed successfully`);
+
+        return res.json({
+          success: true,
+          command,
+          stdout: stdout.substring(0, 1000), // First 1000 chars
+          stderr: stderr.substring(0, 500),
+          isHTML: stdout.trim().toLowerCase().startsWith('<!doctype') || stdout.trim().toLowerCase().startsWith('<html'),
+          firstChars: stdout.substring(0, 100),
+        });
+
+      } catch (error: any) {
+        const output = (error.stdout || '') + (error.stderr || '');
+        
+        return res.json({
+          success: false,
+          command,
+          exitCode: error.code,
+          stdout: (error.stdout || '').substring(0, 1000),
+          stderr: (error.stderr || '').substring(0, 500),
+          isHTML: output.trim().toLowerCase().startsWith('<!doctype') || output.trim().toLowerCase().startsWith('<html'),
+          firstChars: output.substring(0, 100),
+        });
+      }
+
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * POST /api/gpu/kaggle/test-credentials
    * Test Kaggle credentials without provisioning (ENTERPRISE-GRADE)
    * 
