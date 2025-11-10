@@ -25,6 +25,10 @@ import { eq } from 'drizzle-orm';
 import { createKaggleAPI, KaggleAPI } from './providers/kaggle-api';
 import { createColabCreator, ColabNotebookCreator } from './providers/colab-creator';
 import { quotaManager } from './intelligent-quota-manager';
+import { retrieveKaggleCredentials, retrieveGoogleCredentials } from '../services/security/secrets-vault';
+import { logger } from '../services/logger-service';
+
+const log = logger.child('GPUManagerService');
 
 interface CreateGPUOptions {
   provider: 'colab' | 'kaggle';
@@ -58,7 +62,7 @@ export class GPUManagerService {
    * 5. Retorna GPU pronta pra uso
    */
   async createGPU(options: CreateGPUOptions): Promise<any> {
-    console.log(`[GPU Manager] Creating ${options.provider} GPU...`);
+    log.info('Creating GPU', { provider: options.provider, enableGPU: options.enableGPU });
 
     try {
       if (options.provider === 'kaggle') {
@@ -67,7 +71,7 @@ export class GPUManagerService {
         return await this.createColabGPU(options);
       }
     } catch (error: any) {
-      console.error('[GPU Manager] Failed to create GPU:', error);
+      log.error('Failed to create GPU', error, { provider: options.provider });
       throw error;
     }
   }
@@ -125,7 +129,7 @@ export class GPUManagerService {
       maxWeeklySeconds: providerLimits.max_weekly_hours * 3600,
     }).returning();
 
-    console.log(`[GPU Manager] ✅ Kaggle GPU created: ${notebookUrl}`);
+    log.info('Kaggle GPU created successfully', { notebookUrl, slug, workerId: worker.id });
 
     return {
       worker,
@@ -167,6 +171,7 @@ export class GPUManagerService {
       safety_margin_hours: 1,
       idle_timeout_minutes: 90,
       colab_notebook_id: notebookId,  // Guardar ID também
+      google_email: options.email,  // ✅ CREDENTIAL EXTRACTION: Store email for SecretsVault lookup
     };
 
     const [worker] = await db.insert(gpuWorkers).values({
@@ -185,7 +190,7 @@ export class GPUManagerService {
       maxWeeklySeconds: null,
     }).returning();
 
-    console.log(`[GPU Manager] ✅ Colab GPU created: ${notebookUrl}`);
+    log.info('Colab GPU created successfully', { notebookUrl, workerId: worker.id });
 
     return {
       worker,
@@ -208,18 +213,15 @@ export class GPUManagerService {
 
     // Deletar notebook remotamente
     if (worker.provider === 'kaggle') {
-      // TODO: extrair credentials do worker
-      // await kaggleAPI.deleteNotebook(worker.accountId);
-      console.log('[GPU Manager] ⚠️  Kaggle deletion requires credentials mapping');
+      await this.deleteKaggleNotebook(worker);
     } else if (worker.provider === 'colab') {
-      // TODO: implementar via Google Drive API
-      console.log('[GPU Manager] ⚠️  Colab deletion not implemented yet');
+      await this.deleteColabNotebook(worker);
     }
 
     // Deletar do DB
     await db.delete(gpuWorkers).where(eq(gpuWorkers.id, workerId));
 
-    console.log(`[GPU Manager] ✅ GPU ${workerId} deleted`);
+    log.info('GPU deleted from database', { workerId, provider: worker.provider });
   }
 
   /**
@@ -231,7 +233,7 @@ export class GPUManagerService {
    * 3. Escolhe baseado em capacidade/carga
    */
   async scheduleJob(job: GPUJob): Promise<{ workerId: number; assigned: boolean }> {
-    console.log(`[GPU Manager] Scheduling ${job.type} job...`);
+    log.info('Scheduling GPU job', { jobType: job.type, priority: job.priority });
 
     // Listar GPUs disponíveis
     const workers = await db.query.gpuWorkers.findMany({
@@ -248,14 +250,14 @@ export class GPUManagerService {
     }
 
     if (availableWorkers.length === 0) {
-      console.warn('[GPU Manager] ⚠️  No GPUs available, consider auto-scaling');
+      log.warn('No GPUs available for job scheduling', { jobType: job.type });
       return { workerId: -1, assigned: false };
     }
 
     // Escolher melhor GPU (por enquanto: primeiro disponível)
     const selectedWorker = availableWorkers[0];
 
-    console.log(`[GPU Manager] ✅ Job assigned to GPU #${selectedWorker.id}`);
+    log.info('Job assigned to GPU', { workerId: selectedWorker.id, jobType: job.type });
 
     // TODO: Enviar job pro worker via HTTP
     // await this.sendJobToWorker(selectedWorker, job);
@@ -273,11 +275,111 @@ export class GPUManagerService {
     const threshold = 5; // Criar nova GPU se fila > 5 jobs
 
     if (queueLength > threshold) {
-      console.log(`[GPU Manager] 🚀 Auto-scaling triggered (queue: ${queueLength})`);
+      log.info('Auto-scaling triggered', { queueLength, threshold });
       
       // Criar Kaggle GPU (mais confiável que Colab)
       // TODO: Buscar credentials de pool
-      console.log('[GPU Manager] ⚠️  Auto-scaling requires credentials pool implementation');
+      log.warn('Auto-scaling requires credentials pool implementation', { queueLength });
+    }
+  }
+
+  /**
+   * Delete Kaggle notebook remotely using stored credentials
+   */
+  private async deleteKaggleNotebook(worker: any): Promise<void> {
+    try {
+      // Extract slug and username from providerLimits
+      const limits = worker.providerLimits as any;
+      const slug = limits?.kaggle_slug;
+      const username = limits?.kaggle_username;
+
+      if (!slug || !username) {
+        log.warn('Kaggle worker missing slug or username in providerLimits', {
+          workerId: worker.id,
+          hasSlug: !!slug,
+          hasUsername: !!username,
+        });
+        return;
+      }
+
+      // Retrieve credentials from SecretsVault
+      const credentials = await retrieveKaggleCredentials('default', username);
+      
+      if (!credentials) {
+        log.error('Kaggle credentials not found in SecretsVault', {
+          workerId: worker.id,
+          username,
+        });
+        log.info('💡 Add credentials: POST /api/admin/secrets/kaggle');
+        return;
+      }
+
+      // Create temporary KaggleAPI instance and delete notebook
+      const kaggleAPI = createKaggleAPI(credentials);
+      await kaggleAPI.deleteNotebook(slug);
+
+      log.info('Kaggle notebook deleted successfully', {
+        workerId: worker.id,
+        slug,
+        username,
+      });
+    } catch (error: any) {
+      log.error('Failed to delete Kaggle notebook', error, {
+        workerId: worker.id,
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Delete Colab notebook remotely via Google Drive API
+   * 
+   * Colab notebooks are .ipynb files in Google Drive.
+   * Requires Google Drive API implementation.
+   */
+  private async deleteColabNotebook(worker: any): Promise<void> {
+    try {
+      // Extract Google email from providerLimits (not accountId - that's the notebook URL)
+      const limits = worker.providerLimits as any;
+      const googleEmail = limits?.google_email;
+
+      if (!googleEmail) {
+        log.warn('Colab worker missing google_email in providerLimits', {
+          workerId: worker.id,
+          accountId: worker.accountId,
+        });
+        return;
+      }
+
+      // Retrieve Google credentials (identifier='default', email=googleEmail)
+      const credentials = await retrieveGoogleCredentials('default', googleEmail);
+      
+      if (!credentials) {
+        log.error('Google credentials not found in SecretsVault', {
+          workerId: worker.id,
+          googleEmail,
+          notebookUrl: worker.accountId,
+        });
+        log.info('💡 Add credentials: POST /api/admin/secrets/google');
+        return;
+      }
+
+      // TODO: Implement Google Drive API deletion
+      // 1. Initialize Google Drive API client with credentials
+      // 2. Extract notebook file ID from worker.accountId or metadata
+      // 3. Call drive.files.delete(fileId)
+      
+      log.warn('Colab deletion via Google Drive API not yet implemented', {
+        workerId: worker.id,
+        googleEmail,
+        notebookUrl: worker.accountId,
+      });
+      log.info('💡 Manual deletion: Open Colab URL and delete notebook manually');
+    } catch (error: any) {
+      log.error('Failed to delete Colab notebook', error, {
+        workerId: worker.id,
+        error: error.message,
+      });
     }
   }
 
