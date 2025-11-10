@@ -7,6 +7,7 @@
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getProviderQuotas, trackTokenUsage } from '../monitoring/token-tracker';
+import { apiQuotaRepository } from '../repositories/api-quota-repository';
 
 // ============================================================================
 // TYPES
@@ -60,7 +61,7 @@ const FREE_APIS: APIProvider[] = [
     enabled: !!process.env.GEMINI_API_KEY
   },
   {
-    name: 'huggingface',
+    name: 'hf',
     dailyLimit: 720,    // ~720 requests/day (estimated)
     priority: 3,
     models: ['mistralai/Mistral-7B-Instruct-v0.3'],
@@ -74,14 +75,6 @@ const FREE_APIS: APIProvider[] = [
     enabled: !!process.env.OPENROUTER_API_KEY
   }
 ];
-
-// Usage tracking
-const usageStats = {
-  groq: { today: 0, lastReset: new Date().toDateString() },
-  gemini: { today: 0, lastReset: new Date().toDateString() },
-  huggingface: { today: 0, lastReset: new Date().toDateString() },
-  openrouter: { today: 0, lastReset: new Date().toDateString() }
-};
 
 // ============================================================================
 // GROQ CLIENT
@@ -120,12 +113,13 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
         top_p: req.topP || 0.9
       });
 
-      usageStats.groq.today++;
-
       // ✅ PRODUCTION: Track real usage from Groq API
       const promptTokens = response.usage?.prompt_tokens || 0;
       const completionTokens = response.usage?.completion_tokens || 0;
       const totalTokens = response.usage?.total_tokens || 0;
+      
+      // ✅ PRODUCTION: Track quota in PostgreSQL
+      await apiQuotaRepository.incrementUsage('groq', 1, totalTokens);
       
       // ✅ P2.2: Groq is FREE tier → cost calculated as $0.00
       await trackTokenUsage({
@@ -204,12 +198,13 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
   const result = await chat.sendMessage(lastMessage.parts[0].text);
   const response = result.response;
 
-  usageStats.gemini.today++;
-
   // ✅ PRODUCTION: Track real usage from Gemini API
   const promptTokens = response.usageMetadata?.promptTokenCount || 0;
   const completionTokens = response.usageMetadata?.candidatesTokenCount || 0;
   const totalTokens = response.usageMetadata?.totalTokenCount || 0;
+  
+  // ✅ PRODUCTION: Track quota in PostgreSQL
+  await apiQuotaRepository.incrementUsage('gemini', 1, totalTokens);
   
   // ✅ P2.2: Cost calculated automatically via token-tracker (2025 pricing)
   await trackTokenUsage({
@@ -295,7 +290,6 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
       }
 
       const data = await response.json();
-      usageStats.huggingface.today++;
 
       // ✅ P2.4: Token tracking (estimate tokens since HF doesn't provide usage stats)
       const promptLength = prompt.length;
@@ -306,6 +300,9 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
       const promptTokens = Math.ceil(promptLength / 4);
       const completionTokens = Math.ceil(responseLength / 4);
       const totalTokens = promptTokens + completionTokens;
+      
+      // ✅ PRODUCTION: Track quota in PostgreSQL
+      await apiQuotaRepository.incrementUsage('hf', 1, totalTokens);
       
       await trackTokenUsage({
         provider: 'huggingface',
@@ -376,12 +373,14 @@ async function callOpenRouter(req: LLMRequest): Promise<LLMResponse> {
   }
 
   const data = await response.json();
-  usageStats.openrouter.today++;
 
   // ✅ P2.2: OpenRouter cost calculated automatically via token-tracker
   const promptTokens = data.usage?.prompt_tokens || 0;
   const completionTokens = data.usage?.completion_tokens || 0;
   const totalTokens = data.usage?.total_tokens || 0;
+  
+  // ✅ PRODUCTION: Track quota in PostgreSQL
+  await apiQuotaRepository.incrementUsage('openrouter', 1, totalTokens);
   
   await trackTokenUsage({
     provider: 'openrouter',
@@ -445,42 +444,6 @@ async function callOpenAI(req: LLMRequest): Promise<LLMResponse> {
 }
 
 // ============================================================================
-// ROTATION LOGIC
-// ============================================================================
-
-function resetDailyCountsIfNeeded() {
-  const today = new Date().toDateString();
-  
-  for (const provider of Object.keys(usageStats)) {
-    const stats = usageStats[provider as keyof typeof usageStats];
-    if (stats.lastReset !== today) {
-      stats.today = 0;
-      stats.lastReset = today;
-    }
-  }
-}
-
-function getNextAvailableProvider(): APIProvider | null {
-  resetDailyCountsIfNeeded();
-  
-  // Sort by priority
-  const sortedProviders = FREE_APIS
-    .filter(p => p.enabled)
-    .sort((a, b) => a.priority - b.priority);
-  
-  for (const provider of sortedProviders) {
-    const stats = usageStats[provider.name as keyof typeof usageStats];
-    
-    // Check if under limit (80% threshold for safety)
-    if (stats.today < provider.dailyLimit * 0.8) {
-      return provider;
-    }
-  }
-  
-  return null; // All free APIs exhausted
-}
-
-// ============================================================================
 // MAIN GENERATION FUNCTION
 // ============================================================================
 
@@ -491,8 +454,6 @@ export async function generateWithFreeAPIs(
   const startTime = Date.now();
   const errors: string[] = [];
   const failedProviders = new Set<string>();  // Track failed providers
-
-  resetDailyCountsIfNeeded();
   
   // 🔥 FIX: Read quotas from DATABASE to avoid restart issues
   const quotasFromDB = await getProviderQuotas();
@@ -568,22 +529,22 @@ export async function generateWithFreeAPIs(
 }
 
 // ============================================================================
-// USAGE STATISTICS
+// USAGE STATISTICS (PostgreSQL-backed)
 // ============================================================================
 
-export function getUsageStats() {
-  resetDailyCountsIfNeeded();
+export async function getUsageStats() {
+  const quotas = await apiQuotaRepository.getAllQuotas();
   
   return {
-    providers: FREE_APIS.map(p => ({
-      name: p.name,
-      enabled: p.enabled,
-      dailyLimit: p.dailyLimit,
-      used: usageStats[p.name as keyof typeof usageStats].today,
-      remaining: p.dailyLimit - usageStats[p.name as keyof typeof usageStats].today,
-      percentUsed: (usageStats[p.name as keyof typeof usageStats].today / p.dailyLimit) * 100
+    providers: quotas.map(q => ({
+      name: q.provider,
+      enabled: FREE_APIS.find(p => p.name === q.provider)?.enabled ?? false,
+      dailyLimit: q.dailyRequestLimit,
+      used: q.requestCount,
+      remaining: q.dailyRequestLimit - q.requestCount,
+      percentUsed: (q.requestCount / q.dailyRequestLimit) * 100
     })),
-    totalCapacity: FREE_APIS.reduce((sum, p) => sum + p.dailyLimit, 0),
-    totalUsed: Object.values(usageStats).reduce((sum, s) => sum + s.today, 0)
+    totalCapacity: quotas.reduce((sum, q) => sum + q.dailyRequestLimit, 0),
+    totalUsed: quotas.reduce((sum, q) => sum + q.requestCount, 0)
   };
 }

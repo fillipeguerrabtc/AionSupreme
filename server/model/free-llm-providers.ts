@@ -18,27 +18,13 @@ import { HfInference } from "@huggingface/inference";
 import OpenAI from "openai";
 import type { ChatMessage, ChatCompletionResult } from "./llm-client";
 import { ENV } from "../utils/env";
-
-interface ProviderUsage {
-  requests: number;     // Número de requisições (para limites)
-  tokens: number;       // Tokens consumidos (para monitoramento)
-  requestLimit: number; // Limite de requisições por dia
-  lastReset: Date;
-}
+import { apiQuotaRepository } from "../repositories/api-quota-repository";
 
 export class FreeLLMProviders {
   private openrouter: OpenAI | null = null;
   private groq: Groq | null = null;
   private gemini: GoogleGenerativeAI | null = null;
   private hf: HfInference | null = null;
-
-  // Limites diários gratuitos (baseados em REQUISIÇÕES, não tokens)
-  private usage = {
-    openrouter: { requests: 0, tokens: 0, requestLimit: 50, lastReset: new Date() } as ProviderUsage, // 50 req/dia grátis
-    groq: { requests: 0, tokens: 0, requestLimit: 14400, lastReset: new Date() } as ProviderUsage,    // 14.4k req/dia
-    gemini: { requests: 0, tokens: 0, requestLimit: 1500, lastReset: new Date() } as ProviderUsage,   // 1.5k req/dia
-    hf: { requests: 0, tokens: 0, requestLimit: 720, lastReset: new Date() } as ProviderUsage,        // 720 req/dia
-  };
 
   constructor() {
     this.initializeProviders();
@@ -103,85 +89,31 @@ export class FreeLLMProviders {
   }
 
   /**
-   * Reseta contadores diários
-   */
-  private resetDailyUsageIfNeeded(): void {
-    const now = new Date();
-    
-    for (const [provider, usage] of Object.entries(this.usage)) {
-      const hoursSinceReset = (now.getTime() - usage.lastReset.getTime()) / (1000 * 60 * 60);
-      
-      if (hoursSinceReset >= 24) {
-        usage.requests = 0;
-        usage.tokens = 0;
-        usage.lastReset = now;
-        console.log(`[Free LLM] Reset ${provider} usage counters (requests + tokens)`);
-      }
-    }
-  }
-
-  /**
-   * Verifica se provider tem créditos disponíveis (baseado em REQUISIÇÕES)
-   */
-  private hasCredits(provider: keyof typeof this.usage): boolean {
-    const usage = this.usage[provider];
-    return usage.requests < usage.requestLimit;
-  }
-
-  /**
-   * Incrementa contadores de uso (requisições + tokens)
-   */
-  private incrementUsage(provider: keyof typeof this.usage, tokens: number = 0): void {
-    this.usage[provider].requests++;  // Sempre incrementa requisições
-    this.usage[provider].tokens += tokens;  // Adiciona tokens consumidos
-  }
-
-  /**
-   * Retorna status de todos os providers
-   * 
+   * Retorna status de todos os providers (PostgreSQL-backed)
    * Retorna ambos formatos para compatibilidade retroativa:
    * - `used`/`limit`: campos legados (requisições)
    * - `requests`/`tokens`/`requestLimit`: campos novos (métricas separadas)
    */
-  getStatus() {
-    this.resetDailyUsageIfNeeded();
+  async getStatus() {
+    const dbStatus = await apiQuotaRepository.getStatus();
     
+    // Merge with API initialization status
     return {
       openrouter: {
-        available: this.openrouter !== null && this.hasCredits('openrouter'),
-        used: this.usage.openrouter.requests,        // Campo legado (alias para requests)
-        limit: this.usage.openrouter.requestLimit,   // Campo legado (alias para requestLimit)
-        requests: this.usage.openrouter.requests,    // Novo: contador de requisições
-        tokens: this.usage.openrouter.tokens,        // Novo: contador de tokens
-        requestLimit: this.usage.openrouter.requestLimit,
-        remaining: this.usage.openrouter.requestLimit - this.usage.openrouter.requests,
+        ...dbStatus.openrouter,
+        available: this.openrouter !== null && (dbStatus.openrouter?.available ?? false),
       },
       groq: {
-        available: this.groq !== null && this.hasCredits('groq'),
-        used: this.usage.groq.requests,              // Campo legado (alias para requests)
-        limit: this.usage.groq.requestLimit,         // Campo legado (alias para requestLimit)
-        requests: this.usage.groq.requests,          // Novo: contador de requisições
-        tokens: this.usage.groq.tokens,              // Novo: contador de tokens
-        requestLimit: this.usage.groq.requestLimit,
-        remaining: this.usage.groq.requestLimit - this.usage.groq.requests,
+        ...dbStatus.groq,
+        available: this.groq !== null && (dbStatus.groq?.available ?? false),
       },
       gemini: {
-        available: this.gemini !== null && this.hasCredits('gemini'),
-        used: this.usage.gemini.requests,            // Campo legado (alias para requests)
-        limit: this.usage.gemini.requestLimit,       // Campo legado (alias para requestLimit)
-        requests: this.usage.gemini.requests,        // Novo: contador de requisições
-        tokens: this.usage.gemini.tokens,            // Novo: contador de tokens
-        requestLimit: this.usage.gemini.requestLimit,
-        remaining: this.usage.gemini.requestLimit - this.usage.gemini.requests,
+        ...dbStatus.gemini,
+        available: this.gemini !== null && (dbStatus.gemini?.available ?? false),
       },
       hf: {
-        available: this.hf !== null && this.hasCredits('hf'),
-        used: this.usage.hf.requests,                // Campo legado (alias para requests)
-        limit: this.usage.hf.requestLimit,           // Campo legado (alias para requestLimit)
-        requests: this.usage.hf.requests,            // Novo: contador de requisições
-        tokens: this.usage.hf.tokens,                // Novo: contador de tokens
-        requestLimit: this.usage.hf.requestLimit,
-        remaining: this.usage.hf.requestLimit - this.usage.hf.requests,
+        ...dbStatus.hf,
+        available: this.hf !== null && (dbStatus.hf?.available ?? false),
       },
     };
   }
@@ -210,7 +142,7 @@ export class FreeLLMProviders {
     const choice = completion.choices[0];
     const usage = completion.usage!;
 
-    this.incrementUsage('openrouter', usage.total_tokens);
+    await apiQuotaRepository.incrementUsage('openrouter', 1, usage.total_tokens);
 
     return {
       content: choice.message.content || "",
@@ -248,7 +180,7 @@ export class FreeLLMProviders {
     const choice = completion.choices[0];
     const usage = completion.usage!;
 
-    this.incrementUsage('groq', usage.total_tokens);
+    await apiQuotaRepository.incrementUsage('groq', 1, usage.total_tokens);
 
     return {
       content: choice.message.content || "",
@@ -300,7 +232,7 @@ export class FreeLLMProviders {
       response = result.response;
     }
 
-    this.incrementUsage('gemini');
+    await apiQuotaRepository.incrementUsage('gemini', 1, 0);
 
     return {
       content: response.text(),
@@ -339,7 +271,7 @@ export class FreeLLMProviders {
     const choice = response.choices[0];
     const totalTokens = response.usage?.total_tokens || 0;
     
-    this.incrementUsage('hf', totalTokens);
+    await apiQuotaRepository.incrementUsage('hf', 1, totalTokens);
     
     return {
       content: choice.message.content || "",
@@ -366,12 +298,10 @@ export class FreeLLMProviders {
    * TOTAL: ~16.7k requisições/dia GRÁTIS! 🎉
    */
   async chatCompletion(messages: ChatMessage[]): Promise<ChatCompletionResult> {
-    this.resetDailyUsageIfNeeded();
-
     const errors: string[] = [];
 
     // 1. Tentar OpenRouter primeiro (Meta Llama 4 Scout)
-    if (this.openrouter && this.hasCredits('openrouter')) {
+    if (this.openrouter && await apiQuotaRepository.hasCredits('openrouter')) {
       try {
         console.log("[Free LLM] → Usando OpenRouter (Llama 4 Scout:free)");
         return await this.openrouterChat(messages);
@@ -383,7 +313,7 @@ export class FreeLLMProviders {
     }
 
     // 2. Fallback para Groq (Llama 3.3 70B - maior e mais rápido)
-    if (this.groq && this.hasCredits('groq')) {
+    if (this.groq && await apiQuotaRepository.hasCredits('groq')) {
       try {
         console.log("[Free LLM] → Fallback para Groq (Llama 3.3 70B Versatile)");
         return await this.groqChat(messages);
@@ -395,7 +325,7 @@ export class FreeLLMProviders {
     }
 
     // 3. Fallback para Gemini (Google 2.0 Flash Experimental)
-    if (this.gemini && this.hasCredits('gemini')) {
+    if (this.gemini && await apiQuotaRepository.hasCredits('gemini')) {
       try {
         console.log("[Free LLM] → Fallback para Gemini (2.0 Flash Exp)");
         return await this.geminiChat(messages);
@@ -407,7 +337,7 @@ export class FreeLLMProviders {
     }
 
     // 4. Último recurso: HuggingFace (Llama 3 8B)
-    if (this.hf && this.hasCredits('hf')) {
+    if (this.hf && await apiQuotaRepository.hasCredits('hf')) {
       try {
         console.log("[Free LLM] → Fallback para HuggingFace (Llama 3 8B Instruct)");
         return await this.hfChat(messages);
@@ -419,7 +349,7 @@ export class FreeLLMProviders {
     }
 
     // Todos falharam ou sem créditos
-    const status = this.getStatus();
+    const status = await this.getStatus();
     throw new Error(
       `Todas as APIs gratuitas falharam ou sem créditos.\n` +
       `Status:\n` +
@@ -461,35 +391,37 @@ export class FreeLLMProviders {
   /**
    * Get health status of all providers (for monitoring/health checks)
    */
-  getHealthStatus() {
+  async getHealthStatus() {
+    const dbStatus = await apiQuotaRepository.getStatus();
+    
     return {
       openrouter: {
         configured: !!this.openrouter,
-        available: this.hasCredits('openrouter'),
-        used: this.usage.openrouter.requests,
-        limit: this.usage.openrouter.requestLimit,
-        remaining: this.usage.openrouter.requestLimit - this.usage.openrouter.requests,
+        available: await apiQuotaRepository.hasCredits('openrouter'),
+        used: dbStatus.openrouter.requests,
+        limit: dbStatus.openrouter.requestLimit,
+        remaining: dbStatus.openrouter.remaining,
       },
       groq: {
         configured: !!this.groq,
-        available: this.hasCredits('groq'),
-        used: this.usage.groq.requests,
-        limit: this.usage.groq.requestLimit,
-        remaining: this.usage.groq.requestLimit - this.usage.groq.requests,
+        available: await apiQuotaRepository.hasCredits('groq'),
+        used: dbStatus.groq.requests,
+        limit: dbStatus.groq.requestLimit,
+        remaining: dbStatus.groq.remaining,
       },
       gemini: {
         configured: !!this.gemini,
-        available: this.hasCredits('gemini'),
-        used: this.usage.gemini.requests,
-        limit: this.usage.gemini.requestLimit,
-        remaining: this.usage.gemini.requestLimit - this.usage.gemini.requests,
+        available: await apiQuotaRepository.hasCredits('gemini'),
+        used: dbStatus.gemini.requests,
+        limit: dbStatus.gemini.requestLimit,
+        remaining: dbStatus.gemini.remaining,
       },
       hf: {
         configured: !!this.hf,
-        available: this.hasCredits('hf'),
-        used: this.usage.hf.requests,
-        limit: this.usage.hf.requestLimit,
-        remaining: this.usage.hf.requestLimit - this.usage.hf.requests,
+        available: await apiQuotaRepository.hasCredits('hf'),
+        used: dbStatus.hf.requests,
+        limit: dbStatus.hf.requestLimit,
+        remaining: dbStatus.hf.remaining,
       },
     };
   }

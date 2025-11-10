@@ -1,7 +1,40 @@
-import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, unique, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, unique, pgEnum, smallint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from 'drizzle-orm';
+
+// ============================================================================
+// LLM PROVIDER QUOTAS - Free LLM Provider Quota Tracking (PostgreSQL-backed)
+// Tracks daily quotas for Groq, Gemini, HuggingFace, OpenRouter
+// ============================================================================
+export const llmProviderQuotas = pgTable("llm_provider_quotas", {
+  id: serial("id").primaryKey(),
+  provider: varchar("provider", { length: 50 }).notNull().unique(), // groq, gemini, hf, openrouter
+  
+  // Daily counters (reset at midnight)
+  requestCount: integer("request_count").notNull().default(0),
+  tokenCount: integer("token_count").notNull().default(0),
+  
+  // Daily limits
+  dailyRequestLimit: integer("daily_request_limit").notNull(),
+  dailyTokenLimit: integer("daily_token_limit"), // Optional, null for providers without token limits
+  
+  // Rotation priority (1 = highest priority, used for fallback logic)
+  rotationPriority: smallint("rotation_priority").notNull(),
+  
+  // Provider-specific metadata (capabilities, models, etc)
+  metadata: jsonb("metadata").default({}),
+  
+  // Timestamps
+  lastResetAt: timestamp("last_reset_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("idx_llm_provider_quotas_rotation_priority").on(table.rotationPriority),
+]);
+
+export const insertLlmProviderQuotaSchema = createInsertSchema(llmProviderQuotas).omit({ id: true, updatedAt: true });
+export type InsertLlmProviderQuota = z.infer<typeof insertLlmProviderQuotaSchema>;
+export type LlmProviderQuota = typeof llmProviderQuotas.$inferSelect;
 
 // 🔥 NEW: Provider Alternation State (Persistence)
 export const providerAlternationState = pgTable('provider_alternation_state', {
