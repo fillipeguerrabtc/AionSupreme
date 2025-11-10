@@ -35,7 +35,7 @@ const TokenMonitoring = lazy(() => import("./TokenMonitoring"));
 const KnowledgeBaseTab = lazy(() => import("./KnowledgeBaseTab"));
 const TokenHistoryTab = lazy(() => import("./TokenHistoryTab"));
 const CostHistoryTab = lazy(() => import("./CostHistoryTab"));
-const GPUManagementTab = lazy(() => import("./GPUManagementTab"));
+const GPUOverviewPage = lazy(() => import("./GPUOverviewPage"));
 const FederatedTrainingTab = lazy(() => import("./FederatedTrainingTab"));
 const AutoEvolutionTab = lazy(() => import("./AutoEvolutionTab"));
 const DatasetsTab = lazy(() => import("./DatasetsTab"));
@@ -862,12 +862,10 @@ export default function AdminDashboard() {
                 </Suspense>
               )}
 
-              {/* GPU Management Tab */}
+              {/* GPU Overview Tab - Unified Management */}
               {activeTab === "gpu" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
-                    <GPUManagementTab />
-                  </div>
+                  <GPUOverviewPage />
                 </Suspense>
               )}
 
