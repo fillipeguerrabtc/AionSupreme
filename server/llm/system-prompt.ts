@@ -112,6 +112,12 @@ export interface ConversationalRequestOptions {
    * (Will be merged with global conversational tone)
    */
   additionalToneInstructions?: string;
+
+  /**
+   * Detected language from user message (pt-BR, en-US, es-ES)
+   * If provided, bypasses auto-detection and enforces language directive
+   */
+  detectedLanguage?: string;
 }
 
 /**
@@ -126,7 +132,8 @@ export async function composeConversationalRequest(
     baseMessages,
     contextPrompts = [],
     overrides = {},
-    additionalToneInstructions = ''
+    additionalToneInstructions = '',
+    detectedLanguage
   } = options;
 
   // Step 1: Get unified conversational system prompt from Enforcement Pipeline
@@ -138,7 +145,8 @@ export async function composeConversationalRequest(
   const userMessages = baseMessages.filter(m => m.role === 'user');
   const userMessage = userMessages.length > 0 ? userMessages[userMessages.length - 1].content : undefined;
   
-  const baseSystemPrompt = await pipeline.composeSystemPrompt(policy, userMessage);
+  // ✅ FIX: Pass detectedLanguage to prevent re-detection with limited regex
+  const baseSystemPrompt = await pipeline.composeSystemPrompt(policy, userMessage, detectedLanguage);
 
   // Step 2: Build context injection (KB snippets, web results, etc)
   let contextInjection = '';
@@ -222,13 +230,15 @@ export async function buildSimpleConversation(
  * const request = await buildKBResponse(
  *   [{ role: 'user', content: 'Who created you?' }],
  *   'AION was created by...',
- *   'Answer based ONLY on the provided context.'
+ *   'Answer based ONLY on the provided context.',
+ *   'en-US'
  * );
  */
 export async function buildKBResponse(
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
   kbContext: string,
-  instruction?: string
+  instruction?: string,
+  detectedLanguage?: string
 ): Promise<LLMRequest> {
   return composeConversationalRequest({
     baseMessages: messages,
@@ -241,7 +251,8 @@ export async function buildKBResponse(
     ],
     overrides: {
       temperature: 0.3  // Lower temperature for factual KB responses
-    }
+    },
+    detectedLanguage
   });
 }
 
@@ -251,13 +262,16 @@ export async function buildKBResponse(
  * @example
  * const request = await buildWebResponse(
  *   [{ role: 'user', content: 'Latest news about AI?' }],
- *   'Top results:\n1. OpenAI releases...\n2. Google announces...'
+ *   'Top results:\n1. OpenAI releases...\n2. Google announces...',
+ *   undefined,
+ *   'en-US'
  * );
  */
 export async function buildWebResponse(
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
   webResults: string,
-  instruction?: string
+  instruction?: string,
+  detectedLanguage?: string
 ): Promise<LLMRequest> {
   return composeConversationalRequest({
     baseMessages: messages,
@@ -270,6 +284,7 @@ export async function buildWebResponse(
     ],
     overrides: {
       temperature: 0.3  // Lower temperature for factual web responses
-    }
+    },
+    detectedLanguage
   });
 }

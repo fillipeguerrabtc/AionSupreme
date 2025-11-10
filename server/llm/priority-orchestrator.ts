@@ -1110,7 +1110,9 @@ async function generateFromContext(
   
   const llmRequest = await buildKBResponse(
     [{ role: 'user', content: query }],
-    context
+    context,
+    undefined, // instruction (using default)
+    req.language // ✅ FIX: Pass detected language for proper response language
   );
   
   const messages = llmRequest.messages;
@@ -1307,16 +1309,21 @@ async function executeWebFallback(
   
   console.log('   🎯 Generating response from web data...');
   
-  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-    {
-      role: 'system',
-      content: `Você é AION - conversa naturalmente, como um amigo. Use os dados da pesquisa para responder de forma direta e útil. NUNCA dê definições tipo dicionário. Sempre responda no MESMO idioma que o usuário escreveu.`
-    },
-    {
-      role: 'user',
-      content: `Based on this web research:\n\n${searchResults.slice(0, 5).map(r => `${r.title}: ${r.snippet}`).join('\n\n')}\n\nAnswer: ${query}`
-    }
-  ];
+  // 🔥 USE CENTRALIZED SYSTEM PROMPT (ensures conversational tone + language directive!)
+  const { buildWebResponse } = await import('./system-prompt');
+  
+  const webResultsSummary = searchResults.slice(0, 5)
+    .map(r => `• ${r.title}: ${r.snippet}`)
+    .join('\n\n');
+  
+  const llmRequest = await buildWebResponse(
+    [{ role: 'user', content: query }],
+    webResultsSummary,
+    undefined, // instruction (using default)
+    req.language // ✅ FIX: Pass detected language for proper response language
+  );
+  
+  const messages = llmRequest.messages;
   
   // 🔥 NEW: Try GPU first (GPU-first architecture for web content)
   console.log('   💡 Attempting to process web content using GPU...');
@@ -1362,7 +1369,7 @@ async function executeWebFallback(
   console.log('   ⚠️ GPU unavailable, falling back to Free APIs for web content...');
   
   const unrestrictedPrompt: LLMRequest = {
-    messages: messages as Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
+    messages,
     temperature: 0.3,
     maxTokens: 1024
   };
