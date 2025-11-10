@@ -179,6 +179,73 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
 
       console.log(`[Curation] ✅ Análise automática concluída para item ${itemId}: ${analysis.recommended} (score: ${analysis.score})`);
 
+      // 🚀 APROVAÇÃO AUTOMÁTICA TIERED (Alinhado com melhores práticas 2025)
+      // ======================================================================
+      // Score ≥80 + SEM flags sensíveis → AUTO-APPROVE ✅
+      // Score <50 → AUTO-REJECT ❌
+      // Score 50-79 ou COM flags → HITL REVIEW ⚠️
+      
+      // 🔒 GUARD: Só processa auto-approval se análise foi bem-sucedida
+      if (!analysis || typeof analysis.score !== 'number') {
+        console.log(`[Curation] ⚠️ Análise automática incompleta - mantendo em HITL review por segurança`);
+        return; // Sair sem processar - item fica pendente para revisão humana
+      }
+      
+      const contentFlags = (analysis as any).contentFlags || [];
+      const hasSensitiveFlags = contentFlags.some((flag: string) => 
+        ['adult', 'violence', 'medical', 'financial', 'pii'].includes(flag)
+      );
+
+      if (analysis.score >= 80 && !hasSensitiveFlags && analysis.recommended === 'approve') {
+        console.log(`[Curation] 🚀 AUTO-APROVAÇÃO: Score ${analysis.score}/100, sem flags sensíveis`);
+        console.log(`[Curation] 💡 Conteúdo seguro detectado - aprovando automaticamente para acelerar aprendizado`);
+        
+        try {
+          // Auto-aprovar usando sistema automático
+          const approvalResult = await this.approveAndPublish(itemId, 'auto-curator-agent');
+          console.log(`[Curation] ✅ Item ${itemId} auto-aprovado e publicado na KB (docId: ${approvalResult.publishedId})`);
+          console.log(`[Curation] 🚀 Fluxo acelerado: KB → Dataset → Treino automático`);
+          return; // Sair - item já processado
+        } catch (autoApproveError: any) {
+          console.error(`[Curation] ❌ Falha na auto-aprovação:`, autoApproveError.message);
+          console.error(`[Curation] Stack trace:`, autoApproveError.stack);
+          console.log(`[Curation] ⚠️ Mantendo item ${itemId} em HITL review por segurança`);
+          
+          // Adicionar nota sobre falha de auto-approval
+          try {
+            const [currentItem] = await db.select().from(curationQueueTable).where(eq(curationQueueTable.id, itemId)).limit(1);
+            await db.update(curationQueueTable)
+              .set({
+                note: (currentItem?.note || '') + `\n\n⚠️ Auto-aprovação falhou: ${autoApproveError.message}\nItem requer revisão manual.`,
+                updatedAt: new Date(),
+              })
+              .where(eq(curationQueueTable.id, itemId));
+          } catch (noteError: any) {
+            console.error(`[Curation] ❌ Erro ao adicionar nota de falha:`, noteError.message);
+          }
+          
+          // Continua para HITL se auto-approval falhar
+        }
+      } else if (analysis.score < 50 && analysis.recommended === 'reject') {
+        console.log(`[Curation] ❌ AUTO-REJEIÇÃO: Score ${analysis.score}/100 muito baixo`);
+        
+        try {
+          await this.reject(itemId, 'auto-curator-agent', `Automaticamente rejeitado por score baixo (${analysis.score}/100). ${analysis.reasoning}`);
+          console.log(`[Curation] ✅ Item ${itemId} auto-rejeitado`);
+          return; // Sair - item já processado
+        } catch (autoRejectError: any) {
+          console.error(`[Curation] ❌ Falha na auto-rejeição:`, autoRejectError.message);
+          console.log(`[Curation] ⚠️ Mantendo em HITL review por segurança`);
+        }
+      } else {
+        // Score 50-79 ou flags sensíveis → HITL obrigatório
+        const reason = hasSensitiveFlags 
+          ? `flags sensíveis detectadas: ${contentFlags.join(', ')}`
+          : `score médio (${analysis.score}/100)`;
+        console.log(`[Curation] ⚠️ HITL REVIEW NECESSÁRIO: ${reason}`);
+        console.log(`[Curation] 👤 Aguardando aprovação humana para decisão final`);
+      }
+
       // Se o agente recomendou edições, podemos aplicá-las automaticamente (opcional)
       if (analysis.suggestedEdits && analysis.score >= 70) {
         console.log(`[Curation] 💡 Agente sugeriu edições (score alto: ${analysis.score}), mas mantendo valores originais para revisão humana`);
