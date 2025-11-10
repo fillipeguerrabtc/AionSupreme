@@ -35,6 +35,7 @@ import { gpuWorkers } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { gpuCooldownManager } from '../services/gpu-cooldown-manager';
 import { QUOTA_LIMITS } from '../config/quota-limits';
+import { alertService } from '../services/alert-service';
 
 // ✅ P2.8: Add stealth plugin for maximum anti-detection
 puppeteer.use(StealthPlugin());
@@ -435,16 +436,25 @@ export class ColabOrchestrator {
   
   /**
    * ✅ P2.8.2: Notify admin about CAPTCHA
+   * ✅ IMPLEMENTED: Webhook/Email alerts via AlertService
    */
   private async notifyAdminCaptcha(workerId: number, notebookUrl: string): Promise<void> {
     console.log(`[Colab] 📧 ADMIN NOTIFICATION: CAPTCHA required for worker ${workerId}`);
     console.log(`[Colab] 🔗 Notebook: ${notebookUrl}`);
     
-    // TODO: Implement webhook/email notification
-    // Example: await fetch('https://aion.repl.co/api/webhooks/captcha', {
-    //   method: 'POST',
-    //   body: JSON.stringify({ workerId, notebookUrl, timestamp: new Date() })
-    // });
+    // Send alert via webhook/email/logging
+    await alertService.sendAlert({
+      severity: 'critical',
+      title: 'CAPTCHA Detected - Manual Intervention Required',
+      message: `Google Colab worker ${workerId} encountered CAPTCHA during automation. Manual login required.`,
+      context: {
+        workerId,
+        notebookUrl,
+        provider: 'colab',
+        action: 'manual_intervention_required',
+        timestamp: new Date().toISOString(),
+      },
+    });
   }
   
   /**
