@@ -4360,7 +4360,7 @@ export function registerRoutes(app: Express): Server {
   // ============================================================================
 
   // POST /api/training/datasets - Upload new dataset
-  app.post("/api/training/datasets", requireAuth, requirePermission("training:datasets:write"), upload.single("file"), async (req, res) => {
+  app.post("/api/training/datasets", requireAuth, requirePermission("training:datasets:create"), upload.single("file"), async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets } = await import("../shared/schema");
@@ -4694,7 +4694,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/training/datasets/generate-from-kb - Auto-generate dataset from Knowledge Base
-  app.post("/api/training/datasets/generate-from-kb", requireAuth, requirePermission("training:datasets:write"), async (req, res) => {
+  app.post("/api/training/datasets/generate-from-kb", requireAuth, requirePermission("training:datasets:create"), async (req, res) => {
     try {
       const { db } = await import("./db");
       const { datasets, trainingDataCollection } = await import("../shared/schema");

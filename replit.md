@@ -57,13 +57,13 @@ A Continuous Self-Evolution System collects high-quality conversations for instr
 The frontend is built with React 18, Vite, Wouter, and TanStack Query, utilizing Radix UI, shadcn/ui patterns, Tailwind CSS, and a custom HSL-based design system. It features an elegant minimalist design with modern glassmorphism, offering a clean conversational chat interface and an enterprise-level Admin Panel with a consolidated hierarchical menu and full Internationalization (i18n) supporting PT-BR (default), EN-US, ES-ES. All administrative pages are translated, including Dataset, Agent, and Curation Queue management. The Curation Queue for HITL review supports filtering and batch actions. Vision System monitoring displays real-time quota tracking. AI-powered semantic image search and Health Diagnostics are included. The Personality Equalizer offers granular control via 7 functional sliders.
 
 **GPU Management Dashboard (Unified Architecture - Nov 2024):**
-The GPU Management interface has been consolidated into a single unified page (`GPUOverviewPage.tsx`) that aggregates both manual and auto-managed GPU workers with RBAC security. Key features include:
-- Single `/api/gpu/overview` endpoint protected with `requirePermission("gpu:view")` that returns all workers (manual + auto-managed), global stats, and orchestrator status
+The GPU Management interface has been consolidated into a single unified page (`GPUOverviewPage.tsx`) that aggregates both manual and auto-managed GPU workers with RBAC security and **100% automatic orchestration** (zero manual controls). Key features include:
+- Single `/api/gpu/overview` endpoint protected with `requirePermission("gpu:pool:read")` that returns all workers (manual + auto-managed), global stats, and orchestrator status
 - Stats cards displaying: Total Workers, Online Workers, Total Requests, Average Latency
 - Unified worker table with visual badges: "Auto" workers (purple badge with Zap icon) for auto-managed Kaggle/Colab notebooks, "Manual" workers (gray badge with Cpu icon) for manually added GPUs
 - Quota status display exclusively for auto-managed workers (Kaggle 28h/week tracking)
-- Orchestration controls (Start/Stop) protected with `requirePermission("gpu:orchestrate")`
-- All GPU endpoints secured with RBAC: `gpu:view` for read operations, `gpu:manage` for CRUD operations, `gpu:orchestrate` for start/stop controls
+- GPU orchestration is fully automatic and transparent - no manual Start/Stop controls in UI
+- All GPU endpoints secured with RBAC: `gpu:pool:read` for read operations, `gpu:pool:manage` for CRUD operations, `gpu:pool:execute` for internal system operations
 - Real-time status monitoring with 30-second auto-refresh
 
 ### Technical Implementations

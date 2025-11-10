@@ -15,8 +15,6 @@ import {
   Circle,
   Clock,
   Pencil,
-  PlayCircle,
-  StopCircle,
   Cpu,
   Zap,
 } from "lucide-react";
@@ -124,52 +122,6 @@ export default function GPUOverviewPage() {
     },
   });
 
-  // Start GPU orchestration
-  const startMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("/api/gpu/orchestrate/start", {
-        method: "POST",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
-      toast({
-        title: "GPU Started",
-        description: "GPU orchestration started successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Stop GPU orchestration
-  const stopMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("/api/gpu/orchestrate/stop", {
-        method: "POST",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
-      toast({
-        title: "GPU Stopped",
-        description: "GPU orchestration stopped successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const getStatusBadge = (status: GPUWorker["status"]) => {
     switch (status) {
       case "healthy":
@@ -259,25 +211,6 @@ export default function GPUOverviewPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            onClick={() => startMutation.mutate()}
-            disabled={startMutation.isPending}
-            data-testid="button-start-orchestration"
-            className="gap-2"
-          >
-            <PlayCircle className="w-4 h-4" />
-            Start Orchestration
-          </Button>
-          <Button
-            onClick={() => stopMutation.mutate()}
-            disabled={stopMutation.isPending}
-            variant="destructive"
-            data-testid="button-stop-orchestration"
-            className="gap-2"
-          >
-            <StopCircle className="w-4 h-4" />
-            Stop All
-          </Button>
           <Button
             onClick={() => setShowProvisionDialog(true)}
             data-testid="button-provision-gpu"
