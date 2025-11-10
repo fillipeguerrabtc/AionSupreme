@@ -75,6 +75,14 @@ interface OverviewData {
   };
 }
 
+// Helper function for template interpolation
+function interpolate(template: string, vars: Record<string, string | number>): string {
+  return Object.entries(vars).reduce(
+    (result, [key, value]) => result.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value)),
+    template
+  );
+}
+
 export default function GPUOverviewPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -129,28 +137,28 @@ export default function GPUOverviewPage() {
         return (
           <Badge className="bg-green-500/20 text-green-300 border-green-500/50" data-testid="status-healthy">
             <Circle className="w-2 h-2 mr-1 fill-current" />
-            Online
+            {t.admin.gpuManagement.badges.online}
           </Badge>
         );
       case "unhealthy":
         return (
           <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/50" data-testid="status-unhealthy">
             <Circle className="w-2 h-2 mr-1 fill-current" />
-            Unhealthy
+            {t.admin.gpuManagement.badges.unhealthy}
           </Badge>
         );
       case "offline":
         return (
           <Badge className="bg-red-500/20 text-red-300 border-red-500/50" data-testid="status-offline">
             <Circle className="w-2 h-2 mr-1 fill-current" />
-            Offline
+            {t.admin.gpuManagement.badges.offline}
           </Badge>
         );
       case "pending":
         return (
           <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/50" data-testid="status-pending">
             <Clock className="w-2 h-2 mr-1" />
-            Pending
+            {t.admin.gpuManagement.badges.pending}
           </Badge>
         );
     }
@@ -161,14 +169,14 @@ export default function GPUOverviewPage() {
       return (
         <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/50" data-testid="badge-auto">
           <Zap className="w-3 h-3 mr-1" />
-          Auto
+          {t.admin.gpuManagement.badges.auto}
         </Badge>
       );
     }
     return (
       <Badge className="bg-gray-500/20 text-gray-300 border-gray-500/50" data-testid="badge-manual">
         <Cpu className="w-3 h-3 mr-1" />
-        Manual
+        {t.admin.gpuManagement.badges.manual}
       </Badge>
     );
   };
@@ -184,8 +192,8 @@ export default function GPUOverviewPage() {
 
     return (
       <div className="text-xs text-muted-foreground" data-testid="quota-info">
-        <div>Session: {hoursUsed}h / {hoursMax}h</div>
-        {weeklyUsed && <div>Week: {weeklyUsed}h / 30h</div>}
+        <div>{interpolate(t.admin.gpuManagement.quota.sessionTemplate, { used: hoursUsed, max: hoursMax })}</div>
+        {weeklyUsed && <div>{interpolate(t.admin.gpuManagement.quota.weekTemplate, { used: weeklyUsed })}</div>}
       </div>
     );
   };
@@ -204,10 +212,10 @@ export default function GPUOverviewPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold" data-testid="title-gpu-overview">
-            GPU Management
+            {t.admin.gpuManagement.header.title}
           </h2>
           <p className="text-muted-foreground mt-1">
-            Centralized control for all GPU workers
+            {t.admin.gpuManagement.header.subtitle}
           </p>
         </div>
         <div className="flex gap-2">
@@ -217,7 +225,7 @@ export default function GPUOverviewPage() {
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
-            Add GPU
+            {t.admin.gpuManagement.header.addGpu}
           </Button>
         </div>
       </div>
@@ -227,7 +235,7 @@ export default function GPUOverviewPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Workers
+              {t.admin.gpuManagement.stats.totalWorkers}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -235,7 +243,7 @@ export default function GPUOverviewPage() {
               {stats.total}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats.autoManaged} auto / {stats.manual} manual
+              {interpolate(t.admin.gpuManagement.stats.autoManualTemplate, { auto: stats.autoManaged, manual: stats.manual })}
             </p>
           </CardContent>
         </Card>
@@ -243,7 +251,7 @@ export default function GPUOverviewPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Online
+              {t.admin.gpuManagement.stats.online}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -251,7 +259,7 @@ export default function GPUOverviewPage() {
               {stats.healthy}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats.offline} offline · {stats.unhealthy} unhealthy
+              {interpolate(t.admin.gpuManagement.stats.offlineUnhealthyTemplate, { offline: stats.offline, unhealthy: stats.unhealthy })}
             </p>
           </CardContent>
         </Card>
@@ -259,7 +267,7 @@ export default function GPUOverviewPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Requests
+              {t.admin.gpuManagement.stats.totalRequests}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -272,12 +280,12 @@ export default function GPUOverviewPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Avg Latency
+              {t.admin.gpuManagement.stats.avgLatency}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold" data-testid="stat-latency">
-              {stats.avgLatency.toFixed(0)}ms
+              {stats.avgLatency.toFixed(0)}{t.admin.gpuManagement.stats.msUnit}
             </div>
           </CardContent>
         </Card>
@@ -288,37 +296,37 @@ export default function GPUOverviewPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Server className="w-5 h-5" />
-            GPU Workers
+            {t.admin.gpuManagement.table.title}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {workers.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Server className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No GPU workers configured</p>
+              <p>{t.admin.gpuManagement.emptyState.message}</p>
               <Button
                 onClick={() => setShowProvisionDialog(true)}
                 className="mt-4"
                 data-testid="button-add-first-gpu"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Your First GPU
+                {t.admin.gpuManagement.emptyState.addFirstGpu}
               </Button>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead>GPU</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Quota</TableHead>
-                  <TableHead>Requests</TableHead>
-                  <TableHead>Latency</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>{t.admin.gpuManagement.table.headers.id}</TableHead>
+                  <TableHead>{t.admin.gpuManagement.table.headers.type}</TableHead>
+                  <TableHead>{t.admin.gpuManagement.table.headers.provider}</TableHead>
+                  <TableHead>{t.admin.gpuManagement.table.headers.account}</TableHead>
+                  <TableHead>{t.admin.gpuManagement.table.headers.gpu}</TableHead>
+                  <TableHead>{t.admin.gpuManagement.table.headers.status}</TableHead>
+                  <TableHead>{t.admin.gpuManagement.table.headers.quota}</TableHead>
+                  <TableHead>{t.admin.gpuManagement.table.headers.requests}</TableHead>
+                  <TableHead>{t.admin.gpuManagement.table.headers.latency}</TableHead>
+                  <TableHead className="text-right">{t.admin.gpuManagement.table.headers.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -328,13 +336,13 @@ export default function GPUOverviewPage() {
                     <TableCell>{getSourceBadge(worker.source)}</TableCell>
                     <TableCell className="capitalize">{worker.provider}</TableCell>
                     <TableCell className="text-xs text-muted-foreground truncate max-w-[150px]">
-                      {worker.accountId || "N/A"}
+                      {worker.accountId || t.admin.gpuManagement.table.na}
                     </TableCell>
                     <TableCell className="text-xs">{worker.capabilities.gpu}</TableCell>
                     <TableCell>{getStatusBadge(worker.status)}</TableCell>
                     <TableCell>{formatQuotaInfo(worker.quotaStatus)}</TableCell>
                     <TableCell>{worker.requestCount}</TableCell>
-                    <TableCell>{worker.averageLatencyMs.toFixed(0)}ms</TableCell>
+                    <TableCell>{worker.averageLatencyMs.toFixed(0)}{t.admin.gpuManagement.stats.msUnit}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button
@@ -361,55 +369,55 @@ export default function GPUOverviewPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle>Add GPU Worker</CardTitle>
+              <CardTitle>{t.admin.gpuManagement.dialogs.addWorkerTitle}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4">
-                Choose provisioning method:
+                {t.admin.gpuManagement.dialogs.chooseMethod}
               </p>
               <div className="space-y-2">
                 <Button
                   className="w-full"
                   onClick={() => {
                     toast({
-                      title: "Coming Soon",
-                      description: "Kaggle auto-provisioning will be available soon",
+                      title: t.admin.gpuManagement.dialogs.comingSoon,
+                      description: t.admin.gpuManagement.dialogs.kaggleDesc,
                     });
                     setShowProvisionDialog(false);
                   }}
                   data-testid="button-provision-kaggle"
                 >
                   <Zap className="w-4 h-4 mr-2" />
-                  Auto-Provision Kaggle
+                  {t.admin.gpuManagement.dialogs.kaggleButton}
                 </Button>
                 <Button
                   className="w-full"
                   onClick={() => {
                     toast({
-                      title: "Coming Soon",
-                      description: "Colab auto-provisioning will be available soon",
+                      title: t.admin.gpuManagement.dialogs.comingSoon,
+                      description: t.admin.gpuManagement.dialogs.colabDesc,
                     });
                     setShowProvisionDialog(false);
                   }}
                   data-testid="button-provision-colab"
                 >
                   <Zap className="w-4 h-4 mr-2" />
-                  Auto-Provision Colab
+                  {t.admin.gpuManagement.dialogs.colabButton}
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full"
                   onClick={() => {
                     toast({
-                      title: "Coming Soon",
-                      description: "Manual GPU addition will be available soon",
+                      title: t.admin.gpuManagement.dialogs.comingSoon,
+                      description: t.admin.gpuManagement.dialogs.manualDesc,
                     });
                     setShowProvisionDialog(false);
                   }}
                   data-testid="button-add-manual"
                 >
                   <Cpu className="w-4 h-4 mr-2" />
-                  Add Manual Worker
+                  {t.admin.gpuManagement.dialogs.manualButton}
                 </Button>
               </div>
               <Button
@@ -418,7 +426,7 @@ export default function GPUOverviewPage() {
                 onClick={() => setShowProvisionDialog(false)}
                 data-testid="button-cancel-provision"
               >
-                Cancel
+                {t.common.cancel}
               </Button>
             </CardContent>
           </Card>

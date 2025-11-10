@@ -466,6 +466,80 @@ interface Translations {
     gpuManagement: {
       title: string;
       subtitle: string;
+      
+      // Header
+      header: {
+        title: string;
+        subtitle: string;
+        addGpu: string;
+      };
+      
+      // Stats Cards
+      stats: {
+        totalWorkers: string;
+        autoManualTemplate: string; // "{auto} auto / {manual} manual"
+        online: string;
+        offlineUnhealthyTemplate: string; // "{offline} offline · {unhealthy} unhealthy"
+        totalRequests: string;
+        avgLatency: string;
+        msUnit: string;
+      };
+      
+      // Table
+      table: {
+        title: string;
+        headers: {
+          id: string;
+          type: string;
+          provider: string;
+          account: string;
+          gpu: string;
+          status: string;
+          quota: string;
+          requests: string;
+          latency: string;
+          actions: string;
+        };
+        na: string;
+      };
+      
+      // Badges
+      badges: {
+        online: string;
+        offline: string;
+        unhealthy: string;
+        pending: string;
+        auto: string;
+        manual: string;
+      };
+      
+      // Quota
+      quota: {
+        sessionTemplate: string; // "Session: {used}h / {max}h"
+        weekTemplate: string; // "Week: {used}h / 30h"
+        hourUnit: string;
+      };
+      
+      // Empty State
+      emptyState: {
+        message: string;
+        addFirstGpu: string;
+      };
+      
+      // Dialogs
+      dialogs: {
+        addWorkerTitle: string;
+        chooseMethod: string;
+        comingSoon: string;
+        kaggleDesc: string;
+        colabDesc: string;
+        manualDesc: string;
+        kaggleButton: string;
+        colabButton: string;
+        manualButton: string;
+      };
+      
+      // Legacy fields (mantidos para compatibilidade)
       activeWorkers: string;
       totalGPUs: string;
       totalRequests: string;
@@ -579,6 +653,45 @@ interface Translations {
         successDesc: string;
         error: string;
         errorDesc: string;
+      };
+    };
+    
+    // Edit GPU Worker Dialog
+    editWorkerDialog: {
+      titleTemplate: string;
+      description: string;
+      fields: {
+        provider: string;
+        accountId: string;
+        model: string;
+        gpu: string;
+        status: string;
+      };
+      placeholders: {
+        accountId: string;
+        model: string;
+        gpu: string;
+      };
+      statusOptions: {
+        healthy: string;
+        unhealthy: string;
+        offline: string;
+        pending: string;
+      };
+      infoLabels: {
+        requests: string;
+        avgLatency: string;
+        ngrokUrl: string;
+      };
+      buttons: {
+        cancel: string;
+        save: string;
+      };
+      toasts: {
+        updateSuccess: string;
+        updateSuccessDesc: string;
+        updateError: string;
+        updateErrorDesc: string;
       };
     };
     
@@ -1683,6 +1796,79 @@ const translations: Record<Language, Translations> = {
       gpuManagement: {
         title: "Gerenciamento de GPUs",
         subtitle: "Gerencie workers de GPU e load balancing",
+        
+        // Header
+        header: {
+          title: "Gerenciamento de GPUs",
+          subtitle: "Controle centralizado para todos os GPU workers",
+          addGpu: "Adicionar GPU",
+        },
+        
+        // Stats Cards
+        stats: {
+          totalWorkers: "Total de Workers",
+          autoManualTemplate: "{auto} auto / {manual} manual",
+          online: "Online",
+          offlineUnhealthyTemplate: "{offline} offline · {unhealthy} não saudáveis",
+          totalRequests: "Total de Requisições",
+          avgLatency: "Latência Média",
+          msUnit: "ms",
+        },
+        
+        // Table
+        table: {
+          title: "GPU Workers",
+          headers: {
+            id: "ID",
+            type: "Tipo",
+            provider: "Provedor",
+            account: "Conta",
+            gpu: "GPU",
+            status: "Status",
+            quota: "Quota",
+            requests: "Requisições",
+            latency: "Latência",
+            actions: "Ações",
+          },
+          na: "N/D",
+        },
+        
+        // Badges
+        badges: {
+          online: "Online",
+          offline: "Offline",
+          unhealthy: "Não Saudável",
+          pending: "Pendente",
+          auto: "Auto",
+          manual: "Manual",
+        },
+        
+        // Quota
+        quota: {
+          sessionTemplate: "Sessão: {used}h / {max}h",
+          weekTemplate: "Semana: {used}h / 30h",
+          hourUnit: "h",
+        },
+        
+        // Empty State
+        emptyState: {
+          message: "Nenhum GPU worker configurado",
+          addFirstGpu: "Adicionar Sua Primeira GPU",
+        },
+        
+        // Dialogs
+        dialogs: {
+          addWorkerTitle: "Adicionar GPU Worker",
+          chooseMethod: "Escolha o método de provisionamento:",
+          comingSoon: "Em Breve",
+          kaggleDesc: "Provisionamento automático via Kaggle estará disponível em breve",
+          colabDesc: "Provisionamento automático via Colab estará disponível em breve",
+          manualDesc: "Adição manual de GPU estará disponível em breve",
+          kaggleButton: "Auto-Provisionar Kaggle",
+          colabButton: "Auto-Provisionar Colab",
+          manualButton: "Adicionar Worker Manual",
+        },
+        
         activeWorkers: "Workers Ativos",
         totalGPUs: "Total de GPUs",
         totalRequests: "Total de Requisições",
@@ -1795,6 +1981,44 @@ const translations: Record<Language, Translations> = {
           successDesc: "Notebook provisionado com sucesso! GPU será registrada em ~3-5 minutos.",
           error: "Erro ao provisionar Colab",
           errorDesc: "Falha ao orquestrar notebook Colab",
+        },
+      },
+      
+      editWorkerDialog: {
+        titleTemplate: "Editar GPU Worker #{id}",
+        description: "Atualizar informações e configurações do worker",
+        fields: {
+          provider: "Provider",
+          accountId: "Account ID",
+          model: "Model",
+          gpu: "GPU Type",
+          status: "Status",
+        },
+        placeholders: {
+          accountId: "Email ou username",
+          model: "TinyLlama-1.1B-Chat",
+          gpu: "Tesla T4",
+        },
+        statusOptions: {
+          healthy: "Healthy",
+          unhealthy: "Unhealthy",
+          offline: "Offline",
+          pending: "Pending",
+        },
+        infoLabels: {
+          requests: "Requests:",
+          avgLatency: "Avg Latency:",
+          ngrokUrl: "Ngrok URL:",
+        },
+        buttons: {
+          cancel: "Cancelar",
+          save: "Salvar Alterações",
+        },
+        toasts: {
+          updateSuccess: "Worker atualizado",
+          updateSuccessDesc: "As alterações foram salvas com sucesso",
+          updateError: "Erro ao atualizar",
+          updateErrorDesc: "Falha ao atualizar worker",
         },
       },
       
@@ -2877,6 +3101,79 @@ const translations: Record<Language, Translations> = {
       gpuManagement: {
         title: "GPU Management",
         subtitle: "Manage GPU workers and load balancing",
+        
+        // Header
+        header: {
+          title: "GPU Management",
+          subtitle: "Centralized control for all GPU workers",
+          addGpu: "Add GPU",
+        },
+        
+        // Stats Cards
+        stats: {
+          totalWorkers: "Total Workers",
+          autoManualTemplate: "{auto} auto / {manual} manual",
+          online: "Online",
+          offlineUnhealthyTemplate: "{offline} offline · {unhealthy} unhealthy",
+          totalRequests: "Total Requests",
+          avgLatency: "Avg Latency",
+          msUnit: "ms",
+        },
+        
+        // Table
+        table: {
+          title: "GPU Workers",
+          headers: {
+            id: "ID",
+            type: "Type",
+            provider: "Provider",
+            account: "Account",
+            gpu: "GPU",
+            status: "Status",
+            quota: "Quota",
+            requests: "Requests",
+            latency: "Latency",
+            actions: "Actions",
+          },
+          na: "N/A",
+        },
+        
+        // Badges
+        badges: {
+          online: "Online",
+          offline: "Offline",
+          unhealthy: "Unhealthy",
+          pending: "Pending",
+          auto: "Auto",
+          manual: "Manual",
+        },
+        
+        // Quota
+        quota: {
+          sessionTemplate: "Session: {used}h / {max}h",
+          weekTemplate: "Week: {used}h / 30h",
+          hourUnit: "h",
+        },
+        
+        // Empty State
+        emptyState: {
+          message: "No GPU workers configured",
+          addFirstGpu: "Add Your First GPU",
+        },
+        
+        // Dialogs
+        dialogs: {
+          addWorkerTitle: "Add GPU Worker",
+          chooseMethod: "Choose provisioning method:",
+          comingSoon: "Coming Soon",
+          kaggleDesc: "Kaggle auto-provisioning will be available soon",
+          colabDesc: "Colab auto-provisioning will be available soon",
+          manualDesc: "Manual GPU addition will be available soon",
+          kaggleButton: "Auto-Provision Kaggle",
+          colabButton: "Auto-Provision Colab",
+          manualButton: "Add Manual Worker",
+        },
+        
         activeWorkers: "Active Workers",
         totalGPUs: "Total GPUs",
         totalRequests: "Total Requests",
@@ -2989,6 +3286,44 @@ const translations: Record<Language, Translations> = {
           successDesc: "Notebook provisioned successfully! GPU will be registered in ~3-5 minutes.",
           error: "Error provisioning Colab",
           errorDesc: "Failed to orchestrate Colab notebook",
+        },
+      },
+      
+      editWorkerDialog: {
+        titleTemplate: "Edit GPU Worker #{id}",
+        description: "Update worker information and settings",
+        fields: {
+          provider: "Provider",
+          accountId: "Account ID",
+          model: "Model",
+          gpu: "GPU Type",
+          status: "Status",
+        },
+        placeholders: {
+          accountId: "Email or username",
+          model: "TinyLlama-1.1B-Chat",
+          gpu: "Tesla T4",
+        },
+        statusOptions: {
+          healthy: "Healthy",
+          unhealthy: "Unhealthy",
+          offline: "Offline",
+          pending: "Pending",
+        },
+        infoLabels: {
+          requests: "Requests:",
+          avgLatency: "Avg Latency:",
+          ngrokUrl: "Ngrok URL:",
+        },
+        buttons: {
+          cancel: "Cancel",
+          save: "Save Changes",
+        },
+        toasts: {
+          updateSuccess: "Worker updated",
+          updateSuccessDesc: "Changes saved successfully",
+          updateError: "Error updating",
+          updateErrorDesc: "Failed to update worker",
         },
       },
       
@@ -4071,6 +4406,79 @@ const translations: Record<Language, Translations> = {
       gpuManagement: {
         title: "Gestión de GPUs",
         subtitle: "Gestiona workers de GPU y balanceo de carga",
+        
+        // Header
+        header: {
+          title: "Gestión de GPUs",
+          subtitle: "Control centralizado para todos los GPU workers",
+          addGpu: "Agregar GPU",
+        },
+        
+        // Stats Cards
+        stats: {
+          totalWorkers: "Total de Workers",
+          autoManualTemplate: "{auto} auto / {manual} manual",
+          online: "En Línea",
+          offlineUnhealthyTemplate: "{offline} fuera de línea · {unhealthy} no saludables",
+          totalRequests: "Total de Solicitudes",
+          avgLatency: "Latencia Media",
+          msUnit: "ms",
+        },
+        
+        // Table
+        table: {
+          title: "GPU Workers",
+          headers: {
+            id: "ID",
+            type: "Tipo",
+            provider: "Proveedor",
+            account: "Cuenta",
+            gpu: "GPU",
+            status: "Estado",
+            quota: "Cuota",
+            requests: "Solicitudes",
+            latency: "Latencia",
+            actions: "Acciones",
+          },
+          na: "N/D",
+        },
+        
+        // Badges
+        badges: {
+          online: "En Línea",
+          offline: "Fuera de Línea",
+          unhealthy: "No Saludable",
+          pending: "Pendiente",
+          auto: "Auto",
+          manual: "Manual",
+        },
+        
+        // Quota
+        quota: {
+          sessionTemplate: "Sesión: {used}h / {max}h",
+          weekTemplate: "Semana: {used}h / 30h",
+          hourUnit: "h",
+        },
+        
+        // Empty State
+        emptyState: {
+          message: "No hay GPU workers configurados",
+          addFirstGpu: "Agregar Tu Primera GPU",
+        },
+        
+        // Dialogs
+        dialogs: {
+          addWorkerTitle: "Agregar GPU Worker",
+          chooseMethod: "Elige el método de aprovisionamiento:",
+          comingSoon: "Próximamente",
+          kaggleDesc: "Aprovisionamiento automático de Kaggle estará disponible pronto",
+          colabDesc: "Aprovisionamiento automático de Colab estará disponible pronto",
+          manualDesc: "Adición manual de GPU estará disponible pronto",
+          kaggleButton: "Auto-Aprovisionar Kaggle",
+          colabButton: "Auto-Aprovisionar Colab",
+          manualButton: "Agregar Worker Manual",
+        },
+        
         activeWorkers: "Workers Activos",
         totalGPUs: "Total de GPUs",
         totalRequests: "Total de Solicitudes",
@@ -4183,6 +4591,44 @@ const translations: Record<Language, Translations> = {
           successDesc: "¡Notebook aprovisionado con éxito! La GPU se registrará en ~3-5 minutos.",
           error: "Error al aprovisionar Colab",
           errorDesc: "No se pudo orquestar el notebook de Colab",
+        },
+      },
+      
+      editWorkerDialog: {
+        titleTemplate: "Editar GPU Worker #{id}",
+        description: "Actualizar información y configuración del worker",
+        fields: {
+          provider: "Provider",
+          accountId: "Account ID",
+          model: "Model",
+          gpu: "GPU Type",
+          status: "Estado",
+        },
+        placeholders: {
+          accountId: "Email o nombre de usuario",
+          model: "TinyLlama-1.1B-Chat",
+          gpu: "Tesla T4",
+        },
+        statusOptions: {
+          healthy: "Healthy",
+          unhealthy: "Unhealthy",
+          offline: "Offline",
+          pending: "Pending",
+        },
+        infoLabels: {
+          requests: "Requests:",
+          avgLatency: "Avg Latency:",
+          ngrokUrl: "Ngrok URL:",
+        },
+        buttons: {
+          cancel: "Cancelar",
+          save: "Guardar Cambios",
+        },
+        toasts: {
+          updateSuccess: "Worker actualizado",
+          updateSuccessDesc: "Los cambios se guardaron correctamente",
+          updateError: "Error al actualizar",
+          updateErrorDesc: "No se pudo actualizar el worker",
         },
       },
       

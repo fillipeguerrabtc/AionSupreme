@@ -328,7 +328,7 @@ export default function GPUManagementTab() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {worker.accountId ? worker.accountId.substring(0, 20) + "..." : "N/A"}
+                        {worker.accountId ? worker.accountId.substring(0, 20) + "..." : t.admin.gpuManagement.table.na}
                       </TableCell>
                       <TableCell className="text-sm">{worker.capabilities.model}</TableCell>
                       <TableCell className="text-sm">{worker.capabilities.gpu}</TableCell>

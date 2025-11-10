@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useLanguage } from "@/lib/i18n";
 import { Loader2, Server } from "lucide-react";
 
 interface GpuWorker {
@@ -52,6 +53,7 @@ interface EditWorkerDialogProps {
 
 export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialogProps) {
   const { toast } = useToast();
+  const { t } = useLanguage();
   
   // Form state
   const [accountId, setAccountId] = useState(worker.accountId || "");
@@ -88,15 +90,15 @@ export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialo
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/status"] });
       toast({
-        title: "Worker atualizado",
-        description: "As alterações foram salvas com sucesso",
+        title: t.admin.editWorkerDialog.toasts.updateSuccess,
+        description: t.admin.editWorkerDialog.toasts.updateSuccessDesc,
       });
       onOpenChange(false);
     },
     onError: (error: any) => {
       toast({
-        title: "Erro ao atualizar",
-        description: error.message || "Falha ao atualizar worker",
+        title: t.admin.editWorkerDialog.toasts.updateError,
+        description: error.message || t.admin.editWorkerDialog.toasts.updateErrorDesc,
         variant: "destructive",
       });
     },
@@ -113,17 +115,17 @@ export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialo
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Server className="w-5 h-5" />
-            Editar GPU Worker #{worker.id}
+            {t.admin.editWorkerDialog.titleTemplate.replace('{id}', String(worker.id))}
           </DialogTitle>
           <DialogDescription>
-            Atualizar informações e configurações do worker
+            {t.admin.editWorkerDialog.description}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Provider (read-only) */}
           <div className="space-y-2">
-            <Label htmlFor="provider">Provider</Label>
+            <Label htmlFor="provider">{t.admin.editWorkerDialog.fields.provider}</Label>
             <Input
               id="provider"
               value={worker.provider}
@@ -134,10 +136,10 @@ export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialo
 
           {/* Account ID */}
           <div className="space-y-2">
-            <Label htmlFor="account-id">Account ID</Label>
+            <Label htmlFor="account-id">{t.admin.editWorkerDialog.fields.accountId}</Label>
             <Input
               id="account-id"
-              placeholder="Email ou username"
+              placeholder={t.admin.editWorkerDialog.placeholders.accountId}
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
               disabled={updateMutation.isPending}
@@ -147,10 +149,10 @@ export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialo
 
           {/* Model */}
           <div className="space-y-2">
-            <Label htmlFor="model">Model</Label>
+            <Label htmlFor="model">{t.admin.editWorkerDialog.fields.model}</Label>
             <Input
               id="model"
-              placeholder="TinyLlama-1.1B-Chat"
+              placeholder={t.admin.editWorkerDialog.placeholders.model}
               value={model}
               onChange={(e) => setModel(e.target.value)}
               disabled={updateMutation.isPending}
@@ -160,10 +162,10 @@ export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialo
 
           {/* GPU Type */}
           <div className="space-y-2">
-            <Label htmlFor="gpu">GPU Type</Label>
+            <Label htmlFor="gpu">{t.admin.editWorkerDialog.fields.gpu}</Label>
             <Input
               id="gpu"
-              placeholder="Tesla T4"
+              placeholder={t.admin.editWorkerDialog.placeholders.gpu}
               value={gpu}
               onChange={(e) => setGpu(e.target.value)}
               disabled={updateMutation.isPending}
@@ -173,7 +175,7 @@ export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialo
 
           {/* Status */}
           <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">{t.admin.editWorkerDialog.fields.status}</Label>
             <Select
               value={status}
               onValueChange={(value) => setStatus(value as any)}
@@ -183,10 +185,10 @@ export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialo
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="healthy">Healthy</SelectItem>
-                <SelectItem value="unhealthy">Unhealthy</SelectItem>
-                <SelectItem value="offline">Offline</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="healthy">{t.admin.editWorkerDialog.statusOptions.healthy}</SelectItem>
+                <SelectItem value="unhealthy">{t.admin.editWorkerDialog.statusOptions.unhealthy}</SelectItem>
+                <SelectItem value="offline">{t.admin.editWorkerDialog.statusOptions.offline}</SelectItem>
+                <SelectItem value="pending">{t.admin.editWorkerDialog.statusOptions.pending}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -194,15 +196,15 @@ export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialo
           {/* Worker Info (read-only) */}
           <div className="p-3 bg-muted rounded-md text-sm space-y-1">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Requests:</span>
+              <span className="text-muted-foreground">{t.admin.editWorkerDialog.infoLabels.requests}</span>
               <span className="font-medium">{worker.requestCount.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Avg Latency:</span>
+              <span className="text-muted-foreground">{t.admin.editWorkerDialog.infoLabels.avgLatency}</span>
               <span className="font-medium">{worker.averageLatencyMs.toFixed(0)}ms</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Ngrok URL:</span>
+              <span className="text-muted-foreground">{t.admin.editWorkerDialog.infoLabels.ngrokUrl}</span>
               <span className="font-mono text-xs truncate max-w-[200px]">
                 {worker.ngrokUrl}
               </span>
@@ -217,7 +219,7 @@ export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialo
               onClick={() => onOpenChange(false)}
               disabled={updateMutation.isPending}
             >
-              Cancelar
+              {t.admin.editWorkerDialog.buttons.cancel}
             </Button>
             <Button
               type="submit"
@@ -225,7 +227,7 @@ export function EditWorkerDialog({ worker, open, onOpenChange }: EditWorkerDialo
               data-testid="button-save-worker"
             >
               {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Salvar Alterações
+              {t.admin.editWorkerDialog.buttons.save}
             </Button>
           </div>
         </form>
