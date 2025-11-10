@@ -365,16 +365,37 @@ export class KaggleAutomationService {
       console.log('[Kaggle Automation] 📤 Pushing kernel via Kaggle API...');
 
       // Execute: kaggle kernels push -p /path/to/folder
-      const { stdout, stderr } = await execAsync(
-        `kaggle kernels push -p "${kernelFolder}"`,
-        { timeout: 60000 }
-      );
+      const command = `kaggle kernels push -p "${kernelFolder}"`;
+      console.log(`[Kaggle Automation] Executing: ${command}`);
+      
+      const { stdout, stderr } = await execAsync(command, { 
+        timeout: 60000,
+        env: {
+          ...process.env,
+          // Ensure Kaggle CLI has credentials from SecretsVault
+        }
+      });
 
-      console.log('[Kaggle Automation] Kaggle API response:');
-      console.log(stdout);
+      console.log('[Kaggle Automation] ✅ Command executed successfully');
+      console.log('[Kaggle Automation] STDOUT (first 500 chars):');
+      console.log(stdout.substring(0, 500));
 
       if (stderr) {
-        console.warn('[Kaggle Automation] Stderr:', stderr);
+        console.warn('[Kaggle Automation] STDERR (first 500 chars):');
+        console.warn(stderr.substring(0, 500));
+      }
+
+      // Check if response is HTML (indicates auth error)
+      const isHTML = stdout.trim().toLowerCase().startsWith('<!doctype') || 
+                     stdout.trim().toLowerCase().startsWith('<html');
+      
+      if (isHTML) {
+        console.error('[Kaggle Automation] ❌ KAGGLE RETURNED HTML (not JSON)');
+        console.error('  → This usually means:');
+        console.error('    1. Credentials are invalid');
+        console.error('    2. Account is not phone-verified');
+        console.error('    3. API token has expired');
+        throw new Error('Kaggle API returned HTML instead of JSON. Please verify: (1) Credentials are valid, (2) Phone is verified at kaggle.com/settings, (3) Generate NEW API token');
       }
 
       // Extract kernel ID from output
@@ -383,15 +404,28 @@ export class KaggleAutomationService {
                     stdout.match(/updated kernel\s+([^\s]+)/i);
 
       if (!match) {
-        throw new Error('Could not extract kernel ID from Kaggle API response');
+        console.error('[Kaggle Automation] ❌ Could not parse kernel ID from response');
+        console.error(`  → Full stdout: ${stdout.substring(0, 1000)}`);
+        throw new Error('Could not extract kernel ID from Kaggle API response. Check logs for full output.');
       }
 
       const kernelId = match[1].trim();
+      console.log(`[Kaggle Automation] ✅ Extracted kernel ID: ${kernelId}`);
 
       return kernelId;
 
     } catch (error: any) {
-      console.error('[Kaggle Automation] Push failed:', error.message);
+      console.error('[Kaggle Automation] ❌ Push command failed');
+      console.error(`  → Error message: ${error.message}`);
+      
+      // Log stdout/stderr if available in error object
+      if (error.stdout) {
+        console.error(`  → STDOUT: ${error.stdout.substring(0, 500)}`);
+      }
+      if (error.stderr) {
+        console.error(`  → STDERR: ${error.stderr.substring(0, 500)}`);
+      }
+      
       throw new Error(`Kaggle API push failed: ${error.message}`);
     }
   }

@@ -178,27 +178,6 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleKaggleSubmit} className="space-y-4">
-                  <Alert className="border-amber-500/50 bg-amber-500/10">
-                    <AlertDescription className="text-sm space-y-2">
-                      <div className="flex items-start gap-2">
-                        <span className="text-base">⚠️</span>
-                        <div className="flex-1">
-                          <strong className="text-amber-700 dark:text-amber-400">PHONE VERIFICATION REQUIRED</strong>
-                          <p className="text-xs mt-1 text-muted-foreground">
-                            Kaggle API requires phone verification before credentials work.
-                          </p>
-                          <ol className="list-decimal list-inside mt-2 space-y-0.5 text-xs text-muted-foreground">
-                            <li>Go to: <code className="text-xs bg-muted px-1 rounded">kaggle.com/settings</code></li>
-                            <li>Find "Phone Verification" section</li>
-                            <li>Click "Not Verified" → Enter phone (no leading zero)</li>
-                            <li>Enter SMS code → Generate NEW API token</li>
-                            <li>Use new token here</li>
-                          </ol>
-                        </div>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-
                   <div className="space-y-2">
                     <Label htmlFor="kaggle-username">{t.admin.addGpuWorker.kaggle.username}</Label>
                     <Input
