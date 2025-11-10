@@ -212,10 +212,11 @@ try:
     GPU_AVAILABLE = torch.cuda.is_available()
     GPU_NAME = torch.cuda.get_device_name(0) if GPU_AVAILABLE else 'CPU'
     print(f"✅ GPU Detected: {GPU_NAME}")
-except:
+except ImportError:
+    torch = None
     GPU_AVAILABLE = False
     GPU_NAME = 'CPU'
-    print("⚠️  No GPU available, using CPU")
+    print("⚠️  torch not installed - CPU-only mode")
 
 # ============================================================================
 # NGROK TUNNEL
@@ -258,6 +259,12 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+# Global state
+model = None
+tokenizer = None
+current_job = None
+WORKER_ID = None  # Will be set after registration
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({
@@ -268,13 +275,253 @@ def health():
 
 @app.route('/inference', methods=['POST'])
 def inference():
-    # TODO: Implementar inferência com modelo
-    return jsonify({"result": "inference_result"})
+    """
+    OpenAI-compatible chat completion endpoint
+    POST /inference
+    Body: { "messages": [...], "max_tokens": 512, "temperature": 0.7, "top_p": 0.9 }
+    """
+    global model, tokenizer
+    
+    try:
+        # Check if torch is available
+        if torch is None:
+            return jsonify({
+                "error": "Torch not available - GPU runtime required for inference"
+            }), 503
+        
+        # Lazy load model if not initialized
+        if model is None or tokenizer is None:
+            print("[Inference] Loading base model...")
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+            
+            model_name = "meta-llama/Llama-3.2-1B"
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                device_map="auto",
+                torch_dtype="auto"
+            )
+            tokenizer.pad_token = tokenizer.eos_token
+            print("[Inference] ✅ Model loaded")
+        
+        data = request.json
+        messages = data.get('messages', [])
+        max_tokens = data.get('max_tokens', 512)
+        temperature = data.get('temperature', 0.7)
+        top_p = data.get('top_p', 0.9)
+        
+        print(f"[Inference] 📝 Processing {len(messages)} messages...")
+        
+        # Format messages in Alpaca template
+        conversation = ""
+        for msg in messages:
+            role = msg.get('role')
+            content = msg.get('content')
+            if role == "system":
+                conversation += f"### System:\\n{content}\\n\\n"
+            elif role == "user":
+                conversation += f"### Instruction:\\n{content}\\n\\n"
+            elif role == "assistant":
+                conversation += f"### Response:\\n{content}\\n\\n"
+        
+        conversation += "### Response:\\n"
+        
+        # Tokenize
+        inputs = tokenizer(conversation, return_tensors="pt").to(model.device)
+        
+        # Generate
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                do_sample=True,
+                pad_token_id=tokenizer.eos_token_id,
+            )
+        
+        # Decode
+        full_response = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        response = full_response.split("### Response:")[-1].strip()
+        
+        # Estimate tokens
+        prompt_tokens = len(inputs['input_ids'][0])
+        completion_tokens = len(outputs[0]) - prompt_tokens
+        
+        print(f"[Inference] ✅ Generated {completion_tokens} tokens")
+        
+        return jsonify({
+            "choices": [{
+                "message": {"role": "assistant", "content": response},
+                "finish_reason": "stop",
+                "index": 0
+            }],
+            "usage": {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens
+            },
+            "model": "aion-llama3-lora"
+        })
+    except Exception as e:
+        print(f"[Inference] ❌ Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/train', methods=['POST'])
 def train():
-    # TODO: Implementar treinamento
-    return jsonify({"status": "training_started"})
+    """
+    LoRA training endpoint
+    POST /train
+    Body: {
+      "jobId": 123,
+      "dataset": "https://backend/api/datasets/123.json",
+      "lora": { "r": 16, "alpha": 32, "dropout": 0.05 },
+      "training": { "epochs": 1, "batchSize": 2, "learningRate": 2e-4 }
+    }
+    """
+    global model, tokenizer, current_job
+    
+    try:
+        # Check if torch is available
+        if torch is None:
+            return jsonify({
+                "error": "Torch not available - GPU runtime required for training"
+            }), 503
+        
+        data = request.json
+        job_id = data.get('jobId')
+        dataset_url = data.get('dataset')
+        lora_config = data.get('lora', {})
+        training_args = data.get('training', {})
+        
+        current_job = job_id
+        print(f"[Train] 🔥 Starting training job {job_id}...")
+        
+        # Download dataset
+        print(f"[Train] Downloading dataset from {dataset_url}...")
+        dataset_response = requests.get(dataset_url, timeout=60)
+        
+        if dataset_response.status_code != 200:
+            raise Exception(f"Failed to download dataset: HTTP {dataset_response.status_code}")
+        
+        dataset_data = dataset_response.json()
+        
+        if not dataset_data or len(dataset_data) == 0:
+            raise Exception("Dataset is empty")
+        
+        # Load base model if not loaded
+        if model is None:
+            print("[Train] Loading base model...")
+            from transformers import AutoModelForCausalLM, AutoTokenizer
+            
+            model_name = "meta-llama/Llama-3.2-1B"
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                device_map="auto",
+                torch_dtype="auto"
+            )
+            tokenizer.pad_token = tokenizer.eos_token
+        
+        # Configure LoRA
+        print("[Train] Configuring LoRA...")
+        from peft import LoraConfig, get_peft_model, TaskType
+        
+        peft_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            inference_mode=False,
+            r=lora_config.get('r', 16),
+            lora_alpha=lora_config.get('alpha', 32),
+            lora_dropout=lora_config.get('dropout', 0.05),
+            target_modules=["q_proj", "v_proj"]
+        )
+        
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
+        
+        # Prepare dataset
+        print("[Train] Preparing dataset...")
+        from datasets import Dataset
+        
+        train_data = []
+        for item in dataset_data[:100]:  # Limit for Kaggle quota
+            train_data.append({
+                "text": f"{item.get('instruction', '')}\\n{item.get('response', '')}"
+            })
+        
+        dataset = Dataset.from_list(train_data)
+        
+        def tokenize_function(examples):
+            return tokenizer(
+                examples["text"],
+                truncation=True,
+                max_length=512,
+                padding="max_length"
+            )
+        
+        tokenized_dataset = dataset.map(tokenize_function, batched=True)
+        
+        # Train
+        print("[Train] Starting training...")
+        from transformers import Trainer, TrainingArguments
+        
+        training_arguments = TrainingArguments(
+            output_dir=f"/kaggle/working/lora_{job_id}",
+            num_train_epochs=training_args.get('epochs', 1),
+            per_device_train_batch_size=training_args.get('batchSize', 2),
+            learning_rate=training_args.get('learningRate', 2e-4),
+            logging_steps=10,
+            save_steps=100,
+            fp16=GPU_AVAILABLE,
+            report_to="none"
+        )
+        
+        trainer = Trainer(
+            model=model,
+            args=training_arguments,
+            train_dataset=tokenized_dataset
+        )
+        
+        trainer.train()
+        
+        # Save LoRA adapters
+        print("[Train] Saving LoRA adapters...")
+        output_dir = f"/kaggle/working/lora_{job_id}"
+        model.save_pretrained(output_dir)
+        tokenizer.save_pretrained(output_dir)
+        
+        print(f"[Train] ✅ Training completed!")
+        
+        # Send completion notification to backend
+        print("[Train] Notifying AION backend...")
+        try:
+            response = requests.post(
+                f"{AION_BACKEND_URL}/api/gpu/training/complete",
+                json={
+                    "jobId": job_id,
+                    "workerId": WORKER_ID,
+                    "status": "completed",
+                    "output_path": output_dir
+                },
+                timeout=30
+            )
+            if response.ok:
+                print("[Train] ✅ Backend notified")
+        except Exception as e:
+            print(f"[Train] ⚠️  Failed to notify backend: {e}")
+        
+        current_job = None
+        
+        return jsonify({
+            "status": "completed",
+            "jobId": job_id,
+            "output_path": output_dir
+        })
+        
+    except Exception as e:
+        print(f"[Train] ❌ Error: {e}")
+        current_job = None
+        return jsonify({"error": str(e)}), 500
 
 # ============================================================================
 # START SERVER
