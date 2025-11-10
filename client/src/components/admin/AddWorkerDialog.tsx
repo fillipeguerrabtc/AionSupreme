@@ -76,7 +76,7 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
   const kaggleMutation = useMutation({
     mutationFn: async () => {
       console.log('[Kaggle Provision] Frontend: Sending request...');
-      const res = await apiRequest("/api/gpu/kaggle/provision", {
+      const res = await apiRequest("/api/admin/gpu/kaggle/provision", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -112,7 +112,7 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
   // Colab mutation
   const colabMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("/api/gpu/colab/provision", {
+      const res = await apiRequest("/api/admin/gpu/colab/provision", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
