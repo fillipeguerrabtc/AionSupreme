@@ -971,6 +971,7 @@ export function registerGpuRoutes(app: Router) {
           }
         } as any,
         status: "pending",
+        autoManaged: true,
         lastHealthCheck: new Date(),
       };
 
