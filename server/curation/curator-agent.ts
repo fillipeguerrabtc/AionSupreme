@@ -53,10 +53,10 @@ export class CuratorAgentDetector {
             eq(agents.slug, "curator"),
             eq(agents.slug, "curation"),
             eq(agents.slug, "curadoria"),
-            // Ou namespace contenha "curation"
-            sql`${agents.ragNamespaces} @> ARRAY['curation']::varchar[]`,
-            sql`${agents.ragNamespaces} @> ARRAY['curator']::varchar[]`,
-            sql`${agents.ragNamespaces} @> ARRAY['curadoria']::varchar[]`
+            // Ou namespace contenha "curation" (JSONB containment operator)
+            sql`${agents.ragNamespaces} @> '["curation"]'::jsonb`,
+            sql`${agents.ragNamespaces} @> '["curator"]'::jsonb`,
+            sql`${agents.ragNamespaces} @> '["curadoria"]'::jsonb`
           )
         )
         .limit(1);
