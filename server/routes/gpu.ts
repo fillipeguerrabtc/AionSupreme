@@ -812,7 +812,12 @@ export function registerGpuRoutes(app: Router) {
         });
       }
 
-      console.log(`[Kaggle Provision] 🚀 Starting provisioning for ${username}...`);
+      console.log(`\n${'='.repeat(70)}`);
+      console.log(`[Kaggle Provision] 🚀 STARTING PROVISIONING`);
+      console.log(`${'='.repeat(70)}`);
+      console.log(`  → Username: ${username}`);
+      console.log(`  → Key length: ${key.length} chars`);
+      console.log(`  → Key preview: ${key.substring(0, 10)}...${key.substring(key.length - 10)}`);
       console.log(`[Kaggle Provision] Step 1/4: Bootstrap Kaggle CLI...`);
 
       const { kaggleCLIService } = await import('../services/kaggle-cli-service');
