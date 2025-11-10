@@ -41,6 +41,7 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
   // Kaggle mutation
   const kaggleMutation = useMutation({
     mutationFn: async () => {
+      console.log('[Kaggle Provision] Frontend: Sending request...');
       const res = await apiRequest("/api/gpu/kaggle/provision", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,21 +51,25 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
           notebookName: notebookName || "aion-gpu-worker",
         }),
       });
-      return res.json();
+      console.log('[Kaggle Provision] Frontend: Response received, parsing JSON...');
+      const data = await res.json();
+      console.log('[Kaggle Provision] Frontend: Success!', data);
+      return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/status"] });
       toast({
-        title: t.admin.addGpuWorker.kaggle.success,
-        description: `Notebook "${data.notebookName}" ${t.admin.addGpuWorker.kaggle.successDesc}`,
+        title: "✅ Kaggle Worker Provisioned",
+        description: data.message || `Notebook "${data.notebookName}" is being created with GPU enabled. Check GPU Dashboard for status.`,
       });
       onOpenChange(false);
       resetForm();
     },
     onError: (error: any) => {
+      console.error('[Kaggle Provision] Frontend: Error!', error);
       toast({
-        title: t.admin.addGpuWorker.kaggle.error,
-        description: error.message || t.admin.addGpuWorker.kaggle.errorDesc,
+        title: "❌ Kaggle Provisioning Failed",
+        description: error.message || "Failed to provision Kaggle worker. Please verify your credentials and try again.",
         variant: "destructive",
       });
     },

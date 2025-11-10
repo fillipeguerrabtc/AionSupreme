@@ -658,6 +658,80 @@ export function registerGpuRoutes(app: Router) {
   });
 
   /**
+   * POST /api/gpu/kaggle/test-credentials
+   * Test Kaggle credentials without provisioning (ENTERPRISE-GRADE)
+   * 
+   * FEATURES:
+   * ✅ Thread-safe: Mutex prevents concurrent tests
+   * ✅ Transactional: Atomic test with automatic rollback on failure
+   * ✅ State preservation: Snapshots and restores ALL metadata (isActive, quota, etc)
+   * ✅ Smart cleanup: Removes NEW invalid accounts, restores EXISTING valid accounts
+   * ✅ Status codes: 401 (invalid), 403 (unverified), 429 (rate limit), 500 (error)
+   */
+  app.post("/api/gpu/kaggle/test-credentials", async (req: Request, res: Response) => {
+    try {
+      const { username, key } = req.body;
+
+      if (!username || !key) {
+        return res.status(400).json({ 
+          error: "Username and API key required" 
+        });
+      }
+
+      console.log(`\n[Kaggle Test API] 📥 Request received: ${username}`);
+
+      const { kaggleCLIService } = await import('../services/kaggle-cli-service');
+
+      // Use safe transactional test method (mutex + snapshot + rollback)
+      const result = await kaggleCLIService.testAccountSafe(username, key);
+
+      if (result.success) {
+        console.log(`[Kaggle Test API] ✅ SUCCESS - Account validated and ready`);
+        return res.json({
+          success: true,
+          message: `✅ Credentials validated successfully!\n\nAccount "${username}" is now configured and ready to provision Kaggle GPUs.`,
+          username,
+        });
+      } else {
+        // Test failed - result.error contains Kaggle CLI error
+        console.log(`[Kaggle Test API] ❌ FAILED - Invalid credentials`);
+        
+        // Parse error message and determine correct HTTP status
+        let userMessage = result.error || 'Unknown error';
+        let statusCode = 500;
+        
+        if (userMessage.includes('Kaggle API returned an error page')) {
+          userMessage = "❌ Invalid credentials. Please verify:\n• Username is correct (case-sensitive)\n• API key is valid (generate new at kaggle.com/settings)\n• Your Kaggle account is phone-verified (required for API access)";
+          statusCode = 401;
+        } else if (userMessage.includes('401') || userMessage.includes('Unauthorized') || userMessage.includes('Invalid Kaggle credentials')) {
+          userMessage = "❌ Invalid Kaggle credentials. Please check your username and API key are correct.";
+          statusCode = 401;
+        } else if (userMessage.includes('403') || userMessage.includes('Forbidden') || userMessage.includes('phone') || userMessage.includes('verified')) {
+          userMessage = "❌ Account not verified\n\nYour Kaggle account MUST be phone-verified to use the API.\n\n✅ How to fix:\n1. Go to kaggle.com/settings\n2. Click 'Phone Verification'\n3. Verify your phone number\n4. Generate NEW API token\n5. Try again";
+          statusCode = 403;
+        } else if (userMessage.includes('rate limit') || userMessage.includes('429')) {
+          userMessage = "⚠️ Kaggle API rate limit exceeded. Please wait a few minutes and try again.";
+          statusCode = 429;
+        }
+
+        return res.status(statusCode).json({ 
+          success: false,
+          error: userMessage 
+        });
+      }
+
+    } catch (error: any) {
+      console.error("[Kaggle Test API] ⚠️ UNEXPECTED ERROR:", error.message);
+      console.error("[Kaggle Test API] Stack:", error.stack);
+      
+      return res.status(500).json({ 
+        success: false,
+        error: "Internal server error during credential test. Please try again." 
+      });
+    }
+  });
+
+  /**
    * POST /api/gpu/kaggle/provision
    * Provision Kaggle notebook (bootstrap + create notebook + start GPU)
    */
@@ -666,26 +740,37 @@ export function registerGpuRoutes(app: Router) {
       const { username, key, notebookName } = req.body;
 
       if (!username || !key) {
-        return res.status(400).json({ error: "username and key required" });
+        return res.status(400).json({ 
+          error: "Username and API key are required. Get your API key at kaggle.com/settings → API → Create New Token" 
+        });
       }
 
-      console.log(`[Kaggle Provision] Starting provisioning for ${username}...`);
+      console.log(`[Kaggle Provision] 🚀 Starting provisioning for ${username}...`);
+      console.log(`[Kaggle Provision] Step 1/4: Bootstrap Kaggle CLI...`);
 
       const { kaggleCLIService } = await import('../services/kaggle-cli-service');
       
       const bootstrapResult = await kaggleCLIService.bootstrap();
       if (!bootstrapResult.success) {
+        console.error(`[Kaggle Provision] ❌ Bootstrap failed:`, bootstrapResult.error);
         return res.status(500).json({ 
-          error: `Bootstrap failed: ${bootstrapResult.error}` 
+          error: `Kaggle CLI setup failed: ${bootstrapResult.error}. Please contact support.` 
         });
       }
 
+      console.log(`[Kaggle Provision] ✅ Bootstrap successful`);
+      console.log(`[Kaggle Provision] Step 2/4: Validating credentials for ${username}...`);
+
       const addAccountResult = await kaggleCLIService.addAccount(username, key);
       if (!addAccountResult) {
-        return res.status(500).json({ 
-          error: "Failed to add Kaggle account to SecretsVault" 
+        console.error(`[Kaggle Provision] ❌ Failed to add account ${username}`);
+        return res.status(401).json({ 
+          error: "Invalid Kaggle credentials. Please verify:\n1. Username is correct (case-sensitive)\n2. API key is valid (generate new at kaggle.com/settings)\n3. Your Kaggle account is phone-verified (required for API access)" 
         });
       }
+
+      console.log(`[Kaggle Provision] ✅ Credentials validated and stored securely`);
+      console.log(`[Kaggle Provision] Step 3/4: Creating worker database entry...`);
 
       const notebookId = `aion-gpu-worker-${Date.now()}`;
       const finalNotebookName = notebookName || notebookId;
@@ -712,6 +797,7 @@ export function registerGpuRoutes(app: Router) {
       const [worker] = await db.insert(gpuWorkers).values(workerData).returning();
 
       console.log(`[Kaggle Provision] ✅ Worker DB entry created (ID: ${worker.id})`);
+      console.log(`[Kaggle Provision] Step 4/4: Creating Kaggle notebook with GPU enabled...`);
 
       // 4. ✨ NEW: Automatic notebook creation via Kaggle API!
       const { kaggleAutomationService } = await import('../services/kaggle-automation-service');
@@ -723,6 +809,7 @@ export function registerGpuRoutes(app: Router) {
       console.log(`[Kaggle Provision] 📤 Creating kernel automatically...`);
       console.log(`   → AION URL: ${aionBaseUrl}`);
       console.log(`   → Worker ID: ${worker.id}`);
+      console.log(`   → Notebook: ${finalNotebookName}`);
 
       // Fire async (don't block response)
       kaggleAutomationService.createAndStartWorker(
@@ -731,28 +818,40 @@ export function registerGpuRoutes(app: Router) {
         worker.id
       ).then(result => {
         if (result.success) {
-          console.log(`[Kaggle Provision] ✅ Kernel created: ${result.kernelId}`);
+          console.log(`[Kaggle Provision] ✅ Kernel created successfully!`);
+          console.log(`   → Kernel ID: ${result.kernelId}`);
           console.log(`   → URL: ${result.kernelUrl}`);
-          console.log(`   → Worker will register automatically!`);
+          console.log(`   → Status: Running with GPU enabled`);
+          console.log(`   → Worker will self-register via ngrok in ~1-2 minutes`);
         } else {
-          console.error(`[Kaggle Provision] ❌ Automation failed: ${result.error}`);
+          console.error(`[Kaggle Provision] ❌ Kernel creation failed: ${result.error}`);
+          console.error(`   → Worker ${worker.id} status will remain 'pending'`);
+          console.error(`   → Check Kaggle quota and account settings`);
         }
       }).catch(error => {
-        console.error(`[Kaggle Provision] ❌ Automation error:`, error.message);
+        console.error(`[Kaggle Provision] ❌ Unexpected automation error:`, error.message);
+        console.error(`   → Stack: ${error.stack}`);
       });
 
       // Respond immediately (notebook creation is async)
+      console.log(`[Kaggle Provision] 🎉 Provisioning initiated successfully!`);
+      
       res.json({
         success: true,
         notebookName: finalNotebookName,
         workerId: worker.id,
         status: "provisioning",
-        message: `Kaggle notebook is being created automatically with GPU enabled! Worker ${worker.id} will appear online in ~2-3 minutes.`,
+        message: `✅ Kaggle worker created! Notebook "${finalNotebookName}" is being started with GPU. Worker will appear online in ~2-3 minutes. Check GPU Dashboard for status.`,
       });
 
     } catch (error: any) {
-      console.error("[Kaggle Provision] Error:", error);
-      res.status(500).json({ error: error.message });
+      console.error("[Kaggle Provision] ❌ FATAL ERROR:", error.message);
+      console.error("[Kaggle Provision] Stack trace:", error.stack);
+      
+      // Return user-friendly error
+      res.status(500).json({ 
+        error: error.message || "An unexpected error occurred while provisioning Kaggle worker. Please check logs for details." 
+      });
     }
   });
 

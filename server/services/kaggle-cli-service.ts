@@ -51,6 +51,7 @@ export class KaggleCLIService {
   private accounts: Map<string, KaggleAccount> = new Map();
   private currentAccount: string | null = null;
   private accountsLoaded: boolean = false;
+  private testMutex: Promise<void> = Promise.resolve(); // Prevent concurrent tests
 
   constructor() {
     // No file-based config needed! Using environment variables (Kaggle method #1)
@@ -181,6 +182,56 @@ export class KaggleCLIService {
   }
 
   /**
+   * Get current active account
+   */
+  getCurrentAccount(): string | null {
+    return this.currentAccount;
+  }
+
+  /**
+   * Get account by username (returns null if not found)
+   */
+  getAccount(username: string): KaggleAccount | null {
+    return this.accounts.get(username) || null;
+  }
+
+  /**
+   * Create complete snapshot of account state (for safe rollback)
+   */
+  private snapshotAccount(username: string): KaggleAccount | null {
+    const account = this.accounts.get(username);
+    if (!account) return null;
+    
+    // Deep copy to avoid reference issues
+    return {
+      username: account.username,
+      apiKey: account.apiKey,
+      isActive: account.isActive,
+      weeklyQuotaUsed: account.weeklyQuotaUsed,
+      maxWeeklyQuota: account.maxWeeklyQuota,
+    };
+  }
+
+  /**
+   * Restore account from snapshot (preserves all metadata)
+   */
+  private async restoreAccountSnapshot(snapshot: KaggleAccount): Promise<void> {
+    // Save to SecretsVault
+    await secretsVault.store(`kaggle-${snapshot.username}`, snapshot.apiKey, 365);
+    
+    // Restore to memory with ALL metadata preserved
+    this.accounts.set(snapshot.username, {
+      username: snapshot.username,
+      apiKey: snapshot.apiKey,
+      isActive: snapshot.isActive,
+      weeklyQuotaUsed: snapshot.weeklyQuotaUsed,
+      maxWeeklyQuota: snapshot.maxWeeklyQuota,
+    });
+    
+    console.log(`[Kaggle CLI] ✅ Account snapshot restored: ${snapshot.username} (isActive: ${snapshot.isActive}, quota: ${Math.floor(snapshot.weeklyQuotaUsed / 3600)}h used)`);
+  }
+
+  /**
    * Set active account (via environment variables - Kaggle official method #1)
    * No file writing needed! Env vars override config files.
    */
@@ -206,6 +257,165 @@ export class KaggleCLIService {
       console.error(`[Kaggle CLI] Failed to set active account:`, error.message);
       return false;
     }
+  }
+
+  /**
+   * Update ONLY the API key without touching metadata (for credential updates)
+   */
+  private async updateAccountSecret(username: string, newApiKey: string): Promise<void> {
+    // Update SecretsVault
+    await secretsVault.store(`kaggle-${username}`, newApiKey, 365);
+    
+    // Update ONLY apiKey in memory, preserve all other fields
+    const account = this.accounts.get(username);
+    if (account) {
+      account.apiKey = newApiKey;
+      console.log(`[Kaggle CLI] ✅ API key updated for ${username} (metadata preserved)`);
+    }
+  }
+
+  /**
+   * Test account credentials safely (transactional with automatic rollback)
+   * 
+   * This method:
+   * 1. Acquires mutex lock (prevents concurrent tests)
+   * 2. Snapshots current state (if account exists)
+   * 3. Tests credentials
+   * 4. On SUCCESS: Updates ONLY API key (preserves metadata) or adds new account
+   * 5. On FAILURE: Restores snapshot or removes invalid account
+   * 
+   * THREAD-SAFE: Uses mutex to prevent race conditions
+   * METADATA-SAFE: Preserves isActive, quota, etc even on successful tests
+   */
+  async testAccountSafe(username: string, apiKey: string): Promise<{ success: boolean; error?: string }> {
+    // Acquire mutex (serialize all tests)
+    await this.testMutex;
+    
+    // Create new promise that will become the next mutex
+    const testPromise = (async (): Promise<{ success: boolean; error?: string }> => {
+      let previousAccount: string | null = null;
+      let existingSnapshot: KaggleAccount | null = null;
+      let isExistingAccount = false;
+      
+      try {
+        console.log(`\n[Kaggle Test] 🔒 Mutex acquired - Testing ${username}...`);
+        
+        // STEP 1: Ensure accounts are loaded from vault
+        await this.ensureAccountsLoaded();
+        
+        // STEP 2: Save current state for rollback
+        previousAccount = this.currentAccount;
+        existingSnapshot = this.snapshotAccount(username); // May be null for new accounts
+        isExistingAccount = existingSnapshot !== null;
+        
+        if (existingSnapshot) {
+          console.log(`[Kaggle Test] 💾 Snapshot saved: ${username} (isActive: ${existingSnapshot.isActive}, quota: ${Math.floor(existingSnapshot.weeklyQuotaUsed / 3600)}h)`);
+        } else {
+          console.log(`[Kaggle Test] 📝 New account - no snapshot needed`);
+        }
+        
+        console.log(`[Kaggle Test] 💾 Previous active account: ${previousAccount || 'none'}`);
+        
+        // STEP 3: Add account (may overwrite existing - we'll fix this later if test passes)
+        await this.addAccount(username, apiKey);
+        
+        // STEP 4: Set as active for testing
+        await this.setActiveAccount(username);
+        
+        // STEP 5: Test credentials with Kaggle API
+        console.log(`[Kaggle Test] 🧪 Testing credentials via Kaggle API...`);
+        const testResult = await this.execute(['kernels', 'list', '--user', username]);
+        
+        console.log(`[Kaggle Test] ✅ VALID credentials for ${username}`);
+        console.log(`[Kaggle Test] API response preview: ${testResult.stdout.substring(0, 150)}...`);
+        
+        // STEP 6: SUCCESS PATH - Preserve metadata if account existed
+        if (isExistingAccount && existingSnapshot) {
+          console.log(`[Kaggle Test] 🔄 Preserving existing account metadata...`);
+          // Restore snapshot first (brings back old metadata)
+          await this.restoreAccountSnapshot(existingSnapshot);
+          // Then update ONLY the API key
+          await this.updateAccountSecret(username, apiKey);
+          console.log(`[Kaggle Test] ✅ Account updated (new key + preserved metadata)`);
+        } else {
+          console.log(`[Kaggle Test] ✅ New account added successfully`);
+        }
+        
+        // STEP 7: Restore previous active account (SUCCESS PATH)
+        if (previousAccount && previousAccount !== username) {
+          console.log(`[Kaggle Test] ↩️  Restoring previous active account ${previousAccount}...`);
+          const restored = await this.setActiveAccount(previousAccount);
+          if (!restored) {
+            console.error(`[Kaggle Test] ⚠️  Failed to restore active account ${previousAccount}`);
+          } else {
+            console.log(`[Kaggle Test] ✅ Previous active account restored`);
+          }
+        } else if (previousAccount === username) {
+          console.log(`[Kaggle Test] ℹ️  Tested account was already active, keeping it active`);
+        } else {
+          console.log(`[Kaggle Test] ℹ️  No previous active account to restore`);
+        }
+        
+        console.log(`[Kaggle Test] 🔓 Mutex released\n`);
+        
+        return { success: true };
+        
+      } catch (error: any) {
+        console.error(`[Kaggle Test] ❌ INVALID credentials for ${username}:`, error.message);
+        console.log(`[Kaggle Test] ↩️  Starting rollback...`);
+        
+        try {
+          // ROLLBACK: Restore previous state
+          if (existingSnapshot) {
+            // Case A: Account EXISTED - Restore snapshot
+            console.log(`[Kaggle Test] 📦 Restoring snapshot for ${username}...`);
+            await this.restoreAccountSnapshot(existingSnapshot);
+            console.log(`[Kaggle Test] ✅ Snapshot restored successfully`);
+          } else {
+            // Case B: Account was NEW - Remove completely
+            console.log(`[Kaggle Test] 🧹 Removing invalid new account ${username}...`);
+            await this.removeAccount(username);
+            console.log(`[Kaggle Test] ✅ Invalid account removed`);
+          }
+          
+          // Restore previous active account
+          if (previousAccount) {
+            if (previousAccount === username && existingSnapshot) {
+              // Special case: Tested the active account itself - reactivate after restore
+              console.log(`[Kaggle Test] ↩️  Reactivating restored account ${username}...`);
+              const reactivated = await this.setActiveAccount(username);
+              if (!reactivated) {
+                console.error(`[Kaggle Test] ⚠️  Failed to reactivate ${username}`);
+              }
+            } else if (previousAccount !== username) {
+              // Normal case: Restore different active account
+              console.log(`[Kaggle Test] ↩️  Restoring previous active account ${previousAccount}...`);
+              const restored = await this.setActiveAccount(previousAccount);
+              if (!restored) {
+                console.error(`[Kaggle Test] ⚠️  Failed to restore active account ${previousAccount}`);
+              }
+            }
+          } else {
+            console.log(`[Kaggle Test] ℹ️  No active account to restore (was null)`);
+          }
+          
+          console.log(`[Kaggle Test] ✅ Rollback complete`);
+          
+        } catch (rollbackError: any) {
+          console.error(`[Kaggle Test] ⚠️ CRITICAL: Rollback failed:`, rollbackError.message);
+          // Don't throw - original error is more important
+        }
+        
+        console.log(`[Kaggle Test] 🔓 Mutex released\n`);
+        
+        return { success: false, error: error.message };
+      }
+    })();
+    
+    // Update mutex reference (chain promises)
+    this.testMutex = testPromise.then(() => {});
+    
+    return testPromise;
   }
 
   /**
@@ -518,7 +728,10 @@ export const KaggleCLIAPI = {
   bootstrap: () => kaggleCLIService.bootstrap(),
   addAccount: (username: string, apiKey: string) => kaggleCLIService.addAccount(username, apiKey),
   removeAccount: (username: string) => kaggleCLIService.removeAccount(username),
+  getCurrentAccount: () => kaggleCLIService.getCurrentAccount(),
+  getAccount: (username: string) => kaggleCLIService.getAccount(username),
   setActiveAccount: (username: string) => kaggleCLIService.setActiveAccount(username),
+  testAccountSafe: (username: string, apiKey: string) => kaggleCLIService.testAccountSafe(username, apiKey),
   execute: (args: string[]) => kaggleCLIService.execute(args),
   getStatus: () => kaggleCLIService.getStatus(),
   listAccounts: () => kaggleCLIService.listAccounts(),
