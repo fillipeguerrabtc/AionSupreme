@@ -147,14 +147,17 @@ LEMBRE-SE: Você é um AMIGO ajudando, NÃO um professor dando aula ou um dicion
     // No manual detection needed - the LLM handles this naturally.
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     
-    // ✅ FIX BUG #2 (Multi-language): Adicionar instrução EXPLÍCITA se idioma foi detectado
+    // ✅ FIX: Auto-detect language from user message if not explicitly provided
+    // This enables real-time language switching: PT→EN, EN→PT, etc.
+    const language = detectedLanguage ?? (userMessage ? this.detectLanguage(userMessage) : undefined);
+    
     const languageNames: Record<string, string> = {
       "pt-BR": "Portuguese",
       "en-US": "English",
       "es-ES": "Spanish"
     };
     
-    const languageName = detectedLanguage ? languageNames[detectedLanguage] || detectedLanguage : null;
+    const languageName = language ? languageNames[language] || language : null;
     
     if (languageName) {
       prompt += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

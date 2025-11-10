@@ -133,8 +133,10 @@ export async function composeConversationalRequest(
   const pipeline = new EnforcementPipeline();
   const policy = await pipeline.getOrCreateDefaultPolicy();
   
-  // Extract user message for language detection
-  const userMessage = baseMessages.find(m => m.role === 'user')?.content;
+  // Extract LAST user message for language detection (not first!)
+  // This ensures language switching works: PT→EN, EN→PT, etc.
+  const userMessages = baseMessages.filter(m => m.role === 'user');
+  const userMessage = userMessages.length > 0 ? userMessages[userMessages.length - 1].content : undefined;
   
   const baseSystemPrompt = await pipeline.composeSystemPrompt(policy, userMessage);
 
