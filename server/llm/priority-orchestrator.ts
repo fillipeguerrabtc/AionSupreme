@@ -85,6 +85,7 @@ export interface PriorityResponse {
     documentsIndexed?: number;
     explicitRequestFulfilled?: boolean;
     noAPIConsumption?: boolean;
+    greetingIntercepted?: boolean;
   };
 }
 
@@ -317,6 +318,34 @@ This instruction takes ABSOLUTE PRIORITY.
         content: `Você é AION - conversa como um amigo próximo, de forma natural e direta. NUNCA dê definições tipo dicionário. Responda direto ao ponto.${languageInstruction}`
       });
     }
+  }
+  
+  // ============================================================================
+  // STEP -2: GREETING SHORT-CIRCUIT (bypass Groq for trivial greetings)
+  // ============================================================================
+  // Free LLMs (Groq, Gemini, HF) ignore conversational tone on short queries
+  // and return dictionary-style definitions. This interceptor provides friendly
+  // canned responses for trivial greetings WITHOUT hitting any LLM.
+  
+  const { answerGreeting } = await import('./system-prompt');
+  const greetingAnswer = answerGreeting(userMessage);
+  if (greetingAnswer) {
+    console.log('   👋 Greeting detected - bypassing LLMs with friendly canned reply (ZERO API consumption)');
+    return {
+      content: greetingAnswer,
+      source: 'kb',
+      provider: 'greeting-shortcut',
+      model: 'conversational-guard',
+      usage: {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0
+      },
+      metadata: {
+        noAPIConsumption: true,
+        greetingIntercepted: true
+      }
+    };
   }
   
   // ============================================================================

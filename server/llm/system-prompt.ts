@@ -14,10 +14,69 @@
  * - Reuses EnforcementPipeline's system prompt (already has tone guidelines)
  * - Allows context injection (KB snippets, web results) while maintaining tone
  * - Returns normalized LLMRequest ready for any provider
+ * - Intercepts trivial greetings with conversational short-circuit (bypasses Free LLMs)
  */
 
 import { EnforcementPipeline } from '../policy/enforcement-pipeline';
 import type { LLMRequest } from './free-apis';
+
+/**
+ * CONVERSATIONAL SHORT-CIRCUIT for greetings
+ * 
+ * Free LLMs (Groq, Gemini, HF) ignore system prompts on short queries (<10 tokens)
+ * and return dictionary-style definitions. This function intercepts trivial greetings
+ * and returns natural, friendly responses WITHOUT hitting any LLM.
+ * 
+ * @param query - User message (trimmed lowercase for matching)
+ * @returns Friendly canned response or null if not a greeting
+ */
+export function answerGreeting(query: string): string | null {
+  const normalized = query.trim().toLowerCase();
+  
+  // Detect language from greeting
+  const isPortuguese = /^(oi|olá|ola|bom dia|boa tarde|boa noite|e aí|eai|salve|beleza|tudo bem|coé)/.test(normalized);
+  const isEnglish = /^(hi|hello|hey|good morning|good afternoon|good evening|sup|what's up)/.test(normalized);
+  const isSpanish = /^(hola|buenos días|buenas tardes|buenas noches|qué tal)/.test(normalized);
+  
+  // Portuguese greetings (most common for AION)
+  if (isPortuguese) {
+    const responses = [
+      "Oi! Tudo bem? Como posso te ajudar hoje?",
+      "Olá! Pronto para conversar. O que precisa?",
+      "Opa! E aí, qual é a boa?",
+      "Oi! Pode falar, estou aqui!",
+      "Olá! Bora lá, no que posso ajudar?"
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+  
+  // English greetings
+  if (isEnglish) {
+    const responses = [
+      "Hey! What can I help you with?",
+      "Hi there! Ready to chat. What's up?",
+      "Hello! How can I assist you today?",
+      "Hey! What do you need?",
+      "Hi! I'm here, shoot!"
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+  
+  // Spanish greetings
+  if (isSpanish) {
+    const responses = [
+      "¡Hola! ¿En qué puedo ayudarte?",
+      "¡Qué tal! ¿Qué necesitas?",
+      "¡Hola! Listo para charlar. ¿Qué pasa?",
+      "¡Hey! ¿Cómo te puedo ayudar hoy?",
+      "¡Hola! Dime, ¿qué necesitas?"
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+  
+  // Not a simple greeting - let LLM handle it
+  return null;
+}
 
 export interface ConversationalRequestOptions {
   /**
