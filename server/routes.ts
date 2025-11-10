@@ -124,7 +124,7 @@ function autoDetectLanguage(message: string): "pt-BR" | "en-US" | "es-ES" {
   
   // English strong indicators
   const enStrongIndicators = /(hello|you|are|yes|no|thanks|thank you|goodbye|good morning|good afternoon|good evening)/i;
-  const enIndicators = /\b(is|very|how|what|for|with|by|his|her|him|do|have|be|when|where|because|which|who|any|some|none)\b/gi;
+  const enIndicators = /\b(is|very|how|what|for|with|by|his|her|him|do|have|be|when|where|because|which|who|any|some|none|the|a|an|this|that|these|those|can|could|would|should|will|shall|may|might|must|tell|me|about|in|on|at|to|from|of|please|my|your|our|their|its|was|were|been|being|has|had|having|am)\b/gi;
   
   // Check strong indicators first (high confidence)
   if (ptStrongIndicators.test(message)) return "pt-BR";
@@ -136,14 +136,14 @@ function autoDetectLanguage(message: string): "pt-BR" | "en-US" | "es-ES" {
   const esCount = (msg.match(esIndicators) || []).length;
   const enCount = (msg.match(enIndicators) || []).length;
   
-  // Return language with most matches (with threshold)
-  if (ptCount > esCount && ptCount > enCount && ptCount >= 2) return "pt-BR";
-  if (esCount > ptCount && esCount > enCount && esCount >= 2) return "es-ES";
-  if (enCount > ptCount && enCount > esCount && enCount >= 2) return "en-US";
+  // Return language with most matches (with threshold of 1 or more)
+  if (ptCount > esCount && ptCount > enCount && ptCount >= 1) return "pt-BR";
+  if (esCount > ptCount && esCount > enCount && esCount >= 1) return "es-ES";
+  if (enCount > ptCount && enCount > esCount && enCount >= 1) return "en-US";
   
-  // Default to pt-BR if no clear winner (but with lower confidence)
-  console.log(`[Language Detection] No clear language detected, defaulting to pt-BR (pt:${ptCount}, es:${esCount}, en:${enCount})`);
-  return "pt-BR";
+  // Default to ENGLISH (not PT) if no clear winner - more universal
+  console.log(`[Language Detection] No clear language detected, defaulting to en-US (pt:${ptCount}, es:${esCount}, en:${enCount})`);
+  return "en-US";
 }
 
 export function registerRoutes(app: Express): Server {
