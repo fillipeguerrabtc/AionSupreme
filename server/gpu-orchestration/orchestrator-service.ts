@@ -97,6 +97,15 @@ export class OrchestratorService {
         return { success: false, reason: 'Worker not found in database' };
       }
       
+      // 2B. GUARD: Verify worker is not already running (prevent duplicate startups)
+      if (worker.sessionStartedAt !== null) {
+        console.warn(`[Orchestrator] ⚠️  Worker ${gpu.workerId} already has active session - preventing duplicate startup`);
+        return { 
+          success: false, 
+          reason: `Worker ${gpu.workerId} already has active session (started: ${worker.sessionStartedAt})` 
+        };
+      }
+      
       // 3. Start session via appropriate orchestrator
       let result;
       

@@ -93,7 +93,19 @@ export class ColabOrchestrator {
       console.log(`[Colab] 🚀 Starting ENTERPRISE session for worker ${config.workerId}...`);
       
       // ============================================================================
-      // STEP 0: CHECK COOLDOWN/QUOTA (CRITICAL - PRODUCTION BLOCKER FIX)
+      // STEP 0A: GUARD - Check if session already exists (prevent duplicate GPU startups)
+      // ============================================================================
+      
+      if (this.activeSessions.has(config.workerId)) {
+        console.warn(`[Colab] ⚠️  Session already active for worker ${config.workerId} - preventing duplicate startup`);
+        return { 
+          success: false, 
+          error: `Session already active for worker ${config.workerId}` 
+        };
+      }
+      
+      // ============================================================================
+      // STEP 0B: CHECK COOLDOWN/QUOTA (CRITICAL - PRODUCTION BLOCKER FIX)
       // ============================================================================
       
       const cooldownStatus = await gpuCooldownManager.canStartSession(config.workerId);
@@ -110,11 +122,16 @@ export class ColabOrchestrator {
       
       console.log(`[Colab] ✅ Cooldown check passed - ${cooldownStatus.reason}`);
       
-      // ============================================================================
-      // STEP 1: LAUNCH BROWSER WITH ANTI-DETECTION
-      // ============================================================================
+      // STEP 0C: RESERVE worker (AFTER checks pass - prevent race condition)
+      // Set placeholder to block concurrent calls before browser launch
+      this.activeSessions.set(config.workerId, null as any);
       
-      const browser = await puppeteer.launch({
+      try {
+        // ============================================================================
+        // STEP 1: LAUNCH BROWSER WITH ANTI-DETECTION
+        // ============================================================================
+        
+        const browser = await puppeteer.launch({
         headless: config.headless ?? true,
         args: [
           '--no-sandbox',
@@ -295,14 +312,27 @@ export class ColabOrchestrator {
           puppeteerSessionId: sessionId,
           ngrokUrl: ngrokUrl,
           status: 'healthy',
+          sessionStartedAt: new Date(), // Track session start time for orchestrator-service guard
         })
         .where(eq(gpuWorkers.id, config.workerId));
       
       console.log(`[Colab] 🎉 Session started successfully! Auto-shutdown in 11h.`);
       return { success: true, ngrokUrl };
-      
+        
+      } catch (error) {
+        console.error(`[Colab] ❌ Error starting session:`, error);
+        return { success: false, error: String(error) };
+      } finally {
+        // CRITICAL: Clean up placeholder if not replaced (prevent permanent lock)
+        // Only delete if still null (success path replaces with real session)
+        if (this.activeSessions.get(config.workerId) === null) {
+          this.activeSessions.delete(config.workerId);
+          console.warn(`[Colab] 🧹 Cleaned up placeholder for worker ${config.workerId}`);
+        }
+      }
     } catch (error) {
-      console.error(`[Colab] ❌ Error starting session:`, error);
+      // Outer catch for any errors outside try-finally
+      console.error(`[Colab] ❌ Fatal error in startSession:`, error);
       return { success: false, error: String(error) };
     }
   }
@@ -355,6 +385,7 @@ export class ColabOrchestrator {
         .set({
           puppeteerSessionId: null,
           status: 'offline',
+          sessionStartedAt: null, // Allow future restarts
         })
         .where(eq(gpuWorkers.id, workerId));
       

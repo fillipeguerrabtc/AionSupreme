@@ -57,6 +57,19 @@ export class KaggleOrchestrator {
     try {
       console.log(`[Kaggle] Starting ${config.useGPU ? 'GPU' : 'CPU'} session for worker ${config.workerId}...`);
       
+      // 0. GUARD: Check if session already exists (prevent duplicate GPU startups)
+      if (this.activeSessions.has(config.workerId)) {
+        console.warn(`[Kaggle] ⚠️  Session already active for worker ${config.workerId} - preventing duplicate startup`);
+        return { 
+          success: false, 
+          error: `Session already active for worker ${config.workerId}` 
+        };
+      }
+      
+      // 0B. RESERVE worker immediately (prevent race condition)
+      // Set placeholder to block concurrent calls before browser launch
+      this.activeSessions.set(config.workerId, null as any);
+      
       // 1. Launch browser
       const browser = await puppeteer.launch({
         headless: config.headless ?? true,
@@ -118,12 +131,13 @@ export class KaggleOrchestrator {
       
       this.activeSessions.set(config.workerId, session);
       
-      // 8. Update database
+      // 8. Update database (including sessionStartedAt for orchestrator-service guard)
       await db.update(gpuWorkers)
         .set({
           puppeteerSessionId: sessionId,
           ngrokUrl: ngrokUrl,
           status: 'healthy',
+          sessionStartedAt: new Date(), // Track session start time
         })
         .where(eq(gpuWorkers.id, config.workerId));
       
@@ -131,6 +145,10 @@ export class KaggleOrchestrator {
       
     } catch (error) {
       console.error(`[Kaggle] Error starting session:`, error);
+      
+      // CRITICAL: Clean up placeholder on failure (prevent lock)
+      this.activeSessions.delete(config.workerId);
+      
       return { success: false, error: String(error) };
     }
   }
@@ -157,11 +175,12 @@ export class KaggleOrchestrator {
       // 3. Remove session
       this.activeSessions.delete(workerId);
       
-      // 4. Update database
+      // 4. Update database (clear sessionStartedAt to allow future restarts)
       await db.update(gpuWorkers)
         .set({
           puppeteerSessionId: null,
           status: 'offline',
+          sessionStartedAt: null, // Allow future startups
         })
         .where(eq(gpuWorkers.id, workerId));
       
