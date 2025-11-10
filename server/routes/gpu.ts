@@ -14,6 +14,75 @@ export function registerGpuRoutes(app: Router) {
   console.log("[GPU Routes] Registering GPU Pool API routes...");
 
   /**
+   * GET /api/gpu/credentials/available
+   * List available credentials from Replit Secrets
+   * 
+   * Reads secrets matching patterns:
+   * - KAGGLE_USERNAME_1, KAGGLE_KEY_1, KAGGLE_USERNAME_2, KAGGLE_KEY_2...
+   * - COLAB_EMAIL_1, COLAB_PASSWORD_1, COLAB_EMAIL_2, COLAB_PASSWORD_2...
+   */
+  app.get("/api/gpu/credentials/available", async (req: Request, res: Response) => {
+    try {
+      console.log('[GPU Credentials] Scanning Replit Secrets for credentials...');
+      
+      const kaggleCredentials: Array<{ id: string; username: string; hasKey: boolean }> = [];
+      const colabCredentials: Array<{ id: string; email: string; hasPassword: boolean }> = [];
+      
+      // Scan for Kaggle credentials (up to 10 accounts)
+      for (let i = 1; i <= 10; i++) {
+        const usernameKey = `KAGGLE_USERNAME_${i}`;
+        const apiKeyKey = `KAGGLE_KEY_${i}`;
+        
+        const username = process.env[usernameKey];
+        const apiKey = process.env[apiKeyKey];
+        
+        if (username) {
+          kaggleCredentials.push({
+            id: `kaggle_${i}`,
+            username,
+            hasKey: !!apiKey,
+          });
+          console.log(`[GPU Credentials] ✅ Found Kaggle account: ${username} (key: ${apiKey ? 'yes' : 'NO'})`);
+        }
+      }
+      
+      // Scan for Colab credentials (up to 10 accounts)
+      for (let i = 1; i <= 10; i++) {
+        const emailKey = `COLAB_EMAIL_${i}`;
+        const passwordKey = `COLAB_PASSWORD_${i}`;
+        
+        const email = process.env[emailKey];
+        const password = process.env[passwordKey];
+        
+        if (email) {
+          colabCredentials.push({
+            id: `colab_${i}`,
+            email,
+            hasPassword: !!password,
+          });
+          console.log(`[GPU Credentials] ✅ Found Colab account: ${email} (password: ${password ? 'yes' : 'NO'})`);
+        }
+      }
+      
+      console.log(`[GPU Credentials] Summary: ${kaggleCredentials.length} Kaggle, ${colabCredentials.length} Colab`);
+      
+      res.json({
+        success: true,
+        kaggle: kaggleCredentials,
+        colab: colabCredentials,
+        instructions: {
+          kaggle: "Add KAGGLE_USERNAME_1, KAGGLE_KEY_1, KAGGLE_USERNAME_2, KAGGLE_KEY_2... to Replit Secrets",
+          colab: "Add COLAB_EMAIL_1, COLAB_PASSWORD_1, COLAB_EMAIL_2, COLAB_PASSWORD_2... to Replit Secrets"
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('[GPU Credentials] Error scanning secrets:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * POST /api/gpu/register
    * Register a new GPU worker from Colab/Kaggle notebook
    */
@@ -801,15 +870,54 @@ export function registerGpuRoutes(app: Router) {
   /**
    * POST /api/gpu/kaggle/provision
    * Provision Kaggle notebook (bootstrap + create notebook + start GPU)
+   * 
+   * Accepts either:
+   * 1. credential_id: "kaggle_1" (reads from Replit Secrets)
+   * 2. username + key: Manual credentials
    */
   app.post("/gpu/kaggle/provision", async (req: Request, res: Response) => {
     try {
-      const { username, key, notebookName } = req.body;
+      const { username: manualUsername, key: manualKey, notebookName, credential_id } = req.body;
 
-      if (!username || !key) {
-        return res.status(400).json({ 
-          error: "Username and API key are required. Get your API key at kaggle.com/settings → API → Create New Token" 
-        });
+      let username: string;
+      let key: string;
+
+      // Read credentials from Replit Secrets or use manual input
+      if (credential_id) {
+        console.log(`[Kaggle Provision] 📦 Using credential_id: ${credential_id}`);
+        
+        // Parse credential_id (format: "kaggle_1")
+        const match = credential_id.match(/kaggle_(\d+)/);
+        if (!match) {
+          return res.status(400).json({ error: "Invalid credential_id format. Expected 'kaggle_1', 'kaggle_2', etc." });
+        }
+        
+        const index = match[1];
+        const usernameKey = `KAGGLE_USERNAME_${index}`;
+        const apiKeyKey = `KAGGLE_KEY_${index}`;
+        
+        username = process.env[usernameKey] || '';
+        key = process.env[apiKeyKey] || '';
+        
+        if (!username || !key) {
+          return res.status(400).json({ 
+            error: `Credentials not found in Replit Secrets. Please add ${usernameKey} and ${apiKeyKey} to Secrets.` 
+          });
+        }
+        
+        console.log(`[Kaggle Provision] ✅ Loaded credentials from secrets: ${username}`);
+      } else {
+        // Manual credentials
+        username = manualUsername;
+        key = manualKey;
+        
+        if (!username || !key) {
+          return res.status(400).json({ 
+            error: "Either provide credential_id OR username+key" 
+          });
+        }
+        
+        console.log(`[Kaggle Provision] 📝 Using manual credentials: ${username}`);
       }
 
       console.log(`\n${'='.repeat(70)}`);
@@ -936,13 +1044,54 @@ export function registerGpuRoutes(app: Router) {
   /**
    * POST /api/gpu/colab/provision
    * Provision Google Colab notebook via Puppeteer automation
+   * 
+   * Accepts either:
+   * 1. credential_id: "colab_1" (reads from Replit Secrets)
+   * 2. email + password: Manual credentials
    */
   app.post("/gpu/colab/provision", async (req: Request, res: Response) => {
     try {
-      const { email, password, notebookUrl } = req.body;
+      const { email: manualEmail, password: manualPassword, notebookUrl, credential_id } = req.body;
 
-      if (!email || !password) {
-        return res.status(400).json({ error: "email and password required" });
+      let email: string;
+      let password: string;
+
+      // Read credentials from Replit Secrets or use manual input
+      if (credential_id) {
+        console.log(`[Colab Provision] 📦 Using credential_id: ${credential_id}`);
+        
+        // Parse credential_id (format: "colab_1")
+        const match = credential_id.match(/colab_(\d+)/);
+        if (!match) {
+          return res.status(400).json({ error: "Invalid credential_id format. Expected 'colab_1', 'colab_2', etc." });
+        }
+        
+        const index = match[1];
+        const emailKey = `COLAB_EMAIL_${index}`;
+        const passwordKey = `COLAB_PASSWORD_${index}`;
+        
+        email = process.env[emailKey] || '';
+        password = process.env[passwordKey] || '';
+        
+        if (!email || !password) {
+          return res.status(400).json({ 
+            error: `Credentials not found in Replit Secrets. Please add ${emailKey} and ${passwordKey} to Secrets.` 
+          });
+        }
+        
+        console.log(`[Colab Provision] ✅ Loaded credentials from secrets: ${email}`);
+      } else {
+        // Manual credentials
+        email = manualEmail;
+        password = manualPassword;
+        
+        if (!email || !password) {
+          return res.status(400).json({ 
+            error: "Either provide credential_id OR email+password" 
+          });
+        }
+        
+        console.log(`[Colab Provision] 📝 Using manual credentials: ${email}`);
       }
 
       console.log(`[Colab Provision] Starting Puppeteer automation for ${email}...`);
