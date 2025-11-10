@@ -700,18 +700,25 @@ export function registerGpuRoutes(app: Router) {
         let userMessage = result.error || 'Unknown error';
         let statusCode = 500;
         
-        if (userMessage.includes('Kaggle API returned an error page')) {
-          userMessage = "❌ Invalid credentials. Please verify:\n• Username is correct (case-sensitive)\n• API key is valid (generate new at kaggle.com/settings)\n• Your Kaggle account is phone-verified (required for API access)";
-          statusCode = 401;
-        } else if (userMessage.includes('401') || userMessage.includes('Unauthorized') || userMessage.includes('Invalid Kaggle credentials')) {
-          userMessage = "❌ Invalid Kaggle credentials. Please check your username and API key are correct.";
-          statusCode = 401;
-        } else if (userMessage.includes('403') || userMessage.includes('Forbidden') || userMessage.includes('phone') || userMessage.includes('verified')) {
-          userMessage = "❌ Account not verified\n\nYour Kaggle account MUST be phone-verified to use the API.\n\n✅ How to fix:\n1. Go to kaggle.com/settings\n2. Click 'Phone Verification'\n3. Verify your phone number\n4. Generate NEW API token\n5. Try again";
+        // Check for common Kaggle API errors
+        const errorLower = userMessage.toLowerCase();
+        
+        // HTML/DOCTYPE response = unverified account (most common)
+        if (userMessage.includes('<!DOCTYPE') || userMessage.includes('Unexpected token') || errorLower.includes('not valid json') || errorLower.includes('html')) {
+          userMessage = "⚠️ PHONE VERIFICATION REQUIRED\n\nKaggle API requires phone verification before you can use API credentials.\n\n📱 REQUIRED STEPS:\n1. Go to: kaggle.com/settings\n2. Find section: 'Phone Verification'\n3. Click 'Not Verified' link\n4. Select your country code\n5. Enter phone WITHOUT leading zero\n   Example: +55 Brazil → 11987654321 (not 011987654321)\n6. Enter SMS code\n7. Generate NEW API token after verification\n8. Try again here\n\n✅ This is required by Kaggle, not AION.";
           statusCode = 403;
-        } else if (userMessage.includes('rate limit') || userMessage.includes('429')) {
-          userMessage = "⚠️ Kaggle API rate limit exceeded. Please wait a few minutes and try again.";
+        } else if (errorLower.includes('401') || errorLower.includes('unauthorized') || errorLower.includes('invalid') || errorLower.includes('authentication failed')) {
+          userMessage = "❌ Invalid Kaggle credentials\n\nPlease verify:\n• Username is correct (case-sensitive)\n• API key is valid\n• Generate new token at: kaggle.com/settings → API";
+          statusCode = 401;
+        } else if (errorLower.includes('403') || errorLower.includes('forbidden') || errorLower.includes('phone') || errorLower.includes('verified')) {
+          userMessage = "⚠️ PHONE VERIFICATION REQUIRED\n\n📱 Go to kaggle.com/settings and verify your phone number.\nAPI access is blocked until verification is complete.";
+          statusCode = 403;
+        } else if (errorLower.includes('rate limit') || errorLower.includes('429') || errorLower.includes('too many')) {
+          userMessage = "⚠️ Kaggle API rate limit exceeded. Please wait 5-10 minutes and try again.";
           statusCode = 429;
+        } else if (errorLower.includes('timeout') || errorLower.includes('timed out')) {
+          userMessage = "⚠️ Connection timeout. Kaggle API may be slow. Please try again.";
+          statusCode = 504;
         }
 
         return res.status(statusCode).json({ 
