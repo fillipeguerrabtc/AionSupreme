@@ -5866,7 +5866,7 @@ export function registerRoutes(app: Express): Server {
   // ============================================================================
   
   // POST /api/gpu/orchestrate/start - Start best available GPU automatically
-  app.post("/api/gpu/orchestrate/start", requireAuth, requirePermission("gpu:orchestrate"), async (req, res) => {
+  app.post("/api/gpu/orchestrate/start", requireAuth, requirePermission("gpu:pool:execute"), async (req, res) => {
     try {
       const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
       
@@ -5893,7 +5893,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // POST /api/gpu/orchestrate/stop/:workerId - Stop specific GPU
-  app.post("/api/gpu/orchestrate/stop/:workerId", requireAuth, requirePermission("gpu:orchestrate"), async (req, res) => {
+  app.post("/api/gpu/orchestrate/stop/:workerId", requireAuth, requirePermission("gpu:pool:execute"), async (req, res) => {
     try {
       // ✅ FIX P0-2: Validate route parameters
       const params = validateParams(z.object({ 
@@ -5925,7 +5925,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // GET /api/gpu/orchestrate/status - Get orchestrator status + quota info
-  app.get("/api/gpu/orchestrate/status", requireAuth, requirePermission("gpu:view"), async (req, res) => {
+  app.get("/api/gpu/orchestrate/status", requireAuth, requirePermission("gpu:pool:read"), async (req, res) => {
     try {
       const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
       
@@ -5940,7 +5940,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // GET /api/gpu/quota/:workerId - Get quota status for specific worker
-  app.get("/api/gpu/quota/:workerId", requireAuth, requirePermission("gpu:view"), async (req, res) => {
+  app.get("/api/gpu/quota/:workerId", requireAuth, requirePermission("gpu:pool:read"), async (req, res) => {
     try {
       // ✅ FIX P0-2: Validate route parameters
       const params = validateParams(z.object({ 
@@ -5969,7 +5969,7 @@ export function registerRoutes(app: Express): Server {
   // ============================================================================
   
   // POST /api/gpu/workers/notebooks - Add new Colab/Kaggle notebook for orchestration (AUTO-CREATE)
-  app.post("/api/gpu/workers/notebooks", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
+  app.post("/api/gpu/workers/notebooks", requireAuth, requirePermission("gpu:pool:manage"), async (req, res) => {
     try {
       const { provider, email, password, kaggleUsername, kaggleKey, useGPU, title } = req.body;
       
@@ -6031,7 +6031,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // GET /api/gpu/workers/notebooks - List all managed notebooks
-  app.get("/api/gpu/workers/notebooks", requireAuth, requirePermission("gpu:view"), async (req, res) => {
+  app.get("/api/gpu/workers/notebooks", requireAuth, requirePermission("gpu:pool:read"), async (req, res) => {
     try {
       const { gpuWorkers: gpuWorkersTable } = await import("../shared/schema");
       const workers = await db.query.gpuWorkers.findMany({
@@ -6060,7 +6060,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // PATCH /api/gpu/workers/notebooks/:id - Update notebook config
-  app.patch("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
+  app.patch("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:pool:manage"), async (req, res) => {
     try {
       // ✅ FIX P0-2: Validate route parameters
       const params = validateParams(idParamSchema, req, res);
@@ -6094,7 +6094,7 @@ export function registerRoutes(app: Express): Server {
   });
   
   // DELETE /api/gpu/workers/notebooks/:id - Remove notebook from pool
-  app.delete("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:manage"), async (req, res) => {
+  app.delete("/api/gpu/workers/notebooks/:id", requireAuth, requirePermission("gpu:pool:manage"), async (req, res) => {
     try {
       // ✅ FIX P0-2: Validate route parameters
       const params = validateParams(idParamSchema, req, res);
@@ -6128,7 +6128,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // GET /api/gpu/overview - UNIFIED endpoint for all GPU workers + stats
-  app.get("/api/gpu/overview", requireAuth, requirePermission("gpu:view"), async (req, res) => {
+  app.get("/api/gpu/overview", requireAuth, requirePermission("gpu:pool:read"), async (req, res) => {
     try {
       const { quotaManager } = await import("./gpu-orchestration/intelligent-quota-manager");
       const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
