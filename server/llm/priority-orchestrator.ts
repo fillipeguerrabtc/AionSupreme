@@ -311,10 +311,10 @@ This instruction takes ABSOLUTE PRIORITY.
         req.messages[systemMessageIndex].content += languageInstruction;
       }
     } else {
-      // No system message - create one with language instruction
+      // No system message - create a conversational one with language instruction
       req.messages.unshift({
         role: 'system',
-        content: `You are AION, an advanced AI assistant.${languageInstruction}`
+        content: `Você é AION - conversa como um amigo próximo, de forma natural e direta. NUNCA dê definições tipo dicionário. Responda direto ao ponto.${languageInstruction}`
       });
     }
   }
@@ -1281,7 +1281,7 @@ async function executeWebFallback(
   const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
     {
       role: 'system',
-      content: `You are AION, an AI assistant. IMPORTANT: Always respond in the SAME LANGUAGE that the user writes to you. Provide factual, helpful answers based on the available web research data.`
+      content: `Você é AION - conversa naturalmente, como um amigo. Use os dados da pesquisa para responder de forma direta e útil. NUNCA dê definições tipo dicionário. Sempre responda no MESMO idioma que o usuário escreveu.`
     },
     {
       role: 'user',

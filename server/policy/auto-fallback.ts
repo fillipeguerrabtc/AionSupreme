@@ -413,7 +413,7 @@ export class AutoFallback {
           messages: [
             { 
               role: "system", 
-              content: "You are AION. Detect the user's language automatically and respond in that EXACT language. Support ALL world languages universally. If the user wrote in Portuguese, respond in Portuguese. If Chinese, respond in Chinese. If ANY other language, respond in THAT language." 
+              content: "Você é AION - conversa naturalmente como um amigo. Responda no MESMO idioma que o usuário escreveu. NUNCA dê definições tipo dicionário." 
             },
             { 
               role: "user", 
@@ -421,7 +421,7 @@ export class AutoFallback {
             },
             { 
               role: "user", 
-              content: "I searched the web for information but couldn't find relevant sources. Please tell me (IN MY LANGUAGE from my previous message) that you searched but found no results, and ask me to rephrase or provide more details. Keep it brief and in my language." 
+              content: "Procurei na web mas não encontrei nada. Me avise (de forma natural e no meu idioma) que não encontrei resultados e peça para eu reformular. Seja breve." 
             }
           ],
           temperature: 0.3,
@@ -503,7 +503,7 @@ export class AutoFallback {
           messages: [
             { 
               role: "system", 
-              content: "You are AION. Detect the user's language automatically and respond in that EXACT language. Support ALL world languages universally. If the user wrote in Portuguese, respond in Portuguese. If Chinese, respond in Chinese. If ANY other language, respond in THAT language." 
+              content: "Você é AION - conversa naturalmente como um amigo. Responda no MESMO idioma que o usuário escreveu. NUNCA dê definições tipo dicionário." 
             },
             { 
               role: "user", 
@@ -511,7 +511,7 @@ export class AutoFallback {
             },
             { 
               role: "user", 
-              content: "I found web sources but couldn't extract meaningful content from them. Please tell me (IN MY LANGUAGE from my previous message) that you found sources but extraction failed, and ask me to rephrase. Keep it brief and in my language." 
+              content: "Encontrei fontes na web mas não consegui extrair conteúdo útil. Me avise (de forma natural e no meu idioma) que extraction falhou e peça para reformular. Seja breve." 
             }
           ],
           temperature: 0.3,
@@ -553,22 +553,18 @@ export class AutoFallback {
     
     // Generate response using retrieved content
     // 🌍 CRITICAL: Respond in the SAME LANGUAGE as the user (multilingual support)
-    const unrestrictedPrompt = `You are AION, an AI assistant. 
+    const unrestrictedPrompt = `O usuário perguntou: "${userMessage}"
 
-The user asked: "${userMessage}"
-
-I retrieved the following information from web sources:
+Recuperei esta informação da web:
 
 ${allContent.slice(0, 8000)}
 
-Based on this information, provide a helpful answer to the user's question using the retrieved information.
-
-⚠️ CRITICAL: ALWAYS respond in the SAME LANGUAGE as the user's question, regardless of the source language. If the user wrote in Portuguese, respond in Portuguese. If in English, respond in English. If in any other language, respond in THAT language.`;
+Com base nisso, dê uma resposta útil no MESMO idioma que o usuário escreveu.`;
     
     try {
       const result = await llmClient.chatCompletion({
         messages: [
-          { role: "system", content: "You are AION, an AI assistant. Provide helpful answers based on available data. ALWAYS respond in the SAME LANGUAGE as the user's message (multilingual support for ALL languages)." },
+          { role: "system", content: "Você é AION - conversa naturalmente como um amigo. Use os dados disponíveis para responder de forma direta e útil. NUNCA dê definições tipo dicionário. Sempre responda no MESMO idioma que o usuário escreveu." },
           { role: "user", content: unrestrictedPrompt }
         ],
         temperature: policy.temperature,

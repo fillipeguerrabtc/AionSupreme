@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -14,29 +14,63 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Server, Code2, Zap } from "lucide-react";
+import { Loader2, Server, Code2, Zap, Key, Pencil } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useLanguage } from "@/lib/i18n";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface AddWorkerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+interface AvailableCredentials {
+  kaggle: Array<{ id: string; username: string; hasKey: boolean }>;
+  colab: Array<{ id: string; email: string; hasPassword: boolean }>;
+  instructions: {
+    kaggle: string;
+    colab: string;
+  };
+}
+
 export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"kaggle" | "colab">("kaggle");
+  
+  // Toggle between secrets and manual input
+  const [useSecrets, setUseSecrets] = useState(true);
+  
+  // Selected credential from secrets
+  const [selectedKaggleCredential, setSelectedKaggleCredential] = useState("");
+  const [selectedColabCredential, setSelectedColabCredential] = useState("");
 
-  // Kaggle form state
+  // Kaggle form state (manual)
   const [kaggleUsername, setKaggleUsername] = useState("");
   const [kaggleKey, setKaggleKey] = useState("");
   const [notebookName, setNotebookName] = useState("");
 
-  // Colab form state
+  // Colab form state (manual)
   const [colabEmail, setColabEmail] = useState("");
   const [colabPassword, setColabPassword] = useState("");
   const [colabNotebookUrl, setColabNotebookUrl] = useState("");
+  
+  // Fetch available credentials from Replit Secrets
+  const { data: availableCredentials, isLoading: loadingCredentials } = useQuery<AvailableCredentials>({
+    queryKey: ["/api/gpu/credentials/available"],
+    enabled: open, // Only fetch when dialog is open
+  });
+  
+  // Auto-select first credential when secrets become available
+  useEffect(() => {
+    if (availableCredentials?.kaggle?.[0] && !selectedKaggleCredential) {
+      setSelectedKaggleCredential(availableCredentials.kaggle[0].id);
+    }
+    if (availableCredentials?.colab?.[0] && !selectedColabCredential) {
+      setSelectedColabCredential(availableCredentials.colab[0].id);
+    }
+  }, [availableCredentials]);
 
   // Kaggle mutation
   const kaggleMutation = useMutation({
