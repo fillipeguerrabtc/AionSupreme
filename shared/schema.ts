@@ -1824,6 +1824,9 @@ export const curationQueue = pgTable("curation_queue", {
   note: text("note"), // Admin notes (reason for rejection, etc.)
   publishedId: varchar("published_id", { length: 50 }), // Document ID after approval
   
+  // Auto-quality score from chat ingestion (0-100)
+  score: real("score"), // Quality score calculated by chat-ingestion.ts and quality-gates-enterprise.ts
+  
   // Deduplication fields
   contentHash: varchar("content_hash", { length: 64 }), // SHA256 hash for exact duplicate detection
   normalizedContent: text("normalized_content"), // Lowercased, trimmed content for fuzzy matching
