@@ -3423,3 +3423,45 @@ export const insertAutoApprovalConfigSchema = createInsertSchema(autoApprovalCon
 });
 export type InsertAutoApprovalConfig = z.infer<typeof insertAutoApprovalConfigSchema>;
 export type AutoApprovalConfig = typeof autoApprovalConfig.$inferSelect;
+
+// ============================================================================
+// USER_QUERY_FREQUENCY - Query frequency tracking for reuse-aware auto-approval
+// Tracks how often users ask similar questions to enable cost-optimization via indexing
+// ============================================================================
+export const userQueryFrequency = pgTable("user_query_frequency", {
+  id: serial("id").primaryKey(),
+  
+  // Query identification (SHA-256 hash of normalized query)
+  queryHash: varchar("query_hash", { length: 64 }).notNull().unique(),
+  normalizedQuery: text("normalized_query").notNull(),
+  
+  // Semantic similarity (OpenAI embedding for detecting similar queries)
+  queryEmbedding: vector("query_embedding", { dimensions: 1536 }),
+  
+  // Frequency tracking
+  hitCount: integer("hit_count").notNull().default(1),
+  firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  
+  // Exponential decay factor (0.95^days_since_last_seen)
+  decayFactor: real("decay_factor").notNull().default(1.0),
+  
+  // Context metadata
+  namespace: varchar("namespace", { length: 255 }),
+  conversationId: varchar("conversation_id"),
+  metadata: jsonb("metadata").$type<Record<string, any>>(),
+  
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("user_query_frequency_hash_idx").on(table.queryHash),
+  index("user_query_frequency_last_seen_idx").on(table.lastSeenAt),
+  index("user_query_frequency_hit_count_idx").on(table.hitCount),
+  index("user_query_frequency_namespace_idx").on(table.namespace),
+]);
+
+export const insertUserQueryFrequencySchema = createInsertSchema(userQueryFrequency).omit({ 
+  id: true, 
+  updatedAt: true 
+});
+export type InsertUserQueryFrequency = z.infer<typeof insertUserQueryFrequencySchema>;
+export type UserQueryFrequency = typeof userQueryFrequency.$inferSelect;
