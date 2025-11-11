@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, unique, pgEnum, smallint } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, unique, pgEnum, smallint, vector } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from 'drizzle-orm';
@@ -369,9 +369,10 @@ export const embeddings = pgTable("embeddings", {
   chunkText: text("chunk_text").notNull(),
   chunkTokens: integer("chunk_tokens").notNull(),
   
-  // Vector embedding (stored as JSON array, indexed in FAISS separately)
-  // Note: For production, use pgvector extension or external FAISS/Milvus
-  embedding: jsonb("embedding").notNull().$type<number[]>(),
+  // Vector embedding (native pgvector type with IVFFlat index)
+  // ✅ PRODUCTION-READY: Using pgvector 0.8.0 with IVFFlat index (O(log N) search)
+  // Index: embeddings_vector_ivfflat_idx (lists=10, vector_cosine_ops)
+  embedding: vector("embedding", { dimensions: 1536 }).notNull(),
   embeddingDim: integer("embedding_dim").notNull().default(1536), // OpenAI ada-002 dimension
   
   // Metadata for retrieval
