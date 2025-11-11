@@ -456,6 +456,53 @@ interface Translations {
         confirmDelete: string;
       };
       
+      // TODO: Consider mirroring under admin.cascade when used across multiple pages
+      cascade: {
+        dialog: {
+          title: string;
+          aboutToDelete: string; // "You are about to delete: {{title}}"
+          analyzingImpact: string;
+          loadError: string; // "Failed to load dependency graph: {{error}}"
+          cascadeImpactLabel: string;
+          willAffectTemplate: string; // "This deletion will affect {{datasets}} datasets and {{models}} models"
+          modelsTaintedSuffix: string; // "({{count}} models already tainted)"
+          noImpact: string;
+          affectedDatasetsTitle: string; // "Affected Datasets ({{count}})"
+          affectedModelsTitle: string; // "Affected Models ({{count}})"
+          datasetVersion: string; // "Dataset #{{id}} v{{version}}"
+          taintedBadge: string;
+          deletionReasonLabel: string;
+          deletionReasonRequired: string;
+          selectReasonPlaceholder: string;
+          reasonQuality: string;
+          reasonDuplicate: string;
+          reasonExpired: string;
+          reasonRequest: string;
+          reasonGdpr: string;
+          gdprReasonLabel: string;
+          gdprReasonRequired: string;
+          gdprReasonPlaceholder: string;
+          retentionDaysLabel: string;
+          retentionPlaceholder: string;
+          retentionHint: string;
+          deleteButtonLabel: string; // Reuse common.delete for "Delete Document"
+        };
+        status: {
+          active: string;
+          tainted: string;
+          deleted: string;
+          pending: string;
+        };
+        toasts: {
+          validationErrorTitle: string;
+          selectReasonError: string;
+          gdprReasonRequiredTitle: string;
+          gdprReasonRequiredDesc: string;
+          deleteSuccessTitle: string;
+          deleteSuccessDescTemplate: string; // "Deletion complete: {{datasets}} datasets and {{models}} models affected"
+        };
+      };
+      
       states: {
         loading: string;
         noDocuments: string;
@@ -1787,6 +1834,52 @@ const translations: Record<Language, Translations> = {
           confirmDelete: "Remover este conhecimento?",
         },
         
+        cascade: {
+          dialog: {
+            title: "Excluir Documento - Análise de Impacto em Cascata",
+            aboutToDelete: "Você está prestes a excluir: {{title}}",
+            analyzingImpact: "Analisando impacto em cascata...",
+            loadError: "Falha ao carregar grafo de dependências: {{error}}",
+            cascadeImpactLabel: "Impacto em Cascata:",
+            willAffectTemplate: "Esta exclusão afetará {{datasets}} datasets e {{models}} modelos",
+            modelsTaintedSuffix: "({{count}} modelos já marcados)",
+            noImpact: "Nenhum impacto em cascata detectado. Este documento não é usado por nenhum dataset ou modelo.",
+            affectedDatasetsTitle: "Datasets Afetados ({{count}})",
+            affectedModelsTitle: "Modelos Afetados ({{count}})",
+            datasetVersion: "Dataset #{{id}} v{{version}}",
+            taintedBadge: "Marcado",
+            deletionReasonLabel: "Motivo da Exclusão",
+            deletionReasonRequired: "*",
+            selectReasonPlaceholder: "Selecione o motivo",
+            reasonQuality: "Problemas de Qualidade",
+            reasonDuplicate: "Conteúdo Duplicado",
+            reasonExpired: "Expirado/Desatualizado",
+            reasonRequest: "Solicitação do Usuário",
+            reasonGdpr: "Conformidade LGPD/GDPR",
+            gdprReasonLabel: "Motivo Específico LGPD/GDPR",
+            gdprReasonRequired: "*",
+            gdprReasonPlaceholder: "Ex: Direito ao esquecimento, Minimização de dados",
+            retentionDaysLabel: "Retenção do Registro (dias)",
+            retentionPlaceholder: "Deixe vazio para retenção permanente",
+            retentionHint: "Quanto tempo manter o registro de auditoria da exclusão (vazio = para sempre)",
+            deleteButtonLabel: "Excluir Documento",
+          },
+          status: {
+            active: "Ativo",
+            tainted: "Marcado",
+            deleted: "Excluído",
+            pending: "Pendente",
+          },
+          toasts: {
+            validationErrorTitle: "Erro de Validação",
+            selectReasonError: "Por favor, selecione um motivo de exclusão",
+            gdprReasonRequiredTitle: "Motivo LGPD/GDPR Obrigatório",
+            gdprReasonRequiredDesc: "Por favor, forneça um motivo específico para exclusão por LGPD/GDPR",
+            deleteSuccessTitle: "Documento excluído com sucesso",
+            deleteSuccessDescTemplate: "Exclusão completa: {{datasets}} datasets e {{models}} modelos afetados",
+          },
+        },
+        
         states: {
           loading: "Carregando...",
           noDocuments: "Nenhum conhecimento encontrado. Adicione novos conhecimentos acima!",
@@ -3092,6 +3185,52 @@ const translations: Record<Language, Translations> = {
           confirmDelete: "Remove this knowledge?",
         },
         
+        cascade: {
+          dialog: {
+            title: "Delete Document - Cascade Impact Analysis",
+            aboutToDelete: "You are about to delete: {{title}}",
+            analyzingImpact: "Analyzing cascade impact...",
+            loadError: "Failed to load dependency graph: {{error}}",
+            cascadeImpactLabel: "Cascade Impact:",
+            willAffectTemplate: "This deletion will affect {{datasets}} datasets and {{models}} models",
+            modelsTaintedSuffix: "({{count}} models already tainted)",
+            noImpact: "No cascade impact detected. This document is not used by any datasets or models.",
+            affectedDatasetsTitle: "Affected Datasets ({{count}})",
+            affectedModelsTitle: "Affected Models ({{count}})",
+            datasetVersion: "Dataset #{{id}} v{{version}}",
+            taintedBadge: "Tainted",
+            deletionReasonLabel: "Deletion Reason",
+            deletionReasonRequired: "*",
+            selectReasonPlaceholder: "Select reason",
+            reasonQuality: "Quality Issues",
+            reasonDuplicate: "Duplicate Content",
+            reasonExpired: "Expired/Outdated",
+            reasonRequest: "User Request",
+            reasonGdpr: "GDPR Compliance",
+            gdprReasonLabel: "GDPR Specific Reason",
+            gdprReasonRequired: "*",
+            gdprReasonPlaceholder: "E.g., Right to erasure, Data minimization",
+            retentionDaysLabel: "Tombstone Retention (days)",
+            retentionPlaceholder: "Leave empty for permanent retention",
+            retentionHint: "How long to keep the deletion audit trail (empty = forever)",
+            deleteButtonLabel: "Delete Document",
+          },
+          status: {
+            active: "Active",
+            tainted: "Tainted",
+            deleted: "Deleted",
+            pending: "Pending",
+          },
+          toasts: {
+            validationErrorTitle: "Validation Error",
+            selectReasonError: "Please select a deletion reason",
+            gdprReasonRequiredTitle: "GDPR Reason Required",
+            gdprReasonRequiredDesc: "Please provide a GDPR-specific reason for deletion",
+            deleteSuccessTitle: "Document deleted successfully",
+            deleteSuccessDescTemplate: "Deletion complete: {{datasets}} datasets and {{models}} models affected",
+          },
+        },
+        
         states: {
           loading: "Loading...",
           noDocuments: "No knowledge found. Add new knowledge above!",
@@ -4395,6 +4534,52 @@ const translations: Record<Language, Translations> = {
           save: "Guardar",
           cancel: "Cancelar",
           confirmDelete: "¿Eliminar este conocimiento?",
+        },
+        
+        cascade: {
+          dialog: {
+            title: "Eliminar Documento - Análisis de Impacto en Cascada",
+            aboutToDelete: "Estás a punto de eliminar: {{title}}",
+            analyzingImpact: "Analizando impacto en cascada...",
+            loadError: "Error al cargar grafo de dependencias: {{error}}",
+            cascadeImpactLabel: "Impacto en Cascada:",
+            willAffectTemplate: "Esta eliminación afectará {{datasets}} datasets y {{models}} modelos",
+            modelsTaintedSuffix: "({{count}} modelos ya marcados)",
+            noImpact: "No se detectó impacto en cascada. Este documento no es usado por ningún dataset o modelo.",
+            affectedDatasetsTitle: "Datasets Afectados ({{count}})",
+            affectedModelsTitle: "Modelos Afectados ({{count}})",
+            datasetVersion: "Dataset #{{id}} v{{version}}",
+            taintedBadge: "Marcado",
+            deletionReasonLabel: "Motivo de Eliminación",
+            deletionReasonRequired: "*",
+            selectReasonPlaceholder: "Seleccionar motivo",
+            reasonQuality: "Problemas de Calidad",
+            reasonDuplicate: "Contenido Duplicado",
+            reasonExpired: "Expirado/Desactualizado",
+            reasonRequest: "Solicitud del Usuario",
+            reasonGdpr: "Cumplimiento RGPD",
+            gdprReasonLabel: "Motivo Específico RGPD",
+            gdprReasonRequired: "*",
+            gdprReasonPlaceholder: "Ej: Derecho al olvido, Minimización de datos",
+            retentionDaysLabel: "Retención del Registro (días)",
+            retentionPlaceholder: "Dejar vacío para retención permanente",
+            retentionHint: "Cuánto tiempo mantener el registro de auditoría de la eliminación (vacío = para siempre)",
+            deleteButtonLabel: "Eliminar Documento",
+          },
+          status: {
+            active: "Activo",
+            tainted: "Marcado",
+            deleted: "Eliminado",
+            pending: "Pendiente",
+          },
+          toasts: {
+            validationErrorTitle: "Error de Validación",
+            selectReasonError: "Por favor, selecciona un motivo de eliminación",
+            gdprReasonRequiredTitle: "Motivo RGPD Requerido",
+            gdprReasonRequiredDesc: "Por favor, proporciona un motivo específico para la eliminación por RGPD",
+            deleteSuccessTitle: "Documento eliminado con éxito",
+            deleteSuccessDescTemplate: "Eliminación completa: {{datasets}} datasets y {{models}} modelos afectados",
+          },
         },
         
         states: {

@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLanguage } from "@/lib/i18n";
+import { useTranslation } from "@/lib/i18n";
 import { AlertTriangle, Database, Cpu, Loader2 } from "lucide-react";
 import type {
   CascadeDependencyResponse,
@@ -72,8 +72,8 @@ export function CascadeDeleteDialog({
   onClose,
   onDeleted,
 }: CascadeDeleteDialogProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
-  const { t } = useLanguage();
 
   // Form state
   const [reason, setReason] = useState<CascadeDeletePayload['reason']>('quality');
@@ -126,8 +126,10 @@ export function CascadeDeleteDialog({
     },
     onSuccess: (data) => {
       toast({
-        title: t.common.removedSuccess,
-        description: `${data.affectedDatasets} datasets and ${data.affectedModels} models affected`,
+        title: t.admin.knowledgeBase.cascade.toasts.deleteSuccessTitle,
+        description: t.admin.knowledgeBase.cascade.toasts.deleteSuccessDescTemplate
+          .replace('{{datasets}}', data.affectedDatasets.toString())
+          .replace('{{models}}', data.affectedModels.toString()),
       });
       onDeleted();
       onClose();
@@ -135,7 +137,7 @@ export function CascadeDeleteDialog({
     onError: (error: Error) => {
       toast({
         title: t.common.error,
-        description: error.message || 'Failed to delete document',
+        description: error.message || t.common.deleteError,
         variant: 'destructive',
       });
     },
@@ -145,8 +147,8 @@ export function CascadeDeleteDialog({
     // Validation
     if (!reason) {
       toast({
-        title: 'Validation Error',
-        description: 'Please select a deletion reason',
+        title: t.admin.knowledgeBase.cascade.toasts.validationErrorTitle,
+        description: t.admin.knowledgeBase.cascade.toasts.selectReasonError,
         variant: 'destructive',
       });
       return;
@@ -154,8 +156,8 @@ export function CascadeDeleteDialog({
 
     if (reason === 'gdpr' && !gdprReason.trim()) {
       toast({
-        title: 'GDPR Reason Required',
-        description: 'Please provide a GDPR-specific reason for deletion',
+        title: t.admin.knowledgeBase.cascade.toasts.gdprReasonRequiredTitle,
+        description: t.admin.knowledgeBase.cascade.toasts.gdprReasonRequiredDesc,
         variant: 'destructive',
       });
       return;
@@ -169,16 +171,27 @@ export function CascadeDeleteDialog({
   const hasImpact = dependencies && (dependencies.impact.totalDatasets > 0 || dependencies.impact.totalModels > 0);
   const taintedModels = dependencies?.impact.taintedModels || 0;
 
+  // Helper to translate status enums
+  const getStatusLabel = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      active: t.admin.knowledgeBase.cascade.status.active,
+      tainted: t.admin.knowledgeBase.cascade.status.tainted,
+      deleted: t.admin.knowledgeBase.cascade.status.deleted,
+      pending: t.admin.knowledgeBase.cascade.status.pending,
+    };
+    return statusMap[status] || status;
+  };
+
   return (
     <AlertDialog open={open} onOpenChange={onClose}>
       <AlertDialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-destructive" />
-            Delete Document - Cascade Impact Analysis
+            {t.admin.knowledgeBase.cascade.dialog.title}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            You are about to delete: <strong>{document.title}</strong>
+            {t.admin.knowledgeBase.cascade.dialog.aboutToDelete.replace('{{title}}', document.title)}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -187,7 +200,7 @@ export function CascadeDeleteDialog({
           {loadingDeps && (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="w-6 h-6 animate-spin mr-2" />
-              Analyzing cascade impact...
+              {t.admin.knowledgeBase.cascade.dialog.analyzingImpact}
             </div>
           )}
 
@@ -195,7 +208,7 @@ export function CascadeDeleteDialog({
           {depsError && (
             <Alert variant="destructive">
               <AlertDescription>
-                Failed to load dependency graph: {(depsError as Error).message}
+                {t.admin.knowledgeBase.cascade.dialog.loadError.replace('{{error}}', (depsError as Error).message)}
               </AlertDescription>
             </Alert>
           )}
@@ -207,13 +220,14 @@ export function CascadeDeleteDialog({
                 <Alert>
                   <AlertTriangle className="w-4 h-4" />
                   <AlertDescription className="ml-2">
-                    <strong>Cascade Impact:</strong> This deletion will affect{' '}
-                    <strong>{dependencies.impact.totalDatasets} datasets</strong> and{' '}
-                    <strong>{dependencies.impact.totalModels} models</strong>
+                    <strong>{t.admin.knowledgeBase.cascade.dialog.cascadeImpactLabel}</strong>{' '}
+                    {t.admin.knowledgeBase.cascade.dialog.willAffectTemplate
+                      .replace('{{datasets}}', dependencies.impact.totalDatasets.toString())
+                      .replace('{{models}}', dependencies.impact.totalModels.toString())}
                     {taintedModels > 0 && (
                       <span className="text-destructive">
                         {' '}
-                        ({taintedModels} models already tainted)
+                        {t.admin.knowledgeBase.cascade.dialog.modelsTaintedSuffix.replace('{{count}}', taintedModels.toString())}
                       </span>
                     )}
                   </AlertDescription>
@@ -221,7 +235,7 @@ export function CascadeDeleteDialog({
               ) : (
                 <Alert>
                   <AlertDescription>
-                    No cascade impact detected. This document is not used by any datasets or models.
+                    {t.admin.knowledgeBase.cascade.dialog.noImpact}
                   </AlertDescription>
                 </Alert>
               )}
@@ -231,7 +245,7 @@ export function CascadeDeleteDialog({
                 <div>
                   <Label className="text-sm font-medium mb-2 flex items-center gap-2">
                     <Database className="w-4 h-4" />
-                    Affected Datasets ({dependencies.dependencies.datasets.length})
+                    {t.admin.knowledgeBase.cascade.dialog.affectedDatasetsTitle.replace('{{count}}', dependencies.dependencies.datasets.length.toString())}
                   </Label>
                   <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
                     {dependencies.dependencies.datasets.map((dataset) => (
@@ -239,9 +253,13 @@ export function CascadeDeleteDialog({
                         key={dataset.id}
                         className="flex items-center justify-between text-sm py-1"
                       >
-                        <span>Dataset #{dataset.datasetId} v{dataset.versionNumber}</span>
+                        <span>
+                          {t.admin.knowledgeBase.cascade.dialog.datasetVersion
+                            .replace('{{id}}', dataset.datasetId.toString())
+                            .replace('{{version}}', dataset.versionNumber.toString())}
+                        </span>
                         <Badge variant="outline" className="text-xs">
-                          {dataset.status}
+                          {getStatusLabel(dataset.status)}
                         </Badge>
                       </div>
                     ))}
@@ -254,7 +272,7 @@ export function CascadeDeleteDialog({
                 <div>
                   <Label className="text-sm font-medium mb-2 flex items-center gap-2">
                     <Cpu className="w-4 h-4" />
-                    Affected Models ({dependencies.dependencies.models.length})
+                    {t.admin.knowledgeBase.cascade.dialog.affectedModelsTitle.replace('{{count}}', dependencies.dependencies.models.length.toString())}
                   </Label>
                   <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
                     {dependencies.dependencies.models.map((model) => (
@@ -263,11 +281,12 @@ export function CascadeDeleteDialog({
                         className="flex items-center justify-between text-sm py-1"
                       >
                         <span>{model.modelName}</span>
-                        {model.status === 'tainted' && (
-                          <Badge variant="destructive" className="text-xs">
-                            Tainted
-                          </Badge>
-                        )}
+                        <Badge 
+                          variant={model.status === 'tainted' ? 'destructive' : 'outline'} 
+                          className="text-xs"
+                        >
+                          {getStatusLabel(model.status)}
+                        </Badge>
                       </div>
                     ))}
                   </div>
@@ -280,18 +299,18 @@ export function CascadeDeleteDialog({
           <div className="space-y-3 pt-4 border-t">
             <div>
               <Label htmlFor="deletion-reason">
-                Deletion Reason <span className="text-destructive">*</span>
+                {t.admin.knowledgeBase.cascade.dialog.deletionReasonLabel} <span className="text-destructive">{t.admin.knowledgeBase.cascade.dialog.deletionReasonRequired}</span>
               </Label>
               <Select value={reason} onValueChange={(v) => setReason(v as CascadeDeletePayload['reason'])}>
                 <SelectTrigger id="deletion-reason" data-testid="select-deletion-reason">
-                  <SelectValue placeholder="Select reason" />
+                  <SelectValue placeholder={t.admin.knowledgeBase.cascade.dialog.selectReasonPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="quality">Quality Issues</SelectItem>
-                  <SelectItem value="duplicate">Duplicate Content</SelectItem>
-                  <SelectItem value="expired">Expired/Outdated</SelectItem>
-                  <SelectItem value="request">User Request</SelectItem>
-                  <SelectItem value="gdpr">GDPR Compliance</SelectItem>
+                  <SelectItem value="quality">{t.admin.knowledgeBase.cascade.dialog.reasonQuality}</SelectItem>
+                  <SelectItem value="duplicate">{t.admin.knowledgeBase.cascade.dialog.reasonDuplicate}</SelectItem>
+                  <SelectItem value="expired">{t.admin.knowledgeBase.cascade.dialog.reasonExpired}</SelectItem>
+                  <SelectItem value="request">{t.admin.knowledgeBase.cascade.dialog.reasonRequest}</SelectItem>
+                  <SelectItem value="gdpr">{t.admin.knowledgeBase.cascade.dialog.reasonGdpr}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -299,12 +318,12 @@ export function CascadeDeleteDialog({
             {reason === 'gdpr' && (
               <div>
                 <Label htmlFor="gdpr-reason">
-                  GDPR Specific Reason <span className="text-destructive">*</span>
+                  {t.admin.knowledgeBase.cascade.dialog.gdprReasonLabel} <span className="text-destructive">{t.admin.knowledgeBase.cascade.dialog.gdprReasonRequired}</span>
                 </Label>
                 <Textarea
                   id="gdpr-reason"
                   data-testid="input-gdpr-reason"
-                  placeholder="E.g., Right to erasure, Data minimization"
+                  placeholder={t.admin.knowledgeBase.cascade.dialog.gdprReasonPlaceholder}
                   value={gdprReason}
                   onChange={(e) => setGdprReason(e.target.value)}
                   rows={2}
@@ -314,19 +333,19 @@ export function CascadeDeleteDialog({
 
             <div>
               <Label htmlFor="retention-days">
-                Tombstone Retention (days)
+                {t.admin.knowledgeBase.cascade.dialog.retentionDaysLabel}
               </Label>
               <Input
                 id="retention-days"
                 data-testid="input-retention-days"
                 type="number"
-                placeholder="Leave empty for permanent retention"
+                placeholder={t.admin.knowledgeBase.cascade.dialog.retentionPlaceholder}
                 value={retentionDays ?? ''}
                 onChange={(e) => setRetentionDays(e.target.value ? parseInt(e.target.value) : undefined)}
                 min={1}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                How long to keep the deletion audit trail (empty = forever)
+                {t.admin.knowledgeBase.cascade.dialog.retentionHint}
               </p>
             </div>
           </div>
@@ -339,7 +358,7 @@ export function CascadeDeleteDialog({
             disabled={deleteMutation.isPending}
             data-testid="button-cancel-delete"
           >
-            Cancel
+            {t.common.cancel}
           </Button>
           <Button
             variant="destructive"
@@ -348,7 +367,7 @@ export function CascadeDeleteDialog({
             data-testid="button-confirm-delete"
           >
             {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Delete Document
+            {t.admin.knowledgeBase.cascade.dialog.deleteButtonLabel}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
