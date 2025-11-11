@@ -1063,6 +1063,146 @@ export type InsertVisionQuotaState = z.infer<typeof insertVisionQuotaStateSchema
 export type VisionQuotaState = typeof visionQuotaState.$inferSelect;
 
 // ============================================================================
+// GPU STATE PERSISTENCE - Phase 3: GPU state management (PostgreSQL-backed)
+// Persists GPU health checks, active requests, and sessions to survive server restarts
+// ============================================================================
+
+/**
+ * GPU Health State - Persists failed health check counters from GpuPoolManager
+ * Prevents workers from being incorrectly marked healthy after server restart
+ */
+export const gpuHealthState = pgTable("gpu_health_state", {
+  id: serial("id").primaryKey(),
+  
+  // Worker reference
+  workerId: integer("worker_id").notNull().references(() => gpuWorkers.id, { onDelete: 'cascade' }).unique(),
+  
+  // Failed health checks counter (max 3 before removal)
+  failedChecks: integer("failed_checks").notNull().default(0),
+  
+  // Last health check status
+  lastCheckSuccess: boolean("last_check_success"),
+  lastCheckTime: timestamp("last_check_time"),
+  lastCheckError: text("last_check_error"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  workerIdIdx: index("gpu_health_state_worker_id_idx").on(table.workerId),
+  failedChecksIdx: index("gpu_health_state_failed_checks_idx").on(table.failedChecks),
+}));
+
+export const insertGpuHealthStateSchema = createInsertSchema(gpuHealthState).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertGpuHealthState = z.infer<typeof insertGpuHealthStateSchema>;
+export type GpuHealthState = typeof gpuHealthState.$inferSelect;
+
+/**
+ * GPU Request State - Persists active request counters from GpuLoadBalancer
+ * Enables accurate "least-busy" load balancing after server restart
+ */
+export const gpuRequestState = pgTable("gpu_request_state", {
+  id: serial("id").primaryKey(),
+  
+  // Worker reference
+  workerId: integer("worker_id").notNull().references(() => gpuWorkers.id, { onDelete: 'cascade' }).unique(),
+  
+  // Active requests counter (for least-busy strategy)
+  activeRequests: integer("active_requests").notNull().default(0),
+  
+  // Last request tracking
+  lastRequestStarted: timestamp("last_request_started"),
+  lastRequestCompleted: timestamp("last_request_completed"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  workerIdIdx: index("gpu_request_state_worker_id_idx").on(table.workerId),
+  activeRequestsIdx: index("gpu_request_state_active_requests_idx").on(table.activeRequests),
+}));
+
+export const insertGpuRequestStateSchema = createInsertSchema(gpuRequestState).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertGpuRequestState = z.infer<typeof insertGpuRequestStateSchema>;
+export type GpuRequestState = typeof gpuRequestState.$inferSelect;
+
+/**
+ * GPU Session State - Persists active Colab/Kaggle sessions with intelligent quota tracking
+ * CRITICAL: Prevents quota leakage after server restart (GPUs running without AION control)
+ * 
+ * QUOTA MANAGEMENT (70% SAFETY LIMIT):
+ * - Kaggle: 30h/week (70% = 21h), 12h/session (70% = 8.4h), 1 concurrent
+ * - Colab: 12h/session (70% = 8.4h), 36h cooldown
+ */
+export const gpuProviderEnum = pgEnum("gpu_provider_enum", ["kaggle", "colab"]);
+
+export const gpuSessionState = pgTable("gpu_session_state", {
+  id: serial("id").primaryKey(),
+  
+  // Worker reference
+  workerId: integer("worker_id").notNull().references(() => gpuWorkers.id, { onDelete: 'cascade' }).unique(),
+  
+  // Provider type
+  provider: gpuProviderEnum("provider").notNull(),
+  
+  // Session identification
+  puppeteerSessionId: varchar("puppeteer_session_id", { length: 255 }),
+  ngrokUrl: text("ngrok_url"),
+  
+  // Session timing
+  sessionStarted: timestamp("session_started").notNull(),
+  sessionDurationMs: integer("session_duration_ms").default(0), // Updated periodically
+  
+  // Quota tracking (70% safety limits)
+  maxSessionDurationMs: integer("max_session_duration_ms").notNull(), // Kaggle: 8.4h, Colab: 8.4h (70% of 12h)
+  weeklyQuotaUsedMs: integer("weekly_quota_used_ms").default(0), // Kaggle only: track 21h/week (70% of 30h)
+  weeklyQuotaLimitMs: integer("weekly_quota_limit_ms"), // Kaggle: 21h (75600000ms)
+  weeklyQuotaResetAt: timestamp("weekly_quota_reset_at"), // Kaggle: Monday 00:00 UTC
+  
+  // Cooldown tracking (Colab only)
+  cooldownUntil: timestamp("cooldown_until"), // Colab: 36h after session ends
+  
+  // Keep-alive tracking
+  lastKeepAlive: timestamp("last_keep_alive"),
+  keepAliveIntervalMs: integer("keep_alive_interval_ms").default(3600000), // 60min default
+  
+  // Auto-shutdown tracking
+  autoShutdownAt: timestamp("auto_shutdown_at"), // When to force shutdown (11h for safety)
+  shutdownReason: varchar("shutdown_reason", { length: 100 }), // "quota_70%_reached" | "max_duration" | "manual" | "error"
+  
+  // Browser state (for recovery - not fully recoverable but useful for cleanup)
+  browserUserDataDir: text("browser_user_data_dir"),
+  
+  // Status
+  isActive: boolean("is_active").notNull().default(true),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  workerIdIdx: index("gpu_session_state_worker_id_idx").on(table.workerId),
+  providerIdx: index("gpu_session_state_provider_idx").on(table.provider),
+  isActiveIdx: index("gpu_session_state_is_active_idx").on(table.isActive),
+  autoShutdownAtIdx: index("gpu_session_state_auto_shutdown_at_idx").on(table.autoShutdownAt),
+}));
+
+export const insertGpuSessionStateSchema = createInsertSchema(gpuSessionState).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertGpuSessionState = z.infer<typeof insertGpuSessionStateSchema>;
+export type GpuSessionState = typeof gpuSessionState.$inferSelect;
+
+// ============================================================================
 // MULTIMODAL MEDIA GENERATION - Autonomous Image/GIF Generation (Colab/Kaggle)
 // ============================================================================
 
