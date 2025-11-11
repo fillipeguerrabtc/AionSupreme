@@ -151,22 +151,22 @@ router.get(
         conditions.push(lte(deletionTombstones.deletedAt, new Date(toDate)));
       }
 
+      // Fetch tombstones with pagination (conditionally apply WHERE)
       const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-      // Fetch tombstones with pagination
-      const tombstones = await db
-        .select()
-        .from(deletionTombstones)
-        .where(whereClause)
+      
+      const tombstones = await (whereClause
+        ? db.select().from(deletionTombstones).where(whereClause)
+        : db.select().from(deletionTombstones)
+      )
         .orderBy(desc(deletionTombstones.deletedAt))
         .limit(limit)
         .offset(offset);
 
-      // Get total count for pagination
-      const [countResult] = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(deletionTombstones)
-        .where(whereClause);
+      // Get total count for pagination (conditionally apply WHERE)
+      const [countResult] = await (whereClause
+        ? db.select({ count: sql<number>`count(*)` }).from(deletionTombstones).where(whereClause)
+        : db.select({ count: sql<number>`count(*)` }).from(deletionTombstones)
+      );
 
       return res.json({
         success: true,
@@ -257,7 +257,7 @@ router.post(
 
       // Trigger cascade deletion
       const result = await kbCascadeService.deleteDocument(documentId, {
-        userId,
+        userId: userId || undefined,
         reason,
         gdprReason,
         retentionDays: retentionDays !== undefined ? retentionDays : null,

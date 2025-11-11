@@ -63,6 +63,7 @@ import { registerPermissionsRoutes } from "./routes/permissions";
 import { registerMetaLearningRoutes } from "./routes/meta-learning";
 import { registerBackupRoutes } from "./routes/backup";
 import { registerAlertRoutes } from "./routes/alerts";
+import cascadeRoutes from "./routes/cascade";
 
 // ============================================================================
 // TYPE DEFINITIONS - Eliminating 'as any' casts
@@ -218,6 +219,9 @@ export function registerRoutes(app: Express): Server {
   
   // Registrar rotas de telemetria (analytics de agentes e namespaces)
   registerTelemetryRoutes(adminSubRouter);
+  
+  // Registrar rotas de Cascade Data Lineage (enterprise deletion tracking)
+  adminSubRouter.use("/cascade", cascadeRoutes);
   
   // Mount admin sub-router on /api/admin (NOT /api to avoid blocking public routes)
   app.use("/api/admin", adminSubRouter);
