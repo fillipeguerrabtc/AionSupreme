@@ -27,6 +27,7 @@ import { z } from 'zod';
 import { GPUPool } from '../gpu/pool';
 import { autoLearningListener } from '../events/auto-learning-listener';
 import { storage } from '../storage';
+import { log } from '../utils/logger';
 
 // ============================================================================
 // TYPES & VALIDATION
@@ -120,7 +121,7 @@ async function runGpuInference(
     topP?: number;
   } = {}
 ): Promise<{ content: string; workerId: number; latencyMs: number } | null> {
-  console.log('   🎮 [GPU] Attempting GPU inference...');
+  log.info({ component: 'gpu-inference' }, 'Attempting GPU inference');
   
   try {
     const { gpuLoadBalancer } = await import('../gpu/load-balancer');
@@ -445,7 +446,7 @@ This instruction takes ABSOLUTE PRIORITY.
         }
         
         // KB didn't have it - go to Web WITHOUT using APIs
-        const webFallback = await executeWebFallback(userMessage, true); // skipLLM=true
+        const webFallback = await executeWebFallback(userMessage, true, req.language); // skipLLM=true
         
         await trackWebSearch(
           'web',
@@ -711,10 +712,10 @@ This instruction takes ABSOLUTE PRIORITY.
     
     // ⚡ AUTO WEB SEARCH: If KB failed + time-sensitive query → search web immediately
     if (isTimeSensitive && req.unrestricted) {
-      console.log('   🔍 Time-sensitive query detected → Triggering WEB SEARCH...');
+      log.info({ component: 'priority-orchestrator' }, 'Time-sensitive query detected, triggering web search');
       
       try {
-        const webFallback = await executeWebFallback(userMessage);
+        const webFallback = await executeWebFallback(userMessage, false, req.language);
         
         await trackWebSearch(
           'web',
@@ -1225,7 +1226,8 @@ async function trackWebSearch(
 
 async function executeWebFallback(
   query: string,
-  skipLLM: boolean = false  // When true, skip API calls and return raw summary
+  skipLLM: boolean = false,  // When true, skip API calls and return raw summary
+  language: "pt-BR" | "en-US" | "es-ES" = "pt-BR"  // Language for response generation
 ): Promise<WebFallbackResult> {
   console.log('   🔍 Searching web for information...');
   
@@ -1320,7 +1322,7 @@ async function executeWebFallback(
     [{ role: 'user', content: query }],
     webResultsSummary,
     undefined, // instruction (using default)
-    req.language // ✅ FIX: Pass detected language for proper response language
+    language // ✅ FIX: Pass detected language for proper response language
   );
   
   const messages = llmRequest.messages;

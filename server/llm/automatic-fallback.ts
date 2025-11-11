@@ -10,6 +10,7 @@ import { generateWithFreeAPIs, type LLMRequest, type LLMResponse } from './free-
 import { db } from '../db';
 import { documents, curationQueue } from '@shared/schema';
 import { sql } from 'drizzle-orm';
+import { log } from '../utils/logger';
 
 // ============================================================================
 // TYPES
@@ -35,13 +36,13 @@ export async function generateWithFallback(
 ): Promise<FallbackResult> {
   
   // Step 1: Try normal generation
-  console.log('[Fallback] Attempting normal generation...');
+  log.info({ component: 'fallback' }, 'Attempting normal generation');
   
   let response: LLMResponse;
   try {
     response = await generateWithFreeAPIs(req);
   } catch (error: any) {
-    console.error('[Fallback] All LLM providers failed:', error.message);
+    log.error({ component: 'fallback', error: error.message }, 'All LLM providers failed');
     throw new Error('All LLM providers are currently unavailable');
   }
 
@@ -50,7 +51,7 @@ export async function generateWithFallback(
   
   if (!refusalAnalysis.isRefusal) {
     // No refusal detected - return direct response
-    console.log('[Fallback] ✓ No refusal detected, returning direct response');
+    log.info({ component: 'fallback' }, 'No refusal detected, returning direct response');
     return {
       answer: response.text,
       used: 'direct',
@@ -60,12 +61,16 @@ export async function generateWithFallback(
   }
 
   // Step 3: Refusal detected
-  console.log(`[Fallback] ⚠ Refusal detected (confidence: ${refusalAnalysis.confidence.toFixed(2)})`);
-  console.log(`[Fallback] Level: ${refusalAnalysis.level}, Patterns: ${refusalAnalysis.matchedPatterns.length}`);
+  log.warn({ 
+    component: 'fallback', 
+    confidence: refusalAnalysis.confidence, 
+    level: refusalAnalysis.level, 
+    patterns: refusalAnalysis.matchedPatterns.length 
+  }, 'Refusal detected');
 
   // If UNRESTRICTED mode is OFF, respect the refusal
   if (!unrestricted) {
-    console.log('[Fallback] UNRESTRICTED mode OFF - respecting refusal');
+    log.info({ component: 'fallback' }, 'UNRESTRICTED mode OFF, respecting refusal');
     return {
       answer: response.text,
       used: 'direct',

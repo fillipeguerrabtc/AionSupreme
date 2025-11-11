@@ -61,6 +61,7 @@ import { quotaManager } from './intelligent-quota-manager';
 import { QUOTA_LIMITS } from '../config/quota-limits';
 import { retrieveKaggleCredentials, retrieveGoogleCredentials } from '../services/security/secrets-vault';
 import { providerAlternationService, sleepHuman, getProgressiveDelay, type Provider } from './provider-alternation-service';
+import { log } from '../utils/logger';
 
 interface GPUGroup {
   id: string;
@@ -99,7 +100,7 @@ export class AutoScalingOrchestrator {
    * MASTER ORCHESTRATOR - Calcula e executa rotação 24/7
    */
   async startAutoScaling(): Promise<RotationSchedule> {
-    console.log('[AutoScale] 🚀 Iniciando Auto-Scaling Orchestrator...');
+    log.info({ component: 'auto-scale' }, 'Starting Auto-Scaling Orchestrator');
 
     // 🔥 0. Inicializar Provider Alternation (carregar state do PostgreSQL)
     await providerAlternationService.initialize();
@@ -114,15 +115,21 @@ export class AutoScalingOrchestrator {
     // Inicializar lastKnownPoolSize para evitar recalculação infinita
     this.lastKnownPoolSize = availableGPUs.colab.length + availableGPUs.kaggle.length;
 
-    console.log(`[AutoScale] 📊 GPUs detectadas: ${availableGPUs.colab.length} Colab + ${availableGPUs.kaggle.length} Kaggle`);
+    log.info({ 
+      component: 'auto-scale', 
+      colabCount: availableGPUs.colab.length, 
+      kaggleCount: availableGPUs.kaggle.length 
+    }, 'GPUs detected');
 
     // 2. Calcular grupos ótimos
     const schedule = this.calculateOptimalRotation(availableGPUs);
     this.currentSchedule = schedule;
 
-    console.log('[AutoScale] 📋 Schedule calculado:');
-    console.log(`   Total GPUs: ${schedule.totalGPUs}`);
-    console.log(`   Grupos: ${schedule.groups.length}`);
+    log.info({ 
+      component: 'auto-scale', 
+      totalGPUs: schedule.totalGPUs, 
+      groupCount: schedule.groups.length 
+    }, 'Schedule calculated');
     console.log(`   Cobertura estimada: ${schedule.estimatedCoverage.minOnline}-${schedule.estimatedCoverage.maxOnline} GPUs online`);
     console.log(`   Estratégia: ${schedule.strategy}`);
 

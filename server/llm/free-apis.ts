@@ -8,6 +8,7 @@ import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getProviderQuotas, trackTokenUsage } from '../monitoring/token-tracker';
 import { apiQuotaRepository } from '../repositories/api-quota-repository';
+import { log } from '../utils/logger';
 
 // ============================================================================
 // TYPES
@@ -152,7 +153,7 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
       
       // Wait before retry
       const delay = retryDelays[attempt];
-      console.log(`[Groq] Rate limit hit (429), retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+      log.warn({ component: 'groq', attempt: attempt + 1, maxRetries, delay }, 'Rate limit hit, retrying');
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -334,7 +335,7 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
       
       // Wait before retry
       const delay = retryDelays[attempt];
-      console.log(`[HuggingFace] Rate limit hit (${error.status}), retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+      log.warn({ component: 'huggingface', status: error.status, attempt: attempt + 1, maxRetries, delay }, 'Rate limit hit, retrying');
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -472,12 +473,12 @@ export async function generateWithFreeAPIs(
     // 🔥 FIX: Check quota from DATABASE (not in-memory stats)
     const quota = quotaMap.get(provider.name);
     if (quota && quota.used >= quota.dailyLimit * 0.8) {
-      console.log(`[FREE-APIs] ${provider.name} over 80% quota (${quota.used}/${quota.dailyLimit}) - skipping`);
+      log.warn({ component: 'free-apis', provider: provider.name, used: quota.used, limit: quota.dailyLimit }, 'Provider over 80% quota, skipping');
       continue;
     }
 
     try {
-      console.log(`[FREE-APIs] Trying ${provider.name}...`);
+      log.info({ component: 'free-apis', provider: provider.name }, 'Trying provider');
       
       let response: LLMResponse;
       
@@ -499,14 +500,14 @@ export async function generateWithFreeAPIs(
       }
 
       const latency = Date.now() - startTime;
-      console.log(`[FREE-APIs] ✓ ${provider.name} succeeded in ${latency}ms`);
+      log.info({ component: 'free-apis', provider: provider.name, latency }, 'Provider succeeded');
       
       return response;
       
     } catch (error: any) {
       const errorMsg = `${provider.name}: ${error.message}`;
       errors.push(errorMsg);
-      console.error(`[FREE-APIs] ✗ ${errorMsg}`);
+      log.error({ component: 'free-apis', provider: provider.name, error: error.message }, 'Provider failed');
       
       // Mark this provider as failed and try next one
       failedProviders.add(provider.name);
@@ -516,7 +517,7 @@ export async function generateWithFreeAPIs(
 
   // All free APIs failed - fallback to OpenAI if allowed
   if (allowOpenAI) {
-    console.log('[FREE-APIs] Falling back to OpenAI (paid)...');
+    log.info({ component: 'free-apis' }, 'Falling back to OpenAI (paid)');
     try {
       return await callOpenAI(req);
     } catch (error: any) {

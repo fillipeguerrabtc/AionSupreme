@@ -9,9 +9,10 @@ import { db } from "../db";
 import { gpuWorkers } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { quotaManager } from "../gpu/quota-manager";
+import { log } from "../utils/logger";
 
 export function registerGpuRoutes(app: Router) {
-  console.log("[GPU Routes] Registering GPU Pool API routes...");
+  log.info({ component: 'gpu-routes' }, 'Registering GPU Pool API routes');
 
   /**
    * GET /api/gpu/credentials/available
@@ -23,7 +24,7 @@ export function registerGpuRoutes(app: Router) {
    */
   app.get("/api/gpu/credentials/available", async (req: Request, res: Response) => {
     try {
-      console.log('[GPU Credentials] Scanning Replit Secrets for credentials...');
+      log.info({ component: 'gpu-credentials' }, 'Scanning Replit Secrets for credentials');
       
       const kaggleCredentials: Array<{ id: string; username: string; hasKey: boolean }> = [];
       const colabCredentials: Array<{ id: string; email: string; hasPassword: boolean }> = [];
@@ -42,7 +43,7 @@ export function registerGpuRoutes(app: Router) {
             username,
             hasKey: !!apiKey,
           });
-          console.log(`[GPU Credentials] ✅ Found Kaggle account: ${username} (key: ${apiKey ? 'yes' : 'NO'})`);
+          log.info({ component: 'gpu-credentials', account: i, username, hasKey: !!apiKey }, 'Found Kaggle account');
         }
       }
       
@@ -60,11 +61,15 @@ export function registerGpuRoutes(app: Router) {
             email,
             hasPassword: !!password,
           });
-          console.log(`[GPU Credentials] ✅ Found Colab account: ${email} (password: ${password ? 'yes' : 'NO'})`);
+          log.info({ component: 'gpu-credentials', account: i, email, hasPassword: !!password }, 'Found Colab account');
         }
       }
       
-      console.log(`[GPU Credentials] Summary: ${kaggleCredentials.length} Kaggle, ${colabCredentials.length} Colab`);
+      log.info({ 
+        component: 'gpu-credentials', 
+        kaggleCount: kaggleCredentials.length, 
+        colabCount: colabCredentials.length 
+      }, 'Credentials scan complete');
       
       res.json({
         success: true,
@@ -77,7 +82,7 @@ export function registerGpuRoutes(app: Router) {
       });
       
     } catch (error: any) {
-      console.error('[GPU Credentials] Error scanning secrets:', error);
+      log.error({ component: 'gpu-credentials', error: error.message }, 'Error scanning secrets');
       res.status(500).json({ error: error.message });
     }
   });
@@ -87,7 +92,7 @@ export function registerGpuRoutes(app: Router) {
    * Register a new GPU worker from Colab/Kaggle notebook
    */
   app.post("/gpu/register", async (req: Request, res: Response) => {
-    console.log("[GPU Register] ✅ Worker registration request:", req.body);
+    log.info({ component: 'gpu-register', body: req.body }, 'Worker registration request');
     try {
       const { 
         name, 
