@@ -203,15 +203,125 @@ export function AddWorkerDialog({ open, onOpenChange }: AddWorkerDialogProps) {
 
           {/* Kaggle Tab */}
           <TabsContent value="kaggle" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t.admin.addGpuWorker.kaggle.title}</CardTitle>
-                <CardDescription>
-                  {t.admin.addGpuWorker.kaggle.subtitle}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleKaggleSubmit} className="space-y-4">
+            {/* Toggle between Secrets and Manual */}
+            <Card className="bg-accent/5">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="use-secrets-kaggle" className="text-base font-medium">
+                      {t.admin.addGpuWorker.useStoredCredentials}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {t.admin.addGpuWorker.useStoredCredentialsDesc}
+                    </p>
+                  </div>
+                  <Switch
+                    id="use-secrets-kaggle"
+                    checked={useSecrets}
+                    onCheckedChange={setUseSecrets}
+                    data-testid="switch-use-secrets-kaggle"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Secrets-based provision (Auto-Provisionar) */}
+            {useSecrets ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Key className="w-5 h-5" />
+                    {t.admin.addGpuWorker.autoProvisionKaggle}
+                  </CardTitle>
+                  <CardDescription>
+                    {t.admin.addGpuWorker.selectStoredCredential}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {loadingCredentials ? (
+                    <div className="text-center py-4">
+                      <Loader2 className="w-6 h-6 mx-auto animate-spin text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mt-2">{t.admin.addGpuWorker.loadingCredentials}</p>
+                    </div>
+                  ) : (availableCredentials?.kaggle?.length ?? 0) === 0 ? (
+                    <Alert className="bg-yellow-500/10 border-yellow-500/20">
+                      <AlertDescription>
+                        {t.admin.addGpuWorker.noStoredCredentials}
+                        <br />
+                        <span className="text-xs">{t.admin.addGpuWorker.switchToManual}</span>
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <>
+                      <RadioGroup
+                        value={selectedKaggleCredential}
+                        onValueChange={setSelectedKaggleCredential}
+                        className="space-y-2"
+                      >
+                        {availableCredentials?.kaggle?.map((cred) => (
+                          <div key={cred.id} className="flex items-center space-x-2 p-3 border rounded-lg hover-elevate">
+                            <RadioGroupItem value={cred.id} id={cred.id} />
+                            <Label htmlFor={cred.id} className="flex-1 cursor-pointer">
+                              <div className="font-medium">{cred.username}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {cred.hasKey ? "✓ API Key configurada" : "⚠ API Key faltando"}
+                              </div>
+                            </Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+
+                      <Alert>
+                        <AlertDescription className="text-sm">
+                          <strong>{t.admin.addGpuWorker.kaggle.howItWorks}</strong>
+                          <ol className="list-decimal list-inside mt-2 space-y-1">
+                            <li>{t.admin.addGpuWorker.kaggle.step1}</li>
+                            <li>{t.admin.addGpuWorker.kaggle.step2}</li>
+                            <li>{t.admin.addGpuWorker.kaggle.step3}</li>
+                            <li>{t.admin.addGpuWorker.kaggle.step4}</li>
+                          </ol>
+                        </AlertDescription>
+                      </Alert>
+
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => onOpenChange(false)}
+                        >
+                          {t.admin.addGpuWorker.kaggle.cancel}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            // TODO: Implement auto-provision with selected credential
+                            toast({
+                              title: "🚧 Em desenvolvimento",
+                              description: "Auto-provision com credenciais salvas será implementado em breve.",
+                              variant: "default",
+                            });
+                          }}
+                          disabled={!selectedKaggleCredential}
+                          data-testid="button-auto-provision-kaggle"
+                        >
+                          <Zap className="w-4 h-4 mr-2" />
+                          {t.admin.addGpuWorker.autoProvision}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              /* Manual input form */
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">{t.admin.addGpuWorker.kaggle.title}</CardTitle>
+                  <CardDescription>
+                    {t.admin.addGpuWorker.kaggle.subtitle}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleKaggleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="kaggle-username">{t.admin.addGpuWorker.kaggle.username}</Label>
                     <Input
