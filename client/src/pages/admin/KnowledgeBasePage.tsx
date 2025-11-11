@@ -111,13 +111,22 @@ export default function KnowledgeBasePage() {
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setShowAddUrl(false);
       setUrlToLearn("");
       setCrawlMode("single");
       setDownloadMedia(false);
-      toast({ title: t.common.addedSuccess });
+      
+      // ✅ Show warning if protocol was auto-added
+      if (data.warning) {
+        toast({ 
+          title: t.common.addedSuccess,
+          description: `${data.warning} - ${data.normalizedUrl}`
+        });
+      } else {
+        toast({ title: t.common.addedSuccess });
+      }
     },
   });
 

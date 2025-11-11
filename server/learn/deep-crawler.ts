@@ -76,6 +76,7 @@ export class DeepCrawler {
 
   /**
    * Async factory - creates DeepCrawler with hydrated ImageProcessor
+   * ENTERPRISE: Defensive URL validation to catch legacy/invalid data
    */
   static async create(startUrl: string, options?: CrawlerOptions): Promise<DeepCrawler> {
     const imageProcessor = await ImageProcessor.create();
@@ -83,7 +84,21 @@ export class DeepCrawler {
   }
 
   constructor(startUrl: string, options?: CrawlerOptions, imageProcessor?: ImageProcessor) {
-    this.baseUrl = new URL(startUrl);
+    // ✅ DEFENSIVE VALIDATION: Catch invalid URLs from legacy jobs or direct calls
+    try {
+      this.baseUrl = new URL(startUrl);
+    } catch (error: any) {
+      throw new Error(`Invalid URL: ${error.message}. URL must include protocol (e.g., https://example.com)`);
+    }
+    
+    if (!this.baseUrl.hostname) {
+      throw new Error("Invalid URL: Missing hostname");
+    }
+    
+    if (!this.baseUrl.protocol.match(/^https?:$/)) {
+      throw new Error(`Invalid URL: Protocol must be http or https, got ${this.baseUrl.protocol}`);
+    }
+    
     this.baseDomain = this.baseUrl.hostname;
     // Accept injected instance or create new one (backward compatibility)
     this.imageProcessor = imageProcessor || new ImageProcessor();

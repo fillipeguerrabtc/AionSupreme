@@ -2575,6 +2575,7 @@ export function registerRoutes(app: Express): Server {
 
   // POST /api/admin/learn-from-url - Crawl website (single page or deep crawl)
   // NOVO: Suporta 2 modos: "single" (apenas a página) ou "deep" (crawl completo)
+  // ENTERPRISE FIX: URL validation + normalization with auto-protocol
   app.post("/api/admin/learn-from-url", requireAdmin, async (req, res) => {
     try {
       const { 
@@ -2590,18 +2591,34 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "URL is required" });
       }
 
+      // ✅ ENTERPRISE: Validate & normalize URL (auto-prepend https://)
+      const { validateAndNormalizeUrl } = await import("./utils/url-validation");
+      const validation = validateAndNormalizeUrl(url);
+      
+      if (!validation.valid) {
+        console.log(`[API] ❌ Invalid URL: ${url} → ${validation.error}`);
+        return res.status(400).json({ 
+          error: validation.error,
+          hint: "URL must include protocol (e.g., https://example.com)"
+        });
+      }
+
+      const normalizedUrl = validation.normalized!;
       const isSinglePage = mode === "single";
       const crawlType = isSinglePage ? "single-page scan" : "deep crawl";
       
-      console.log(`[API] 🚀 Criando job de ${crawlType} para: ${url}`);
+      console.log(`[API] 🚀 Criando job de ${crawlType} para: ${normalizedUrl}`);
+      if (validation.warning) {
+        console.log(`[API]    ⚠️  ${validation.warning}`);
+      }
       console.log(`[API]    Mode: ${mode}, Download Media: ${downloadMedia}`);
       
-      // NOVO: Cria job assíncrono
+      // NOVO: Cria job assíncrono com normalized URL
       const { linkCaptureJobs, insertLinkCaptureJobSchema } = await import("@shared/schema");
       const { db } = await import("./db");
       
       const [job] = await db.insert(linkCaptureJobs).values({
-        url,
+        url: normalizedUrl, // ✅ Use normalized URL (with protocol)
         status: "pending" as const,
         metadata: {
           namespace: namespace || 'kb/web',
@@ -2621,6 +2638,8 @@ export function registerRoutes(app: Express): Server {
         mode: mode,
         downloadMedia: downloadMedia,
         status: "job_created",
+        normalizedUrl, // ✅ Return normalized URL so frontend can show it
+        warning: validation.warning, // ✅ Return warning if protocol was auto-added
         job
       });
     } catch (error: unknown) {
