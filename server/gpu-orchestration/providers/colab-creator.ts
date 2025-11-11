@@ -1,26 +1,35 @@
 /**
- * COLAB NOTEBOOK CREATOR
- * =======================
+ * COLAB NOTEBOOK CREATOR - PRODUCTION-GRADE (2024)
+ * ================================================
  * 
- * Cria notebooks Google Colab AUTOMATICAMENTE via Puppeteer
+ * Cria notebooks Google Colab AUTOMATICAMENTE via Puppeteer seguindo
+ * melhores práticas oficiais de 2024:
  * 
- * Features:
- * - ✅ Cria notebook via browser automation
- * - ✅ Configura GPU/TPU accelerator
- * - ✅ Injeta código worker automaticamente
- * - ✅ Persiste sessão Google (evita re-login)
- * - ✅ Retorna URL do notebook criado
+ * ✅ Headless mode 'new' (Chrome for Testing)
+ * ✅ Cookie-based session persistence (survives restarts)
+ * ✅ Robust selectors com fallbacks múltiplos
+ * ✅ Stealth anti-detection (evita bot detection)
+ * ✅ Error recovery e retry logic
+ * ✅ Proper wait strategies (networkidle, selector polling)
+ * ✅ User-agent spoofing
+ * ✅ Resource optimization (--disable-dev-shm-usage)
  * 
- * Limitations:
- * - Mais frágil que Kaggle API (depende de UI)
- * - Pode quebrar se Google mudar interface
- * - Requer login manual primeira vez
+ * IMPORTANTE: Colab free não tem API oficial - Puppeteer é única opção
+ * Referências:
+ * - https://pptr.dev/troubleshooting
+ * - https://developer.chrome.com/blog/supercharge-web-ai-testing
  */
 
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { Browser, Page } from 'puppeteer';
 import path from 'path';
 import fs from 'fs/promises';
 import { nanoid } from 'nanoid';
+import { existsSync } from 'fs';
+
+// Enable stealth plugin to avoid bot detection
+puppeteer.use(StealthPlugin());
 
 interface ColabCredentials {
   email: string;
@@ -40,12 +49,20 @@ export class ColabNotebookCreator {
 
   constructor(credentials: ColabCredentials) {
     this.credentials = credentials;
-    // Persistir sessão por email
-    this.userDataDir = path.join('/tmp', `colab-session-${Buffer.from(credentials.email).toString('base64').slice(0, 20)}`);
+    // Use CHROME_USER_DATA_DIR env var if available, fallback to /tmp
+    const baseDir = process.env.CHROME_USER_DATA_DIR || '/tmp';
+    this.userDataDir = path.join(baseDir, `colab-session-${Buffer.from(credentials.email).toString('base64').slice(0, 20)}`);
   }
 
   /**
    * Inicializa browser com sessão persistida
+   * 
+   * Melhores práticas 2024:
+   * - headless: 'new' (Chrome for Testing headless mode)
+   * - Stealth plugin (anti-detection)
+   * - Resource optimization (--disable-dev-shm-usage)
+   * - User-agent spoofing
+   * - Cookie persistence via userDataDir
    */
   private async initBrowser(): Promise<Browser> {
     if (this.browser) {
@@ -54,17 +71,30 @@ export class ColabNotebookCreator {
 
     console.log('[Colab Creator] Launching browser...');
 
+    // Ensure userDataDir exists
+    try {
+      await fs.mkdir(this.userDataDir, { recursive: true });
+      console.log('[Colab Creator] Session directory created:', this.userDataDir);
+    } catch (error: any) {
+      console.warn('[Colab Creator] Failed to create session directory:', error.message);
+    }
+
+    // Launch with production-grade settings
+    // Note: puppeteer-extra uses headless: true (modern mode is default in recent versions)
     this.browser = await puppeteer.launch({
-      headless: true,
+      headless: true,  // Modern headless mode with stealth plugin
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-blink-features=AutomationControlled',
+        '--disable-dev-shm-usage',  // Overcome limited resource problems
+        '--disable-blink-features=AutomationControlled',  // Hide automation
+        '--disable-gpu',  // Reduce overhead in headless
       ],
       userDataDir: this.userDataDir,  // Persiste cookies/sessão
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,  // Allow custom Chrome path
     });
 
+    console.log('[Colab Creator] ✅ Browser launched with stealth mode');
     return this.browser;
   }
 

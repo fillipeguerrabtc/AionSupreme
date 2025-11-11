@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["cargo", "ffmpeg", "libiconv", "poppler_utils", "python311", "rustc", "tesseract"]
+packages = ["cargo", "ffmpeg", "libiconv", "poppler_utils", "python311", "rustc", "tesseract", "dbus", "nss", "nspr", "atk", "at-spi2-atk", "cups", "libdrm", "gtk3", "pango", "cairo", "gdk-pixbuf", "xorg.libX11", "xorg.libxcb", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "mesa", "expat", "alsa-lib", "fontconfig", "freetype", "xorg.libxshmfence", "xorg.libXi", "xorg.libXrender", "xorg.libXtst", "glib", "xorg.libXScrnSaver"]
 
 [deployment]
 deploymentTarget = "autoscale"
