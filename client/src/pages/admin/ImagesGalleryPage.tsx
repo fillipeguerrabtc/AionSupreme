@@ -132,14 +132,14 @@ export default function ImagesGalleryPage() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Erro ao atualizar descrição');
+        throw new Error(error.error || t("admin.imagesgallery.erroaoatualizar"));
       }
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Descrição atualizada",
-        description: "A descrição da imagem foi atualizada com sucesso",
+        title: t("admin.imagesgallery.toast.descricaoatualizada"),
+        description: t("admin.imagesgallery.toast.adescricaoda"),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images/all"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
@@ -148,7 +148,7 @@ export default function ImagesGalleryPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao atualizar",
+        title: t("admin.imagesgallery.toast.erroaoatualizar"),
         description: error.message,
         variant: "destructive",
       });
@@ -164,13 +164,13 @@ export default function ImagesGalleryPage() {
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Erro ao deletar imagens');
+        throw new Error(error.error || t("admin.imagesgallery.erroaodeletar"));
       }
       return response.json();
     },
     onSuccess: (data) => {
       toast({
-        title: "Imagens deletadas",
+        title: t("admin.imagesgallery.imagensdeletadas"),
         description: `${data.deleted} imagem(ns) deletada(s) com sucesso`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images/all"] });
@@ -179,7 +179,7 @@ export default function ImagesGalleryPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao deletar",
+        title: t("admin.imagesgallery.toast.erroaodeletar"),
         description: error.message,
         variant: "destructive",
       });
@@ -224,7 +224,7 @@ export default function ImagesGalleryPage() {
   };
 
   if (imagesLoading || documentsLoading) {
-    return <div className="p-6">Carregando...</div>;
+    return <div className="p-6">{t("common.loading")}</div>;
   }
 
   return (
@@ -308,11 +308,11 @@ export default function ImagesGalleryPage() {
             <CardContent className="p-4">
               <div className="flex flex-col gap-4">
                 {/* Search & Filter Row */}
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                <div className="flex items-center gap-2">
                   <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full sm:w-auto flex-wrap">
                     <div className="flex-1 sm:max-w-xs">
                       <Input
-                        placeholder="Buscar por nome, descrição, namespace..."
+                        placeholder={t("admin.imagesgallery.placeholder.buscarpornome")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         data-testid="input-search-images"
@@ -367,8 +367,8 @@ export default function ImagesGalleryPage() {
 
                 {/* Selection Actions Row */}
                 {filteredImages.length > 0 && (
-                  <div className="flex items-center justify-between gap-4 pt-3 border-t">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -398,7 +398,7 @@ export default function ImagesGalleryPage() {
                         variant="destructive"
                         size="sm"
                         onClick={handleDeleteSelected}
-                        data-testid="button-delete-selected"
+                        data-testid="button-element"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Deletar selecionadas ({selectedImages.size})
@@ -411,7 +411,7 @@ export default function ImagesGalleryPage() {
           </Card>
 
           {/* Results Count */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">
               Mostrando {filteredImages.length} de {imagesData?.total || 0} imagens
             </p>
@@ -424,7 +424,7 @@ export default function ImagesGalleryPage() {
                 <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
                   {searchQuery || sourceFilter !== 'all' 
-                    ? 'Nenhuma imagem encontrada com os filtros aplicados' 
+                    ? t("admin.imagesgallery.nenhumaimagemencontradacom") 
                     : 'Nenhuma imagem aprovada ainda'}
                 </p>
               </CardContent>
@@ -434,7 +434,7 @@ export default function ImagesGalleryPage() {
               {filteredImages.map((img) => (
                 <Card 
                   key={img.id} 
-                  className="group hover-elevate overflow-hidden relative"
+                  className={t("admin.imagesgallery.grouphoverelevateoverflowhiddenrelative")}
                   data-testid={`image-card-${img.id}`}
                 >
                   {/* Selection Checkbox */}
@@ -468,7 +468,7 @@ export default function ImagesGalleryPage() {
                   </div>
                   <CardContent className="p-3">
                     <p className="text-xs truncate font-medium">{img.filename}</p>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <div className="flex items-center gap-2">
                       <p className="text-[10px] text-muted-foreground">
                         {(img.size / 1024).toFixed(1)} KB
                       </p>
@@ -491,7 +491,7 @@ export default function ImagesGalleryPage() {
                   data-testid={`image-row-${img.id}`}
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                       <div onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedImages.has(img.id)}
@@ -502,7 +502,7 @@ export default function ImagesGalleryPage() {
                       <img
                         src={img.url}
                         alt={img.description || img.filename}
-                        className="w-20 h-20 object-cover rounded-md cursor-pointer"
+                        className={t("admin.imagesgallery.w20h20objectcoverroundedmd")}
                         loading="lazy"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -522,7 +522,7 @@ export default function ImagesGalleryPage() {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2">
                         <Badge variant={getSourceBadge(img.source).variant}>
                           {getSourceBadge(img.source).label}
                         </Badge>
@@ -563,8 +563,8 @@ export default function ImagesGalleryPage() {
             <CardHeader>
               <CardTitle>Documentos Indexados</CardTitle>
               <CardDescription>
-                {kbDocuments.length} documento(s) aprovado(s) e disponível(is) na Knowledge Base
-              </CardDescription>
+                {kbDocuments.length} {t("admin.imagesgallery.documentosaprovadosdisponivelisknowledge")}
+                                            </CardDescription>
             </CardHeader>
             <CardContent>
               {kbDocuments.length === 0 ? (
@@ -578,9 +578,9 @@ export default function ImagesGalleryPage() {
                   {kbDocuments.map((doc) => (
                     <Card key={doc.id} className="hover-elevate" data-testid={`kb-doc-${doc.id}`}>
                       <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-2">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2">
                               <Badge variant="secondary" className="font-mono">
                                 {doc.namespace}
                               </Badge>
@@ -620,7 +620,7 @@ export default function ImagesGalleryPage() {
 
       {/* Image Detail Dialog */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col" data-testid="dialog-image-detail">
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col" data-testid={t("admin.imagesgallery.dialogimagedetail")}>
           <DialogHeader>
             <DialogTitle>{selectedImage?.filename}</DialogTitle>
             <DialogDescription>
@@ -633,7 +633,7 @@ export default function ImagesGalleryPage() {
           {selectedImage && (
             <div className="space-y-4 overflow-y-auto flex-1">
               {/* Image Preview */}
-              <div className="relative rounded-lg overflow-hidden border border-border">
+              <div className={t("admin.imagesgallery.relativeroundedlgoverflowhiddenborder")}>
                 <img
                   src={selectedImage.url}
                   alt={selectedImage.description || selectedImage.filename}
@@ -655,7 +655,7 @@ export default function ImagesGalleryPage() {
                 </div>
                 {selectedImage.description && (
                   <div className="col-span-2">
-                    <span className="font-medium">Descrição AI:</span>
+                    <span className="font-medium">{t("admin.imagesgallery.descricaoai")}</span>
                     <p className="text-muted-foreground mt-1">{selectedImage.description}</p>
                   </div>
                 )}
@@ -676,12 +676,12 @@ export default function ImagesGalleryPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2 pt-4 border-t">
+              <div className="flex items-center gap-2">
                 <Button variant="outline" asChild className="flex-1">
                   <a href={selectedImage.url} target="_blank" rel="noopener noreferrer" data-testid="button-open-new-tab">
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    Abrir em nova aba
-                  </a>
+                    {t("admin.imagesgallery.abriremnova")}
+                                                        </a>
                 </Button>
                 <Button variant="outline" asChild className="flex-1">
                   <a href={selectedImage.url} download={selectedImage.filename} data-testid="button-download">
@@ -697,19 +697,19 @@ export default function ImagesGalleryPage() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent data-testid="dialog-delete-confirm">
+        <AlertDialogContent data-testid={t("admin.imagesgallery.dialogdeleteconfirm")}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.imagesgallery.confirmarexclusao")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Você está prestes a deletar {selectedImages.size} imagem(ns). Esta ação não pode ser desfeita.
+              {t("admin.imagesgallery.voceestaprestes")} {selectedImages.size} imagem(ns). Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="button-confirm-delete"
+              data-testid="button-element"
             >
               Deletar {selectedImages.size} imagem(ns)
             </AlertDialogAction>
@@ -719,24 +719,24 @@ export default function ImagesGalleryPage() {
 
       {/* Edit Description Dialog */}
       <Dialog open={!!editingImage} onOpenChange={() => setEditingImage(null)}>
-        <DialogContent data-testid="dialog-edit-description">
+        <DialogContent data-testid={t("admin.imagesgallery.dialogeditdescription")}>
           <DialogHeader>
-            <DialogTitle>Editar Descrição</DialogTitle>
+            <DialogTitle>{t("admin.imagesgallery.editardescricao")}</DialogTitle>
             <DialogDescription>
-              Edite a descrição gerada por IA para esta imagem
-            </DialogDescription>
+              {t("admin.imagesgallery.editeadescricao")}
+                                      </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-description">Descrição</Label>
+              <Label htmlFor={t("admin.imagesgallery.editdescription")}>{t("common.description")}</Label>
               <Textarea
-                id="edit-description"
+                id={t("admin.imagesgallery.editdescription")}
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="Digite a nova descrição da imagem..."
+                placeholder={t("admin.imagesgallery.placeholder.digiteanova")}
                 rows={4}
-                data-testid="textarea-edit-description"
+                data-testid="text-element"
               />
             </div>
             
@@ -754,9 +754,9 @@ export default function ImagesGalleryPage() {
                   description: editDescription 
                 })}
                 disabled={updateDescriptionMutation.isPending}
-                data-testid="button-save-description"
+                data-testid="button-element"
               >
-                {updateDescriptionMutation.isPending ? 'Salvando...' : 'Salvar'}
+                {updateDescriptionMutation.isPending ? 'Salvando...' : t("common.save")}
               </Button>
             </div>
           </div>

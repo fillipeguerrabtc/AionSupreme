@@ -256,7 +256,7 @@ export default function PermissionsPage() {
       const usage = await res.json();
       setPermissionUsage(usage);
     } catch (error) {
-      console.error("Error fetching permission usage:", error);
+      console.error({t("admin.permissions.errorfetchingpermissionusage")}, error);
     }
     
     setIsDeleteDialogOpen(true);
@@ -300,7 +300,7 @@ export default function PermissionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Shield className="w-8 h-8" />
@@ -334,7 +334,7 @@ export default function PermissionsPage() {
                   <Button
                     variant="ghost"
                     onClick={() => toggleModule(module)}
-                    className="w-full justify-start font-semibold"
+                    className={t("admin.permissions.wfulljustifystartfontsemibold")}
                     data-testid={`button-toggle-module-${module}`}
                   >
                     {isExpanded ? "▼" : "▶"} {module.toUpperCase()} ({permissions.length})
@@ -344,7 +344,7 @@ export default function PermissionsPage() {
                     <div className="ml-6 space-y-2">
                       {permissions.map(permission => {
                         return (
-                          <div key={permission.id} className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
+                          <div key={permission.id} className="flex items-center gap-2">
                             <div className="flex-1">
                               <div className="font-medium">{permission.name}</div>
                               <div className="text-sm text-muted-foreground flex items-center gap-2">
@@ -382,7 +382,7 @@ export default function PermissionsPage() {
                               onClick={() => handleDeleteClick(permission)}
                               data-testid={`button-delete-permission-${permission.id}`}
                             >
-                              <Trash2 className="w-4 h-4 text-destructive" />
+                              <Trash2 className={t("admin.permissions.textdestructive")} />
                             </Button>
                           </div>
                         );
@@ -486,7 +486,7 @@ export default function PermissionsPage() {
                           control={form.control}
                           name="actions"
                           render={({ field }) => (
-                            <FormItem className="flex items-center gap-3 space-y-0">
+                            <FormItem className="flex items-center gap-2">
                               <FormControl>
                                 <Checkbox
                                   checked={field.value?.includes(action)}
@@ -519,12 +519,12 @@ export default function PermissionsPage() {
 
               <FormField
                 control={form.control}
-                name="description"
+                name={t("admin.permissions.description")}
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t.admin.permissions.crud.descriptionLabel}</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder={t.admin.permissions.crud.descriptionPlaceholder} data-testid="textarea-description" />
+                      <Textarea {...field} placeholder={t.admin.permissions.crud.descriptionPlaceholder} data-testid="text-element" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -532,11 +532,11 @@ export default function PermissionsPage() {
               />
 
               {previewCodes.length > 0 && (
-                <div className="p-4 bg-muted rounded-lg">
+                <div className={t("admin.permissions.bgmutedroundedlg")}>
                   <Label className="text-sm font-semibold mb-2 block">{t.admin.permissions.helpers.codesPreview}</Label>
                   <div className="space-y-1">
                     {previewCodes.map(code => (
-                      <div key={code} className="flex items-center gap-2 text-sm font-mono">
+                      <div key={code} className="flex items-center gap-2">
                         <Code className="w-3 h-3 text-muted-foreground" />
                         <code>{code}</code>
                       </div>
@@ -564,13 +564,13 @@ export default function PermissionsPage() {
 
       {/* Delete Permission Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent data-testid="dialog-delete-permission">
+        <AlertDialogContent data-testid={t("admin.permissions.dialogdeletepermission")}>
           <AlertDialogHeader>
             <AlertDialogTitle>{t.admin.permissions.crud.deleteTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               {t.admin.permissions.crud.deleteConfirm} <strong>{selectedPermission?.name}</strong>?
               {permissionUsage && permissionUsage.inUse && (
-                <div className="mt-3 p-3 bg-destructive/10 rounded-md">
+                <div className={t("admin.permissions.mt3bgdestructive10roundedmd")}>
                   <p className="text-destructive font-semibold">{t.admin.permissions.helpers.permissionInUse}</p>
                   <ul className="mt-2 space-y-1 text-sm">
                     <li>• {permissionUsage.roleCount} {t.admin.permissions.crud.rolesUsing}</li>
@@ -586,7 +586,7 @@ export default function PermissionsPage() {
             <AlertDialogAction
               onClick={() => selectedPermission && deletePermissionMutation.mutate(selectedPermission.id)}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-confirm-delete"
+              data-testid="button-element"
             >
               {deletePermissionMutation.isPending ? t.admin.permissions.crud.deleting : t.admin.permissions.crud.delete}
             </AlertDialogAction>

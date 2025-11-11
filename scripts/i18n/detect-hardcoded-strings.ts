@@ -176,6 +176,7 @@ const allAdminFiles = [
 ];
 
 console.log('🔍 Detecting hardcoded Portuguese strings in ALL 24 admin pages...\n');
+console.log(`Scanning ${allAdminFiles.length} files...\n`);
 
 const results = detectHardcodedStrings(allAdminFiles);
 

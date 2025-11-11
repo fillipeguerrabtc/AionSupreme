@@ -315,7 +315,7 @@ export default function UsersPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <div>
           <h1 className="text-3xl font-bold">{t.admin.userManagement.title}</h1>
           <p className="text-muted-foreground mt-1">
@@ -395,7 +395,7 @@ export default function UsersPage() {
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="p-3">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center gap-2">
                           <Button
                             size="sm"
                             variant="ghost"
@@ -410,7 +410,7 @@ export default function UsersPage() {
                             onClick={() => handleDeleteUser(user.id)}
                             data-testid={`button-delete-user-${user.id}`}
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className={t("admin.users.textdestructive")} />
                           </Button>
                         </div>
                       </td>
@@ -455,7 +455,7 @@ export default function UsersPage() {
                   <FormItem>
                     <FormLabel>{t.admin.userManagement.dialog.email}</FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" placeholder={t.admin.userManagement.dialog.emailPlaceholder} data-testid="input-user-email" />
+                      <Input {...field} type="email" placeholder={t.admin.userManagement.dialog.emailPlaceholder} data-testid="input-element" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -482,7 +482,7 @@ export default function UsersPage() {
                   control={form.control}
                   name="accessDashboard"
                   render={({ field }) => (
-                    <FormItem className="flex items-center gap-3 space-y-0">
+                    <FormItem className="flex items-center gap-2">
                       <FormControl>
                         <Checkbox 
                           checked={field.value} 
@@ -499,7 +499,7 @@ export default function UsersPage() {
                   control={form.control}
                   name="accessChat"
                   render={({ field }) => (
-                    <FormItem className="flex items-center gap-3 space-y-0">
+                    <FormItem className="flex items-center gap-2">
                       <FormControl>
                         <Checkbox 
                           checked={field.value} 
@@ -575,7 +575,7 @@ export default function UsersPage() {
               
               {/* User-Specific Permissions Section */}
               {selectedUser && (
-                <div className="space-y-3 pt-4 border-t">
+                <div className={t("admin.users.spacey3pt4bordert")}>
                   <div className="flex items-center gap-2">
                     <Shield className="w-4 h-4" />
                     <Label className="text-base font-semibold">{t.admin.userPermissions.title}</Label>
@@ -584,7 +584,7 @@ export default function UsersPage() {
                     {t.admin.userPermissions.description}
                   </p>
                   
-                  <div className="max-h-60 overflow-y-auto space-y-3 border rounded-md p-3">
+                  <div className={t("admin.users.maxh60overflowyautospacey3border")}>
                     {Object.entries(
                       allPermissions.reduce((acc, permission) => {
                         const module = permission.module || 'general';
@@ -594,20 +594,20 @@ export default function UsersPage() {
                       }, {} as Record<string, Permission[]>)
                     ).map(([module, permissions]) => (
                       <div key={module} className="space-y-2">
-                        <div className="font-medium text-sm capitalize bg-muted px-2 py-1 rounded">{module}</div>
+                        <div className={t("admin.users.fontmediumtextsmcapitalizebgmuted")}>{module}</div>
                         <div className="space-y-1 ml-4">
                           {permissions.map(permission => {
                             const isSelected = selectedUserPermissions.includes(permission.id);
                             return (
                               <div 
                                 key={permission.id} 
-                                className="flex items-center gap-2 py-1 hover-elevate px-2 rounded"
+                                className="flex items-center gap-2"
                               >
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => toggleUserPermission(permission.id)}
-                                  className="rounded border-gray-300"
+                                  className={t("admin.users.roundedbordergray300")}
                                   data-testid={`checkbox-user-permission-${permission.id}`}
                                 />
                                 <div className="flex-1">
@@ -632,7 +632,7 @@ export default function UsersPage() {
                   control={form.control}
                   name="accessDashboard"
                   render={({ field }) => (
-                    <FormItem className="flex items-center gap-3 space-y-0">
+                    <FormItem className="flex items-center gap-2">
                       <FormControl>
                         <Checkbox 
                           checked={field.value} 
@@ -649,7 +649,7 @@ export default function UsersPage() {
                   control={form.control}
                   name="accessChat"
                   render={({ field }) => (
-                    <FormItem className="flex items-center gap-3 space-y-0">
+                    <FormItem className="flex items-center gap-2">
                       <FormControl>
                         <Checkbox 
                           checked={field.value} 

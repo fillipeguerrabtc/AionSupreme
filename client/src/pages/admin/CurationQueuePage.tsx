@@ -87,7 +87,7 @@ export default function CurationQueuePage() {
   const [contentFilter, setContentFilter] = useState<"all" | "pages" | "images">("all");
   
   // Duplication filter state
-  const [duplicationFilter, setDuplicationFilter] = useState<"all" | "unique" | "exact" | "near" | "unscanned">("all");
+  const [duplicationFilter, setDuplicationFilter] = useState<"all" | "unique" | "exact" | "near" | {t("admin.curationqueue.unscanned")}>("all");
   
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -154,7 +154,7 @@ export default function CurationQueuePage() {
     
     // Apply duplication filter
     if (duplicationFilter !== "all") {
-      if (duplicationFilter === "unscanned") {
+      if (duplicationFilter === {t("admin.curationqueue.unscanned")}) {
         filtered = filtered.filter(item => !item.duplicationStatus);
       } else {
         filtered = filtered.filter(item => item.duplicationStatus === duplicationFilter);
@@ -517,7 +517,7 @@ export default function CurationQueuePage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-full overflow-x-hidden">
+    <div className={t("admin.curationqueue.spacey6maxwfulloverflowxhidden")}>
       <div>
         <h1 className="text-3xl font-bold break-words">{t.admin.curation.title}</h1>
         <p className="text-muted-foreground mt-2 break-words">
@@ -559,28 +559,28 @@ export default function CurationQueuePage() {
 
         {/* Duplication Status Filter */}
         <div>
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
             <Label className="text-sm font-medium">{t("admin.curationqueue.statusdeduplicacao")}</Label>
             <Button
               variant="outline"
               size="sm"
               onClick={() => scanDuplicatesMutation.mutate()}
               disabled={scanDuplicatesMutation.isPending}
-              data-testid="button-scan-duplicates"
+              data-testid="button-element"
             >
               <Scan className="h-4 w-4 mr-2" />
-              {scanDuplicatesMutation.isPending ? "Escaneando..." : "Escanear Duplicatas"}
+              {scanDuplicatesMutation.isPending ? t("common.scanning") : {t("admin.curationqueue.escanearduplicatas")}}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => scanImageDuplicatesMutation.mutate()}
               disabled={scanImageDuplicatesMutation.isPending}
-              data-testid="button-scan-image-duplicates"
+              data-testid="button-element"
               className="text-purple-600 hover:text-purple-700"
             >
               <ImageIcon className="h-4 w-4 mr-2" />
-              {scanImageDuplicatesMutation.isPending ? "Escaneando Imagens..." : "Escanear Imagens Duplicadas"}
+              {scanImageDuplicatesMutation.isPending ? t("admin.curationqueue.escaneandoimagens") : {t("admin.curationqueue.escanearimagensduplicadas")}}
             </Button>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -593,10 +593,10 @@ export default function CurationQueuePage() {
               Todos ({items?.length || 0})
             </Button>
             <Button
-              variant={duplicationFilter === "unscanned" ? "default" : "outline"}
+              variant={duplicationFilter === {t("admin.curationqueue.unscanned")} ? "default" : "outline"}
               size="sm"
-              onClick={() => setDuplicationFilter("unscanned")}
-              data-testid="filter-dup-unscanned"
+              onClick={() => setDuplicationFilter({t("admin.curationqueue.unscanned")})}
+              data-testid={t("admin.curationqueue.filterdupunscanned")}
             >
               {t("admin.curationqueue.button.naoescaneados")}{(items?.filter(i => !i.duplicationStatus) || []).length})
             </Button>
@@ -654,8 +654,8 @@ export default function CurationQueuePage() {
           {/* Bulk Actions */}
           <Card>
             <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       checked={selectedIds.size === filteredItems.length && filteredItems.length > 0}
@@ -714,23 +714,23 @@ export default function CurationQueuePage() {
             {filteredItems.map((item) => (
               <Card key={item.id} data-testid={`curation-item-${item.id}`}>
                 <CardHeader>
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-center gap-2">
                     <Checkbox
                       checked={selectedIds.has(item.id)}
                       onCheckedChange={() => toggleSelectItem(item.id)}
                       data-testid={`checkbox-item-${item.id}`}
                       className="mt-1"
                     />
-                    <div className="flex items-start justify-between flex-1">
+                    <div className="flex items-center gap-2">
                       <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
                           <CardTitle>{item.title}</CardTitle>
                           {/* Duplication Status Badge - Enhanced with % */}
                           {item.duplicationStatus === "exact" && (
                             <Badge 
                               variant="destructive" 
                               data-testid={`badge-dup-exact-${item.id}`}
-                              className="font-semibold flex items-center gap-1"
+                              className="flex"
                               title={`Duplicata exata detectada (${item.similarityScore ? Math.round(item.similarityScore * 100) : '100'}% similar)`}
                             >
                               <AlertCircle className="h-3 w-3" />
@@ -760,9 +760,9 @@ export default function CurationQueuePage() {
                         </div>
                         <CardDescription className="space-y-1">
                           <div className="flex items-center gap-2">
-                            {t("admin.curationqueue.enviadopor")} {item.submittedBy || "Desconhecido"}
+                            {t("admin.curationqueue.enviadopor")} {item.submittedBy || {t("admin.curationqueue.desconhecido")}}
                           </div>
-                          <div className="flex items-center gap-1 text-xs">
+                          <div className="flex items-center gap-2">
                             <Calendar className="h-3 w-3" />
                             {new Date(item.submittedAt).toLocaleDateString("pt-BR", { 
                               dateStyle: "long" 
@@ -854,7 +854,7 @@ export default function CurationQueuePage() {
                       {item.attachments.filter(a => a.type === "image" || a.type === "video").map((media, idx) => (
                         <div 
                           key={idx} 
-                          className="relative group rounded-md overflow-hidden border border-border cursor-pointer hover-elevate" 
+                          className={t("admin.curationqueue.relativegrouproundedmdoverflowhidden")} 
                           data-testid={`media-preview-${media.type}-${idx}`}
                           onClick={() => {
                             // Usa base64 se disponível (CURADORIA HITL)
@@ -875,7 +875,7 @@ export default function CurationQueuePage() {
                               loading="lazy"
                             />
                           ) : (
-                            <div className="relative w-full h-32 bg-black flex items-center justify-center">
+                            <div className={t("admin.curationqueue.relativewfullh32bgblack")}>
                               <Play className="h-12 w-12 text-white opacity-80" />
                               <video 
                                 src={media.url}
@@ -929,10 +929,10 @@ export default function CurationQueuePage() {
                                                                         </Badge>
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className={t("admin.curationqueue.absoluteinset0bgblack60opacity0")}>
                             <span className="text-white text-xs flex items-center gap-1">
                               {media.type === "video" ? <Play className="h-4 w-4" /> : <Scan className="h-3 w-3" />}
-                              {media.type === "video" ? t("admin.curationqueue.reproduzirvideo") : "Ver imagem"}
+                              {media.type === "video" ? t("admin.curationqueue.reproduzirvideo") : {t("admin.curationqueue.verimagem")}}
                             </span>
                           </div>
                           {media.description && (
@@ -1026,21 +1026,21 @@ export default function CurationQueuePage() {
             {/* Image Preview in Edit Dialog */}
             {selectedItem?.attachments && selectedItem.attachments.filter(a => a.type === "image").length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <Label>Imagens Anexadas ({selectedItem.attachments.filter(a => a.type === "image").length})</Label>
                   <Button
                     size="sm"
                     variant="secondary"
                     onClick={() => selectedItem && generateDescriptionsMutation.mutate(selectedItem.id)}
                     disabled={generateDescriptionsMutation.isPending}
-                    data-testid="button-generate-descriptions"
+                    data-testid="button-element"
                   >
                     {generateDescriptionsMutation.isPending ? "Gerando..." : t("admin.curationqueue.button.gerardescricoes")}
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {selectedItem.attachments.filter(a => a.type === "image").map((img, idx) => (
-                    <div key={idx} className="relative group rounded-md overflow-hidden border border-border">
+                    <div key={idx} className={t("admin.curationqueue.relativegrouproundedmdoverflowhidden")}>
                       <img 
                         src={img.base64 ? `data:${img.mimeType || 'image/jpeg'};base64,${img.base64}` : img.url}
                         alt={img.description || img.filename}
@@ -1087,7 +1087,7 @@ export default function CurationQueuePage() {
           </div>
 
           {/* Botões fixos no rodapé - sempre visíveis */}
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} data-testid="button-cancel-edit">
               {t.common.cancel}
             </Button>
@@ -1112,7 +1112,7 @@ export default function CurationQueuePage() {
             <AlertDialogAction
               onClick={() => selectedItem && approveMutation.mutate(selectedItem.id)}
               disabled={approveMutation.isPending}
-              data-testid="button-confirm-approve"
+              data-testid="button-element"
             >
               {approveMutation.isPending ? "Publicando..." : "Aprovar e Publicar"}
             </AlertDialogAction>
@@ -1142,7 +1142,7 @@ export default function CurationQueuePage() {
               onClick={() => selectedItem && rejectMutation.mutate({ id: selectedItem.id, note: rejectNote })}
               disabled={rejectMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-confirm-reject"
+              data-testid="button-element"
             >
               {rejectMutation.isPending ? "Rejeitando..." : "Rejeitar"}
             </AlertDialogAction>
@@ -1164,7 +1164,7 @@ export default function CurationQueuePage() {
             <AlertDialogAction
               onClick={() => bulkApproveMutation.mutate(Array.from(selectedIds))}
               disabled={bulkApproveMutation.isPending}
-              data-testid="button-confirm-bulk-approve"
+              data-testid="button-element"
             >
               {bulkApproveMutation.isPending ? "Aprovando..." : `Aprovar ${selectedIds.size} Itens`}
             </AlertDialogAction>
@@ -1188,7 +1188,7 @@ export default function CurationQueuePage() {
             <AlertDialogAction
               onClick={() => approveAllMutation.mutate()}
               disabled={approveAllMutation.isPending}
-              data-testid="button-confirm-approve-all"
+              data-testid="button-element"
               className="bg-primary"
             >
               {approveAllMutation.isPending ? "Aprovando..." : `Aprovar Todos (${items?.length})`}
@@ -1219,7 +1219,7 @@ export default function CurationQueuePage() {
               onClick={() => bulkRejectMutation.mutate({ ids: Array.from(selectedIds), note: bulkRejectNote })}
               disabled={bulkRejectMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-confirm-bulk-reject"
+              data-testid="button-element"
             >
               {bulkRejectMutation.isPending ? "Rejeitando..." : `Rejeitar ${selectedIds.size} Itens`}
             </AlertDialogAction>
@@ -1251,7 +1251,7 @@ export default function CurationQueuePage() {
               onClick={() => rejectAllMutation.mutate(bulkRejectNote)}
               disabled={rejectAllMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-confirm-reject-all"
+              data-testid="button-element"
             >
               {rejectAllMutation.isPending ? "Rejeitando..." : `Rejeitar Todos (${items?.length || 0})`}
             </AlertDialogAction>
@@ -1278,7 +1278,7 @@ export default function CurationQueuePage() {
               {filteredHistoryItems.map((item) => (
                 <Card key={item.id} data-testid={`history-item-${item.id}`}>
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2">
                           <CardTitle>{item.title}</CardTitle>
@@ -1290,17 +1290,17 @@ export default function CurationQueuePage() {
                           </Badge>
                         </div>
                         <CardDescription className="flex flex-col gap-2">
-                          <div className="flex items-center gap-2 text-sm">
+                          <div className="flex items-center gap-2">
                             <Calendar className="h-3 w-3" />
                             {t("admin.curationqueue.enviadoem")} {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
                             <Clock className="h-3 w-3" />
                             {new Date(item.submittedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
                           </div>
                           <div className="text-sm">
-                            {t("admin.curationqueue.por")} {item.submittedBy || "Desconhecido"}
+                            {t("admin.curationqueue.por")} {item.submittedBy || {t("admin.curationqueue.desconhecido")}}
                           </div>
                           {item.reviewedBy && item.reviewedAt && (
-                            <div className="flex items-center gap-2 text-sm font-medium">
+                            <div className="flex items-center gap-2">
                               <Clock className="h-3 w-3" />
                               {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} {t("admin.curationqueue.por")} {item.reviewedBy} em {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })} às {new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
                             </div>
@@ -1368,15 +1368,15 @@ export default function CurationQueuePage() {
               <img 
                 src={selectedMediaUrl} 
                 alt={selectedMediaDesc}
-                className="w-full h-auto rounded-md border border-border"
+                className={t("admin.curationqueue.wfullhautoroundedmdborder")}
               />
             ) : (
               <video 
                 src={selectedMediaUrl}
                 controls
                 autoPlay
-                className="w-full h-auto rounded-md border border-border bg-black"
-                data-testid="video-player"
+                className={t("admin.curationqueue.wfullhautoroundedmdborder")}
+                data-testid={t("admin.curationqueue.videoplayer")}
               >
                 {t("admin.curationqueue.seunavegadornao")}
                                                 </video>

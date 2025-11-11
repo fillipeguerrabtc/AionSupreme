@@ -163,8 +163,8 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-full overflow-x-hidden">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className={t("admin.agents.spacey6maxwfulloverflowxhidden")}>
+      <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <h1 className="text-3xl font-semibold flex items-center gap-2 break-words">
             <Users className="w-8 h-8 shrink-0" />
@@ -185,16 +185,16 @@ export default function AgentsPage() {
         </TabsList>
 
         <TabsContent value="list" className="space-y-4 mt-4">
-          <div className="flex items-center justify-end gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
             <Button 
-              data-testid="button-scan-orphans" 
+              data-testid="button-element" 
               variant="outline"
               onClick={() => orphanScanMutation.mutate()}
               disabled={orphanScanMutation.isPending}
               title={t("admin.agents.toast.escaneiatodaa")}
             >
               <Search className="w-4 h-4 mr-2" />
-              {orphanScanMutation.isPending ? "Escaneando..." : "Diagnosticar Integridade"}
+              {orphanScanMutation.isPending ? t("common.scanning") : t("admin.agents.diagnosticarintegridade")}
             </Button>
           </div>
 
@@ -317,7 +317,7 @@ export default function AgentsPage() {
               </div>
               <div>
                 <Label>Identificador (Slug)</Label>
-                <div className="px-3 py-2 bg-muted rounded-md">
+                <div className={t("admin.agents.px3py2bgmutedroundedmd")}>
                   <code className="text-sm font-mono">{editSlug}</code>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -325,18 +325,18 @@ export default function AgentsPage() {
                                                   </p>
               </div>
               <div>
-                <Label htmlFor="edit-description">{t("common.description")}</Label>
+                <Label htmlFor={t("admin.agents.editdescription")}>{t("common.description")}</Label>
                 <Input 
-                  id="edit-description" 
+                  id={t("admin.agents.editdescription")} 
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  data-testid="input-agent-description" 
+                  data-testid="input-element" 
                 />
               </div>
               <div>
-                <Label htmlFor="edit-systemPrompt">System Prompt</Label>
+                <Label htmlFor={t("admin.agents.editsystemprompt")}>System Prompt</Label>
                 <Textarea
-                  id="edit-systemPrompt"
+                  id={t("admin.agents.editsystemprompt")}
                   value={editPrompt}
                   onChange={(e) => setEditPrompt(e.target.value)}
                   rows={5}
@@ -378,7 +378,7 @@ export default function AgentsPage() {
                   Cancelar
                 </Button>
                 <Button onClick={handleSaveEdit} disabled={updateMutation.isPending} data-testid="button-save-agent">
-                  {updateMutation.isPending ? "Atualizando..." : t("common.saveChanges")}
+                  {updateMutation.isPending ? t("common.updating") : t("common.saveChanges")}
                 </Button>
               </div>
             </div>
@@ -396,7 +396,7 @@ export default function AgentsPage() {
                                       </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteAgentId) {
@@ -405,7 +405,7 @@ export default function AgentsPage() {
                 }
               }}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-confirm-delete"
+              data-testid="button-element"
             >
               {t("common.delete")}
                                       </AlertDialogAction>
@@ -464,7 +464,7 @@ export default function AgentsPage() {
                                           orphan.severity === 'medium' ? 'rgb(234, 179, 8)' : 
                                           'rgb(34, 197, 94)'
                             }}>
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="text-xs">{orphan.type}</Badge>
                                 <span className="text-xs text-muted-foreground">ID: {orphan.id}</span>
                               </div>

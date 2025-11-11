@@ -167,7 +167,7 @@ export default function GPUOverviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
       toast({
         title: "Worker Manual Adicionado",
-        description: "Worker conectado com sucesso",
+        description: t("admin.gpuoverview.toast.workerconectadocom"),
       });
       setShowProvisionDialog(false);
       setSelectedProvider(null);
@@ -175,7 +175,7 @@ export default function GPUOverviewPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao conectar worker",
+        title: t("admin.gpuoverview.toast.erroaoconectar"),
         description: error.message,
         variant: "destructive",
       });
@@ -212,7 +212,7 @@ export default function GPUOverviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
       toast({
         title: "Provisionamento Iniciado",
-        description: "GPU sendo criada automaticamente. Acompanhe o status na tabela abaixo.",
+        description: {t("admin.gpuoverview.gpusendocriadaautomaticamente")},
       });
       setShowProvisionDialog(false);
       setSelectedProvider(null);
@@ -220,7 +220,7 @@ export default function GPUOverviewPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao adicionar GPU",
+        title: t("admin.gpuoverview.toast.erroaoadicionar"),
         description: error.message,
         variant: "destructive",
       });
@@ -300,7 +300,7 @@ export default function GPUOverviewPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex items-center gap-2">
         <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -309,7 +309,7 @@ export default function GPUOverviewPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <div>
           <h2 className="text-3xl font-bold" data-testid="title-gpu-overview">
             {t.admin.gpuManagement.header.title}
@@ -334,16 +334,16 @@ export default function GPUOverviewPage() {
       {hasPendingWorkers && (
         <Card className="border-blue-500/50 bg-blue-500/10" data-testid="banner-provisioning">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <RefreshCw className="w-5 h-5 animate-spin text-blue-400" />
               <div className="flex-1">
-                <p className="font-medium text-blue-300 flex items-center gap-2">
+                <p className="flex">
                   <Zap className="w-4 h-4" />
                   Criando GPU automaticamente...
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Provisionamento em andamento. Acompanhe o status na tabela abaixo.
-                </p>
+                  {t("admin.gpuoverview.provisionamentoandamentoacompanhestatus")}
+                                                  </p>
               </div>
             </div>
           </CardContent>
@@ -486,7 +486,7 @@ export default function GPUOverviewPage() {
 
       {/* Provision Dialog - 2 Step Process */}
       {showProvisionDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => {
+        <div className="flex" onClick={() => {
           setShowProvisionDialog(false);
           setSelectedProvider(null);
         }}>
@@ -512,7 +512,7 @@ export default function GPUOverviewPage() {
                       onClick={() => setSelectedProvider('kaggle')}
                       data-testid="button-provision-kaggle"
                     >
-                      <div className="flex items-center w-full">
+                      <div className="flex items-center gap-2">
                         <Zap className="w-4 h-4 mr-3" />
                         <div className="flex-1 text-left">
                           <div className="font-medium">Kaggle GPU</div>
@@ -527,7 +527,7 @@ export default function GPUOverviewPage() {
                       onClick={() => setSelectedProvider('colab')}
                       data-testid="button-provision-colab"
                     >
-                      <div className="flex items-center w-full">
+                      <div className="flex items-center gap-2">
                         <Zap className="w-4 h-4 mr-3" />
                         <div className="flex-1 text-left">
                           <div className="font-medium">Google Colab GPU</div>
@@ -543,7 +543,7 @@ export default function GPUOverviewPage() {
                       onClick={() => setSelectedProvider('manual')}
                       data-testid="button-add-manual"
                     >
-                      <div className="flex items-center w-full">
+                      <div className="flex items-center gap-2">
                         <Cpu className="w-4 h-4 mr-3" />
                         <div className="flex-1 text-left">
                           <div className="font-medium">Worker Manual</div>
@@ -578,9 +578,9 @@ export default function GPUOverviewPage() {
                 >
                   <p className="text-sm text-muted-foreground">
                     {selectedProvider === 'kaggle' 
-                      ? 'Forneça suas credenciais. O sistema criará o notebook automaticamente.'
+                      ? t("admin.gpuoverview.fornecasuascredenciaissistema")
                       : selectedProvider === 'colab'
-                      ? 'Forneça suas credenciais. O sistema criará o notebook automaticamente via Puppeteer.'
+                      ? t("admin.gpuoverview.fornecasuascredenciaissistema")
                       : 'Forneça a URL do worker existente (ex: https://abc123.ngrok.io)'
                     }
                   </p>
@@ -600,8 +600,8 @@ export default function GPUOverviewPage() {
                         data-testid="input-worker-url"
                       />
                       <p className="text-xs text-muted-foreground">
-                        URL do worker GPU já em execução (Kaggle, Colab, ou outro)
-                      </p>
+                        {t("admin.gpuoverview.urldoworker")}
+                                                                        </p>
                     </div>
                   ) : selectedProvider === 'colab' ? (
                     // Colab Form Fields
@@ -611,16 +611,16 @@ export default function GPUOverviewPage() {
                         <Input
                           id="email"
                           type="email"
-                          placeholder="user@gmail.com"
+                          placeholder={t("admin.gpu-dashboard.placeholder.usergmailcom")}
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           required
                           autoComplete="off"
-                          data-testid="input-email"
+                          data-testid="input-element"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="password">Senha (opcional se sessão existir)</Label>
+                        <Label htmlFor="password">{t("admin.gpuoverview.senhaopcionalse")}</Label>
                         <Input
                           id="password"
                           type="password"
@@ -651,7 +651,7 @@ export default function GPUOverviewPage() {
                         <Input
                           id="kaggleKey"
                           type="password"
-                          placeholder="Obtenha em kaggle.com/account"
+                          placeholder={t("admin.gpuoverview.placeholder.obtenhakagglecomaccount")}
                           value={formData.kaggleKey}
                           onChange={(e) => setFormData({ ...formData, kaggleKey: e.target.value })}
                           required

@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/lib/i18n";
 import { Plus, Play, Square, Trash2, RefreshCw, Cpu, Zap } from "lucide-react";
 
 interface GPUWorker {
@@ -51,6 +52,7 @@ interface GPUWorker {
 }
 
 export default function GPUDashboard() {
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -170,7 +172,7 @@ export default function GPUDashboard() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center gap-2">
         <div>
           <h1 className="text-3xl font-bold">GPU Orchestration Dashboard</h1>
           <p className="text-muted-foreground">
@@ -221,7 +223,7 @@ export default function GPUDashboard() {
                     value={formData.provider}
                     onValueChange={(value) => setFormData({ ...formData, provider: value })}
                   >
-                    <SelectTrigger data-testid="select-provider">
+                    <SelectTrigger data-testid="select-element">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -266,11 +268,11 @@ export default function GPUDashboard() {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="user@gmail.com"
+                      placeholder={t("admin.gpu-dashboard.placeholder.usergmailcom")}
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
-                      data-testid="input-email"
+                      data-testid="input-element"
                     />
                   </div>
 
@@ -304,7 +306,7 @@ export default function GPUDashboard() {
                     <Input
                       id="kaggleKey"
                       type="password"
-                      placeholder="Get from kaggle.com/account"
+                      placeholder={t("admin.gpu-dashboard.placeholder.getfromkagglecomaccount")}
                       value={formData.kaggleKey}
                       onChange={(e) => setFormData({ ...formData, kaggleKey: e.target.value })}
                       required
@@ -319,11 +321,11 @@ export default function GPUDashboard() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="your@email.com"
+                  placeholder={t("admin.gpu-dashboard.placeholder.youremailcom")}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  data-testid="input-email-notification"
+                  data-testid="input-element"
                 />
               </div>
 
@@ -362,7 +364,7 @@ export default function GPUDashboard() {
         <Card>
           <CardContent className="py-10 text-center">
             <Cpu className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">No Notebooks Configured</h3>
+            <h3 className={t("admin.gpu-dashboard.mt4textlgfontsemibold")}>No Notebooks Configured</h3>
             <p className="text-muted-foreground">Add your first Colab or Kaggle notebook to get started</p>
             <Button className="mt-4" onClick={() => setShowAddForm(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -375,7 +377,7 @@ export default function GPUDashboard() {
           {workers.map((worker) => (
             <Card key={worker.id} data-testid={`card-gpu-${worker.id}`}>
               <CardHeader>
-                <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
                   <div className="space-y-1">
                     <CardTitle className="text-base">
                       {worker.provider === 'colab' ? '🔬 Colab' : '📊 Kaggle'} GPU #{worker.id}

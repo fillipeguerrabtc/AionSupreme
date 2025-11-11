@@ -104,7 +104,7 @@ export default function ImageSearchPage() {
   return (
     <div className="flex flex-col h-full gap-4 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <div>
           <h1 className="text-2xl font-bold" data-testid="text-page-title">{t.admin.imageSearch.title}</h1>
           <p className="text-sm text-muted-foreground">
@@ -170,11 +170,11 @@ export default function ImageSearchPage() {
         <CardContent>
           <ScrollArea className="h-[600px]">
             {isLoadingAll ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex items-center gap-2">
                 <p className="text-muted-foreground">{t.admin.imageSearch.loading}</p>
               </div>
             ) : displayImages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="flex items-center gap-2">
                 <FileImage className="w-16 h-16 text-muted-foreground mb-4" />
                 <p className="text-lg font-medium">{t.admin.imageSearch.noImages}</p>
                 <p className="text-sm text-muted-foreground mt-2">
@@ -186,14 +186,14 @@ export default function ImageSearchPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {displayImages.map((image) => (
-                  <Card key={image.id} className="overflow-hidden hover-elevate cursor-pointer" data-testid={`card-image-${image.id}`} onClick={() => setPreviewImage(image)}>
-                    <div className="aspect-video bg-muted relative">
+                  <Card key={image.id} className={t("admin.imagesearch.overflowhiddenhoverelevatecursorpointer")} data-testid={`card-image-${image.id}`} onClick={() => setPreviewImage(image)}>
+                    <div className={t("admin.imagesearch.aspectvideobgmutedrelative")}>
                       <img
                         src={`/${image.storageUrl}`}
                         alt={image.description}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23666' width='400' height='300'/%3E%3Ctext fill='%23fff' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3EImagem não disponível%3C/text%3E%3C/svg%3E";
+                          (e.target as HTMLImageElement).src = t("admin.imagesearch.dataimagesvgxml3csvgxmlnshttpwwww3org2000svgwidth400height3003e3crect");
                         }}
                       />
                       {image.similarity && (
@@ -212,9 +212,9 @@ export default function ImageSearchPage() {
                           {image.filename}
                         </p>
                         <p className="text-xs text-muted-foreground line-clamp-3">
-                          {image.description || image.extractedText || "Sem descrição"}
+                          {image.description || image.extractedText || t("admin.curationqueue.toast.semdescricao")}
                         </p>
-                        <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-xs">
                             {image.mimeType}
                           </Badge>
@@ -258,7 +258,7 @@ export default function ImageSearchPage() {
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>{previewImage?.filename}</DialogTitle>
             <DialogDescription>
-              {previewImage?.description || "Sem descrição"}
+              {previewImage?.description || t("admin.curationqueue.toast.semdescricao")}
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto p-6 pt-2">
@@ -266,7 +266,7 @@ export default function ImageSearchPage() {
               <img 
                 src={`/${previewImage.storageUrl}`} 
                 alt={previewImage.description}
-                className="w-full h-auto rounded-md border border-border"
+                className={t("admin.imagesearch.wfullhautoroundedmdborder")}
               />
             )}
           </div>

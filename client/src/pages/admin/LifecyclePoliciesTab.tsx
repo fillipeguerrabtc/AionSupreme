@@ -126,19 +126,19 @@ export default function LifecyclePoliciesTab() {
   }
 
   if (!policy) {
-    return <div className="p-4" data-testid="error-lifecycle-policies">Error</div>;
+    return <div className="p-4" data-testid=t("admin.lifecyclepolicies.errorlifecyclepolicies")>Error</div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <div>
           <h2 className="text-2xl font-bold" data-testid="title-lifecycle-policies">{t.admin.lifecycle.title}</h2>
           <p className="text-sm text-muted-foreground">
             {t.admin.lifecycle.subtitle}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {hasChanges && (
             <Badge variant="outline" className="gap-2" data-testid="badge-unsaved-changes">
               <AlertTriangle className="w-3 h-3" />
@@ -156,22 +156,22 @@ export default function LifecyclePoliciesTab() {
         </div>
       </div>
 
-      <Card data-testid="card-global-defaults">
+      <Card data-testid="card-element">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Info className="w-4 h-4" />
-            Configurações Globais
-          </CardTitle>
+            {t("admin.lifecyclepolicies.configuracoesglobais")}
+                                </CardTitle>
           <CardDescription data-testid="text-global-defaults-info">
-            Timezone: {pendingChanges.globalDefaults.timezone} | Retenção padrão: {pendingChanges.globalDefaults.retentionYears} anos
+            Timezone: {pendingChanges.globalDefaults.timezone} {t("admin.lifecyclepolicies.retencaopadrao")} {pendingChanges.globalDefaults.retentionYears} anos
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <div>
                 <Label>Audit Log Habilitado</Label>
-                <p className="text-xs text-muted-foreground">Registrar todas as operações de lifecycle</p>
+                <p className="text-xs text-muted-foreground">{t("admin.lifecyclepolicies.registrartodasas")}</p>
               </div>
               <Switch
                 checked={pendingChanges.globalDefaults.auditLogEnabled}
@@ -180,10 +180,10 @@ export default function LifecyclePoliciesTab() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <div>
                 <Label>Modo Dry Run</Label>
-                <p className="text-xs text-muted-foreground">Simular limpeza sem deletar dados</p>
+                <p className="text-xs text-muted-foreground">{t("admin.lifecyclepolicies.simularlimpezasem")}</p>
               </div>
               <Switch
                 checked={pendingChanges.globalDefaults.dryRun}
@@ -199,7 +199,7 @@ export default function LifecyclePoliciesTab() {
         {Object.entries(pendingChanges.modules).map(([moduleName, moduleConfig]: [string, any]) => (
           <Card key={moduleName} data-testid={`card-module-${moduleName}`}>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <div>
                   <CardTitle className="capitalize" data-testid={`text-module-${moduleName}-name`}>{moduleName}</CardTitle>
                   <CardDescription data-testid={`text-module-${moduleName}-description`}>{moduleConfig.description}</CardDescription>
@@ -215,10 +215,10 @@ export default function LifecyclePoliciesTab() {
               {moduleConfig.enabled && moduleConfig.policies && (
                 <div className="space-y-4">
                   {moduleConfig.policies.map((policyRule: any, idx: number) => (
-                    <div key={idx} className="border rounded-md p-4 space-y-3" data-testid={`card-policy-${moduleName}-${idx}`}>
-                      <div className="flex items-center justify-between">
+                    <div key={idx} className={t("admin.lifecyclepolicies.borderroundedmdspacey3")} data-testid={`card-policy-${moduleName}-${idx}`}>
+                      <div className="flex items-center gap-2">
                         <div>
-                          <Label className="font-semibold" data-testid={`text-policy-${moduleName}-${idx}-name`}>{policyRule.name}</Label>
+                          <Label className={t("admin.lifecyclepolicies.fontsemibold")} data-testid={`text-policy-${moduleName}-${idx}-name`}>{policyRule.name}</Label>
                           {policyRule.description && (
                             <p className="text-xs text-muted-foreground mt-1" data-testid={`text-policy-${moduleName}-${idx}-description`}>{policyRule.description}</p>
                           )}
@@ -233,11 +233,11 @@ export default function LifecyclePoliciesTab() {
                       </div>
 
                       {policyRule.enabled && policyRule.condition && (
-                        <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                        <div className={t("admin.lifecyclepolicies.gridgridcols2gap4pt2")}>
                           {policyRule.condition.value !== undefined && (
                             <>
                               <div>
-                                <Label className="text-xs">Período de Retenção</Label>
+                                <Label className="text-xs">{t("admin.lifecyclepolicies.periododeretencao")}</Label>
                                 <Input
                                   type="number"
                                   value={policyRule.condition.value}

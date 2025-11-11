@@ -13,7 +13,7 @@ import { useLanguage } from "@/lib/i18n";
 interface LinkCaptureJob {
   id: number;
   url: string;
-  status: "pending" | "running" | "paused" | "completed" | "failed" | "cancelled";
+  status: "pending" | "running" | "paused" | {t("admin.jobs.completed")} | "failed" | "cancelled";
   progress: number;
   totalItems: number | null;
   processedItems: number | null;
@@ -30,7 +30,7 @@ interface LinkCaptureJob {
 export default function JobsPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "failed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | {t("admin.jobs.completed")} | "failed">("all");
 
   // Fetch jobs with polling every 2 seconds for real-time updates
   const { data: jobs, isLoading, refetch } = useQuery<LinkCaptureJob[]>({
@@ -68,7 +68,7 @@ export default function JobsPage() {
     
     if (statusFilter === "all") return jobs;
     if (statusFilter === "active") return jobs.filter(j => ["pending", "running", "paused"].includes(j.status));
-    if (statusFilter === "completed") return jobs.filter(j => j.status === "completed");
+    if (statusFilter === {t("admin.jobs.completed")}) return jobs.filter(j => j.status === {t("admin.jobs.completed")});
     if (statusFilter === "failed") return jobs.filter(j => ["failed", "cancelled"].includes(j.status));
     
     return jobs;
@@ -78,7 +78,7 @@ export default function JobsPage() {
 
   // Status badge component
   const StatusBadge = ({ status }: { status: LinkCaptureJob["status"] }) => {
-    const variants: Record<LinkCaptureJob["status"], { variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
+    const variants: Record<LinkCaptureJob["status"], { variant: "default" | "secondary" | {t("admin.jobs.destructive")} | "outline"; icon: any }> = {
       pending: { variant: "outline", icon: Clock },
       running: { variant: "default", icon: RefreshCw },
       paused: { variant: "secondary", icon: PauseCircle },
@@ -101,9 +101,9 @@ export default function JobsPage() {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/3"></div>
-          <div className="h-32 bg-muted rounded"></div>
-          <div className="h-32 bg-muted rounded"></div>
+          <div className={t("admin.jobs.bgmutedroundedw13")}></div>
+          <div className={t("admin.jobs.h32bgmutedrounded")}></div>
+          <div className={t("admin.jobs.h32bgmutedrounded")}></div>
         </div>
       </div>
     );
@@ -111,7 +111,7 @@ export default function JobsPage() {
 
   return (
     <div className="p-6 space-y-6" data-testid="page-jobs">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-jobs-title">{t.admin.jobs.title}</h1>
           <p className="text-muted-foreground" data-testid="text-jobs-subtitle">{t.admin.jobs.subtitle}</p>
@@ -136,8 +136,8 @@ export default function JobsPage() {
           <TabsTrigger value="active" data-testid="tab-active">
             {t.admin.jobs.filters.active} ({jobs?.filter(j => ["pending", "running", "paused"].includes(j.status)).length || 0})
           </TabsTrigger>
-          <TabsTrigger value="completed" data-testid="tab-completed">
-            {t.admin.jobs.filters.completed} ({jobs?.filter(j => j.status === "completed").length || 0})
+          <TabsTrigger value={t("admin.jobs.completed")} data-testid={t("admin.jobs.tabcompleted")}>
+            {t.admin.jobs.filters.completed} ({jobs?.filter(j => j.status === {t("admin.jobs.completed")}).length || 0})
           </TabsTrigger>
           <TabsTrigger value="failed" data-testid="tab-failed">
             {t.admin.jobs.filters.failed} ({jobs?.filter(j => ["failed", "cancelled"].includes(j.status)).length || 0})
@@ -155,9 +155,9 @@ export default function JobsPage() {
             filteredJobs.map((job) => (
               <Card key={job.id} data-testid={`card-job-${job.id}`}>
                 <CardHeader>
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-2">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2">
                         <CardTitle className="text-lg truncate" data-testid={`text-job-url-${job.id}`}>
                           {job.url}
                         </CardTitle>
@@ -215,7 +215,7 @@ export default function JobsPage() {
                 <CardContent className="space-y-4">
                   {/* Progress Bar */}
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
                       <span className="text-muted-foreground" data-testid={`text-progress-${job.id}`}>
                         {t.admin.jobs.progress}: {job.progress}%
                       </span>
@@ -240,7 +240,7 @@ export default function JobsPage() {
 
                   {/* Error Message */}
                   {job.errorMessage && (
-                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                    <div className={t("admin.jobs.bgdestructive10borderborderdestructive20roundedmd")}>
                       <p className="text-sm text-destructive" data-testid={`text-error-${job.id}`}>
                         <strong>{t.common.error}:</strong> {job.errorMessage}
                       </p>

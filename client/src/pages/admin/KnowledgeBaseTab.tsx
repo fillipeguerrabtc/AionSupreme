@@ -185,7 +185,7 @@ export default function KnowledgeBaseTab() {
       setYoutubeTitle("");
       setYoutubeNamespace(["kb/youtube"]);
       toast({ 
-        title: "Transcrição do YouTube enviada para curadoria!",
+        title: t("admin.knowledgebase.toast.transcricaoyoutubeenviadapara"),
         description: `${data.stats?.wordCount || 0} palavras extraídas do vídeo`,
       });
     },
@@ -248,7 +248,7 @@ export default function KnowledgeBaseTab() {
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images"] });
       toast({
-        title: "Imagens excluídas",
+        title: t("admin.knowledgebase.toast.imagensexcluidas"),
         description: `${count} imagens removidas com sucesso`,
       });
       setSelectedImages(new Set());
@@ -256,7 +256,7 @@ export default function KnowledgeBaseTab() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao excluir imagens",
+        title: t("admin.knowledgebase.toast.erroaoexcluir"),
         description: error.message,
         variant: "destructive",
       });
@@ -265,7 +265,7 @@ export default function KnowledgeBaseTab() {
   });
 
   return (
-    <div className="space-y-6 max-w-full overflow-x-hidden">
+    <div className={t("admin.knowledgebase.spacey6maxwfulloverflowxhidden")}>
       {/* Action Buttons */}
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <Button
@@ -290,7 +290,7 @@ export default function KnowledgeBaseTab() {
         <Button
           onClick={() => setShowAddYoutube(!showAddYoutube)}
           variant="secondary"
-          className="hover:scale-105 active:scale-95 transition-all duration-300 bg-red-600/10 hover:bg-red-600/20 text-red-600 dark:text-red-400 border-red-600/30"
+          className={t("admin.knowledgebase.hoverscale105activescale95transitionallduration300")}
           data-testid="button-learn-youtube"
         >
           <Youtube className="w-4 h-4 mr-2" />
@@ -374,9 +374,9 @@ export default function KnowledgeBaseTab() {
 
       {/* Add Text Form */}
       {showAddText && (
-        <Card className="glass-premium border-primary/20 animate-slide-up">
+        <Card className={t("admin.knowledgebase.glasspremiumborderprimary20animateslideup")}>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
               <span className="gradient-text">{t.admin.knowledgeBase.forms.addText.title}</span>
               <Button
                 size="icon"
@@ -424,9 +424,9 @@ export default function KnowledgeBaseTab() {
 
       {/* Learn from URL Form */}
       {showAddUrl && (
-        <Card className="glass-premium border-accent/20 animate-slide-up">
+        <Card className={t("admin.knowledgebase.glasspremiumborderaccent20animateslideup")}>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
               <span className="gradient-text-vibrant">{t.admin.knowledgeBase.forms.learnUrl.title}</span>
               <Button
                 size="icon"
@@ -463,12 +463,12 @@ export default function KnowledgeBaseTab() {
 
       {/* Learn from YouTube Form */}
       {showAddYoutube && (
-        <Card className="glass-premium border-red-600/20 animate-slide-up">
+        <Card className={t("admin.knowledgebase.glasspremiumborderred60020animateslideup")}>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
               <span className="flex items-center gap-2">
                 <Youtube className="w-5 h-5 text-red-600 dark:text-red-400" />
-                <span className="gradient-text-vibrant">Aprender de Vídeo do YouTube</span>
+                <span className="gradient-text-vibrant">{t("admin.knowledgebase.aprenderdevideo")}</span>
               </span>
               <Button
                 size="icon"
@@ -480,18 +480,18 @@ export default function KnowledgeBaseTab() {
               </Button>
             </CardTitle>
             <CardDescription>
-              Extrai a transcrição do vídeo e envia para fila de curadoria (HITL)
-            </CardDescription>
+              {t("admin.knowledgebase.extraiatranscricao")}
+                                      </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder={t("admin.knowledgebase.placeholder.httpswwwyoutubecomwatchv")}
               value={youtubeUrl}
               onChange={(e) => setYoutubeUrl(e.target.value)}
               data-testid="input-youtube-url"
             />
             <Input
-              placeholder="Título do vídeo (opcional - detectado automaticamente)"
+              placeholder={t("admin.knowledgebase.placeholder.titulodovideo")}
               value={youtubeTitle}
               onChange={(e) => setYoutubeTitle(e.target.value)}
               data-testid="input-youtube-title"
@@ -508,7 +508,7 @@ export default function KnowledgeBaseTab() {
               data-testid="button-start-learn-youtube"
             >
               <Youtube className="w-4 h-4 mr-2" />
-              {learnFromYoutubeMutation.isPending ? "Extraindo transcrição..." : "Extrair Transcrição"}
+              {learnFromYoutubeMutation.isPending ? t("admin.knowledgebase.button.extraindotranscricao") : t("admin.knowledgebase.button.extrairtranscricao")}
             </Button>
           </CardContent>
         </Card>
@@ -516,9 +516,9 @@ export default function KnowledgeBaseTab() {
 
       {/* Web Search Form */}
       {showWebSearch && (
-        <Card className="glass-premium border-accent/20 animate-slide-up">
+        <Card className={t("admin.knowledgebase.glasspremiumborderaccent20animateslideup")}>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
               <span className="gradient-text-vibrant">{t.admin.knowledgeBase.forms.webSearch.title}</span>
               <Button
                 size="icon"
@@ -568,7 +568,7 @@ export default function KnowledgeBaseTab() {
 
         {/* Documents Tab Content */}
         <TabsContent value="documents">
-          <Card className="glass-premium border-primary/20">
+          <Card className={t("admin.knowledgebase.glasspremiumborderprimary20")}>
             <CardHeader>
               <CardTitle className="gradient-text">{t.admin.knowledgeBase.documents.title}</CardTitle>
               <CardDescription>
@@ -588,7 +588,7 @@ export default function KnowledgeBaseTab() {
                 documents.map((doc) => (
                   <div
                     key={doc.id}
-                    className="p-4 rounded-lg bg-card/50 border border-border/50 hover-elevate"
+                    className={t("admin.knowledgebase.roundedlgbgcard50borderborderborder50")}
                   >
                     {editingDoc === doc.id ? (
                       <div className="space-y-3">
@@ -637,9 +637,9 @@ export default function KnowledgeBaseTab() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-2">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-sm mb-1">{doc.title}</h3>
+                          <h3 className={t("admin.knowledgebase.fontsemiboldtextsmmb1")}>{doc.title}</h3>
                           
                           {/* Exibir namespaces como badges */}
                           {doc.metadata?.namespaces && doc.metadata.namespaces.length > 0 && (
@@ -686,7 +686,7 @@ export default function KnowledgeBaseTab() {
                             onClick={() => setDeleteDocId(doc.id)}
                             data-testid={`button-delete-${doc.id}`}
                           >
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                            <Trash2 className={t("admin.knowledgebase.textdestructive")} />
                           </Button>
                         </div>
                       </div>
@@ -702,11 +702,11 @@ export default function KnowledgeBaseTab() {
 
     {/* Images Tab Content */}
     <TabsContent value="images">
-      <Card className="glass-premium border-primary/20">
+      <Card className={t("admin.knowledgebase.glasspremiumborderprimary20")}>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <div>
-              <CardTitle className="flex items-center gap-2 gradient-text">
+              <CardTitle className="flex items-center gap-2">
                 <ImageIcon className="w-5 h-5" />
                 Imagens Aprendidas
               </CardTitle>
@@ -719,10 +719,10 @@ export default function KnowledgeBaseTab() {
                 variant="destructive"
                 size="sm"
                 onClick={() => setShowBulkDeleteImages(true)}
-                data-testid="button-bulk-delete-images"
+                data-testid="button-element"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Excluir Selecionadas ({selectedImages.size})
+                {t("admin.knowledgebase.button.excluirselecionadas")}{selectedImages.size})
               </Button>
             )}
           </div>
@@ -730,7 +730,7 @@ export default function KnowledgeBaseTab() {
         <CardContent>
           <ScrollArea className="h-[600px]">
             {imagesLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Carregando imagens...</div>
+              <div className="text-center py-8 text-muted-foreground">{t("admin.knowledgebase.carregandoimagens")}</div>
             ) : images.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">Nenhuma imagem encontrada</div>
             ) : (
@@ -760,7 +760,7 @@ export default function KnowledgeBaseTab() {
                           data-testid={`checkbox-image-${image.filename}`}
                         />
                       </div>
-                      <div className="aspect-square overflow-hidden bg-muted">
+                      <div className={t("admin.knowledgebase.aspectsquareoverflowhiddenbgmuted")}>
                         <img
                           src={image.path}
                           alt={image.filename}
@@ -772,7 +772,7 @@ export default function KnowledgeBaseTab() {
                         <p className="text-xs font-medium truncate" title={image.filename}>
                           {image.filename}
                         </p>
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2">
                           <span>{(image.size / 1024).toFixed(1)}KB</span>
                           <Button
                             size="icon"
@@ -781,7 +781,7 @@ export default function KnowledgeBaseTab() {
                             onClick={() => setDeleteImageFilename(image.filename)}
                             data-testid={`button-delete-image-${image.filename}`}
                           >
-                            <Trash2 className="w-3 h-3 text-destructive" />
+                            <Trash2 className={t("admin.knowledgebase.textdestructive")} />
                           </Button>
                         </div>
                       </div>
@@ -800,13 +800,13 @@ export default function KnowledgeBaseTab() {
       <AlertDialog open={!!deleteImageFilename} onOpenChange={(open) => !open && setDeleteImageFilename(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão de Imagem</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.knowledgebase.confirmarexclusaode")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir esta imagem? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+              {t("admin.knowledgebase.temcertezaque")}
+                                      </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete-image">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteImageFilename) {
@@ -814,25 +814,25 @@ export default function KnowledgeBaseTab() {
                 }
               }}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-confirm-delete-image"
+              data-testid="button-element"
             >
-              Excluir
-            </AlertDialogAction>
+              {t("common.delete")}
+                                      </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Bulk Delete Images Confirmation Dialog */}
       <AlertDialog open={showBulkDeleteImages} onOpenChange={setShowBulkDeleteImages}>
-        <AlertDialogContent className="glass-premium">
+        <AlertDialogContent className={t("admin.knowledgebase.glasspremium")}>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão em massa</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.knowledgebase.confirmarexclusaoem")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir {selectedImages.size} imagens? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedImages.size} {t("admin.knowledgebase.imagensestaacao")}
+                                      </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-bulk-delete-images">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 const filenamesToDelete = Array.from(selectedImages);
@@ -842,7 +842,7 @@ export default function KnowledgeBaseTab() {
               }}
               disabled={bulkDeleteImagesMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="button-confirm-bulk-delete-images"
+              data-testid="button-element"
             >
               {bulkDeleteImagesMutation.isPending ? t.common.deleting : t.common.delete}
             </AlertDialogAction>
@@ -854,13 +854,13 @@ export default function KnowledgeBaseTab() {
       <AlertDialog open={!!deleteDocId} onOpenChange={(open) => !open && setDeleteDocId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.knowledgebase.confirmarexclusao")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+              {t("admin.knowledgebase.temcertezaque")}
+                                      </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteDocId) {
@@ -869,10 +869,10 @@ export default function KnowledgeBaseTab() {
                 }
               }}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-confirm-delete"
+              data-testid="button-element"
             >
-              Excluir
-            </AlertDialogAction>
+              {t("common.delete")}
+                                      </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

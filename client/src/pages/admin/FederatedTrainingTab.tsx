@@ -247,7 +247,7 @@ export default function FederatedTrainingTab() {
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("name", datasetName);
-    formData.append("description", datasetDescription);
+    formData.append({t("admin.federatedtraining.description")}, datasetDescription);
     formData.append("datasetType", datasetType);
 
     uploadDataset.mutate(formData);
@@ -263,9 +263,9 @@ export default function FederatedTrainingTab() {
   const datasets = datasetsData?.datasets || [];
 
   return (
-    <div className="space-y-6 max-w-full overflow-x-hidden">
+    <div className={t("admin.federatedtraining.spacey6maxwfulloverflowxhidden")}>
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold break-words">{t.admin.federatedTraining.title}</h2>
           <p className="text-muted-foreground break-words">
@@ -304,9 +304,9 @@ export default function FederatedTrainingTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="model-type">{t.admin.federatedTraining.createDialog.modelBase}</Label>
+              <Label htmlFor={t("admin.federatedtraining.modeltype")}>{t.admin.federatedTraining.createDialog.modelBase}</Label>
               <Select value={modelType} onValueChange={setModelType}>
-                <SelectTrigger data-testid="select-model-type">
+                <SelectTrigger data-testid="select-element">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -389,7 +389,7 @@ export default function FederatedTrainingTab() {
             <Button 
               onClick={handleCreateJob}
               disabled={createJob.isPending || !selectedDatasetId}
-              data-testid="button-confirm-create-job"
+              data-testid="button-element"
             >
               {createJob.isPending ? t.admin.federatedTraining.createDialog.creating : t.admin.federatedTraining.createDialog.create}
             </Button>
@@ -400,7 +400,7 @@ export default function FederatedTrainingTab() {
       {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex items-center gap-2">
             <CardTitle className="text-sm font-medium">{t.admin.federatedTraining.activeJobs}</CardTitle>
             <Cpu className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -413,7 +413,7 @@ export default function FederatedTrainingTab() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex items-center gap-2">
             <CardTitle className="text-sm font-medium">{t.admin.federatedTraining.totalWorkers}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -426,7 +426,7 @@ export default function FederatedTrainingTab() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex items-center gap-2">
             <CardTitle className="text-sm font-medium">{t.admin.federatedTraining.completedJobs}</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -439,7 +439,7 @@ export default function FederatedTrainingTab() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex items-center gap-2">
             <CardTitle className="text-sm font-medium">{t.admin.federatedTraining.avgSpeed}</CardTitle>
             <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -467,8 +467,8 @@ export default function FederatedTrainingTab() {
               {jobs.map((job: any) => (
                 <Card key={job.id} className="hover-elevate" data-testid={`card-job-${job.id}`}>
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                         <CardTitle className="text-lg">{job.name}</CardTitle>
                         <Badge 
                           variant={job.status === 'running' ? 'default' : 'secondary'}
@@ -552,7 +552,7 @@ export default function FederatedTrainingTab() {
       {/* Dataset Management */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Upload className="w-5 h-5" />
@@ -584,10 +584,10 @@ export default function FederatedTrainingTab() {
               {datasets.map((dataset: any) => (
                 <div 
                   key={dataset.id} 
-                  className="p-4 border rounded-lg hover-elevate space-y-2"
+                  className={t("admin.federatedtraining.borderroundedlghoverelevatespacey2")}
                   data-testid={`dataset-${dataset.id}`}
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
                     <div>
                       <h4 className="font-medium">{dataset.name}</h4>
                       {dataset.description && (
@@ -607,7 +607,7 @@ export default function FederatedTrainingTab() {
                     <span>{t.admin.federatedTraining.datasetManagement.type}: {dataset.datasetType}</span>
                     <span>{t.admin.federatedTraining.datasetManagement.examples}: {dataset.totalExamples}</span>
                     <span>{t.admin.federatedTraining.datasetManagement.size}: {(dataset.fileSize / 1024 / 1024).toFixed(2)} {t.admin.federatedTraining.datasetManagement.mbUnit}</span>
-                    <Badge variant={dataset.isValid ? "default" : "destructive"}>
+                    <Badge variant={dataset.isValid ? "default" : {t("admin.federatedtraining.destructive")}}>
                       {dataset.status}
                     </Badge>
                   </div>
@@ -622,34 +622,34 @@ export default function FederatedTrainingTab() {
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Upload Training Dataset</DialogTitle>
+            <DialogTitle>{t("admin.federatedtraining.uploadtrainingdataset")}</DialogTitle>
             <DialogDescription>
               Upload a dataset file for federated training. Supported formats: JSONL, JSON, CSV, TXT
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="dataset-name">Dataset Name</Label>
+              <Label htmlFor="dataset-name">{t("admin.federatedtraining.datasetname")}</Label>
               <Input
                 id="dataset-name"
                 value={datasetName}
                 onChange={(e) => setDatasetName(e.target.value)}
-                placeholder="My Training Dataset"
+                placeholder={t("admin.federatedtraining.placeholder.mytrainingdataset")}
                 data-testid="input-dataset-name"
               />
             </div>
             <div>
-              <Label htmlFor="dataset-description">Description (Optional)</Label>
+              <Label htmlFor={t("admin.federatedtraining.datasetdescription")}>Description (Optional)</Label>
               <Textarea
-                id="dataset-description"
+                id={t("admin.federatedtraining.datasetdescription")}
                 value={datasetDescription}
                 onChange={(e) => setDatasetDescription(e.target.value)}
-                placeholder="Description of your dataset..."
-                data-testid="textarea-dataset-description"
+                placeholder={t("admin.federatedtraining.descriptionyourdataset")}
+                data-testid="text-element"
               />
             </div>
             <div>
-              <Label htmlFor="dataset-type">Dataset Type</Label>
+              <Label htmlFor="dataset-type">{t("admin.federatedtraining.datasettype")}</Label>
               <Select value={datasetType} onValueChange={setDatasetType}>
                 <SelectTrigger data-testid="select-dataset-type">
                   <SelectValue />
@@ -664,7 +664,7 @@ export default function FederatedTrainingTab() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="dataset-file">Dataset File</Label>
+              <Label htmlFor="dataset-file">{t("admin.federatedtraining.datasetfile")}</Label>
               <Input
                 id="dataset-file"
                 type="file"
@@ -686,7 +686,7 @@ export default function FederatedTrainingTab() {
             <Button 
               onClick={handleUploadDataset}
               disabled={uploadDataset.isPending}
-              data-testid="button-confirm-upload"
+              data-testid="button-element"
             >
               {uploadDataset.isPending ? "Uploading..." : "Upload"}
             </Button>

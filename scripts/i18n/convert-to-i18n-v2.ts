@@ -89,7 +89,7 @@ function convertFile(filePath: string, textToKeyMap: Map<string, string>): numbe
         const parent = node.getParent();
         
         let alreadyWrapped = false;
-        let currentNode = parent;
+        let currentNode: Node | undefined = parent;
         while (currentNode) {
           if (Node.isCallExpression(currentNode)) {
             const expr = currentNode.getExpression();

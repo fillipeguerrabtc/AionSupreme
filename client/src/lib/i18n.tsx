@@ -5641,7 +5641,7 @@ const translations: Record<Language, Translations> = {
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: Translations;
+  t: (key: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -5742,10 +5742,26 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("aion-language", lang);
   };
 
+  const t = (key: string): string => {
+    const keys = key.split('.');
+    let value: any = translations[language];
+    
+    for (const k of keys) {
+      if (value && typeof value === 'object' && k in value) {
+        value = value[k];
+      } else {
+        console.warn(`[i18n] Translation key not found: ${key}`);
+        return key;
+      }
+    }
+    
+    return typeof value === 'string' ? value : key;
+  };
+
   const value = {
     language,
     setLanguage,
-    t: translations[language],
+    t,
   };
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
