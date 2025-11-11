@@ -1013,7 +1013,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Comportamento da IA */}
-            <Card className="flex items-center gap-2">
+            <Card className="p-4">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-accent" />
@@ -1145,29 +1145,8 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Save Button */}
-            {hasUnsavedChanges && (
-              <Card className="flex items-center gap-2">
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-accent animate-pulse" />{t.common.loading}</p>
-                    <Button
-                      onClick={handleSaveChanges}
-                      disabled={updatePolicy.isPending}
-                      className="bg-primary"
-                      data-testid="button-save-changes"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      {updatePolicy.isPending ? t.common.saving : t.common.save}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* System Prompt */}
-            <Card className="flex items-center gap-2" style={{ animationDelay: "200ms" }}>
+            {/* System Prompt - Integrated Section */}
+            <Card className="p-4">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-primary" />
@@ -1197,7 +1176,7 @@ export default function AdminDashboard() {
                   </Button>
                   <Button
                     onClick={() => {
-                      refetchPrompt(); // Atualiza preview antes de abrir
+                      refetchPrompt();
                       setShowFullPrompt(true);
                     }}
                     variant="outline"
@@ -1210,8 +1189,31 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
+            {/* Save All Changes Button */}
+            {hasUnsavedChanges && (
+              <Card className="p-4">
+                <CardContent className="py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Activity className="w-4 h-4 text-accent animate-pulse" />
+                      <span>Você tem alterações não salvas</span>
+                    </div>
+                    <Button
+                      onClick={handleSaveChanges}
+                      disabled={updatePolicy.isPending}
+                      className="bg-primary"
+                      data-testid="button-save-changes"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {updatePolicy.isPending ? t.common.saving : t.common.save}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Timezone Selector */}
-            <Card className="flex items-center gap-2" style={{ animationDelay: "300ms" }}>
+            <Card className="p-4">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
@@ -1272,7 +1274,7 @@ export default function AdminDashboard() {
             </Card>
 
             {/* Database Management */}
-            <Card className="flex items-center gap-2" style={{ animationDelay: "400ms" }}>
+            <Card className="p-4">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Database className="w-5 h-5 text-primary" />
