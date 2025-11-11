@@ -562,7 +562,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <div className="text-sm font-semibold text-foreground">
                       {getTotalTokensMonth().toLocaleString()}
                     </div>
-                    <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
+                    <p className="text-xs text-muted-foreground">"Loading..."</p>
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-primary">
@@ -887,13 +887,13 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   </span>
                   <Badge variant="outline">{getProviderQuota('groq')?.remaining.toLocaleString()} "[PT]"</Badge>
                 </CardTitle>
-                <CardDescription>"[TEXTO]"</CardDescription>
+                <CardDescription>"Loading..."</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />"[TEXTO]"</span>
+                      <Activity className="w-3.5 h-3.5" />"Loading..."</span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('groq')?.used.toLocaleString()} / {getProviderQuota('groq')?.dailyLimit.toLocaleString()}
                     </span>
@@ -906,9 +906,9 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
                     <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />"[TEXTO]"</p>
+                      <Zap className="w-3 h-3" />"Loading..."</p>
                     <p className="text-lg font-bold">{getProviderSummary('groq')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">"[TEXTO]"</p>
+                    <p className="text-xs text-muted-foreground mt-1">"Loading..."</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -916,7 +916,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       Tokens Consumidos
                     </p>
                     <p className="text-lg font-bold">{(getProviderSummary('groq')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">"[TEXTO]"</p>
+                    <p className="text-xs text-muted-foreground mt-1">"Loading..."</p>
                   </div>
                 </div>
               </CardContent>
@@ -934,13 +934,13 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   </span>
                   <Badge variant="outline">{getProviderQuota('gemini')?.remaining.toLocaleString()} "[PT]"</Badge>
                 </CardTitle>
-                <CardDescription>"[TEXTO]"</CardDescription>
+                <CardDescription>"Loading..."</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />"[TEXTO]"</span>
+                      <Activity className="w-3.5 h-3.5" />"Loading..."</span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('gemini')?.used.toLocaleString()} / {getProviderQuota('gemini')?.dailyLimit.toLocaleString()}
                     </span>
@@ -953,9 +953,9 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
                     <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />"[TEXTO]"</p>
+                      <Zap className="w-3 h-3" />"Loading..."</p>
                     <p className="text-lg font-bold">{getProviderSummary('gemini')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">"[TEXTO]"</p>
+                    <p className="text-xs text-muted-foreground mt-1">"Loading..."</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -963,7 +963,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       Tokens Consumidos
                     </p>
                     <p className="text-lg font-bold">{(getProviderSummary('gemini')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">"[TEXTO]"</p>
+                    <p className="text-xs text-muted-foreground mt-1">"Loading..."</p>
                   </div>
                 </div>
               </CardContent>
@@ -981,13 +981,13 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   </span>
                   <Badge variant="outline">{getProviderQuota('huggingface')?.remaining.toLocaleString()} "[PT]"</Badge>
                 </CardTitle>
-                <CardDescription>"[TEXTO]"</CardDescription>
+                <CardDescription>"Loading..."</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />"[TEXTO]"</span>
+                      <Activity className="w-3.5 h-3.5" />"Loading..."</span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('huggingface')?.used.toLocaleString()} / {getProviderQuota('huggingface')?.dailyLimit.toLocaleString()}
                     </span>
@@ -1000,9 +1000,9 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
                     <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />"[TEXTO]"</p>
+                      <Zap className="w-3 h-3" />"Loading..."</p>
                     <p className="text-lg font-bold">{getProviderSummary('huggingface')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">"[TEXTO]"</p>
+                    <p className="text-xs text-muted-foreground mt-1">"Loading..."</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -1010,7 +1010,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       Tokens Consumidos
                     </p>
                     <p className="text-lg font-bold">{(getProviderSummary('huggingface')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">"[TEXTO]"</p>
+                    <p className="text-xs text-muted-foreground mt-1">"Loading..."</p>
                   </div>
                 </div>
               </CardContent>
@@ -1028,13 +1028,13 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   </span>
                   <Badge variant="outline">{getProviderQuota('openrouter')?.remaining.toLocaleString()} "[PT]"</Badge>
                 </CardTitle>
-                <CardDescription>"[TEXTO]"</CardDescription>
+                <CardDescription>"Loading..."</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />"[TEXTO]"</span>
+                      <Activity className="w-3.5 h-3.5" />"Loading..."</span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('openrouter')?.used.toLocaleString()} / {getProviderQuota('openrouter')?.dailyLimit.toLocaleString()}
                     </span>
@@ -1047,9 +1047,9 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
                     <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />"[TEXTO]"</p>
+                      <Zap className="w-3 h-3" />"Loading..."</p>
                     <p className="text-lg font-bold">{getProviderSummary('openrouter')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">"[TEXTO]"</p>
+                    <p className="text-xs text-muted-foreground mt-1">"Loading..."</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -1057,7 +1057,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       Tokens Consumidos
                     </p>
                     <p className="text-lg font-bold">{(getProviderSummary('openrouter')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">"[TEXTO]"</p>
+                    <p className="text-xs text-muted-foreground mt-1">"Loading..."</p>
                   </div>
                 </div>
               </CardContent>
@@ -1189,7 +1189,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                             {/* Source Badge - Shows WHERE the answer came from */}
                             {entry.sourceUsed === 'kb-own' && (
                               <Badge variant="default" className="bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30">
-                                <CheckCircle2 className="w-3 h-3 mr-1" />"[TEXTO]"</Badge>
+                                <CheckCircle2 className="w-3 h-3 mr-1" />"Loading..."</Badge>
                             )}
                             {entry.sourceUsed === 'fallback-needed' && (
                               <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/30">
@@ -1199,7 +1199,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                             )}
                             {entry.sourceUsed === 'kb-error' && (
                               <Badge variant="destructive" className="bg-red-500/20 text-red-500 border-red-500/30 hover:bg-red-500/30">
-                                <AlertCircle className="w-3 h-3 mr-1" />"[TEXTO]"</Badge>
+                                <AlertCircle className="w-3 h-3 mr-1" />"Loading..."</Badge>
                             )}
                             {/* Success/Failed Badge */}
                             <Badge variant={entry.success ? "default" : "secondary"}>

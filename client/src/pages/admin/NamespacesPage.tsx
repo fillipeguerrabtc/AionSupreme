@@ -381,7 +381,7 @@ export default function NamespacesPage() {
             <div className="space-y-4 mt-4">
               {/* Modo de criação */}
               <div className="space-y-2">
-                <Label>"[TEXTO]"</Label>
+                <Label>"Loading..."</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
@@ -430,7 +430,7 @@ export default function NamespacesPage() {
                     }}
                     data-testid="input-parent-namespace"
                   />
-                  <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
+                  <p className="text-xs text-muted-foreground">"Loading..."</p>
                 </div>
               )}
 
@@ -469,20 +469,20 @@ export default function NamespacesPage() {
                   rows={3}
                   data-testid="text-element"
                 />
-                <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
+                <p className="text-xs text-muted-foreground">"Loading..."</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-icon">"[TEXTO]"</Label>
+                <Label htmlFor="create-icon">"Loading..."</Label>
                 <IconPicker
                   value={createIcon}
                   onChange={setCreateIcon}
                 />
-                <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
+                <p className="text-xs text-muted-foreground">"Loading..."</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-content">"[TEXTO]"</Label>
+                <Label htmlFor="create-content">"Loading..."</Label>
                 <Textarea
                   id="create-content"
                   placeholder={t.admin.namespaces.contentPlaceholder}
@@ -491,7 +491,7 @@ export default function NamespacesPage() {
                   rows={5}
                   data-testid="textarea-create-namespace-content"
                 />
-                <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
+                <p className="text-xs text-muted-foreground">"Loading..."</p>
               </div>
 
               <div className="flex justify-end gap-2">
@@ -592,7 +592,7 @@ export default function NamespacesPage() {
                       </TableCell>
                       <TableCell className="min-w-0">
                         <div className="max-w-[400px] truncate">
-                          {namespace.description || <span className="text-muted-foreground italic">"[TEXTO]"</span>}
+                          {namespace.description || <span className="text-muted-foreground italic">"Loading..."</span>}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
@@ -651,11 +651,11 @@ export default function NamespacesPage() {
                 placeholder={t.admin.namespaces.rootPlaceholder}
                 data-testid="input-edit-namespace-name"
               />
-              <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
+              <p className="text-xs text-muted-foreground">"Loading..."</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="[PT]">"[TEXTO]"</Label>
+              <Label htmlFor="[PT]">"Loading..."</Label>
               <Textarea
                 id="[PT]"
                 placeholder={t.admin.namespaces.descriptionPlaceholder}
@@ -667,16 +667,16 @@ export default function NamespacesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-icon">"[TEXTO]"</Label>
+              <Label htmlFor="edit-icon">"Loading..."</Label>
               <IconPicker
                 value={editIcon}
                 onChange={setEditIcon}
               />
-              <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
+              <p className="text-xs text-muted-foreground">"Loading..."</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-content">"[TEXTO]"</Label>
+              <Label htmlFor="edit-content">"Loading..."</Label>
               <Textarea
                 id="edit-content"
                 placeholder={t.admin.namespaces.contentPlaceholder}
@@ -687,7 +687,7 @@ export default function NamespacesPage() {
               />
               <div className="flex items-center gap-2">
                 <FileText className="h-3 w-3" />
-                <span>"[TEXTO]"</span>
+                <span>"Loading..."</span>
               </div>
             </div>
 
@@ -715,8 +715,8 @@ export default function NamespacesPage() {
       <AlertDialog open={!!deleteNamespaceId} onOpenChange={(open) => !open && setDeleteNamespaceId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
-            <AlertDialogDescription>"[TEXTO]"</AlertDialogDescription>
+            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
+            <AlertDialogDescription>"Loading..."</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
@@ -724,7 +724,7 @@ export default function NamespacesPage() {
               onClick={handleDeleteConfirm}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-element"
-            >"[TEXTO]"</AlertDialogAction>
+            >"Loading..."</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

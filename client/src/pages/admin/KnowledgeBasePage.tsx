@@ -217,7 +217,7 @@ export default function KnowledgeBasePage() {
             className="hover:scale-105 active:scale-95 transition-all duration-300"
             data-testid="button-learn-url"
           >
-            <LinkIcon className="w-4 h-4 mr-2" />"[TEXTO]"</Button>
+            <LinkIcon className="w-4 h-4 mr-2" />"Loading..."</Button>
 
           <Button
             onClick={() => setShowWebSearch(!showWebSearch)}
@@ -327,7 +327,7 @@ export default function KnowledgeBasePage() {
                   value={newNamespaces}
                   onChange={setNewNamespaces}
                 />
-                <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
+                <p className="text-xs text-muted-foreground">"Loading..."</p>
               </div>
               
               <Textarea
@@ -356,7 +356,7 @@ export default function KnowledgeBasePage() {
           <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="gradient-text-vibrant">"[TEXTO]"</span>
+                <span className="gradient-text-vibrant">"Loading..."</span>
                 <Button
                   size="icon"
                   variant="ghost"
@@ -366,7 +366,7 @@ export default function KnowledgeBasePage() {
                   <X className="w-4 h-4" />
                 </Button>
               </CardTitle>
-              <CardDescription>"[TEXTO]"</CardDescription>
+              <CardDescription>"Loading..."</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
@@ -377,7 +377,7 @@ export default function KnowledgeBasePage() {
               />
               
               <div className="flex items-center gap-2">
-                <Label className="text-sm font-semibold">"[TEXTO]"</Label>
+                <Label className="text-sm font-semibold">"Loading..."</Label>
                 <RadioGroup
                   value={crawlMode}
                   onValueChange={(value) => setCrawlMode(value as "single" | "deep")}
@@ -386,11 +386,11 @@ export default function KnowledgeBasePage() {
                 >
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="single" id="single" data-testid="radio-single-page" />
-                    <Label htmlFor="single" className="cursor-pointer font-normal">"[TEXTO]"</Label>
+                    <Label htmlFor="single" className="cursor-pointer font-normal">"Loading..."</Label>
                   </div>
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="deep" id="deep" data-testid="test-id" />
-                    <Label htmlFor="deep" className="cursor-pointer font-normal">"[TEXTO]"</Label>
+                    <Label htmlFor="deep" className="cursor-pointer font-normal">"Loading..."</Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -405,7 +405,7 @@ export default function KnowledgeBasePage() {
                 <Label
                   htmlFor="download-media"
                   className="cursor-pointer font-normal text-sm"
-                >"[TEXTO]"</Label>
+                >"Loading..."</Label>
               </div>
               
               <Button
@@ -436,7 +436,7 @@ export default function KnowledgeBasePage() {
                   <X className="w-4 h-4" />
                 </Button>
               </CardTitle>
-              <CardDescription>"[TEXTO]"</CardDescription>
+              <CardDescription>"Loading..."</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
@@ -470,7 +470,7 @@ export default function KnowledgeBasePage() {
             <ScrollArea ref={scrollAreaRef} className="h-[600px]">
               <div className="space-y-2">
                 {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">"[TEXTO]"</div>
+                  <div className="text-center py-8 text-muted-foreground">"Loading..."</div>
                 ) : documents.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Nenhum conhecimento encontrado. Adicione novos conhecimentos acima!

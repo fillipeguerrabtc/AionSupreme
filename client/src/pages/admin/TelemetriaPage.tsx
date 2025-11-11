@@ -132,7 +132,7 @@ interface KbAnalytics {
   }>;
 }
 
-export default function TelemetriaPage() {
+export default function {t.admin.tabs.telemetry}Page() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"system" | "analytics">("system");
 
@@ -196,15 +196,15 @@ export default function TelemetriaPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Telemetria</h2>
-        <p className="text-muted-foreground">"[TEXTO]"</p>
+        <h2 className="text-3xl font-bold tracking-tight">{t.admin.tabs.telemetry}</h2>
+        <p className="text-muted-foreground">"Loading..."</p>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "system" | "analytics")}>
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="system" data-testid="test-id">
-            <Activity className="w-4 h-4 mr-2" />"[TEXTO]"</TabsTrigger>
+            <Activity className="w-4 h-4 mr-2" />"Loading..."</TabsTrigger>
           <TabsTrigger value="analytics" data-testid="tab-analytics">
             <BarChart3 className="w-4 h-4 mr-2" />
             Analytics KB/Chat
@@ -219,11 +219,11 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-total-queries">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />"[TEXTO]"</CardTitle>
+                  <Activity className="w-4 h-4" />"Loading..."</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? queryMetrics.totalQueries.toLocaleString() : "..."}
                 </div>
-                <CardDescription className="text-xs">"[TEXTO]"</CardDescription>
+                <CardDescription className="text-xs">"Loading..."</CardDescription>
               </CardHeader>
             </Card>
 
@@ -231,7 +231,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-avg-latency">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Clock className="w-4 h-4" />"[TEXTO]"</CardTitle>
+                  <Clock className="w-4 h-4" />"Loading..."</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${queryMetrics.avgLatency.toFixed(0)}ms` : "..."}
                 </div>
@@ -245,7 +245,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-p95-latency">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />"[TEXTO]"</CardTitle>
+                  <TrendingUp className="w-4 h-4" />"Loading..."</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${queryMetrics.p95Latency.toFixed(0)}ms` : "..."}
                 </div>
@@ -259,7 +259,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-success-rate">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Zap className="w-4 h-4" />"[TEXTO]"</CardTitle>
+                  <Zap className="w-4 h-4" />"Loading..."</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${(queryMetrics.successRate * 100).toFixed(1)}%` : "..."}
                 </div>
@@ -274,8 +274,8 @@ export default function TelemetriaPage() {
           <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />"[TEXTO]"</CardTitle>
-              <CardDescription>"[TEXTO]"</CardDescription>
+                <BarChart3 className="w-5 h-5" />"Loading..."</CardTitle>
+              <CardDescription>"Loading..."</CardDescription>
             </CardHeader>
             <CardContent>
               {latencyTrends && latencyTrends.length > 0 ? (
@@ -312,7 +312,7 @@ export default function TelemetriaPage() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center gap-2">"[TEXTO]"</div>
+                <div className="flex items-center gap-2">"Loading..."</div>
               )}
             </CardContent>
           </Card>
@@ -324,7 +324,7 @@ export default function TelemetriaPage() {
                 <AlertTriangle className="w-5 h-5" />
                 Queries Mais Lentas
               </CardTitle>
-              <CardDescription>"[TEXTO]"</CardDescription>
+              <CardDescription>"Loading..."</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[300px]">
@@ -349,7 +349,7 @@ export default function TelemetriaPage() {
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-bold">{query.avgLatency.toFixed(0)}ms</div>
-                          <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
+                          <p className="text-xs text-muted-foreground">"Loading..."</p>
                         </div>
                       </div>
                     ))}
@@ -431,7 +431,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-total-requests">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />"[TEXTO]"</CardTitle>
+                  <Activity className="w-4 h-4" />"Loading..."</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {kbAnalytics?.overview?.totalRequests?.toLocaleString() || "0"}
                 </div>
@@ -448,7 +448,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />"[TEXTO]"</CardTitle>
+                  <BarChart3 className="w-5 h-5" />"Loading..."</CardTitle>
                 <CardDescription>
                   Origem das respostas (KB, Web, APIs)
                 </CardDescription>
@@ -480,7 +480,7 @@ export default function TelemetriaPage() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">"[TEXTO]"</div>
+                  <div className="flex items-center gap-2">"Loading..."</div>
                 )}
               </CardContent>
             </Card>
@@ -489,7 +489,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />"[TEXTO]"</CardTitle>
+                  <DollarSign className="w-5 h-5" />"Loading..."</CardTitle>
                 <CardDescription>
                   Economia usando KB/Web vs APIs pagas
                 </CardDescription>
@@ -525,7 +525,7 @@ export default function TelemetriaPage() {
 
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2">
-                    <span>"[TEXTO]"</span>
+                    <span>"Loading..."</span>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400">
                       {kbAnalytics?.costEfficiency?.savingsPercent?.toFixed(1) || "0"}%
                     </span>
@@ -545,8 +545,8 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Gauge className="w-5 h-5" />"[TEXTO]"</CardTitle>
-                <CardDescription>"[TEXTO]"</CardDescription>
+                  <Gauge className="w-5 h-5" />"Loading..."</CardTitle>
+                <CardDescription>"Loading..."</CardDescription>
               </CardHeader>
               <CardContent>
                 {kbAnalytics?.qualityMetrics && kbAnalytics.qualityMetrics.length > 0 ? (
@@ -562,7 +562,7 @@ export default function TelemetriaPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">"[TEXTO]"</div>
+                  <div className="flex items-center gap-2">"Loading..."</div>
                 )}
               </CardContent>
             </Card>
@@ -571,7 +571,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />"[TEXTO]"</CardTitle>
+                  <FileText className="w-5 h-5" />"Loading..."</CardTitle>
                 <CardDescription>
                   Documentos mais recentemente indexados
                 </CardDescription>
@@ -606,7 +606,7 @@ export default function TelemetriaPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">"[TEXTO]"</div>
+                    <div className="flex items-center gap-2">"Loading..."</div>
                   )}
                 </ScrollArea>
               </CardContent>
@@ -619,7 +619,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-namespace-searches">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Database className="w-4 h-4" />"[TEXTO]"</CardTitle>
+                  <Database className="w-4 h-4" />"Loading..."</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {hierarchicalOverview?.namespaces?.totalSearches?.toLocaleString() || "..."}
                 </div>
@@ -638,7 +638,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-most-active-agent">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />"[TEXTO]"</CardTitle>
+                  <TrendingUp className="w-4 h-4" />"Loading..."</CardTitle>
                 <div className="text-lg font-bold text-foreground truncate">
                   {agentStats && agentStats.length > 0 
                     ? agentStats[0].agentName 
@@ -661,7 +661,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-hierarchy">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />"[TEXTO]"</CardTitle>
+                  <Activity className="w-4 h-4" />"Loading..."</CardTitle>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Agents Raiz</span>
@@ -680,8 +680,8 @@ export default function TelemetriaPage() {
           <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />"[TEXTO]"</CardTitle>
-              <CardDescription>"[TEXTO]"</CardDescription>
+                <Users className="w-5 h-5" />"Loading..."</CardTitle>
+              <CardDescription>"Loading..."</CardDescription>
             </CardHeader>
             <CardContent>
               {agentStats && agentStats.length > 0 ? (
@@ -715,13 +715,13 @@ export default function TelemetriaPage() {
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-lg font-bold">{agent.usageCount}</div>
-                        <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
+                        <p className="text-xs text-muted-foreground">"Loading..."</p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center gap-2">"[TEXTO]"</div>
+                <div className="flex items-center gap-2">"Loading..."</div>
               )}
             </CardContent>
           </Card>
@@ -730,8 +730,8 @@ export default function TelemetriaPage() {
           <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Database className="w-5 h-5" />"[TEXTO]"</CardTitle>
-              <CardDescription>"[TEXTO]"</CardDescription>
+                <Database className="w-5 h-5" />"Loading..."</CardTitle>
+              <CardDescription>"Loading..."</CardDescription>
             </CardHeader>
             <CardContent>
               {namespaceStats && namespaceStats.length > 0 ? (
@@ -771,7 +771,7 @@ export default function TelemetriaPage() {
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center gap-2">"[TEXTO]"</div>
+                <div className="flex items-center gap-2">"Loading..."</div>
               )}
             </CardContent>
           </Card>
@@ -781,8 +781,8 @@ export default function TelemetriaPage() {
             {/* Agent History */}
             <Card className="flex items-center gap-2">
               <CardHeader>
-                <CardTitle className="text-base">"[TEXTO]"</CardTitle>
-                <CardDescription className="text-xs">"[TEXTO]"</CardDescription>
+                <CardTitle className="text-base">"Loading..."</CardTitle>
+                <CardDescription className="text-xs">"Loading..."</CardDescription>
               </CardHeader>
               <CardContent>
                 {agentHistory && agentHistory.length > 0 ? (
@@ -809,7 +809,7 @@ export default function TelemetriaPage() {
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">"[TEXTO]"</div>
+                  <div className="flex items-center gap-2">"Loading..."</div>
                 )}
               </CardContent>
             </Card>
@@ -817,7 +817,7 @@ export default function TelemetriaPage() {
             {/* Namespace History */}
             <Card className="flex items-center gap-2">
               <CardHeader>
-                <CardTitle className="text-base">"[TEXTO]"</CardTitle>
+                <CardTitle className="text-base">"Loading..."</CardTitle>
                 <CardDescription className="text-xs">
                   Buscas ao longo do tempo
                 </CardDescription>
@@ -847,7 +847,7 @@ export default function TelemetriaPage() {
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">"[TEXTO]"</div>
+                  <div className="flex items-center gap-2">"Loading..."</div>
                 )}
               </CardContent>
             </Card>

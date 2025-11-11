@@ -224,7 +224,7 @@ export default function ImagesGalleryPage() {
   };
 
   if (imagesLoading || documentsLoading) {
-    return <div className="p-6">"[TEXTO]"</div>;
+    return <div className="p-6">"Loading..."</div>;
   }
 
   return (
@@ -655,7 +655,7 @@ export default function ImagesGalleryPage() {
                 </div>
                 {selectedImage.description && (
                   <div className="col-span-2">
-                    <span className="font-medium">"[TEXTO]"</span>
+                    <span className="font-medium">"Loading..."</span>
                     <p className="text-muted-foreground mt-1">{selectedImage.description}</p>
                   </div>
                 )}
@@ -679,7 +679,7 @@ export default function ImagesGalleryPage() {
               <div className="flex items-center gap-2">
                 <Button variant="outline" asChild className="flex-1">
                   <a href={selectedImage.url} target="_blank" rel="noopener noreferrer" data-testid="button-open-new-tab">
-                    <ExternalLink className="h-4 w-4 mr-2" />"[TEXTO]"</a>
+                    <ExternalLink className="h-4 w-4 mr-2" />"Loading..."</a>
                 </Button>
                 <Button variant="outline" asChild className="flex-1">
                   <a href={selectedImage.url} download={selectedImage.filename} data-testid="button-download">
@@ -697,8 +697,8 @@ export default function ImagesGalleryPage() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent data-testid="test-id">
           <AlertDialogHeader>
-            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
-            <AlertDialogDescription>"[TEXTO]" {selectedImages.size} imagem(ns). Esta ação não pode ser desfeita.
+            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
+            <AlertDialogDescription>"Loading..." {selectedImages.size} imagem(ns). Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -718,13 +718,13 @@ export default function ImagesGalleryPage() {
       <Dialog open={!!editingImage} onOpenChange={() => setEditingImage(null)}>
         <DialogContent data-testid="test-id">
           <DialogHeader>
-            <DialogTitle>"[TEXTO]"</DialogTitle>
-            <DialogDescription>"[TEXTO]"</DialogDescription>
+            <DialogTitle>"Loading..."</DialogTitle>
+            <DialogDescription>"Loading..."</DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="[PT]">"[TEXTO]"</Label>
+              <Label htmlFor="[PT]">"Loading..."</Label>
               <Textarea
                 id="[PT]"
                 value={editDescription}

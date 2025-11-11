@@ -485,7 +485,7 @@ export default function DatasetsTab() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <div>
-                <p className="text-sm text-muted-foreground">"[TEXTO]"</p>
+                <p className="text-sm text-muted-foreground">"Loading..."</p>
                 <p className="text-3xl font-bold gradient-text" data-testid="stat-total-examples">{apiStats.totalExamples.toLocaleString()}</p>
               </div>
               <BarChart3 className="w-8 h-8 text-primary opacity-50" />
@@ -522,13 +522,13 @@ export default function DatasetsTab() {
       <Card className="flex items-center gap-2">
         <CardHeader>
           <CardTitle className="flex">
-            <Sparkles className="w-5 h-5" />"[TEXTO]"</CardTitle>
-          <CardDescription>"[TEXTO]"</CardDescription>
+            <Sparkles className="w-5 h-5" />"Loading..."</CardTitle>
+          <CardDescription>"Loading..."</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {trainingData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">"[TEXTO]"</p>
+              <p className="text-sm text-muted-foreground text-center py-8">"Loading..."</p>
             ) : (
               <Accordion type="single" collapsible className="w-full">
                 {trainingData.slice(0, 10).map((data: any, idx: number) => (
@@ -660,7 +660,7 @@ export default function DatasetsTab() {
                   <SelectItem value="all">Todos status</SelectItem>
                   <SelectItem value="ready">Pronto</SelectItem>
                   <SelectItem value="processing">Processando</SelectItem>
-                  <SelectItem value="failed">"[TEXTO]"</SelectItem>
+                  <SelectItem value="failed">"Loading..."</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -703,7 +703,7 @@ export default function DatasetsTab() {
                   className="gap-2"
                   data-testid="button-element"
                 >
-                  <Trash2 className="w-4 h-4" />"[TEXTO]"{selectedDatasets.size})
+                  <Trash2 className="w-4 h-4" />"Loading..."{selectedDatasets.size})
                 </Button>
               )}
             </div>
@@ -803,7 +803,7 @@ export default function DatasetsTab() {
                                 <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
                                   <div className="flex items-center gap-2">
                                     <AlertTriangle className="w-4 h-4" />
-                                    <span>"[TEXTO]" {dataset.validationErrors.join(", ")}</span>
+                                    <span>"Loading..." {dataset.validationErrors.join(", ")}</span>
                                   </div>
                                 </div>
                               )}
@@ -883,7 +883,7 @@ export default function DatasetsTab() {
               <Eye className="w-5 h-5 text-primary" />
               Preview: {previewDataset?.name}
             </DialogTitle>
-            <DialogDescription>"[TEXTO]"</DialogDescription>
+            <DialogDescription>"Loading..."</DialogDescription>
           </DialogHeader>
 
           <ScrollArea className="flex items-center gap-2">
@@ -913,13 +913,13 @@ export default function DatasetsTab() {
         <DialogContent className="flex items-center gap-2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Edit className="w-5 h-5 text-primary" />"[TEXTO]"</DialogTitle>
-            <DialogDescription>"[TEXTO]"</DialogDescription>
+              <Edit className="w-5 h-5 text-primary" />"Loading..."</DialogTitle>
+            <DialogDescription>"Loading..."</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">"[TEXTO]"</Label>
+              <Label htmlFor="edit-name">"Loading..."</Label>
               <Input
                 id="edit-name"
                 value={editName}
@@ -930,7 +930,7 @@ export default function DatasetsTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="[PT]">"[TEXTO]"</Label>
+              <Label htmlFor="[PT]">"Loading..."</Label>
               <Textarea
                 id="[PT]"
                 value={editDescription}
@@ -975,8 +975,8 @@ export default function DatasetsTab() {
       <AlertDialog open={!!deleteDatasetId} onOpenChange={() => setDeleteDatasetId(null)}>
         <AlertDialogContent className="flex items-center gap-2">
           <AlertDialogHeader>
-            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
-            <AlertDialogDescription>"[TEXTO]"</AlertDialogDescription>
+            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
+            <AlertDialogDescription>"Loading..."</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -984,7 +984,7 @@ export default function DatasetsTab() {
               onClick={() => deleteDatasetId && deleteMutation.mutate(deleteDatasetId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-element"
-            >"[TEXTO]"</AlertDialogAction>
+            >"Loading..."</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -993,7 +993,7 @@ export default function DatasetsTab() {
       <AlertDialog open={showBulkDelete} onOpenChange={setShowBulkDelete}>
         <AlertDialogContent className="flex items-center gap-2">
           <AlertDialogHeader>
-            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
+            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir {selectedDatasets.size} "[PT]"
                                       </AlertDialogDescription>
@@ -1004,7 +1004,7 @@ export default function DatasetsTab() {
               onClick={() => bulkDeleteMutation.mutate(Array.from(selectedDatasets))}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-element"
-            >"[TEXTO]"</AlertDialogAction>
+            >"Loading..."</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1017,7 +1017,7 @@ export default function DatasetsTab() {
               <Edit className="w-5 h-5 text-primary" />
               Editar Training Data
             </DialogTitle>
-            <DialogDescription>"[TEXTO]"</DialogDescription>
+            <DialogDescription>"Loading..."</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -1048,7 +1048,7 @@ export default function DatasetsTab() {
               <div className="flex items-center gap-2">
                 <span>{editTrainingOutput.length} caracteres</span>
                 {editTrainingOutput.length < 10 && editTrainingOutput.length > 0 && (
-                  <span className="text-yellow-500">"[TEXTO]"</span>
+                  <span className="text-yellow-500">"Loading..."</span>
                 )}
               </div>
             </div>
@@ -1059,7 +1059,7 @@ export default function DatasetsTab() {
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
                   <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">"[TEXTO]"</p>
+                    <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">"Loading..."</p>
                     <ul className="text-xs text-yellow-600 dark:text-yellow-300 space-y-1">
                       {validationWarnings.map((warning, idx) => (
                         <li key={idx}>• {warning}</li>
@@ -1072,7 +1072,7 @@ export default function DatasetsTab() {
 
             <div className="flex items-center gap-2">
               <p className="text-xs text-muted-foreground">
-                <Sparkles className="w-3 h-3 inline mr-1" />"[TEXTO]"</p>
+                <Sparkles className="w-3 h-3 inline mr-1" />"Loading..."</p>
             </div>
           </div>
 
@@ -1113,8 +1113,8 @@ export default function DatasetsTab() {
       <AlertDialog open={!!deleteTrainingDataId} onOpenChange={() => setDeleteTrainingDataId(null)}>
         <AlertDialogContent className="flex items-center gap-2">
           <AlertDialogHeader>
-            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
-            <AlertDialogDescription>"[TEXTO]"</AlertDialogDescription>
+            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
+            <AlertDialogDescription>"Loading..."</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -1122,7 +1122,7 @@ export default function DatasetsTab() {
               onClick={() => deleteTrainingDataId && deleteTrainingDataMutation.mutate(deleteTrainingDataId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-element"
-            >"[TEXTO]"</AlertDialogAction>
+            >"Loading..."</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

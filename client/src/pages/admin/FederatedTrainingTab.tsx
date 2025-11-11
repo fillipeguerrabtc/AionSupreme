@@ -622,14 +622,14 @@ export default function FederatedTrainingTab() {
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>"[TEXTO]"</DialogTitle>
+            <DialogTitle>"Loading..."</DialogTitle>
             <DialogDescription>
               Upload a dataset file for federated training. Supported formats: JSONL, JSON, CSV, TXT
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="dataset-name">"[TEXTO]"</Label>
+              <Label htmlFor="dataset-name">"Loading..."</Label>
               <Input
                 id="dataset-name"
                 value={datasetName}
@@ -649,7 +649,7 @@ export default function FederatedTrainingTab() {
               />
             </div>
             <div>
-              <Label htmlFor="dataset-type">"[TEXTO]"</Label>
+              <Label htmlFor="dataset-type">"Loading..."</Label>
               <Select value={datasetType} onValueChange={setDatasetType}>
                 <SelectTrigger data-testid="select-dataset-type">
                   <SelectValue />
@@ -664,7 +664,7 @@ export default function FederatedTrainingTab() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="dataset-file">"[TEXTO]"</Label>
+              <Label htmlFor="dataset-file">"Loading..."</Label>
               <Input
                 id="dataset-file"
                 type="file"
