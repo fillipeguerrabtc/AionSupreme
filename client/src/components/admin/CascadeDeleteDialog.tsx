@@ -166,8 +166,8 @@ export function CascadeDeleteDialog({
 
   if (!document) return null;
 
-  const hasImpact = dependencies && dependencies.totalAffected > 0;
-  const taintedModels = dependencies?.models.filter(m => m.tainted).length || 0;
+  const hasImpact = dependencies && (dependencies.impact.totalDatasets > 0 || dependencies.impact.totalModels > 0);
+  const taintedModels = dependencies?.impact.taintedModels || 0;
 
   return (
     <AlertDialog open={open} onOpenChange={onClose}>
@@ -208,12 +208,12 @@ export function CascadeDeleteDialog({
                   <AlertTriangle className="w-4 h-4" />
                   <AlertDescription className="ml-2">
                     <strong>Cascade Impact:</strong> This deletion will affect{' '}
-                    <strong>{dependencies.datasets.length} datasets</strong> and{' '}
-                    <strong>{dependencies.models.length} models</strong>
+                    <strong>{dependencies.impact.totalDatasets} datasets</strong> and{' '}
+                    <strong>{dependencies.impact.totalModels} models</strong>
                     {taintedModels > 0 && (
                       <span className="text-destructive">
                         {' '}
-                        ({taintedModels} models will be tainted)
+                        ({taintedModels} models already tainted)
                       </span>
                     )}
                   </AlertDescription>
@@ -227,19 +227,19 @@ export function CascadeDeleteDialog({
               )}
 
               {/* Affected Datasets */}
-              {dependencies.datasets.length > 0 && (
+              {dependencies.dependencies.datasets.length > 0 && (
                 <div>
                   <Label className="text-sm font-medium mb-2 flex items-center gap-2">
                     <Database className="w-4 h-4" />
-                    Affected Datasets ({dependencies.datasets.length})
+                    Affected Datasets ({dependencies.dependencies.datasets.length})
                   </Label>
                   <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
-                    {dependencies.datasets.map((dataset) => (
+                    {dependencies.dependencies.datasets.map((dataset) => (
                       <div
                         key={dataset.id}
                         className="flex items-center justify-between text-sm py-1"
                       >
-                        <span>{dataset.name || `Dataset #${dataset.id}`}</span>
+                        <span>Dataset #{dataset.datasetId} v{dataset.versionNumber}</span>
                         <Badge variant="outline" className="text-xs">
                           {dataset.status}
                         </Badge>
@@ -250,22 +250,22 @@ export function CascadeDeleteDialog({
               )}
 
               {/* Affected Models */}
-              {dependencies.models.length > 0 && (
+              {dependencies.dependencies.models.length > 0 && (
                 <div>
                   <Label className="text-sm font-medium mb-2 flex items-center gap-2">
                     <Cpu className="w-4 h-4" />
-                    Affected Models ({dependencies.models.length})
+                    Affected Models ({dependencies.dependencies.models.length})
                   </Label>
                   <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-2">
-                    {dependencies.models.map((model) => (
+                    {dependencies.dependencies.models.map((model) => (
                       <div
                         key={model.id}
                         className="flex items-center justify-between text-sm py-1"
                       >
-                        <span>{model.algorithmName}</span>
-                        {model.tainted && (
+                        <span>{model.modelName}</span>
+                        {model.status === 'tainted' && (
                           <Badge variant="destructive" className="text-xs">
-                            Will be tainted
+                            Tainted
                           </Badge>
                         )}
                       </div>

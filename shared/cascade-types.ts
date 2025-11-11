@@ -19,22 +19,41 @@
  * Shows cascade impact analysis before deletion
  */
 export type CascadeDependencyResponse = {
-  documentId: number;
-  datasets: Array<{
+  success: boolean;
+  document: {
     id: number;
-    name: string | null;
-    status: string;
+    title: string;
+    namespace: string;
     createdAt: Date;
-  }>;
-  models: Array<{
-    id: number;
-    algorithmName: string;
-    taskType: string;
-    createdAt: Date;
-    tainted: boolean;
-    taintReason: string | null;
-  }>;
-  totalAffected: number;
+  };
+  dependencies: {
+    datasets: Array<{
+      id: number;
+      datasetId: number;
+      versionNumber: number;
+      status: string;
+      taintReason: string | null;
+      totalExamples: number;
+      createdAt: Date;
+    }>;
+    models: Array<{
+      id: number;
+      modelName: string;
+      versionId: string;
+      status: string;
+      taintReason: string | null;
+      deployedAt: Date | null;
+      createdAt: Date;
+    }>;
+  };
+  impact: {
+    totalDatasets: number;
+    totalModels: number;
+    taintedDatasets: number;
+    taintedModels: number;
+    canDelete: boolean;
+    warning: string | null;
+  };
 };
 
 // ============================================================================
