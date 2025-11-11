@@ -22,7 +22,7 @@
  * - Non-throwing error handling
  */
 
-import cron from 'node-cron';
+import * as cron from 'node-cron';
 import { db } from '../db';
 import { gpuSessionState } from '../../shared/schema';
 import { eq, and, sql } from 'drizzle-orm';
@@ -58,7 +58,7 @@ interface ShutdownAction {
 export class GpuWatchdogService {
   private static instance: GpuWatchdogService | null = null;
   
-  private cronJob: cron.ScheduledTask | null = null;
+  private cronJob: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
   private lastCheckAt: Date | null = null;
   private shutdownsPerformed: number = 0;
@@ -106,16 +106,16 @@ export class GpuWatchdogService {
       // Perform initial check immediately
       await this.performWatchdogCheck();
       
-      // Schedule cron job (every 1 minute)
-      this.cronJob = cron.schedule('*/1 * * * *', async () => {
+      // Schedule interval (every 1 minute = 60000ms)
+      this.cronJob = setInterval(async () => {
         await this.performWatchdogCheck();
-      });
+      }, 60 * 1000);
       
       this.isRunning = true;
       
       logger.info({ 
         component: 'GpuWatchdogService',
-        cronSchedule: 'every 1 minute'
+        checkInterval: 'every 1 minute'
       }, 'Watchdog started successfully');
       
     } catch (error) {
@@ -128,7 +128,7 @@ export class GpuWatchdogService {
    */
   stop(): void {
     if (this.cronJob) {
-      this.cronJob.stop();
+      clearInterval(this.cronJob);
       this.cronJob = null;
     }
     

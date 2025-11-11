@@ -25,6 +25,7 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { db } from '../db';
 import { gpuWorkers } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { getQuotaEnforcementService } from '../services/quota-enforcement-service';
 
 puppeteer.use(StealthPlugin());
 
@@ -66,7 +67,26 @@ export class KaggleOrchestrator {
         };
       }
       
-      // 0B. RESERVE worker immediately (prevent race condition)
+      // ============================================================================
+      // 0B. CHECK QUOTA (ENTERPRISE 70% ENFORCEMENT - CRITICAL!)
+      // ============================================================================
+      
+      const quotaService = await getQuotaEnforcementService();
+      const quotaValidation = await quotaService.validateCanStart(config.workerId, 'kaggle');
+      
+      if (!quotaValidation.canStart) {
+        console.error(
+          `[Kaggle] 🚫 Cannot start session - ${quotaValidation.reason}`
+        );
+        return {
+          success: false,
+          error: `Quota enforcement failed: ${quotaValidation.reason}`
+        };
+      }
+      
+      console.log(`[Kaggle] ✅ Quota validation passed - ${quotaValidation.reason}`);
+      
+      // 0C. RESERVE worker immediately (prevent race condition)
       // Set placeholder to block concurrent calls before browser launch
       this.activeSessions.set(config.workerId, null as any);
       

@@ -33,7 +33,7 @@ import { createCursor } from 'ghost-cursor';
 import { db } from '../db';
 import { gpuWorkers } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
-import { gpuCooldownManager } from '../services/gpu-cooldown-manager';
+import { getQuotaEnforcementService } from '../services/quota-enforcement-service';
 import { QUOTA_LIMITS } from '../config/quota-limits';
 import { alertService } from '../services/alert-service';
 
@@ -106,22 +106,23 @@ export class ColabOrchestrator {
       }
       
       // ============================================================================
-      // STEP 0B: CHECK COOLDOWN/QUOTA (CRITICAL - PRODUCTION BLOCKER FIX)
+      // STEP 0B: CHECK COOLDOWN/QUOTA (ENTERPRISE 70% ENFORCEMENT)
       // ============================================================================
       
-      const cooldownStatus = await gpuCooldownManager.canStartSession(config.workerId);
+      const quotaService = await getQuotaEnforcementService();
+      const quotaValidation = await quotaService.validateCanStart(config.workerId, 'colab');
       
-      if (!cooldownStatus.canStart) {
+      if (!quotaValidation.canStart) {
         console.error(
-          `[Colab] 🚫 Cannot start session - ${cooldownStatus.reason}`
+          `[Colab] 🚫 Cannot start session - ${quotaValidation.reason}`
         );
         return {
           success: false,
-          error: `Cooldown/quota violation: ${cooldownStatus.reason}`
+          error: `Quota enforcement failed: ${quotaValidation.reason}`
         };
       }
       
-      console.log(`[Colab] ✅ Cooldown check passed - ${cooldownStatus.reason}`);
+      console.log(`[Colab] ✅ Quota validation passed - ${quotaValidation.reason}`);
       
       // STEP 0C: RESERVE worker (AFTER checks pass - prevent race condition)
       // Set placeholder to block concurrent calls before browser launch
