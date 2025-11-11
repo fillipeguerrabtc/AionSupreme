@@ -98,11 +98,14 @@ export default function GPUOverviewPage() {
     workerUrl: '',
   });
 
-  // Fetch unified GPU data
+  // Fetch unified GPU data with adaptive polling
   const { data: overviewData, isLoading } = useQuery<OverviewData>({
     queryKey: ["/api/gpu/overview"],
-    refetchInterval: 30000, // Refresh every 30s
+    refetchInterval: 30000, // Standard 30s polling
   });
+
+  // Detect active provisioning by checking for pending workers
+  const hasPendingWorkers = (overviewData?.workers || []).some(w => w.status === 'pending');
 
   const workers = overviewData?.workers || [];
   const stats = overviewData?.stats || {
@@ -207,8 +210,8 @@ export default function GPUOverviewPage() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
       toast({
-        title: "GPU Adicionada",
-        description: data.message || "Provisionamento automático iniciado",
+        title: "Provisionamento Iniciado",
+        description: "GPU sendo criada automaticamente. Acompanhe o status na tabela abaixo.",
       });
       setShowProvisionDialog(false);
       setSelectedProvider(null);
@@ -322,6 +325,26 @@ export default function GPUOverviewPage() {
           </Button>
         </div>
       </div>
+
+      {/* Provisioning Status Banner */}
+      {hasPendingWorkers && (
+        <Card className="border-blue-500/50 bg-blue-500/10" data-testid="banner-provisioning">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <RefreshCw className="w-5 h-5 animate-spin text-blue-400" />
+              <div className="flex-1">
+                <p className="font-medium text-blue-300 flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Criando GPU automaticamente...
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Provisionamento em andamento. Acompanhe o status na tabela abaixo.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
