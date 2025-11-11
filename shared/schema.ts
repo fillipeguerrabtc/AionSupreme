@@ -3370,3 +3370,46 @@ export const insertRetentionPolicySchema = createInsertSchema(retentionPolicies)
 });
 export type InsertRetentionPolicy = z.infer<typeof insertRetentionPolicySchema>;
 export type RetentionPolicy = typeof retentionPolicies.$inferSelect;
+
+// ============================================================================
+// AUTO_APPROVAL_CONFIG - Configuration for automatic curation approval
+// Controls threshold-based auto-approval with namespace filtering and content flags
+// ============================================================================
+export const autoApprovalConfig = pgTable("auto_approval_config", {
+  id: serial("id").primaryKey(),
+  
+  // Global enable/disable
+  enabled: boolean("enabled").notNull().default(true),
+  
+  // Score thresholds (0-100)
+  minApprovalScore: integer("min_approval_score").notNull().default(80), // Score ≥ this → auto-approve
+  maxRejectScore: integer("max_reject_score").notNull().default(50), // Score < this → auto-reject
+  
+  // Sensitive content flags that require HITL review
+  sensitiveFlags: jsonb("sensitive_flags").$type<string[]>().notNull().default(['adult', 'violence', 'medical', 'financial', 'pii']),
+  
+  // Namespace filtering (null or [] = all namespaces, ["tech", "science"] = only these)
+  enabledNamespaces: jsonb("enabled_namespaces").$type<string[]>().notNull().default(['*']), // "*" = all namespaces
+  
+  // Auto-reject settings
+  autoRejectEnabled: boolean("auto_reject_enabled").notNull().default(true),
+  
+  // Quality gates integration
+  requireAllQualityGates: boolean("require_all_quality_gates").notNull().default(false), // true = must pass all 5 gates
+  
+  // Audit fields
+  createdBy: varchar("created_by"),
+  updatedBy: varchar("updated_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("auto_approval_config_enabled_idx").on(table.enabled),
+]);
+
+export const insertAutoApprovalConfigSchema = createInsertSchema(autoApprovalConfig).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertAutoApprovalConfig = z.infer<typeof insertAutoApprovalConfigSchema>;
+export type AutoApprovalConfig = typeof autoApprovalConfig.$inferSelect;
