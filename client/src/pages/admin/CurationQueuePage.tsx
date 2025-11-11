@@ -252,13 +252,13 @@ export default function CurationQueuePage() {
       
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       toast({
-        title: "Descrições geradas com sucesso!",
+        title: t("admin.curationqueue.toast.descricoesgeradascomsucesso"),
         description: `${data.processedImages} imagens processadas`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao gerar descrições",
+        title: t("admin.curationqueue.toast.erroaogerar"),
         description: error.message,
         variant: "destructive",
       });
@@ -277,13 +277,13 @@ export default function CurationQueuePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       const duplicatesFound = (data.stats?.exact || 0) + (data.stats?.near || 0);
       toast({
-        title: "Scan de duplicatas concluído!",
+        title: t("admin.curationqueue.toast.scandeduplicatas"),
         description: `${data.stats?.total || 0} itens analisados. ${duplicatesFound} duplicatas detectadas.`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao escanear duplicatas",
+        title: t("admin.curationqueue.toast.erroaoescanear"),
         description: error.message,
         variant: "destructive",
       });
@@ -302,13 +302,13 @@ export default function CurationQueuePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       const duplicatesFound = (data.stats?.exact || 0) + (data.stats?.near || 0);
       toast({
-        title: "Scan de imagens duplicadas concluído!",
+        title: t("admin.curationqueue.toast.scandeimagens"),
         description: `${data.stats?.total || 0} imagens analisadas. ${duplicatesFound} duplicatas detectadas.`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao escanear imagens duplicadas",
+        title: t("admin.curationqueue.toast.erroaoescanear"),
         description: error.message,
         variant: "destructive",
       });
@@ -326,13 +326,13 @@ export default function CurationQueuePage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       toast({
-        title: "Absorção parcial concluída!",
+        title: t("admin.curationqueue.toast.absorcaoparcialconcluida"),
         description: `Conteúdo reduzido de ${data.analysis.originalLength} para ${data.analysis.extractedLength} caracteres (${data.analysis.reductionPercent}% de redução). Duplicado de: "${data.duplicateTitle}"`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao absorver conteúdo",
+        title: t("admin.curationqueue.toast.erroaoabsorver"),
         description: error.message,
         variant: "destructive",
       });
@@ -528,7 +528,7 @@ export default function CurationQueuePage() {
       {/* Content Type Filter */}
       <div className="space-y-3">
         <div>
-          <Label className="text-sm font-medium mb-2 block">Tipo de Conteúdo</Label>
+          <Label className="text-sm font-medium mb-2 block">{t("admin.curationqueue.tipodeconteudo")}</Label>
           <div className="flex flex-wrap gap-2">
             <Button
               variant={contentFilter === "all" ? "default" : "outline"}
@@ -560,7 +560,7 @@ export default function CurationQueuePage() {
         {/* Duplication Status Filter */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <Label className="text-sm font-medium">Status de Duplicação</Label>
+            <Label className="text-sm font-medium">{t("admin.curationqueue.statusdeduplicacao")}</Label>
             <Button
               variant="outline"
               size="sm"
@@ -598,7 +598,7 @@ export default function CurationQueuePage() {
               onClick={() => setDuplicationFilter("unscanned")}
               data-testid="filter-dup-unscanned"
             >
-              Não Escaneados ({(items?.filter(i => !i.duplicationStatus) || []).length})
+              {t("admin.curationqueue.button.naoescaneados")}{(items?.filter(i => !i.duplicationStatus) || []).length})
             </Button>
             <Button
               variant={duplicationFilter === "unique" ? "default" : "outline"}
@@ -607,7 +607,7 @@ export default function CurationQueuePage() {
               data-testid="filter-dup-unique"
               className="text-green-600 hover:text-green-700"
             >
-              Únicos ({(items?.filter(i => i.duplicationStatus === "unique") || []).length})
+              {t("admin.curationqueue.button.unicos")}{(items?.filter(i => i.duplicationStatus === "unique") || []).length})
             </Button>
             <Button
               variant={duplicationFilter === "near" ? "default" : "outline"}
@@ -751,16 +751,16 @@ export default function CurationQueuePage() {
                             <Badge 
                               className="bg-green-600 hover:bg-green-700 text-white font-semibold flex items-center gap-1" 
                               data-testid={`badge-dup-unique-${item.id}`}
-                              title="Conteúdo único - sem duplicatas detectadas"
+                              title={t("admin.curationqueue.toast.conteudounicosem")}
                             >
                               <CheckCircle className="h-3 w-3" />
-                              Único
-                            </Badge>
+                              {t("admin.curationqueue.toast.unico")}
+                                                                            </Badge>
                           )}
                         </div>
                         <CardDescription className="space-y-1">
                           <div className="flex items-center gap-2">
-                            Enviado por {item.submittedBy || "Desconhecido"}
+                            {t("admin.curationqueue.enviadopor")} {item.submittedBy || "Desconhecido"}
                           </div>
                           <div className="flex items-center gap-1 text-xs">
                             <Calendar className="h-3 w-3" />
@@ -794,11 +794,11 @@ export default function CurationQueuePage() {
                             onClick={() => setAbsorptionPreviewItem({ id: item.id, title: item.title })}
                             className="text-orange-600 hover:text-orange-700"
                             data-testid={`button-absorb-${item.id}`}
-                            title="Preview da absorção inteligente - extrair apenas conteúdo novo"
+                            title={t("admin.curationqueue.toast.previewdaabsorcao")}
                           >
                             <ArrowDownToLine className="h-4 w-4 mr-2" />
-                            Preview Absorção
-                          </Button>
+                            {t("admin.curationqueue.toast.previewabsorcao")}
+                                                                      </Button>
                         )}
                         <Button
                           variant="outline"
@@ -845,7 +845,7 @@ export default function CurationQueuePage() {
                         <>
                           <Video className="h-4 w-4 text-muted-foreground ml-4" />
                           <span className="text-sm font-medium">
-                            Vídeos ({item.attachments.filter(a => a.type === "video").length})
+                            {t("admin.curationqueue.videos")}{item.attachments.filter(a => a.type === "video").length})
                           </span>
                         </>
                       )}
@@ -891,7 +891,7 @@ export default function CurationQueuePage() {
                               variant="secondary" 
                               className="text-xs font-semibold shadow-md"
                             >
-                              {media.type === "video" ? "Vídeo" : "Imagem"}
+                              {media.type === "video" ? t("admin.curationqueue.video") : "Imagem"}
                             </Badge>
                           </div>
                           {/* Image Duplication Badge */}
@@ -922,17 +922,17 @@ export default function CurationQueuePage() {
                             <div className="absolute top-1 right-1">
                               <Badge 
                                 className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold shadow-md flex items-center gap-1" 
-                                title="Imagem única"
+                                title={t("admin.curationqueue.toast.imagemunica")}
                               >
                                 <CheckCircle className="h-3 w-3" />
-                                Único
-                              </Badge>
+                                {t("admin.curationqueue.toast.unico")}
+                                                                        </Badge>
                             </div>
                           )}
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <span className="text-white text-xs flex items-center gap-1">
                               {media.type === "video" ? <Play className="h-4 w-4" /> : <Scan className="h-3 w-3" />}
-                              {media.type === "video" ? "Reproduzir vídeo" : "Ver imagem"}
+                              {media.type === "video" ? t("admin.curationqueue.reproduzirvideo") : "Ver imagem"}
                             </span>
                           </div>
                           {media.description && (
@@ -982,16 +982,16 @@ export default function CurationQueuePage() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col" data-testid="dialog-edit-curation">
           <DialogHeader>
-            <DialogTitle>Editar Item de Curadoria</DialogTitle>
+            <DialogTitle>{t("admin.curationqueue.editaritemde")}</DialogTitle>
             <DialogDescription>
-              Ajuste título e tags antes de aprovar
-            </DialogDescription>
+              {t("admin.curationqueue.ajustetituloe")}
+                                              </DialogDescription>
           </DialogHeader>
 
           {/* Área scrollável com altura máxima */}
           <div className="space-y-4 py-4 overflow-y-auto max-h-[60vh]">
             <div className="space-y-2">
-              <Label htmlFor="edit-title">Título</Label>
+              <Label htmlFor="edit-title">{t("admin.curationqueue.toast.titulo")}</Label>
               <Input
                 id="edit-title"
                 value={editTitle}
@@ -1002,7 +1002,7 @@ export default function CurationQueuePage() {
 
             {/* Editar Conteúdo */}
             <div className="space-y-2">
-              <Label htmlFor="edit-content">Conteúdo</Label>
+              <Label htmlFor="edit-content">{t("admin.curationqueue.conteudo")}</Label>
               <div className="relative">
                 <Textarea
                   id="edit-content"
@@ -1019,8 +1019,8 @@ export default function CurationQueuePage() {
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Edite o conteúdo extraído se necessário antes de aprovar
-              </p>
+                {t("admin.curationqueue.editeoconteudo")}
+                                                    </p>
             </div>
 
             {/* Image Preview in Edit Dialog */}
@@ -1035,7 +1035,7 @@ export default function CurationQueuePage() {
                     disabled={generateDescriptionsMutation.isPending}
                     data-testid="button-generate-descriptions"
                   >
-                    {generateDescriptionsMutation.isPending ? "Gerando..." : "🤖 Gerar Descrições AI"}
+                    {generateDescriptionsMutation.isPending ? "Gerando..." : t("admin.curationqueue.button.gerardescricoes")}
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -1049,8 +1049,8 @@ export default function CurationQueuePage() {
                       />
                       <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1">
                         <p className="truncate">{img.filename}</p>
-                        {img.description && img.description !== "Sem descrição" && (
-                          <p className="text-[10px] text-green-400">✓ Descrição AI</p>
+                        {img.description && img.description !== t("admin.curationqueue.toast.semdescricao") && (
+                          <p className="text-[10px] text-green-400">{t("admin.curationqueue.descricaoai")}</p>
                         )}
                         <p className="text-[10px] opacity-70">{(img.size / 1024).toFixed(1)} KB</p>
                       </div>
@@ -1058,13 +1058,13 @@ export default function CurationQueuePage() {
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Todas as imagens serão indexadas junto com o conteúdo após aprovação
-                </p>
+                  {t("admin.curationqueue.todasasimagens")}
+                                                          </p>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="edit-tags">Tags (separadas por vírgula)</Label>
+              <Label htmlFor="edit-tags">{t("admin.curationqueue.tagsseparadaspor")}</Label>
               <Input
                 id="edit-tags"
                 value={editTags}
@@ -1080,7 +1080,7 @@ export default function CurationQueuePage() {
                 id="edit-note"
                 value={editNote}
                 onChange={(e) => setEditNote(e.target.value)}
-                placeholder="Observações sobre este conteúdo"
+                placeholder={t("admin.curationqueue.placeholder.observacoessobreesteconteudo")}
                 data-testid="input-edit-note"
               />
             </div>
@@ -1104,9 +1104,8 @@ export default function CurationQueuePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Aprovar e Publicar</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja aprovar e publicar este conteúdo na Knowledge Base?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+              {t("admin.curationqueue.temcertezaque")}
+                                              </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-approve">Cancelar</AlertDialogCancel>
@@ -1127,13 +1126,13 @@ export default function CurationQueuePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Rejeitar Item</AlertDialogTitle>
             <AlertDialogDescription>
-              Por que este conteúdo está sendo rejeitado? (opcional)
-            </AlertDialogDescription>
+              {t("admin.curationqueue.porqueeste")}
+                                              </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
             value={rejectNote}
             onChange={(e) => setRejectNote(e.target.value)}
-            placeholder="Motivo da rejeição"
+            placeholder={t("admin.curationqueue.placeholder.motivodarejeicao")}
             className="my-4"
             data-testid="input-reject-note"
           />
@@ -1157,9 +1156,8 @@ export default function CurationQueuePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Aprovar {selectedIds.size} Itens Selecionados</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja aprovar e publicar {selectedIds.size} itens na Knowledge Base?
-              Todos serão indexados e disponibilizados para treinamento.
-            </AlertDialogDescription>
+              Tem certeza que deseja aprovar e publicar {selectedIds.size} {t("admin.curationqueue.itensnaknowledge")}
+                                              </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-bulk-approve">Cancelar</AlertDialogCancel>
@@ -1180,7 +1178,7 @@ export default function CurationQueuePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Aprovar Todos os {items?.length} Itens</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>ATENÇÃO:</strong> Esta ação irá aprovar e publicar TODOS os {items?.length} itens pendentes na Knowledge Base.
+              <strong>{t("admin.curationqueue.atencao")}</strong> {t("admin.curationqueue.estaacaoira")} {items?.length} itens pendentes na Knowledge Base.
               Todos serão indexados imediatamente e disponibilizados para treinamento quando atingir 100 exemplos.
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
@@ -1205,14 +1203,13 @@ export default function CurationQueuePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Rejeitar {selectedIds.size} Itens Selecionados</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja rejeitar {selectedIds.size} itens?
-              Todos serão removidos da fila de curadoria permanentemente.
-            </AlertDialogDescription>
+              Tem certeza que deseja rejeitar {selectedIds.size} {t("admin.curationqueue.itenstodosserao")}
+                                              </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
             value={bulkRejectNote}
             onChange={(e) => setBulkRejectNote(e.target.value)}
-            placeholder="Motivo da rejeição (opcional)"
+            placeholder={t("admin.curationqueue.placeholder.motivodarejeicao")}
             className="my-4"
             data-testid="input-bulk-reject-note"
           />
@@ -1236,7 +1233,7 @@ export default function CurationQueuePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Rejeitar Todos os {items?.length} Itens</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>ATENÇÃO:</strong> Esta ação irá rejeitar e remover TODOS os {items?.length} itens pendentes da fila de curadoria.
+              <strong>{t("admin.curationqueue.atencao")}</strong> {t("admin.curationqueue.estaacaoira")} {items?.length} itens pendentes da fila de curadoria.
               Nenhum conteúdo será publicado na Knowledge Base ou usado para treinamento.
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
@@ -1244,7 +1241,7 @@ export default function CurationQueuePage() {
           <Textarea
             value={bulkRejectNote}
             onChange={(e) => setBulkRejectNote(e.target.value)}
-            placeholder="Motivo da rejeição em massa (opcional)"
+            placeholder={t("admin.curationqueue.placeholder.motivodarejeicao")}
             className="my-4"
             data-testid="input-reject-all-note"
           />
@@ -1267,13 +1264,13 @@ export default function CurationQueuePage() {
           {historyLoading ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <p className="text-muted-foreground">Carregando histórico...</p>
+                <p className="text-muted-foreground">{t("admin.curationqueue.carregandohistorico")}</p>
               </CardContent>
             </Card>
           ) : !filteredHistoryItems || filteredHistoryItems.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <p className="text-muted-foreground">Nenhum item {contentFilter !== "all" ? `(filtro: ${contentFilter === "pages" ? "páginas" : "imagens"})` : ""} no histórico (retenção: 5 anos)</p>
+                <p className="text-muted-foreground">Nenhum item {contentFilter !== "all" ? `(filtro: ${contentFilter === "pages" ? t("admin.curationqueue.paginas") : "imagens"})` : ""} {t("admin.curationqueue.nohistoricoretencao")}</p>
               </CardContent>
             </Card>
           ) : (
@@ -1295,17 +1292,17 @@ export default function CurationQueuePage() {
                         <CardDescription className="flex flex-col gap-2">
                           <div className="flex items-center gap-2 text-sm">
                             <Calendar className="h-3 w-3" />
-                            Enviado em {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
+                            {t("admin.curationqueue.enviadoem")} {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
                             <Clock className="h-3 w-3" />
                             {new Date(item.submittedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
                           </div>
                           <div className="text-sm">
-                            Por {item.submittedBy || "Desconhecido"}
+                            {t("admin.curationqueue.por")} {item.submittedBy || "Desconhecido"}
                           </div>
                           {item.reviewedBy && item.reviewedAt && (
                             <div className="flex items-center gap-2 text-sm font-medium">
                               <Clock className="h-3 w-3" />
-                              {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} por {item.reviewedBy} em {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })} às {new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
+                              {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} {t("admin.curationqueue.por")} {item.reviewedBy} em {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })} às {new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           )}
                         </CardDescription>
@@ -1363,8 +1360,8 @@ export default function CurationQueuePage() {
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>{selectedMediaDesc}</DialogTitle>
             <DialogDescription>
-              Clique fora da mídia ou pressione ESC para fechar
-            </DialogDescription>
+              {t("admin.curationqueue.cliqueforada")}
+                                      </DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto p-6 pt-2">
             {selectedMediaType === "image" ? (
@@ -1381,8 +1378,8 @@ export default function CurationQueuePage() {
                 className="w-full h-auto rounded-md border border-border bg-black"
                 data-testid="video-player"
               >
-                Seu navegador não suporta a tag de vídeo.
-              </video>
+                {t("admin.curationqueue.seunavegadornao")}
+                                                </video>
             )}
           </div>
         </DialogContent>

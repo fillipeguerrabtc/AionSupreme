@@ -127,13 +127,13 @@ export default function AgentsPage() {
       setOrphanScanResult(data);
       setShowOrphanScanDialog(true);
       toast({ 
-        title: "Scan completo", 
+        title: t("admin.agents.toast.scancompleto"), 
         description: `${data.report.totalOrphans} orphans detectados` 
       });
     },
     onError: (error: Error) => {
       toast({ 
-        title: "Erro ao executar scan", 
+        title: t("admin.agents.toast.erroaoexecutar"), 
         description: error.message, 
         variant: "destructive" 
       });
@@ -191,7 +191,7 @@ export default function AgentsPage() {
               variant="outline"
               onClick={() => orphanScanMutation.mutate()}
               disabled={orphanScanMutation.isPending}
-              title="Escaneia toda a plataforma em busca de dados órfãos (sem referências válidas) - apenas diagnóstico, não deleta nada"
+              title={t("admin.agents.toast.escaneiatodaa")}
             >
               <Search className="w-4 h-4 mr-2" />
               {orphanScanMutation.isPending ? "Escaneando..." : "Diagnosticar Integridade"}
@@ -207,7 +207,7 @@ export default function AgentsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+            <div className="text-center py-8 text-muted-foreground">{t("common.loading")}</div>
           ) : agents.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Nenhum agente configurado. Crie o primeiro agente acima.
@@ -216,12 +216,12 @@ export default function AgentsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ícones</TableHead>
+                  <TableHead>{t("admin.agents.icones")}</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Slug</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Namespaces</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="text-right">{t("common.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -300,7 +300,7 @@ export default function AgentsPage() {
           <DialogHeader>
             <DialogTitle>Editar Agente</DialogTitle>
             <DialogDescription>
-              Atualize a configuração do agente {selectedAgent?.name}
+              {t("admin.agents.atualizeconfiguracaoagente")} {selectedAgent?.name}
             </DialogDescription>
           </DialogHeader>
           {selectedAgent && (
@@ -321,11 +321,11 @@ export default function AgentsPage() {
                   <code className="text-sm font-mono">{editSlug}</code>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Gerado automaticamente pelo sistema - não editável
-                </p>
+                  {t("admin.agents.geradoautomaticamentepelosistema")}
+                                                  </p>
               </div>
               <div>
-                <Label htmlFor="edit-description">Descrição</Label>
+                <Label htmlFor="edit-description">{t("common.description")}</Label>
                 <Input 
                   id="edit-description" 
                   value={editDescription}
@@ -348,8 +348,8 @@ export default function AgentsPage() {
                 <div>
                   <Label htmlFor="edit-namespace">Namespace Raiz</Label>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Agents trabalham em 1 namespace raiz (ex: "financas", "tech")
-                  </p>
+                    {t("admin.agents.agentstrabalhamem")}
+                                                        </p>
                   <NamespaceSelector 
                     value={editNamespaces} 
                     onChange={(namespaces) => setEditNamespaces(namespaces.slice(0, 1))}
@@ -362,8 +362,8 @@ export default function AgentsPage() {
                 <div>
                   <Label htmlFor="edit-namespaces">Subnamespaces</Label>
                   <p className="text-sm text-muted-foreground mb-2">
-                    SubAgents podem ter múltiplos subnamespaces do mesmo namespace pai
-                  </p>
+                    {t("admin.agents.subagentspodemter")}
+                                                            </p>
                   <NamespaceSelector 
                     value={editNamespaces} 
                     onChange={setEditNamespaces}
@@ -378,7 +378,7 @@ export default function AgentsPage() {
                   Cancelar
                 </Button>
                 <Button onClick={handleSaveEdit} disabled={updateMutation.isPending} data-testid="button-save-agent">
-                  {updateMutation.isPending ? "Atualizando..." : "Salvar Alterações"}
+                  {updateMutation.isPending ? "Atualizando..." : t("common.saveChanges")}
                 </Button>
               </div>
             </div>
@@ -390,11 +390,10 @@ export default function AgentsPage() {
       <AlertDialog open={!!deleteAgentId} onOpenChange={(open) => !open && setDeleteAgentId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.agents.confirmarexclusao")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este agente? Esta ação não pode ser desfeita.
-              O agente será removido permanentemente do sistema.
-            </AlertDialogDescription>
+              {t("admin.agents.temcertezaque")}
+                                      </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
@@ -408,8 +407,8 @@ export default function AgentsPage() {
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-confirm-delete"
             >
-              Excluir
-            </AlertDialogAction>
+              {t("common.delete")}
+                                      </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -418,10 +417,10 @@ export default function AgentsPage() {
       <Dialog open={showOrphanScanDialog} onOpenChange={setShowOrphanScanDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>Diagnóstico de Integridade da Plataforma</DialogTitle>
+            <DialogTitle>{t("admin.agents.diagnosticointegridadeplataforma")}</DialogTitle>
             <DialogDescription>
-              Recursos órfãos detectados em todos os módulos do sistema
-            </DialogDescription>
+              {t("admin.agents.recursosorfaosdetectadostodos")}
+                                      </DialogDescription>
           </DialogHeader>
           
           {orphanScanResult && (
@@ -437,7 +436,7 @@ export default function AgentsPage() {
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-yellow-600">{orphanScanResult.report.summary.medium}</div>
-                      <p className="text-xs text-muted-foreground">Severidade Média</p>
+                      <p className="text-xs text-muted-foreground">{t("admin.agents.severidademedia")}</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -454,7 +453,7 @@ export default function AgentsPage() {
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center justify-between">
                           <span>📦 {module.module}</span>
-                          <Badge variant="secondary">{module.totalOrphans} órfãos</Badge>
+                          <Badge variant="secondary">{module.totalOrphans} {t("admin.agents.orfaos")}</Badge>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -471,7 +470,7 @@ export default function AgentsPage() {
                               </div>
                               <p className="text-sm">{orphan.reason}</p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                <strong>Ação Sugerida:</strong> {orphan.suggestedAction}
+                                <strong>{t("admin.agents.acaosugerida")}</strong> {orphan.suggestedAction}
                               </p>
                             </div>
                           ))}
@@ -484,10 +483,10 @@ export default function AgentsPage() {
                 {orphanScanResult.report.totalOrphans === 0 && (
                   <Card>
                     <CardContent className="pt-6 text-center">
-                      <p className="text-lg text-green-600 font-semibold">✅ Nenhum órfão detectado</p>
+                      <p className="text-lg text-green-600 font-semibold">{t("admin.agents.nenhumorfao")}</p>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Todos os módulos da plataforma estão saudáveis!
-                      </p>
+                        {t("admin.agents.todososmodulos")}
+                                                                    </p>
                     </CardContent>
                   </Card>
                 )}

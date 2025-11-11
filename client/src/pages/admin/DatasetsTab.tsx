@@ -151,14 +151,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "Dataset atualizado",
-        description: "Dataset atualizado com sucesso",
+        title: t("admin.datasets.toast.datasetatualizado"),
+        description: t("admin.datasets.toast.datasetatualizadocomsucesso"),
       });
       setEditDataset(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao atualizar dataset",
+        title: t("admin.datasets.toast.erroaoatualizar"),
         description: error.message,
         variant: "destructive",
       });
@@ -173,14 +173,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "Dataset excluído",
-        description: "Dataset removido com sucesso",
+        title: t("admin.datasets.toast.datasetexcluido"),
+        description: t("admin.datasets.toast.datasetremovidocom"),
       });
       setDeleteDatasetId(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao excluir dataset",
+        title: t("admin.datasets.toast.erroaoexcluir"),
         description: error.message,
         variant: "destructive",
       });
@@ -199,7 +199,7 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "Datasets excluídos",
+        title: t("admin.datasets.toast.datasetsexcluidos"),
         description: `${selectedDatasets.size} datasets removidos com sucesso`,
       });
       setSelectedDatasets(new Set());
@@ -207,7 +207,7 @@ export default function DatasetsTab() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao excluir datasets",
+        title: t("admin.datasets.toast.erroaoexcluir"),
         description: error.message,
         variant: "destructive",
       });
@@ -233,7 +233,7 @@ export default function DatasetsTab() {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       
       // Build toast message with validation results
-      let description = "Dados de treinamento atualizados com sucesso";
+      let description = t("admin.datasets.toast.dadosdetreinamento");
       
       if (data.validation?.corrections?.length > 0) {
         description += `\n\n✅ Correções automáticas:\n${data.validation.corrections.join("\n")}`;
@@ -253,7 +253,7 @@ export default function DatasetsTab() {
     },
     onError: (error: any) => {
       // Check if error has validation details
-      const errorMessage = error.message || "Erro desconhecido";
+      const errorMessage = error.message || t("admin.datasets.errodesconhecido");
       let description = errorMessage;
       
       if (error.details && Array.isArray(error.details)) {
@@ -265,7 +265,7 @@ export default function DatasetsTab() {
       }
       
       toast({
-        title: "Erro ao atualizar training data",
+        title: t("admin.datasets.toast.erroaoatualizar"),
         description,
         variant: "destructive",
       });
@@ -280,14 +280,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "Training Data excluído",
-        description: "Dados de treinamento removidos com sucesso",
+        title: t("admin.datasets.toast.trainingdataexcluido"),
+        description: t("admin.datasets.toast.dadosdetreinamento"),
       });
       setDeleteTrainingDataId(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao excluir training data",
+        title: t("admin.datasets.toast.erroaoexcluir"),
         description: error.message,
         variant: "destructive",
       });
@@ -314,7 +314,7 @@ export default function DatasetsTab() {
     }
 
     if (instruction === output && instruction.length > 0) {
-      warnings.push("Output não pode ser idêntico a Instruction");
+      warnings.push(t("admin.datasets.outputnaopode"));
     }
 
     const hasQuestionMark = instruction.includes("?");
@@ -324,7 +324,7 @@ export default function DatasetsTab() {
     );
 
     if (!hasQuestionMark && !startsWithQuestion && instruction.length > 0 && instruction.length < 100) {
-      warnings.push("Instruction não parece ser uma pergunta ou comando");
+      warnings.push(t("admin.datasets.instructionnaopareceser"));
     }
 
     setValidationWarnings(warnings);
@@ -346,12 +346,12 @@ export default function DatasetsTab() {
       
       toast({
         title: "Download iniciado",
-        description: "Seu dataset está sendo baixado",
+        description: t("admin.datasets.toast.seudatasetesta"),
       });
     } catch (error) {
       toast({
-        title: "Erro ao baixar dataset",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
+        title: t("admin.datasets.toast.erroaobaixar"),
+        description: error instanceof Error ? error.message : t("admin.datasets.errodesconhecido"),
         variant: "destructive",
       });
     }
@@ -449,7 +449,7 @@ export default function DatasetsTab() {
   const getQualityBadge = (tier: "high" | "medium" | "low") => {
     const config = {
       high: { color: "text-green-500", label: "Alta Qualidade" },
-      medium: { color: "text-yellow-500", label: "Média Qualidade" },
+      medium: { color: "text-yellow-500", label: t("admin.datasets.mediaqualidade") },
       low: { color: "text-gray-500", label: "Baixa Qualidade" },
     };
     return (
@@ -473,7 +473,7 @@ export default function DatasetsTab() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total de Datasets</p>
+                <p className="text-sm text-muted-foreground">{t("admin.datasets.totaldedatasets")}</p>
                 <p className="text-3xl font-bold gradient-text" data-testid="stat-total-datasets">{apiStats.compiledDatasets}</p>
               </div>
               <Database className="w-8 h-8 text-primary opacity-50" />
@@ -485,7 +485,7 @@ export default function DatasetsTab() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total de Exemplos</p>
+                <p className="text-sm text-muted-foreground">{t("admin.datasets.totaldeexemplos")}</p>
                 <p className="text-3xl font-bold gradient-text" data-testid="stat-total-examples">{apiStats.totalExamples.toLocaleString()}</p>
               </div>
               <BarChart3 className="w-8 h-8 text-primary opacity-50" />
@@ -523,18 +523,18 @@ export default function DatasetsTab() {
         <CardHeader>
           <CardTitle className="gradient-text-vibrant flex items-center gap-2">
             <Sparkles className="w-5 h-5" />
-            Dados de Treinamento (JSONL Instruction-Tuning)
-          </CardTitle>
+            {t("admin.datasets.dadosdetreinamento")}
+                                </CardTitle>
           <CardDescription>
-            Formato convertido automaticamente para treinar modelos LoRA nas GPUs
-          </CardDescription>
+            {t("admin.datasets.formatoconvertidoautomaticamentepara")}
+                                </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {trainingData.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                Nenhum dado de treinamento aprovado ainda. Aprove conteúdos na Curadoria!
-              </p>
+                {t("admin.datasets.nenhumdadode")}
+                                            </p>
             ) : (
               <Accordion type="single" collapsible className="w-full">
                 {trainingData.slice(0, 10).map((data: any, idx: number) => (
@@ -546,7 +546,7 @@ export default function DatasetsTab() {
                             #{data.id}
                           </Badge>
                           <span className="truncate flex-1 text-left">
-                            {data.formattedData?.[0]?.instruction || "Sem título"}
+                            {data.formattedData?.[0]?.instruction || t("admin.datasets.semtitulo")}
                           </span>
                           <Badge variant="secondary" className="text-xs shrink-0">
                             {data.metadata?.namespaces?.[0] || "geral"}
@@ -666,7 +666,7 @@ export default function DatasetsTab() {
                   <SelectItem value="all">Todos status</SelectItem>
                   <SelectItem value="ready">Pronto</SelectItem>
                   <SelectItem value="processing">Processando</SelectItem>
-                  <SelectItem value="failed">Erro</SelectItem>
+                  <SelectItem value="failed">{t("common.error")}</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -710,7 +710,7 @@ export default function DatasetsTab() {
                   data-testid="button-bulk-delete"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Excluir ({selectedDatasets.size})
+                  {t("admin.datasets.button.excluir")}{selectedDatasets.size})
                 </Button>
               )}
             </div>
@@ -732,7 +732,7 @@ export default function DatasetsTab() {
               <p className="text-sm text-muted-foreground">
                 {searchQuery || filterType !== "all" || filterStatus !== "all"
                   ? "Tente ajustar os filtros"
-                  : "Faça upload de um dataset para começar"}
+                  : t("admin.datasets.facauploadde")}
               </p>
             </div>
           ) : (
@@ -810,7 +810,7 @@ export default function DatasetsTab() {
                                 <div className="mt-2 p-2 rounded-md bg-destructive/10 border border-destructive/20">
                                   <div className="flex items-center gap-2 text-sm text-destructive">
                                     <AlertTriangle className="w-4 h-4" />
-                                    <span>Erros de validação: {dataset.validationErrors.join(", ")}</span>
+                                    <span>{t("admin.datasets.errosdevalidacao")} {dataset.validationErrors.join(", ")}</span>
                                   </div>
                                 </div>
                               )}
@@ -891,8 +891,8 @@ export default function DatasetsTab() {
               Preview: {previewDataset?.name}
             </DialogTitle>
             <DialogDescription>
-              Visualização das primeiras linhas do dataset
-            </DialogDescription>
+              {t("admin.datasets.visualizacaodasprimeiraslinhas")}
+                                      </DialogDescription>
           </DialogHeader>
 
           <ScrollArea className="h-[500px] w-full rounded-md border border-border/50 p-4">
@@ -923,16 +923,16 @@ export default function DatasetsTab() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="w-5 h-5 text-primary" />
-              Editar Dataset
-            </DialogTitle>
+              {t("admin.datasets.editardataset")}
+                                      </DialogTitle>
             <DialogDescription>
-              Atualize as informações do dataset
-            </DialogDescription>
+              {t("admin.datasets.atualizeinformacoesdataset")}
+                                      </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Nome do Dataset</Label>
+              <Label htmlFor="edit-name">{t("admin.datasets.nomedodataset")}</Label>
               <Input
                 id="edit-name"
                 value={editName}
@@ -943,12 +943,12 @@ export default function DatasetsTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-description">Descrição</Label>
+              <Label htmlFor="edit-description">{t("common.description")}</Label>
               <Textarea
                 id="edit-description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="Descrição do dataset (opcional)"
+                placeholder={t("admin.datasets.placeholder.descricaododataset")}
                 rows={3}
                 data-testid="textarea-edit-dataset-description"
               />
@@ -988,10 +988,10 @@ export default function DatasetsTab() {
       <AlertDialog open={!!deleteDatasetId} onOpenChange={() => setDeleteDatasetId(null)}>
         <AlertDialogContent className="glass-premium">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.datasets.confirmarexclusao")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este dataset? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+              {t("admin.datasets.temcertezaque")}
+                                      </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -1000,8 +1000,8 @@ export default function DatasetsTab() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-delete"
             >
-              Excluir
-            </AlertDialogAction>
+              {t("common.delete")}
+                                      </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1010,10 +1010,10 @@ export default function DatasetsTab() {
       <AlertDialog open={showBulkDelete} onOpenChange={setShowBulkDelete}>
         <AlertDialogContent className="glass-premium">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão em massa</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.datasets.confirmarexclusaoem")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir {selectedDatasets.size} datasets? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedDatasets.size} {t("admin.datasets.datasetsestaacao")}
+                                      </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -1022,8 +1022,8 @@ export default function DatasetsTab() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-bulk-delete"
             >
-              Excluir Todos
-            </AlertDialogAction>
+              {t("admin.datasets.excluirtodos")}
+                                      </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1037,8 +1037,8 @@ export default function DatasetsTab() {
               Editar Training Data
             </DialogTitle>
             <DialogDescription>
-              Atualize a instrução e saída para treinamento do modelo
-            </DialogDescription>
+              {t("admin.datasets.atualizeainstrucao")}
+                                      </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -1048,7 +1048,7 @@ export default function DatasetsTab() {
                 id="edit-training-instruction"
                 value={editTrainingInstruction}
                 onChange={(e) => setEditTrainingInstruction(e.target.value)}
-                placeholder="Instrução para o modelo (ex: 'Explique inteligência artificial')"
+                placeholder={t("admin.datasets.placeholder.instrucaoparao")}
                 rows={4}
                 className="font-mono text-sm"
                 data-testid="textarea-edit-training-instruction"
@@ -1061,7 +1061,7 @@ export default function DatasetsTab() {
                 id="edit-training-output"
                 value={editTrainingOutput}
                 onChange={(e) => setEditTrainingOutput(e.target.value)}
-                placeholder="Resposta que o modelo deve aprender (saída esperada)"
+                placeholder={t("admin.datasets.placeholder.respostaqueo")}
                 rows={8}
                 className="font-mono text-sm"
                 data-testid="textarea-edit-training-output"
@@ -1069,7 +1069,7 @@ export default function DatasetsTab() {
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{editTrainingOutput.length} caracteres</span>
                 {editTrainingOutput.length < 10 && editTrainingOutput.length > 0 && (
-                  <span className="text-yellow-500">Muito curto (mínimo recomendado: 10)</span>
+                  <span className="text-yellow-500">{t("admin.datasets.muitocurtominimo")}</span>
                 )}
               </div>
             </div>
@@ -1081,8 +1081,8 @@ export default function DatasetsTab() {
                   <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
                   <div className="flex-1 space-y-1">
                     <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
-                      Avisos de Validação
-                    </p>
+                      {t("admin.datasets.avisosdevalidacao")}
+                                                              </p>
                     <ul className="text-xs text-yellow-600 dark:text-yellow-300 space-y-1">
                       {validationWarnings.map((warning, idx) => (
                         <li key={idx}>• {warning}</li>
@@ -1096,8 +1096,8 @@ export default function DatasetsTab() {
             <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
               <p className="text-xs text-muted-foreground">
                 <Sparkles className="w-3 h-3 inline mr-1" />
-                Estes dados serão usados para treinar modelos LoRA nas GPUs gratuitas
-              </p>
+                {t("admin.datasets.estesdadosserao")}
+                                            </p>
             </div>
           </div>
 
@@ -1138,10 +1138,10 @@ export default function DatasetsTab() {
       <AlertDialog open={!!deleteTrainingDataId} onOpenChange={() => setDeleteTrainingDataId(null)}>
         <AlertDialogContent className="glass-premium">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão de Training Data</AlertDialogTitle>
+            <AlertDialogTitle>{t("admin.datasets.confirmarexclusaode")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir este dado de treinamento? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+              {t("admin.datasets.temcertezaque")}
+                                      </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -1150,8 +1150,8 @@ export default function DatasetsTab() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-delete-training"
             >
-              Excluir
-            </AlertDialogAction>
+              {t("common.delete")}
+                                      </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

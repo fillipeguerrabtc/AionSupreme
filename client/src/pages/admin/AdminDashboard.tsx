@@ -464,7 +464,7 @@ export default function AdminDashboard() {
                     <AionLogo showText={false} size="md" />
                     <div>
                       <h1 className="font-bold text-xl text-foreground">AION</h1>
-                      <p className="text-xs text-muted-foreground">Painel de Controle</p>
+                      <p className="text-xs text-muted-foreground">{t("admin.admindashboard.paineldecontrole")}</p>
                     </div>
                   </button>
                 </div>
@@ -490,8 +490,8 @@ export default function AdminDashboard() {
                         className={language === "pt-BR" ? "bg-primary/20" : ""}
                         data-testid="lang-pt-BR"
                       >
-                        Português (BR)
-                      </DropdownMenuItem>
+                        {t("admin.admindashboard.portuguesbr")}
+                                                                </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setLanguage("en-US")}
                         className={language === "en-US" ? "bg-primary/20" : ""}
@@ -540,7 +540,7 @@ export default function AdminDashboard() {
                   <span className="font-bold text-lg">{tokenSummary ? totalTokensToday.toLocaleString() : '...'}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Histórico:</span>
+                  <span className="text-muted-foreground">{t("admin.admindashboard.historico")}</span>
                   <span className="font-bold text-primary">{tokenSummary ? totalTokensAllTime.toLocaleString() : '...'}</span>
                 </div>
               </div>
@@ -634,8 +634,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <CardDescription className="text-xs mt-2">
-                Histórico Total (FREE)
-              </CardDescription>
+                {t("admin.admindashboard.historicototalfree")}
+                                                                </CardDescription>
             </CardHeader>
           </Card>
 
@@ -655,7 +655,7 @@ export default function AdminDashboard() {
               </CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Histórico Total:</span>
+                  <span className="text-muted-foreground">{t("admin.admindashboard.historicototal")}</span>
                   <span className="font-bold text-lg">{openaiStats ? (openaiStats.allTime?.requests || 0).toLocaleString() : '...'} req</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
@@ -789,8 +789,8 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
-                Auto-Evolução
-              </CardTitle>
+                {t("admin.admindashboard.autoevolucao")}
+                                                                </CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Conversas:</span>
@@ -810,8 +810,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <CardDescription className="text-xs mt-2">
-                Sistema de auto-aprendizado
-              </CardDescription>
+                {t("admin.admindashboard.sistemaautoaprendizado")}
+                                                                </CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -1133,8 +1133,8 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Activity className="w-4 h-4 text-accent animate-pulse" />
-                      Você tem alterações não salvas
-                    </p>
+                      {t("admin.admindashboard.vocetemalteracoes")}
+                                                                          </p>
                     <Button
                       onClick={handleSaveChanges}
                       disabled={updatePolicy.isPending}

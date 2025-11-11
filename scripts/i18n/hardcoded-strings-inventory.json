@@ -1,0 +1,1530 @@
+[
+  {
+    "file": "client/src/pages/admin/AdminDashboard.tsx",
+    "line": 467,
+    "column": 68,
+    "text": "Painel de Controle",
+    "context": "<p className=\"text-xs text-muted-foreground\">Painel de Controle</p>",
+    "suggestedKey": "admin.admindashboard.paineldecontrole"
+  },
+  {
+    "file": "client/src/pages/admin/AdminDashboard.tsx",
+    "line": 493,
+    "column": 25,
+    "text": "Português (BR)",
+    "context": "<DropdownMenuItem\n                        onClick={() => setLanguage(\"pt-BR\")}\n                     ",
+    "suggestedKey": "admin.admindashboard.portuguesbr"
+  },
+  {
+    "file": "client/src/pages/admin/AdminDashboard.tsx",
+    "line": 543,
+    "column": 59,
+    "text": "Histórico:",
+    "context": "<span className=\"text-muted-foreground\">Histórico:</span>",
+    "suggestedKey": "admin.admindashboard.historico"
+  },
+  {
+    "file": "client/src/pages/admin/AdminDashboard.tsx",
+    "line": 637,
+    "column": 17,
+    "text": "Histórico Total (FREE)",
+    "context": "<CardDescription className=\"text-xs mt-2\">\n                Histórico Total (FREE)\n              </Ca",
+    "suggestedKey": "admin.admindashboard.historicototalfree"
+  },
+  {
+    "file": "client/src/pages/admin/AdminDashboard.tsx",
+    "line": 658,
+    "column": 59,
+    "text": "Histórico Total:",
+    "context": "<span className=\"text-muted-foreground\">Histórico Total:</span>",
+    "suggestedKey": "admin.admindashboard.historicototal"
+  },
+  {
+    "file": "client/src/pages/admin/AdminDashboard.tsx",
+    "line": 792,
+    "column": 17,
+    "text": "Auto-Evolução",
+    "context": "<CardTitle className=\"text-sm font-medium text-muted-foreground flex items-center gap-2\">\n          ",
+    "suggestedKey": "admin.admindashboard.autoevolucao"
+  },
+  {
+    "file": "client/src/pages/admin/AdminDashboard.tsx",
+    "line": 813,
+    "column": 17,
+    "text": "Sistema de auto-aprendizado",
+    "context": "<CardDescription className=\"text-xs mt-2\">\n                Sistema de auto-aprendizado\n             ",
+    "suggestedKey": "admin.admindashboard.sistemadeautoaprendizado"
+  },
+  {
+    "file": "client/src/pages/admin/AdminDashboard.tsx",
+    "line": 1136,
+    "column": 23,
+    "text": "Você tem alterações não salvas",
+    "context": "<p className=\"text-sm text-muted-foreground flex items-center gap-2\">\n                      <Activit",
+    "suggestedKey": "admin.admindashboard.vocetemalteracoes"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 255,
+    "column": 16,
+    "text": "Descrições geradas com sucesso!",
+    "context": "title: \"Descrições geradas com sucesso!\"",
+    "suggestedKey": "admin.curationqueue.toast.descricoesgeradascom"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 261,
+    "column": 16,
+    "text": "Erro ao gerar descrições",
+    "context": "title: \"Erro ao gerar descrições\"",
+    "suggestedKey": "admin.curationqueue.toast.erroaogerar"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 280,
+    "column": 16,
+    "text": "Scan de duplicatas concluído!",
+    "context": "title: \"Scan de duplicatas concluído!\"",
+    "suggestedKey": "admin.curationqueue.toast.scandeduplicatas"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 286,
+    "column": 16,
+    "text": "Erro ao escanear duplicatas",
+    "context": "title: \"Erro ao escanear duplicatas\"",
+    "suggestedKey": "admin.curationqueue.toast.erroaoescanear"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 305,
+    "column": 16,
+    "text": "Scan de imagens duplicadas concluído!",
+    "context": "title: \"Scan de imagens duplicadas concluído!\"",
+    "suggestedKey": "admin.curationqueue.toast.scandeimagens"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 311,
+    "column": 16,
+    "text": "Erro ao escanear imagens duplicadas",
+    "context": "title: \"Erro ao escanear imagens duplicadas\"",
+    "suggestedKey": "admin.curationqueue.toast.erroaoescanear"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 329,
+    "column": 16,
+    "text": "Absorção parcial concluída!",
+    "context": "title: \"Absorção parcial concluída!\"",
+    "suggestedKey": "admin.curationqueue.toast.absorcaoparcialconcluida"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 335,
+    "column": 16,
+    "text": "Erro ao absorver conteúdo",
+    "context": "title: \"Erro ao absorver conteúdo\"",
+    "suggestedKey": "admin.curationqueue.toast.erroaoabsorver"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 531,
+    "column": 61,
+    "text": "Tipo de Conteúdo",
+    "context": "<Label className=\"text-sm font-medium mb-2 block\">Tipo de Conteúdo</Label>",
+    "suggestedKey": "admin.curationqueue.tipodeconteudo"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 563,
+    "column": 52,
+    "text": "Status de Duplicação",
+    "context": "<Label className=\"text-sm font-medium\">Status de Duplicação</Label>",
+    "suggestedKey": "admin.curationqueue.statusdeduplicacao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 601,
+    "column": 15,
+    "text": "Não Escaneados (",
+    "context": "<Button\n              variant={duplicationFilter === \"unscanned\" ? \"default\" : \"outline\"}\n          ",
+    "suggestedKey": "admin.curationqueue.button.naoescaneados"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 610,
+    "column": 15,
+    "text": "Únicos (",
+    "context": "<Button\n              variant={duplicationFilter === \"unique\" ? \"default\" : \"outline\"}\n             ",
+    "suggestedKey": "admin.curationqueue.button.unicos"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 754,
+    "column": 37,
+    "text": "Conteúdo único - sem duplicatas detectadas",
+    "context": "title=\"Conteúdo único - sem duplicatas detectadas\"",
+    "suggestedKey": "admin.curationqueue.toast.conteudounicosem"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 757,
+    "column": 31,
+    "text": "Único",
+    "context": "<Badge \n                              className=\"bg-green-600 hover:bg-green-700 text-white font-sem",
+    "suggestedKey": "admin.curationqueue.toast.unico"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 763,
+    "column": 29,
+    "text": "Enviado por",
+    "context": "<div className=\"flex items-center gap-2\">\n                            Enviado por {item.submittedBy ",
+    "suggestedKey": "admin.curationqueue.enviadopor"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 797,
+    "column": 35,
+    "text": "Preview da absorção inteligente - extrair apenas conteúdo novo",
+    "context": "title=\"Preview da absorção inteligente - extrair apenas conteúdo novo\"",
+    "suggestedKey": "admin.curationqueue.toast.previewdaabsorcao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 800,
+    "column": 29,
+    "text": "Preview Absorção",
+    "context": "<Button\n                            variant=\"outline\"\n                            size=\"sm\"\n        ",
+    "suggestedKey": "admin.curationqueue.toast.previewabsorcao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 848,
+    "column": 29,
+    "text": "Vídeos (",
+    "context": "<span className=\"text-sm font-medium\">\n                            Vídeos ({item.attachments.filter(",
+    "suggestedKey": "admin.curationqueue.videos"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 894,
+    "column": 57,
+    "text": "Vídeo",
+    "context": "media.type === \"video\" ? \"Vídeo\" : \"Imagem\"",
+    "suggestedKey": "admin.curationqueue.video"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 925,
+    "column": 39,
+    "text": "Imagem única",
+    "context": "title=\"Imagem única\"",
+    "suggestedKey": "admin.curationqueue.toast.imagemunica"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 928,
+    "column": 33,
+    "text": "Único",
+    "context": "<Badge \n                                className=\"bg-green-600 hover:bg-green-700 text-white text-x",
+    "suggestedKey": "admin.curationqueue.toast.unico"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 935,
+    "column": 57,
+    "text": "Reproduzir vídeo",
+    "context": "media.type === \"video\" ? \"Reproduzir vídeo\" : \"Ver imagem\"",
+    "suggestedKey": "admin.curationqueue.reproduzirvideo"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 985,
+    "column": 26,
+    "text": "Editar Item de Curadoria",
+    "context": "<DialogTitle>Editar Item de Curadoria</DialogTitle>",
+    "suggestedKey": "admin.curationqueue.editaritemde"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 987,
+    "column": 15,
+    "text": "Ajuste título e tags antes de aprovar",
+    "context": "<DialogDescription>\n              Ajuste título e tags antes de aprovar\n            </DialogDescript",
+    "suggestedKey": "admin.curationqueue.ajustetituloe"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 994,
+    "column": 43,
+    "text": "Título",
+    "context": "<Label htmlFor=\"edit-title\">Título</Label>",
+    "suggestedKey": "admin.curationqueue.toast.titulo"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1005,
+    "column": 45,
+    "text": "Conteúdo",
+    "context": "<Label htmlFor=\"edit-content\">Conteúdo</Label>",
+    "suggestedKey": "admin.curationqueue.conteudo"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1022,
+    "column": 17,
+    "text": "Edite o conteúdo extraído se necessário antes de aprovar",
+    "context": "<p className=\"text-xs text-muted-foreground\">\n                Edite o conteúdo extraído se necessári",
+    "suggestedKey": "admin.curationqueue.editeoconteudo"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1038,
+    "column": 78,
+    "text": "🤖 Gerar Descrições AI",
+    "context": "generateDescriptionsMutation.isPending ? \"Gerando...\" : \"🤖 Gerar Descrições AI\"",
+    "suggestedKey": "admin.curationqueue.button.gerardescricoes"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1052,
+    "column": 65,
+    "text": "Sem descrição",
+    "context": "img.description !== \"Sem descrição\"",
+    "suggestedKey": "admin.curationqueue.toast.semdescricao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1053,
+    "column": 69,
+    "text": "✓ Descrição AI",
+    "context": "<p className=\"text-[10px] text-green-400\">✓ Descrição AI</p>",
+    "suggestedKey": "admin.curationqueue.descricaoai"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1061,
+    "column": 19,
+    "text": "Todas as imagens serão indexadas junto com o conteúdo após aprovação",
+    "context": "<p className=\"text-xs text-muted-foreground\">\n                  Todas as imagens serão indexadas jun",
+    "suggestedKey": "admin.curationqueue.todasasimagens"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1067,
+    "column": 42,
+    "text": "Tags (separadas por vírgula)",
+    "context": "<Label htmlFor=\"edit-tags\">Tags (separadas por vírgula)</Label>",
+    "suggestedKey": "admin.curationqueue.tagsseparadaspor"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1083,
+    "column": 29,
+    "text": "Observações sobre este conteúdo",
+    "context": "placeholder=\"Observações sobre este conteúdo\"",
+    "suggestedKey": "admin.curationqueue.placeholder.observacoessobreeste"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1107,
+    "column": 15,
+    "text": "Tem certeza que deseja aprovar e publicar este conteúdo na Knowledge Base?\n              Esta ação não pode ser desfeita.",
+    "context": "<AlertDialogDescription>\n              Tem certeza que deseja aprovar e publicar este conteúdo na Kn",
+    "suggestedKey": "admin.curationqueue.temcertezaque"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1130,
+    "column": 15,
+    "text": "Por que este conteúdo está sendo rejeitado? (opcional)",
+    "context": "<AlertDialogDescription>\n              Por que este conteúdo está sendo rejeitado? (opcional)\n      ",
+    "suggestedKey": "admin.curationqueue.porqueeste"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1136,
+    "column": 25,
+    "text": "Motivo da rejeição",
+    "context": "placeholder=\"Motivo da rejeição\"",
+    "suggestedKey": "admin.curationqueue.placeholder.motivodarejeicao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1160,
+    "column": 76,
+    "text": "itens na Knowledge Base?\n              Todos serão indexados e disponibilizados para treinamento.",
+    "context": "<AlertDialogDescription>\n              Tem certeza que deseja aprovar e publicar {selectedIds.size} ",
+    "suggestedKey": "admin.curationqueue.itensnaknowledge"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1183,
+    "column": 23,
+    "text": "ATENÇÃO:",
+    "context": "<strong>ATENÇÃO:</strong>",
+    "suggestedKey": "admin.curationqueue.atencao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1183,
+    "column": 41,
+    "text": "Esta ação irá aprovar e publicar TODOS os",
+    "context": "<AlertDialogDescription>\n              <strong>ATENÇÃO:</strong> Esta ação irá aprovar e publicar TO",
+    "suggestedKey": "admin.curationqueue.estaacaoira"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1183,
+    "column": 99,
+    "text": "itens pendentes na Knowledge Base.\n              Todos serão indexados imediatamente e disponibilizados para treinamento quando atingir 100 exemplos.\n              Esta ação não pode ser desfeita.",
+    "context": "<AlertDialogDescription>\n              <strong>ATENÇÃO:</strong> Esta ação irá aprovar e publicar TO",
+    "suggestedKey": "admin.curationqueue.itenspendentesna"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1208,
+    "column": 66,
+    "text": "itens?\n              Todos serão removidos da fila de curadoria permanentemente.",
+    "context": "<AlertDialogDescription>\n              Tem certeza que deseja rejeitar {selectedIds.size} itens?\n   ",
+    "suggestedKey": "admin.curationqueue.itenstodosserao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1215,
+    "column": 25,
+    "text": "Motivo da rejeição (opcional)",
+    "context": "placeholder=\"Motivo da rejeição (opcional)\"",
+    "suggestedKey": "admin.curationqueue.placeholder.motivodarejeicao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1239,
+    "column": 23,
+    "text": "ATENÇÃO:",
+    "context": "<strong>ATENÇÃO:</strong>",
+    "suggestedKey": "admin.curationqueue.atencao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1239,
+    "column": 41,
+    "text": "Esta ação irá rejeitar e remover TODOS os",
+    "context": "<AlertDialogDescription>\n              <strong>ATENÇÃO:</strong> Esta ação irá rejeitar e remover TO",
+    "suggestedKey": "admin.curationqueue.estaacaoira"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1239,
+    "column": 99,
+    "text": "itens pendentes da fila de curadoria.\n              Nenhum conteúdo será publicado na Knowledge Base ou usado para treinamento.\n              Esta ação não pode ser desfeita.",
+    "context": "<AlertDialogDescription>\n              <strong>ATENÇÃO:</strong> Esta ação irá rejeitar e remover TO",
+    "suggestedKey": "admin.curationqueue.itenspendentesda"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1247,
+    "column": 25,
+    "text": "Motivo da rejeição em massa (opcional)",
+    "context": "placeholder=\"Motivo da rejeição em massa (opcional)\"",
+    "suggestedKey": "admin.curationqueue.placeholder.motivodarejeicao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1270,
+    "column": 54,
+    "text": "Carregando histórico...",
+    "context": "<p className=\"text-muted-foreground\">Carregando histórico...</p>",
+    "suggestedKey": "admin.curationqueue.carregandohistorico"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1276,
+    "column": 133,
+    "text": "páginas",
+    "context": "contentFilter === \"pages\" ? \"páginas\" : \"imagens\"",
+    "suggestedKey": "admin.curationqueue.paginas"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1276,
+    "column": 164,
+    "text": "no histórico (retenção: 5 anos)",
+    "context": "<p className=\"text-muted-foreground\">Nenhum item {contentFilter !== \"all\" ? `(filtro: ${contentFilte",
+    "suggestedKey": "admin.curationqueue.nohistoricoretencao"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1298,
+    "column": 29,
+    "text": "Enviado em",
+    "context": "<div className=\"flex items-center gap-2 text-sm\">\n                            <Calendar className=\"h",
+    "suggestedKey": "admin.curationqueue.enviadoem"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1303,
+    "column": 29,
+    "text": "Por",
+    "context": "<div className=\"text-sm\">\n                            Por {item.submittedBy || \"Desconhecido\"}\n     ",
+    "suggestedKey": "admin.curationqueue.por"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1308,
+    "column": 87,
+    "text": "por",
+    "context": "<div className=\"flex items-center gap-2 text-sm font-medium\">\n                              <Clock c",
+    "suggestedKey": "admin.curationqueue.por"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1366,
+    "column": 15,
+    "text": "Clique fora da mídia ou pressione ESC para fechar",
+    "context": "<DialogDescription>\n              Clique fora da mídia ou pressione ESC para fechar\n            </Di",
+    "suggestedKey": "admin.curationqueue.cliqueforada"
+  },
+  {
+    "file": "client/src/pages/admin/CurationQueuePage.tsx",
+    "line": 1384,
+    "column": 17,
+    "text": "Seu navegador não suporta a tag de vídeo.",
+    "context": "<video \n                src={selectedMediaUrl}\n                controls\n                autoPlay\n   ",
+    "suggestedKey": "admin.curationqueue.seunavegadornao"
+  },
+  {
+    "file": "client/src/pages/admin/FederatedTrainingTab.tsx",
+    "line": 625,
+    "column": 26,
+    "text": "Upload Training Dataset",
+    "context": "<DialogTitle>Upload Training Dataset</DialogTitle>",
+    "suggestedKey": "admin.federatedtraining.uploadtrainingdataset"
+  },
+  {
+    "file": "client/src/pages/admin/FederatedTrainingTab.tsx",
+    "line": 632,
+    "column": 45,
+    "text": "Dataset Name",
+    "context": "<Label htmlFor=\"dataset-name\">Dataset Name</Label>",
+    "suggestedKey": "admin.federatedtraining.datasetname"
+  },
+  {
+    "file": "client/src/pages/admin/FederatedTrainingTab.tsx",
+    "line": 637,
+    "column": 29,
+    "text": "My Training Dataset",
+    "context": "placeholder=\"My Training Dataset\"",
+    "suggestedKey": "admin.federatedtraining.placeholder.mytrainingdataset"
+  },
+  {
+    "file": "client/src/pages/admin/FederatedTrainingTab.tsx",
+    "line": 652,
+    "column": 45,
+    "text": "Dataset Type",
+    "context": "<Label htmlFor=\"dataset-type\">Dataset Type</Label>",
+    "suggestedKey": "admin.federatedtraining.datasettype"
+  },
+  {
+    "file": "client/src/pages/admin/FederatedTrainingTab.tsx",
+    "line": 667,
+    "column": 45,
+    "text": "Dataset File",
+    "context": "<Label htmlFor=\"dataset-file\">Dataset File</Label>",
+    "suggestedKey": "admin.federatedtraining.datasetfile"
+  },
+  {
+    "file": "client/src/pages/admin/gpu-dashboard.tsx",
+    "line": 269,
+    "column": 35,
+    "text": "user@gmail.com",
+    "context": "placeholder=\"user@gmail.com\"",
+    "suggestedKey": "admin.gpu-dashboard.placeholder.usergmailcom"
+  },
+  {
+    "file": "client/src/pages/admin/gpu-dashboard.tsx",
+    "line": 307,
+    "column": 35,
+    "text": "Get from kaggle.com/account",
+    "context": "placeholder=\"Get from kaggle.com/account\"",
+    "suggestedKey": "admin.gpu-dashboard.placeholder.getfromkagglecomaccount"
+  },
+  {
+    "file": "client/src/pages/admin/gpu-dashboard.tsx",
+    "line": 322,
+    "column": 31,
+    "text": "your@email.com",
+    "context": "placeholder=\"your@email.com\"",
+    "suggestedKey": "admin.gpu-dashboard.placeholder.youremailcom"
+  },
+  {
+    "file": "client/src/pages/admin/GPUOverviewPage.tsx",
+    "line": 170,
+    "column": 22,
+    "text": "Worker conectado com sucesso",
+    "context": "description: \"Worker conectado com sucesso\"",
+    "suggestedKey": "admin.gpuoverview.toast.workerconectadocom"
+  },
+  {
+    "file": "client/src/pages/admin/GPUOverviewPage.tsx",
+    "line": 178,
+    "column": 16,
+    "text": "Erro ao conectar worker",
+    "context": "title: \"Erro ao conectar worker\"",
+    "suggestedKey": "admin.gpuoverview.toast.erroaoconectar"
+  },
+  {
+    "file": "client/src/pages/admin/GPUOverviewPage.tsx",
+    "line": 223,
+    "column": 16,
+    "text": "Erro ao adicionar GPU",
+    "context": "title: \"Erro ao adicionar GPU\"",
+    "suggestedKey": "admin.gpuoverview.toast.erroaoadicionar"
+  },
+  {
+    "file": "client/src/pages/admin/GPUOverviewPage.tsx",
+    "line": 345,
+    "column": 19,
+    "text": "Provisionamento em andamento. Acompanhe o status na tabela abaixo.",
+    "context": "<p className=\"text-sm text-muted-foreground\">\n                  Provisionamento em andamento. Acompa",
+    "suggestedKey": "admin.gpuoverview.provisionamentoemandamento"
+  },
+  {
+    "file": "client/src/pages/admin/GPUOverviewPage.tsx",
+    "line": 581,
+    "column": 25,
+    "text": "Forneça suas credenciais. O sistema criará o notebook automaticamente.",
+    "context": "selectedProvider === 'kaggle' \n                      ? 'Forneça suas credenciais. O sistema criará o",
+    "suggestedKey": "admin.gpuoverview.fornecasuascredenciais"
+  },
+  {
+    "file": "client/src/pages/admin/GPUOverviewPage.tsx",
+    "line": 583,
+    "column": 25,
+    "text": "Forneça suas credenciais. O sistema criará o notebook automaticamente via Puppeteer.",
+    "context": "selectedProvider === 'colab'\n                      ? 'Forneça suas credenciais. O sistema criará o n",
+    "suggestedKey": "admin.gpuoverview.fornecasuascredenciais"
+  },
+  {
+    "file": "client/src/pages/admin/GPUOverviewPage.tsx",
+    "line": 603,
+    "column": 25,
+    "text": "URL do worker GPU já em execução (Kaggle, Colab, ou outro)",
+    "context": "<p className=\"text-xs text-muted-foreground\">\n                        URL do worker GPU já em execuç",
+    "suggestedKey": "admin.gpuoverview.urldoworker"
+  },
+  {
+    "file": "client/src/pages/admin/GPUOverviewPage.tsx",
+    "line": 614,
+    "column": 39,
+    "text": "user@gmail.com",
+    "context": "placeholder=\"user@gmail.com\"",
+    "suggestedKey": "admin.gpuoverview.placeholder.usergmailcom"
+  },
+  {
+    "file": "client/src/pages/admin/GPUOverviewPage.tsx",
+    "line": 623,
+    "column": 51,
+    "text": "Senha (opcional se sessão existir)",
+    "context": "<Label htmlFor=\"password\">Senha (opcional se sessão existir)</Label>",
+    "suggestedKey": "admin.gpuoverview.senhaopcionalse"
+  },
+  {
+    "file": "client/src/pages/admin/GPUOverviewPage.tsx",
+    "line": 654,
+    "column": 39,
+    "text": "Obtenha em kaggle.com/account",
+    "context": "placeholder=\"Obtenha em kaggle.com/account\"",
+    "suggestedKey": "admin.gpuoverview.placeholder.obtenhaemkagglecomaccount"
+  },
+  {
+    "file": "client/src/pages/admin/ImageSearchPage.tsx",
+    "line": 196,
+    "column": 64,
+    "text": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23666' width='400' height='300'/%3E%3Ctext fill='%23fff' x='50%25' y='50%25' text-anchor='middle' dy='.3em'%3EImagem não disponível%3C/text%3E%3C/svg%3E",
+    "context": "(e.target as HTMLImageElement).src = \"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' w",
+    "suggestedKey": "admin.imagesearch.dataimagesvgxml3csvgxmlnshttpwwww3org2000svgwidth400"
+  },
+  {
+    "file": "client/src/pages/admin/ImageSearchPage.tsx",
+    "line": 215,
+    "column": 72,
+    "text": "Sem descrição",
+    "context": "image.description || image.extractedText || \"Sem descrição\"",
+    "suggestedKey": "admin.imagesearch.toast.semdescricao"
+  },
+  {
+    "file": "client/src/pages/admin/ImageSearchPage.tsx",
+    "line": 261,
+    "column": 45,
+    "text": "Sem descrição",
+    "context": "previewImage?.description || \"Sem descrição\"",
+    "suggestedKey": "admin.imagesearch.toast.semdescricao"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 135,
+    "column": 40,
+    "text": "Erro ao atualizar descrição",
+    "context": "error.error || 'Erro ao atualizar descrição'",
+    "suggestedKey": "admin.imagesgallery.erroaoatualizar"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 141,
+    "column": 16,
+    "text": "Descrição atualizada",
+    "context": "title: \"Descrição atualizada\"",
+    "suggestedKey": "admin.imagesgallery.toast.descricaoatualizada"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 142,
+    "column": 22,
+    "text": "A descrição da imagem foi atualizada com sucesso",
+    "context": "description: \"A descrição da imagem foi atualizada com sucesso\"",
+    "suggestedKey": "admin.imagesgallery.toast.adescricaoda"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 151,
+    "column": 16,
+    "text": "Erro ao atualizar",
+    "context": "title: \"Erro ao atualizar\"",
+    "suggestedKey": "admin.imagesgallery.toast.erroaoatualizar"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 167,
+    "column": 40,
+    "text": "Erro ao deletar imagens",
+    "context": "error.error || 'Erro ao deletar imagens'",
+    "suggestedKey": "admin.imagesgallery.erroaodeletar"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 182,
+    "column": 16,
+    "text": "Erro ao deletar",
+    "context": "title: \"Erro ao deletar\"",
+    "suggestedKey": "admin.imagesgallery.toast.erroaodeletar"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 227,
+    "column": 33,
+    "text": "Carregando...",
+    "context": "<div className=\"p-6\">Carregando...</div>",
+    "suggestedKey": "admin.imagesgallery.carregando"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 315,
+    "column": 37,
+    "text": "Buscar por nome, descrição, namespace...",
+    "context": "placeholder=\"Buscar por nome, descrição, namespace...\"",
+    "suggestedKey": "admin.imagesgallery.placeholder.buscarpornome"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 427,
+    "column": 23,
+    "text": "Nenhuma imagem encontrada com os filtros aplicados",
+    "context": "searchQuery || sourceFilter !== 'all' \n                    ? 'Nenhuma imagem encontrada com os filtr",
+    "suggestedKey": "admin.imagesgallery.nenhumaimagemencontrada"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 566,
+    "column": 38,
+    "text": "documento(s) aprovado(s) e disponível(is) na Knowledge Base",
+    "context": "<CardDescription>\n                {kbDocuments.length} documento(s) aprovado(s) e disponível(is) na ",
+    "suggestedKey": "admin.imagesgallery.documentosaprovadose"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 658,
+    "column": 51,
+    "text": "Descrição AI:",
+    "context": "<span className=\"font-medium\">Descrição AI:</span>",
+    "suggestedKey": "admin.imagesgallery.descricaoai"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 683,
+    "column": 21,
+    "text": "Abrir em nova aba",
+    "context": "<a href={selectedImage.url} target=\"_blank\" rel=\"noopener noreferrer\" data-testid=\"button-open-new-t",
+    "suggestedKey": "admin.imagesgallery.abriremnova"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 702,
+    "column": 31,
+    "text": "Confirmar exclusão",
+    "context": "<AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>",
+    "suggestedKey": "admin.imagesgallery.confirmarexclusao"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 704,
+    "column": 15,
+    "text": "Você está prestes a deletar",
+    "context": "<AlertDialogDescription>\n              Você está prestes a deletar {selectedImages.size} imagem(ns).",
+    "suggestedKey": "admin.imagesgallery.voceestaprestes"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 704,
+    "column": 65,
+    "text": "imagem(ns). Esta ação não pode ser desfeita.",
+    "context": "<AlertDialogDescription>\n              Você está prestes a deletar {selectedImages.size} imagem(ns).",
+    "suggestedKey": "admin.imagesgallery.imagemnsestaacao"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 724,
+    "column": 26,
+    "text": "Editar Descrição",
+    "context": "<DialogTitle>Editar Descrição</DialogTitle>",
+    "suggestedKey": "admin.imagesgallery.editardescricao"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 726,
+    "column": 15,
+    "text": "Edite a descrição gerada por IA para esta imagem",
+    "context": "<DialogDescription>\n              Edite a descrição gerada por IA para esta imagem\n            </Dia",
+    "suggestedKey": "admin.imagesgallery.editeadescricao"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 732,
+    "column": 49,
+    "text": "Descrição",
+    "context": "<Label htmlFor=\"edit-description\">Descrição</Label>",
+    "suggestedKey": "admin.imagesgallery.toast.descricao"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 737,
+    "column": 29,
+    "text": "Digite a nova descrição da imagem...",
+    "context": "placeholder=\"Digite a nova descrição da imagem...\"",
+    "suggestedKey": "admin.imagesgallery.placeholder.digiteanova"
+  },
+  {
+    "file": "client/src/pages/admin/ImagesGalleryPage.tsx",
+    "line": 759,
+    "column": 72,
+    "text": "Salvar",
+    "context": "updateDescriptionMutation.isPending ? 'Salvando...' : 'Salvar'",
+    "suggestedKey": "admin.imagesgallery.button.salvar"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 221,
+    "column": 13,
+    "text": "Aprender de Link",
+    "context": "<Button\n            onClick={() => setShowAddUrl(!showAddUrl)}\n            variant=\"secondary\"\n     ",
+    "suggestedKey": "admin.knowledgebase.button.aprenderdelink"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 317,
+    "column": 29,
+    "text": "Título do conhecimento...",
+    "context": "placeholder=\"Título do conhecimento...\"",
+    "suggestedKey": "admin.knowledgebase.placeholder.titulodoconhecimento"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 333,
+    "column": 19,
+    "text": "Selecione quais agentes terão acesso a este conhecimento",
+    "context": "<p className=\"text-xs text-muted-foreground\">\n                  Selecione quais agentes terão acesso",
+    "suggestedKey": "admin.knowledgebase.selecionequaisagentes"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 338,
+    "column": 29,
+    "text": "Escreva o conteúdo aqui...",
+    "context": "placeholder=\"Escreva o conteúdo aqui...\"",
+    "suggestedKey": "admin.knowledgebase.placeholder.escrevaoconteudo"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 363,
+    "column": 57,
+    "text": "Aprender de um Link",
+    "context": "<span className=\"gradient-text-vibrant\">Aprender de um Link</span>",
+    "suggestedKey": "admin.knowledgebase.aprenderdeum"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 374,
+    "column": 17,
+    "text": "AION vai acessar o link e aprender todo o conteúdo",
+    "context": "<CardDescription>\n                AION vai acessar o link e aprender todo o conteúdo\n              <",
+    "suggestedKey": "admin.knowledgebase.aionvaiacessar"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 379,
+    "column": 29,
+    "text": "https://example.com/artigo",
+    "context": "placeholder=\"https://example.com/artigo\"",
+    "suggestedKey": "admin.knowledgebase.placeholder.httpsexamplecomartigo"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 386,
+    "column": 58,
+    "text": "Modo de Aprendizado:",
+    "context": "<Label className=\"text-sm font-semibold\">Modo de Aprendizado:</Label>",
+    "suggestedKey": "admin.knowledgebase.mododeaprendizado"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 396,
+    "column": 23,
+    "text": "📄 Aprender da Página - Scan completo somente desta página/link",
+    "context": "<Label htmlFor=\"single\" className=\"cursor-pointer font-normal\">\n                      📄 Aprender da",
+    "suggestedKey": "admin.knowledgebase.aprenderda"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 402,
+    "column": 23,
+    "text": "🌐 Aprender Completo - Scan de todas as páginas e sublinks",
+    "context": "<Label htmlFor=\"deep\" className=\"cursor-pointer font-normal\">\n                      🌐 Aprender Comp",
+    "suggestedKey": "admin.knowledgebase.aprendercompleto"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 419,
+    "column": 19,
+    "text": "📷 Baixar também imagens e vídeos (além do texto)",
+    "context": "<Label\n                  htmlFor=\"download-media\"\n                  className=\"cursor-pointer font-n",
+    "suggestedKey": "admin.knowledgebase.baixartambem"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 452,
+    "column": 17,
+    "text": "AION vai pesquisar na internet e indexar todo o conteúdo encontrado",
+    "context": "<CardDescription>\n                AION vai pesquisar na internet e indexar todo o conteúdo encontrad",
+    "suggestedKey": "admin.knowledgebase.aionvaipesquisar"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 487,
+    "column": 75,
+    "text": "Carregando...",
+    "context": "<div className=\"text-center py-8 text-muted-foreground\">Carregando...</div>",
+    "suggestedKey": "admin.knowledgebase.carregando"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 503,
+    "column": 41,
+    "text": "Título do conhecimento",
+    "context": "placeholder=\"Título do conhecimento\"",
+    "suggestedKey": "admin.knowledgebase.placeholder.titulodoconhecimento"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBasePage.tsx",
+    "line": 517,
+    "column": 41,
+    "text": "Conteúdo do conhecimento",
+    "context": "placeholder=\"Conteúdo do conhecimento\"",
+    "suggestedKey": "admin.knowledgebase.placeholder.conteudodoconhecimento"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 188,
+    "column": 16,
+    "text": "Transcrição do YouTube enviada para curadoria!",
+    "context": "title: \"Transcrição do YouTube enviada para curadoria!\"",
+    "suggestedKey": "admin.knowledgebase.toast.transcricaodoyoutube"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 251,
+    "column": 16,
+    "text": "Imagens excluídas",
+    "context": "title: \"Imagens excluídas\"",
+    "suggestedKey": "admin.knowledgebase.toast.imagensexcluidas"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 259,
+    "column": 16,
+    "text": "Erro ao excluir imagens",
+    "context": "title: \"Erro ao excluir imagens\"",
+    "suggestedKey": "admin.knowledgebase.toast.erroaoexcluir"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 471,
+    "column": 57,
+    "text": "Aprender de Vídeo do YouTube",
+    "context": "<span className=\"gradient-text-vibrant\">Aprender de Vídeo do YouTube</span>",
+    "suggestedKey": "admin.knowledgebase.aprenderdevideo"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 483,
+    "column": 15,
+    "text": "Extrai a transcrição do vídeo e envia para fila de curadoria (HITL)",
+    "context": "<CardDescription>\n              Extrai a transcrição do vídeo e envia para fila de curadoria (HITL)\n",
+    "suggestedKey": "admin.knowledgebase.extraiatranscricao"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 488,
+    "column": 27,
+    "text": "https://www.youtube.com/watch?v=...",
+    "context": "placeholder=\"https://www.youtube.com/watch?v=...\"",
+    "suggestedKey": "admin.knowledgebase.placeholder.httpswwwyoutubecomwatchv"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 494,
+    "column": 27,
+    "text": "Título do vídeo (opcional - detectado automaticamente)",
+    "context": "placeholder=\"Título do vídeo (opcional - detectado automaticamente)\"",
+    "suggestedKey": "admin.knowledgebase.placeholder.titulodovideo"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 511,
+    "column": 53,
+    "text": "Extraindo transcrição...",
+    "context": "learnFromYoutubeMutation.isPending ? \"Extraindo transcrição...\" : \"Extrair Transcrição\"",
+    "suggestedKey": "admin.knowledgebase.button.extraindotranscricao"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 511,
+    "column": 82,
+    "text": "Extrair Transcrição",
+    "context": "learnFromYoutubeMutation.isPending ? \"Extraindo transcrição...\" : \"Extrair Transcrição\"",
+    "suggestedKey": "admin.knowledgebase.button.extrairtranscricao"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 725,
+    "column": 17,
+    "text": "Excluir Selecionadas (",
+    "context": "<Button\n                variant=\"destructive\"\n                size=\"sm\"\n                onClick={() ",
+    "suggestedKey": "admin.knowledgebase.button.excluirselecionadas"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 733,
+    "column": 71,
+    "text": "Carregando imagens...",
+    "context": "<div className=\"text-center py-8 text-muted-foreground\">Carregando imagens...</div>",
+    "suggestedKey": "admin.knowledgebase.carregandoimagens"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 803,
+    "column": 31,
+    "text": "Confirmar Exclusão de Imagem",
+    "context": "<AlertDialogTitle>Confirmar Exclusão de Imagem</AlertDialogTitle>",
+    "suggestedKey": "admin.knowledgebase.confirmarexclusaode"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 805,
+    "column": 15,
+    "text": "Tem certeza que deseja excluir esta imagem? Esta ação não pode ser desfeita.",
+    "context": "<AlertDialogDescription>\n              Tem certeza que deseja excluir esta imagem? Esta ação não pod",
+    "suggestedKey": "admin.knowledgebase.temcertezaque"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 819,
+    "column": 15,
+    "text": "Excluir",
+    "context": "<AlertDialogAction\n              onClick={() => {\n                if (deleteImageFilename) {\n       ",
+    "suggestedKey": "admin.knowledgebase.excluir"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 829,
+    "column": 31,
+    "text": "Confirmar exclusão em massa",
+    "context": "<AlertDialogTitle>Confirmar exclusão em massa</AlertDialogTitle>",
+    "suggestedKey": "admin.knowledgebase.confirmarexclusaoem"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 831,
+    "column": 68,
+    "text": "imagens? Esta ação não pode ser desfeita.",
+    "context": "<AlertDialogDescription>\n              Tem certeza que deseja excluir {selectedImages.size} imagens?",
+    "suggestedKey": "admin.knowledgebase.imagensestaacao"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 857,
+    "column": 31,
+    "text": "Confirmar Exclusão",
+    "context": "<AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>",
+    "suggestedKey": "admin.knowledgebase.confirmarexclusao"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 859,
+    "column": 15,
+    "text": "Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita.",
+    "context": "<AlertDialogDescription>\n              Tem certeza que deseja excluir este documento? Esta ação não ",
+    "suggestedKey": "admin.knowledgebase.temcertezaque"
+  },
+  {
+    "file": "client/src/pages/admin/KnowledgeBaseTab.tsx",
+    "line": 874,
+    "column": 15,
+    "text": "Excluir",
+    "context": "<AlertDialogAction\n              onClick={() => {\n                if (deleteDocId) {\n               ",
+    "suggestedKey": "admin.knowledgebase.excluir"
+  },
+  {
+    "file": "client/src/pages/admin/LifecyclePoliciesTab.tsx",
+    "line": 163,
+    "column": 13,
+    "text": "Configurações Globais",
+    "context": "<CardTitle className=\"flex items-center gap-2\">\n            <Info className=\"w-4 h-4\" />\n           ",
+    "suggestedKey": "admin.lifecyclepolicies.configuracoesglobais"
+  },
+  {
+    "file": "client/src/pages/admin/LifecyclePoliciesTab.tsx",
+    "line": 166,
+    "column": 64,
+    "text": "| Retenção padrão:",
+    "context": "<CardDescription data-testid=\"text-global-defaults-info\">\n            Timezone: {pendingChanges.glob",
+    "suggestedKey": "admin.lifecyclepolicies.retencaopadrao"
+  },
+  {
+    "file": "client/src/pages/admin/LifecyclePoliciesTab.tsx",
+    "line": 174,
+    "column": 62,
+    "text": "Registrar todas as operações de lifecycle",
+    "context": "<p className=\"text-xs text-muted-foreground\">Registrar todas as operações de lifecycle</p>",
+    "suggestedKey": "admin.lifecyclepolicies.registrartodasas"
+  },
+  {
+    "file": "client/src/pages/admin/LifecyclePoliciesTab.tsx",
+    "line": 186,
+    "column": 62,
+    "text": "Simular limpeza sem deletar dados",
+    "context": "<p className=\"text-xs text-muted-foreground\">Simular limpeza sem deletar dados</p>",
+    "suggestedKey": "admin.lifecyclepolicies.simularlimpezasem"
+  },
+  {
+    "file": "client/src/pages/admin/LifecyclePoliciesTab.tsx",
+    "line": 240,
+    "column": 60,
+    "text": "Período de Retenção",
+    "context": "<Label className=\"text-xs\">Período de Retenção</Label>",
+    "suggestedKey": "admin.lifecyclepolicies.periododeretencao"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 224,
+    "column": 28,
+    "text": "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base",
+    "context": "description: \"O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base\"",
+    "suggestedKey": "admin.namespaces.toast.oconteudoaguarda"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 270,
+    "column": 30,
+    "text": "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base",
+    "context": "description: \"O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base\"",
+    "suggestedKey": "admin.namespaces.toast.oconteudoaguarda"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 308,
+    "column": 30,
+    "text": "O conteúdo adicional aguarda aprovação humana antes de ser indexado na Knowledge Base",
+    "context": "description: \"O conteúdo adicional aguarda aprovação humana antes de ser indexado na Knowledge Base\"",
+    "suggestedKey": "admin.namespaces.toast.oconteudoadicional"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 384,
+    "column": 24,
+    "text": "Tipo de Namespace",
+    "context": "<Label>Tipo de Namespace</Label>",
+    "suggestedKey": "admin.namespaces.tipodenamespace"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 434,
+    "column": 21,
+    "text": "Digite o nome do namespace raiz (sem o \"/\" no final)",
+    "context": "<p className=\"text-xs text-muted-foreground\">\n                    Digite o nome do namespace raiz (s",
+    "suggestedKey": "admin.namespaces.digiteonome"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 475,
+    "column": 19,
+    "text": "O Agente Curador usará esta descrição para entender e indexar conteúdo relacionado",
+    "context": "<p className=\"text-xs text-muted-foreground\">\n                  O Agente Curador usará esta descriçã",
+    "suggestedKey": "admin.namespaces.oagentecurador"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 480,
+    "column": 46,
+    "text": "Ícone",
+    "context": "<Label htmlFor=\"create-icon\">Ícone</Label>",
+    "suggestedKey": "admin.namespaces.icone"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 486,
+    "column": 19,
+    "text": "Opcional. Escolha um ícone visual para identificar este namespace",
+    "context": "<p className=\"text-xs text-muted-foreground\">\n                  Opcional. Escolha um ícone visual pa",
+    "suggestedKey": "admin.namespaces.opcionalescolhaum"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 491,
+    "column": 49,
+    "text": "Conteúdo Inicial (Opcional)",
+    "context": "<Label htmlFor=\"create-content\">Conteúdo Inicial (Opcional)</Label>",
+    "suggestedKey": "admin.namespaces.conteudoinicialopcional"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 501,
+    "column": 19,
+    "text": "O conteúdo será analisado e indexado pelo Agente Curador na Knowledge Base",
+    "context": "<p className=\"text-xs text-muted-foreground\">\n                  O conteúdo será analisado e indexado",
+    "suggestedKey": "admin.namespaces.oconteudosera"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 603,
+    "column": 100,
+    "text": "Sem descrição",
+    "context": "<span className=\"text-muted-foreground italic\">Sem descrição</span>",
+    "suggestedKey": "admin.namespaces.semdescricao"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 663,
+    "column": 17,
+    "text": "Nome único que identifica o namespace",
+    "context": "<p className=\"text-xs text-muted-foreground\">\n                Nome único que identifica o namespace\n",
+    "suggestedKey": "admin.namespaces.nomeunicoque"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 668,
+    "column": 49,
+    "text": "Descrição",
+    "context": "<Label htmlFor=\"edit-description\">Descrição</Label>",
+    "suggestedKey": "admin.namespaces.toast.descricao"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 680,
+    "column": 42,
+    "text": "Ícone",
+    "context": "<Label htmlFor=\"edit-icon\">Ícone</Label>",
+    "suggestedKey": "admin.namespaces.icone"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 686,
+    "column": 17,
+    "text": "Opcional. Escolha um ícone visual para identificar este namespace",
+    "context": "<p className=\"text-xs text-muted-foreground\">\n                Opcional. Escolha um ícone visual para",
+    "suggestedKey": "admin.namespaces.opcionalescolhaum"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 691,
+    "column": 45,
+    "text": "Adicionar Conteúdo (Opcional)",
+    "context": "<Label htmlFor=\"edit-content\">Adicionar Conteúdo (Opcional)</Label>",
+    "suggestedKey": "admin.namespaces.adicionarconteudoopcional"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 702,
+    "column": 23,
+    "text": "Novo conteúdo será analisado e indexado pelo Agente Curador",
+    "context": "<span>Novo conteúdo será analisado e indexado pelo Agente Curador</span>",
+    "suggestedKey": "admin.namespaces.novoconteudosera"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 730,
+    "column": 31,
+    "text": "Confirmar Exclusão",
+    "context": "<AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>",
+    "suggestedKey": "admin.namespaces.confirmarexclusao"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 732,
+    "column": 15,
+    "text": "Tem certeza que deseja excluir este namespace? Esta ação não pode ser desfeita.\n              Todo o conteúdo associado a este namespace permanecerá na Knowledge Base, mas não será mais filtrado por este namespace.",
+    "context": "<AlertDialogDescription>\n              Tem certeza que deseja excluir este namespace? Esta ação não ",
+    "suggestedKey": "admin.namespaces.temcertezaque"
+  },
+  {
+    "file": "client/src/pages/admin/NamespacesPage.tsx",
+    "line": 743,
+    "column": 15,
+    "text": "Excluir",
+    "context": "<AlertDialogAction\n              onClick={handleDeleteConfirm}\n              className=\"bg-destructi",
+    "suggestedKey": "admin.namespaces.excluir"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 565,
+    "column": 66,
+    "text": "30d (Mês)",
+    "context": "<p className=\"text-xs text-muted-foreground\">30d (Mês)</p>",
+    "suggestedKey": "admin.tokenmonitoring.30dmes"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 888,
+    "column": 99,
+    "text": "requisições restantes",
+    "context": "<Badge variant=\"outline\">{getProviderQuota('groq')?.remaining.toLocaleString()} requisições restante",
+    "suggestedKey": "admin.tokenmonitoring.requisicoesrestantes"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 890,
+    "column": 34,
+    "text": "Ultra-fast inference (limite: 14.400 requisições/dia)",
+    "context": "<CardDescription>Ultra-fast inference (limite: 14.400 requisições/dia)</CardDescription>",
+    "suggestedKey": "admin.tokenmonitoring.ultrafastinferencelimite"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 897,
+    "column": 23,
+    "text": "Requisições (conta para limite)",
+    "context": "<span className=\"text-sm font-semibold text-primary flex items-center gap-1.5\">\n                    ",
+    "suggestedKey": "admin.tokenmonitoring.requisicoescontapara"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 912,
+    "column": 23,
+    "text": "Requisições Hoje",
+    "context": "<p className=\"text-xs font-semibold text-primary mb-1 flex items-center gap-1.5\">\n                  ",
+    "suggestedKey": "admin.tokenmonitoring.requisicoeshoje"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 915,
+    "column": 71,
+    "text": "Contam para o limite",
+    "context": "<p className=\"text-xs text-muted-foreground mt-1\">Contam para o limite</p>",
+    "suggestedKey": "admin.tokenmonitoring.contamparao"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 923,
+    "column": 71,
+    "text": "Só monitoramento",
+    "context": "<p className=\"text-xs text-muted-foreground mt-1\">Só monitoramento</p>",
+    "suggestedKey": "admin.tokenmonitoring.somonitoramento"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 939,
+    "column": 101,
+    "text": "requisições restantes",
+    "context": "<Badge variant=\"outline\">{getProviderQuota('gemini')?.remaining.toLocaleString()} requisições restan",
+    "suggestedKey": "admin.tokenmonitoring.requisicoesrestantes"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 941,
+    "column": 34,
+    "text": "Google's AI (limite: 1.500 requisições/dia)",
+    "context": "<CardDescription>Google's AI (limite: 1.500 requisições/dia)</CardDescription>",
+    "suggestedKey": "admin.tokenmonitoring.googlesailimite"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 948,
+    "column": 23,
+    "text": "Requisições (conta para limite)",
+    "context": "<span className=\"text-sm font-semibold text-primary flex items-center gap-1.5\">\n                    ",
+    "suggestedKey": "admin.tokenmonitoring.requisicoescontapara"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 963,
+    "column": 23,
+    "text": "Requisições Hoje",
+    "context": "<p className=\"text-xs font-semibold text-primary mb-1 flex items-center gap-1.5\">\n                  ",
+    "suggestedKey": "admin.tokenmonitoring.requisicoeshoje"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 966,
+    "column": 71,
+    "text": "Contam para o limite",
+    "context": "<p className=\"text-xs text-muted-foreground mt-1\">Contam para o limite</p>",
+    "suggestedKey": "admin.tokenmonitoring.contamparao"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 974,
+    "column": 71,
+    "text": "Só monitoramento",
+    "context": "<p className=\"text-xs text-muted-foreground mt-1\">Só monitoramento</p>",
+    "suggestedKey": "admin.tokenmonitoring.somonitoramento"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 990,
+    "column": 106,
+    "text": "requisições restantes",
+    "context": "<Badge variant=\"outline\">{getProviderQuota('huggingface')?.remaining.toLocaleString()} requisições r",
+    "suggestedKey": "admin.tokenmonitoring.requisicoesrestantes"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 992,
+    "column": 34,
+    "text": "Open-source models (limite: 720 requisições/dia)",
+    "context": "<CardDescription>Open-source models (limite: 720 requisições/dia)</CardDescription>",
+    "suggestedKey": "admin.tokenmonitoring.opensourcemodelslimite"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 999,
+    "column": 23,
+    "text": "Requisições (conta para limite)",
+    "context": "<span className=\"text-sm font-semibold text-primary flex items-center gap-1.5\">\n                    ",
+    "suggestedKey": "admin.tokenmonitoring.requisicoescontapara"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1014,
+    "column": 23,
+    "text": "Requisições Hoje",
+    "context": "<p className=\"text-xs font-semibold text-primary mb-1 flex items-center gap-1.5\">\n                  ",
+    "suggestedKey": "admin.tokenmonitoring.requisicoeshoje"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1017,
+    "column": 71,
+    "text": "Contam para o limite",
+    "context": "<p className=\"text-xs text-muted-foreground mt-1\">Contam para o limite</p>",
+    "suggestedKey": "admin.tokenmonitoring.contamparao"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1025,
+    "column": 71,
+    "text": "Só monitoramento",
+    "context": "<p className=\"text-xs text-muted-foreground mt-1\">Só monitoramento</p>",
+    "suggestedKey": "admin.tokenmonitoring.somonitoramento"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1041,
+    "column": 105,
+    "text": "requisições restantes",
+    "context": "<Badge variant=\"outline\">{getProviderQuota('openrouter')?.remaining.toLocaleString()} requisições re",
+    "suggestedKey": "admin.tokenmonitoring.requisicoesrestantes"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1043,
+    "column": 34,
+    "text": "400+ models (limite: 50 requisições/dia grátis)",
+    "context": "<CardDescription>400+ models (limite: 50 requisições/dia grátis)</CardDescription>",
+    "suggestedKey": "admin.tokenmonitoring.400modelslimite"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1050,
+    "column": 23,
+    "text": "Requisições (conta para limite)",
+    "context": "<span className=\"text-sm font-semibold text-primary flex items-center gap-1.5\">\n                    ",
+    "suggestedKey": "admin.tokenmonitoring.requisicoescontapara"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1065,
+    "column": 23,
+    "text": "Requisições Hoje",
+    "context": "<p className=\"text-xs font-semibold text-primary mb-1 flex items-center gap-1.5\">\n                  ",
+    "suggestedKey": "admin.tokenmonitoring.requisicoeshoje"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1068,
+    "column": 71,
+    "text": "Contam para o limite",
+    "context": "<p className=\"text-xs text-muted-foreground mt-1\">Contam para o limite</p>",
+    "suggestedKey": "admin.tokenmonitoring.contamparao"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1076,
+    "column": 71,
+    "text": "Só monitoramento",
+    "context": "<p className=\"text-xs text-muted-foreground mt-1\">Só monitoramento</p>",
+    "suggestedKey": "admin.tokenmonitoring.somonitoramento"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1209,
+    "column": 33,
+    "text": "KB Próprio",
+    "context": "<Badge variant=\"default\" className=\"bg-green-500/20 text-green-500 border-green-500/30 hover:bg-gree",
+    "suggestedKey": "admin.tokenmonitoring.kbproprio"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1221,
+    "column": 33,
+    "text": "Erro KB",
+    "context": "<Badge variant=\"destructive\" className=\"bg-red-500/20 text-red-500 border-red-500/30 hover:bg-red-50",
+    "suggestedKey": "admin.tokenmonitoring.errokb"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1260,
+    "column": 69,
+    "text": "⚠️ Confiança muito baixa, usado fallback para Web/GPU/APIs",
+    "context": "entry.reason === 'low-confidence' && '⚠️ Confiança muito baixa, usado fallback para Web/GPU/APIs'",
+    "suggestedKey": "admin.tokenmonitoring.confiancamuito"
+  },
+  {
+    "file": "client/src/pages/admin/TokenMonitoring.tsx",
+    "line": 1261,
+    "column": 70,
+    "text": "❌ Erro técnico na busca KB",
+    "context": "entry.reason === 'kb-search-error' && '❌ Erro técnico na busca KB'",
+    "suggestedKey": "admin.tokenmonitoring.errotecnico"
+  }
+]
