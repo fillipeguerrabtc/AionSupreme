@@ -37,6 +37,7 @@ import { quotaTelemetryService } from './quota-telemetry-service';
 import { metaLearningOrchestrator } from '../meta/meta-learning-orchestrator';
 import { onDemandGPUService } from './on-demand-gpu-service';
 import { logger } from './logger-service';
+import { retentionPolicyService } from './retention-policy-service';
 
 interface ScheduledJob {
   name: string;
@@ -517,6 +518,46 @@ export class SchedulerService {
           }
         } catch (error: any) {
           logger.error(`Conversation finalizer error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 16: Tombstone Cleanup - Diariamente às 02:00 UTC (Retention policy enforcement)
+    // CRITICAL: Deletes expired tombstones based on retention policies
+    // Respects retentionUntil field (NULL = keep forever)
+    // Comprehensive audit logging for GDPR compliance
+    this.register({
+      name: 'tombstone-cleanup',
+      schedule: '0 2 * * *', // Diariamente às 02:00 UTC
+      task: async () => {
+        try {
+          logger.info('🧹 Starting tombstone cleanup (retention policy enforcement)');
+          
+          // 1. Apply retention policies to tombstones without explicit retentionUntil
+          const applyResult = await retentionPolicyService.applyRetentionPolicies(false);
+          
+          if (applyResult.tombstonesUpdated > 0) {
+            logger.info(`✅ Applied retention policies to ${applyResult.tombstonesUpdated} tombstones`);
+          }
+          
+          // 2. Cleanup expired tombstones (retentionUntil < now)
+          const cleanupResult = await retentionPolicyService.cleanupExpiredTombstones(false);
+          
+          if (cleanupResult.tombstonesDeleted > 0) {
+            logger.info(`✅ Deleted ${cleanupResult.tombstonesDeleted} expired tombstones`);
+          } else {
+            logger.info('✅ No expired tombstones to cleanup');
+          }
+          
+          // 3. Log retention stats
+          const stats = await retentionPolicyService.getStats();
+          logger.info('📊 Retention policy stats:', stats);
+          
+        } catch (error: any) {
+          logger.error(`❌ Tombstone cleanup error: ${error.message}`);
         }
       },
       enabled: true,

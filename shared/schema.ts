@@ -3331,3 +3331,42 @@ export const insertDeletionTombstoneSchema = createInsertSchema(deletionTombston
 });
 export type InsertDeletionTombstone = z.infer<typeof insertDeletionTombstoneSchema>;
 export type DeletionTombstone = typeof deletionTombstones.$inferSelect;
+
+// ============================================================================
+// RETENTION POLICIES - Policy-driven tombstone cleanup
+// Defines retention windows per entity type and namespace
+// ============================================================================
+export const retentionPolicies = pgTable("retention_policies", {
+  id: serial("id").primaryKey(),
+  
+  // Policy scope (which entities does this apply to?)
+  entityType: varchar("entity_type", { length: 50 }).notNull(), // "kb_document" | "dataset" | "model" | "conversation" | "*" (wildcard)
+  namespace: varchar("namespace", { length: 100 }).notNull().default('*'), // Specific namespace, or "*" for all namespaces
+  
+  // Retention configuration
+  retentionDays: integer("retention_days").notNull(), // Days to keep tombstones before auto-deletion
+  
+  // Policy metadata
+  description: text("description"), // Human-readable description
+  enabled: boolean("enabled").notNull().default(true),
+  
+  // Audit fields
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  // Unique constraint: One policy per (entityType, namespace) combination
+  // Using NOT NULL namespace with wildcard "*" ensures uniqueness works correctly in PostgreSQL
+  unique("retention_policies_entity_namespace_unique").on(table.entityType, table.namespace),
+  index("retention_policies_entity_type_idx").on(table.entityType),
+  index("retention_policies_namespace_idx").on(table.namespace),
+  index("retention_policies_enabled_idx").on(table.enabled),
+]);
+
+export const insertRetentionPolicySchema = createInsertSchema(retentionPolicies).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertRetentionPolicy = z.infer<typeof insertRetentionPolicySchema>;
+export type RetentionPolicy = typeof retentionPolicies.$inferSelect;
