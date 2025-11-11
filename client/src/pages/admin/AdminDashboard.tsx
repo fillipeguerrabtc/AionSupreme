@@ -51,6 +51,7 @@ const ImageSearchPage = lazy(() => import("./ImageSearchPage"));
 const LifecyclePoliciesTab = lazy(() => import("./LifecyclePoliciesTab"));
 const VisionPage = lazy(() => import("./VisionPage"));
 const TelemetriaPage = lazy(() => import("./TelemetriaPage"));
+const AutoApprovalPage = lazy(() => import("./AutoApprovalPage"));
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -915,6 +916,14 @@ export default function AdminDashboard() {
                 <Suspense fallback={<LoadingSpinner />}>
                   <div className="space-y-6">
                     <PermissionsPage />
+                  </div>
+                </Suspense>
+              )}
+
+              {activeTab === "auto-approval" && (
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="space-y-6">
+                    <AutoApprovalPage />
                   </div>
                 </Suspense>
               )}

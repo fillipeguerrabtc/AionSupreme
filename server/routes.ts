@@ -64,6 +64,7 @@ import { registerMetaLearningRoutes } from "./routes/meta-learning";
 import { registerBackupRoutes } from "./routes/backup";
 import { registerAlertRoutes } from "./routes/alerts";
 import cascadeRoutes from "./routes/cascade";
+import autoApprovalRoutes from "./routes/auto-approval";
 
 // ============================================================================
 // TYPE DEFINITIONS - Eliminating 'as any' casts
@@ -222,6 +223,9 @@ export function registerRoutes(app: Express): Server {
   
   // Registrar rotas de Cascade Data Lineage (enterprise deletion tracking)
   adminSubRouter.use("/cascade", cascadeRoutes);
+  
+  // Registrar rotas de Auto-Approval Configuration (curation system)
+  adminSubRouter.use("/auto-approval", autoApprovalRoutes);
   
   // Mount admin sub-router on /api/admin (NOT /api to avoid blocking public routes)
   app.use("/api/admin", adminSubRouter);

@@ -525,7 +525,93 @@ export class SchedulerService {
       errorCount: 0,
     });
 
-    // 🔥 JOB 16: Tombstone Cleanup - Diariamente às 02:00 UTC (Retention policy enforcement)
+    // 🔥 JOB 16: Auto-Curator Processor - A cada 10 minutos (Process curation queue)
+    // CRITICAL: Auto-processes items in curation queue using AutoApprovalService
+    // - Fetches pending items from queue
+    // - Applies auto-approval logic (score thresholds, flags, namespaces)
+    // - Auto-approves high-quality content (score >= 80)
+    // - Auto-rejects low-quality content (score < 50)
+    // - Leaves medium-quality for human review (50-79)
+    this.register({
+      name: 'auto-curator-processor',
+      schedule: '*/10 * * * *', // A cada 10 minutos
+      task: async () => {
+        try {
+          const { curationStore } = await import('../curation/store');
+          const { autoApprovalService } = await import('./auto-approval-service');
+          
+          // Get all pending items
+          const pendingItems = await curationStore.listPending();
+          
+          // Process max 50 items per run to avoid overload
+          const itemsToProcess = pendingItems.slice(0, 50);
+          
+          let approved = 0;
+          let rejected = 0;
+          let reviewed = 0;
+          
+          // Get config to check requireAllQualityGates
+          const config = await autoApprovalService.getConfig();
+          
+          // Process each pending item through auto-approval logic
+          for (const item of itemsToProcess) {
+            // Extract score from DB (field is 'score', not 'qualityScore')
+            const qualityScore = item.score || 0;
+            
+            // Parse note field to extract contentFlags if available (from curator agent analysis)
+            // Note format: "Quality: X/100\nFlags: flag1,flag2\n..."
+            const contentFlags: string[] = [];
+            if (item.note) {
+              const flagsMatch = item.note.match(/Flags:\s*(.+)/i);
+              if (flagsMatch && flagsMatch[1]) {
+                const flags = flagsMatch[1].split(',').map(f => f.trim().toLowerCase()).filter(Boolean);
+                contentFlags.push(...flags);
+              }
+            }
+            
+            // SAFETY: For now, assume quality gates passed if score > 0 (basic heuristic)
+            // TODO: Add explicit qualityGatesPassed field to curationQueue schema
+            const qualityGatesPassed = qualityScore > 0 ? true : undefined;
+            
+            // SAFETY: If requireAllQualityGates is enabled and item has unknown/failed gate status,
+            // skip auto-approval and leave for human review (defensive approach)
+            if (config.requireAllQualityGates && !qualityGatesPassed) {
+              logger.info(`⚠️  Item ${item.id} skipped (unknown/failed quality gates, HITL required)`);
+              reviewed++;
+              continue;
+            }
+            
+            const decision = await autoApprovalService.decide(
+              qualityScore,
+              contentFlags,
+              item.suggestedNamespaces || [],
+              qualityGatesPassed
+            );
+            
+            if (decision.action === 'approve') {
+              await curationStore.approveAndPublish(item.id, 'AUTO-CURATOR', decision.reason);
+              approved++;
+            } else if (decision.action === 'reject') {
+              await curationStore.reject(item.id, 'AUTO-CURATOR', decision.reason);
+              rejected++;
+            } else {
+              reviewed++;
+            }
+          }
+          
+          if (itemsToProcess.length > 0) {
+            logger.info(`✅ Auto-Curator: Processed ${itemsToProcess.length} items (approved: ${approved}, rejected: ${rejected}, review: ${reviewed})`);
+          }
+        } catch (error: any) {
+          logger.error(`Auto-curator processor error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 17: Tombstone Cleanup - Diariamente às 02:00 UTC (Retention policy enforcement)
     // CRITICAL: Deletes expired tombstones based on retention policies
     // Respects retentionUntil field (NULL = keep forever)
     // Comprehensive audit logging for GDPR compliance

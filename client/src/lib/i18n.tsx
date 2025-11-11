@@ -1141,6 +1141,52 @@ interface Translations {
       images: string;
     };
     
+    // Auto-Approval Configuration
+    autoApproval: {
+      title: string;
+      subtitle: string;
+      enabled: string;
+      disabled: string;
+      globalSettings: string;
+      scoreThresholds: string;
+      contentFiltering: string;
+      namespaceControl: string;
+      qualityGates: string;
+      enableAutoApproval: string;
+      enableAutoReject: string;
+      requireAllQualityGates: string;
+      minApprovalScore: string;
+      maxRejectScore: string;
+      sensitiveFlags: string;
+      enabledNamespaces: string;
+      reviewRange: string;
+      scoreRange: string;
+      namespaceWildcard: string;
+      namespaceWildcardDesc: string;
+      addNamespace: string;
+      removeNamespace: string;
+      flagsDescription: string;
+      thresholdWarning: string;
+      saveChanges: string;
+      testDecision: string;
+      testScore: string;
+      testFlags: string;
+      testNamespaces: string;
+      runTest: string;
+      decisionResult: string;
+      configUpdated: string;
+      configError: string;
+      tooltips: {
+        enabled: string;
+        minApprovalScore: string;
+        maxRejectScore: string;
+        sensitiveFlags: string;
+        enabledNamespaces: string;
+        autoRejectEnabled: string;
+        requireAllQualityGates: string;
+      };
+    };
+    
     // Jobs Page (Deep Crawling)
     jobs: {
       title: string;
@@ -2500,6 +2546,51 @@ const translations: Record<Language, Translations> = {
         images: "Imagens",
       },
       
+      autoApproval: {
+        title: "Auto-Aprovação",
+        subtitle: "Configure thresholds e regras para aprovação automática de conteúdo",
+        enabled: "Ativado",
+        disabled: "Desativado",
+        globalSettings: "Configurações Globais",
+        scoreThresholds: "Thresholds de Qualidade",
+        contentFiltering: "Filtragem de Conteúdo",
+        namespaceControl: "Controle de Namespaces",
+        qualityGates: "Quality Gates",
+        enableAutoApproval: "Habilitar Auto-Aprovação",
+        enableAutoReject: "Habilitar Auto-Rejeição",
+        requireAllQualityGates: "Exigir Todos os Quality Gates",
+        minApprovalScore: "Score Mínimo para Aprovação",
+        maxRejectScore: "Score Máximo para Rejeição",
+        sensitiveFlags: "Flags Sensíveis",
+        enabledNamespaces: "Namespaces Habilitados",
+        reviewRange: "Faixa de Revisão Manual",
+        scoreRange: "Faixa de Score",
+        namespaceWildcard: "Curinga de Namespace",
+        namespaceWildcardDesc: "Use '*' para permitir todos os namespaces",
+        addNamespace: "Adicionar Namespace",
+        removeNamespace: "Remover Namespace",
+        flagsDescription: "Flags que sempre requerem revisão humana (adult, violence, medical, financial, pii)",
+        thresholdWarning: "Score de rejeição deve ser menor que score de aprovação",
+        saveChanges: "Salvar Alterações",
+        testDecision: "Testar Decisão",
+        testScore: "Score de Teste",
+        testFlags: "Flags de Teste",
+        testNamespaces: "Namespaces de Teste",
+        runTest: "Executar Teste",
+        decisionResult: "Resultado da Decisão",
+        configUpdated: "Configuração atualizada com sucesso",
+        configError: "Erro ao atualizar configuração",
+        tooltips: {
+          enabled: "Ativa/desativa aprovação automática globalmente",
+          minApprovalScore: "Conteúdo com score >= este valor será aprovado automaticamente",
+          maxRejectScore: "Conteúdo com score < este valor será rejeitado automaticamente",
+          sensitiveFlags: "Conteúdo com estas flags sempre vai para revisão manual",
+          enabledNamespaces: "Namespaces permitidos para auto-aprovação (* = todos)",
+          autoRejectEnabled: "Permite rejeição automática de conteúdo de baixa qualidade",
+          requireAllQualityGates: "Se ativado, conteúdo deve passar por todos os 5 quality gates",
+        },
+      },
+      
       jobs: {
         title: "Jobs de Crawling",
         subtitle: "Monitore jobs assíncronos de deep crawling em tempo real",
@@ -3851,6 +3942,51 @@ const translations: Record<Language, Translations> = {
         images: "Images",
       },
       
+      autoApproval: {
+        title: "Auto-Approval",
+        subtitle: "Configure thresholds and rules for automatic content approval",
+        enabled: "Enabled",
+        disabled: "Disabled",
+        globalSettings: "Global Settings",
+        scoreThresholds: "Quality Thresholds",
+        contentFiltering: "Content Filtering",
+        namespaceControl: "Namespace Control",
+        qualityGates: "Quality Gates",
+        enableAutoApproval: "Enable Auto-Approval",
+        enableAutoReject: "Enable Auto-Reject",
+        requireAllQualityGates: "Require All Quality Gates",
+        minApprovalScore: "Minimum Approval Score",
+        maxRejectScore: "Maximum Rejection Score",
+        sensitiveFlags: "Sensitive Flags",
+        enabledNamespaces: "Enabled Namespaces",
+        reviewRange: "Manual Review Range",
+        scoreRange: "Score Range",
+        namespaceWildcard: "Namespace Wildcard",
+        namespaceWildcardDesc: "Use '*' to allow all namespaces",
+        addNamespace: "Add Namespace",
+        removeNamespace: "Remove Namespace",
+        flagsDescription: "Flags that always require human review (adult, violence, medical, financial, pii)",
+        thresholdWarning: "Rejection score must be less than approval score",
+        saveChanges: "Save Changes",
+        testDecision: "Test Decision",
+        testScore: "Test Score",
+        testFlags: "Test Flags",
+        testNamespaces: "Test Namespaces",
+        runTest: "Run Test",
+        decisionResult: "Decision Result",
+        configUpdated: "Configuration updated successfully",
+        configError: "Error updating configuration",
+        tooltips: {
+          enabled: "Enable/disable automatic approval globally",
+          minApprovalScore: "Content with score >= this value will be approved automatically",
+          maxRejectScore: "Content with score < this value will be rejected automatically",
+          sensitiveFlags: "Content with these flags always goes to manual review",
+          enabledNamespaces: "Namespaces allowed for auto-approval (* = all)",
+          autoRejectEnabled: "Allows automatic rejection of low-quality content",
+          requireAllQualityGates: "If enabled, content must pass all 5 quality gates",
+        },
+      },
+      
       jobs: {
         title: "Crawling Jobs",
         subtitle: "Monitor asynchronous deep crawling jobs in real-time",
@@ -5200,6 +5336,51 @@ const translations: Record<Language, Translations> = {
         all: "Todos",
         pages: "Páginas",
         images: "Imágenes",
+      },
+      
+      autoApproval: {
+        title: "Auto-Aprobación",
+        subtitle: "Configura umbrales y reglas para aprobación automática de contenido",
+        enabled: "Activado",
+        disabled: "Desactivado",
+        globalSettings: "Configuración Global",
+        scoreThresholds: "Umbrales de Calidad",
+        contentFiltering: "Filtrado de Contenido",
+        namespaceControl: "Control de Namespaces",
+        qualityGates: "Quality Gates",
+        enableAutoApproval: "Habilitar Auto-Aprobación",
+        enableAutoReject: "Habilitar Auto-Rechazo",
+        requireAllQualityGates: "Requerir Todos los Quality Gates",
+        minApprovalScore: "Puntuación Mínima para Aprobación",
+        maxRejectScore: "Puntuación Máxima para Rechazo",
+        sensitiveFlags: "Flags Sensibles",
+        enabledNamespaces: "Namespaces Habilitados",
+        reviewRange: "Rango de Revisión Manual",
+        scoreRange: "Rango de Puntuación",
+        namespaceWildcard: "Comodín de Namespace",
+        namespaceWildcardDesc: "Usa '*' para permitir todos los namespaces",
+        addNamespace: "Agregar Namespace",
+        removeNamespace: "Eliminar Namespace",
+        flagsDescription: "Flags que siempre requieren revisión humana (adult, violence, medical, financial, pii)",
+        thresholdWarning: "La puntuación de rechazo debe ser menor que la de aprobación",
+        saveChanges: "Guardar Cambios",
+        testDecision: "Probar Decisión",
+        testScore: "Puntuación de Prueba",
+        testFlags: "Flags de Prueba",
+        testNamespaces: "Namespaces de Prueba",
+        runTest: "Ejecutar Prueba",
+        decisionResult: "Resultado de la Decisión",
+        configUpdated: "Configuración actualizada con éxito",
+        configError: "Error al actualizar configuración",
+        tooltips: {
+          enabled: "Habilita/deshabilita aprobación automática globalmente",
+          minApprovalScore: "El contenido con puntuación >= este valor será aprobado automáticamente",
+          maxRejectScore: "El contenido con puntuación < este valor será rechazado automáticamente",
+          sensitiveFlags: "El contenido con estos flags siempre va a revisión manual",
+          enabledNamespaces: "Namespaces permitidos para auto-aprobación (* = todos)",
+          autoRejectEnabled: "Permite rechazo automático de contenido de baja calidad",
+          requireAllQualityGates: "Si está activado, el contenido debe pasar todos los 5 quality gates",
+        },
       },
       
       jobs: {

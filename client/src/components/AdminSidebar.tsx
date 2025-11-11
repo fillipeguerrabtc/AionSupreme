@@ -191,6 +191,13 @@ export function AdminSidebar({ activeTab, onTabChange }: AdminSidebarProps) {
           requiredPermission: "gpu:pool:read",
         },
         {
+          title: t.admin.autoApproval.title,
+          icon: SettingsIcon,
+          value: "auto-approval",
+          testId: "nav-auto-approval",
+          requiredPermission: "curation:settings:write",
+        },
+        {
           title: t.admin.tabs.curation,
           icon: ClipboardCheck,
           value: "curation",
