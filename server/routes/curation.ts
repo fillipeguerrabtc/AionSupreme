@@ -217,7 +217,7 @@ export function registerCurationRoutes(app: Router) {
 
       // LIMPEZA: Remove APENAS imagens REJEITADAS (mantém imagens aprovadas)
       try {
-        const imageProcessor = new ImageProcessor();
+        const imageProcessor = await ImageProcessor.create();
         
         // Busca TODAS as imagens em documentos APROVADOS (status='indexed')
         const approvedDocs = await db.query.documents.findMany({
@@ -504,7 +504,7 @@ export function registerCurationRoutes(app: Router) {
         return res.status(400).json({ error: "Item has no attachments" });
       }
 
-      const imageProcessor = new ImageProcessor();
+      const imageProcessor = await ImageProcessor.create();
       const results: Array<{
         filename: string;
         description: string;

@@ -36,7 +36,7 @@ export class WebsiteCrawlerService {
     console.log(`[WebsiteCrawler] 🚀 Iniciando deep crawl: ${request.url}`);
 
     // Inicia crawler
-    const crawler = new DeepCrawler(request.url, {
+    const crawler = await DeepCrawler.create(request.url, {
       maxDepth: request.maxDepth,
       maxPages: request.maxPages,
       includeImages: true,

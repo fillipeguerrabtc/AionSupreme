@@ -230,7 +230,7 @@ export class FileProcessor {
       
       // Use Vision Cascade for robust multi-provider fallback
       const { VisionCascade } = await import("../learn/vision-cascade");
-      const visionCascade = new VisionCascade();
+      const visionCascade = await VisionCascade.create();
       
       // Pass filename as alt text fallback for better context
       const result = await visionCascade.generateDescription(

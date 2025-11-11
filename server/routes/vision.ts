@@ -10,7 +10,15 @@ import { tokenUsage } from "../../shared/schema";
 import { and, eq, gte } from "drizzle-orm";
 import { rateLimitMiddleware } from "../middleware/rate-limit";
 
-const visionCascade = new VisionCascade();
+// Cached promise - initialized once on module load, hydrated from DB
+let visionCascadePromise: Promise<VisionCascade> | null = null;
+
+function getVisionCascade(): Promise<VisionCascade> {
+  if (!visionCascadePromise) {
+    visionCascadePromise = VisionCascade.create();
+  }
+  return visionCascadePromise;
+}
 
 export function registerVisionRoutes(app: Router) {
   console.log("[Vision Routes] Registering Vision System API routes...");
@@ -96,6 +104,7 @@ export function registerVisionRoutes(app: Router) {
    */
   app.get("/vision/status", async (req: Request, res: Response) => {
     try {
+      const visionCascade = await getVisionCascade();
       const status = visionCascade.getQuotaStatus();
       
       res.json({
@@ -216,6 +225,9 @@ export function registerVisionRoutes(app: Router) {
       let error = null;
 
       try {
+        // Get hydrated VisionCascade instance
+        const visionCascade = await getVisionCascade();
+        
         // Force o provider específico criando instância temporária
         // Como VisionCascade sempre tenta em ordem, precisamos testar diretamente
         const testMethods: Record<typeof provider, () => Promise<any>> = {

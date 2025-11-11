@@ -461,7 +461,7 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
     let finalAttachments = item.attachments;
     if (item.attachments && item.attachments.length > 0) {
       const { ImageProcessor } = await import("../learn/image-processor");
-      const imageProcessor = new ImageProcessor();
+      const imageProcessor = await ImageProcessor.create();
       
       finalAttachments = await Promise.all(
         item.attachments.map(async (att: any) => {

@@ -74,10 +74,19 @@ export class DeepCrawler {
   // ✅ CALLBACK: para worker reportar progresso e checar pause/cancel
   public onProgress?: (processed: number, total: number, currentUrl: string) => Promise<void>;
 
-  constructor(startUrl: string, options?: CrawlerOptions) {
+  /**
+   * Async factory - creates DeepCrawler with hydrated ImageProcessor
+   */
+  static async create(startUrl: string, options?: CrawlerOptions): Promise<DeepCrawler> {
+    const imageProcessor = await ImageProcessor.create();
+    return new DeepCrawler(startUrl, options, imageProcessor);
+  }
+
+  constructor(startUrl: string, options?: CrawlerOptions, imageProcessor?: ImageProcessor) {
     this.baseUrl = new URL(startUrl);
     this.baseDomain = this.baseUrl.hostname;
-    this.imageProcessor = new ImageProcessor();
+    // Accept injected instance or create new one (backward compatibility)
+    this.imageProcessor = imageProcessor || new ImageProcessor();
     
     if (options) {
       this.options = { ...this.options, ...options };

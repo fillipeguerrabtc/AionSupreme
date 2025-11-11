@@ -56,10 +56,19 @@ export class ImageProcessor {
   private maxImageSize = 10 * 1024 * 1024; // 10MB max
   private visionCascade: VisionCascade;
 
-  constructor() {
+  /**
+   * Async factory - creates ImageProcessor with hydrated VisionCascade
+   */
+  static async create(): Promise<ImageProcessor> {
+    const visionCascade = await VisionCascade.create();
+    return new ImageProcessor(visionCascade);
+  }
+
+  constructor(visionCascade?: VisionCascade) {
     // Pasta já criada por storagePaths.getStoragePaths()
     console.log(`[ImageProcessor] ✅ Using PERMANENT storage: ${this.imagesDir}`);
-    this.visionCascade = new VisionCascade();
+    // Accept injected instance or create new one (backward compatibility)
+    this.visionCascade = visionCascade || new VisionCascade();
   }
 
   /**

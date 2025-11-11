@@ -14,6 +14,9 @@ import { HfInference } from "@huggingface/inference";
 import OpenAI from "openai";
 import { trackTokenUsage } from "../monitoring/token-tracker";
 import { log } from "../utils/logger";
+import { db } from "../db";
+import { visionQuotaState } from "../../shared/schema";
+import { eq } from "drizzle-orm";
 
 export type VisionProvider = 'gemini' | 'gpt4v-openrouter' | 'claude3-openrouter' | 'huggingface' | 'openai' | 'none';
 
@@ -35,11 +38,70 @@ export class VisionCascade {
   private claude3Quota = { used: 0, limit: 50, lastReset: Date.now() }; // OpenRouter free tier
   private hfQuota = { used: 0, limit: 720, lastReset: Date.now() };
 
+  /**
+   * Async factory - creates VisionCascade with quota state restored from DB
+   */
+  static async create(): Promise<VisionCascade> {
+    const instance = new VisionCascade();
+    await instance.initializeFromDB();
+    return instance;
+  }
+
   constructor() {
     this.geminiKey = process.env.GEMINI_API_KEY;
     this.openRouterKey = process.env.OPEN_ROUTER_API_KEY;
     this.hfKey = process.env.HUGGINGFACE_API_KEY;
     this.openaiKey = process.env.OPENAI_API_KEY;
+  }
+
+  /**
+   * Loads persisted quota state from PostgreSQL for all providers
+   */
+  private async initializeFromDB(): Promise<void> {
+    try {
+      // Load state for all 4 providers
+      const providers: Array<'gemini' | 'gpt4v-openrouter' | 'claude3-openrouter' | 'huggingface'> = [
+        'gemini',
+        'gpt4v-openrouter',
+        'claude3-openrouter',
+        'huggingface'
+      ];
+
+      for (const provider of providers) {
+        const state = await this.loadQuotaFromDB(provider);
+        if (state) {
+          // Restore quota state from DB
+          switch (provider) {
+            case 'gemini':
+              this.geminiQuota = state;
+              break;
+            case 'gpt4v-openrouter':
+              this.gpt4vQuota = state;
+              break;
+            case 'claude3-openrouter':
+              this.claude3Quota = state;
+              break;
+            case 'huggingface':
+              this.hfQuota = state;
+              break;
+          }
+          
+          log.info('Vision quota state recovered from DB', {
+            component: 'VisionCascade',
+            provider,
+            used: state.used,
+            limit: state.limit,
+            lastReset: new Date(state.lastReset).toISOString()
+          });
+        }
+      }
+    } catch (error) {
+      log.warn('Failed to initialize vision quota state from DB', {
+        component: 'VisionCascade',
+        error: error instanceof Error ? error.message : String(error)
+      });
+      // Non-throwing: startup continues with default quota state
+    }
   }
 
   /**
@@ -53,7 +115,7 @@ export class VisionCascade {
     const startTime = Date.now();
     
     // Reset quotas se necessário (a cada 24h)
-    this.resetQuotasIfNeeded();
+    await this.resetQuotasIfNeeded();
 
     // 1. Tenta Gemini primeiro (mais rápido e grátis)
     if (this.geminiKey && this.hasQuota('gemini')) {
@@ -223,6 +285,14 @@ Descrição detalhada:`;
 
     // Incrementa quota
     this.geminiQuota.used++;
+    
+    // Persist quota state to DB
+    await this.saveQuotaToDB(
+      'gemini',
+      this.geminiQuota.used,
+      this.geminiQuota.limit,
+      new Date(this.geminiQuota.lastReset)
+    );
 
     // Track usage
     const promptTokens = Math.ceil(prompt.length / 4);
@@ -304,6 +374,14 @@ Descrição detalhada:`;
 
     // Incrementa quota
     this.gpt4vQuota.used++;
+    
+    // Persist quota state to DB
+    await this.saveQuotaToDB(
+      'gpt4v-openrouter',
+      this.gpt4vQuota.used,
+      this.gpt4vQuota.limit,
+      new Date(this.gpt4vQuota.lastReset)
+    );
 
     // Track usage
     await trackTokenUsage({
@@ -382,6 +460,14 @@ Descrição detalhada:`;
 
     // Incrementa quota
     this.claude3Quota.used++;
+    
+    // Persist quota state to DB
+    await this.saveQuotaToDB(
+      'claude3-openrouter',
+      this.claude3Quota.used,
+      this.claude3Quota.limit,
+      new Date(this.claude3Quota.lastReset)
+    );
 
     // Track usage
     await trackTokenUsage({
@@ -420,6 +506,14 @@ Descrição detalhada:`;
 
     // Incrementa quota
     this.hfQuota.used++;
+    
+    // Persist quota state to DB
+    await this.saveQuotaToDB(
+      'huggingface',
+      this.hfQuota.used,
+      this.hfQuota.limit,
+      new Date(this.hfQuota.lastReset)
+    );
 
     // Track usage
     const tokensUsed = Math.ceil(description.length / 4);
@@ -523,7 +617,7 @@ Descrição detalhada:`;
   /**
    * Reset quotas a cada 24h
    */
-  private resetQuotasIfNeeded(): void {
+  private async resetQuotasIfNeeded(): Promise<void> {
     const now = Date.now();
     const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -536,6 +630,9 @@ Descrição detalhada:`;
       });
       this.geminiQuota.used = 0;
       this.geminiQuota.lastReset = now;
+      
+      // Persist reset to DB
+      await this.saveQuotaToDB('gemini', 0, this.geminiQuota.limit, new Date(now));
     }
 
     if (now - this.gpt4vQuota.lastReset >= DAY_MS) {
@@ -547,6 +644,9 @@ Descrição detalhada:`;
       });
       this.gpt4vQuota.used = 0;
       this.gpt4vQuota.lastReset = now;
+      
+      // Persist reset to DB
+      await this.saveQuotaToDB('gpt4v-openrouter', 0, this.gpt4vQuota.limit, new Date(now));
     }
 
     if (now - this.claude3Quota.lastReset >= DAY_MS) {
@@ -558,6 +658,9 @@ Descrição detalhada:`;
       });
       this.claude3Quota.used = 0;
       this.claude3Quota.lastReset = now;
+      
+      // Persist reset to DB
+      await this.saveQuotaToDB('claude3-openrouter', 0, this.claude3Quota.limit, new Date(now));
     }
 
     if (now - this.hfQuota.lastReset >= DAY_MS) {
@@ -569,6 +672,78 @@ Descrição detalhada:`;
       });
       this.hfQuota.used = 0;
       this.hfQuota.lastReset = now;
+      
+      // Persist reset to DB
+      await this.saveQuotaToDB('huggingface', 0, this.hfQuota.limit, new Date(now));
+    }
+  }
+
+  /**
+   * Salva estado de quota no PostgreSQL
+   */
+  private async saveQuotaToDB(
+    provider: 'gemini' | 'gpt4v-openrouter' | 'claude3-openrouter' | 'huggingface',
+    used: number,
+    limit: number,
+    lastReset: Date
+  ): Promise<void> {
+    try {
+      await db
+        .insert(visionQuotaState)
+        .values({
+          provider,
+          used,
+          limit,
+          lastReset
+        })
+        .onConflictDoUpdate({
+          target: visionQuotaState.provider,
+          set: {
+            used,
+            limit,
+            lastReset,
+            updatedAt: new Date()
+          }
+        });
+    } catch (error) {
+      // Non-throwing: persistence failure doesn't break vision logic
+      log.error('Failed to save vision quota state to DB', {
+        component: 'VisionCascade',
+        provider,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Carrega estado de quota do PostgreSQL
+   */
+  private async loadQuotaFromDB(
+    provider: 'gemini' | 'gpt4v-openrouter' | 'claude3-openrouter' | 'huggingface'
+  ): Promise<{ used: number; limit: number; lastReset: number } | null> {
+    try {
+      const result = await db
+        .select()
+        .from(visionQuotaState)
+        .where(eq(visionQuotaState.provider, provider))
+        .limit(1);
+
+      if (result.length === 0) {
+        return null;
+      }
+
+      return {
+        used: result[0].used,
+        limit: result[0].limit,
+        lastReset: result[0].lastReset.getTime()
+      };
+    } catch (error) {
+      log.warn('Failed to load vision quota state from DB', {
+        component: 'VisionCascade',
+        provider,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return null;
     }
   }
 

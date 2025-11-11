@@ -60,7 +60,7 @@ class LinkCaptureWorker {
       }
 
       const metadata = job.metadata as any || {};
-      const crawler = new DeepCrawler(job.url, {
+      const crawler = await DeepCrawler.create(job.url, {
         maxDepth: metadata.maxDepth || 5,
         maxPages: metadata.maxPages || 100,
         includeImages: metadata.includeImages !== false
