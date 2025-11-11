@@ -35,6 +35,7 @@ interface QuotaStatus {
   remainingSessionSeconds: number;
   weeklyUsedSeconds?: number;
   weeklyRemainingSeconds?: number;
+  weeklyMaxSeconds?: number;  // 🔥 NEW: Total weekly quota (30h for Kaggle)
   utilizationPercent: number;
   canStart: boolean;
   shouldStop: boolean;
@@ -56,11 +57,17 @@ export class IntelligentQuotaManager {
   private readonly COLAB_MAX_SESSION = 12 * 3600;  // 12h
   private readonly COLAB_SAFETY = Math.floor(12 * 3600 * 0.7);  // 70% = 8.4h
   
-  // KAGGLE LIMITS (GPU only - we don't use CPU)
-  private readonly KAGGLE_MAX_SESSION = 9 * 3600;   // 9h session limit
-  private readonly KAGGLE_SESSION_SAFETY = Math.floor(9 * 3600 * 0.7);  // 70% = 6.3h
+  // KAGGLE LIMITS
+  // 🔥 CRITICAL: Kaggle has DIFFERENT quotas for GPU vs CPU!
+  // - GPU: 12h/session, 30h/week (we use this)
+  // - CPU: 9h/session, 30h/week
+  private readonly KAGGLE_GPU_MAX_SESSION = 12 * 3600;  // 12h GPU session
+  private readonly KAGGLE_GPU_SAFETY = Math.floor(12 * 3600 * 0.7);  // 70% = 8.4h
   
-  private readonly KAGGLE_WEEKLY_QUOTA = 30 * 3600;     // 30h/week
+  private readonly KAGGLE_CPU_MAX_SESSION = 9 * 3600;   // 9h CPU session
+  private readonly KAGGLE_CPU_SAFETY = Math.floor(9 * 3600 * 0.7);  // 70% = 6.3h
+  
+  private readonly KAGGLE_WEEKLY_QUOTA = 30 * 3600;     // 30h/week (both GPU+CPU)
   private readonly KAGGLE_WEEKLY_SAFETY = Math.floor(30 * 3600 * 0.7);  // 70% = 21h
   
   /**
@@ -112,6 +119,7 @@ export class IntelligentQuotaManager {
       remainingSessionSeconds: remainingSession,
       weeklyUsedSeconds: worker.provider === 'kaggle' ? weeklyUsed : undefined,
       weeklyRemainingSeconds: weeklyRemaining,
+      weeklyMaxSeconds: worker.provider === 'kaggle' ? this.KAGGLE_WEEKLY_SAFETY : undefined,  // 🔥 70% de 30h = 21h
       utilizationPercent: utilization,
       canStart,
       shouldStop,
@@ -248,9 +256,9 @@ export class IntelligentQuotaManager {
     
     // 🔥 CRITICAL FIX: Use TRUE provider maximum, NOT safe-session limit
     // This ensures we compare against the REAL 70% threshold, not a reduced one
-    // Colab: 12h, Kaggle: 9h (GPU only)
+    // Colab: 12h, Kaggle: 12h GPU (we use GPU only)
     const trueProviderMax = status.provider === 'kaggle' 
-      ? this.KAGGLE_MAX_SESSION  // 9h for Kaggle
+      ? this.KAGGLE_GPU_MAX_SESSION  // 12h for Kaggle GPU
       : this.COLAB_MAX_SESSION;  // 12h for Colab
     
     const quotaAfterJob = (afterJobSeconds / trueProviderMax) * 100;

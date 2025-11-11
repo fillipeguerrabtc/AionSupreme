@@ -1985,7 +1985,7 @@ const translations: Record<Language, Translations> = {
         // Quota
         quota: {
           sessionTemplate: "Sessão: {used}h / {max}h",
-          weekTemplate: "Semana: {used}h / 30h",
+          weekTemplate: "Semana: {used}h / {max}h",  // Dynamic max (21h = 70% of 30h)
           hourUnit: "h",
         },
         
@@ -3381,7 +3381,7 @@ const translations: Record<Language, Translations> = {
         // Quota
         quota: {
           sessionTemplate: "Session: {used}h / {max}h",
-          weekTemplate: "Week: {used}h / 30h",
+          weekTemplate: "Week: {used}h / {max}h",  // Dynamic max (21h = 70% of 30h)
           hourUnit: "h",
         },
         
@@ -4777,7 +4777,7 @@ const translations: Record<Language, Translations> = {
         // Quota
         quota: {
           sessionTemplate: "Sesión: {used}h / {max}h",
-          weekTemplate: "Semana: {used}h / 30h",
+          weekTemplate: "Semana: {used}h / {max}h",  // Dynamic max (21h = 70% of 30h)
           hourUnit: "h",
         },
         

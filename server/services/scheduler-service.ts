@@ -655,7 +655,65 @@ export class SchedulerService {
       errorCount: 0,
     });
 
-    // 🔥 JOB 18: Tombstone Cleanup - Diariamente às 02:00 UTC (Retention policy enforcement)
+    // 🔥 JOB 18: Curation GC - Rejected Items Cleanup (30-day retention)
+    // CRITICAL: Implements "Healthy Forgetting" for rejected content
+    // - Multi-stage deletion: rejected → expiresAt (30d) → hard delete
+    // - Tombstone pattern: metadata retained in audit logs
+    // - GDPR compliance: data minimization + storage limitation
+    this.register({
+      name: 'curation-gc-rejected',
+      schedule: '0 2 * * *', // Daily at 02:00 UTC (off-peak hours)
+      task: async () => {
+        try {
+          logger.info('🗑️ Starting curation GC - rejected items cleanup');
+          
+          const { curationStore } = await import('../curation/store');
+          const result = await curationStore.cleanupExpiredRejectedItems();
+          
+          if (result) {
+            logger.info(`✅ Deleted ${result.curationItemsDeleted} expired rejected items (30d retention)`);
+          } else {
+            logger.info('✅ No expired rejected items to cleanup');
+          }
+        } catch (error: any) {
+          logger.error(`❌ Curation GC (rejected) error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 19: Curation GC - Old Data Cleanup (5-year retention)
+    // CRITICAL: Removes approved/rejected items older than 5 years
+    // - Compliance: LGPD Art. 16 (legitimate retention period)
+    // - Keeps pending items indefinitely (HITL review required)
+    // - Runs monthly (1st day) for performance optimization
+    this.register({
+      name: 'curation-gc-old-data',
+      schedule: '0 6 1 * *', // Monthly on 1st day at 06:00 UTC
+      task: async () => {
+        try {
+          logger.info('🗄️ Starting curation GC - 5-year retention cleanup');
+          
+          const { curationStore } = await import('../curation/store');
+          const result = await curationStore.cleanupOldCurationData();
+          
+          if (result) {
+            logger.info(`✅ Deleted ${result.curationItemsDeleted} curation items older than 5 years`);
+          } else {
+            logger.info('✅ No old curation data to cleanup');
+          }
+        } catch (error: any) {
+          logger.error(`❌ Curation GC (old data) error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 20: Tombstone Cleanup - Diariamente às 02:00 UTC (Retention policy enforcement)
     // CRITICAL: Deletes expired tombstones based on retention policies
     // Respects retentionUntil field (NULL = keep forever)
     // Comprehensive audit logging for GDPR compliance

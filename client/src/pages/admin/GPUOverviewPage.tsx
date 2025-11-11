@@ -30,6 +30,7 @@ interface QuotaStatus {
   remainingSessionSeconds: number;
   weeklyUsedSeconds?: number;
   weeklyRemainingSeconds?: number;
+  weeklyMaxSeconds?: number;  // Total weekly quota (21h = 70% of 30h for Kaggle)
   utilizationPercent: number;
   canStart: boolean;
   shouldStop: boolean;
@@ -285,11 +286,14 @@ export default function GPUOverviewPage() {
     const weeklyUsed = quota.weeklyUsedSeconds
       ? (quota.weeklyUsedSeconds / 3600).toFixed(1)
       : null;
+    const weeklyMax = quota.weeklyMaxSeconds
+      ? (quota.weeklyMaxSeconds / 3600).toFixed(0)  // 70% de 30h = 21h
+      : null;
 
     return (
       <div className="text-xs text-muted-foreground" data-testid="quota-info">
         <div>{interpolate(t.admin.gpuManagement.quota.sessionTemplate, { used: hoursUsed, max: hoursMax })}</div>
-        {weeklyUsed && <div>{interpolate(t.admin.gpuManagement.quota.weekTemplate, { used: weeklyUsed })}</div>}
+        {weeklyUsed && weeklyMax && <div>{interpolate(t.admin.gpuManagement.quota.weekTemplate, { used: weeklyUsed, max: weeklyMax })}</div>}
       </div>
     );
   };
