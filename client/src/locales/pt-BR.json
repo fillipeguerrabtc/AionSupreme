@@ -3,10 +3,10 @@
     "adapter_aggregator": {
       "error": "error",
       "no_adapters_to_aggregate": "No adapters to aggregate",
-      "python_aggregation_script_failed": "Falha no script de agregação Python"
+      "python_aggregation_script_failed": "Python aggregation script failed"
     },
     "addworkerdialog": {
-      "failed_to_provision_kaggle": "Falhou ao provisionar worker do Kaggle. Por favor, verifique suas credenciais e tente novamente.",
+      "failed_to_provision_kaggle": "Failed to provision Kaggle worker. Please verify your credentials and try again.",
       "kaggle_provision_frontend_error": "[Kaggle Provision] Frontend: Error!"
     },
     "adminsidebar": {
@@ -32,9 +32,9 @@
       "error": "error"
     },
     "agent_relationships": {
-      "agent_cannot_be_its": "Agente não pode ser seu próprio pai",
-      "parentagentid_and_childagentid_are": "parentAgentId e childAgentId são obrigatórios",
-      "this_relationship_would_create": "Este relacionamento criaria um ciclo na hierarquia"
+      "agent_cannot_be_its": "Agent cannot be its own parent",
+      "parentagentid_and_childagentid_are": "parentAgentId and childAgentId are required",
+      "this_relationship_would_create": "This relationship would create a cycle in the hierarchy"
     },
     "agents": {
       "agent_not_found": "Agent not found",
@@ -43,9 +43,9 @@
       "slug_no_pode_ser": "Slug não pode ser modificado - é gerado automaticamente pelo sistema"
     },
     "alert_service": {
-      "email_send_failed": "Falha ao enviar email",
+      "email_send_failed": "Email send failed",
       "webhook_failed_will_retry": "Webhook failed, will retry",
-      "webhook_send_failed": "Falha ao enviar webhook"
+      "webhook_send_failed": "Webhook send failed"
     },
     "app_errors": {
       "embeddingfailed": "EMBEDDING_FAILED",
@@ -76,9 +76,9 @@
       "auth_error_checking_admin": "[Auth] Error checking admin role:",
       "auth_error_checking_user": "[Auth] Error checking user permission:",
       "auth_error_fetching_user": "[Auth] Error fetching user permissions:",
-      "authentication_failed": "Autenticação falhou",
+      "authentication_failed": "Authentication failed",
       "forbidden": "Forbidden",
-      "internal_server_error": "Erro Interno do Servidor",
+      "internal_server_error": "Internal Server Error",
       "invalid_api_key": "Invalid API key",
       "missing_or_invalid_authorization": "Missing or invalid authorization header",
       "unauthorized": "Unauthorized"
@@ -95,9 +95,9 @@
       "autoapproval_api_error_generating": "[AutoApproval API] Error generating preview:",
       "autoapproval_api_error_refreshing": "[AutoApproval API] Error refreshing cache:",
       "autoapproval_api_error_updating": "[AutoApproval API] Error updating config:",
-      "maxrejectscore_must_be_less": "maxRejectScore deve ser menor que minApprovalScore para criar intervalo de revisão",
-      "score_must_be_a": "A pontuação deve ser um número entre 0 e 100",
-      "validation_failed": "Validação falhou"
+      "maxrejectscore_must_be_less": "maxRejectScore must be less than minApprovalScore to create review range",
+      "score_must_be_a": "Score must be a number between 0 and 100",
+      "validation_failed": "Validation failed"
     },
     "auto_fallback": {
       "content_extraction_failed": "Content extraction failed.",
@@ -110,8 +110,8 @@
       "i_cannot_help": "i cannot help"
     },
     "auto_recovery": {
-      "autorecovery_check_failed": "[Auto-Recovery] Verificação falhou",
-      "autorecovery_initial_check_failed": "[Auto-Recovery] Verificação inicial falhou",
+      "autorecovery_check_failed": "[Auto-Recovery] Check failed",
+      "autorecovery_initial_check_failed": "[Auto-Recovery] Initial check failed",
       "failed": "failed"
     },
     "auto_scaling_service": {
@@ -120,7 +120,7 @@
       "autoscaling_worker_selection_failed": "[Auto-Scaling] Worker selection failed:"
     },
     "automatic_fallback": {
-      "all_llm_providers_failed": "Todos os provedores de LLM falharam",
+      "all_llm_providers_failed": "All LLM providers failed",
       "fallback_error_during_fallback": "[Fallback] Error during fallback:",
       "fallbackfailed": "-fallback-failed"
     },
@@ -132,13 +132,13 @@
       "failed_to_checkdelete_temp": "Failed to check/delete temp backup file",
       "failed_to_create_temp": "Failed to create temp backups directory",
       "pgdump_not_available_and": "pg_dump not available and Drizzle fallback not implemented yet",
-      "rate_limit_check_failed": "Falha na verificação do limite de taxa",
+      "rate_limit_check_failed": "Rate limit check failed",
       "restore_failed": "Restore failed",
-      "temp_backup_cleanup_failed": "Falha na limpeza do backup temporário"
+      "temp_backup_cleanup_failed": "Temp backup cleanup failed"
     },
     "backup": {
-      "backup_creation_error": "Erro na criação do backup",
-      "backup_creation_failed": "Falha na criação do backup",
+      "backup_creation_error": "Backup creation error",
+      "backup_creation_failed": "Backup creation failed",
       "backup_creation_failed_rate": "Backup creation failed (rate limit or validation)",
       "error": "error",
       "error_deleting_backup_operation": "Error deleting backup operation",
@@ -151,7 +151,7 @@
       "restore_failed": "Restore failed",
       "restore_failed_no_backup": "Restore failed: No backup file uploaded",
       "restore_failed_validation_or": "Restore failed (validation or rate limit)",
-      "restore_operation_error": "Erro na operação de restauração",
+      "restore_operation_error": "Restore operation error",
       "validation_error_deleting_operation": "Validation error deleting operation",
       "validation_error_fetching_operation": "Validation error fetching operation",
       "validation_error_listing_operations": "Validation error listing operations",
@@ -161,14 +161,14 @@
       "billing_backfill_backfill_failed": "[Billing Backfill] ❌ Backfill failed:"
     },
     "carousel": {
-      "usecarousel_must_be_used": "useCarousel deve ser usado dentro de um <Carousel />"
+      "usecarousel_must_be_used": "useCarousel must be used within a <Carousel />"
     },
     "cascade": {
-      "bulk_cascade_deletion_failed": "Falha na exclusão em massa em cascata",
+      "bulk_cascade_deletion_failed": "Bulk cascade deletion failed",
       "cascade_api_error_during": "[Cascade API] Error during deletion:",
       "cascade_api_error_fetching": "[Cascade API] Error fetching dependencies:",
-      "cascade_deletion_failed": "Falha na exclusão em cascata",
-      "internal_server_error": "Erro interno do servidor",
+      "cascade_deletion_failed": "Cascade deletion failed",
+      "internal_server_error": "Internal server error",
       "invalid_document_id": "Invalid document ID",
       "invalid_request_body": "Invalid request body",
       "invalid_tombstone_id": "Invalid tombstone ID"
@@ -177,7 +177,7 @@
       "error": "{{error}}"
     },
     "chart": {
-      "usechart_must_be_used": "useChart deve ser usado dentro de um <ChartContainer />"
+      "usechart_must_be_used": "useChart must be used within a <ChartContainer />"
     },
     "chat_ingestion": {
       "error": "error",
@@ -192,29 +192,29 @@
     },
     "circuit_breaker": {
       "circuit_open_too_many": "Circuit OPEN - too many failures",
-      "failed_to_load_circuit": "Falha ao carregar o estado do disjuntor do DB",
-      "failed_to_load_state": "Falha ao carregar o estado do DB",
-      "failed_to_save_state": "Falha ao salvar o estado no DB",
-      "halfopen_open_recovery_failed": "HALF_OPEN → OPEN - recuperação falhou"
+      "failed_to_load_circuit": "Failed to load circuit breaker state from DB",
+      "failed_to_load_state": "Failed to load state from DB",
+      "failed_to_save_state": "Failed to save state to DB",
+      "halfopen_open_recovery_failed": "HALF_OPEN → OPEN - recovery failed"
     },
     "colab_creator": {
       "2farequired": "2FA_REQUIRED",
-      "2farequired_please_disable_2fa": "2FA_REQUIRED: Por favor, desative a 2FA para esta conta ou faça login manualmente primeiro para persistir a sessão",
+      "2farequired_please_disable_2fa": "2FA_REQUIRED: Please disable 2FA for this account or login manually first to persist session",
       "colab_creator_failed_to": "[Colab Creator] Failed to create session directory:",
       "colab_creator_login_required": "[Colab Creator] Login required, authenticating...",
-      "colab_creator_xpath_fallback": "[Colab Creator] Falha no fallback do XPath",
+      "colab_creator_xpath_fallback": "[Colab Creator] XPath fallback failed",
       "failed_to_open_runtime": "Failed to open runtime settings dialog",
       "loginerror": "LOGIN_ERROR",
       "loginerror_invalid_credentials_or": "LOGIN_ERROR: Invalid credentials or account issue detected",
-      "loginverificationfailed_could_not_verify": "LOGIN_VERIFICATION_FAILED: Não foi possível verificar o login com sucesso",
-      "password_required_for_firsttime": "Senha necessária para o primeiro login. Por favor, forneça as credenciais ou faça login manualmente primeiro."
+      "loginverificationfailed_could_not_verify": "LOGIN_VERIFICATION_FAILED: Could not verify successful login",
+      "password_required_for_firsttime": "Password required for first-time login. Please provide credentials or login manually first."
     },
     "colab_orchestrator": {
       "captcha_detected_requires_manual": "CAPTCHA detected - requires manual intervention",
-      "failed_to_detect_ngrok": "Falha ao detectar a URL do Ngrok nos logs",
+      "failed_to_detect_ngrok": "Failed to detect Ngrok URL in logs",
       "login_failed": "Login failed",
       "manualinterventionrequired": "manual_intervention_required",
-      "session_not_found": "Sessão não encontrada"
+      "session_not_found": "Session not found"
     },
     "collector": {
       "failed_to_persist_metrics": "Failed to persist metrics",
@@ -242,7 +242,7 @@
       "errorsubagentprompt": "error-subagent-prompt"
     },
     "csrf": {
-      "csrf_validation_failed": "Falha na validação CSRF"
+      "csrf_validation_failed": "CSRF validation failed"
     },
     "curation": {
       "absorption_from_queue_duplicates": "Absorption from queue duplicates not yet implemented. Please approve or reject manually.",
@@ -252,24 +252,24 @@
       "can_only_preview_absorption": "Can only preview absorption for near-duplicates (85-98% similar)",
       "curation_absorb_partial_error": "[Curation] Absorb partial error:",
       "curation_image_scan_error": "[Curation] Image scan error:",
-      "curation_item_not_found": "Item de curadoria não encontrado",
+      "curation_item_not_found": "Curation item not found",
       "curation_preview_absorption_error": "[Curation] Preview absorption error:",
       "curation_reprocess_error": "[Curation] Reprocess error:",
       "curation_scan_duplicates_error": "[Curation] Scan duplicates error:",
       "document_already_has_embeddings": "Document already has embeddings (not orphaned)",
-      "document_not_found": "Documento não encontrado",
+      "document_not_found": "Document not found",
       "duplicate_content_detected": "Duplicate content detected",
-      "duplicate_content_not_found": "Conteúdo duplicado não encontrado",
+      "duplicate_content_not_found": "Duplicate content not found",
       "duplicatecontenterror": "DuplicateContentError",
       "invalid_document_id": "Invalid document ID",
       "item_has_no_attachments": "Item has no attachments",
       "item_not_found": "Item not found",
-      "item_not_found_or": "Item não encontrado ou já processado",
+      "item_not_found_or": "Item not found or already processed",
       "missing_or_invalid_field": "Missing or invalid field: ids (must be non-empty array)",
       "missing_required_field_id": "Missing required field: id",
       "missing_required_field_reviewedby": "Missing required field: reviewedBy",
       "missing_required_fields_id": "Missing required fields: id, reviewedBy",
-      "vision_api_failed": "Falha na Vision API"
+      "vision_api_failed": "Vision API failed"
     },
     "data_collector": {
       "error": "error",
@@ -280,8 +280,8 @@
       "failed_to_delete_temp": "Failed to delete temp file after validation failure:"
     },
     "dataset_validator": {
-      "csv_file_must_have": "O arquivo CSV deve ter pelo menos um cabeçalho e uma linha de dados",
-      "json_file_must_contain": "O arquivo JSON deve conter um array de exemplos"
+      "csv_file_must_have": "CSV file must have at least a header and one data row",
+      "json_file_must_contain": "JSON file must contain an array of examples"
     },
     "datasetstab": {
       "failed": "failed"
@@ -292,7 +292,7 @@
     },
     "db": {
       "database_failed_to_set": "[Database] Failed to set timezone:",
-      "databaseurl_must_be_set": "DATABASE_URL deve ser configurado. Você esqueceu de provisionar um banco de dados?"
+      "databaseurl_must_be_set": "DATABASE_URL must be set. Did you forget to provision a database?"
     },
     "deduplication_service": {
       "deduplication_error_comparing_embeddings": "[Deduplication] Error comparing embeddings:",
@@ -313,8 +313,8 @@
       "quota_limits_reached": "Quota limits reached"
     },
     "embedder": {
-      "cannot_embed_empty_text": "Não é possível incorporar texto vazio",
-      "vectors_must_have_same": "Os vetores devem ter o mesmo comprimento"
+      "cannot_embed_empty_text": "Cannot embed empty text",
+      "vectors_must_have_same": "Vectors must have same length"
     },
     "enforcement_pipeline": {
       "extreme_precision_required_exact": "EXTREME PRECISION required. Exact numbers, citations, sources."
@@ -378,7 +378,7 @@
       "gpucooldownmanager_error_clearing_cooldown": "[GPUCooldownManager] Error clearing cooldown:",
       "gpucooldownmanager_error_recording_session": "[GPUCooldownManager] Error recording session start:",
       "gpucooldownmanager_error_resetting_weekly": "[GPUCooldownManager] Error resetting weekly quotas:",
-      "worker_not_found": "Worker não encontrado"
+      "worker_not_found": "Worker not found"
     },
     "gpu_deletion_service": {
       "failed": "failed",
@@ -389,7 +389,7 @@
       "failed_to_delete_colab": "Failed to delete Colab notebook",
       "failed_to_delete_kaggle": "Failed to delete Kaggle notebook",
       "google_email_required_for": "Google email required for Colab",
-      "kaggle_username_and_api": "Nome de usuário do Kaggle e chave de API necessários"
+      "kaggle_username_and_api": "Kaggle username and API key required"
     },
     "gpu_watchdog_service": {
       "error_executing_shutdown": "Error executing shutdown",
@@ -399,8 +399,8 @@
       "shutdown_callback_failed_marking": "Shutdown callback failed - marking session inactive anyway"
     },
     "gpu": {
-      "an_unexpected_error_occurred": "Ocorreu um erro inesperado ao provisionar o worker do Kaggle. Por favor, verifique os logs para mais detalhes.",
-      "authentication_failed": "Autenticação falhou",
+      "an_unexpected_error_occurred": "An unexpected error occurred while provisioning Kaggle worker. Please check logs for details.",
+      "authentication_failed": "authentication failed",
       "autoscaling_cluster_metrics_error": "[Auto-Scaling] Cluster metrics error:",
       "autoscaling_evaluate_error": "[Auto-Scaling] Evaluate error:",
       "autoscaling_recalculate_error": "[Auto-Scaling] Recalculate error:",
@@ -443,12 +443,12 @@
       "phone_verification_required_go": "⚠️ PHONE VERIFICATION REQUIRED\n\n📱 Go to kaggle.com/settings and verify your phone number.\nAPI access is blocked until verification is complete.",
       "phone_verification_required_kaggle": "⚠️ PHONE VERIFICATION REQUIRED\n\nKaggle API requires phone verification before you can use API credentials.\n\n📱 REQUIRED STEPS:\n1. Go to: kaggle.com/settings\n2. Find section: 'Phone Verification'\n3. Click 'Not Verified' link\n4. Select your country code\n5. Enter phone WITHOUT leading zero\n   Example: +55 Brazil → 11987654321 (not 011987654321)\n6. Enter SMS code\n7. Generate NEW API token after verification\n8. Try again here\n\n✅ This is required by Kaggle, not AION.",
       "unknown_error": "Unknown error",
-      "username_and_api_key": "Nome de usuário e chave de API necessários",
-      "username_and_apikey_required": "Nome de usuário e apiKey necessários",
-      "username_required": "Nome de usuário necessário",
-      "worker_not_found": "Worker não encontrado",
-      "workerid_required": "workerId necessário",
-      "workerids_array_required": "Array de workerIds necessário"
+      "username_and_api_key": "Username and API key required",
+      "username_and_apikey_required": "username and apiKey required",
+      "username_required": "username required",
+      "worker_not_found": "Worker not found",
+      "workerid_required": "workerId required",
+      "workerids_array_required": "workerIds array required"
     },
     "gradient_aggregation_coordinator": {
       "failed": "failed"
@@ -457,7 +457,7 @@
       "heartbeat_monitor_error_checking": "[Heartbeat Monitor] Error checking heartbeats:"
     },
     "hierarchical_planner": {
-      "unable_to_complete_the": "Não foi possível completar o objetivo - todas as sub-metas falharam."
+      "unable_to_complete_the": "Unable to complete the goal - all sub-goals failed."
     },
     "hierarchy_orchestrator": {
       "hierarchy_failed_to_log": "[Hierarchy] Failed to log trace:",
@@ -473,15 +473,15 @@
       "campos_obrigatrios": "Campos obrigatórios",
       "carga_fallida": "❌ Carga Fallida",
       "could_not_load_provider": "Could not load provider information",
-      "dataset_generation_failed": "❌ Falha na Geração do Dataset",
+      "dataset_generation_failed": "❌ Dataset Generation Failed",
       "dataset_obrigatrio": "⚠️ Dataset Obrigatório",
       "dataset_requerido": "⚠️ Dataset Requerido",
-      "dataset_required": "⚠️ Dataset Necessário",
+      "dataset_required": "⚠️ Dataset Required",
       "ejecucin_fallida": "Ejecución fallida",
-      "email_and_google_password": "Email e senha do Google são obrigatórios",
+      "email_and_google_password": "Email and Google password are required",
       "email_e_senha_do": "Email e senha do Google são obrigatórios",
       "email_y_contrasea_de": "Email y contraseña de Google son obligatorios",
-      "enter_a_name_for": "Insira um nome para o trabalho de treinamento",
+      "enter_a_name_for": "Enter a name for the training job",
       "erro": "Erro",
       "erro_ao_aprovar": "Erro ao aprovar",
       "erro_ao_atualizar": "Erro ao atualizar",
@@ -554,7 +554,7 @@
       "error_updating_configuration": "Error updating configuration",
       "error_updating_permission": "Error updating permission",
       "error_uploading_backup_file": "Error uploading backup file",
-      "execution_failed": "Execução falhou",
+      "execution_failed": "Execution failed",
       "export_failed": "Export failed",
       "failed": "Failed",
       "failed_requests": "failed requests",
@@ -565,12 +565,12 @@
       "failed_to_generate_png": "Failed to generate PNG",
       "failed_to_initialize_conversation": "Failed to initialize conversation",
       "failed_to_load_conversation": "Failed to load conversation",
-      "failed_to_load_dependency": "Falha ao carregar o gráfico de dependência: {{error}}",
+      "failed_to_load_dependency": "Failed to load dependency graph: {{error}}",
       "failed_to_orchestrate_colab": "Failed to orchestrate Colab notebook",
       "failed_to_process_files": "Failed to process files",
       "failed_to_remove_gpu": "Failed to remove GPU worker",
       "failed_to_revoke_permission": "Failed to revoke permission",
-      "failed_to_transcribe_audio": "Falha ao transcrever o áudio. Por favor, tente novamente.",
+      "failed_to_transcribe_audio": "Failed to transcribe audio. Please try again.",
       "failed_to_update_user": "Failed to update user",
       "failed_to_update_worker": "Failed to update worker",
       "falha_ao_atribuir_permisso": "Falha ao atribuir permissão",
@@ -597,20 +597,20 @@
       "fallado": "Fallado",
       "fallido": "Fallido",
       "fallidos": "Fallidos",
-      "file_required": "⚠️ Arquivo Necessário",
+      "file_required": "⚠️ File Required",
       "formato_invlido": "Formato inválido",
       "formato_invlido_para_namespace": "Formato inválido para namespace raiz",
       "generacin_de_dataset_fallida": "❌ Generación de Dataset Fallida",
-      "if_enabled_content_must": "Se ativado, o conteúdo deve passar por todos os 5 portões de qualidade",
+      "if_enabled_content_must": "If enabled, content must pass all 5 quality gates",
       "insira_um_nome_para": "Insira um nome para o training job",
       "introduce_un_nombre_para": "Introduce un nombre para el training job",
       "invalid_format": "Invalid format",
       "invalid_format_for_root": "Invalid format for root namespace",
       "mdulo_es_obligatorio": "Módulo es obligatorio",
       "mdulo_obrigatrio": "Módulo é obrigatório",
-      "module_is_required": "Módulo é obrigatório",
-      "name_is_required": "Nome é obrigatório",
-      "name_required": "⚠️ Nome Necessário",
+      "module_is_required": "Module is required",
+      "name_is_required": "Name is required",
+      "name_required": "⚠️ Name Required",
       "namespace_padre_obligatorio": "Namespace padre obligatorio",
       "namespace_pai_obrigatrio": "Namespace pai obrigatório",
       "no_foi_possvel_carregar": "Não foi possível carregar informações dos provedores",
@@ -624,49 +624,49 @@
       "nombre_requerido": "⚠️ Nombre Requerido",
       "nome_obrigatrio": "⚠️ Nome Obrigatório",
       "not_required": "Not Required",
-      "parent_namespace_required": "Namespace pai é obrigatório",
+      "parent_namespace_required": "Parent namespace required",
       "please_enter_a_dataset": "Please enter a dataset name",
       "please_enter_a_namespace": "Please enter a namespace name",
-      "please_provide_a_gdprspecific": "Por favor, forneça um motivo específico de GDPR para exclusão",
-      "please_select_a_dataset": "Por favor, selecione um dataset para treinamento",
+      "please_provide_a_gdprspecific": "Please provide a GDPR-specific reason for deletion",
+      "please_select_a_dataset": "Please select a dataset for training",
       "please_select_a_deletion": "Please select a deletion reason",
-      "please_select_a_file": "Por favor, selecione um arquivo para upload",
+      "please_select_a_file": "Please select a file to upload",
       "por_favor_fornea_um": "Por favor, forneça um motivo específico para exclusão por LGPD/GDPR",
       "por_favor_ingresa_un": "Por favor, ingresa un nombre para el dataset",
       "por_favor_insira_um": "Por favor, insira um nome para o dataset",
       "por_favor_proporciona_un": "Por favor, proporciona un motivo específico para la eliminación por RGPD",
       "por_favor_selecciona_un": "Por favor, selecciona un motivo de eliminación",
       "por_favor_selecione_um": "Por favor, selecione um motivo de exclusão",
-      "rejection_score_must_be": "A pontuação de rejeição deve ser menor que a pontuação de aprovação",
+      "rejection_score_must_be": "Rejection score must be less than approval score",
       "required_fields": "Required fields",
       "requisies_falhadas": "requisições falhadas",
-      "root_namespace_cannot_contain": "O namespace raiz não pode conter '/'",
+      "root_namespace_cannot_contain": "Root namespace cannot contain '/'",
       "search_error": "Search error",
       "seleccione_al_menos_un": "Seleccione al menos un permiso de acceso",
       "seleccione_al_menos_una": "Seleccione al menos una acción",
       "selecione_pelo_menos_uma": "Selecione pelo menos uma permissão de acesso",
       "select_at_least_one": "Select at least one access permission",
       "solicitudes_fallidas": "solicitudes fallidas",
-      "start_date_must_be": "A data de início deve ser anterior à data de término",
+      "start_date_must_be": "Start date must be before end date",
       "submdulo_es_obligatorio": "Submódulo es obligatorio",
       "submdulo_obrigatrio": "Submódulo é obrigatório",
-      "submodule_is_required": "Submódulo é necessário",
+      "submodule_is_required": "Submodule is required",
       "subnamespace_debe_estar_en": "Sub-namespace debe estar en formato padre/hijo",
       "subnamespace_deve_estar_no": "Sub-namespace deve estar no formato pai/filho",
-      "subnamespace_must_be_in": "O subnamespace deve estar no formato pai/filho",
+      "subnamespace_must_be_in": "Sub-namespace must be in parent/child format",
       "tasa_de_errores": "Tasa de Errores",
       "taxa_de_erros": "Taxa de Erros",
-      "this_action_cannot_be": "Esta ação não pode ser desfeita.",
+      "this_action_cannot_be": "This action cannot be undone.",
       "transcrio_falhou": "Transcrição falhou",
       "transcripcin_fall": "Transcripción falló",
-      "transcription_error": "Erro de transcrição",
-      "transcription_failed": "Falha na transcrição",
+      "transcription_error": "Transcription error",
+      "transcription_failed": "Transcription failed",
       "unknown_error": "Unknown error",
       "upload_error": "Upload error",
       "upload_failed": "❌ Upload Failed",
       "upload_falhou": "❌ Upload Falhou",
-      "uselanguage_must_be_used": "useLanguage deve ser usado dentro de LanguageProvider",
-      "username_and_api_key": "Nome de usuário e API Key são necessários",
+      "uselanguage_must_be_used": "useLanguage must be used within LanguageProvider",
+      "username_and_api_key": "Username and API Key are required",
       "username_e_api_key": "Username e API Key são obrigatórios",
       "username_y_api_key": "Username y API Key son obligatorios"
     },
@@ -675,7 +675,7 @@
       "sdxl_worker_returned_invalid": "SD-XL worker returned invalid response"
     },
     "image_generator": {
-      "we_cannot_override_their": "Não podemos substituir seus filtros de segurança para geração de imagens neste momento."
+      "we_cannot_override_their": "We cannot override their safety filters for image generation at this time."
     },
     "imagepreview": {
       "download_failed": "Download failed"
@@ -689,7 +689,7 @@
       "failed_to_initialize_scheduler": "⚠️ Failed to initialize scheduler service:",
       "failed_to_run_billing": "⚠️ Failed to run billing backfill:",
       "full_error_object": "Full error object:",
-      "internal_server_error": "Erro Interno do Servidor"
+      "internal_server_error": "Internal Server Error"
     },
     "inference_complexity_analyzer": {
       "gpurequired": "gpu_required"
@@ -706,7 +706,7 @@
       "error": "error",
       "failed": "failed",
       "kaggle_automation_failed": "[Kaggle Automation] ❌ Failed:",
-      "kaggle_automation_push_command": "[Kaggle Automation] ❌ Comando de push falhou",
+      "kaggle_automation_push_command": "[Kaggle Automation] ❌ Push command failed",
       "printf_register_error_e": "        print(f\"❌ [REGISTER] Error: {e}\")\n"
     },
     "kaggle_cli_service": {
@@ -714,15 +714,15 @@
       "forbidden": "forbidden",
       "html_error_page_received": "HTML error page received",
       "invalid_kaggle_credentials_please": "Invalid Kaggle credentials. Please check your username and API key.",
-      "kaggle_api_returned_an": "A API do Kaggle retornou uma página de erro (possivelmente credenciais inválidas, limite de taxa ou serviço indisponível). Por favor, verifique se seu nome de usuário e chave da API estão corretos.",
+      "kaggle_api_returned_an": "Kaggle API returned an error page (possibly invalid credentials, rate limit, or service unavailable). Please verify your username and API key are correct.",
       "kaggle_cli_bootstrap_failed": "[Kaggle CLI] ❌ Bootstrap failed:",
       "kaggle_cli_failed_to": "[Kaggle CLI] Failed to load accounts:",
       "kaggle_cli_installation_error": "[Kaggle CLI] Installation error:",
-      "kaggle_cli_installation_failed": "[Kaggle CLI] ❌ Instalação falhou"
+      "kaggle_cli_installation_failed": "[Kaggle CLI] ❌ Installation failed"
     },
     "kaggle_orchestrator": {
       "failed_to_detect_ngrok": "Failed to detect Ngrok URL",
-      "session_not_found": "Sessão não encontrada"
+      "session_not_found": "Session not found"
     },
     "kb_analytics": {
       "error_fetching_kbchat_analytics": "Error fetching KB/Chat analytics:",
@@ -734,7 +734,7 @@
       "image_not_found": "Image not found",
       "kb_images_routes_error": "[KB Images Routes] Error listing images:",
       "kb_images_search_error": "[KB Images Search] Error:",
-      "query_is_required": "Consulta é obrigatória"
+      "query_is_required": "Query is required"
     },
     "kb_promote": {
       "kb_promote_error": "[KB Promote] Error:",
@@ -770,7 +770,7 @@
     },
     "load_balancer": {
       "circuit_breaker_open_worker": "Circuit breaker OPEN - worker temporarily unavailable",
-      "load_balancer_request_failed": "[Load Balancer] Falha na solicitação",
+      "load_balancer_request_failed": "[Load Balancer] Request failed",
       "no_gpu_workers_available": "No GPU workers available",
       "unknown_error": "Unknown error"
     },
@@ -778,8 +778,8 @@
       "invalid_email_address": "Invalid email address",
       "invalid_email_or_password": "Invalid email or password",
       "invalid_or_expired_verification": "Invalid or expired verification token",
-      "password_must_be_at": "A senha deve ter pelo menos 8 caracteres",
-      "verification_token_is_required": "Token de verificação é necessário"
+      "password_must_be_at": "Password must be at least 8 characters long",
+      "verification_token_is_required": "Verification token is required"
     },
     "logger_service": {
       "31m": "\u001b[31m",
@@ -806,7 +806,7 @@
       "failed_to_spawn_experts": "❌ Failed to spawn experts",
       "failed_to_trigger_training": "❌ Failed to trigger training",
       "pipeline_already_running_in": "Pipeline already running in another instance",
-      "pipeline_execution_fatal_error": "❌ Erro fatal na execução do pipeline",
+      "pipeline_execution_fatal_error": "❌ Pipeline execution fatal error",
       "stage_1_check_new": "❌ Stage 1 (Check New Data) failed, but continuing pipeline",
       "stage_2_detect_shifts": "❌ Stage 2 (Detect Shifts) failed, but continuing pipeline",
       "stage_3_spawn_experts": "❌ Stage 3 (Spawn Experts) failed, but continuing pipeline",
@@ -817,7 +817,7 @@
       "stage_8_selfimprovement_failed": "❌ Stage 8 (Self-Improvement) failed, but pipeline complete"
     },
     "meta_learning": {
-      "application_failed": "Aplicação falhou",
+      "application_failed": "Application failed",
       "correccin_de_error": "Corrección de Error",
       "failed": "Failed",
       "failed_to_analyze_codebase": "❌ Failed to analyze codebase",
@@ -846,7 +846,7 @@
       "fall": "Falló",
       "pipelinefailed": "pipeline.failed",
       "rollback_failed": "Rollback failed",
-      "validation_failed": "Validação falhou"
+      "validation_failed": "Validation failed"
     },
     "migrate_agent_namespaces": {
       "migration_error_details": "\n[Migration] Error details:",
@@ -858,7 +858,7 @@
     "model_deployment_service": {
       "error_notifying_workers": "   ❌ Error notifying workers:",
       "modeldeployment_error_listing_models": "[ModelDeployment] Error listing models:",
-      "quality_validation_failed": "Falha na validação de qualidade",
+      "quality_validation_failed": "Quality validation failed",
       "rollback_error": "[Rollback] ❌ Error:"
     },
     "namespace_classifier": {
@@ -870,12 +870,12 @@
       "namespace_gc_garbage_collection": "[Namespace GC] ❌ Garbage collection error:"
     },
     "namespace_validators": {
-      "agents_can_only_be": "Os agentes podem ser atribuídos a apenas 1 namespace. Para múltiplos namespaces, crie agentes separados ou use um SubAgente.",
-      "agents_must_be_assigned": "Os agentes devem ser atribuídos a exatamente 1 namespace raiz",
-      "subagents_must_be_assigned": "Os SubAgentes devem ser atribuídos a pelo menos 1 subnamespace"
+      "agents_can_only_be": "Agents can only be assigned to 1 namespace. For multiple namespaces, create separate agents or use a SubAgent.",
+      "agents_must_be_assigned": "Agents must be assigned to exactly 1 root namespace",
+      "subagents_must_be_assigned": "SubAgents must be assigned to at least 1 subnamespace"
     },
     "namespaces": {
-      "content_is_required_and": "O conteúdo é obrigatório e deve ser uma string",
+      "content_is_required_and": "Content is required and must be a string",
       "error_adding_content_to": "Error adding content to curation queue:",
       "error_classifying_content": "Error classifying content:",
       "error_creating_namespace": "Error creating namespace:",
@@ -886,7 +886,7 @@
       "error_running_garbage_collection": "Error running garbage collection:",
       "error_searching_namespaces": "Error searching namespaces:",
       "error_updating_namespace": "Error updating namespace:",
-      "failed_to_add_content": "Falha ao adicionar conteúdo à fila de curadoria",
+      "failed_to_add_content": "Failed to add content to curation queue",
       "failed_to_classify_content": "Failed to classify content",
       "failed_to_create_namespace": "Failed to create namespace",
       "failed_to_delete_namespace": "Failed to delete namespace",
@@ -895,9 +895,9 @@
       "failed_to_run_garbage": "Failed to run garbage collection",
       "failed_to_search_namespaces": "Failed to search namespaces",
       "failed_to_update_namespace": "Failed to update namespace",
-      "namespace_not_found": "Namespace não encontrado",
-      "query_parameter_q_is": "O parâmetro de consulta 'q' é obrigatório",
-      "validation_error": "Erro de validação"
+      "namespace_not_found": "Namespace not found",
+      "query_parameter_q_is": "Query parameter 'q' is required",
+      "validation_error": "Validation error"
     },
     "on_demand_gpu_service": {
       "failed_to_shutdown_idle": "Failed to shutdown idle GPU - will retry next cycle (5min)",
@@ -934,10 +934,10 @@
       "patternanalyzer_error_in_generatetrainingdatafrompatterns": "[PatternAnalyzer] Error in generateTrainingDataFromPatterns:"
     },
     "permissions_catalog": {
-      "at_least_one_action": "Pelo menos uma ação deve ser selecionada"
+      "at_least_one_action": "At least one action must be selected"
     },
     "permissions": {
-      "cannot_delete_permission_in": "Não é possível excluir permissão em uso",
+      "cannot_delete_permission_in": "Cannot delete permission in use",
       "error_assigning_permission_to": "Error assigning permission to role:",
       "error_checking_permission_usage": "Error checking permission usage:",
       "error_creating_permission": "Error creating permission:",
@@ -953,7 +953,7 @@
       "error_revoking_permission_from": "Error revoking permission from role:",
       "error_updating_permission": "Error updating permission:",
       "error_updating_structured_permission": "Error updating structured permission:",
-      "failed_to_assign_permission": "Falha ao atribuir permissão ao papel",
+      "failed_to_assign_permission": "Failed to assign permission to role",
       "failed_to_check_permission": "Failed to check permission usage",
       "failed_to_create_permission": "Failed to create permission",
       "failed_to_create_permissions": "Failed to create permissions",
@@ -963,12 +963,12 @@
       "failed_to_fetch_roles": "Failed to fetch roles",
       "failed_to_fetch_user": "Failed to fetch user permissions",
       "failed_to_fetch_userspecific": "Failed to fetch user-specific permissions",
-      "failed_to_revoke_permission": "Falha ao revogar permissão do papel",
+      "failed_to_revoke_permission": "Failed to revoke permission from role",
       "failed_to_update_permission": "Failed to update permission",
       "missing_required_fields": "Missing required fields",
       "permission_code_already_exists": "Permission code already exists",
-      "permission_not_found": "Permissão não encontrada",
-      "permissionid_is_required": "permissionId é obrigatório",
+      "permission_not_found": "Permission not found",
+      "permissionid_is_required": "permissionId is required",
       "role_already_has_this": "Role already has this permission",
       "role_does_not_have": "Role does not have this permission",
       "role_not_found": "Role not found",
@@ -983,8 +983,8 @@
       "unknownerror": "UnknownError"
     },
     "pm_moe_aggregator": {
-      "pmmoe_aggregation_failed": "❌ PM-MoE: Falha na agregação",
-      "pmmoe_expert_selection_failed": "❌ PM-MoE: Falha na seleção de especialista",
+      "pmmoe_aggregation_failed": "❌ PM-MoE: Aggregation failed",
+      "pmmoe_expert_selection_failed": "❌ PM-MoE: Expert selection failed",
       "pmmoe_failed_to_calculate": "❌ PM-MoE: Failed to calculate energy score",
       "pmmoe_failed_to_record": "❌ PM-MoE: Failed to record filter results"
     },
@@ -1049,15 +1049,15 @@
       "error_starting_session": "Error starting session",
       "error_updating_session_duration": "Error updating session duration",
       "error_validating_quota": "Error validating quota",
-      "session_not_found_cannot": "Sessão não encontrada - não é possível encerrar"
+      "session_not_found_cannot": "Session not found - cannot end"
     },
     "quota_manager": {
       "quotamanager_error_resetting_quotas": "[QuotaManager] ❌ Error resetting quotas:"
     },
     "rate_limit": {
       "ratelimiter_failed_to_cleanup": "[RateLimiter] Failed to cleanup DB",
-      "ratelimiter_failed_to_load": "[RateLimiter] Falha ao carregar do DB",
-      "ratelimiter_failed_to_sync": "[RateLimiter] Falha ao sincronizar com o DB",
+      "ratelimiter_failed_to_load": "[RateLimiter] Failed to load from DB",
+      "ratelimiter_failed_to_sync": "[RateLimiter] Failed to sync to DB",
       "ratelimiter_invalid_window_length": "[RateLimiter] Invalid window length detected, skipping entry"
     },
     "react_engine": {
@@ -1068,11 +1068,11 @@
     "rebuild_service": {
       "failed": "failed",
       "rebuildservice_failed_to_reindex": "[RebuildService] Failed to re-index document",
-      "rebuildservice_queue_processing_failed": "[RebuildService] Falha no processamento da fila",
-      "rebuildservice_rebuild_failed": "[RebuildService] Falha na reconstrução"
+      "rebuildservice_queue_processing_failed": "[RebuildService] Queue processing failed",
+      "rebuildservice_rebuild_failed": "[RebuildService] Rebuild failed"
     },
     "replitauth": {
-      "authentication_error": "Erro de autenticação",
+      "authentication_error": "Authentication error",
       "invalid_credentials": "Invalid credentials",
       "logout_failed": "Logout failed",
       "session_error": "Session error",
@@ -1090,27 +1090,27 @@
       "unknown_error": "Unknown error"
     },
     "route_params": {
-      "agent_id_cannot_be": "ID do agente não pode estar vazio",
-      "attachment_index_must_be": "O índice do anexo deve ser um número inteiro",
-      "chunk_index_must_be": "O índice do chunk deve ser um número inteiro",
-      "document_id_must_be": "O ID do documento deve ser um número inteiro",
+      "agent_id_cannot_be": "Agent ID cannot be empty",
+      "attachment_index_must_be": "Attachment index must be an integer",
+      "chunk_index_must_be": "Chunk index must be an integer",
+      "document_id_must_be": "Document ID must be an integer",
       "failed": "failed",
-      "id_must_be_a": "O ID deve ser um UUID válido",
-      "id_must_be_an": "ID deve ser um número inteiro",
-      "id_must_be_positive": "ID deve ser positivo",
-      "id_must_be_within": "ID deve estar dentro do intervalo seguro de inteiros",
+      "id_must_be_a": "ID must be a valid UUID",
+      "id_must_be_an": "ID must be an integer",
+      "id_must_be_positive": "ID must be positive",
+      "id_must_be_within": "ID must be within safe integer range",
       "invalid_namespace_format": "Invalid namespace format",
       "invalid_parameters": "Invalid parameters",
       "invalid_query_parameters": "Invalid query parameters",
       "invalid_request_body": "Invalid request body",
-      "job_id_must_be": "ID do trabalho deve ser um número inteiro",
-      "namespace_cannot_be_empty": "Namespace não pode estar vazio",
-      "slug_cannot_be_empty": "Slug não pode estar vazio",
-      "slug_must_be_lowercase": "Slug deve ser alfanumérico em minúsculas com hífens",
-      "step_must_be_an": "Etapa deve ser um número inteiro",
-      "step_must_be_nonnegative": "Etapa deve ser não negativa",
-      "step_must_be_within": "Etapa deve estar dentro do intervalo seguro de inteiros",
-      "worker_id_must_be": "ID do worker deve ser um número inteiro"
+      "job_id_must_be": "Job ID must be an integer",
+      "namespace_cannot_be_empty": "Namespace cannot be empty",
+      "slug_cannot_be_empty": "Slug cannot be empty",
+      "slug_must_be_lowercase": "Slug must be lowercase alphanumeric with hyphens",
+      "step_must_be_an": "Step must be an integer",
+      "step_must_be_nonnegative": "Step must be non-negative",
+      "step_must_be_within": "Step must be within safe integer range",
+      "worker_id_must_be": "Worker ID must be an integer"
     },
     "router": {
       "router_error_in_llm": "[Router] Error in LLM classification:"
@@ -1129,19 +1129,19 @@
       "api_video_generation_failed": "[API] Video generation failed:",
       "api_webhook_processing_failed": "[API] Webhook processing failed:",
       "auth_error_fetching_user": "[Auth] Error fetching user:",
-      "authentication_required": "Autenticação necessária",
+      "authentication_required": "Authentication required",
       "authentication_required_to_create": "Authentication required to create projects",
       "autoevolution_stats_error": "Auto-evolution stats error:",
       "autolearning_failed_to_process": "[AutoLearning] Failed to process chat:",
-      "chat_api_multiagent_failed": "[Chat API Multi-Agent] Falha ao enviar para curadoria:",
+      "chat_api_multiagent_failed": "[Chat API Multi-Agent] Failed to send to curation:",
       "checkpoint_download_error": "[Checkpoint Download] Error:",
       "colab_requires_email_password": "Colab requires 'email' (password optional if session exists)",
-      "content_and_filename_are": "Conteúdo e nome do arquivo são obrigatórios",
-      "conversation_not_found": "Conversa não encontrada",
-      "conversation_not_found_or": "Conversa não encontrada ou vazia",
-      "dataset_file_not_found": "Arquivo do dataset não encontrado no disco",
-      "dataset_not_found": "Dataset não encontrado",
-      "dataset_processing_failed": "Falha no processamento do dataset",
+      "content_and_filename_are": "Content and filename are required",
+      "conversation_not_found": "Conversation not found",
+      "conversation_not_found_or": "Conversation not found or empty",
+      "dataset_file_not_found": "Dataset file not found on disk",
+      "dataset_not_found": "Dataset not found",
+      "dataset_processing_failed": "Dataset processing failed",
       "dataset_upload_error": "Dataset upload error:",
       "delete_images_error": "[DELETE Images] Error:",
       "error_autofixing_orphans": "Error auto-fixing orphans:",
@@ -1163,18 +1163,18 @@
       "failed_to_update_training": "Failed to update training data",
       "file_expired": "File expired",
       "file_not_found": "File not found",
-      "file_not_found_or": "Arquivo não encontrado ou excluído",
+      "file_not_found_or": "File not found or deleted",
       "forbidden_anonymous_conversations_not": "Forbidden: Anonymous conversations not accessible",
-      "forbidden_cannot_delete_anonymous": "Proibido: Não é possível excluir conversas anônimas",
+      "forbidden_cannot_delete_anonymous": "Forbidden: Cannot delete anonymous conversations",
       "forbidden_you_dont_own": "Forbidden: You don't own this conversation",
       "gpu_crud_autocreate_error": "[GPU CRUD] Auto-create error:",
       "gpu_overview_error": "[GPU Overview] Error:",
-      "hitl_failed_to_send": "[HITL] Falha ao enviar para fila de curadoria:",
+      "hitl_failed_to_send": "[HITL] Failed to send to curation queue:",
       "image_not_found": "Image not found",
-      "imageids_must_be_a": "imageIds deve ser um array não vazio",
+      "imageids_must_be_a": "imageIds must be a non-empty array",
       "invalid_filename": "Invalid filename",
       "invalid_or_empty_ids": "Invalid or empty IDs array",
-      "invalid_provider_must_be": "Provedor inválido. Deve ser 'colab' ou 'kaggle'",
+      "invalid_provider_must_be": "Invalid provider. Must be 'colab' or 'kaggle'",
       "invalid_url": "Invalid URL",
       "invalid_worker_id": "Invalid worker ID",
       "invalid_youtube_url": "Invalid YouTube URL",
@@ -1195,7 +1195,7 @@
       "missing_required_fields_jobid": "Missing required fields: jobId, workerId, step, gradients, numExamples",
       "missing_required_fields_name": "Missing required fields: name, datasetType",
       "missing_url_parameter": "Missing 'url' parameter",
-      "name_is_required": "Nome é obrigatório",
+      "name_is_required": "Name is required",
       "no_adapter_file_uploaded": "No adapter file uploaded",
       "no_available_chunks": "No available chunks",
       "no_checkpoint_found_for": "No checkpoint found for this job",
@@ -1209,34 +1209,34 @@
       "orchestrator_api_status_error": "[Orchestrator API] Status error:",
       "orchestrator_api_stop_error": "[Orchestrator API] Stop error:",
       "policyinvaliddata": "policy.invalid_data",
-      "project_name_is_required": "Nome do projeto é obrigatório",
-      "project_not_found": "Projeto não encontrado",
-      "prompt_is_required": "Prompt é obrigatório",
+      "project_name_is_required": "Project name is required",
+      "project_not_found": "Project not found",
+      "prompt_is_required": "Prompt is required",
       "rebuildcancelfailed": "REBUILD_CANCEL_FAILED",
       "rebuildlistfailed": "REBUILD_LIST_FAILED",
       "rebuildstartfailed": "REBUILD_START_FAILED",
       "rebuildstatusfailed": "REBUILD_STATUS_FAILED",
-      "search_query_is_required": "Consulta de pesquisa é obrigatória",
+      "search_query_is_required": "Search query is required",
       "seed_error": "[Seed] Error:",
-      "sse_failed_to_send": "[SSE] Falha ao enviar para fila de curadoria:",
+      "sse_failed_to_send": "[SSE] Failed to send to curation queue:",
       "sse_failed_to_track": "[SSE] Failed to track tokens:",
-      "sse_multiagent_failed_to": "[SSE Multi-Agent] Falha ao enviar para curadoria:",
+      "sse_multiagent_failed_to": "[SSE Multi-Agent] Failed to send to curation:",
       "sse_multiagent_failed_using": "[SSE] Multi-agent failed, using fallback",
-      "sse_stream_failed": "[SSE] Falha no stream",
+      "sse_stream_failed": "[SSE] Stream failed",
       "timezoneinvalid": "timezone.invalid",
       "timezoneinvalidiana": "timezone.invalid_iana",
-      "training_data_not_found": "Dados de treinamento não encontrados",
-      "training_job_not_found": "Trabalho de treinamento não encontrado",
+      "training_data_not_found": "Training data not found",
+      "training_job_not_found": "Training job not found",
       "uploadprocessingfailed": "upload.processing_failed",
       "url_is_required": "URL is required",
-      "url_must_include_protocol": "URL deve incluir o protocolo (ex.: https://example.com)",
+      "url_must_include_protocol": "URL must include protocol (e.g., https://example.com)",
       "utilserrorhelpers": "./utils/error-helpers",
-      "validation_failed": "Validação falhou",
+      "validation_failed": "Validation failed",
       "video_expired": "Video expired",
-      "video_not_found_or": "Vídeo não encontrado ou deletado",
-      "worker_not_found": "Worker não encontrado",
+      "video_not_found_or": "Video not found or deleted",
+      "worker_not_found": "Worker not found",
       "worker_reported_failure": "Worker reported failure",
-      "youtube_url_is_required": "URL do YouTube é necessária"
+      "youtube_url_is_required": "YouTube URL is required"
     },
     "runtime": {
       "agentexecutor_rag_search_error": "[AgentExecutor] RAG search error:"
@@ -1269,9 +1269,9 @@
       "validationerrors": "validation_errors"
     },
     "secrets_vault": {
-      "cannot_decrypt_secretsmasterkey_not": "Não é possível descriptografar: SECRETS_MASTER_KEY não definido",
+      "cannot_decrypt_secretsmasterkey_not": "Cannot decrypt: SECRETS_MASTER_KEY not set",
       "failed_to_decrypt_secret": "Failed to decrypt secret (corrupted or wrong key)",
-      "secretsmasterkey_environment_variable_is": "A variável de ambiente 🚨 SECRETS_MASTER_KEY é OBRIGATÓRIA em produção!",
+      "secretsmasterkey_environment_variable_is": "🚨 SECRETS_MASTER_KEY environment variable is REQUIRED in production! ",
       "secretsvault_decryption_failed": "[SecretsVault] Decryption failed:",
       "secretsvault_encryption_failed": "[SecretsVault] Encryption failed:"
     },
@@ -1282,26 +1282,26 @@
       "error_seeding_database": "❌ Error seeding database:"
     },
     "self_improvement_engine": {
-      "critical_improvements_cannot_be": "Melhorias críticas não podem ser aplicadas automaticamente",
+      "critical_improvements_cannot_be": "Critical improvements cannot be auto-applied",
       "failed": "failed",
-      "improvement_must_pass_validation": "A melhoria deve passar na validação antes de ser aplicada",
+      "improvement_must_pass_validation": "Improvement must pass validation before applying",
       "llm_analysis_failed_using": "⚠️ LLM analysis failed, using heuristic",
       "llm_proposal_failed_using": "⚠️ LLM proposal failed, using heuristic",
-      "selfimprovement_analysis_failed": "❌ Autoaperfeiçoamento: Análise falhou",
-      "selfimprovement_application_failed": "❌ Autoaperfeiçoamento: Aplicação falhou",
-      "selfimprovement_proposal_failed": "❌ Autoaperfeiçoamento: Proposta falhou",
-      "selfimprovement_rollback_failed": "❌ Autoaperfeiçoamento: Reversão falhou",
-      "selfimprovement_validation_failed": "❌ Autoaperfeiçoamento: Falha na validação"
+      "selfimprovement_analysis_failed": "❌ Self-Improvement: Analysis failed",
+      "selfimprovement_application_failed": "❌ Self-Improvement: Application failed",
+      "selfimprovement_proposal_failed": "❌ Self-Improvement: Proposal failed",
+      "selfimprovement_rollback_failed": "❌ Self-Improvement: Rollback failed",
+      "selfimprovement_validation_failed": "❌ Self-Improvement: Validation failed"
     },
     "shiftex_service": {
-      "shiftex_expert_consolidation_failed": "❌ ShiftEx: Falha na consolidação de especialista",
+      "shiftex_expert_consolidation_failed": "❌ ShiftEx: Expert consolidation failed",
       "shiftex_failed_to_record": "❌ ShiftEx: Failed to record data shift",
       "shiftex_failed_to_spawn": "❌ ShiftEx: Failed to spawn expert",
       "shiftex_failed_to_update": "❌ ShiftEx: Failed to update expert stats",
-      "shiftex_shift_detection_failed": "❌ ShiftEx: Falha na detecção de turno"
+      "shiftex_shift_detection_failed": "❌ ShiftEx: Shift detection failed"
     },
     "sidebar": {
-      "usesidebar_must_be_used": "useSidebar deve ser usado dentro de um SidebarProvider."
+      "usesidebar_must_be_used": "useSidebar must be used within a SidebarProvider."
     },
     "store": {
       "duplicatecontenterror": "DuplicateContentError"
@@ -1338,11 +1338,11 @@
       "failed_to_fetch_subnamespaces": "Failed to fetch sub-namespaces",
       "failed_to_fetch_telemetry": "Failed to fetch telemetry overview",
       "failed_to_fetch_top": "Failed to fetch top agents",
-      "invalid_tier_must_be": "Nível inválido. Deve ser 'agente' ou 'subagente'"
+      "invalid_tier_must_be": "Invalid tier. Must be 'agent' or 'subagent'"
     },
     "test_fallback": {
-      "as_an_ai_language": "Como modelo de linguagem de IA, não posso ajudar com conteúdo prejudicial.",
-      "i_cannot_assist_with": "Não posso ajudar com essa solicitação, pois viola minha política de conteúdo.",
+      "as_an_ai_language": "As an AI language model, I cannot assist with harmful content.",
+      "i_cannot_assist_with": "I cannot assist with that request as it violates my content policy.",
       "test_failed": "\n❌ Test failed:"
     },
     "token_tracker": {
@@ -1357,10 +1357,10 @@
       "png_export_error": "PNG export error:"
     },
     "training_data_validator": {
-      "instruction_cannot_be_empty": "Instrução não pode estar vazia",
-      "output_appears_to_be": "A saída parece ser JSON, mas contém erros de sintaxe. Considere validar a estrutura do JSON.",
-      "output_cannot_be_empty": "Saída não pode estar vazia",
-      "output_cannot_be_identical": "Saída não pode ser idêntica à instrução"
+      "instruction_cannot_be_empty": "Instruction cannot be empty",
+      "output_appears_to_be": "Output appears to be JSON but has syntax errors. Consider validating JSON structure.",
+      "output_cannot_be_empty": "Output cannot be empty",
+      "output_cannot_be_identical": "Output cannot be identical to instruction"
     },
     "training_queue_monitor": {
       "error_checking_gpu_trigger": "❌ Error checking GPU trigger conditions",
@@ -1378,8 +1378,8 @@
       "invalid_url_malformed_hostname": "Invalid URL: Malformed hostname",
       "invalid_url_missing_hostname": "Invalid URL: Missing hostname",
       "missing_hostname": "Missing hostname",
-      "protocol_must_be_http": "Protocolo deve ser http ou https",
-      "url_cannot_be_empty": "URL não pode estar vazia"
+      "protocol_must_be_http": "Protocol must be http or https",
+      "url_cannot_be_empty": "URL cannot be empty"
     },
     "usage_tracker": {
       "usagetracker_error_calculating_stats": "[UsageTracker] Error calculating stats:",
@@ -1404,7 +1404,7 @@
     },
     "users": {
       "email_already_in_use": "Email already in use",
-      "email_and_name_are": "Email e nome são obrigatórios",
+      "email_and_name_are": "Email and name are required",
       "error_adding_role_to": "Error adding role to user:",
       "error_creating_user": "Error creating user:",
       "error_deleting_user": "Error deleting user:",
@@ -1413,16 +1413,16 @@
       "error_fetching_users": "Error fetching users:",
       "error_removing_role_from": "Error removing role from user:",
       "error_updating_user": "Error updating user:",
-      "failed_to_add_role": "Falha ao adicionar função ao usuário",
+      "failed_to_add_role": "Failed to add role to user",
       "failed_to_create_user": "Failed to create user",
       "failed_to_delete_user": "Failed to delete user",
       "failed_to_fetch_roles": "Failed to fetch roles",
       "failed_to_fetch_user": "Failed to fetch user",
       "failed_to_fetch_users": "Failed to fetch users",
-      "failed_to_remove_role": "Falha ao remover função do usuário",
+      "failed_to_remove_role": "Failed to remove role from user",
       "failed_to_update_user": "Failed to update user",
       "role_not_found": "Role not found",
-      "roleid_is_required": "roleId é obrigatório",
+      "roleid_is_required": "roleId is required",
       "user_already_has_this": "User already has this role",
       "user_not_found": "User not found"
     },
@@ -1437,15 +1437,15 @@
       "download_failed": "Download failed"
     },
     "vision_cascade": {
-      "failed_to_initialize_vision": "Falha ao inicializar o estado de cota de visão do DB",
-      "failed_to_load_vision": "Falha ao carregar o estado de cota de visão do DB",
-      "failed_to_save_vision": "Falha ao salvar o estado de cota de visão no DB",
-      "vision_inference_failed": "Inferência de visão falhou",
+      "failed_to_initialize_vision": "Failed to initialize vision quota state from DB",
+      "failed_to_load_vision": "Failed to load vision quota state from DB",
+      "failed_to_save_vision": "Failed to save vision quota state to DB",
+      "vision_inference_failed": "Vision inference failed",
       "vision_inference_failed_all": "Vision inference failed (all providers exhausted)"
     },
     "vision": {
-      "provider_is_required": "Provedor é obrigatório",
-      "provider_test_failed": "Teste do provedor falhou",
+      "provider_is_required": "Provider is required",
+      "provider_test_failed": "Provider test failed",
       "vision_routes_error_getting": "[Vision Routes] Error getting providers:",
       "vision_routes_error_testing": "[Vision Routes] Error testing provider:"
     },
@@ -1454,7 +1454,7 @@
       "websearch_search_failed": "[WebSearch] Search failed:"
     },
     "youtube_transcript_service": {
-      "invalid_youtube_url_could": "URL do YouTube inválida - não foi possível extrair o ID do vídeo"
+      "invalid_youtube_url_could": "Invalid YouTube URL - could not extract video ID"
     }
   },
   "ui": {
@@ -1479,7 +1479,7 @@
       "buttonprovisionkaggle": "button-provision-kaggle",
       "componentsuibutton": "@/components/ui/button",
       "componentsuilabel": "@/components/ui/label",
-      "kaggle_provisioning_failed": "❌ Falha no Provisionamento do Kaggle",
+      "kaggle_provisioning_failed": "❌ Kaggle Provisioning Failed",
       "kaggle_worker_provisioned": "✅ Kaggle Worker Provisioned"
     },
     "admindashboard": {
@@ -1668,21 +1668,21 @@
       "buttonsavebutton": "button.save-button",
       "buttontypesubmit": "button[type=\"submit\"]",
       "codemirror_textarea_roletextboxarialabelcode": ".CodeMirror textarea, [role=\"textbox\"][aria-label*=\"Code\"]",
-      "colab_creator_title_element": "[Colab Creator] Elemento de título não encontrado, usando nome padrão",
+      "colab_creator_title_element": "[Colab Creator] Title element not found, using default name",
       "contenteditabletruedatadocumenttitle": "[contenteditable=\"true\"][data-document-title]",
       "divarialabelruntime": "div[aria-label=\"Runtime\"]",
       "divdatadocumenttitle": "div[data-document-title]",
       "inputarialabelcode": "input[aria-label*=\"code\"]",
       "inputplaceholderuntitled": "input[placeholder*=\"Untitled\"]",
       "notebooktitle_input": ".notebook-title input",
-      "save_button_not_found": "Botão de salvar não encontrado",
+      "save_button_not_found": "Save button not found",
       "selectarialabelhardware_accelerator": "select[aria-label*=\"Hardware accelerator\"]",
-      "sign_in_button_not": "Botão de login não encontrado",
+      "sign_in_button_not": "Sign in button not found",
       "spandatadocumenttitle": "span[data-document-title]"
     },
     "colab_orchestrator": {
       "arialabelconnect": "[aria-label*=\"Connect\"]",
-      "captcha_detected_manual_intervention": "CAPTCHA Detectado - Intervenção Manual Necessária"
+      "captcha_detected_manual_intervention": "CAPTCHA Detected - Manual Intervention Required"
     },
     "command": {
       "cmdkgroupheadingpx2_cmdkgroupheadingfontmedium_cmdkgroupheadingtextmu": "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5",
@@ -1967,7 +1967,7 @@
       "30hsemana_gratis_p100_gpu": "30h/semana gratis, P100 GPU, API oficial, cero manual",
       "30hsemana_gratuito_p100_gpu": "30h/semana gratuito, P100 GPU, API oficial, zero manual",
       "30hweek_free_p100_gpu": "30h/week free, P100 GPU, official API, zero manual work",
-      "404_page_not_found": "404 Página Não Encontrada",
+      "404_page_not_found": "404 Page Not Found",
       "404_pgina_no_encontrada": "404 Página Não Encontrada",
       "aadir_nuevo_conocimiento": "Añadir Nuevo Conocimiento",
       "aadir_texto": "Añadir Texto",
@@ -2110,7 +2110,7 @@
       "conversas": "Conversas",
       "conversations": "Conversations",
       "crawling_jobs": "Crawling Jobs",
-      "crea_copias_de_seguridad": "Cria backups completos do banco de dados e restaura a partir de cópias anteriores",
+      "crea_copias_de_seguridad": "Crea copias de seguridad completas de la base de datos y restaura desde copias anteriores",
       "crear_federated_training_job": "Crear Federated Training Job",
       "crear_nuevo_agente": "Crear Nuevo Agente",
       "crear_nuevo_usuario": "Crear Nuevo Usuario",
@@ -2150,9 +2150,9 @@
       "deletion_reason": "Deletion Reason",
       "descreva_o_que_procura": "Descreva o que procura (ex: 'logo azul', 'pessoa sorrindo', 'paisagem natural')...",
       "descreva_o_tipo_de": "Descreva o tipo de conteúdo deste namespace...",
-      "describe_el_tipo_de": "Descreva o tipo de conteúdo deste namespace...",
+      "describe_el_tipo_de": "Describe el tipo de contenido de este namespace...",
       "describe_lo_que_buscas": "Describe lo que buscas (ej: 'logo azul', 'persona sonriendo', 'paisaje natural')...",
-      "describe_the_type_of": "Descreva o tipo de conteúdo para este namespace...",
+      "describe_the_type_of": "Describe the type of content for this namespace...",
       "describe_what_youre_looking": "Describe what you're looking for (e.g., 'blue logo', 'smiling person', 'natural landscape')...",
       "descrio": "Descrição",
       "descrio_da_permisso_opcional": "Descrição da permissão (opcional)",
@@ -2162,7 +2162,7 @@
       "descripcin_del_permiso_opcional": "Descripción del permiso (opcional)",
       "description": "Description",
       "description_of_responsibilities": "Description of responsibilities...",
-      "did_you_forget_to": "Você esqueceu de adicionar a página ao router?",
+      "did_you_forget_to": "Did you forget to add the page to the router?",
       "digite_o_system_prompt": "Digite o system prompt...",
       "digite_sua_mensagem": "Digite sua mensagem...",
       "document_deleted_successfully": "Document deleted successfully",
@@ -2276,7 +2276,7 @@
       "full_prompt_sent_to": "Full Prompt (Sent to AI APIs)",
       "fuso_horrio": "Fuso Horário",
       "fuso_horrio_salvo_com": "Fuso horário salvo com sucesso!",
-      "gdpr_reason_required": "Motivo GDPR Necessário",
+      "gdpr_reason_required": "GDPR Reason Required",
       "gdpr_specific_reason": "GDPR Specific Reason",
       "gerenciamento_de_gpus": "Gerenciamento de GPUs",
       "gerenciamento_de_permisses": "Gerenciamento de Permissões",
@@ -2410,7 +2410,7 @@
       "overview": "Overview",
       "painel_de_controle_polticas": "Painel de Controle & Políticas",
       "panel_de_control_y": "Panel de Control y Políticas",
-      "paste_text_or_documents": "Cole texto ou documentos para o Agente Curador indexar...",
+      "paste_text_or_documents": "Paste text or documents for the Curator Agent to index...",
       "pega_textos_o_documentos": "Pega textos o documentos para que el Agente Curador los indexe...",
       "permiso_eliminado_con_xito": "Permiso eliminado con éxito",
       "permisos_de_acceso": "Permisos de Acceso",
@@ -2439,7 +2439,7 @@
       "proveedores_de_vision_ai": "Proveedores de Vision AI",
       "provisione_automaticamente_notebooks_kaggle": "Provisione automaticamente notebooks Kaggle ou Colab como GPU workers",
       "puntuacin_media": "Puntuación Media",
-      "rastrea_el_uso_de": "Rastreie o uso de tokens em tempo real",
+      "rastrea_el_uso_de": "Rastrea el uso de tokens en tiempo real",
       "rastreie_o_uso_de": "Rastreie o uso de tokens em tempo real",
       "realtime_quota_monitoring_across": "Real-time quota monitoring across 5 providers",
       "resumen": "Resumen",
@@ -2492,9 +2492,9 @@
       "tendencias_diarias_de_recoleccin": "Tendencias diarias de recolección de conversaciones y calidad",
       "tendncias_de_uso_de": "Tendências de Uso de APIs Gratuitas",
       "tendncias_dirias_de_coleta": "Tendências diárias de coleta de conversas e qualidade",
-      "these_permissions_are_added": "Essas permissões são adicionadas ou removidas para este usuário específico, além das permissões herdadas do papel.",
-      "this_action_will_create": "Esta ação criará um snapshot de segurança do estado atual antes de restaurar. Todos os dados serão substituídos pelo conteúdo do backup.",
-      "this_is_the_real": "Este é o prompt REAL que AION envia para OpenAI, Groq, Gemini e outras APIs. Inclui suas configurações personalizadas + as 7 características do equalizador.",
+      "these_permissions_are_added": "These permissions are added or removed for this specific user, in addition to permissions inherited from the role.",
+      "this_action_will_create": "This action will create a safety snapshot of the current state before restoring. All data will be replaced with the backup content.",
+      "this_is_the_real": "This is the REAL prompt that AION sends to OpenAI, Groq, Gemini and other APIs. Includes your custom settings + the 7 equalizer characteristics.",
       "timezone": "Timezone",
       "timezone_saved_successfully": "Timezone saved successfully!",
       "token_monitoring": "Token Monitoring",
@@ -2525,7 +2525,7 @@
       "userspecific_permissions": "User-Specific Permissions",
       "usuario_eliminado_con_xito": "Usuario eliminado con éxito",
       "usurio_excludo_com_sucesso": "Usuário excluído com sucesso",
-      "validation_error": "Erro de Validação",
+      "validation_error": "Validation Error",
       "ver_adjunto": "Ver adjunto",
       "ver_anexo": "Ver anexo",
       "ver_detalhes": "Ver Detalhes",
@@ -2696,7 +2696,7 @@
     },
     "lifecycle_policy_schema": {
       "delete": "delete",
-      "update_body_cannot_be": "O corpo da atualização não pode estar vazio"
+      "update_body_cannot_be": "Update body cannot be empty"
     },
     "lifecyclepoliciestab": {
       "buttonsavepolicies": "button-save-policies",
@@ -2923,7 +2923,7 @@
       "permissionssubmodulesvisionstatus": "permissions.submodules.vision.status"
     },
     "permissions": {
-      "name_module_submodule_and": "nome, módulo, submódulo e ações[] são obrigatórios",
+      "name_module_submodule_and": "name, module, submodule, and actions[] are required",
       "permission_deleted_successfully": "Permission deleted successfully"
     },
     "permissionspage": {
@@ -2955,7 +2955,7 @@
       "buttontoggleprojects": "button-toggle-projects",
       "componentsuibutton": "@/components/ui/button",
       "delete": "DELETE",
-      "delete_this_project_all": "Deletar este projeto? Todas as conversas neste projeto permanecerão, mas não estarão vinculadas a ele.",
+      "delete_this_project_all": "Delete this project? All conversations in this project will remain but won't be linked to it.",
       "error": "Error",
       "project_created": "Project created",
       "project_deleted": "Project deleted",
@@ -2996,7 +2996,7 @@
     "route_params": {
       "invalid_provider": "Invalid provider",
       "invalid_status": "Invalid status",
-      "start_date_must_be": "A data de início deve ser anterior à data de término"
+      "start_date_must_be": "Start date must be before end date"
     },
     "routes": {
       "aggregation_completed_successfully": "Aggregation completed successfully",
@@ -3010,7 +3010,7 @@
       "kbdescriptionrequired": "kb.description_required",
       "kbtitlecontentrequired": "kb.title_content_required",
       "message": "message",
-      "messages_array_is_required": "array de mensagens é obrigatório",
+      "messages_array_is_required": "messages array is required",
       "openai": "openai",
       "openaicostsapi": "openai_costs_api",
       "openaifallback": "openai-fallback",
@@ -3045,7 +3045,7 @@
       "openrouter": "openrouter",
       "opensora": "open-sora",
       "problemdescription": "problem_description",
-      "subagent_namespaces_must_all": "Os namespaces de SubAgente devem pertencer todos ao mesmo namespace pai (por exemplo, 'financas/investimentos', 'financas/impostos')",
+      "subagent_namespaces_must_all": "SubAgent namespaces must all belong to the same parent namespace (e.g., 'financas/investimentos', 'financas/impostos')",
       "subtitlesurl": "subtitles_url",
       "title": "title",
       "toolexecutionsmessageidx": "tool_executions_message_idx",
@@ -3199,10 +3199,11 @@
       "viewtotal": "view-total"
     },
     "tooltip": {
-      "radixuireacttooltip": "@radix-ui/react-tooltip"
+      "radixuireacttooltip": "@radix-ui/react-tooltip",
+      "z50_overflowhidden_roundedmd_border": "z-50 overflow-hidden rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-tooltip-content-transform-origin]"
     },
     "tos_compliance_monitor": {
-      "worker_not_found": "Worker não encontrado"
+      "worker_not_found": "Worker not found"
     },
     "training_data_validator": {
       "placeholder": "placeholder"
@@ -3297,7 +3298,9 @@
       "maxw4xl_maxh80vh": "max-w-4xl max-h-[80vh]",
       "spacey6_maxwfull_overflowxhidden": "space-y-6 max-w-full overflow-x-hidden"
     },
-    "alert_dialog": {},
+    "alert_dialog": {
+      "fixed_left50_top50_z50": "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg"
+    },
     "alerts": {
       "admintest": "admin-test"
     },
@@ -3351,7 +3354,7 @@
     },
     "automatic_fallback": {
       "fallback_searching_web_for": "[Fallback] 🔍 Searching web for information...",
-      "i_searched_the_web": "Procurei na web, mas não consegui encontrar informações relevantes para responder à sua pergunta. Por favor, tente reformular ou fornecer mais contexto."
+      "i_searched_the_web": "I searched the web but couldn't find relevant information to answer your question. Please try rephrasing or providing more context."
     },
     "backup": {
       "backup_created_streaming_to": "Backup created, streaming to client",
@@ -3396,7 +3399,10 @@
         "prximos_passos_via_ui": "║  📝 PRÓXIMOS PASSOS (via UI Admin):                           ║"
       }
     },
-    "context_menu": {},
+    "context_menu": {
+      "z50_maxhradixcontextmenucontentavailableheight_minw8rem": "z-50 max-h-[--radix-context-menu-content-available-height] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-context-menu-content-transform-origin]",
+      "z50_minw8rem_overflowhidden_roundedmd": "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-context-menu-content-transform-origin]"
+    },
     "conversationsidebar": {
       "flex1_minw0": "flex-1 min-w-0"
     },
@@ -3452,11 +3458,16 @@
     "deduplication": {
       "document_too_large_for": "Document too large for absorption (max 50KB). Please review manually."
     },
-    "dialog": {},
+    "dialog": {
+      "fixed_left50_top50_z50": "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg"
+    },
     "docviewer": {
       "flex1_minw0": "flex-1 min-w-0"
     },
-    "dropdown_menu": {},
+    "dropdown_menu": {
+      "z50_maxhvarradixdropdownmenucontentavailableheight_minw": "z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-dropdown-menu-content-transform-origin]",
+      "z50_minw8rem_overflowhidden_roundedmd": "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-dropdown-menu-content-transform-origin]"
+    },
     "editworkerdialog": {
       "fontmono_textxs_truncate_maxw200px": "font-mono text-xs truncate max-w-[200px]",
       "maxwlg": "max-w-lg"
@@ -3597,7 +3608,7 @@
       "improvement_validated": "Improvement validated!",
       "intenta_usar_trminos_de": "Intenta usar términos de búsqueda diferentes",
       "loading_admin_panel": "Loading admin panel...",
-      "los_usuarios_con_tipo": "Usuários com tipo \"dashboard\" podem acessar o painel administrativo. Usuários com tipo \"chat\" só podem usar a interface de chat.",
+      "los_usuarios_con_tipo": "Los usuarios con tipo \"dashboard\" pueden acceder al panel administrativo. Los usuarios con tipo \"chat\" solo pueden usar la interfaz de chat.",
       "m_ago": "m ago",
       "m_atrs": "m atrás",
       "max_pages": "Max pages",
@@ -3635,7 +3646,7 @@
       "streaming_on_realtime": "Streaming ON (real-time)",
       "tempo_estimado_35_minutos": "⏱️ Tempo estimado: 3-5 minutos (login + provisioning)",
       "tiempo_estimado_35_minutos": "⏱️ Tiempo estimado: 3-5 minutos (login + aprovisionamiento)",
-      "users_with_dashboard_type": "Usuários com tipo \"dashboard\" podem acessar o painel administrativo. Usuários com tipo \"chat\" só podem usar a interface de chat.",
+      "users_with_dashboard_type": "Users with \"dashboard\" type can access the admin panel. Users with \"chat\" type can only use the chat interface.",
       "usurios_com_tipo_dashboard": "Usuários com tipo \"dashboard\" podem acessar o painel administrativo. Usuários com tipo \"chat\" podem apenas usar a interface de chat.",
       "validado": "Validado",
       "validar": "Validar",
@@ -3697,7 +3708,7 @@
       "sessionstart_datetimenowisoformat": "        \"sessionStart\": datetime.now().isoformat(),\n"
     },
     "kaggle_cli_service": {
-      "kaggle_api_rate_limit": "Limite de taxa da API do Kaggle excedido. Por favor, tente novamente em alguns minutos."
+      "kaggle_api_rate_limit": "Kaggle API rate limit exceeded. Please try again in a few minutes."
     },
     "kb_analytics": {
       "gemini": "gemini"
@@ -3734,7 +3745,10 @@
     "mediaselector": {
       "flex1_minw0_spacey1": "flex-1 min-w-0 space-y-1"
     },
-    "menubar": {},
+    "menubar": {
+      "z50_minw12rem_overflowhidden_roundedmd": "z-50 min-w-[12rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-menubar-content-transform-origin]",
+      "z50_minw8rem_overflowhidden_roundedmd": "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-menubar-content-transform-origin]"
+    },
     "meta_learning_dashboard": {
       "flex1_minw0": "flex-1 min-w-0",
       "maxw7xl_mxauto_spacey6": "max-w-7xl mx-auto space-y-6",
@@ -3918,7 +3932,8 @@
       "super_admin": "Super Admin"
     },
     "select": {
-      "hvarradixselecttriggerheight_wfull_minwvarradixselecttriggerwi": "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+      "hvarradixselecttriggerheight_wfull_minwvarradixselecttriggerwi": "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
+      "relative_z50_maxhradixselectcontentavailableheight_minw8rem": "relative z-50 max-h-[--radix-select-content-available-height] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin]"
     },
     "self_improvement_engine": {
       "pending": "pending",
@@ -3928,7 +3943,10 @@
       "to_be_determined": "To be determined",
       "unittest": "unit_test"
     },
-    "sheet": {},
+    "sheet": {
+      "insety0_left0_hfull_w34": "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+      "insety0_right0_hfull_w34": "inset-y-0 right-0 h-full w-3/4  border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm"
+    },
     "sidebar": {
       "bordersidebarborder_mx35_flex_minw0": "border-sidebar-border mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l px-2.5 py-0.5",
       "flex_minh0_flex1_flexcol": "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
@@ -3940,7 +3958,7 @@
       "textsidebarforeground_ringsidebarring_hoverbgsidebaraccent_ho": "text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground [&>svg]:text-sidebar-accent-foreground flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 outline outline-2 outline-transparent outline-offset-2 focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0"
     },
     "system_prompt": {
-      "answer_the_users_question": "Responda à pergunta do usuário com base SOMENTE no contexto acima. Se o contexto não contiver informações suficientes, diga isso."
+      "answer_the_users_question": "Answer the user's question based ONLY on the context above. If the context doesn't contain enough information, say so."
     },
     "telemetriapage": {
       "2digit": "2-digit",
