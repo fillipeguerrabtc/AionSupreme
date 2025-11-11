@@ -6000,9 +6000,9 @@ export function registerRoutes(app: Express): Server {
       }
       
       if (provider === 'colab') {
-        if (!email || !password) {
+        if (!email) {
           return res.status(400).json({
-            error: "Colab requires 'email' and 'password'"
+            error: "Colab requires 'email' (password optional if session exists)"
           });
         }
       }
