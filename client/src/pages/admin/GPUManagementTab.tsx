@@ -208,45 +208,45 @@ export default function GPUManagementTab() {
   };
 
   return (
-    <div className={t("admin.gpumanagement.spacey6maxwfulloverflowxhidden")}>
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Stats Overview */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Card className={t("admin.gpumanagement.glasspremiumborderaccent20")}>
+        <Card className="flex items-center gap-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.totalGPUs}</CardTitle>
             <div className="text-2xl font-bold gradient-text">{stats.total}</div>
           </CardHeader>
         </Card>
 
-        <Card className={t("admin.gpumanagement.glasspremiumbordergreen50020")}>
+        <Card className="flex items-center gap-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.healthy}</CardTitle>
             <div className="text-2xl font-bold text-green-400">{stats.healthy}</div>
           </CardHeader>
         </Card>
 
-        <Card className={t("admin.gpumanagement.glasspremiumborderyellow50020")}>
+        <Card className="flex items-center gap-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.unhealthy}</CardTitle>
             <div className="text-2xl font-bold text-yellow-400">{stats.unhealthy}</div>
           </CardHeader>
         </Card>
 
-        <Card className={t("admin.gpumanagement.glasspremiumborderred50020")}>
+        <Card className="flex items-center gap-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.offline}</CardTitle>
             <div className="text-2xl font-bold text-red-400">{stats.offline}</div>
           </CardHeader>
         </Card>
 
-        <Card className={t("admin.gpumanagement.glasspremiumborderaccent20")}>
+        <Card className="flex items-center gap-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.totalRequests}</CardTitle>
             <div className="text-2xl font-bold gradient-text">{stats.totalRequests.toLocaleString()}</div>
           </CardHeader>
         </Card>
 
-        <Card className={t("admin.gpumanagement.glasspremiumborderaccent20")}>
+        <Card className="flex items-center gap-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.avgLatencyMs}</CardTitle>
             <div className="text-2xl font-bold gradient-text">{stats.averageLatencyMs.toFixed(0)}ms</div>
@@ -255,7 +255,7 @@ export default function GPUManagementTab() {
       </div>
 
       {/* GPU Workers Table */}
-      <Card className={t("admin.gpumanagement.glasspremiumborderaccent20")}>
+      <Card className="flex items-center gap-2">
         <CardHeader>
           <div className="flex items-center gap-2">
             <CardTitle className="flex items-center gap-2">
@@ -358,7 +358,7 @@ export default function GPUManagementTab() {
                             disabled={deleteMutation.isPending}
                             data-testid={`button-delete-gpu-${worker.id}`}
                           >
-                            <Trash2 className={t("admin.gpumanagement.textdestructive")} />
+                            <Trash2 className="flex items-center gap-2" />
                           </Button>
                         </div>
                       </TableCell>

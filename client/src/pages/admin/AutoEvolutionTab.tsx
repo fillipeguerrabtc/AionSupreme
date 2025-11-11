@@ -57,7 +57,7 @@ export default function AutoEvolutionTab() {
   const { overview, efficiency, timeline } = data;
 
   return (
-    <div className={t("admin.autoevolution.spacey6maxwfulloverflowxhidden")}>
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold break-words">{t.admin.autoEvolution.title}</h2>

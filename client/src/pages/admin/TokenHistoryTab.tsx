@@ -71,21 +71,21 @@ export default function TokenHistoryTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className={t("admin.tokenhistory.glasspremiumborderaccent20")}>
+        <Card className="flex items-center gap-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.tokenHistory.overview.totalRecords}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">{history?.length || 0}</div>
           </CardHeader>
         </Card>
         
-        <Card className={t("admin.tokenhistory.glasspremiumborderaccent20")}>
+        <Card className="flex items-center gap-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.tokenHistory.overview.totalTokens}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">{totalTokens.toLocaleString()}</div>
           </CardHeader>
         </Card>
         
-        <Card className={t("admin.tokenhistory.glasspremiumborderaccent20")}>
+        <Card className="flex items-center gap-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.tokenHistory.overview.totalCost}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">${totalCost.toFixed(4)}</div>
@@ -93,7 +93,7 @@ export default function TokenHistoryTab() {
         </Card>
       </div>
 
-      <Card className={t("admin.tokenhistory.glasspremiumborderaccent20")}>
+      <Card className="flex items-center gap-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-accent" />

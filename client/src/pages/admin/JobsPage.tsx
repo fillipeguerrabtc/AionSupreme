@@ -13,7 +13,7 @@ import { useLanguage } from "@/lib/i18n";
 interface LinkCaptureJob {
   id: number;
   url: string;
-  status: "pending" | "running" | "paused" | {t("admin.jobs.completed")} | "failed" | "cancelled";
+  status: "pending" | "running" | "paused" | "completed" | "failed" | "cancelled";
   progress: number;
   totalItems: number | null;
   processedItems: number | null;
@@ -30,7 +30,7 @@ interface LinkCaptureJob {
 export default function JobsPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | {t("admin.jobs.completed")} | "failed">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "completed" | "failed">("all");
 
   // Fetch jobs with polling every 2 seconds for real-time updates
   const { data: jobs, isLoading, refetch } = useQuery<LinkCaptureJob[]>({
@@ -68,7 +68,7 @@ export default function JobsPage() {
     
     if (statusFilter === "all") return jobs;
     if (statusFilter === "active") return jobs.filter(j => ["pending", "running", "paused"].includes(j.status));
-    if (statusFilter === {t("admin.jobs.completed")}) return jobs.filter(j => j.status === {t("admin.jobs.completed")});
+    if (statusFilter === "completed") return jobs.filter(j => j.status === "completed");
     if (statusFilter === "failed") return jobs.filter(j => ["failed", "cancelled"].includes(j.status));
     
     return jobs;
@@ -78,7 +78,7 @@ export default function JobsPage() {
 
   // Status badge component
   const StatusBadge = ({ status }: { status: LinkCaptureJob["status"] }) => {
-    const variants: Record<LinkCaptureJob["status"], { variant: "default" | "secondary" | {t("admin.jobs.destructive")} | "outline"; icon: any }> = {
+    const variants: Record<LinkCaptureJob["status"], { variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
       pending: { variant: "outline", icon: Clock },
       running: { variant: "default", icon: RefreshCw },
       paused: { variant: "secondary", icon: PauseCircle },
@@ -101,9 +101,9 @@ export default function JobsPage() {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className={t("admin.jobs.bgmutedroundedw13")}></div>
-          <div className={t("admin.jobs.h32bgmutedrounded")}></div>
-          <div className={t("admin.jobs.h32bgmutedrounded")}></div>
+          <div className="bg-muted rounded w-1/3 h-8"></div>
+          <div className="h-32 bg-muted rounded"></div>
+          <div className="h-32 bg-muted rounded"></div>
         </div>
       </div>
     );
@@ -136,8 +136,8 @@ export default function JobsPage() {
           <TabsTrigger value="active" data-testid="tab-active">
             {t.admin.jobs.filters.active} ({jobs?.filter(j => ["pending", "running", "paused"].includes(j.status)).length || 0})
           </TabsTrigger>
-          <TabsTrigger value={t("admin.jobs.completed")} data-testid={t("admin.jobs.tabcompleted")}>
-            {t.admin.jobs.filters.completed} ({jobs?.filter(j => j.status === {t("admin.jobs.completed")}).length || 0})
+          <TabsTrigger value="completed" data-testid="test-id">
+            {t.admin.jobs.filters.completed} ({jobs?.filter(j => j.status === "completed").length || 0})
           </TabsTrigger>
           <TabsTrigger value="failed" data-testid="tab-failed">
             {t.admin.jobs.filters.failed} ({jobs?.filter(j => ["failed", "cancelled"].includes(j.status)).length || 0})
@@ -240,7 +240,7 @@ export default function JobsPage() {
 
                   {/* Error Message */}
                   {job.errorMessage && (
-                    <div className={t("admin.jobs.bgdestructive10borderborderdestructive20roundedmd")}>
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
                       <p className="text-sm text-destructive" data-testid={`text-error-${job.id}`}>
                         <strong>{t.common.error}:</strong> {job.errorMessage}
                       </p>

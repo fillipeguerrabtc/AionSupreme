@@ -167,7 +167,7 @@ export default function GPUOverviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
       toast({
         title: "Worker Manual Adicionado",
-        description: t("admin.gpuoverview.toast.workerconectadocom"),
+        description: "[PT]",
       });
       setShowProvisionDialog(false);
       setSelectedProvider(null);
@@ -175,7 +175,7 @@ export default function GPUOverviewPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: t("admin.gpuoverview.toast.erroaoconectar"),
+        title: "[PT]",
         description: error.message,
         variant: "destructive",
       });
@@ -212,7 +212,7 @@ export default function GPUOverviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
       toast({
         title: "Provisionamento Iniciado",
-        description: {t("admin.gpuoverview.gpusendocriadaautomaticamente")},
+        description: "[PT]",
       });
       setShowProvisionDialog(false);
       setSelectedProvider(null);
@@ -220,7 +220,7 @@ export default function GPUOverviewPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: t("admin.gpuoverview.toast.erroaoadicionar"),
+        title: "[PT]",
         description: error.message,
         variant: "destructive",
       });
@@ -341,9 +341,7 @@ export default function GPUOverviewPage() {
                   <Zap className="w-4 h-4" />
                   Criando GPU automaticamente...
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {t("admin.gpuoverview.provisionamentoandamentoacompanhestatus")}
-                                                  </p>
+                <p className="text-sm text-muted-foreground">"[TEXTO]"</p>
               </div>
             </div>
           </CardContent>
@@ -578,9 +576,9 @@ export default function GPUOverviewPage() {
                 >
                   <p className="text-sm text-muted-foreground">
                     {selectedProvider === 'kaggle' 
-                      ? t("admin.gpuoverview.fornecasuascredenciaissistema")
+                      ? "[PT]"
                       : selectedProvider === 'colab'
-                      ? t("admin.gpuoverview.fornecasuascredenciaissistema")
+                      ? "[PT]"
                       : 'Forneça a URL do worker existente (ex: https://abc123.ngrok.io)'
                     }
                   </p>
@@ -599,9 +597,7 @@ export default function GPUOverviewPage() {
                         autoComplete="off"
                         data-testid="input-worker-url"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        {t("admin.gpuoverview.urldoworker")}
-                                                                        </p>
+                      <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
                     </div>
                   ) : selectedProvider === 'colab' ? (
                     // Colab Form Fields
@@ -611,7 +607,7 @@ export default function GPUOverviewPage() {
                         <Input
                           id="email"
                           type="email"
-                          placeholder={t("admin.gpu-dashboard.placeholder.usergmailcom")}
+                          placeholder="[PT]"
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           required
@@ -620,7 +616,7 @@ export default function GPUOverviewPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="password">{t("admin.gpuoverview.senhaopcionalse")}</Label>
+                        <Label htmlFor="password">"[TEXTO]"</Label>
                         <Input
                           id="password"
                           type="password"
@@ -651,7 +647,7 @@ export default function GPUOverviewPage() {
                         <Input
                           id="kaggleKey"
                           type="password"
-                          placeholder={t("admin.gpuoverview.placeholder.obtenhakagglecomaccount")}
+                          placeholder="[PT]"
                           value={formData.kaggleKey}
                           onChange={(e) => setFormData({ ...formData, kaggleKey: e.target.value })}
                           required

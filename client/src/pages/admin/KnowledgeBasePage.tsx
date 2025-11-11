@@ -177,15 +177,15 @@ export default function KnowledgeBasePage() {
   // which calls POST /api/admin/cascade/delete/:documentId instead
 
   return (
-    <div className={t("admin.knowledgebase.minhscreenbggradienttobrfrombackgroundviabackground")}>
-      <header className={t("admin.knowledgebase.glassstickytop0z50")}>
-        <div className={t("admin.knowledgebase.maxw7xlmxautopx6py4")}>
+    <div className="flex items-center gap-2">
+      <header className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => window.location.href = "/admin"}
-              className={t("admin.knowledgebase.glasspremium")}
+              className="flex items-center gap-2"
               data-testid="button-back-to-admin"
             >
               <MessageSquare className="w-5 h-5" />
@@ -217,9 +217,7 @@ export default function KnowledgeBasePage() {
             className="hover:scale-105 active:scale-95 transition-all duration-300"
             data-testid="button-learn-url"
           >
-            <LinkIcon className="w-4 h-4 mr-2" />
-            {t("admin.knowledgebase.button.aprenderdelink")}
-                                </Button>
+            <LinkIcon className="w-4 h-4 mr-2" />"[TEXTO]"</Button>
 
           <Button
             onClick={() => setShowWebSearch(!showWebSearch)}
@@ -298,7 +296,7 @@ export default function KnowledgeBasePage() {
 
         {/* Add Text Form */}
         {showAddText && (
-          <Card className={t("admin.knowledgebase.glasspremiumborderprimary20animateslideup")}>
+          <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="gradient-text">Adicionar Novo Conhecimento</span>
@@ -314,14 +312,14 @@ export default function KnowledgeBasePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder={t("admin.knowledgebase.placeholder.tituloconhecimento")}
+                placeholder="[PT]"
                 value={newTextTitle}
                 onChange={(e) => setNewTextTitle(e.target.value)}
                 data-testid="input-new-doc-title"
               />
               
               {/* Namespace Selector - MOVIDO PARA CIMA! */}
-              <div className={t("admin.knowledgebase.spacey2bgprimary5roundedlgborder")}>
+              <div className="flex items-center gap-2">
                 <label className="text-sm font-semibold text-primary">
                   🏷️ Namespaces (Multi-Agentes):
                 </label>
@@ -329,13 +327,11 @@ export default function KnowledgeBasePage() {
                   value={newNamespaces}
                   onChange={setNewNamespaces}
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("admin.knowledgebase.selecionequaisagentesterao")}
-                                                  </p>
+                <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
               </div>
               
               <Textarea
-                placeholder={t("admin.knowledgebase.placeholder.escrevaoconteudo")}
+                placeholder="[PT]"
                 value={newTextContent}
                 onChange={(e) => setNewTextContent(e.target.value)}
                 className="min-h-[200px]"
@@ -357,10 +353,10 @@ export default function KnowledgeBasePage() {
 
         {/* Learn from URL Form */}
         {showAddUrl && (
-          <Card className={t("admin.knowledgebase.glasspremiumborderaccent20animateslideup")}>
+          <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="gradient-text-vibrant">{t("admin.knowledgebase.aprenderdeum")}</span>
+                <span className="gradient-text-vibrant">"[TEXTO]"</span>
                 <Button
                   size="icon"
                   variant="ghost"
@@ -370,37 +366,31 @@ export default function KnowledgeBasePage() {
                   <X className="w-4 h-4" />
                 </Button>
               </CardTitle>
-              <CardDescription>
-                {t("admin.knowledgebase.aionvaiacessar")}
-                                            </CardDescription>
+              <CardDescription>"[TEXTO]"</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder={t("admin.knowledgebase.placeholder.httpsexamplecomartigo")}
+                placeholder="[PT]"
                 value={urlToLearn}
                 onChange={(e) => setUrlToLearn(e.target.value)}
                 data-testid="input-url-to-learn"
               />
               
-              <div className={t("admin.knowledgebase.spacey3borderborderdashedborderaccent30")}>
-                <Label className="text-sm font-semibold">{t("admin.knowledgebase.mododeaprendizado")}</Label>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-semibold">"[TEXTO]"</Label>
                 <RadioGroup
                   value={crawlMode}
                   onValueChange={(value) => setCrawlMode(value as "single" | "deep")}
-                  data-testid={t("admin.knowledgebase.radiogroupcrawlmode")}
+                  data-testid="test-id"
                   className="space-y-2"
                 >
                   <div className="flex items-center gap-2">
                     <RadioGroupItem value="single" id="single" data-testid="radio-single-page" />
-                    <Label htmlFor="single" className="cursor-pointer font-normal">
-                      {t("admin.knowledgebase.aprenderda")}
-                                                              </Label>
+                    <Label htmlFor="single" className="cursor-pointer font-normal">"[TEXTO]"</Label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <RadioGroupItem value="deep" id="deep" data-testid={t("admin.knowledgebase.radiodeepcrawl")} />
-                    <Label htmlFor="deep" className="cursor-pointer font-normal">
-                      {t("admin.knowledgebase.aprendercompleto")}
-                                                              </Label>
+                    <RadioGroupItem value="deep" id="deep" data-testid="test-id" />
+                    <Label htmlFor="deep" className="cursor-pointer font-normal">"[TEXTO]"</Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -415,9 +405,7 @@ export default function KnowledgeBasePage() {
                 <Label
                   htmlFor="download-media"
                   className="cursor-pointer font-normal text-sm"
-                >
-                  {t("admin.knowledgebase.baixartambem")}
-                                                  </Label>
+                >"[TEXTO]"</Label>
               </div>
               
               <Button
@@ -427,7 +415,7 @@ export default function KnowledgeBasePage() {
                 data-testid="button-start-learn-url"
               >
                 <LinkIcon className="w-4 h-4 mr-2" />
-                {learnFromUrlMutation.isPending ? t("admin.knowledgebase.aprendendo") : {t("admin.knowledgebase.aprenderdestelink")}}
+                {learnFromUrlMutation.isPending ? "[PT]" : "[PT]"}
               </Button>
             </CardContent>
           </Card>
@@ -435,7 +423,7 @@ export default function KnowledgeBasePage() {
 
         {/* Web Search Form */}
         {showWebSearch && (
-          <Card className={t("admin.knowledgebase.glasspremiumborderaccent20animateslideup")}>
+          <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <span className="gradient-text-vibrant">Pesquisar e Aprender da Web</span>
@@ -448,9 +436,7 @@ export default function KnowledgeBasePage() {
                   <X className="w-4 h-4" />
                 </Button>
               </CardTitle>
-              <CardDescription>
-                {t("admin.knowledgebase.aionvaipesquisar")}
-                                            </CardDescription>
+              <CardDescription>"[TEXTO]"</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
@@ -466,14 +452,14 @@ export default function KnowledgeBasePage() {
                 data-testid="button-start-web-search"
               >
                 <Search className="w-4 h-4 mr-2" />
-                {webSearchMutation.isPending ? "Pesquisando..." : t("admin.knowledgebase.pesquisaraprender")}
+                {webSearchMutation.isPending ? "Pesquisando..." : "[PT]"}
               </Button>
             </CardContent>
           </Card>
         )}
 
         {/* Documents List */}
-        <Card className={t("admin.knowledgebase.glasspremiumborderprimary20")}>
+        <Card className="flex items-center gap-2">
           <CardHeader>
             <CardTitle className="gradient-text">Conhecimentos Armazenados ({documents.length})</CardTitle>
             <CardDescription>
@@ -484,7 +470,7 @@ export default function KnowledgeBasePage() {
             <ScrollArea ref={scrollAreaRef} className="h-[600px]">
               <div className="space-y-2">
                 {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">{t("common.loading")}</div>
+                  <div className="text-center py-8 text-muted-foreground">"[TEXTO]"</div>
                 ) : documents.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Nenhum conhecimento encontrado. Adicione novos conhecimentos acima!
@@ -493,14 +479,14 @@ export default function KnowledgeBasePage() {
                   documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className={t("admin.knowledgebase.roundedlgbgcard50borderborderborder50")}
+                      className="flex items-center gap-2"
                     >
                       {editingDoc === doc.id ? (
                         <div className="space-y-3">
                           <Input
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
-                            placeholder={t("admin.knowledgebase.placeholder.tituloconhecimento")}
+                            placeholder="[PT]"
                             data-testid={`input-edit-title-${doc.id}`}
                           />
                           
@@ -514,7 +500,7 @@ export default function KnowledgeBasePage() {
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
                             className="min-h-[100px]"
-                            placeholder={t("admin.knowledgebase.placeholder.conteudoconhecimento")}
+                            placeholder="[PT]"
                             data-testid={`textarea-edit-content-${doc.id}`}
                           />
                           
@@ -548,7 +534,7 @@ export default function KnowledgeBasePage() {
                       ) : (
                         <div className="flex items-center gap-2">
                           <div className="flex-1">
-                            <h3 className={t("admin.knowledgebase.fontsemiboldtextsmmb1")}>{doc.title}</h3>
+                            <h3 className="flex items-center gap-2">{doc.title}</h3>
                             <p className="text-xs text-muted-foreground line-clamp-2">
                               {doc.content}
                             </p>
@@ -595,7 +581,7 @@ export default function KnowledgeBasePage() {
                               onClick={() => setDocumentToDelete(doc)}
                               data-testid={`button-delete-${doc.id}`}
                             >
-                              <Trash2 className={t("admin.knowledgebase.textdestructive")} />
+                              <Trash2 className="flex items-center gap-2" />
                             </Button>
                           </div>
                         </div>

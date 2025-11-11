@@ -127,13 +127,13 @@ export default function AgentsPage() {
       setOrphanScanResult(data);
       setShowOrphanScanDialog(true);
       toast({ 
-        title: t("admin.agents.toast.scancompleto"), 
+        title: "[PT]", 
         description: `${data.report.totalOrphans} orphans detectados` 
       });
     },
     onError: (error: Error) => {
       toast({ 
-        title: t("admin.agents.toast.erroaoexecutar"), 
+        title: "[PT]", 
         description: error.message, 
         variant: "destructive" 
       });
@@ -163,7 +163,7 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className={t("admin.agents.spacey6maxwfulloverflowxhidden")}>
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <h1 className="text-3xl font-semibold flex items-center gap-2 break-words">
@@ -191,10 +191,10 @@ export default function AgentsPage() {
               variant="outline"
               onClick={() => orphanScanMutation.mutate()}
               disabled={orphanScanMutation.isPending}
-              title={t("admin.agents.toast.escaneiatodaa")}
+              title="[PT]"
             >
               <Search className="w-4 h-4 mr-2" />
-              {orphanScanMutation.isPending ? t("common.scanning") : t("admin.agents.diagnosticarintegridade")}
+              {orphanScanMutation.isPending ? "[PT]" : "[PT]"}
             </Button>
           </div>
 
@@ -207,7 +207,7 @@ export default function AgentsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">{t("common.loading")}</div>
+            <div className="text-center py-8 text-muted-foreground">"[TEXTO]"</div>
           ) : agents.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Nenhum agente configurado. Crie o primeiro agente acima.
@@ -216,12 +216,12 @@ export default function AgentsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("admin.agents.icones")}</TableHead>
+                  <TableHead>"[TEXTO]"</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Slug</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Namespaces</TableHead>
-                  <TableHead className="text-right">{t("common.actions")}</TableHead>
+                  <TableHead className="text-right">"[TEXTO]"</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -299,8 +299,7 @@ export default function AgentsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Agente</DialogTitle>
-            <DialogDescription>
-              {t("admin.agents.atualizeconfiguracaoagente")} {selectedAgent?.name}
+            <DialogDescription>"[TEXTO]" {selectedAgent?.name}
             </DialogDescription>
           </DialogHeader>
           {selectedAgent && (
@@ -317,26 +316,24 @@ export default function AgentsPage() {
               </div>
               <div>
                 <Label>Identificador (Slug)</Label>
-                <div className={t("admin.agents.px3py2bgmutedroundedmd")}>
+                <div className="flex items-center gap-2">
                   <code className="text-sm font-mono">{editSlug}</code>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t("admin.agents.geradoautomaticamentepelosistema")}
-                                                  </p>
+                <p className="text-xs text-muted-foreground mt-1">"[TEXTO]"</p>
               </div>
               <div>
-                <Label htmlFor={t("admin.agents.editdescription")}>{t("common.description")}</Label>
+                <Label htmlFor="[PT]">"[TEXTO]"</Label>
                 <Input 
-                  id={t("admin.agents.editdescription")} 
+                  id="[PT]" 
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   data-testid="input-element" 
                 />
               </div>
               <div>
-                <Label htmlFor={t("admin.agents.editsystemprompt")}>System Prompt</Label>
+                <Label htmlFor="[PT]">System Prompt</Label>
                 <Textarea
-                  id={t("admin.agents.editsystemprompt")}
+                  id="[PT]"
                   value={editPrompt}
                   onChange={(e) => setEditPrompt(e.target.value)}
                   rows={5}
@@ -347,9 +344,7 @@ export default function AgentsPage() {
               {selectedAgent.agentTier === "agent" ? (
                 <div>
                   <Label htmlFor="edit-namespace">Namespace Raiz</Label>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {t("admin.agents.agentstrabalhamem")}
-                                                        </p>
+                  <p className="text-sm text-muted-foreground mb-2">"[TEXTO]"</p>
                   <NamespaceSelector 
                     value={editNamespaces} 
                     onChange={(namespaces) => setEditNamespaces(namespaces.slice(0, 1))}
@@ -361,9 +356,7 @@ export default function AgentsPage() {
               ) : (
                 <div>
                   <Label htmlFor="edit-namespaces">Subnamespaces</Label>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {t("admin.agents.subagentspodemter")}
-                                                            </p>
+                  <p className="text-sm text-muted-foreground mb-2">"[TEXTO]"</p>
                   <NamespaceSelector 
                     value={editNamespaces} 
                     onChange={setEditNamespaces}
@@ -378,7 +371,7 @@ export default function AgentsPage() {
                   Cancelar
                 </Button>
                 <Button onClick={handleSaveEdit} disabled={updateMutation.isPending} data-testid="button-save-agent">
-                  {updateMutation.isPending ? t("common.updating") : t("common.saveChanges")}
+                  {updateMutation.isPending ? "[PT]" : "[PT]"}
                 </Button>
               </div>
             </div>
@@ -390,10 +383,8 @@ export default function AgentsPage() {
       <AlertDialog open={!!deleteAgentId} onOpenChange={(open) => !open && setDeleteAgentId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("admin.agents.confirmarexclusao")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("admin.agents.temcertezaque")}
-                                      </AlertDialogDescription>
+            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
+            <AlertDialogDescription>"[TEXTO]"</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
@@ -406,9 +397,7 @@ export default function AgentsPage() {
               }}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-element"
-            >
-              {t("common.delete")}
-                                      </AlertDialogAction>
+            >"[TEXTO]"</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -417,10 +406,8 @@ export default function AgentsPage() {
       <Dialog open={showOrphanScanDialog} onOpenChange={setShowOrphanScanDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>{t("admin.agents.diagnosticointegridadeplataforma")}</DialogTitle>
-            <DialogDescription>
-              {t("admin.agents.recursosorfaosdetectadostodos")}
-                                      </DialogDescription>
+            <DialogTitle>"[TEXTO]"</DialogTitle>
+            <DialogDescription>"[TEXTO]"</DialogDescription>
           </DialogHeader>
           
           {orphanScanResult && (
@@ -436,7 +423,7 @@ export default function AgentsPage() {
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-yellow-600">{orphanScanResult.report.summary.medium}</div>
-                      <p className="text-xs text-muted-foreground">{t("admin.agents.severidademedia")}</p>
+                      <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -453,7 +440,7 @@ export default function AgentsPage() {
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center justify-between">
                           <span>📦 {module.module}</span>
-                          <Badge variant="secondary">{module.totalOrphans} {t("admin.agents.orfaos")}</Badge>
+                          <Badge variant="secondary">{module.totalOrphans} "[PT]"</Badge>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -470,7 +457,7 @@ export default function AgentsPage() {
                               </div>
                               <p className="text-sm">{orphan.reason}</p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                <strong>{t("admin.agents.acaosugerida")}</strong> {orphan.suggestedAction}
+                                <strong>"[TEXTO]"</strong> {orphan.suggestedAction}
                               </p>
                             </div>
                           ))}
@@ -483,10 +470,8 @@ export default function AgentsPage() {
                 {orphanScanResult.report.totalOrphans === 0 && (
                   <Card>
                     <CardContent className="pt-6 text-center">
-                      <p className="text-lg text-green-600 font-semibold">{t("admin.agents.nenhumorfao")}</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {t("admin.agents.todososmodulos")}
-                                                                    </p>
+                      <p className="text-lg text-green-600 font-semibold">"[TEXTO]"</p>
+                      <p className="text-sm text-muted-foreground mt-1">"[TEXTO]"</p>
                     </CardContent>
                   </Card>
                 )}

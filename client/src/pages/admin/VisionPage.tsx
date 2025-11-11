@@ -76,7 +76,7 @@ export default function VisionPage() {
   });
 
   const getStatusColor = (status: "active" | "missing_key") => {
-    return status === "active" ? "default" : t("admin.vision.destructive");
+    return status === "active" ? "default" : "[PT]";
   };
 
   const getTierColor = (tier: string) => {
@@ -149,13 +149,13 @@ export default function VisionPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold" data-testid={t("admin.vision.quotageminiused")}>
+                <div className="text-2xl font-bold" data-testid="test-id">
                   {quotaStatus?.data.gemini.used || 0} / {quotaStatus?.data.gemini.limit || 0}
                 </div>
                 <Progress
                   value={quotaStatus?.data.gemini.percentage || 0}
                   className="mt-2"
-                  data-testid={t("admin.vision.progressgemini")}
+                  data-testid="test-id"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {quotaStatus?.data.gemini.percentage.toFixed(1)}% {t.admin.vision.used}
@@ -195,13 +195,13 @@ export default function VisionPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold" data-testid={t("admin.vision.quotaclaude3used")}>
+                <div className="text-2xl font-bold" data-testid="test-id">
                   {quotaStatus?.data.claude3OpenRouter.used || 0} / {quotaStatus?.data.claude3OpenRouter.limit || 0}
                 </div>
                 <Progress
                   value={quotaStatus?.data.claude3OpenRouter.percentage || 0}
                   className="mt-2"
-                  data-testid={t("admin.vision.progressclaude3")}
+                  data-testid="test-id"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {quotaStatus?.data.claude3OpenRouter.percentage.toFixed(1)}% {t.admin.vision.used}
@@ -271,7 +271,7 @@ export default function VisionPage() {
                           {t.admin.vision.active}
                         </Badge>
                       ) : (
-                        <Badge variant=t("admin.vision.destructive") className="gap-1">
+                        <Badge variant="destructive" className="gap-1">
                           <XCircle className="h-3 w-3" />
                           {t.admin.vision.missingKey}
                         </Badge>

@@ -116,7 +116,7 @@ export default function AutoApprovalPage() {
     onError: (error: any) => {
       toast({
         title: t.admin.autoApproval.configError,
-        description: error.message || {t("admin.autoapproval.unknownerror")},
+        description: error.message || "Erro desconhecido",
         variant: "destructive",
       });
     },
@@ -134,7 +134,7 @@ export default function AutoApprovalPage() {
     onError: (error: any) => {
       toast({
         title: t.admin.autoApproval.configError,
-        description: error.message || {t("admin.autoapproval.failedpreviewdecision")},
+        description: error.message || "Falha ao visualizar decisão",
         variant: "destructive",
       });
     },
@@ -192,7 +192,7 @@ export default function AutoApprovalPage() {
 
   const getDecisionBadgeVariant = (action: string) => {
     if (action === "approve") return "default";
-    if (action === "reject") return {t("admin.autoapproval.destructive")};
+    if (action === "reject") return "destructive";
     return "secondary";
   };
 
@@ -308,7 +308,7 @@ export default function AutoApprovalPage() {
                 step={1}
                 value={[minApprovalScore]}
                 onValueChange={([value]) => setMinApprovalScore(value)}
-                data-testid={t("admin.autoapproval.sliderminapproval")}
+                data-testid="test-id"
               />
               <p className="text-xs text-muted-foreground">
                 {t.admin.autoApproval.tooltips.minApprovalScore}
@@ -333,7 +333,7 @@ export default function AutoApprovalPage() {
                 step={1}
                 value={[maxRejectScore]}
                 onValueChange={([value]) => setMaxRejectScore(value)}
-                data-testid={t("admin.autoapproval.slidermaxreject")}
+                data-testid="test-id"
               />
               <p className="text-xs text-muted-foreground">
                 {t.admin.autoApproval.tooltips.maxRejectScore}
@@ -381,7 +381,7 @@ export default function AutoApprovalPage() {
                 {flag}
                 <button
                   onClick={() => handleRemoveFlag(flag)}
-                  className={t("admin.autoapproval.ml1hoverelevateroundedfull")}
+                  className="flex items-center gap-2"
                   data-testid={`button-remove-flag-${flag}`}
                 >
                   <X className="w-3 h-3" />
@@ -426,7 +426,7 @@ export default function AutoApprovalPage() {
                 {ns !== "*" && (
                   <button
                     onClick={() => handleRemoveNamespace(ns)}
-                    className={t("admin.autoapproval.ml1hoverelevateroundedfull")}
+                    className="flex items-center gap-2"
                     data-testid={`button-remove-namespace-${ns}`}
                   >
                     <X className="w-3 h-3" />
@@ -508,10 +508,10 @@ export default function AutoApprovalPage() {
           </Button>
 
           {previewResult && (
-            <div className={t("admin.autoapproval.mt4borderroundedmdspacey2")}>
+            <div className="flex items-center gap-2">
               <div className="flex items-center gap-2">
                 <span className="font-medium">{t.admin.autoApproval.decisionResult}:</span>
-                <Badge variant={getDecisionBadgeVariant(previewResult.decision.action)} data-testid={t("admin.autoapproval.badgedecisionresult")}>
+                <Badge variant={getDecisionBadgeVariant(previewResult.decision.action)} data-testid="test-id">
                   {previewResult.decision.action.toUpperCase()}
                 </Badge>
               </div>

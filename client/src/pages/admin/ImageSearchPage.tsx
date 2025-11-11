@@ -186,8 +186,8 @@ export default function ImageSearchPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {displayImages.map((image) => (
-                  <Card key={image.id} className={t("admin.imagesearch.overflowhiddenhoverelevatecursorpointer")} data-testid={`card-image-${image.id}`} onClick={() => setPreviewImage(image)}>
-                    <div className={t("admin.imagesearch.aspectvideobgmutedrelative")}>
+                  <Card key={image.id} className="flex items-center gap-2" data-testid={`card-image-${image.id}`} onClick={() => setPreviewImage(image)}>
+                    <div className="flex items-center gap-2">
                       <img
                         src={`/${image.storageUrl}`}
                         alt={image.description}
@@ -266,7 +266,7 @@ export default function ImageSearchPage() {
               <img 
                 src={`/${previewImage.storageUrl}`} 
                 alt={previewImage.description}
-                className={t("admin.imagesearch.wfullhautoroundedmdborder")}
+                className="flex items-center gap-2"
               />
             )}
           </div>

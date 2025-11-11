@@ -334,7 +334,7 @@ export default function AdminDashboard() {
       });
       
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: t("admin.admindashboard.unknownerror") }));
+        const errorData = await res.json().catch(() => ({ message: "[PT]" }));
         throw new Error(errorData.message || t.admin.settings.databaseManagement.toasts.restoreError);
       }
       
@@ -383,7 +383,7 @@ export default function AdminDashboard() {
       });
       
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: t("admin.admindashboard.unknownerror") }));
+        const errorData = await res.json().catch(() => ({ message: "[PT]" }));
         throw new Error(errorData.message || t.admin.settings.databaseManagement.toasts.restoreError);
       }
       
@@ -430,7 +430,7 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className={t("admin.admindashboard.minhscreenbggradienttobfrombackgroundviabackground")}>
+      <div className="flex items-center gap-2">
         <Card className="bg-card max-w-md border border-destructive/50">
           <CardContent className="pt-6">
             <p className="text-destructive">{t.admin.messages.error}: {(error as Error).message}</p>
@@ -458,13 +458,13 @@ export default function AdminDashboard() {
                   {/* Logo + AION + Painel de Controle */}
                   <button 
                     onClick={() => setActiveTab("overview")} 
-                    className={t("admin.admindashboard.hoverelevateroundedlgpx2py1")} 
+                    className="flex items-center gap-2" 
                     data-testid="link-logo-home"
                   >
                     <AionLogo showText={false} size="md" />
                     <div>
                       <h1 className="font-bold text-xl text-foreground">AION</h1>
-                      <p className="text-xs text-muted-foreground">{t("admin.admindashboard.paineldecontrole")}</p>
+                      <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
                     </div>
                   </button>
                 </div>
@@ -489,9 +489,7 @@ export default function AdminDashboard() {
                         onClick={() => setLanguage("pt-BR")}
                         className={language === "pt-BR" ? "bg-primary/20" : ""}
                         data-testid="lang-pt-BR"
-                      >
-                        {t("admin.admindashboard.portuguesbr")}
-                                                                </DropdownMenuItem>
+                      >"[TEXTO]"</DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setLanguage("en-US")}
                         className={language === "en-US" ? "bg-primary/20" : ""}
@@ -522,7 +520,7 @@ export default function AdminDashboard() {
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* Card 1: Total Tokens → Token Monitoring (Overview) */}
           <Card 
-            className={t("admin.admindashboard.glassmodernhoverelevatecursorpointertransitionall")} 
+            className="flex items-center gap-2" 
             onClick={() => {
               setTokenSubtab('overview');
               setActiveTab("tokens");
@@ -540,7 +538,7 @@ export default function AdminDashboard() {
                   <span className="font-bold text-lg">{tokenSummary ? totalTokensToday.toLocaleString() : '...'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">{t("admin.admindashboard.historico")}</span>
+                  <span className="text-muted-foreground">"[TEXTO]"</span>
                   <span className="font-bold text-primary">{tokenSummary ? totalTokensAllTime.toLocaleString() : '...'}</span>
                 </div>
               </div>
@@ -552,7 +550,7 @@ export default function AdminDashboard() {
 
           {/* Card 2: Total Cost → Cost History Tab */}
           <Card 
-            className={t("admin.admindashboard.glassmodernhoverelevatecursorpointertransitionall")} 
+            className="flex items-center gap-2" 
             onClick={() => setActiveTab("cost")}
             data-testid="card-total-cost"
           >
@@ -576,7 +574,7 @@ export default function AdminDashboard() {
 
           {/* Card 3: KB Searches → Token Monitoring (KB subtab) */}
           <Card 
-            className={t("admin.admindashboard.glassmodernhoverelevatecursorpointertransitionall")} 
+            className="flex items-center gap-2" 
             onClick={() => {
               setTokenSubtab('kb');
               setActiveTab("tokens");
@@ -603,7 +601,7 @@ export default function AdminDashboard() {
 
           {/* Card 4: Free APIs → Token Monitoring (Free APIs subtab) */}
           <Card 
-            className={t("admin.admindashboard.glassmodernhoverelevatecursorpointertransitionall")} 
+            className="flex items-center gap-2" 
             onClick={() => {
               setTokenSubtab('free-apis');
               setActiveTab("tokens");
@@ -633,15 +631,13 @@ export default function AdminDashboard() {
                   <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.allTime?.requests || 0} req</span>
                 </div>
               </div>
-              <CardDescription className="text-xs mt-2">
-                {t("admin.admindashboard.historicototalfree")}
-                                                                </CardDescription>
+              <CardDescription className="text-xs mt-2">"[TEXTO]"</CardDescription>
             </CardHeader>
           </Card>
 
           {/* Card 5: OpenAI → Token Monitoring (OpenAI subtab) */}
           <Card 
-            className={t("admin.admindashboard.glassmodernhoverelevatecursorpointertransitionall")} 
+            className="flex items-center gap-2" 
             onClick={() => {
               setTokenSubtab('openai');
               setActiveTab("tokens");
@@ -655,7 +651,7 @@ export default function AdminDashboard() {
               </CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">{t("admin.admindashboard.historicototal")}</span>
+                  <span className="text-muted-foreground">"[TEXTO]"</span>
                   <span className="font-bold text-lg">{openaiStats ? (openaiStats.allTime?.requests || 0).toLocaleString() : '...'} req</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -671,7 +667,7 @@ export default function AdminDashboard() {
 
           {/* Card 6: Web Searches → Token Monitoring (Web subtab) */}
           <Card 
-            className={t("admin.admindashboard.glassmodernhoverelevatecursorpointertransitionall")} 
+            className="flex items-center gap-2" 
             onClick={() => {
               setTokenSubtab('web');
               setActiveTab("tokens");
@@ -698,7 +694,7 @@ export default function AdminDashboard() {
 
           {/* Card 7: KB Documents → Knowledge Base Tab */}
           <Card 
-            className={t("admin.admindashboard.glassmodernhoverelevatecursorpointertransitionall")} 
+            className="flex items-center gap-2" 
             onClick={() => setActiveTab("knowledge")}
             data-testid="card-kb-documents"
           >
@@ -718,7 +714,7 @@ export default function AdminDashboard() {
 
           {/* Card 9: GPU Workers → GPU Management Tab */}
           <Card 
-            className={t("admin.admindashboard.glassmodernhoverelevatecursorpointertransitionall")} 
+            className="flex items-center gap-2" 
             onClick={() => setActiveTab("gpu")}
             data-testid="card-gpu-workers"
           >
@@ -758,7 +754,7 @@ export default function AdminDashboard() {
 
           {/* Card 10: Federated Training Jobs → Federated Training Tab */}
           <Card 
-            className={t("admin.admindashboard.glassmodernhoverelevatecursorpointertransitionall")} 
+            className="flex items-center gap-2" 
             onClick={() => setActiveTab(t("admin.admindashboard.federated"))}
             data-testid="card-element"
           >
@@ -782,15 +778,13 @@ export default function AdminDashboard() {
 
           {/* Card 11: Auto-Evolution → Meta-Learning Tab (consolidated) */}
           <Card 
-            className={t("admin.admindashboard.glassmodernhoverelevatecursorpointertransitionall")} 
+            className="flex items-center gap-2" 
             onClick={() => setActiveTab("meta-learning")}
             data-testid="card-auto-evolution"
           >
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                {t("admin.admindashboard.autoevolucao")}
-                                                                </CardTitle>
+                <Sparkles className="w-4 h-4" />"[TEXTO]"</CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Conversas:</span>
@@ -809,9 +803,7 @@ export default function AdminDashboard() {
                   <span className="font-bold">{autoEvolutionStats?.overview?.completedJobs || 0}/{autoEvolutionStats?.overview?.totalJobs || 0}</span>
                 </div>
               </div>
-              <CardDescription className="text-xs mt-2">
-                {t("admin.admindashboard.sistemaautoaprendizado")}
-                                                                </CardDescription>
+              <CardDescription className="text-xs mt-2">"[TEXTO]"</CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -994,7 +986,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Comportamento da IA */}
-            <Card className={t("admin.admindashboard.glassmodernhoverelevateanimateslideupmaxw2xl")}>
+            <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-accent" />
@@ -1018,7 +1010,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid={t("admin.admindashboard.sliderverbosity")}
+                    data-testid="test-id"
                   />
                 </div>
 
@@ -1035,7 +1027,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid={t("admin.admindashboard.sliderformality")}
+                    data-testid="test-id"
                   />
                 </div>
 
@@ -1052,7 +1044,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid={t("admin.admindashboard.slidercreativity")}
+                    data-testid="test-id"
                   />
                 </div>
 
@@ -1069,7 +1061,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid={t("admin.admindashboard.sliderprecision")}
+                    data-testid="test-id"
                   />
                 </div>
 
@@ -1086,7 +1078,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid={t("admin.admindashboard.sliderpersuasiveness")}
+                    data-testid="test-id"
                   />
                 </div>
 
@@ -1103,7 +1095,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid={t("admin.admindashboard.sliderempathy")}
+                    data-testid="test-id"
                   />
                 </div>
 
@@ -1120,7 +1112,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid={t("admin.admindashboard.sliderenthusiasm")}
+                    data-testid="test-id"
                   />
                 </div>
               </CardContent>
@@ -1128,13 +1120,11 @@ export default function AdminDashboard() {
 
             {/* Save Button */}
             {hasUnsavedChanges && (
-              <Card className={t("admin.admindashboard.glassmodernhoverelevateanimateslideup")}>
+              <Card className="flex items-center gap-2">
                 <CardContent className="py-4">
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-accent animate-pulse" />
-                      {t("admin.admindashboard.vocetemalteracoes")}
-                                                                          </p>
+                      <Activity className="w-4 h-4 text-accent animate-pulse" />"[TEXTO]"</p>
                     <Button
                       onClick={handleSaveChanges}
                       disabled={updatePolicy.isPending}
@@ -1150,7 +1140,7 @@ export default function AdminDashboard() {
             )}
 
             {/* System Prompt */}
-            <Card className={t("admin.admindashboard.glassmodernhoverelevateanimateslideup")} style={{ animationDelay: "200ms" }}>
+            <Card className="flex items-center gap-2" style={{ animationDelay: "200ms" }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-primary" />
@@ -1195,7 +1185,7 @@ export default function AdminDashboard() {
             </Card>
 
             {/* Timezone Selector */}
-            <Card className={t("admin.admindashboard.glassmodernhoverelevateanimateslideup")} style={{ animationDelay: "300ms" }}>
+            <Card className="flex items-center gap-2" style={{ animationDelay: "300ms" }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
@@ -1234,7 +1224,7 @@ export default function AdminDashboard() {
                   </Select>
                 </div>
 
-                <div className={t("admin.admindashboard.roundedxlbgcard50borderborderborder50")}>
+                <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-muted-foreground">
                     {t.admin.settings.timezone.currentTime}
                   </p>
@@ -1256,7 +1246,7 @@ export default function AdminDashboard() {
             </Card>
 
             {/* Database Management */}
-            <Card className={t("admin.admindashboard.glassmodernhoverelevateanimateslideup")} style={{ animationDelay: "400ms" }}>
+            <Card className="flex items-center gap-2" style={{ animationDelay: "400ms" }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Database className="w-5 h-5 text-primary" />
@@ -1281,7 +1271,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Restore Section */}
-                <div className={t("admin.admindashboard.spacey3roundedxlbgcard50border")}>
+                <div className="flex items-center gap-2">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <Upload className="w-4 h-4" />
                     {t.admin.settings.databaseManagement.actions.restoreBackup}
@@ -1373,7 +1363,7 @@ export default function AdminDashboard() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className={t("admin.admindashboard.textdestructive")} />
+              <AlertCircle className="flex items-center gap-2" />
               {t.admin.settings.databaseManagement.restore.confirmTitle}
             </DialogTitle>
             <DialogDescription>
@@ -1381,7 +1371,7 @@ export default function AdminDashboard() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div className={t("admin.admindashboard.roundedlgbgdestructive10borderborderdestructive20")}>
+            <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
               <p className="text-sm text-destructive font-medium flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
                 {t.admin.settings.databaseManagement.restore.warningMessage}

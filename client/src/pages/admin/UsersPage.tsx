@@ -410,7 +410,7 @@ export default function UsersPage() {
                             onClick={() => handleDeleteUser(user.id)}
                             data-testid={`button-delete-user-${user.id}`}
                           >
-                            <Trash2 className={t("admin.users.textdestructive")} />
+                            <Trash2 className="flex items-center gap-2" />
                           </Button>
                         </div>
                       </td>
@@ -575,7 +575,7 @@ export default function UsersPage() {
               
               {/* User-Specific Permissions Section */}
               {selectedUser && (
-                <div className={t("admin.users.spacey3pt4bordert")}>
+                <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2">
                     <Shield className="w-4 h-4" />
                     <Label className="text-base font-semibold">{t.admin.userPermissions.title}</Label>
@@ -584,7 +584,7 @@ export default function UsersPage() {
                     {t.admin.userPermissions.description}
                   </p>
                   
-                  <div className={t("admin.users.maxh60overflowyautospacey3border")}>
+                  <div className="flex items-center gap-2">
                     {Object.entries(
                       allPermissions.reduce((acc, permission) => {
                         const module = permission.module || 'general';
@@ -594,7 +594,7 @@ export default function UsersPage() {
                       }, {} as Record<string, Permission[]>)
                     ).map(([module, permissions]) => (
                       <div key={module} className="space-y-2">
-                        <div className={t("admin.users.fontmediumtextsmcapitalizebgmuted")}>{module}</div>
+                        <div className="flex items-center gap-2">{module}</div>
                         <div className="space-y-1 ml-4">
                           {permissions.map(permission => {
                             const isSelected = selectedUserPermissions.includes(permission.id);
@@ -607,7 +607,7 @@ export default function UsersPage() {
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => toggleUserPermission(permission.id)}
-                                  className={t("admin.users.roundedbordergray300")}
+                                  className="flex items-center gap-2"
                                   data-testid={`checkbox-user-permission-${permission.id}`}
                                 />
                                 <div className="flex-1">

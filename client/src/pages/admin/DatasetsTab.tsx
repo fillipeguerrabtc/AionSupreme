@@ -151,14 +151,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: t("admin.datasets.toast.datasetatualizado"),
-        description: t("admin.datasets.toast.datasetatualizadocomsucesso"),
+        title: "[PT]",
+        description: "[PT]",
       });
       setEditDataset(null);
     },
     onError: (error: Error) => {
       toast({
-        title: t("admin.datasets.toast.erroaoatualizar"),
+        title: "[PT]",
         description: error.message,
         variant: "destructive",
       });
@@ -173,14 +173,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: t("admin.datasets.toast.datasetexcluido"),
-        description: t("admin.datasets.toast.datasetremovidocom"),
+        title: "[PT]",
+        description: "[PT]",
       });
       setDeleteDatasetId(null);
     },
     onError: (error: Error) => {
       toast({
-        title: t("admin.datasets.toast.erroaoexcluir"),
+        title: "[PT]",
         description: error.message,
         variant: "destructive",
       });
@@ -199,7 +199,7 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: t("admin.datasets.toast.datasetsexcluidos"),
+        title: "[PT]",
         description: `${selectedDatasets.size} datasets removidos com sucesso`,
       });
       setSelectedDatasets(new Set());
@@ -207,7 +207,7 @@ export default function DatasetsTab() {
     },
     onError: (error: Error) => {
       toast({
-        title: t("admin.datasets.toast.erroaoexcluir"),
+        title: "[PT]",
         description: error.message,
         variant: "destructive",
       });
@@ -244,7 +244,7 @@ export default function DatasetsTab() {
       }
       
       toast({
-        title: {t("admin.datasets.trainingdataatualizado")},
+        title: "[PT]",
         description,
       });
       setEditTrainingData(null);
@@ -265,7 +265,7 @@ export default function DatasetsTab() {
       }
       
       toast({
-        title: t("admin.datasets.toast.erroaoatualizar"),
+        title: "[PT]",
         description,
         variant: "destructive",
       });
@@ -280,14 +280,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: t("admin.datasets.toast.trainingdataexcluido"),
-        description: t("admin.datasets.toast.dadosdetreinamento"),
+        title: "[PT]",
+        description: "[PT]",
       });
       setDeleteTrainingDataId(null);
     },
     onError: (error: Error) => {
       toast({
-        title: t("admin.datasets.toast.erroaoexcluir"),
+        title: "[PT]",
         description: error.message,
         variant: "destructive",
       });
@@ -346,12 +346,12 @@ export default function DatasetsTab() {
       
       toast({
         title: "Download iniciado",
-        description: t("admin.datasets.toast.seudatasetesta"),
+        description: "[PT]",
       });
     } catch (error) {
       toast({
-        title: t("admin.datasets.toast.erroaobaixar"),
-        description: error instanceof Error ? error.message : t("admin.datasets.errodesconhecido"),
+        title: "[PT]",
+        description: error instanceof Error ? error.message : "[PT]",
         variant: "destructive",
       });
     }
@@ -448,9 +448,9 @@ export default function DatasetsTab() {
 
   const getQualityBadge = (tier: "high" | "medium" | "low") => {
     const config = {
-      high: { color: "text-green-500", label: t("admin.datasets.altaqualidade") },
-      medium: { color: "text-yellow-500", label: t("admin.datasets.mediaqualidade") },
-      low: { color: "text-gray-500", label: {t("admin.datasets.baixaqualidade")} },
+      high: { color: "text-green-500", label: "[PT]" },
+      medium: { color: "text-yellow-500", label: "[PT]" },
+      low: { color: "text-gray-500", label: "[PT]" },
     };
     return (
       <span className={`text-xs font-medium ${config[tier].color}`}>
@@ -460,7 +460,7 @@ export default function DatasetsTab() {
   };
 
   return (
-    <div className={t("admin.datasets.spacey6maxwfulloverflowxhidden")}>
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold gradient-text">{t.admin.datasets.title}</h2>
@@ -469,11 +469,11 @@ export default function DatasetsTab() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className={t("admin.datasets.glassborderprimary20")}>
+        <Card className="glass border-primary/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <div>
-                <p className="text-sm text-muted-foreground">{t("admin.datasets.totaldedatasets")}</p>
+                <p className="text-sm text-muted-foreground">"Total de Datasets"</p>
                 <p className="text-3xl font-bold gradient-text" data-testid="stat-total-datasets">{apiStats.compiledDatasets}</p>
               </div>
               <Database className="w-8 h-8 text-primary opacity-50" />
@@ -481,11 +481,11 @@ export default function DatasetsTab() {
           </CardContent>
         </Card>
 
-        <Card className={t("admin.datasets.glassborderprimary20")}>
+        <Card className="flex items-center gap-2">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <div>
-                <p className="text-sm text-muted-foreground">{t("admin.datasets.totaldeexemplos")}</p>
+                <p className="text-sm text-muted-foreground">"[TEXTO]"</p>
                 <p className="text-3xl font-bold gradient-text" data-testid="stat-total-examples">{apiStats.totalExamples.toLocaleString()}</p>
               </div>
               <BarChart3 className="w-8 h-8 text-primary opacity-50" />
@@ -493,7 +493,7 @@ export default function DatasetsTab() {
           </CardContent>
         </Card>
 
-        <Card className={t("admin.datasets.glassborderprimary20")}>
+        <Card className="flex items-center gap-2">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <div>
@@ -505,7 +505,7 @@ export default function DatasetsTab() {
           </CardContent>
         </Card>
 
-        <Card className={t("admin.datasets.glassborderprimary20")}>
+        <Card className="flex items-center gap-2">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <div>
@@ -519,22 +519,16 @@ export default function DatasetsTab() {
       </div>
 
       {/* Training Data Section (JSONL Format) */}
-      <Card className={t("admin.datasets.glasspremiumborderaccent20")}>
+      <Card className="flex items-center gap-2">
         <CardHeader>
           <CardTitle className="flex">
-            <Sparkles className="w-5 h-5" />
-            {t("admin.datasets.dadosdetreinamento")}
-                                </CardTitle>
-          <CardDescription>
-            {t("admin.datasets.formatoconvertidoautomaticamentepara")}
-                                </CardDescription>
+            <Sparkles className="w-5 h-5" />"[TEXTO]"</CardTitle>
+          <CardDescription>"[TEXTO]"</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {trainingData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                {t("admin.datasets.nenhumdadode")}
-                                            </p>
+              <p className="text-sm text-muted-foreground text-center py-8">"[TEXTO]"</p>
             ) : (
               <Accordion type="single" collapsible className="w-full">
                 {trainingData.slice(0, 10).map((data: any, idx: number) => (
@@ -558,7 +552,7 @@ export default function DatasetsTab() {
                         <Button
                           variant="outline"
                           size="icon"
-                          className={t("admin.datasets.glassborderprimary30")}
+                          className="flex items-center gap-2"
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditTrainingData(data);
@@ -573,18 +567,18 @@ export default function DatasetsTab() {
                         <Button
                           variant="outline"
                           size="icon"
-                          className={t("admin.datasets.glassborderdestructive30hoverbgdestructive10")}
+                          className="bg-destructive/10 border border-destructive/20 rounded-md p-4"
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeleteTrainingDataId(data.id);
                           }}
                           data-testid={`button-delete-training-${data.id}`}
                         >
-                          <Trash2 className={t("admin.datasets.textdestructive")} />
+                          <Trash2 className="flex items-center gap-2" />
                         </Button>
                       </div>
                     </div>
-                    <AccordionContent className={t("admin.datasets.maxwfulloverflowhidden")}>
+                    <AccordionContent className="flex items-center gap-2">
                       <div className="space-y-3 pt-2">
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground mb-1">
@@ -625,17 +619,17 @@ export default function DatasetsTab() {
       </Card>
 
       {/* Filters and Actions */}
-      <Card className={t("admin.datasets.glasspremiumborderprimary20")}>
+      <Card className="flex items-center gap-2">
         <CardHeader>
           <div className="flex items-center gap-2">
             <div className="flex-1 min-w-[240px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder={t("admin.datasets.buscardatasets")}
+                  placeholder="[PT]"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={t("admin.datasets.pl10glassborderprimary30")}
+                  className="flex items-center gap-2"
                   data-testid="input-search-datasets"
                 />
               </div>
@@ -643,7 +637,7 @@ export default function DatasetsTab() {
 
             <div className="flex items-center gap-2">
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className={t("admin.datasets.w140pxglassborderprimary30")} data-testid="select-filter-type">
+                <SelectTrigger className="flex items-center gap-2" data-testid="select-filter-type">
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -659,19 +653,19 @@ export default function DatasetsTab() {
               </Select>
 
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className={t("admin.datasets.w140pxglassborderprimary30")} data-testid="select-filter-status">
+                <SelectTrigger className="flex items-center gap-2" data-testid="select-filter-status">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos status</SelectItem>
                   <SelectItem value="ready">Pronto</SelectItem>
                   <SelectItem value="processing">Processando</SelectItem>
-                  <SelectItem value="failed">{t("common.error")}</SelectItem>
+                  <SelectItem value="failed">"[TEXTO]"</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-                <SelectTrigger className={t("admin.datasets.w140pxglassborderprimary30")} data-testid="select-sort-by">
+                <SelectTrigger className="flex items-center gap-2" data-testid="select-sort-by">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -686,7 +680,7 @@ export default function DatasetsTab() {
                 variant="outline"
                 size="icon"
                 onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                className={t("admin.datasets.glassborderprimary30")}
+                className="flex items-center gap-2"
                 data-testid="button-element"
               >
                 {sortOrder === "asc" ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -696,7 +690,7 @@ export default function DatasetsTab() {
                 variant="outline"
                 size="icon"
                 onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] })}
-                className={t("admin.datasets.glassborderprimary30")}
+                className="flex items-center gap-2"
                 data-testid="button-refresh"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -709,8 +703,7 @@ export default function DatasetsTab() {
                   className="gap-2"
                   data-testid="button-element"
                 >
-                  <Trash2 className="w-4 h-4" />
-                  {t("admin.datasets.button.excluir")}{selectedDatasets.size})
+                  <Trash2 className="w-4 h-4" />"[TEXTO]"{selectedDatasets.size})
                 </Button>
               )}
             </div>
@@ -719,7 +712,7 @@ export default function DatasetsTab() {
       </Card>
 
       {/* Datasets List */}
-      <Card className={t("admin.datasets.glasspremiumborderprimary20")}>
+      <Card className="flex items-center gap-2">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center gap-2">
@@ -731,13 +724,13 @@ export default function DatasetsTab() {
               <p className="text-lg font-medium">Nenhum dataset encontrado</p>
               <p className="text-sm text-muted-foreground">
                 {searchQuery || filterType !== "all" || filterStatus !== "all"
-                  ? {t("admin.datasets.tenteajustarfiltros")}
-                  : t("admin.datasets.facauploadde")}
+                  ? "Tente ajustar os filtros"
+                  : "[PT]"}
               </p>
             </div>
           ) : (
             <ScrollArea className="h-[600px]">
-              <div className={t("admin.datasets.divideydivideborder50")}>
+              <div className="flex items-center gap-2">
                 {filteredDatasets.map((dataset) => {
                   const TypeIcon = getTypeIcon(dataset.datasetType);
                   const qualityTier = getQualityTier(dataset);
@@ -770,7 +763,7 @@ export default function DatasetsTab() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <TypeIcon className="w-4 h-4 text-primary shrink-0" />
-                                <h3 className={t("admin.datasets.fontsemiboldtextlgbreakwords")} data-testid={`text-dataset-name-${dataset.id}`}>
+                                <h3 className="flex items-center gap-2" data-testid={`text-dataset-name-${dataset.id}`}>
                                   {dataset.name}
                                 </h3>
                                 {getStatusBadge(dataset.status)}
@@ -807,10 +800,10 @@ export default function DatasetsTab() {
                               </div>
 
                               {dataset.validationErrors && dataset.validationErrors.length > 0 && (
-                                <div className={t("admin.datasets.mt2roundedmdbgdestructive10border")}>
+                                <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
                                   <div className="flex items-center gap-2">
                                     <AlertTriangle className="w-4 h-4" />
-                                    <span>{t("admin.datasets.errosdevalidacao")} {dataset.validationErrors.join(", ")}</span>
+                                    <span>"[TEXTO]" {dataset.validationErrors.join(", ")}</span>
                                   </div>
                                 </div>
                               )}
@@ -821,7 +814,7 @@ export default function DatasetsTab() {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => setPreviewDataset(dataset)}
-                                className={t("admin.datasets.glassborderprimary30")}
+                                className="flex items-center gap-2"
                                 data-testid={`button-preview-${dataset.id}`}
                               >
                                 <Eye className="w-4 h-4" />
@@ -835,7 +828,7 @@ export default function DatasetsTab() {
                                   setEditName(dataset.name);
                                   setEditDescription(dataset.description || "");
                                 }}
-                                className={t("admin.datasets.glassborderprimary30")}
+                                className="flex items-center gap-2"
                                 data-testid={`button-edit-${dataset.id}`}
                               >
                                 <Edit className="w-4 h-4" />
@@ -845,7 +838,7 @@ export default function DatasetsTab() {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => downloadDataset(dataset)}
-                                className={t("admin.datasets.glassborderprimary30")}
+                                className="flex items-center gap-2"
                                 data-testid={`button-download-${dataset.id}`}
                               >
                                 <Download className="w-4 h-4" />
@@ -855,7 +848,7 @@ export default function DatasetsTab() {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => setDeleteDatasetId(dataset.id)}
-                                className={t("admin.datasets.glassborderdestructive30textdestructivehoverbgdestructive10")}
+                                className="bg-destructive/10 border border-destructive/20 rounded-md p-4"
                                 data-testid={`button-delete-${dataset.id}`}
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -884,18 +877,16 @@ export default function DatasetsTab() {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewDataset} onOpenChange={() => setPreviewDataset(null)}>
-        <DialogContent className={t("admin.datasets.maxw4xlw95vwmaxh80vhglasspremium")}>
+        <DialogContent className="flex items-center gap-2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-primary" />
               Preview: {previewDataset?.name}
             </DialogTitle>
-            <DialogDescription>
-              {t("admin.datasets.visualizacaodasprimeiraslinhas")}
-                                      </DialogDescription>
+            <DialogDescription>"[TEXTO]"</DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className={t("admin.datasets.h500pxwfullroundedmdborder")}>
+          <ScrollArea className="flex items-center gap-2">
             {isLoadingPreview ? (
               <div className="flex items-center gap-2">
                 <RefreshCw className="w-6 h-6 animate-spin text-primary" />
@@ -919,20 +910,16 @@ export default function DatasetsTab() {
 
       {/* Edit Dataset Dialog */}
       <Dialog open={!!editDataset} onOpenChange={(open) => !open && setEditDataset(null)}>
-        <DialogContent className={t("admin.datasets.maxw2xlw95vwmaxh90vhoverflowyauto")}>
+        <DialogContent className="flex items-center gap-2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Edit className="w-5 h-5 text-primary" />
-              {t("admin.datasets.editardataset")}
-                                      </DialogTitle>
-            <DialogDescription>
-              {t("admin.datasets.atualizeinformacoesdataset")}
-                                      </DialogDescription>
+              <Edit className="w-5 h-5 text-primary" />"[TEXTO]"</DialogTitle>
+            <DialogDescription>"[TEXTO]"</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">{t("admin.datasets.nomedodataset")}</Label>
+              <Label htmlFor="edit-name">"[TEXTO]"</Label>
               <Input
                 id="edit-name"
                 value={editName}
@@ -943,12 +930,12 @@ export default function DatasetsTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={t("admin.datasets.editdescription")}>{t("common.description")}</Label>
+              <Label htmlFor="[PT]">"[TEXTO]"</Label>
               <Textarea
-                id={t("admin.datasets.editdescription")}
+                id="[PT]"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder={t("admin.datasets.placeholder.descricaododataset")}
+                placeholder="[PT]"
                 rows={3}
                 data-testid="text-element"
               />
@@ -986,12 +973,10 @@ export default function DatasetsTab() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteDatasetId} onOpenChange={() => setDeleteDatasetId(null)}>
-        <AlertDialogContent className={t("admin.datasets.glasspremium")}>
+        <AlertDialogContent className="flex items-center gap-2">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("admin.datasets.confirmarexclusao")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("admin.datasets.temcertezaque")}
-                                      </AlertDialogDescription>
+            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
+            <AlertDialogDescription>"[TEXTO]"</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -999,20 +984,18 @@ export default function DatasetsTab() {
               onClick={() => deleteDatasetId && deleteMutation.mutate(deleteDatasetId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-element"
-            >
-              {t("common.delete")}
-                                      </AlertDialogAction>
+            >"[TEXTO]"</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Bulk Delete Confirmation Dialog */}
       <AlertDialog open={showBulkDelete} onOpenChange={setShowBulkDelete}>
-        <AlertDialogContent className={t("admin.datasets.glasspremium")}>
+        <AlertDialogContent className="flex items-center gap-2">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("admin.datasets.confirmarexclusaoem")}</AlertDialogTitle>
+            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir {selectedDatasets.size} {t("admin.datasets.datasetsestaacao")}
+              Tem certeza que deseja excluir {selectedDatasets.size} "[PT]"
                                       </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1021,24 +1004,20 @@ export default function DatasetsTab() {
               onClick={() => bulkDeleteMutation.mutate(Array.from(selectedDatasets))}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-element"
-            >
-              {t("admin.datasets.excluirtodos")}
-                                      </AlertDialogAction>
+            >"[TEXTO]"</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Edit Training Data Dialog */}
       <Dialog open={!!editTrainingData} onOpenChange={(open) => !open && setEditTrainingData(null)}>
-        <DialogContent className={t("admin.datasets.maxw4xlw95vwmaxh90vhoverflowyauto")}>
+        <DialogContent className="flex items-center gap-2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="w-5 h-5 text-primary" />
               Editar Training Data
             </DialogTitle>
-            <DialogDescription>
-              {t("admin.datasets.atualizeainstrucao")}
-                                      </DialogDescription>
+            <DialogDescription>"[TEXTO]"</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -1048,7 +1027,7 @@ export default function DatasetsTab() {
                 id="edit-training-instruction"
                 value={editTrainingInstruction}
                 onChange={(e) => setEditTrainingInstruction(e.target.value)}
-                placeholder={t("admin.datasets.placeholder.instrucaoparao")}
+                placeholder="[PT]"
                 rows={4}
                 className="font-mono text-sm"
                 data-testid="textarea-edit-training-instruction"
@@ -1061,7 +1040,7 @@ export default function DatasetsTab() {
                 id="edit-training-output"
                 value={editTrainingOutput}
                 onChange={(e) => setEditTrainingOutput(e.target.value)}
-                placeholder={t("admin.datasets.placeholder.respostaqueo")}
+                placeholder="[PT]"
                 rows={8}
                 className="font-mono text-sm"
                 data-testid="textarea-edit-training-output"
@@ -1069,20 +1048,18 @@ export default function DatasetsTab() {
               <div className="flex items-center gap-2">
                 <span>{editTrainingOutput.length} caracteres</span>
                 {editTrainingOutput.length < 10 && editTrainingOutput.length > 0 && (
-                  <span className="text-yellow-500">{t("admin.datasets.muitocurtominimo")}</span>
+                  <span className="text-yellow-500">"[TEXTO]"</span>
                 )}
               </div>
             </div>
 
             {/* Validation Warnings Inline */}
             {validationWarnings.length > 0 && (
-              <div className={t("admin.datasets.roundedmdbgyellow50010borderborderyellow50030")}>
+              <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
                   <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
-                      {t("admin.datasets.avisosdevalidacao")}
-                                                              </p>
+                    <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">"[TEXTO]"</p>
                     <ul className="text-xs text-yellow-600 dark:text-yellow-300 space-y-1">
                       {validationWarnings.map((warning, idx) => (
                         <li key={idx}>• {warning}</li>
@@ -1093,11 +1070,9 @@ export default function DatasetsTab() {
               </div>
             )}
 
-            <div className={t("admin.datasets.roundedmdbgprimary5borderborderprimary20")}>
+            <div className="flex items-center gap-2">
               <p className="text-xs text-muted-foreground">
-                <Sparkles className="w-3 h-3 inline mr-1" />
-                {t("admin.datasets.estesdadosserao")}
-                                            </p>
+                <Sparkles className="w-3 h-3 inline mr-1" />"[TEXTO]"</p>
             </div>
           </div>
 
@@ -1136,12 +1111,10 @@ export default function DatasetsTab() {
 
       {/* Delete Training Data Confirmation Dialog */}
       <AlertDialog open={!!deleteTrainingDataId} onOpenChange={() => setDeleteTrainingDataId(null)}>
-        <AlertDialogContent className={t("admin.datasets.glasspremium")}>
+        <AlertDialogContent className="flex items-center gap-2">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("admin.datasets.confirmarexclusaode")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("admin.datasets.temcertezaque")}
-                                      </AlertDialogDescription>
+            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
+            <AlertDialogDescription>"[TEXTO]"</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -1149,9 +1122,7 @@ export default function DatasetsTab() {
               onClick={() => deleteTrainingDataId && deleteTrainingDataMutation.mutate(deleteTrainingDataId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-element"
-            >
-              {t("common.delete")}
-                                      </AlertDialogAction>
+            >"[TEXTO]"</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

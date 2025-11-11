@@ -221,7 +221,7 @@ export default function NamespacesPage() {
             });
             toast({ 
               title: t.admin.namespaces.toast.contentQueued, 
-              description: t("admin.namespaces.toast.oconteudoaguarda") 
+              description: "[PT]" 
             });
           } catch (error) {
             toast({ 
@@ -239,7 +239,7 @@ export default function NamespacesPage() {
     if (!selectedNamespace) return;
 
     // Check if this is a predefined namespace being "customized"
-    const isPredefined = selectedNamespace.id.toString().startsWith({t("admin.namespaces.predefined")});
+    const isPredefined = selectedNamespace.id.toString().startsWith("predefined");
     
     if (isPredefined) {
       // Create a new custom namespace based on the predefined one
@@ -267,7 +267,7 @@ export default function NamespacesPage() {
               });
               toast({ 
                 title: t.admin.namespaces.toast.contentQueued, 
-                description: t("admin.namespaces.toast.oconteudoaguarda") 
+                description: "[PT]" 
               });
             } catch (error) {
               toast({ 
@@ -305,7 +305,7 @@ export default function NamespacesPage() {
               });
               toast({ 
                 title: t.admin.namespaces.toast.contentQueued, 
-                description: t("admin.namespaces.toast.oconteudoadicional") 
+                description: "[PT]" 
               });
             } catch (error) {
               toast({ 
@@ -328,7 +328,7 @@ export default function NamespacesPage() {
   };
 
   return (
-    <div className={t("admin.namespaces.spacey6maxwfulloverflowxhidden")}>
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <h2 className="text-3xl font-bold break-words" data-testid="text-namespaces-title">
@@ -381,7 +381,7 @@ export default function NamespacesPage() {
             <div className="space-y-4 mt-4">
               {/* Modo de criação */}
               <div className="space-y-2">
-                <Label>{t("admin.namespaces.tipodenamespace")}</Label>
+                <Label>"[TEXTO]"</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
@@ -393,7 +393,7 @@ export default function NamespacesPage() {
                     }}
                     className="flex"
                   >
-                    <span className={t("admin.namespaces.fontsemibold")}>Namespace Raiz</span>
+                    <span className="flex items-center gap-2">Namespace Raiz</span>
                     <span className="text-xs text-muted-foreground font-normal">
                       Ex: "projetos" ou "vendas"
                     </span>
@@ -404,7 +404,7 @@ export default function NamespacesPage() {
                     onClick={() => setCreateMode("sub")}
                     className="flex"
                   >
-                    <span className={t("admin.namespaces.fontsemibold")}>Sub-namespace</span>
+                    <span className="flex items-center gap-2">Sub-namespace</span>
                     <span className="text-xs text-muted-foreground font-normal">
                       Ex: "financas/impostos"
                     </span>
@@ -430,9 +430,7 @@ export default function NamespacesPage() {
                     }}
                     data-testid="input-parent-namespace"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {t("admin.namespaces.digiteonome")}
-                                                    </p>
+                  <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
                 </div>
               )}
 
@@ -462,33 +460,29 @@ export default function NamespacesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor={t("admin.namespaces.createdescription")}>{t.admin.namespaces.description}</Label>
+                <Label htmlFor="[PT]">{t.admin.namespaces.description}</Label>
                 <Textarea
-                  id={t("admin.namespaces.createdescription")}
+                  id="[PT]"
                   placeholder={t.admin.namespaces.descriptionPlaceholder}
                   value={createDescription}
                   onChange={(e) => setCreateDescription(e.target.value)}
                   rows={3}
                   data-testid="text-element"
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("admin.namespaces.oagentecurador")}
-                                              </p>
+                <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-icon">{t("admin.namespaces.icone")}</Label>
+                <Label htmlFor="create-icon">"[TEXTO]"</Label>
                 <IconPicker
                   value={createIcon}
                   onChange={setCreateIcon}
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("admin.namespaces.opcionalescolhaum")}
-                                              </p>
+                <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-content">{t("admin.namespaces.conteudoinicialopcional")}</Label>
+                <Label htmlFor="create-content">"[TEXTO]"</Label>
                 <Textarea
                   id="create-content"
                   placeholder={t.admin.namespaces.contentPlaceholder}
@@ -497,9 +491,7 @@ export default function NamespacesPage() {
                   rows={5}
                   data-testid="textarea-create-namespace-content"
                 />
-                <p className="text-xs text-muted-foreground">
-                  {t("admin.namespaces.oconteudosera")}
-                                              </p>
+                <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
               </div>
 
               <div className="flex justify-end gap-2">
@@ -582,7 +574,7 @@ export default function NamespacesPage() {
                             </TooltipTrigger>
                             <TooltipContent>
                               <div className="text-sm">
-                                <div className={t("admin.namespaces.fontsemibold")}>{namespace.name}</div>
+                                <div className="flex items-center gap-2">{namespace.name}</div>
                                 {namespace.description && (
                                   <div className="text-xs text-muted-foreground mt-1 max-w-xs">
                                     {namespace.description}
@@ -600,7 +592,7 @@ export default function NamespacesPage() {
                       </TableCell>
                       <TableCell className="min-w-0">
                         <div className="max-w-[400px] truncate">
-                          {namespace.description || <span className="text-muted-foreground italic">{t("admin.curationqueue.toast.semdescricao")}</span>}
+                          {namespace.description || <span className="text-muted-foreground italic">"[TEXTO]"</span>}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
@@ -639,12 +631,12 @@ export default function NamespacesPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
-              {selectedNamespace?.id?.toString().startsWith({t("admin.namespaces.predefined")}) 
+              {selectedNamespace?.id?.toString().startsWith("predefined") 
                 ? t.admin.namespaces.editCustomVersion 
                 : t.admin.namespaces.editNamespace}
             </DialogTitle>
             <DialogDescription>
-              {selectedNamespace?.id?.toString().startsWith({t("admin.namespaces.predefined")})
+              {selectedNamespace?.id?.toString().startsWith("predefined")
                 ? `Crie uma versão personalizada de "${selectedNamespace?.name}". O namespace original permanecerá inalterado.`
                 : `Atualize as informações do namespace ${selectedNamespace?.name}`}
             </DialogDescription>
@@ -659,15 +651,13 @@ export default function NamespacesPage() {
                 placeholder={t.admin.namespaces.rootPlaceholder}
                 data-testid="input-edit-namespace-name"
               />
-              <p className="text-xs text-muted-foreground">
-                {t("admin.namespaces.nomeunicoque")}
-                                            </p>
+              <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={t("admin.namespaces.editdescription")}>{t("common.description")}</Label>
+              <Label htmlFor="[PT]">"[TEXTO]"</Label>
               <Textarea
-                id={t("admin.namespaces.editdescription")}
+                id="[PT]"
                 placeholder={t.admin.namespaces.descriptionPlaceholder}
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
@@ -677,18 +667,16 @@ export default function NamespacesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-icon">{t("admin.namespaces.icone")}</Label>
+              <Label htmlFor="edit-icon">"[TEXTO]"</Label>
               <IconPicker
                 value={editIcon}
                 onChange={setEditIcon}
               />
-              <p className="text-xs text-muted-foreground">
-                {t("admin.namespaces.opcionalescolhaum")}
-                                            </p>
+              <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-content">{t("admin.namespaces.adicionarconteudoopcional")}</Label>
+              <Label htmlFor="edit-content">"[TEXTO]"</Label>
               <Textarea
                 id="edit-content"
                 placeholder={t.admin.namespaces.contentPlaceholder}
@@ -699,7 +687,7 @@ export default function NamespacesPage() {
               />
               <div className="flex items-center gap-2">
                 <FileText className="h-3 w-3" />
-                <span>{t("admin.namespaces.novoconteudosera")}</span>
+                <span>"[TEXTO]"</span>
               </div>
             </div>
 
@@ -727,10 +715,8 @@ export default function NamespacesPage() {
       <AlertDialog open={!!deleteNamespaceId} onOpenChange={(open) => !open && setDeleteNamespaceId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("admin.knowledgebase.confirmarexclusao")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("admin.namespaces.temcertezaque")}
-                                      </AlertDialogDescription>
+            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
+            <AlertDialogDescription>"[TEXTO]"</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
@@ -738,9 +724,7 @@ export default function NamespacesPage() {
               onClick={handleDeleteConfirm}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-element"
-            >
-              {t("common.delete")}
-                                      </AlertDialogAction>
+            >"[TEXTO]"</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

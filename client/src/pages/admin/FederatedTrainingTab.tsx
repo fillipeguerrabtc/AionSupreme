@@ -247,7 +247,7 @@ export default function FederatedTrainingTab() {
     const formData = new FormData();
     formData.append("file", selectedFile);
     formData.append("name", datasetName);
-    formData.append({t("admin.federatedtraining.description")}, datasetDescription);
+    formData.append("description", datasetDescription);
     formData.append("datasetType", datasetType);
 
     uploadDataset.mutate(formData);
@@ -263,7 +263,7 @@ export default function FederatedTrainingTab() {
   const datasets = datasetsData?.datasets || [];
 
   return (
-    <div className={t("admin.federatedtraining.spacey6maxwfulloverflowxhidden")}>
+    <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
@@ -304,7 +304,7 @@ export default function FederatedTrainingTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={t("admin.federatedtraining.modeltype")}>{t.admin.federatedTraining.createDialog.modelBase}</Label>
+              <Label htmlFor="[PT]">{t.admin.federatedTraining.createDialog.modelBase}</Label>
               <Select value={modelType} onValueChange={setModelType}>
                 <SelectTrigger data-testid="select-element">
                   <SelectValue />
@@ -584,7 +584,7 @@ export default function FederatedTrainingTab() {
               {datasets.map((dataset: any) => (
                 <div 
                   key={dataset.id} 
-                  className={t("admin.federatedtraining.borderroundedlghoverelevatespacey2")}
+                  className="flex items-center gap-2"
                   data-testid={`dataset-${dataset.id}`}
                 >
                   <div className="flex items-center gap-2">
@@ -607,7 +607,7 @@ export default function FederatedTrainingTab() {
                     <span>{t.admin.federatedTraining.datasetManagement.type}: {dataset.datasetType}</span>
                     <span>{t.admin.federatedTraining.datasetManagement.examples}: {dataset.totalExamples}</span>
                     <span>{t.admin.federatedTraining.datasetManagement.size}: {(dataset.fileSize / 1024 / 1024).toFixed(2)} {t.admin.federatedTraining.datasetManagement.mbUnit}</span>
-                    <Badge variant={dataset.isValid ? "default" : {t("admin.federatedtraining.destructive")}}>
+                    <Badge variant={dataset.isValid ? "default" : "destructive"}>
                       {dataset.status}
                     </Badge>
                   </div>
@@ -622,34 +622,34 @@ export default function FederatedTrainingTab() {
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("admin.federatedtraining.uploadtrainingdataset")}</DialogTitle>
+            <DialogTitle>"[TEXTO]"</DialogTitle>
             <DialogDescription>
               Upload a dataset file for federated training. Supported formats: JSONL, JSON, CSV, TXT
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="dataset-name">{t("admin.federatedtraining.datasetname")}</Label>
+              <Label htmlFor="dataset-name">"[TEXTO]"</Label>
               <Input
                 id="dataset-name"
                 value={datasetName}
                 onChange={(e) => setDatasetName(e.target.value)}
-                placeholder={t("admin.federatedtraining.placeholder.mytrainingdataset")}
+                placeholder="[PT]"
                 data-testid="input-dataset-name"
               />
             </div>
             <div>
-              <Label htmlFor={t("admin.federatedtraining.datasetdescription")}>Description (Optional)</Label>
+              <Label htmlFor="[PT]">Description (Optional)</Label>
               <Textarea
-                id={t("admin.federatedtraining.datasetdescription")}
+                id="[PT]"
                 value={datasetDescription}
                 onChange={(e) => setDatasetDescription(e.target.value)}
-                placeholder={t("admin.federatedtraining.descriptionyourdataset")}
+                placeholder="[PT]"
                 data-testid="text-element"
               />
             </div>
             <div>
-              <Label htmlFor="dataset-type">{t("admin.federatedtraining.datasettype")}</Label>
+              <Label htmlFor="dataset-type">"[TEXTO]"</Label>
               <Select value={datasetType} onValueChange={setDatasetType}>
                 <SelectTrigger data-testid="select-dataset-type">
                   <SelectValue />
@@ -664,7 +664,7 @@ export default function FederatedTrainingTab() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="dataset-file">{t("admin.federatedtraining.datasetfile")}</Label>
+              <Label htmlFor="dataset-file">"[TEXTO]"</Label>
               <Input
                 id="dataset-file"
                 type="file"

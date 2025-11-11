@@ -268,7 +268,7 @@ export default function GPUDashboard() {
                     <Input
                       id="email"
                       type="email"
-                      placeholder={t("admin.gpu-dashboard.placeholder.usergmailcom")}
+                      placeholder="[PT]"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
@@ -306,7 +306,7 @@ export default function GPUDashboard() {
                     <Input
                       id="kaggleKey"
                       type="password"
-                      placeholder={t("admin.gpu-dashboard.placeholder.getfromkagglecomaccount")}
+                      placeholder="[PT]"
                       value={formData.kaggleKey}
                       onChange={(e) => setFormData({ ...formData, kaggleKey: e.target.value })}
                       required
@@ -321,7 +321,7 @@ export default function GPUDashboard() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder={t("admin.gpu-dashboard.placeholder.youremailcom")}
+                  placeholder="[PT]"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -364,7 +364,7 @@ export default function GPUDashboard() {
         <Card>
           <CardContent className="py-10 text-center">
             <Cpu className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className={t("admin.gpu-dashboard.mt4textlgfontsemibold")}>No Notebooks Configured</h3>
+            <h3 className="flex items-center gap-2">No Notebooks Configured</h3>
             <p className="text-muted-foreground">Add your first Colab or Kaggle notebook to get started</p>
             <Button className="mt-4" onClick={() => setShowAddForm(true)}>
               <Plus className="mr-2 h-4 w-4" />

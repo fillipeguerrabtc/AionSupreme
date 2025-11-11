@@ -138,8 +138,8 @@ export default function ImagesGalleryPage() {
     },
     onSuccess: () => {
       toast({
-        title: t("admin.imagesgallery.toast.descricaoatualizada"),
-        description: t("admin.imagesgallery.toast.adescricaoda"),
+        title: "[PT]",
+        description: "[PT]",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images/all"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
@@ -148,7 +148,7 @@ export default function ImagesGalleryPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: t("admin.imagesgallery.toast.erroaoatualizar"),
+        title: "[PT]",
         description: error.message,
         variant: "destructive",
       });
@@ -170,7 +170,7 @@ export default function ImagesGalleryPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: t("admin.imagesgallery.imagensdeletadas"),
+        title: "[PT]",
         description: `${data.deleted} imagem(ns) deletada(s) com sucesso`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images/all"] });
@@ -179,7 +179,7 @@ export default function ImagesGalleryPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: t("admin.imagesgallery.toast.erroaodeletar"),
+        title: "[PT]",
         description: error.message,
         variant: "destructive",
       });
@@ -224,7 +224,7 @@ export default function ImagesGalleryPage() {
   };
 
   if (imagesLoading || documentsLoading) {
-    return <div className="p-6">{t("common.loading")}</div>;
+    return <div className="p-6">"[TEXTO]"</div>;
   }
 
   return (
@@ -312,7 +312,7 @@ export default function ImagesGalleryPage() {
                   <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full sm:w-auto flex-wrap">
                     <div className="flex-1 sm:max-w-xs">
                       <Input
-                        placeholder={t("admin.imagesgallery.placeholder.buscarpornome")}
+                        placeholder="[PT]"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         data-testid="input-search-images"
@@ -424,7 +424,7 @@ export default function ImagesGalleryPage() {
                 <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
                   {searchQuery || sourceFilter !== 'all' 
-                    ? t("admin.imagesgallery.nenhumaimagemencontradacom") 
+                    ? "[PT]" 
                     : 'Nenhuma imagem aprovada ainda'}
                 </p>
               </CardContent>
@@ -434,7 +434,7 @@ export default function ImagesGalleryPage() {
               {filteredImages.map((img) => (
                 <Card 
                   key={img.id} 
-                  className={t("admin.imagesgallery.grouphoverelevateoverflowhiddenrelative")}
+                  className="flex items-center gap-2"
                   data-testid={`image-card-${img.id}`}
                 >
                   {/* Selection Checkbox */}
@@ -502,7 +502,7 @@ export default function ImagesGalleryPage() {
                       <img
                         src={img.url}
                         alt={img.description || img.filename}
-                        className={t("admin.imagesgallery.w20h20objectcoverroundedmd")}
+                        className="flex items-center gap-2"
                         loading="lazy"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -563,7 +563,7 @@ export default function ImagesGalleryPage() {
             <CardHeader>
               <CardTitle>Documentos Indexados</CardTitle>
               <CardDescription>
-                {kbDocuments.length} {t("admin.imagesgallery.documentosaprovadosdisponivelisknowledge")}
+                {kbDocuments.length} "[PT]"
                                             </CardDescription>
             </CardHeader>
             <CardContent>
@@ -620,7 +620,7 @@ export default function ImagesGalleryPage() {
 
       {/* Image Detail Dialog */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col" data-testid={t("admin.imagesgallery.dialogimagedetail")}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col" data-testid="test-id">
           <DialogHeader>
             <DialogTitle>{selectedImage?.filename}</DialogTitle>
             <DialogDescription>
@@ -633,7 +633,7 @@ export default function ImagesGalleryPage() {
           {selectedImage && (
             <div className="space-y-4 overflow-y-auto flex-1">
               {/* Image Preview */}
-              <div className={t("admin.imagesgallery.relativeroundedlgoverflowhiddenborder")}>
+              <div className="flex items-center gap-2">
                 <img
                   src={selectedImage.url}
                   alt={selectedImage.description || selectedImage.filename}
@@ -655,7 +655,7 @@ export default function ImagesGalleryPage() {
                 </div>
                 {selectedImage.description && (
                   <div className="col-span-2">
-                    <span className="font-medium">{t("admin.imagesgallery.descricaoai")}</span>
+                    <span className="font-medium">"[TEXTO]"</span>
                     <p className="text-muted-foreground mt-1">{selectedImage.description}</p>
                   </div>
                 )}
@@ -679,9 +679,7 @@ export default function ImagesGalleryPage() {
               <div className="flex items-center gap-2">
                 <Button variant="outline" asChild className="flex-1">
                   <a href={selectedImage.url} target="_blank" rel="noopener noreferrer" data-testid="button-open-new-tab">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    {t("admin.imagesgallery.abriremnova")}
-                                                        </a>
+                    <ExternalLink className="h-4 w-4 mr-2" />"[TEXTO]"</a>
                 </Button>
                 <Button variant="outline" asChild className="flex-1">
                   <a href={selectedImage.url} download={selectedImage.filename} data-testid="button-download">
@@ -697,11 +695,10 @@ export default function ImagesGalleryPage() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent data-testid={t("admin.imagesgallery.dialogdeleteconfirm")}>
+        <AlertDialogContent data-testid="test-id">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("admin.imagesgallery.confirmarexclusao")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("admin.imagesgallery.voceestaprestes")} {selectedImages.size} imagem(ns). Esta ação não pode ser desfeita.
+            <AlertDialogTitle>"[TEXTO]"</AlertDialogTitle>
+            <AlertDialogDescription>"[TEXTO]" {selectedImages.size} imagem(ns). Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -719,22 +716,20 @@ export default function ImagesGalleryPage() {
 
       {/* Edit Description Dialog */}
       <Dialog open={!!editingImage} onOpenChange={() => setEditingImage(null)}>
-        <DialogContent data-testid={t("admin.imagesgallery.dialogeditdescription")}>
+        <DialogContent data-testid="test-id">
           <DialogHeader>
-            <DialogTitle>{t("admin.imagesgallery.editardescricao")}</DialogTitle>
-            <DialogDescription>
-              {t("admin.imagesgallery.editeadescricao")}
-                                      </DialogDescription>
+            <DialogTitle>"[TEXTO]"</DialogTitle>
+            <DialogDescription>"[TEXTO]"</DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor={t("admin.imagesgallery.editdescription")}>{t("common.description")}</Label>
+              <Label htmlFor="[PT]">"[TEXTO]"</Label>
               <Textarea
-                id={t("admin.imagesgallery.editdescription")}
+                id="[PT]"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder={t("admin.imagesgallery.placeholder.digiteanova")}
+                placeholder="[PT]"
                 rows={4}
                 data-testid="text-element"
               />
@@ -756,7 +751,7 @@ export default function ImagesGalleryPage() {
                 disabled={updateDescriptionMutation.isPending}
                 data-testid="button-element"
               >
-                {updateDescriptionMutation.isPending ? 'Salvando...' : t("common.save")}
+                {updateDescriptionMutation.isPending ? 'Salvando...' : "[PT]"}
               </Button>
             </div>
           </div>

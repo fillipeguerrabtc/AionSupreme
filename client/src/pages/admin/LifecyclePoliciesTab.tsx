@@ -126,7 +126,7 @@ export default function LifecyclePoliciesTab() {
   }
 
   if (!policy) {
-    return <div className="p-4" data-testid=t("admin.lifecyclepolicies.errorlifecyclepolicies")>Error</div>;
+    return <div className="p-4" data-testid="error-lifecycle-policies">Error</div>;
   }
 
   return (
@@ -159,11 +159,9 @@ export default function LifecyclePoliciesTab() {
       <Card data-testid="card-element">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Info className="w-4 h-4" />
-            {t("admin.lifecyclepolicies.configuracoesglobais")}
-                                </CardTitle>
+            <Info className="w-4 h-4" />"[TEXTO]"</CardTitle>
           <CardDescription data-testid="text-global-defaults-info">
-            Timezone: {pendingChanges.globalDefaults.timezone} {t("admin.lifecyclepolicies.retencaopadrao")} {pendingChanges.globalDefaults.retentionYears} anos
+            Timezone: {pendingChanges.globalDefaults.timezone} "[PT]" {pendingChanges.globalDefaults.retentionYears} anos
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -171,7 +169,7 @@ export default function LifecyclePoliciesTab() {
             <div className="flex items-center gap-2">
               <div>
                 <Label>Audit Log Habilitado</Label>
-                <p className="text-xs text-muted-foreground">{t("admin.lifecyclepolicies.registrartodasas")}</p>
+                <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
               </div>
               <Switch
                 checked={pendingChanges.globalDefaults.auditLogEnabled}
@@ -183,7 +181,7 @@ export default function LifecyclePoliciesTab() {
             <div className="flex items-center gap-2">
               <div>
                 <Label>Modo Dry Run</Label>
-                <p className="text-xs text-muted-foreground">{t("admin.lifecyclepolicies.simularlimpezasem")}</p>
+                <p className="text-xs text-muted-foreground">"[TEXTO]"</p>
               </div>
               <Switch
                 checked={pendingChanges.globalDefaults.dryRun}
@@ -215,10 +213,10 @@ export default function LifecyclePoliciesTab() {
               {moduleConfig.enabled && moduleConfig.policies && (
                 <div className="space-y-4">
                   {moduleConfig.policies.map((policyRule: any, idx: number) => (
-                    <div key={idx} className={t("admin.lifecyclepolicies.borderroundedmdspacey3")} data-testid={`card-policy-${moduleName}-${idx}`}>
+                    <div key={idx} className="flex items-center gap-2" data-testid={`card-policy-${moduleName}-${idx}`}>
                       <div className="flex items-center gap-2">
                         <div>
-                          <Label className={t("admin.lifecyclepolicies.fontsemibold")} data-testid={`text-policy-${moduleName}-${idx}-name`}>{policyRule.name}</Label>
+                          <Label className="flex items-center gap-2" data-testid={`text-policy-${moduleName}-${idx}-name`}>{policyRule.name}</Label>
                           {policyRule.description && (
                             <p className="text-xs text-muted-foreground mt-1" data-testid={`text-policy-${moduleName}-${idx}-description`}>{policyRule.description}</p>
                           )}
@@ -233,11 +231,11 @@ export default function LifecyclePoliciesTab() {
                       </div>
 
                       {policyRule.enabled && policyRule.condition && (
-                        <div className={t("admin.lifecyclepolicies.gridgridcols2gap4pt2")}>
+                        <div className="flex items-center gap-2">
                           {policyRule.condition.value !== undefined && (
                             <>
                               <div>
-                                <Label className="text-xs">{t("admin.lifecyclepolicies.periododeretencao")}</Label>
+                                <Label className="text-xs">"[TEXTO]"</Label>
                                 <Input
                                   type="number"
                                   value={policyRule.condition.value}
