@@ -217,7 +217,7 @@ export default function TelemetriaPage() {
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {/* Total Queries */}
             <Card className="flex items-center gap-2" data-testid="card-total-queries">
-              <CardHeader className="pb-3">
+              <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Activity className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -229,7 +229,7 @@ export default function TelemetriaPage() {
 
             {/* Average Latency */}
             <Card className="flex items-center gap-2" data-testid="card-avg-latency">
-              <CardHeader className="pb-3">
+              <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Clock className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -243,7 +243,7 @@ export default function TelemetriaPage() {
 
             {/* P95 Latency */}
             <Card className="flex items-center gap-2" data-testid="card-p95-latency">
-              <CardHeader className="pb-3">
+              <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <TrendingUp className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -257,7 +257,7 @@ export default function TelemetriaPage() {
 
             {/* Success Rate */}
             <Card className="flex items-center gap-2" data-testid="card-success-rate">
-              <CardHeader className="pb-3">
+              <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Zap className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -370,7 +370,7 @@ export default function TelemetriaPage() {
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {/* KB Coverage */}
             <Card className="flex items-center gap-2" data-testid="card-kb-coverage">
-              <CardHeader className="pb-3">
+              <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Brain className="w-4 h-4" />
                   KB Coverage
@@ -381,18 +381,16 @@ export default function TelemetriaPage() {
                 <CardDescription className="text-xs">
                   {kbAnalytics?.overview?.totalRequests || 0} queries totais
                 </CardDescription>
-                <div className="mt-2">
-                  <Progress 
-                    value={kbAnalytics?.overview?.kbCoverage || 0} 
-                    className="h-2" 
-                  />
-                </div>
+                <Progress 
+                  value={kbAnalytics?.overview?.kbCoverage || 0} 
+                  className="h-2" 
+                />
               </CardHeader>
             </Card>
 
             {/* Free Coverage */}
             <Card className="flex items-center gap-2" data-testid="card-free-coverage">
-              <CardHeader className="pb-3">
+              <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
                   APIs Gratuitas
@@ -413,7 +411,7 @@ export default function TelemetriaPage() {
 
             {/* Cost Savings */}
             <Card className="flex items-center gap-2" data-testid="card-cost-savings">
-              <CardHeader className="pb-3">
+              <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <TrendingDown className="w-4 h-4 text-green-500" />
                   Economia
@@ -429,7 +427,7 @@ export default function TelemetriaPage() {
 
             {/* Total Requests */}
             <Card className="flex items-center gap-2" data-testid="card-total-requests">
-              <CardHeader className="pb-3">
+              <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Activity className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">

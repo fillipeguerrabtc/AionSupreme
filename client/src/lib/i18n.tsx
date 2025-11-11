@@ -39,6 +39,7 @@ interface Translations {
     files: string;
     processedAndIndexed: string;
     failedToProcess: string;
+    errorProcessingRequest: string;
     status: {
       ready: string;
       processing: string;
@@ -142,9 +143,12 @@ interface Translations {
       gpuWorkers: string;
       federatedJobs: string;
       allProviders: string;
+      allTime: string;
       openaiOnly: string;
       knowledgeBaseQueries: string;
+      freeApis_description: string;
       groqGeminiHfOpenrouter: string;
+      requests: string;
       paidApiRequests: string;
       domainsSearched: string;
       duckduckgoProvider: string;
@@ -152,6 +156,8 @@ interface Translations {
       indexedKnowledge: string;
       healthyGpuWorkers: string;
       completedTrainingJobs: string;
+      autoevolution: string;
+      autoevolution_system_status: string;
     };
     
     // Token Monitoring
@@ -1485,6 +1491,7 @@ const translations: Record<Language, Translations> = {
       files: "arquivo(s)",
       processedAndIndexed: "processado(s) e indexado(s)",
       failedToProcess: "Falha ao processar arquivos",
+      errorProcessingRequest: "Erro ao processar solicitação",
       status: {
         ready: "Pronto",
         processing: "Processando",
@@ -1579,9 +1586,12 @@ const translations: Record<Language, Translations> = {
         gpuWorkers: "Trabalhadores GPU",
         federatedJobs: "Jobs de Treinamento",
         allProviders: "Todos provedores",
+        allTime: "Tempo Total",
         openaiOnly: "Apenas OpenAI",
         knowledgeBaseQueries: "Consultas Knowledge Base",
+        freeApis_description: "Groq, Gemini, HuggingFace, OpenRouter",
         groqGeminiHfOpenrouter: "Groq, Gemini, HF, OpenRouter",
+        requests: "Requisições",
         paidApiRequests: "Requisições API pagas",
         domainsSearched: "domínios pesquisados",
         duckduckgoProvider: "DuckDuckGo",
@@ -1589,6 +1599,8 @@ const translations: Record<Language, Translations> = {
         indexedKnowledge: "conhecimento indexado",
         healthyGpuWorkers: "GPUs ativas no pool",
         completedTrainingJobs: "jobs federados completados",
+        autoevolution: "Auto-Evolução",
+        autoevolution_system_status: "Sistema de aprendizado contínuo ativo",
       },
       
       tokenMonitoring: {
@@ -2881,6 +2893,7 @@ const translations: Record<Language, Translations> = {
       files: "file(s)",
       processedAndIndexed: "processed and indexed",
       failedToProcess: "Failed to process files",
+      errorProcessingRequest: "Error processing request",
       status: {
         ready: "Ready",
         processing: "Processing",
@@ -2975,9 +2988,12 @@ const translations: Record<Language, Translations> = {
         gpuWorkers: "GPU Workers",
         federatedJobs: "Training Jobs",
         allProviders: "All providers",
+        allTime: "All Time",
         openaiOnly: "OpenAI only",
         knowledgeBaseQueries: "Knowledge Base queries",
+        freeApis_description: "Groq, Gemini, HuggingFace, OpenRouter",
         groqGeminiHfOpenrouter: "Groq, Gemini, HF, OpenRouter",
+        requests: "Requests",
         paidApiRequests: "Paid API requests",
         domainsSearched: "domains searched",
         duckduckgoProvider: "DuckDuckGo",
@@ -2985,6 +3001,8 @@ const translations: Record<Language, Translations> = {
         indexedKnowledge: "indexed knowledge",
         healthyGpuWorkers: "active GPUs in pool",
         completedTrainingJobs: "completed federated jobs",
+        autoevolution: "Auto-Evolution",
+        autoevolution_system_status: "Continuous learning system active",
       },
       
       tokenMonitoring: {
@@ -4277,6 +4295,7 @@ const translations: Record<Language, Translations> = {
       files: "archivo(s)",
       processedAndIndexed: "procesado(s) e indexado(s)",
       failedToProcess: "Error al procesar archivos",
+      errorProcessingRequest: "Error al procesar solicitud",
       status: {
         ready: "Listo",
         processing: "Procesando",
@@ -4371,9 +4390,12 @@ const translations: Record<Language, Translations> = {
         gpuWorkers: "Trabajadores GPU",
         federatedJobs: "Jobs de Entrenamiento",
         allProviders: "Todos los proveedores",
+        allTime: "Todo el Tiempo",
         openaiOnly: "Solo OpenAI",
         knowledgeBaseQueries: "consultas Base de Conocimiento",
+        freeApis_description: "Groq, Gemini, HuggingFace, OpenRouter",
         groqGeminiHfOpenrouter: "Groq, Gemini, HF, OpenRouter",
+        requests: "Solicitudes",
         paidApiRequests: "Solicitudes API pagadas",
         domainsSearched: "dominios buscados",
         duckduckgoProvider: "DuckDuckGo",
@@ -4381,6 +4403,8 @@ const translations: Record<Language, Translations> = {
         indexedKnowledge: "conocimiento indexado",
         healthyGpuWorkers: "GPUs activas en el pool",
         completedTrainingJobs: "jobs federados completados",
+        autoevolution: "Auto-Evolución",
+        autoevolution_system_status: "Sistema de aprendizaje continuo activo",
       },
       
       tokenMonitoring: {

@@ -541,29 +541,29 @@ export default function AdminDashboard() {
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* Card 1: Total Tokens → Token Monitoring (Overview) */}
           <Card 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 cursor-pointer" 
             onClick={() => {
               setTokenSubtab('overview');
               setActiveTab("tokens");
             }}
             data-testid="card-total-tokens"
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 space-y-2 w-full">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Activity className="w-4 h-4" />
                 {t.admin.overview.totalTokens}
               </CardTitle>
-              <div className="space-y-2 mt-2">
+              <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">24h (Hoje):</span>
+                  <span className="text-xs text-muted-foreground">24h (Hoje):</span>
                   <span className="font-bold text-lg">{tokenSummary ? totalTokensToday.toLocaleString() : '...'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">{t.admin.overview.allTime}</span>
+                  <span className="text-xs text-muted-foreground">{t.admin.overview.allTime}</span>
                   <span className="font-bold text-primary">{tokenSummary ? totalTokensAllTime.toLocaleString() : '...'}</span>
                 </div>
               </div>
-              <CardDescription className="text-xs mt-2">
+              <CardDescription className="text-xs">
                 {t.admin.overview.allProviders}
               </CardDescription>
             </CardHeader>
@@ -571,11 +571,11 @@ export default function AdminDashboard() {
 
           {/* Card 2: Total Cost → Cost History Tab */}
           <Card 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 cursor-pointer" 
             onClick={() => setActiveTab("cost")}
             data-testid="card-total-cost"
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 space-y-2 w-full">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 {t.admin.overview.totalCost}
@@ -595,14 +595,14 @@ export default function AdminDashboard() {
 
           {/* Card 3: KB Searches → Token Monitoring (KB subtab) */}
           <Card 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 cursor-pointer" 
             onClick={() => {
               setTokenSubtab('kb');
               setActiveTab("tokens");
             }}
             data-testid="card-kb-searches"
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 space-y-2 w-full">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Search className="w-4 h-4" />
                 {t.admin.overview.kbSearches}
@@ -622,37 +622,37 @@ export default function AdminDashboard() {
 
           {/* Card 4: Free APIs → Token Monitoring (Free APIs subtab) */}
           <Card 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 cursor-pointer" 
             onClick={() => {
               setTokenSubtab('free-apis');
               setActiveTab("tokens");
             }}
             data-testid="card-free-apis"
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 space-y-2 w-full">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Zap className="w-4 h-4" />
                 {t.admin.overview.freeApis}
               </CardTitle>
-              <div className="space-y-2 mt-2">
+              <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Groq:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'groq')?.allTime?.requests || 0} req</span>
+                  <span className="text-xs text-muted-foreground">Groq:</span>
+                  <span className="font-bold text-sm">{tokenSummary?.find((p: any) => p.provider === 'groq')?.allTime?.requests || 0} req</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Gemini:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'gemini')?.allTime?.requests || 0} req</span>
+                  <span className="text-xs text-muted-foreground">Gemini:</span>
+                  <span className="font-bold text-sm">{tokenSummary?.find((p: any) => p.provider === 'gemini')?.allTime?.requests || 0} req</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">HuggingFace:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'huggingface')?.allTime?.requests || 0} req</span>
+                  <span className="text-xs text-muted-foreground">HuggingFace:</span>
+                  <span className="font-bold text-sm">{tokenSummary?.find((p: any) => p.provider === 'huggingface')?.allTime?.requests || 0} req</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">OpenRouter:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.allTime?.requests || 0} req</span>
+                  <span className="text-xs text-muted-foreground">OpenRouter:</span>
+                  <span className="font-bold text-sm">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.allTime?.requests || 0} req</span>
                 </div>
               </div>
-              <CardDescription className="text-xs mt-2">
+              <CardDescription className="text-xs">
                 {t.admin.overview.freeApis_description}
               </CardDescription>
             </CardHeader>
@@ -660,29 +660,29 @@ export default function AdminDashboard() {
 
           {/* Card 5: OpenAI → Token Monitoring (OpenAI subtab) */}
           <Card 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 cursor-pointer" 
             onClick={() => {
               setTokenSubtab('openai');
               setActiveTab("tokens");
             }}
             data-testid="card-openai"
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 space-y-2 w-full">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
                 {t.admin.overview.openai}
               </CardTitle>
-              <div className="space-y-2 mt-2">
+              <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">{t.admin.overview.requests}</span>
+                  <span className="text-xs text-muted-foreground">{t.admin.overview.requests}</span>
                   <span className="font-bold text-lg">{openaiStats ? (openaiStats.allTime?.requests || 0).toLocaleString() : '...'} req</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Tokens:</span>
+                  <span className="text-xs text-muted-foreground">Tokens:</span>
                   <span className="font-bold text-primary">{openaiStats ? (openaiStats.allTime?.tokens || 0).toLocaleString() : '...'}</span>
                 </div>
               </div>
-              <CardDescription className="text-xs mt-2">
+              <CardDescription className="text-xs">
                 {t.admin.overview.paidApiRequests}
               </CardDescription>
             </CardHeader>
@@ -690,14 +690,14 @@ export default function AdminDashboard() {
 
           {/* Card 6: Web Searches → Token Monitoring (Web subtab) */}
           <Card 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 cursor-pointer" 
             onClick={() => {
               setTokenSubtab('web');
               setActiveTab("tokens");
             }}
             data-testid="card-web-searches"
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 space-y-2 w-full">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Globe className="w-4 h-4" />
                 {t.admin.overview.webSearches}
@@ -717,11 +717,11 @@ export default function AdminDashboard() {
 
           {/* Card 7: KB Documents → Knowledge Base Tab */}
           <Card 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 cursor-pointer" 
             onClick={() => setActiveTab("knowledge")}
             data-testid="card-kb-documents"
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 space-y-2 w-full">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Database className="w-4 h-4" />
                 {t.admin.overview.kbDocuments}
@@ -737,39 +737,39 @@ export default function AdminDashboard() {
 
           {/* Card 9: GPU Workers → GPU Management Tab */}
           <Card 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 cursor-pointer" 
             onClick={() => setActiveTab("gpu")}
             data-testid="card-gpu-workers"
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 space-y-2 w-full">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Server className="w-4 h-4" />
                 {t.admin.overview.gpuWorkers}
               </CardTitle>
-              <div className="space-y-2 mt-2">
+              <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Total:</span>
-                  <span className="font-bold">{gpuData?.total || 0}</span>
+                  <span className="text-xs text-muted-foreground">Total:</span>
+                  <span className="font-bold text-sm">{gpuData?.total || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-green-400">Healthy:</span>
-                  <span className="font-bold text-green-400">{gpuData?.healthy || 0}</span>
+                  <span className="text-xs text-green-400">Healthy:</span>
+                  <span className="font-bold text-sm text-green-400">{gpuData?.healthy || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-yellow-400">Unhealthy:</span>
-                  <span className="font-bold text-yellow-400">{gpuData?.unhealthy || 0}</span>
+                  <span className="text-xs text-yellow-400">Unhealthy:</span>
+                  <span className="font-bold text-sm text-yellow-400">{gpuData?.unhealthy || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-red-400">Offline:</span>
-                  <span className="font-bold text-red-400">{gpuData?.offline || 0}</span>
+                  <span className="text-xs text-red-400">Offline:</span>
+                  <span className="font-bold text-sm text-red-400">{gpuData?.offline || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Requests:</span>
-                  <span className="font-bold">{gpuData?.totalRequests || 0}</span>
+                  <span className="text-xs text-muted-foreground">Requests:</span>
+                  <span className="font-bold text-sm">{gpuData?.totalRequests || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Avg Latency:</span>
-                  <span className="font-bold">{(gpuData?.avgLatency || 0).toFixed(0)}ms</span>
+                  <span className="text-xs text-muted-foreground">Avg Latency:</span>
+                  <span className="font-bold text-sm">{(gpuData?.avgLatency || 0).toFixed(0)}ms</span>
                 </div>
               </div>
             </CardHeader>
@@ -777,11 +777,11 @@ export default function AdminDashboard() {
 
           {/* Card 10: Federated Training Jobs → Federated Training Tab */}
           <Card 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 cursor-pointer" 
             onClick={() => setActiveTab("federated")}
             data-testid="card-element"
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 space-y-2 w-full">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Cpu className="w-4 h-4" />
                 {t.admin.overview.federatedJobs}
@@ -801,34 +801,34 @@ export default function AdminDashboard() {
 
           {/* Card 11: Auto-Evolution → Meta-Learning Tab (consolidated) */}
           <Card 
-            className="flex items-center gap-2" 
+            className="flex items-center gap-2 cursor-pointer" 
             onClick={() => setActiveTab("meta-learning")}
             data-testid="card-auto-evolution"
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="p-4 space-y-2 w-full">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
                 {t.admin.overview.autoevolution}
               </CardTitle>
-              <div className="space-y-2 mt-2">
+              <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Conversas:</span>
-                  <span className="font-bold">{autoEvolutionStats?.overview?.totalConversations || 0}</span>
+                  <span className="text-xs text-muted-foreground">Conversas:</span>
+                  <span className="font-bold text-sm">{autoEvolutionStats?.overview?.totalConversations || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-green-400">Alta Qualidade:</span>
-                  <span className="font-bold text-green-400">{autoEvolutionStats?.overview?.highQualityConversations || 0}</span>
+                  <span className="text-xs text-green-400">Alta Qualidade:</span>
+                  <span className="font-bold text-sm text-green-400">{autoEvolutionStats?.overview?.highQualityConversations || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Datasets KB:</span>
-                  <span className="font-bold">{autoEvolutionStats?.overview?.kbGeneratedDatasets || 0}</span>
+                  <span className="text-xs text-muted-foreground">Datasets KB:</span>
+                  <span className="font-bold text-sm">{autoEvolutionStats?.overview?.kbGeneratedDatasets || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Jobs:</span>
-                  <span className="font-bold">{autoEvolutionStats?.overview?.completedJobs || 0}/{autoEvolutionStats?.overview?.totalJobs || 0}</span>
+                  <span className="text-xs text-muted-foreground">Jobs:</span>
+                  <span className="font-bold text-sm">{autoEvolutionStats?.overview?.completedJobs || 0}/{autoEvolutionStats?.overview?.totalJobs || 0}</span>
                 </div>
               </div>
-              <CardDescription className="text-xs mt-2">
+              <CardDescription className="text-xs">
                 {t.admin.overview.autoevolution_system_status}
               </CardDescription>
             </CardHeader>
@@ -1023,7 +1023,7 @@ export default function AdminDashboard() {
                   {t.admin.behavior.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4">
                 {/* 1. Verbosity */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">

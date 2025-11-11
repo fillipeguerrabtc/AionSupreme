@@ -157,14 +157,14 @@ export default function LifecyclePoliciesTab() {
       </div>
 
       <Card data-testid="card-element">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="p-4">
+          <CardTitle className="flex items-center gap-2 text-base">
             <Info className="w-4 h-4" />{t.common.loading}</CardTitle>
-          <CardDescription data-testid="text-global-defaults-info">
+          <CardDescription className="text-sm" data-testid="text-global-defaults-info">
             Fuso Horário: {pendingChanges.globalDefaults.timezone} | Retenção: {pendingChanges.globalDefaults.retentionYears} anos
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-4 pt-0 space-y-3">
           <div className="grid gap-4">
             <div className="flex items-center gap-2">
               <div>
@@ -196,11 +196,11 @@ export default function LifecyclePoliciesTab() {
       <div className="grid gap-4">
         {Object.entries(pendingChanges.modules).map(([moduleName, moduleConfig]: [string, any]) => (
           <Card key={moduleName} data-testid={`card-module-${moduleName}`}>
-            <CardHeader>
+            <CardHeader className="p-4">
               <div className="flex items-center gap-2">
-                <div>
-                  <CardTitle className="capitalize" data-testid={`text-module-${moduleName}-name`}>{moduleName}</CardTitle>
-                  <CardDescription data-testid={`text-module-${moduleName}-description`}>{moduleConfig.description}</CardDescription>
+                <div className="flex-1">
+                  <CardTitle className="capitalize text-base" data-testid={`text-module-${moduleName}-name`}>{moduleName}</CardTitle>
+                  <CardDescription className="text-sm" data-testid={`text-module-${moduleName}-description`}>{moduleConfig.description}</CardDescription>
                 </div>
                 <Switch
                   checked={moduleConfig.enabled}
@@ -209,7 +209,7 @@ export default function LifecyclePoliciesTab() {
                 />
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               {moduleConfig.enabled && moduleConfig.policies && (
                 <div className="space-y-4">
                   {moduleConfig.policies.map((policyRule: any, idx: number) => (
