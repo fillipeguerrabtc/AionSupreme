@@ -468,7 +468,7 @@ export default function KnowledgeBaseTab() {
             <CardTitle className="flex items-center gap-2">
               <span className="flex items-center gap-2">
                 <Youtube className="w-5 h-5 text-red-600 dark:text-red-400" />
-                <span className="gradient-text-vibrant">"Loading..."</span>
+                <span className="gradient-text-vibrant">{t.common.loading}</span>
               </span>
               <Button
                 size="icon"
@@ -479,7 +479,7 @@ export default function KnowledgeBaseTab() {
                 <X className="w-4 h-4" />
               </Button>
             </CardTitle>
-            <CardDescription>"Loading..."</CardDescription>
+            <CardDescription>{t.common.loading}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
@@ -719,7 +719,7 @@ export default function KnowledgeBaseTab() {
                 onClick={() => setShowBulkDeleteImages(true)}
                 data-testid="button-element"
               >
-                <Trash2 className="w-4 h-4 mr-2" />"Loading..."{selectedImages.size})
+                <Trash2 className="w-4 h-4 mr-2" />{t.common.loading}{selectedImages.size})
               </Button>
             )}
           </div>
@@ -727,7 +727,7 @@ export default function KnowledgeBaseTab() {
         <CardContent>
           <ScrollArea className="h-[600px]">
             {imagesLoading ? (
-              <div className="text-center py-8 text-muted-foreground">"Loading..."</div>
+              <div className="text-center py-8 text-muted-foreground">{t.common.loading}</div>
             ) : images.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">Nenhuma imagem encontrada</div>
             ) : (
@@ -797,8 +797,8 @@ export default function KnowledgeBaseTab() {
       <AlertDialog open={!!deleteImageFilename} onOpenChange={(open) => !open && setDeleteImageFilename(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
-            <AlertDialogDescription>"Loading..."</AlertDialogDescription>
+            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
+            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
@@ -810,7 +810,7 @@ export default function KnowledgeBaseTab() {
               }}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-element"
-            >"Loading..."</AlertDialogAction>
+            >{t.common.loading}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -819,7 +819,7 @@ export default function KnowledgeBaseTab() {
       <AlertDialog open={showBulkDeleteImages} onOpenChange={setShowBulkDeleteImages}>
         <AlertDialogContent className="flex items-center gap-2">
           <AlertDialogHeader>
-            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
+            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir {selectedImages.size} "[PT]"
                                       </AlertDialogDescription>
@@ -847,8 +847,8 @@ export default function KnowledgeBaseTab() {
       <AlertDialog open={!!deleteDocId} onOpenChange={(open) => !open && setDeleteDocId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
-            <AlertDialogDescription>"Loading..."</AlertDialogDescription>
+            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
+            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
@@ -861,7 +861,7 @@ export default function KnowledgeBaseTab() {
               }}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-element"
-            >"Loading..."</AlertDialogAction>
+            >{t.common.loading}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

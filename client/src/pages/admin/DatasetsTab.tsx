@@ -233,7 +233,7 @@ export default function DatasetsTab() {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       
       // Build toast message with validation results
-      let description = t("admin.datasets.toast.dadosdetreinamento");
+      let description = "Dados de treinamento atualizados com sucesso!";
       
       if (data.validation?.corrections?.length > 0) {
         description += `\n\n✅ Correções automáticas:\n${data.validation.corrections.join("\n")}`;
@@ -253,7 +253,7 @@ export default function DatasetsTab() {
     },
     onError: (error: any) => {
       // Check if error has validation details
-      const errorMessage = error.message || t("admin.datasets.errodesconhecido");
+      const errorMessage = error.message || "Erro desconhecido";
       let description = errorMessage;
       
       if (error.details && Array.isArray(error.details)) {
@@ -314,7 +314,7 @@ export default function DatasetsTab() {
     }
 
     if (instruction === output && instruction.length > 0) {
-      warnings.push(t("admin.datasets.outputnaopode"));
+      warnings.push("Output não pode ser idêntico à Instruction");
     }
 
     const hasQuestionMark = instruction.includes("?");
@@ -324,7 +324,7 @@ export default function DatasetsTab() {
     );
 
     if (!hasQuestionMark && !startsWithQuestion && instruction.length > 0 && instruction.length < 100) {
-      warnings.push(t("admin.datasets.instructionnaopareceser"));
+      warnings.push("Instruction não parece ser uma pergunta ou comando");
     }
 
     setValidationWarnings(warnings);
@@ -485,7 +485,7 @@ export default function DatasetsTab() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <div>
-                <p className="text-sm text-muted-foreground">"Loading..."</p>
+                <p className="text-sm text-muted-foreground">{t.common.loading}</p>
                 <p className="text-3xl font-bold gradient-text" data-testid="stat-total-examples">{apiStats.totalExamples.toLocaleString()}</p>
               </div>
               <BarChart3 className="w-8 h-8 text-primary opacity-50" />
@@ -522,13 +522,13 @@ export default function DatasetsTab() {
       <Card className="flex items-center gap-2">
         <CardHeader>
           <CardTitle className="flex">
-            <Sparkles className="w-5 h-5" />"Loading..."</CardTitle>
-          <CardDescription>"Loading..."</CardDescription>
+            <Sparkles className="w-5 h-5" />{t.common.loading}</CardTitle>
+          <CardDescription>{t.common.loading}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {trainingData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">"Loading..."</p>
+              <p className="text-sm text-muted-foreground text-center py-8">{t.common.loading}</p>
             ) : (
               <Accordion type="single" collapsible className="w-full">
                 {trainingData.slice(0, 10).map((data: any, idx: number) => (
@@ -540,7 +540,7 @@ export default function DatasetsTab() {
                             #{data.id}
                           </Badge>
                           <span className="truncate flex-1 text-left">
-                            {data.formattedData?.[0]?.instruction || t("admin.datasets.semtitulo")}
+                            {data.formattedData?.[0]?.instruction || "Sem título"}
                           </span>
                           <Badge variant="secondary" className="text-xs shrink-0">
                             {data.metadata?.namespaces?.[0] || "geral"}
@@ -660,7 +660,7 @@ export default function DatasetsTab() {
                   <SelectItem value="all">Todos status</SelectItem>
                   <SelectItem value="ready">Pronto</SelectItem>
                   <SelectItem value="processing">Processando</SelectItem>
-                  <SelectItem value="failed">"Loading..."</SelectItem>
+                  <SelectItem value="failed">Falhou</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -703,7 +703,7 @@ export default function DatasetsTab() {
                   className="gap-2"
                   data-testid="button-element"
                 >
-                  <Trash2 className="w-4 h-4" />"Loading..."{selectedDatasets.size})
+                  <Trash2 className="w-4 h-4" />{t.common.loading}{selectedDatasets.size})
                 </Button>
               )}
             </div>
@@ -803,7 +803,7 @@ export default function DatasetsTab() {
                                 <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
                                   <div className="flex items-center gap-2">
                                     <AlertTriangle className="w-4 h-4" />
-                                    <span>"Loading..." {dataset.validationErrors.join(", ")}</span>
+                                    <span>{t.common.loading} {dataset.validationErrors.join(", ")}</span>
                                   </div>
                                 </div>
                               )}
@@ -883,7 +883,7 @@ export default function DatasetsTab() {
               <Eye className="w-5 h-5 text-primary" />
               Preview: {previewDataset?.name}
             </DialogTitle>
-            <DialogDescription>"Loading..."</DialogDescription>
+            <DialogDescription>{t.common.loading}</DialogDescription>
           </DialogHeader>
 
           <ScrollArea className="flex items-center gap-2">
@@ -913,13 +913,13 @@ export default function DatasetsTab() {
         <DialogContent className="flex items-center gap-2">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Edit className="w-5 h-5 text-primary" />"Loading..."</DialogTitle>
-            <DialogDescription>"Loading..."</DialogDescription>
+              <Edit className="w-5 h-5 text-primary" />{t.common.loading}</DialogTitle>
+            <DialogDescription>{t.common.loading}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">"Loading..."</Label>
+              <Label htmlFor="edit-name">{t.common.loading}</Label>
               <Input
                 id="edit-name"
                 value={editName}
@@ -930,7 +930,7 @@ export default function DatasetsTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="[PT]">"Loading..."</Label>
+              <Label htmlFor="[PT]">{t.common.loading}</Label>
               <Textarea
                 id="[PT]"
                 value={editDescription}
@@ -975,8 +975,8 @@ export default function DatasetsTab() {
       <AlertDialog open={!!deleteDatasetId} onOpenChange={() => setDeleteDatasetId(null)}>
         <AlertDialogContent className="flex items-center gap-2">
           <AlertDialogHeader>
-            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
-            <AlertDialogDescription>"Loading..."</AlertDialogDescription>
+            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
+            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -984,7 +984,7 @@ export default function DatasetsTab() {
               onClick={() => deleteDatasetId && deleteMutation.mutate(deleteDatasetId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-element"
-            >"Loading..."</AlertDialogAction>
+            >{t.common.loading}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -993,7 +993,7 @@ export default function DatasetsTab() {
       <AlertDialog open={showBulkDelete} onOpenChange={setShowBulkDelete}>
         <AlertDialogContent className="flex items-center gap-2">
           <AlertDialogHeader>
-            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
+            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir {selectedDatasets.size} "[PT]"
                                       </AlertDialogDescription>
@@ -1004,7 +1004,7 @@ export default function DatasetsTab() {
               onClick={() => bulkDeleteMutation.mutate(Array.from(selectedDatasets))}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-element"
-            >"Loading..."</AlertDialogAction>
+            >{t.common.loading}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1017,7 +1017,7 @@ export default function DatasetsTab() {
               <Edit className="w-5 h-5 text-primary" />
               Editar Training Data
             </DialogTitle>
-            <DialogDescription>"Loading..."</DialogDescription>
+            <DialogDescription>{t.common.loading}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -1048,7 +1048,7 @@ export default function DatasetsTab() {
               <div className="flex items-center gap-2">
                 <span>{editTrainingOutput.length} caracteres</span>
                 {editTrainingOutput.length < 10 && editTrainingOutput.length > 0 && (
-                  <span className="text-yellow-500">"Loading..."</span>
+                  <span className="text-yellow-500">{t.common.loading}</span>
                 )}
               </div>
             </div>
@@ -1059,7 +1059,7 @@ export default function DatasetsTab() {
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
                   <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">"Loading..."</p>
+                    <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">{t.common.loading}</p>
                     <ul className="text-xs text-yellow-600 dark:text-yellow-300 space-y-1">
                       {validationWarnings.map((warning, idx) => (
                         <li key={idx}>• {warning}</li>
@@ -1072,7 +1072,7 @@ export default function DatasetsTab() {
 
             <div className="flex items-center gap-2">
               <p className="text-xs text-muted-foreground">
-                <Sparkles className="w-3 h-3 inline mr-1" />"Loading..."</p>
+                <Sparkles className="w-3 h-3 inline mr-1" />{t.common.loading}</p>
             </div>
           </div>
 
@@ -1113,8 +1113,8 @@ export default function DatasetsTab() {
       <AlertDialog open={!!deleteTrainingDataId} onOpenChange={() => setDeleteTrainingDataId(null)}>
         <AlertDialogContent className="flex items-center gap-2">
           <AlertDialogHeader>
-            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
-            <AlertDialogDescription>"Loading..."</AlertDialogDescription>
+            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
+            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -1122,7 +1122,7 @@ export default function DatasetsTab() {
               onClick={() => deleteTrainingDataId && deleteTrainingDataMutation.mutate(deleteTrainingDataId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-element"
-            >"Loading..."</AlertDialogAction>
+            >{t.common.loading}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

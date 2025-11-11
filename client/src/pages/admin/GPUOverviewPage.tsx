@@ -341,7 +341,7 @@ export default function GPUOverviewPage() {
                   <Zap className="w-4 h-4" />
                   Criando GPU automaticamente...
                 </p>
-                <p className="text-sm text-muted-foreground">"Loading..."</p>
+                <p className="text-sm text-muted-foreground">{t.common.loading}</p>
               </div>
             </div>
           </CardContent>
@@ -597,7 +597,7 @@ export default function GPUOverviewPage() {
                         autoComplete="off"
                         data-testid="input-worker-url"
                       />
-                      <p className="text-xs text-muted-foreground">"Loading..."</p>
+                      <p className="text-xs text-muted-foreground">{t.common.loading}</p>
                     </div>
                   ) : selectedProvider === 'colab' ? (
                     // Colab Form Fields
@@ -616,7 +616,7 @@ export default function GPUOverviewPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="password">"Loading..."</Label>
+                        <Label htmlFor="password">{t.common.loading}</Label>
                         <Input
                           id="password"
                           type="password"

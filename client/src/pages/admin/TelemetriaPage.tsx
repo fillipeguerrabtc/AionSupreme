@@ -132,7 +132,7 @@ interface KbAnalytics {
   }>;
 }
 
-export default function {t.admin.tabs.telemetry}Page() {
+export default function TelemetriaPage() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"system" | "analytics">("system");
 
@@ -197,14 +197,14 @@ export default function {t.admin.tabs.telemetry}Page() {
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold tracking-tight">{t.admin.tabs.telemetry}</h2>
-        <p className="text-muted-foreground">"Loading..."</p>
+        <p className="text-muted-foreground">{t.common.loading}</p>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "system" | "analytics")}>
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="system" data-testid="test-id">
-            <Activity className="w-4 h-4 mr-2" />"Loading..."</TabsTrigger>
+            <Activity className="w-4 h-4 mr-2" />{t.common.loading}</TabsTrigger>
           <TabsTrigger value="analytics" data-testid="tab-analytics">
             <BarChart3 className="w-4 h-4 mr-2" />
             Analytics KB/Chat
@@ -219,11 +219,11 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2" data-testid="card-total-queries">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />"Loading..."</CardTitle>
+                  <Activity className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? queryMetrics.totalQueries.toLocaleString() : "..."}
                 </div>
-                <CardDescription className="text-xs">"Loading..."</CardDescription>
+                <CardDescription className="text-xs">{t.common.loading}</CardDescription>
               </CardHeader>
             </Card>
 
@@ -231,7 +231,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2" data-testid="card-avg-latency">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Clock className="w-4 h-4" />"Loading..."</CardTitle>
+                  <Clock className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${queryMetrics.avgLatency.toFixed(0)}ms` : "..."}
                 </div>
@@ -245,7 +245,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2" data-testid="card-p95-latency">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />"Loading..."</CardTitle>
+                  <TrendingUp className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${queryMetrics.p95Latency.toFixed(0)}ms` : "..."}
                 </div>
@@ -259,7 +259,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2" data-testid="card-success-rate">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Zap className="w-4 h-4" />"Loading..."</CardTitle>
+                  <Zap className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${(queryMetrics.successRate * 100).toFixed(1)}%` : "..."}
                 </div>
@@ -274,8 +274,8 @@ export default function {t.admin.tabs.telemetry}Page() {
           <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />"Loading..."</CardTitle>
-              <CardDescription>"Loading..."</CardDescription>
+                <BarChart3 className="w-5 h-5" />{t.common.loading}</CardTitle>
+              <CardDescription>{t.common.loading}</CardDescription>
             </CardHeader>
             <CardContent>
               {latencyTrends && latencyTrends.length > 0 ? (
@@ -290,7 +290,7 @@ export default function {t.admin.tabs.telemetry}Page() {
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip 
                       labelFormatter={(value) => new Date(value).toLocaleString('pt-BR')}
-                      formatter={(value: number) => [`${value.toFixed(2)}ms`, t("admin.telemetria.latencia")]}
+                      formatter={(value: number) => [`${value.toFixed(2)}ms`, "Latência"]}
                     />
                     <Legend />
                     <Line 
@@ -312,7 +312,7 @@ export default function {t.admin.tabs.telemetry}Page() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center gap-2">"Loading..."</div>
+                <div className="flex items-center gap-2">{t.common.loading}</div>
               )}
             </CardContent>
           </Card>
@@ -324,7 +324,7 @@ export default function {t.admin.tabs.telemetry}Page() {
                 <AlertTriangle className="w-5 h-5" />
                 Queries Mais Lentas
               </CardTitle>
-              <CardDescription>"Loading..."</CardDescription>
+              <CardDescription>{t.common.loading}</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[300px]">
@@ -349,7 +349,7 @@ export default function {t.admin.tabs.telemetry}Page() {
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-bold">{query.avgLatency.toFixed(0)}ms</div>
-                          <p className="text-xs text-muted-foreground">"Loading..."</p>
+                          <p className="text-xs text-muted-foreground">{t.common.loading}</p>
                         </div>
                       </div>
                     ))}
@@ -431,7 +431,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2" data-testid="card-total-requests">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />"Loading..."</CardTitle>
+                  <Activity className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {kbAnalytics?.overview?.totalRequests?.toLocaleString() || "0"}
                 </div>
@@ -448,7 +448,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />"Loading..."</CardTitle>
+                  <BarChart3 className="w-5 h-5" />{t.common.loading}</CardTitle>
                 <CardDescription>
                   Origem das respostas (KB, Web, APIs)
                 </CardDescription>
@@ -480,7 +480,7 @@ export default function {t.admin.tabs.telemetry}Page() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">"Loading..."</div>
+                  <div className="flex items-center gap-2">{t.common.loading}</div>
                 )}
               </CardContent>
             </Card>
@@ -489,7 +489,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />"Loading..."</CardTitle>
+                  <DollarSign className="w-5 h-5" />{t.common.loading}</CardTitle>
                 <CardDescription>
                   Economia usando KB/Web vs APIs pagas
                 </CardDescription>
@@ -525,7 +525,7 @@ export default function {t.admin.tabs.telemetry}Page() {
 
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2">
-                    <span>"Loading..."</span>
+                    <span>{t.common.loading}</span>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400">
                       {kbAnalytics?.costEfficiency?.savingsPercent?.toFixed(1) || "0"}%
                     </span>
@@ -545,8 +545,8 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Gauge className="w-5 h-5" />"Loading..."</CardTitle>
-                <CardDescription>"Loading..."</CardDescription>
+                  <Gauge className="w-5 h-5" />{t.common.loading}</CardTitle>
+                <CardDescription>{t.common.loading}</CardDescription>
               </CardHeader>
               <CardContent>
                 {kbAnalytics?.qualityMetrics && kbAnalytics.qualityMetrics.length > 0 ? (
@@ -556,13 +556,13 @@ export default function {t.admin.tabs.telemetry}Page() {
                       <XAxis dataKey="provider" tick={{ fontSize: 12 }} />
                       <YAxis tick={{ fontSize: 12 }} label={{ value: 'ms', angle: -90, position: 'insideLeft' }} />
                       <Tooltip 
-                        formatter={(value: number) => [`${value}ms`, t("admin.telemetria.latencia")]}
+                        formatter={(value: number) => [`${value}ms`, "Latência"]}
                       />
                       <Bar dataKey="estimatedLatency" fill="hsl(var(--primary))" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">"Loading..."</div>
+                  <div className="flex items-center gap-2">{t.common.loading}</div>
                 )}
               </CardContent>
             </Card>
@@ -571,7 +571,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />"Loading..."</CardTitle>
+                  <FileText className="w-5 h-5" />{t.common.loading}</CardTitle>
                 <CardDescription>
                   Documentos mais recentemente indexados
                 </CardDescription>
@@ -606,7 +606,7 @@ export default function {t.admin.tabs.telemetry}Page() {
                       ))}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">"Loading..."</div>
+                    <div className="flex items-center gap-2">{t.common.loading}</div>
                   )}
                 </ScrollArea>
               </CardContent>
@@ -619,7 +619,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2" data-testid="card-namespace-searches">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Database className="w-4 h-4" />"Loading..."</CardTitle>
+                  <Database className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {hierarchicalOverview?.namespaces?.totalSearches?.toLocaleString() || "..."}
                 </div>
@@ -638,7 +638,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2" data-testid="card-most-active-agent">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />"Loading..."</CardTitle>
+                  <TrendingUp className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="text-lg font-bold text-foreground truncate">
                   {agentStats && agentStats.length > 0 
                     ? agentStats[0].agentName 
@@ -661,7 +661,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             <Card className="flex items-center gap-2" data-testid="card-hierarchy">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />"Loading..."</CardTitle>
+                  <Activity className="w-4 h-4" />{t.common.loading}</CardTitle>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Agents Raiz</span>
@@ -680,8 +680,8 @@ export default function {t.admin.tabs.telemetry}Page() {
           <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />"Loading..."</CardTitle>
-              <CardDescription>"Loading..."</CardDescription>
+                <Users className="w-5 h-5" />{t.common.loading}</CardTitle>
+              <CardDescription>{t.common.loading}</CardDescription>
             </CardHeader>
             <CardContent>
               {agentStats && agentStats.length > 0 ? (
@@ -715,13 +715,13 @@ export default function {t.admin.tabs.telemetry}Page() {
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-lg font-bold">{agent.usageCount}</div>
-                        <p className="text-xs text-muted-foreground">"Loading..."</p>
+                        <p className="text-xs text-muted-foreground">{t.common.loading}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center gap-2">"Loading..."</div>
+                <div className="flex items-center gap-2">{t.common.loading}</div>
               )}
             </CardContent>
           </Card>
@@ -730,8 +730,8 @@ export default function {t.admin.tabs.telemetry}Page() {
           <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Database className="w-5 h-5" />"Loading..."</CardTitle>
-              <CardDescription>"Loading..."</CardDescription>
+                <Database className="w-5 h-5" />{t.common.loading}</CardTitle>
+              <CardDescription>{t.common.loading}</CardDescription>
             </CardHeader>
             <CardContent>
               {namespaceStats && namespaceStats.length > 0 ? (
@@ -771,7 +771,7 @@ export default function {t.admin.tabs.telemetry}Page() {
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center gap-2">"Loading..."</div>
+                <div className="flex items-center gap-2">{t.common.loading}</div>
               )}
             </CardContent>
           </Card>
@@ -781,8 +781,8 @@ export default function {t.admin.tabs.telemetry}Page() {
             {/* Agent History */}
             <Card className="flex items-center gap-2">
               <CardHeader>
-                <CardTitle className="text-base">"Loading..."</CardTitle>
-                <CardDescription className="text-xs">"Loading..."</CardDescription>
+                <CardTitle className="text-base">{t.common.loading}</CardTitle>
+                <CardDescription className="text-xs">{t.common.loading}</CardDescription>
               </CardHeader>
               <CardContent>
                 {agentHistory && agentHistory.length > 0 ? (
@@ -809,7 +809,7 @@ export default function {t.admin.tabs.telemetry}Page() {
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">"Loading..."</div>
+                  <div className="flex items-center gap-2">{t.common.loading}</div>
                 )}
               </CardContent>
             </Card>
@@ -817,7 +817,7 @@ export default function {t.admin.tabs.telemetry}Page() {
             {/* Namespace History */}
             <Card className="flex items-center gap-2">
               <CardHeader>
-                <CardTitle className="text-base">"Loading..."</CardTitle>
+                <CardTitle className="text-base">{t.common.loading}</CardTitle>
                 <CardDescription className="text-xs">
                   Buscas ao longo do tempo
                 </CardDescription>
@@ -847,7 +847,7 @@ export default function {t.admin.tabs.telemetry}Page() {
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">"Loading..."</div>
+                  <div className="flex items-center gap-2">{t.common.loading}</div>
                 )}
               </CardContent>
             </Card>

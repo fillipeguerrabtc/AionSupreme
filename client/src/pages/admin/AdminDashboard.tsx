@@ -464,7 +464,7 @@ export default function AdminDashboard() {
                     <AionLogo showText={false} size="md" />
                     <div>
                       <h1 className="font-bold text-xl text-foreground">AION</h1>
-                      <p className="text-xs text-muted-foreground">"Loading..."</p>
+                      <p className="text-xs text-muted-foreground">{t.admin.subtitle}</p>
                     </div>
                   </button>
                 </div>
@@ -489,7 +489,7 @@ export default function AdminDashboard() {
                         onClick={() => setLanguage("pt-BR")}
                         className={language === "pt-BR" ? "bg-primary/20" : ""}
                         data-testid="lang-pt-BR"
-                      >"Loading..."</DropdownMenuItem>
+                      >Português (BR)</DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setLanguage("en-US")}
                         className={language === "en-US" ? "bg-primary/20" : ""}
@@ -538,7 +538,7 @@ export default function AdminDashboard() {
                   <span className="font-bold text-lg">{tokenSummary ? totalTokensToday.toLocaleString() : '...'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">"Loading..."</span>
+                  <span className="text-muted-foreground">{t.common.loading}</span>
                   <span className="font-bold text-primary">{tokenSummary ? totalTokensAllTime.toLocaleString() : '...'}</span>
                 </div>
               </div>
@@ -631,7 +631,7 @@ export default function AdminDashboard() {
                   <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.allTime?.requests || 0} req</span>
                 </div>
               </div>
-              <CardDescription className="text-xs mt-2">"Loading..."</CardDescription>
+              <CardDescription className="text-xs mt-2">{t.common.loading}</CardDescription>
             </CardHeader>
           </Card>
 
@@ -651,7 +651,7 @@ export default function AdminDashboard() {
               </CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">"Loading..."</span>
+                  <span className="text-muted-foreground">{t.common.loading}</span>
                   <span className="font-bold text-lg">{openaiStats ? (openaiStats.allTime?.requests || 0).toLocaleString() : '...'} req</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -784,7 +784,7 @@ export default function AdminDashboard() {
           >
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />"Loading..."</CardTitle>
+                <Sparkles className="w-4 h-4" />{t.common.loading}</CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Conversas:</span>
@@ -803,7 +803,7 @@ export default function AdminDashboard() {
                   <span className="font-bold">{autoEvolutionStats?.overview?.completedJobs || 0}/{autoEvolutionStats?.overview?.totalJobs || 0}</span>
                 </div>
               </div>
-              <CardDescription className="text-xs mt-2">"Loading..."</CardDescription>
+              <CardDescription className="text-xs mt-2">{t.common.loading}</CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -1124,7 +1124,7 @@ export default function AdminDashboard() {
                 <CardContent className="py-4">
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-accent animate-pulse" />"Loading..."</p>
+                      <Activity className="w-4 h-4 text-accent animate-pulse" />{t.common.loading}</p>
                     <Button
                       onClick={handleSaveChanges}
                       disabled={updatePolicy.isPending}

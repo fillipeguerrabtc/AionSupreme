@@ -1,0 +1,12 @@
+{
+  "totalFiles": 24,
+  "filesWithIssues": 1,
+  "issues": [
+    {
+      "file": "DatasetsTab.tsx",
+      "line": 663,
+      "type": "attribute-value",
+      "content": "<SelectItem value=\"failed\">{t.common.loading}</SelectItem>"
+    }
+  ]
+}

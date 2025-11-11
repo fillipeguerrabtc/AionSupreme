@@ -207,7 +207,7 @@ export default function AgentsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">"Loading..."</div>
+            <div className="text-center py-8 text-muted-foreground">{t.common.loading}</div>
           ) : agents.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               Nenhum agente configurado. Crie o primeiro agente acima.
@@ -216,12 +216,12 @@ export default function AgentsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>"Loading..."</TableHead>
+                  <TableHead>{t.common.loading}</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Slug</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Namespaces</TableHead>
-                  <TableHead className="text-right">"Loading..."</TableHead>
+                  <TableHead className="text-right">{t.common.loading}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -299,7 +299,7 @@ export default function AgentsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Agente</DialogTitle>
-            <DialogDescription>"Loading..." {selectedAgent?.name}
+            <DialogDescription>{t.common.loading} {selectedAgent?.name}
             </DialogDescription>
           </DialogHeader>
           {selectedAgent && (
@@ -319,10 +319,10 @@ export default function AgentsPage() {
                 <div className="flex items-center gap-2">
                   <code className="text-sm font-mono">{editSlug}</code>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">"Loading..."</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.common.loading}</p>
               </div>
               <div>
-                <Label htmlFor="[PT]">"Loading..."</Label>
+                <Label htmlFor="[PT]">{t.common.loading}</Label>
                 <Input 
                   id="[PT]" 
                   value={editDescription}
@@ -344,7 +344,7 @@ export default function AgentsPage() {
               {selectedAgent.agentTier === "agent" ? (
                 <div>
                   <Label htmlFor="edit-namespace">Namespace Raiz</Label>
-                  <p className="text-sm text-muted-foreground mb-2">"Loading..."</p>
+                  <p className="text-sm text-muted-foreground mb-2">{t.common.loading}</p>
                   <NamespaceSelector 
                     value={editNamespaces} 
                     onChange={(namespaces) => setEditNamespaces(namespaces.slice(0, 1))}
@@ -356,7 +356,7 @@ export default function AgentsPage() {
               ) : (
                 <div>
                   <Label htmlFor="edit-namespaces">Subnamespaces</Label>
-                  <p className="text-sm text-muted-foreground mb-2">"Loading..."</p>
+                  <p className="text-sm text-muted-foreground mb-2">{t.common.loading}</p>
                   <NamespaceSelector 
                     value={editNamespaces} 
                     onChange={setEditNamespaces}
@@ -383,8 +383,8 @@ export default function AgentsPage() {
       <AlertDialog open={!!deleteAgentId} onOpenChange={(open) => !open && setDeleteAgentId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>"Loading..."</AlertDialogTitle>
-            <AlertDialogDescription>"Loading..."</AlertDialogDescription>
+            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
+            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
@@ -397,7 +397,7 @@ export default function AgentsPage() {
               }}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-element"
-            >"Loading..."</AlertDialogAction>
+            >{t.common.loading}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -406,8 +406,8 @@ export default function AgentsPage() {
       <Dialog open={showOrphanScanDialog} onOpenChange={setShowOrphanScanDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>"Loading..."</DialogTitle>
-            <DialogDescription>"Loading..."</DialogDescription>
+            <DialogTitle>{t.common.loading}</DialogTitle>
+            <DialogDescription>{t.common.loading}</DialogDescription>
           </DialogHeader>
           
           {orphanScanResult && (
@@ -423,7 +423,7 @@ export default function AgentsPage() {
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-yellow-600">{orphanScanResult.report.summary.medium}</div>
-                      <p className="text-xs text-muted-foreground">"Loading..."</p>
+                      <p className="text-xs text-muted-foreground">{t.common.loading}</p>
                     </CardContent>
                   </Card>
                   <Card>
@@ -457,7 +457,7 @@ export default function AgentsPage() {
                               </div>
                               <p className="text-sm">{orphan.reason}</p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                <strong>"Loading..."</strong> {orphan.suggestedAction}
+                                <strong>{t.common.loading}</strong> {orphan.suggestedAction}
                               </p>
                             </div>
                           ))}
@@ -470,8 +470,8 @@ export default function AgentsPage() {
                 {orphanScanResult.report.totalOrphans === 0 && (
                   <Card>
                     <CardContent className="pt-6 text-center">
-                      <p className="text-lg text-green-600 font-semibold">"Loading..."</p>
-                      <p className="text-sm text-muted-foreground mt-1">"Loading..."</p>
+                      <p className="text-lg text-green-600 font-semibold">{t.common.loading}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{t.common.loading}</p>
                     </CardContent>
                   </Card>
                 )}

@@ -528,7 +528,7 @@ export default function CurationQueuePage() {
       {/* Content Type Filter */}
       <div className="space-y-3">
         <div>
-          <Label className="text-sm font-medium mb-2 block">"Loading..."</Label>
+          <Label className="text-sm font-medium mb-2 block">{t.common.loading}</Label>
           <div className="flex flex-wrap gap-2">
             <Button
               variant={contentFilter === "all" ? "default" : "outline"}
@@ -560,7 +560,7 @@ export default function CurationQueuePage() {
         {/* Duplication Status Filter */}
         <div>
           <div className="flex items-center gap-2">
-            <Label className="text-sm font-medium">"Loading..."</Label>
+            <Label className="text-sm font-medium">{t.common.loading}</Label>
             <Button
               variant="outline"
               size="sm"
@@ -755,7 +755,7 @@ export default function CurationQueuePage() {
                           )}
                         </div>
                         <CardDescription className="space-y-1">
-                          <div className="flex items-center gap-2">"Loading..." {item.submittedBy || "Desconhecido"}
+                          <div className="flex items-center gap-2">{t.common.loading} {item.submittedBy || "Desconhecido"}
                           </div>
                           <div className="flex items-center gap-2">
                             <Calendar className="h-3 w-3" />
@@ -791,7 +791,7 @@ export default function CurationQueuePage() {
                             data-testid={`button-absorb-${item.id}`}
                             title="[PT]"
                           >
-                            <ArrowDownToLine className="h-4 w-4 mr-2" />"Loading..."</Button>
+                            <ArrowDownToLine className="h-4 w-4 mr-2" />{t.common.loading}</Button>
                         )}
                         <Button
                           variant="outline"
@@ -837,7 +837,7 @@ export default function CurationQueuePage() {
                       {item.attachments.filter(a => a.type === "video").length > 0 && (
                         <>
                           <Video className="h-4 w-4 text-muted-foreground ml-4" />
-                          <span className="text-sm font-medium">"Loading..."{item.attachments.filter(a => a.type === "video").length})
+                          <span className="text-sm font-medium">{t.common.loading}{item.attachments.filter(a => a.type === "video").length})
                           </span>
                         </>
                       )}
@@ -972,14 +972,14 @@ export default function CurationQueuePage() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col" data-testid="dialog-edit-curation">
           <DialogHeader>
-            <DialogTitle>"Loading..."</DialogTitle>
-            <DialogDescription>"Loading..."</DialogDescription>
+            <DialogTitle>{t.common.loading}</DialogTitle>
+            <DialogDescription>{t.common.loading}</DialogDescription>
           </DialogHeader>
 
           {/* Área scrollável com altura máxima */}
           <div className="space-y-4 py-4 overflow-y-auto max-h-[60vh]">
             <div className="space-y-2">
-              <Label htmlFor="edit-title">"Loading..."</Label>
+              <Label htmlFor="edit-title">{t.common.loading}</Label>
               <Input
                 id="edit-title"
                 value={editTitle}
@@ -990,7 +990,7 @@ export default function CurationQueuePage() {
 
             {/* Editar Conteúdo */}
             <div className="space-y-2">
-              <Label htmlFor="edit-content">"Loading..."</Label>
+              <Label htmlFor="edit-content">{t.common.loading}</Label>
               <div className="relative">
                 <Textarea
                   id="edit-content"
@@ -1006,7 +1006,7 @@ export default function CurationQueuePage() {
                   {editContent.length.toLocaleString()} caracteres
                 </Badge>
               </div>
-              <p className="text-xs text-muted-foreground">"Loading..."</p>
+              <p className="text-xs text-muted-foreground">{t.common.loading}</p>
             </div>
 
             {/* Image Preview in Edit Dialog */}
@@ -1036,19 +1036,19 @@ export default function CurationQueuePage() {
                       <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1">
                         <p className="truncate">{img.filename}</p>
                         {img.description && img.description !== t("admin.curationqueue.toast.semdescricao") && (
-                          <p className="text-[10px] text-green-400">"Loading..."</p>
+                          <p className="text-[10px] text-green-400">{t.common.loading}</p>
                         )}
                         <p className="text-[10px] opacity-70">{(img.size / 1024).toFixed(1)} KB</p>
                       </div>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground">"Loading..."</p>
+                <p className="text-xs text-muted-foreground">{t.common.loading}</p>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="edit-tags">"Loading..."</Label>
+              <Label htmlFor="edit-tags">{t.common.loading}</Label>
               <Input
                 id="edit-tags"
                 value={editTags}
@@ -1087,7 +1087,7 @@ export default function CurationQueuePage() {
         <AlertDialogContent data-testid="dialog-approve-curation">
           <AlertDialogHeader>
             <AlertDialogTitle>Aprovar e Publicar</AlertDialogTitle>
-            <AlertDialogDescription>"Loading..."</AlertDialogDescription>
+            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-cancel-approve">Cancelar</AlertDialogCancel>
@@ -1107,7 +1107,7 @@ export default function CurationQueuePage() {
         <AlertDialogContent data-testid="dialog-reject-curation">
           <AlertDialogHeader>
             <AlertDialogTitle>Rejeitar Item</AlertDialogTitle>
-            <AlertDialogDescription>"Loading..."</AlertDialogDescription>
+            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
             value={rejectNote}
@@ -1158,7 +1158,7 @@ export default function CurationQueuePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Aprovar Todos os {items?.length} Itens</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>"Loading..."</strong>"Loading..." {items?.length} itens pendentes na Knowledge Base.
+              <strong>{t.common.loading}</strong>{t.common.loading} {items?.length} itens pendentes na Knowledge Base.
               Todos serão indexados imediatamente e disponibilizados para treinamento quando atingir 100 exemplos.
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
@@ -1213,7 +1213,7 @@ export default function CurationQueuePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Rejeitar Todos os {items?.length} Itens</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>"Loading..."</strong>"Loading..." {items?.length} itens pendentes da fila de curadoria.
+              <strong>{t.common.loading}</strong>{t.common.loading} {items?.length} itens pendentes da fila de curadoria.
               Nenhum conteúdo será publicado na Knowledge Base ou usado para treinamento.
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
@@ -1244,7 +1244,7 @@ export default function CurationQueuePage() {
           {historyLoading ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <p className="text-muted-foreground">"Loading..."</p>
+                <p className="text-muted-foreground">{t.common.loading}</p>
               </CardContent>
             </Card>
           ) : !filteredHistoryItems || filteredHistoryItems.length === 0 ? (
@@ -1271,11 +1271,11 @@ export default function CurationQueuePage() {
                         </div>
                         <CardDescription className="flex flex-col gap-2">
                           <div className="flex items-center gap-2">
-                            <Calendar className="h-3 w-3" />"Loading..." {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
+                            <Calendar className="h-3 w-3" />{t.common.loading} {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
                             <Clock className="h-3 w-3" />
                             {new Date(item.submittedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
                           </div>
-                          <div className="text-sm">"Loading..." {item.submittedBy || "Desconhecido"}
+                          <div className="text-sm">{t.common.loading} {item.submittedBy || "Desconhecido"}
                           </div>
                           {item.reviewedBy && item.reviewedAt && (
                             <div className="flex items-center gap-2">
@@ -1337,7 +1337,7 @@ export default function CurationQueuePage() {
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0" data-testid="dialog-media-preview">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>{selectedMediaDesc}</DialogTitle>
-            <DialogDescription>"Loading..."</DialogDescription>
+            <DialogDescription>{t.common.loading}</DialogDescription>
           </DialogHeader>
           <div className="flex-1 overflow-auto p-6 pt-2">
             {selectedMediaType === "image" ? (
@@ -1353,7 +1353,7 @@ export default function CurationQueuePage() {
                 autoPlay
                 className="flex items-center gap-2"
                 data-testid="test-id"
-              >"Loading..."</video>
+              >{t.common.loading}</video>
             )}
           </div>
         </DialogContent>

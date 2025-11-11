@@ -159,7 +159,7 @@ export default function LifecyclePoliciesTab() {
       <Card data-testid="card-element">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Info className="w-4 h-4" />"Loading..."</CardTitle>
+            <Info className="w-4 h-4" />{t.common.loading}</CardTitle>
           <CardDescription data-testid="text-global-defaults-info">
             Timezone: {pendingChanges.globalDefaults.timezone} "[PT]" {pendingChanges.globalDefaults.retentionYears} anos
           </CardDescription>
@@ -169,7 +169,7 @@ export default function LifecyclePoliciesTab() {
             <div className="flex items-center gap-2">
               <div>
                 <Label>Audit Log Habilitado</Label>
-                <p className="text-xs text-muted-foreground">"Loading..."</p>
+                <p className="text-xs text-muted-foreground">{t.common.loading}</p>
               </div>
               <Switch
                 checked={pendingChanges.globalDefaults.auditLogEnabled}
@@ -181,7 +181,7 @@ export default function LifecyclePoliciesTab() {
             <div className="flex items-center gap-2">
               <div>
                 <Label>Modo Dry Run</Label>
-                <p className="text-xs text-muted-foreground">"Loading..."</p>
+                <p className="text-xs text-muted-foreground">{t.common.loading}</p>
               </div>
               <Switch
                 checked={pendingChanges.globalDefaults.dryRun}
@@ -235,7 +235,7 @@ export default function LifecyclePoliciesTab() {
                           {policyRule.condition.value !== undefined && (
                             <>
                               <div>
-                                <Label className="text-xs">"Loading..."</Label>
+                                <Label className="text-xs">{t.common.loading}</Label>
                                 <Input
                                   type="number"
                                   value={policyRule.condition.value}
