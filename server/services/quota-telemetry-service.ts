@@ -7,9 +7,9 @@
  * CRITICAL FEATURES:
  * ✅ REAL usage calculation (not theoretical!)
  * ✅ Auto-stop before hitting limits
- * ✅ Weekly quota reset (Kaggle 30h/week)
+ * ✅ Weekly quota reset (Kaggle 70% = 21h/week)
  * ✅ Session duration tracking
- * ✅ Safety margins (stop 1h early)
+ * ✅ Safety margins (70% threshold = 8.4h session)
  * ✅ Telemetry dashboards
  * 
  * FIXED PROBLEMS:
@@ -46,7 +46,14 @@ interface QuotaStatus {
 
 export class QuotaTelemetryService {
   private readonly UPDATE_INTERVAL_MS = 60 * 1000; // 1 minute
-  private readonly SAFETY_MARGIN_SECONDS = 60 * 60; // 1 hour
+  
+  // 🔥 CRITICAL: 70% quota thresholds (enterprise standard to avoid abuse warnings)
+  private readonly COLAB_SAFETY_SECONDS = Math.floor(12 * 3600 * 0.7); // 8.4h (70% of 12h)
+  private readonly KAGGLE_SAFETY_SECONDS = Math.floor(12 * 3600 * 0.7); // 8.4h (70% of 12h)
+  private readonly KAGGLE_WEEKLY_SAFETY = Math.floor(30 * 3600 * 0.7); // 21h (70% of 30h)
+  
+  // Legacy fallback (deprecated - use provider-specific constants)
+  private readonly SAFETY_MARGIN_SECONDS = this.COLAB_SAFETY_SECONDS; // Backward compat
 
   /**
    * Update quota tracking for all active workers
@@ -136,7 +143,10 @@ export class QuotaTelemetryService {
       }
 
       // CALCULATE SCHEDULED STOP TIME
-      const maxSessionSeconds = worker.maxSessionDurationSeconds || 39600; // 11h default
+      // 🔥 CRITICAL FIX: Use 70% safety limit (8.4h) for both Colab and Kaggle
+      const maxSessionSeconds = worker.maxSessionDurationSeconds || 
+        (worker.provider === 'colab' ? this.COLAB_SAFETY_SECONDS : this.KAGGLE_SAFETY_SECONDS);
+      
       let scheduledStopAt: Date | null = null;
 
       if (worker.sessionStartedAt) {
@@ -146,7 +156,7 @@ export class QuotaTelemetryService {
 
       // CHECK LIMITS
       const sessionRemaining = maxSessionSeconds - sessionDurationSeconds;
-      const nearingSessionLimit = sessionRemaining <= this.SAFETY_MARGIN_SECONDS;
+      const nearingSessionLimit = sessionRemaining <= (maxSessionSeconds * 0.1); // Within 10% of limit
       const atSessionLimit = sessionRemaining <= 0;
 
       // Weekly limit check (Kaggle)
@@ -251,8 +261,10 @@ export class QuotaTelemetryService {
       const now = Date.now();
 
       // Session calculations
+      // 🔥 CRITICAL FIX: Use 70% safety limit (8.4h) for both Colab and Kaggle
       const sessionDuration = worker.sessionDurationSeconds || 0;
-      const maxSession = worker.maxSessionDurationSeconds || 39600;
+      const maxSession = worker.maxSessionDurationSeconds || 
+        (worker.provider === 'colab' ? this.COLAB_SAFETY_SECONDS : this.KAGGLE_SAFETY_SECONDS);
       const sessionRemaining = Math.max(0, maxSession - sessionDuration);
       const sessionUtilization = (sessionDuration / maxSession) * 100;
 
@@ -374,6 +386,12 @@ export class QuotaTelemetryService {
     // Add current session to weekly total
     const sessionDuration = worker.sessionDurationSeconds || 0;
     const weeklyUsage = (worker.weeklyUsageSeconds || 0) + sessionDuration;
+    
+    // 🔥 CRITICAL FIX: Set Colab 36h cooldown
+    const now = new Date();
+    const cooldownUntil = worker.provider === 'colab'
+      ? new Date(now.getTime() + 36 * 60 * 60 * 1000)  // 36h mandatory cooldown for Colab
+      : null;
 
     await db.update(gpuWorkers)
       .set({
@@ -381,11 +399,15 @@ export class QuotaTelemetryService {
         sessionStartedAt: null,
         sessionDurationSeconds: 0,
         scheduledStopAt: null,
-        updatedAt: new Date(),
+        cooldownUntil,  // 🔥 NEW: Apply 36h cooldown for Colab
+        updatedAt: now,
       })
       .where(eq(gpuWorkers.id, workerId));
 
-    console.log(`[QuotaTelemetry] ✅ Session encerrada para worker ${workerId} (${Math.floor(sessionDuration / 60)}min)`);
+    const cooldownMsg = cooldownUntil 
+      ? ` (Colab 36h cooldown até ${cooldownUntil.toISOString()})`
+      : '';
+    console.log(`[QuotaTelemetry] ✅ Session encerrada para worker ${workerId} (${Math.floor(sessionDuration / 60)}min)${cooldownMsg}`);
   }
 }
 

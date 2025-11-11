@@ -897,7 +897,7 @@ export function registerRoutes(app: Express): Server {
       if (conversationId && typeof conversationId === "string") {
         try {
           await storage.createMessage({
-            conversationId,
+            conversationId: parseInt(conversationId, 10),
             role: "user",
             content: message,
           });
@@ -983,7 +983,7 @@ export function registerRoutes(app: Express): Server {
             if (conversationId && typeof conversationId === "string" && fullResponse) {
               try {
                 await storage.createMessage({
-                  conversationId,
+                  conversationId: parseInt(conversationId, 10),
                   role: "assistant",
                   content: fullResponse,
                   metadata: {
@@ -1002,7 +1002,7 @@ export function registerRoutes(app: Express): Server {
             try {
               const { autoLearningListener } = await import('./events/auto-learning-listener');
               autoLearningListener.onChatCompleted({
-                conversationId: (typeof conversationId === "string" ? conversationId : null),
+                conversationId: (typeof conversationId === "string" ? parseInt(conversationId, 10) : null),
                 userMessage: message,
                 assistantResponse: fullResponse,
                 source: "free-api", // Multi-agent may use free APIs
@@ -1098,7 +1098,7 @@ export function registerRoutes(app: Express): Server {
       if (conversationId && typeof conversationId === "string" && fullResponse) {
         try {
           await storage.createMessage({
-            conversationId,
+            conversationId: parseInt(conversationId, 10),
             role: "assistant",
             content: fullResponse,
             metadata: {
@@ -1120,7 +1120,7 @@ export function registerRoutes(app: Express): Server {
         // Fire and forget - não bloquear resposta
         // 🔥 FIX: Pass real conversationId instead of null
         autoLearningListener.onChatCompleted({
-          conversationId: (typeof conversationId === "string" ? conversationId : null),
+          conversationId: (typeof conversationId === "string" ? parseInt(conversationId, 10) : null),
           userMessage: message,
           assistantResponse: fullResponse,
           source: (result.source === "web-fallback" || result.source === "openai-fallback") ? "free-api" : (result.source || "openai"),
@@ -1648,7 +1648,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/llm/status - Status das APIs gratuitas (Groq, Gemini, HF)
   app.get("/api/llm/status", async (req, res) => {
     try {
-      const status = freeLLMProviders.getStatus();
+      const status = await freeLLMProviders.getStatus();
       
       // Calcular total disponível
       const totalRemaining = status.groq.remaining + status.gemini.remaining + status.hf.remaining;
@@ -1931,7 +1931,20 @@ export function registerRoutes(app: Express): Server {
       // Importar serviço de cascata
       const { kbCascadeService } = await import("./services/kb-cascade");
       
-      const result = await kbCascadeService.deleteDocuments(documentIds);
+      // Delete documents in bulk (loop through each one)
+      const results = await Promise.all(
+        documentIds.map(id => kbCascadeService.deleteDocument(id))
+      );
+      
+      // Aggregate results
+      const result = {
+        success: results.every(r => r.success),
+        documentsDeleted: results.reduce((sum, r) => sum + r.documentsDeleted, 0),
+        embeddingsDeleted: results.reduce((sum, r) => sum + r.embeddingsDeleted, 0),
+        filesDeleted: results.reduce((sum, r) => sum + r.filesDeleted, 0),
+        warnings: results.flatMap(r => r.warnings || []),
+        error: results.find(r => !r.success)?.error,
+      };
       
       if (!result.success) {
         return res.status(500).json({ error: result.error });

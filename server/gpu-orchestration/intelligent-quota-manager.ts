@@ -39,6 +39,8 @@ interface QuotaStatus {
   utilizationPercent: number;
   canStart: boolean;
   shouldStop: boolean;
+  inCooldown?: boolean;  // 🔥 NEW: Colab 36h cooldown status
+  cooldownRemainingSeconds?: number;  // 🔥 NEW: Seconds until cooldown ends
   reason?: string;
 }
 
@@ -56,6 +58,7 @@ export class IntelligentQuotaManager {
   // COLAB LIMITS
   private readonly COLAB_MAX_SESSION = 12 * 3600;  // 12h
   private readonly COLAB_SAFETY = Math.floor(12 * 3600 * 0.7);  // 70% = 8.4h
+  private readonly COLAB_COOLDOWN = 36 * 3600;  // 36h mandatory cooldown between sessions
   
   // KAGGLE LIMITS
   // 🔥 CRITICAL: Kaggle has DIFFERENT quotas for GPU vs CPU!
@@ -99,6 +102,12 @@ export class IntelligentQuotaManager {
     
     const utilization = (sessionRuntime / maxSessionSeconds) * 100;
     
+    // 🔥 CRITICAL: Check if in cooldown period (Colab 36h mandatory cooldown)
+    const inCooldown = worker.cooldownUntil && now < worker.cooldownUntil;
+    const cooldownRemainingSeconds = inCooldown 
+      ? Math.floor((worker.cooldownUntil!.getTime() - now.getTime()) / 1000)
+      : 0;
+    
     // Decision: should stop?
     // 🔥 UPDATED: Para em 70% session + 70% weekly (Kaggle)
     const shouldStop = 
@@ -106,10 +115,21 @@ export class IntelligentQuotaManager {
       (worker.provider === 'kaggle' && weeklyUsed >= this.KAGGLE_WEEKLY_SAFETY);  // Reached 70% weekly quota (21h)
     
     // Decision: can start?
+    // 🔥 CRITICAL FIX: Added cooldown check for Colab (36h mandatory rest between sessions)
     const canStart = 
       !shouldStop &&
       sessionRuntime === 0 &&  // Not already running
+      !inCooldown &&  // 🔥 NEW: Block Colab if in 36h cooldown period
       (worker.provider === 'colab' || (weeklyRemaining !== undefined && weeklyRemaining > 3600));  // At least 1h remaining for Kaggle
+    
+    // Determine reason for not being able to start/run
+    let reason: string | undefined;
+    if (inCooldown) {
+      const hoursRemaining = (cooldownRemainingSeconds / 3600).toFixed(1);
+      reason = `Colab cooldown active (${hoursRemaining}h remaining of 36h mandatory rest)`;
+    } else if (shouldStop) {
+      reason = sessionRuntime >= maxSessionSeconds ? 'Session limit reached' : 'Weekly quota exhausted';
+    }
     
     return {
       provider: worker.provider as 'colab' | 'kaggle',
@@ -123,9 +143,9 @@ export class IntelligentQuotaManager {
       utilizationPercent: utilization,
       canStart,
       shouldStop,
-      reason: shouldStop 
-        ? (sessionRuntime >= maxSessionSeconds ? 'Session limit reached' : 'Weekly quota exhausted')
-        : undefined,
+      inCooldown: worker.provider === 'colab' ? inCooldown : undefined,  // Only relevant for Colab
+      cooldownRemainingSeconds: worker.provider === 'colab' ? cooldownRemainingSeconds : undefined,
+      reason,
     };
   }
   
@@ -216,10 +236,53 @@ export class IntelligentQuotaManager {
   
   /**
    * Check if any GPU needs to be stopped (reached safety limit)
+   * 
+   * 🔥 CRITICAL BEHAVIOR DIFFERENCE:
+   * - **COLAB**: Runs FIXED 8.4h sessions, NOT stopped by orchestrator (watchdog stops at 8.4h)
+   * - **KAGGLE**: Stopped ON-DEMAND after jobs to save weekly quota (21h/week limit)
+   * 
+   * @returns Array of Kaggle workers that need immediate shutdown (NEVER returns Colab!)
    */
   async getGPUsToStop(): Promise<QuotaStatus[]> {
     const statuses = await this.getAllQuotaStatuses();
-    return statuses.filter(s => s.shouldStop);
+    
+    // 🔥 CRITICAL FIX: Only return KAGGLE workers that need stopping
+    // Colab runs full 8.4h sessions and is stopped by watchdog, NOT orchestrator
+    return statuses.filter(s => 
+      s.shouldStop && s.provider === 'kaggle'  // ONLY Kaggle gets stopped on-demand
+    );
+  }
+
+  /**
+   * 🔥 NEW REQUIREMENT: Check if ANY GPU (Colab OR Kaggle) is already online
+   * 
+   * CRITICAL RULE:
+   * - BEFORE starting Kaggle GPU → Check if ANY GPU already online
+   * - If found → Use existing GPU (don't waste quota!)
+   * - If none → THEN start Kaggle (if quota available)
+   * 
+   * @returns { hasOnlineGPU: boolean, onlineCount: number, providers: string[] }
+   */
+  async checkOnlineGPUs(): Promise<{ 
+    hasOnlineGPU: boolean; 
+    onlineCount: number; 
+    providers: string[];
+    workers: Array<{ id: number; provider: string; accountId: string | null }>;
+  }> {
+    const onlineWorkers = await db.query.gpuWorkers.findMany({
+      where: eq(gpuWorkers.status, 'online'),
+    });
+
+    return {
+      hasOnlineGPU: onlineWorkers.length > 0,
+      onlineCount: onlineWorkers.length,
+      providers: [...new Set(onlineWorkers.map(w => w.provider))],
+      workers: onlineWorkers.map(w => ({ 
+        id: w.id, 
+        provider: w.provider, 
+        accountId: w.accountId 
+      })),
+    };
   }
   
   /**

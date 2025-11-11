@@ -73,6 +73,11 @@ export class AutoScalingService {
   private readonly MIN_WORKERS = 1;
   private readonly MAX_WORKERS = 10;
 
+  // 🔥 CRITICAL: 70% quota safety constants (to prevent account BAN)
+  private readonly COLAB_SAFETY = 30240; // 8.4h (70% of 12h)
+  private readonly KAGGLE_GPU_SAFETY = 30240; // 8.4h (70% of 12h)
+  private readonly DEFAULT_SESSION_SAFETY = 30240; // 8.4h fallback
+
   /**
    * Select best worker for inference request (PRODUCTION ALGORITHM)
    */
@@ -296,7 +301,8 @@ export class AutoScalingService {
     const loadScore = Math.max(0, 100 - loadPercent);
 
     // Quota score
-    const maxSession = worker.maxSessionDurationSeconds || 39600; // 11h default
+    // 🔥 CRITICAL FIX: Use 70% safety (8.4h = 30240s) instead of wrong 11h (39600s)
+    const maxSession = worker.maxSessionDurationSeconds || this.DEFAULT_SESSION_SAFETY;
     const sessionUsed = worker.sessionDurationSeconds || 0;
     const quotaRemaining = Math.max(0, maxSession - sessionUsed);
     const quotaUtilization = (sessionUsed / maxSession) * 100;

@@ -17,6 +17,7 @@ import OpenAI from "openai";
 import { storage } from "../storage";
 import type { InsertMetric } from "@shared/schema";
 import { freeLLMProviders } from "./free-llm-providers";
+import { GPUPool } from "../gpu/pool";
 
 /**
  * Erro customizado para recusas de conteúdo já tratadas
@@ -338,9 +339,10 @@ export class LLMClient {
   /**
    * Main chat completion method with all features
    * 
-   * 🚀 ORDEM INVERTIDA (Conforme solicitado):
-   * 1º: APIs GRATUITAS (OpenRouter → Groq → Gemini → HuggingFace)
-   * 2º: OpenAI (ÚLTIMA opção, apenas se todas as gratuitas falharem)
+   * 🔥 ORDEM DE PRIORIDADE (CRITICAL - Conforme replit.md):
+   * 1º: GPU INFERENCE (KB interna + modelos próprios) - ZERO CUSTO!
+   * 2º: APIs GRATUITAS (OpenRouter → Groq → Gemini → HuggingFace)
+   * 3º: OpenAI (ÚLTIMA opção, apenas se TODAS as anteriores falharem)
    * 
    * OpenAI é PAGA - usar apenas como último recurso!
    */
@@ -366,9 +368,67 @@ export class LLMClient {
     const maxTokens = options.maxTokens ?? 2048;
 
     // ===================================================================
-    // 1º PRIORIDADE: TENTAR APIs GRATUITAS PRIMEIRO!
+    // 🔥 1º PRIORIDADE: GPU INFERENCE (KB INTERNA - ZERO CUSTO!)
     // ===================================================================
-    console.log("[LLM] 🆓 Tentando APIs gratuitas primeiro (OpenRouter/Groq/Gemini/HF)...");
+    
+    // Skip GPU para casos incompatíveis:
+    // - Tool calls (função calling não implementada em GPU worker)
+    // - Streaming (GPUPool.inference não suporta streaming)
+    // - Explicit model override (user quer modelo específico)
+    const isGPUCompatible = !options.tools && !options.stream && !options.model;
+    
+    if (isGPUCompatible) {
+      console.log("[LLM] 🚀 Tentando GPU INFERENCE primeiro (KB interna - ZERO CUSTO)...");
+      
+      try {
+        const gpuResult = await GPUPool.inference({
+          messages: options.messages,
+          temperature,
+          maxTokens,
+        });
+        
+        if (gpuResult) {
+          console.log(`[LLM] ✅ Resposta obtida via GPU #${gpuResult.workerId} - ZERO custo! 🎉`);
+          
+          const result: ChatCompletionResult = {
+            content: gpuResult.response,
+            usage: {
+              promptTokens: 0, // GPU não cobra tokens
+              completionTokens: 0,
+              totalTokens: 0,
+            },
+            finishReason: "stop",
+            latencyMs: gpuResult.latencyMs,
+            costUsd: 0, // ZERO custo!
+          };
+          
+          // Save to cache
+          this.saveToCache(cacheKey, result);
+          
+          // Record metrics (marca como gpu)
+          await this.recordMetrics("gpu", result);
+          
+          return result;
+        }
+        
+        console.log("[LLM] ⚠️  GPU retornou null (sem resposta na KB interna)");
+        console.log("[LLM] 🔄 Fallback para APIs gratuitas...");
+      } catch (gpuError: any) {
+        console.warn("[LLM] ⚠️  GPU inference falhou:", gpuError.message);
+        console.log("[LLM] 🔄 Fallback para APIs gratuitas...");
+      }
+    } else {
+      const reasons = [];
+      if (options.tools) reasons.push("tool calls");
+      if (options.stream) reasons.push("streaming");
+      if (options.model) reasons.push("explicit model");
+      console.log(`[LLM] ⏭️  Pulando GPU inference (incompatível: ${reasons.join(', ')})`);
+    }
+
+    // ===================================================================
+    // 2º PRIORIDADE: TENTAR APIs GRATUITAS!
+    // ===================================================================
+    console.log("[LLM] 🆓 Tentando APIs gratuitas (OpenRouter/Groq/Gemini/HF)...");
     
     try {
       const freeResult = await freeLLMProviders.chatCompletion(options.messages);
@@ -379,7 +439,7 @@ export class LLMClient {
       // Record metrics (marca como free_api)
       await this.recordMetrics("free_api", freeResult);
       
-      console.log("[LLM] ✅ Resposta obtida via APIs GRATUITAS - OpenAI NÃO foi consultada! 🎉");
+      console.log("[LLM] ✅ Resposta obtida via APIs GRATUITAS! 🎉");
       
       return freeResult;
     } catch (freeApiError: any) {

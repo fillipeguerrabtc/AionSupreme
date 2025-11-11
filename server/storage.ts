@@ -106,6 +106,7 @@ export interface IStorage {
   countMessagesByConversation(conversationId: number): Promise<number>;
   createMessage(message: InsertMessage): Promise<Message>;
   updateMessage(id: number, data: Partial<InsertMessage>): Promise<Message>;
+  deleteMessage(id: number): Promise<void>;
   
   // Documentos
   getDocument(id: number): Promise<Document | undefined>;
@@ -590,6 +591,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(messages.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteMessage(id: number): Promise<void> {
+    await db.delete(messages).where(eq(messages.id, id));
   }
 
   // --------------------------------------------------------------------------

@@ -15,10 +15,10 @@
  * ✅ CAPTCHA detection + notificação admin
  * 
  * QUOTA MANAGEMENT (PRODUCTION-GRADE):
- * - Session limit: 11h (12h - 1h safety)
- * - Cooldown: 36h between sessions
+ * - Session limit: 8.4h (70% of 12h max)
+ * - Cooldown: 36h mandatory rest between sessions
  * - Keep-alive: 60min (90min idle - 30min safety)
- * - Auto-shutdown: After job completion OR 11h limit
+ * - Auto-shutdown: At 8.4h limit via watchdog (NOT after job - runs FULL session!)
  * 
  * SECURITY:
  * - Persistent cookies (auto-login after first auth)

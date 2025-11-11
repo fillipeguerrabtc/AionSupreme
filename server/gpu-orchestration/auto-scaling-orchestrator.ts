@@ -9,16 +9,17 @@
  * =====================
  * 
  * COLAB FREE (Prioridade ALTA - Backbone):
- * - Session: 12h max → Stop at 11h (1h safety)
- * - Sem limite semanal → Pode rodar CONTINUAMENTE
+ * - Session: 12h max → 70% = 8.4h FIXED sessions (watchdog stops, NOT orchestrator!)
+ * - Cooldown: 36h mandatory rest between sessions
+ * - Sem limite semanal → Pode rodar CONTINUAMENTE (com cooldown)
  * - Dividir em grupos escalonados (ex: 3+2+2)
  * - SEMPRE online → Backbone do sistema
  * 
- * KAGGLE FREE (Uso estratégico - Complemento):
- * - Session: 12h max → Stop at 11h (1h safety)
- * - Weekly: 30h → Stop at 29h (1h safety)
- * - Distribuir 29h em 7 dias → ~4h/dia
- * - Usar como COMPLEMENTO ao Colab
+ * KAGGLE FREE (Uso estratégico - Complemento ON-DEMAND):
+ * - Session: 12h max → 70% = 8.4h session (ON-DEMAND startup/shutdown!)
+ * - Weekly: 30h max → 70% = 21h weekly quota
+ * - Distribuir 21h em 7 dias → ~3h/dia
+ * - Usar como COMPLEMENTO ao Colab (liga/desliga para economizar quota!)
  * 
  * EXEMPLO PRÁTICO:
  * ================
@@ -742,6 +743,22 @@ export class AutoScalingOrchestrator {
         // 🔥 FIX: Registrar provider started APÓS sucesso!
         await providerAlternationService.recordProviderStarted('colab');
       } else if (worker.provider === 'kaggle') {
+        // 🔥 NEW REQUIREMENT: BEFORE starting Kaggle, check if ANY GPU already online!
+        const onlineCheck = await quotaManager.checkOnlineGPUs();
+        
+        if (onlineCheck.hasOnlineGPU) {
+          console.log(`[AutoScale] ⚠️  KAGGLE START ABORTED - GPU já online!`);
+          console.log(`[AutoScale] 📊 Online GPUs: ${onlineCheck.onlineCount} (${onlineCheck.providers.join(', ')})`);
+          console.log(`[AutoScale] 💡 Usando GPU existente ao invés de iniciar Kaggle (economiza quota!)`);
+          
+          // Rollback quota registration
+          await quotaManager.stopSession(workerId);
+          sessionStarted = false;
+          return; // EXIT - Don't waste Kaggle quota!
+        }
+        
+        console.log(`[AutoScale] ✅ Nenhuma GPU online - OK para iniciar Kaggle #${workerId}`);
+        
         await this.kaggleOrchestrator.startSession({
           kaggleUsername: credentials.username,
           kagglePassword: credentials.key,

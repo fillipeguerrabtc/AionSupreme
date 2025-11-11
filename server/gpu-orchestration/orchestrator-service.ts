@@ -118,6 +118,22 @@ export class OrchestratorService {
           headless: true,
         });
       } else {  // kaggle
+        // 🔥 NEW REQUIREMENT: BEFORE starting Kaggle, check if ANY GPU already online!
+        const onlineCheck = await quotaManager.checkOnlineGPUs();
+        
+        if (onlineCheck.hasOnlineGPU) {
+          console.log(`[Orchestrator] ⚠️  KAGGLE START ABORTED - GPU já online!`);
+          console.log(`[Orchestrator] 📊 Online GPUs: ${onlineCheck.onlineCount} (${onlineCheck.providers.join(', ')})`);
+          console.log(`[Orchestrator] 💡 Usando GPU existente ao invés de iniciar Kaggle (economiza quota!)`);
+          
+          return {
+            success: false,
+            reason: `Kaggle start aborted - ${onlineCheck.onlineCount} GPU(s) já online (${onlineCheck.providers.join(', ')}). Usando GPU existente para economizar quota.`
+          };
+        }
+        
+        console.log(`[Orchestrator] ✅ Nenhuma GPU online - OK para iniciar Kaggle #${gpu.workerId}`);
+        
         const isGPU = !!(worker.capabilities?.gpu && worker.capabilities.gpu !== 'CPU');
         
         result = await kaggleOrchestrator.startSession({

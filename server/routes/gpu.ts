@@ -8,7 +8,7 @@ import type { Request, Response } from "express";
 import { db } from "../db";
 import { gpuWorkers } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
-import { quotaManager } from "../gpu/quota-manager";
+import { quotaManager } from "../gpu-orchestration/intelligent-quota-manager";
 import { log } from "../utils/logger";
 
 export function registerGpuRoutes(app: Router) {
@@ -299,6 +299,90 @@ export function registerGpuRoutes(app: Router) {
   });
 
   /**
+   * GET /api/gpu/overview
+   * PRODUCTION-GRADE UNIFIED GPU OVERVIEW
+   * Returns complete GPU status with quota information for dashboard
+   */
+  app.get("/api/gpu/overview", async (req: Request, res: Response) => {
+    try {
+      // Fetch all workers from database
+      const workers = await db
+        .select()
+        .from(gpuWorkers)
+        .orderBy(desc(gpuWorkers.lastHealthCheck));
+
+      // Fetch quota status for each worker (parallel)
+      const workersWithQuota = await Promise.all(
+        workers.map(async (worker) => {
+          // Get quota status using IntelligentQuotaManager
+          const quotaStatus = await quotaManager.getQuotaStatus(worker.id);
+          
+          return {
+            id: worker.id,
+            provider: worker.provider,
+            accountId: worker.accountId || undefined,
+            ngrokUrl: worker.ngrokUrl,
+            capabilities: worker.capabilities || {
+              tor_enabled: false,
+              model: 'unknown',
+              gpu: 'unknown',
+              vram_gb: 0,
+              max_concurrent: 1,
+            },
+            status: worker.status,
+            lastHealthCheck: worker.lastHealthCheck?.toISOString(),
+            requestCount: worker.requestCount || 0,
+            averageLatencyMs: worker.averageLatencyMs || 0,
+            createdAt: worker.createdAt.toISOString(),
+            autoManaged: worker.autoManaged,
+            source: worker.autoManaged ? 'auto' as const : 'manual' as const,
+            quotaStatus: quotaStatus || undefined,
+          };
+        })
+      );
+
+      // Calculate stats
+      const total = workers.length;
+      const healthy = workers.filter((w) => w.status === "healthy").length;
+      const unhealthy = workers.filter((w) => w.status === "unhealthy").length;
+      const offline = workers.filter((w) => w.status === "offline").length;
+      const pending = workers.filter((w) => w.status === "pending").length;
+      const totalRequests = workers.reduce((sum, w) => sum + (w.requestCount || 0), 0);
+      const avgLatency = workers.length > 0
+        ? workers.reduce((sum, w) => sum + (w.averageLatencyMs || 0), 0) / workers.length
+        : 0;
+      const autoManaged = workers.filter((w) => w.autoManaged).length;
+      const manual = workers.filter((w) => !w.autoManaged).length;
+
+      // Get orchestrator status
+      const activeProviders = Array.from(new Set(workers.filter(w => w.status === 'healthy').map(w => w.provider)));
+
+      res.json({
+        workers: workersWithQuota,
+        stats: {
+          total,
+          healthy,
+          unhealthy,
+          offline,
+          pending,
+          totalRequests,
+          avgLatency,
+          autoManaged,
+          manual,
+        },
+        orchestrator: {
+          running: workers.some(w => w.autoManaged && w.status === 'healthy'),
+          activeProviders,
+          nextScheduledAction: undefined, // Could be enhanced later
+        },
+      });
+    } catch (error: any) {
+      log.error({ component: 'gpu-overview', error: error.message }, 'Failed to fetch GPU overview');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * GET /api/gpu/workers
    * List all GPU workers
    */
@@ -342,48 +426,13 @@ export function registerGpuRoutes(app: Router) {
   /**
    * GET /api/gpu/quota/status
    * Get quota status for all workers
+   * Replaced by /api/gpu/overview which includes quota status per worker
    */
   app.get("/gpu/quota/status", async (req: Request, res: Response) => {
     try {
-      const quotas = await quotaManager.getAllWorkerQuotas();
-      const health = await quotaManager.getPoolHealth();
+      const quotas = await quotaManager.getAllQuotaStatuses();
 
-      res.json({ quotas, health });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  /**
-   * POST /api/gpu/quota/record
-   * Record worker usage after job completion
-   * Call this after every inference/training job!
-   */
-  app.post("/gpu/quota/record", async (req: Request, res: Response) => {
-    try {
-      const { workerId, durationMinutes } = req.body;
-
-      if (!workerId || !durationMinutes) {
-        return res.status(400).json({ error: "workerId and durationMinutes required" });
-      }
-
-      await quotaManager.recordUsage(parseInt(workerId), parseFloat(durationMinutes));
-
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  /**
-   * POST /api/gpu/quota/reset
-   * Manually reset weekly quotas (runs automatically every Monday)
-   */
-  app.post("/gpu/quota/reset", async (req: Request, res: Response) => {
-    try {
-      await quotaManager.resetWeeklyQuotas();
-
-      res.json({ success: true, message: "Weekly quotas reset" });
+      res.json({ quotas });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

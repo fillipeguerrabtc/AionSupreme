@@ -273,6 +273,9 @@ export const messages = pgTable("messages", {
     tokensUsed?: number;
     model?: string;
     costUsd?: number;
+    provider?: string; // 'openai' | 'anthropic' | 'groq' | 'gemini' | 'huggingface' | 'multi-agent'
+    source?: string; // 'openai' | 'free-api' | 'multi-agent' | 'web-fallback' | 'openai-fallback'
+    totalCost?: number;
   }>(),
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
