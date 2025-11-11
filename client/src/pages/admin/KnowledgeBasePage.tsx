@@ -32,6 +32,7 @@ import { NamespaceSelector } from "@/components/agents/NamespaceSelector";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
 import { useLanguage } from "@/lib/i18n";
 import { useLocation } from "wouter";
+import { CascadeDeleteDialog } from "@/components/admin/CascadeDeleteDialog";
 
 export default function KnowledgeBasePage() {
   useScrollToTop();
@@ -63,6 +64,7 @@ export default function KnowledgeBasePage() {
   const [editContent, setEditContent] = useState("");
   const [editNamespaces, setEditNamespaces] = useState<string[]>([]);
   const [newNamespaces, setNewNamespaces] = useState<string[]>([]);
+  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
 
   const { data: documents = [], isLoading } = useQuery<Document[]>({
     queryKey: ["/api/admin/documents"],
@@ -162,17 +164,8 @@ export default function KnowledgeBasePage() {
     },
   });
 
-  const deleteDocMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest(`/api/admin/documents/${id}`, {
-        method: "DELETE",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
-      toast({ title: t.common.removedSuccess });
-    },
-  });
+  // Removed legacy deleteDocMutation - now using CascadeDeleteDialog
+  // which calls POST /api/admin/cascade/delete/:documentId instead
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 max-w-full overflow-x-hidden">
@@ -590,11 +583,7 @@ export default function KnowledgeBasePage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => {
-                                if (window.confirm("Remover este conhecimento?")) {
-                                  deleteDocMutation.mutate(doc.id);
-                                }
-                              }}
+                              onClick={() => setDocumentToDelete(doc)}
                               data-testid={`button-delete-${doc.id}`}
                             >
                               <Trash2 className="w-4 h-4 text-destructive" />
@@ -610,6 +599,17 @@ export default function KnowledgeBasePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* CASCADE DELETE DIALOG - Enterprise deletion with impact preview */}
+      <CascadeDeleteDialog
+        document={documentToDelete}
+        open={!!documentToDelete}
+        onClose={() => setDocumentToDelete(null)}
+        onDeleted={() => {
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
+          setDocumentToDelete(null);
+        }}
+      />
     </div>
   );
 }
