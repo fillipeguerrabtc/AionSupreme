@@ -1,0 +1,13 @@
+{
+  "totalKeys": 3112,
+  "metrics": {
+    "pt": 465,
+    "en": 0,
+    "es": 0,
+    "mixed": 0,
+    "unknown": 2647
+  },
+  "purity": 14.942159383033419,
+  "contamination": 0,
+  "classifications": []
+}

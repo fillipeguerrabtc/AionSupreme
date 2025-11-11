@@ -1,0 +1,904 @@
+{
+  "classifications": [
+    {
+      "key": "error.adapter_aggregator.python_aggregation_script_failed",
+      "value": "Python aggregation script failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.agent_relationships.agent_cannot_be_its",
+      "value": "Agent cannot be its own parent",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.agent_relationships.parentagentid_and_childagentid_are",
+      "value": "parentAgentId and childAgentId are required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.alert_service.email_send_failed",
+      "value": "Email send failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.alert_service.webhook_send_failed",
+      "value": "Webhook send failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.auth.authentication_failed",
+      "value": "Authentication failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.auth.internal_server_error",
+      "value": "Internal Server Error",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.auto_approval.validation_failed",
+      "value": "Validation failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.auto_recovery.autorecovery_check_failed",
+      "value": "[Auto-Recovery] Check failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.auto_recovery.autorecovery_initial_check_failed",
+      "value": "[Auto-Recovery] Initial check failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.automatic_fallback.all_llm_providers_failed",
+      "value": "All LLM providers failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.backup_service.rate_limit_check_failed",
+      "value": "Rate limit check failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.backup_service.temp_backup_cleanup_failed",
+      "value": "Temp backup cleanup failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.backup.backup_creation_error",
+      "value": "Backup creation error",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.backup.backup_creation_failed",
+      "value": "Backup creation failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.backup.restore_operation_error",
+      "value": "Restore operation error",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.cascade.bulk_cascade_deletion_failed",
+      "value": "Bulk cascade deletion failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.cascade.cascade_deletion_failed",
+      "value": "Cascade deletion failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.cascade.internal_server_error",
+      "value": "Internal server error",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.circuit_breaker.halfopen_open_recovery_failed",
+      "value": "HALF_OPEN → OPEN - recovery failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.colab_creator.colab_creator_xpath_fallback",
+      "value": "[Colab Creator] XPath fallback failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.colab_creator.loginverificationfailed_could_not_verify",
+      "value": "LOGIN_VERIFICATION_FAILED: Could not verify successful login",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.colab_orchestrator.session_not_found",
+      "value": "Session not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.csrf.csrf_validation_failed",
+      "value": "CSRF validation failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.curation.curation_item_not_found",
+      "value": "Curation item not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.curation.document_not_found",
+      "value": "Document not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.curation.duplicate_content_not_found",
+      "value": "Duplicate content not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.curation.item_not_found_or",
+      "value": "Item not found or already processed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.curation.vision_api_failed",
+      "value": "Vision API failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.embedder.cannot_embed_empty_text",
+      "value": "Cannot embed empty text",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.embedder.vectors_must_have_same",
+      "value": "Vectors must have same length",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.gpu_cooldown_manager.worker_not_found",
+      "value": "Worker not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.gpu_manager_service.kaggle_username_and_api",
+      "value": "Kaggle username and API key required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.gpu.authentication_failed",
+      "value": "authentication failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.gpu.username_and_api_key",
+      "value": "Username and API key required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.gpu.username_and_apikey_required",
+      "value": "username and apiKey required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.gpu.username_required",
+      "value": "username required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.gpu.worker_not_found",
+      "value": "Worker not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.gpu.workerid_required",
+      "value": "workerId required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.gpu.workerids_array_required",
+      "value": "workerIds array required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.dataset_generation_failed",
+      "value": "❌ Dataset Generation Failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.dataset_required",
+      "value": "⚠️ Dataset Required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.email_and_google_password",
+      "value": "Email and Google password are required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.execution_failed",
+      "value": "Execution failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.file_required",
+      "value": "⚠️ File Required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.if_enabled_content_must",
+      "value": "If enabled, content must pass all 5 quality gates",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.module_is_required",
+      "value": "Module is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.name_is_required",
+      "value": "Name is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.name_required",
+      "value": "⚠️ Name Required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.parent_namespace_required",
+      "value": "Parent namespace required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.rejection_score_must_be",
+      "value": "Rejection score must be less than approval score",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.root_namespace_cannot_contain",
+      "value": "Root namespace cannot contain '/'",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.start_date_must_be",
+      "value": "Start date must be before end date",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.submodule_is_required",
+      "value": "Submodule is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.this_action_cannot_be",
+      "value": "This action cannot be undone.",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.transcription_error",
+      "value": "Transcription error",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.transcription_failed",
+      "value": "Transcription failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.uselanguage_must_be_used",
+      "value": "useLanguage must be used within LanguageProvider",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.i18n.username_and_api_key",
+      "value": "Username and API Key are required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.image_generator.we_cannot_override_their",
+      "value": "We cannot override their safety filters for image generation at this time.",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.index.internal_server_error",
+      "value": "Internal Server Error",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.kaggle_automation_service.kaggle_automation_push_command",
+      "value": "[Kaggle Automation] ❌ Push command failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.kaggle_cli_service.kaggle_cli_installation_failed",
+      "value": "[Kaggle CLI] ❌ Installation failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.kaggle_orchestrator.session_not_found",
+      "value": "Session not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.kb_images.query_is_required",
+      "value": "Query is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.load_balancer.load_balancer_request_failed",
+      "value": "[Load Balancer] Request failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.local_auth.verification_token_is_required",
+      "value": "Verification token is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.meta_learning_orchestrator.pipeline_execution_fatal_error",
+      "value": "❌ Pipeline execution fatal error",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.meta_learning.application_failed",
+      "value": "Application failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.meta_learning.validation_failed",
+      "value": "Validation failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.model_deployment_service.quality_validation_failed",
+      "value": "Quality validation failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.namespaces.namespace_not_found",
+      "value": "Namespace not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.namespaces.query_parameter_q_is",
+      "value": "Query parameter 'q' is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.namespaces.validation_error",
+      "value": "Validation error",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.permissions.cannot_delete_permission_in",
+      "value": "Cannot delete permission in use",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.permissions.permission_not_found",
+      "value": "Permission not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.permissions.permissionid_is_required",
+      "value": "permissionId is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.pm_moe_aggregator.pmmoe_aggregation_failed",
+      "value": "❌ PM-MoE: Aggregation failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.pm_moe_aggregator.pmmoe_expert_selection_failed",
+      "value": "❌ PM-MoE: Expert selection failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.quota_enforcement_service.session_not_found_cannot",
+      "value": "Session not found - cannot end",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.rebuild_service.rebuildservice_queue_processing_failed",
+      "value": "[RebuildService] Queue processing failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.rebuild_service.rebuildservice_rebuild_failed",
+      "value": "[RebuildService] Rebuild failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.replitauth.authentication_error",
+      "value": "Authentication error",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.route_params.agent_id_cannot_be",
+      "value": "Agent ID cannot be empty",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.route_params.id_must_be_positive",
+      "value": "ID must be positive",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.route_params.id_must_be_within",
+      "value": "ID must be within safe integer range",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.route_params.namespace_cannot_be_empty",
+      "value": "Namespace cannot be empty",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.route_params.slug_cannot_be_empty",
+      "value": "Slug cannot be empty",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.route_params.step_must_be_nonnegative",
+      "value": "Step must be non-negative",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.route_params.step_must_be_within",
+      "value": "Step must be within safe integer range",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.authentication_required",
+      "value": "Authentication required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.content_and_filename_are",
+      "value": "Content and filename are required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.conversation_not_found",
+      "value": "Conversation not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.conversation_not_found_or",
+      "value": "Conversation not found or empty",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.dataset_file_not_found",
+      "value": "Dataset file not found on disk",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.dataset_not_found",
+      "value": "Dataset not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.dataset_processing_failed",
+      "value": "Dataset processing failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.file_not_found_or",
+      "value": "File not found or deleted",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.forbidden_cannot_delete_anonymous",
+      "value": "Forbidden: Cannot delete anonymous conversations",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.invalid_provider_must_be",
+      "value": "Invalid provider. Must be 'colab' or 'kaggle'",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.name_is_required",
+      "value": "Name is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.project_name_is_required",
+      "value": "Project name is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.project_not_found",
+      "value": "Project not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.prompt_is_required",
+      "value": "Prompt is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.search_query_is_required",
+      "value": "Search query is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.sse_stream_failed",
+      "value": "[SSE] Stream failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.training_data_not_found",
+      "value": "Training data not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.training_job_not_found",
+      "value": "Training job not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.url_must_include_protocol",
+      "value": "URL must include protocol (e.g., https://example.com)",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.validation_failed",
+      "value": "Validation failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.video_not_found_or",
+      "value": "Video not found or deleted",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.worker_not_found",
+      "value": "Worker not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.routes.youtube_url_is_required",
+      "value": "YouTube URL is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.secrets_vault.cannot_decrypt_secretsmasterkey_not",
+      "value": "Cannot decrypt: SECRETS_MASTER_KEY not set",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.self_improvement_engine.critical_improvements_cannot_be",
+      "value": "Critical improvements cannot be auto-applied",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.self_improvement_engine.improvement_must_pass_validation",
+      "value": "Improvement must pass validation before applying",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.self_improvement_engine.selfimprovement_analysis_failed",
+      "value": "❌ Self-Improvement: Analysis failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.self_improvement_engine.selfimprovement_application_failed",
+      "value": "❌ Self-Improvement: Application failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.self_improvement_engine.selfimprovement_proposal_failed",
+      "value": "❌ Self-Improvement: Proposal failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.self_improvement_engine.selfimprovement_rollback_failed",
+      "value": "❌ Self-Improvement: Rollback failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.self_improvement_engine.selfimprovement_validation_failed",
+      "value": "❌ Self-Improvement: Validation failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.shiftex_service.shiftex_expert_consolidation_failed",
+      "value": "❌ ShiftEx: Expert consolidation failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.shiftex_service.shiftex_shift_detection_failed",
+      "value": "❌ ShiftEx: Shift detection failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.telemetry.invalid_tier_must_be",
+      "value": "Invalid tier. Must be 'agent' or 'subagent'",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.test_fallback.as_an_ai_language",
+      "value": "As an AI language model, I cannot assist with harmful content.",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.test_fallback.i_cannot_assist_with",
+      "value": "I cannot assist with that request as it violates my content policy.",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.training_data_validator.instruction_cannot_be_empty",
+      "value": "Instruction cannot be empty",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.training_data_validator.output_cannot_be_empty",
+      "value": "Output cannot be empty",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.training_data_validator.output_cannot_be_identical",
+      "value": "Output cannot be identical to instruction",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.url_validation.protocol_must_be_http",
+      "value": "Protocol must be http or https",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.url_validation.url_cannot_be_empty",
+      "value": "URL cannot be empty",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.users.email_and_name_are",
+      "value": "Email and name are required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.users.roleid_is_required",
+      "value": "roleId is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.vision_cascade.vision_inference_failed",
+      "value": "Vision inference failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.vision.provider_is_required",
+      "value": "Provider is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.vision.provider_test_failed",
+      "value": "Provider test failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "error.youtube_transcript_service.invalid_youtube_url_could",
+      "value": "Invalid YouTube URL - could not extract video ID",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.addworkerdialog.kaggle_provisioning_failed",
+      "value": "❌ Kaggle Provisioning Failed",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.colab_creator.colab_creator_title_element",
+      "value": "[Colab Creator] Title element not found, using default name",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.colab_creator.save_button_not_found",
+      "value": "Save button not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.colab_creator.sign_in_button_not",
+      "value": "Sign in button not found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.colab_orchestrator.captcha_detected_manual_intervention",
+      "value": "CAPTCHA Detected - Manual Intervention Required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.i18n.404_page_not_found",
+      "value": "404 Page Not Found",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.i18n.gdpr_reason_required",
+      "value": "GDPR Reason Required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.i18n.validation_error",
+      "value": "Validation Error",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.lifecycle_policy_schema.update_body_cannot_be",
+      "value": "Update body cannot be empty",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.permissions.name_module_submodule_and",
+      "value": "name, module, submodule, and actions[] are required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.route_params.start_date_must_be",
+      "value": "Start date must be before end date",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.routes.messages_array_is_required",
+      "value": "messages array is required",
+      "detectedLang": "en",
+      "confidence": 1
+    },
+    {
+      "key": "ui.tos_compliance_monitor.worker_not_found",
+      "value": "Worker not found",
+      "detectedLang": "en",
+      "confidence": 1
+    }
+  ]
+}
