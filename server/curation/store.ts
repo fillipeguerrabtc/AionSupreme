@@ -115,6 +115,24 @@ export const curationStore = {
       attachments: data.attachments as any, // JSONB field
     }).returning();
 
+    // STEP 1.5: Track query frequency for reuse-aware auto-approval (CRITICAL for reuse gate)
+    // This enables cost-optimization by detecting frequently asked questions
+    try {
+      const { queryFrequencyService } = await import("../services/query-frequency-service");
+      const primaryNamespace = data.suggestedNamespaces && data.suggestedNamespaces.length > 0 
+        ? data.suggestedNamespaces[0] 
+        : undefined;
+      
+      await queryFrequencyService.track(
+        data.content,
+        primaryNamespace,
+        data.conversationId?.toString()
+      );
+    } catch (error: any) {
+      // Non-critical - don't block curation if tracking fails
+      console.error(`[Curation] Query frequency tracking failed:`, error.message);
+    }
+
     // STEP 2: Tentar análise automática em background (não bloqueia)
     // Isso roda de forma assíncrona e atualiza o item depois
     this.runAutoAnalysis(item.id, data).catch(error => {

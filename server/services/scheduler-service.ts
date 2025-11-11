@@ -589,15 +589,26 @@ export class SchedulerService {
               continue;
             }
             
+            // Extract query text from content (first 500 chars for frequency matching)
+            const queryText = item.content?.substring(0, 500) || '';
+            const primaryNamespace = suggestedNamespaces && suggestedNamespaces.length > 0 ? suggestedNamespaces[0] : undefined;
+            
             const decision = await autoApprovalService.decide(
               qualityScore,
               contentFlags,
               suggestedNamespaces,
-              qualityGatesPassed // 4th param: optional quality gates
+              qualityGatesPassed, // 4th param: optional quality gates
+              queryText // 5th param: CRITICAL for reuse gate to work
             );
             
             if (decision.action === 'approve') {
-              await curationStore.approveAndPublish(item.id, 'AUTO-CURATOR', decision.reason);
+              // Check if approved via reuse gate (for audit trail)
+              const isReuseGateApproval = decision.reason.includes('High-reuse value');
+              const approvalNote = isReuseGateApproval 
+                ? `${decision.reason} [REUSE-GATE]`
+                : decision.reason;
+              
+              await curationStore.approveAndPublish(item.id, 'AUTO-CURATOR', approvalNote);
               approved++;
             } else if (decision.action === 'reject') {
               await curationStore.reject(item.id, 'AUTO-CURATOR', decision.reason);
@@ -619,7 +630,32 @@ export class SchedulerService {
       errorCount: 0,
     });
 
-    // 🔥 JOB 17: Tombstone Cleanup - Diariamente às 02:00 UTC (Retention policy enforcement)
+    // 🔥 JOB 17: Query Frequency Decay - Nightly at 03:00 UTC (Cost-optimization maintenance)
+    // CRITICAL: Applies exponential decay to query frequencies for accurate reuse tracking
+    // - Applies decay factor (0.95^days) to all query counts
+    // - Deletes ancient low-value records (>90 days, <2 hits)
+    // - Maintains fresh reuse gate data for cost-aware auto-approval
+    this.register({
+      name: 'query-frequency-decay',
+      schedule: '0 3 * * *', // Nightly at 03:00 UTC
+      task: async () => {
+        try {
+          logger.info('🔄 Starting query frequency decay (reuse gate maintenance)');
+          
+          const { queryFrequencyService } = await import('./query-frequency-service');
+          await queryFrequencyService.applyDecay();
+          
+          logger.info('✅ Query frequency decay completed');
+        } catch (error: any) {
+          logger.error(`❌ Query frequency decay error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 18: Tombstone Cleanup - Diariamente às 02:00 UTC (Retention policy enforcement)
     // CRITICAL: Deletes expired tombstones based on retention policies
     // Respects retentionUntil field (NULL = keep forever)
     // Comprehensive audit logging for GDPR compliance

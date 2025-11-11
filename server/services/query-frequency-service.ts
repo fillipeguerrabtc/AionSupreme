@@ -80,11 +80,12 @@ export class QueryFrequencyService {
 
     try {
       // Query for top 5 most similar queries using vector cosine distance
+      // CRITICAL FIX: Use AND for namespace filter to avoid double WHERE clause
       const results = await db.execute(sql`
         SELECT *, 1 - (query_embedding <=> ${JSON.stringify(embedding)}::vector) as similarity
         FROM user_query_frequency
-        ${namespace ? sql`WHERE namespace = ${namespace}` : sql``}
         WHERE query_embedding IS NOT NULL
+        ${namespace ? sql`AND namespace = ${namespace}` : sql``}
         ORDER BY query_embedding <=> ${JSON.stringify(embedding)}::vector
         LIMIT 5
       `);
@@ -93,14 +94,15 @@ export class QueryFrequencyService {
       if (results.rows.length > 0) {
         const topMatch = results.rows[0] as any;
         if (topMatch.similarity >= this.SEMANTIC_THRESHOLD) {
-          console.log(`[QueryFrequency] 🎯 Semantic match found (similarity: ${(topMatch.similarity * 100).toFixed(1)}%)`);
+          console.log(`[QueryFrequency] 🎯 Semantic match found (similarity: ${(topMatch.similarity * 100).toFixed(1)}%, hitCount: ${topMatch.hit_count})`);
           return topMatch;
         }
       }
 
       return null;
     } catch (error: any) {
-      console.error(`[QueryFrequency] Similarity search failed:`, error.message);
+      // CRITICAL: Log full error for debugging SQL issues
+      console.error(`[QueryFrequency] ❌ Similarity search failed:`, error.message, error.stack);
       return null;
     }
   }
