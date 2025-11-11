@@ -444,14 +444,14 @@ export class KBCascadeService {
             : null;
 
           // Aggregate ALL dependencies up to this point for this tombstone
-          const allAffectedSoFar = [...new Set([
+          const allAffectedSoFar = Array.from(new Set([
             ...perDocData.flatMap(d => d.affectedDatasetIds),
             ...docData.affectedDatasetIds,
-          ])];
-          const allModelsSoFar = [...new Set([
+          ]));
+          const allModelsSoFar = Array.from(new Set([
             ...perDocData.flatMap(d => d.affectedModelIds),
             ...docData.affectedModelIds,
-          ])];
+          ]));
 
           const [tombstone] = await tx.insert(deletionTombstones).values({
             entityType: 'kb_document',
