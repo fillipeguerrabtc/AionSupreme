@@ -415,7 +415,7 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex">
+      <div className="flex items-center justify-center h-screen">
         <div className="bg-card border p-8 rounded-xl space-y-4 text-center">
           <div className="relative inline-block">
             <div className="bg-muted p-6 rounded-full">
