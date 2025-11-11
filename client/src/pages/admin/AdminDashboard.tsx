@@ -755,7 +755,7 @@ export default function AdminDashboard() {
           {/* Card 10: Federated Training Jobs → Federated Training Tab */}
           <Card 
             className="flex items-center gap-2" 
-            onClick={() => setActiveTab(t("admin.admindashboard.federated"))}
+            onClick={() => setActiveTab("federated")}
             data-testid="card-element"
           >
             <CardHeader className="pb-3">
@@ -863,7 +863,7 @@ export default function AdminDashboard() {
               )}
 
               {/* Federated Training Tab */}
-              {activeTab === t("admin.admindashboard.federated") && (
+              {activeTab === "federated" && (
                 <Suspense fallback={<LoadingSpinner />}>
                   <div className="space-y-6">
                     <FederatedTrainingTab />
