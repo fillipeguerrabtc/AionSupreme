@@ -206,16 +206,20 @@ export class ColabNotebookCreator {
         if (!signInButton) {
           throw new Error('Sign in button not found');
         }
-        await signInButton.click();
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
-
-        // Email input com retry
-        await this.waitAndType(page, 'input[type="email"]', this.credentials.email, 10000);
-        await this.pressEnterAndWait(page, 3000);
         
-        // Password input com retry
-        await this.waitAndType(page, 'input[type="password"]', this.credentials.password!, 10000);
-        await this.pressEnterAndWait(page, 3000);
+        // Navigate to login page (wait até carregar completamente)
+        await Promise.all([
+          page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }),  // Increased timeout
+          signInButton.click(),
+        ]);
+
+        // Email input com retry e timeout maior
+        await this.waitAndType(page, 'input[type="email"]', this.credentials.email, 15000);
+        await this.pressEnterAndWait(page, 5000);  // Mais tempo para processar
+        
+        // Password input com retry e timeout maior
+        await this.waitAndType(page, 'input[type="password"]', this.credentials.password!, 15000);
+        await this.pressEnterAndWait(page, 5000);  // Mais tempo para processar
 
         // Detect 2FA challenge
         const is2FARequired = await this.detect2FA(page);
