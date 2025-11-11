@@ -34,13 +34,15 @@ export class QueryFrequencyService {
   private DECAY_BASE = 0.95; // 0.95^days
 
   /**
-   * Normalize query for consistent hashing
-   * Removes punctuation, lowercase, trim, collapse whitespace
+   * Normalize query for consistent hashing (MULTILINGUAL-SAFE)
+   * Preserves Unicode characters (Arabic, Chinese, Japanese, Russian, Hindi, etc.)
+   * Best Practice 2025: Unicode-aware normalization for global multi-language support
    */
   private normalizeQuery(query: string): string {
     return query
       .toLowerCase()
-      .replace(/[^\w\s]/g, ' ') // Remove punctuation
+      // Remove ONLY common ASCII punctuation, PRESERVE Unicode letters/numbers
+      .replace(/[.,!?;:"""''()[\]{}]/g, ' ')
       .replace(/\s+/g, ' ') // Collapse whitespace
       .trim();
   }
