@@ -5975,10 +5975,12 @@ export function registerRoutes(app: Express): Server {
   // POST /api/gpu/workers/notebooks - Add new Colab/Kaggle notebook for orchestration (AUTO-CREATE)
   app.post("/api/gpu/workers/notebooks", requireAuth, requirePermission("gpu:pool:manage"), async (req, res) => {
     try {
+      console.log("[GPU CRUD] Request body:", JSON.stringify(req.body, null, 2));
       const { provider, email, password, kaggleUsername, kaggleKey, useGPU, title } = req.body;
       
       // Validate provider
       if (!provider) {
+        console.error("[GPU CRUD] Missing provider field");
         return res.status(400).json({ 
           error: "Missing required field: provider" 
         });

@@ -142,8 +142,18 @@ export default function GPUOverviewPage() {
   // Add GPU mutation
   const addGPUMutation = useMutation({
     mutationFn: async (data: typeof formData & { provider: string }) => {
+      console.log('[GPU Add] Sending request:', {
+        provider: data.provider,
+        email: data.email,
+        hasPassword: !!data.password,
+        kaggleUsername: data.kaggleUsername,
+        hasKaggleKey: !!data.kaggleKey,
+      });
       return await apiRequest('/api/gpu/workers/notebooks', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           provider: data.provider,
           email: data.email,
@@ -520,6 +530,7 @@ export default function GPUOverviewPage() {
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           required
+                          autoComplete="off"
                           data-testid="input-email"
                         />
                       </div>
@@ -530,6 +541,7 @@ export default function GPUOverviewPage() {
                           type="password"
                           value={formData.password}
                           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          autoComplete="new-password"
                           data-testid="input-password"
                         />
                       </div>
@@ -545,6 +557,7 @@ export default function GPUOverviewPage() {
                           value={formData.kaggleUsername}
                           onChange={(e) => setFormData({ ...formData, kaggleUsername: e.target.value })}
                           required
+                          autoComplete="off"
                           data-testid="input-kaggle-username"
                         />
                       </div>
@@ -557,6 +570,7 @@ export default function GPUOverviewPage() {
                           value={formData.kaggleKey}
                           onChange={(e) => setFormData({ ...formData, kaggleKey: e.target.value })}
                           required
+                          autoComplete="new-password"
                           data-testid="input-kaggle-key"
                         />
                       </div>
