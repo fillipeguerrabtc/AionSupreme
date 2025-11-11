@@ -1102,24 +1102,72 @@ export function registerGpuRoutes(app: Router) {
 
       console.log(`[Colab Provision] Starting Puppeteer automation for ${email}...`);
 
-      const { colabOrchestrator } = await import('../services/colab-orchestrator');
-      
-      const result = await colabOrchestrator.provision({
-        credentials: { email, password },
-        notebookUrl,
-      });
+      // CRITICAL FIX: Create worker record FIRST (architect-approved refactor)
+      // Step 1: Insert worker into database to get workerId
+      const [worker] = await db.insert(gpuWorkers).values({
+        provider: 'colab',
+        accountId: email, // Store Google account email
+        ngrokUrl: `placeholder-${Date.now()}`, // Temporary, will be updated after session starts
+        capabilities: {
+          tor_enabled: false,
+          model: 'llama-3-8b-lora',
+          gpu: 'Tesla T4',
+          vram_gb: 16,
+        },
+        status: 'provisioning',
+        sessionStartedAt: null,
+      }).returning();
 
-      if (result.status === 'failed') {
-        return res.status(500).json({ error: result.message });
+      console.log(`[Colab Provision] ✅ Worker record created (ID: ${worker.id})`);
+
+      try {
+        // Step 2: Start session via orchestrator
+        const { colabOrchestrator } = await import('../gpu-orchestration/colab-orchestrator');
+        
+        const result = await colabOrchestrator.startSession({
+          workerId: worker.id,
+          googleEmail: email,
+          googlePassword: password,
+          notebookUrl: notebookUrl || 'https://colab.research.google.com',
+          headless: true,
+        });
+
+        if (!result.success) {
+          // Update worker status to failed
+          await db.update(gpuWorkers)
+            .set({ status: 'failed' })
+            .where(eq(gpuWorkers.id, worker.id));
+          
+          return res.status(500).json({ error: result.error || 'Failed to start Colab session' });
+        }
+
+        // Step 3: Update worker with ngrok URL and mark as online
+        await db.update(gpuWorkers)
+          .set({
+            ngrokUrl: result.ngrokUrl,
+            status: 'online',
+            sessionStartedAt: new Date(),
+          })
+          .where(eq(gpuWorkers.id, worker.id));
+
+        console.log(`[Colab Provision] ✅ Session started successfully (ngrok: ${result.ngrokUrl})`);
+
+        res.json({
+          success: true,
+          workerId: worker.id,
+          notebookUrl: notebookUrl || 'https://colab.research.google.com',
+          ngrokUrl: result.ngrokUrl,
+          status: 'online',
+          message: `Colab session started for ${email}`,
+        });
+      } catch (error: any) {
+        // Clean up worker record if session failed to start
+        await db.update(gpuWorkers)
+          .set({ status: 'failed' })
+          .where(eq(gpuWorkers.id, worker.id));
+        
+        throw error;
       }
-
-      res.json({
-        success: true,
-        notebookUrl: result.notebookUrl,
-        sessionId: result.sessionId,
-        status: result.status,
-        message: result.message,
-      });
     } catch (error: any) {
       console.error("[Colab Provision] Error:", error);
       res.status(500).json({ error: error.message });
@@ -1157,20 +1205,27 @@ export function registerGpuRoutes(app: Router) {
    */
   app.post("/gpu/colab/stop", async (req: Request, res: Response) => {
     try {
-      const { sessionId } = req.body;
+      const { workerId } = req.body;
 
-      if (!sessionId) {
-        return res.status(400).json({ error: "sessionId required" });
+      if (!workerId) {
+        return res.status(400).json({ error: "workerId required" });
       }
 
-      console.log(`[Colab Stop] Stopping session ${sessionId}...`);
+      console.log(`[Colab Stop] Stopping worker ${workerId}...`);
 
-      const { colabOrchestrator } = await import('../services/colab-orchestrator');
-      await colabOrchestrator.cleanup();
+      // CRITICAL FIX: Use stopSession() with workerId (architect-approved refactor)
+      const { colabOrchestrator } = await import('../gpu-orchestration/colab-orchestrator');
+      const result = await colabOrchestrator.stopSession(workerId);
+
+      if (!result.success) {
+        return res.status(500).json({ error: result.error || 'Failed to stop Colab session' });
+      }
+
+      console.log(`[Colab Stop] ✅ Session stopped successfully`);
 
       res.json({
         success: true,
-        message: `Colab session ${sessionId} stopped`,
+        message: `Colab worker ${workerId} stopped successfully`,
       });
     } catch (error: any) {
       console.error("[Colab Stop] Error:", error);
