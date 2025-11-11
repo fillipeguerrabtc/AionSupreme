@@ -13,6 +13,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { HfInference } from "@huggingface/inference";
 import OpenAI from "openai";
 import { trackTokenUsage } from "../monitoring/token-tracker";
+import { log } from "../utils/logger";
 
 export type VisionProvider = 'gemini' | 'gpt4v-openrouter' | 'claude3-openrouter' | 'huggingface' | 'openai' | 'none';
 
@@ -58,62 +59,123 @@ export class VisionCascade {
     if (this.geminiKey && this.hasQuota('gemini')) {
       try {
         const result = await this.tryGemini(imageBuffer, mimeType, alt);
-        console.log(`[VisionCascade] ✅ Gemini (${Date.now() - startTime}ms)`);
+        log.info('Vision inference successful', {
+          component: 'VisionCascade',
+          provider: 'gemini',
+          durationMs: Date.now() - startTime
+        });
         return result;
       } catch (error: any) {
-        console.warn(`[VisionCascade] ⚠️ Gemini falhou: ${error.message}`);
+        log.warn('Vision inference failed', {
+          component: 'VisionCascade',
+          provider: 'gemini',
+          error: error.message
+        });
       }
     } else {
-      console.log(`[VisionCascade] ⏭️ Gemini indisponível (${this.geminiQuota.used}/${this.geminiQuota.limit})`);
+      log.info('Vision provider unavailable', {
+        component: 'VisionCascade',
+        provider: 'gemini',
+        quotaUsed: this.geminiQuota.used,
+        quotaLimit: this.geminiQuota.limit
+      });
     }
 
     // 2. Fallback: GPT-4V via OpenRouter (FREE)
     if (this.openRouterKey && this.hasQuota('gpt4v-openrouter')) {
       try {
         const result = await this.tryGPT4VOpenRouter(imageBuffer, mimeType, alt);
-        console.log(`[VisionCascade] ✅ GPT-4V OpenRouter (${Date.now() - startTime}ms)`);
+        log.info('Vision inference successful', {
+          component: 'VisionCascade',
+          provider: 'gpt4v-openrouter',
+          durationMs: Date.now() - startTime
+        });
         return result;
       } catch (error: any) {
-        console.warn(`[VisionCascade] ⚠️ GPT-4V OpenRouter falhou: ${error.message}`);
+        log.warn('Vision inference failed', {
+          component: 'VisionCascade',
+          provider: 'gpt4v-openrouter',
+          error: error.message
+        });
       }
     } else {
-      console.log(`[VisionCascade] ⏭️ GPT-4V OpenRouter indisponível (${this.gpt4vQuota.used}/${this.gpt4vQuota.limit})`);
+      log.info('Vision provider unavailable', {
+        component: 'VisionCascade',
+        provider: 'gpt4v-openrouter',
+        quotaUsed: this.gpt4vQuota.used,
+        quotaLimit: this.gpt4vQuota.limit
+      });
     }
 
     // 3. Fallback: Claude 3 Haiku via OpenRouter (FREE)
     if (this.openRouterKey && this.hasQuota('claude3-openrouter')) {
       try {
         const result = await this.tryClaude3OpenRouter(imageBuffer, mimeType, alt);
-        console.log(`[VisionCascade] ✅ Claude 3 OpenRouter (${Date.now() - startTime}ms)`);
+        log.info('Vision inference successful', {
+          component: 'VisionCascade',
+          provider: 'claude3-openrouter',
+          durationMs: Date.now() - startTime
+        });
         return result;
       } catch (error: any) {
-        console.warn(`[VisionCascade] ⚠️ Claude 3 OpenRouter falhou: ${error.message}`);
+        log.warn('Vision inference failed', {
+          component: 'VisionCascade',
+          provider: 'claude3-openrouter',
+          error: error.message
+        });
       }
     } else {
-      console.log(`[VisionCascade] ⏭️ Claude 3 OpenRouter indisponível (${this.claude3Quota.used}/${this.claude3Quota.limit})`);
+      log.info('Vision provider unavailable', {
+        component: 'VisionCascade',
+        provider: 'claude3-openrouter',
+        quotaUsed: this.claude3Quota.used,
+        quotaLimit: this.claude3Quota.limit
+      });
     }
 
     // 4. Fallback: HuggingFace
     if (this.hfKey && this.hasQuota('huggingface')) {
       try {
         const result = await this.tryHuggingFace(imageBuffer, alt);
-        console.log(`[VisionCascade] ✅ HuggingFace (${Date.now() - startTime}ms)`);
+        log.info('Vision inference successful', {
+          component: 'VisionCascade',
+          provider: 'huggingface',
+          durationMs: Date.now() - startTime
+        });
         return result;
       } catch (error: any) {
-        console.warn(`[VisionCascade] ⚠️ HuggingFace falhou: ${error.message}`);
+        log.warn('Vision inference failed', {
+          component: 'VisionCascade',
+          provider: 'huggingface',
+          error: error.message
+        });
       }
     } else {
-      console.log(`[VisionCascade] ⏭️ HuggingFace indisponível (${this.hfQuota.used}/${this.hfQuota.limit})`);
+      log.info('Vision provider unavailable', {
+        component: 'VisionCascade',
+        provider: 'huggingface',
+        quotaUsed: this.hfQuota.used,
+        quotaLimit: this.hfQuota.limit
+      });
     }
 
     // 5. Último recurso: OpenAI GPT-4o (PAGO)
     if (this.openaiKey) {
       try {
         const result = await this.tryOpenAI(imageBuffer, mimeType, alt);
-        console.log(`[VisionCascade] ✅ OpenAI Vision (${Date.now() - startTime}ms) - $$$`);
+        log.info('Vision inference successful (paid)', {
+          component: 'VisionCascade',
+          provider: 'openai',
+          durationMs: Date.now() - startTime,
+          paid: true
+        });
         return result;
       } catch (error: any) {
-        console.error(`[VisionCascade] ❌ OpenAI falhou: ${error.message}`);
+        log.error('Vision inference failed (all providers exhausted)', {
+          component: 'VisionCascade',
+          provider: 'openai',
+          error: error.message
+        });
       }
     }
 
@@ -466,25 +528,45 @@ Descrição detalhada:`;
     const DAY_MS = 24 * 60 * 60 * 1000;
 
     if (now - this.geminiQuota.lastReset >= DAY_MS) {
-      console.log(`[VisionCascade] 🔄 Reset Gemini quota (${this.geminiQuota.used} → 0)`);
+      log.info('Vision quota reset', {
+        component: 'VisionCascade',
+        provider: 'gemini',
+        previousUsed: this.geminiQuota.used,
+        limit: this.geminiQuota.limit
+      });
       this.geminiQuota.used = 0;
       this.geminiQuota.lastReset = now;
     }
 
     if (now - this.gpt4vQuota.lastReset >= DAY_MS) {
-      console.log(`[VisionCascade] 🔄 Reset GPT-4V OpenRouter quota (${this.gpt4vQuota.used} → 0)`);
+      log.info('Vision quota reset', {
+        component: 'VisionCascade',
+        provider: 'gpt4v-openrouter',
+        previousUsed: this.gpt4vQuota.used,
+        limit: this.gpt4vQuota.limit
+      });
       this.gpt4vQuota.used = 0;
       this.gpt4vQuota.lastReset = now;
     }
 
     if (now - this.claude3Quota.lastReset >= DAY_MS) {
-      console.log(`[VisionCascade] 🔄 Reset Claude 3 OpenRouter quota (${this.claude3Quota.used} → 0)`);
+      log.info('Vision quota reset', {
+        component: 'VisionCascade',
+        provider: 'claude3-openrouter',
+        previousUsed: this.claude3Quota.used,
+        limit: this.claude3Quota.limit
+      });
       this.claude3Quota.used = 0;
       this.claude3Quota.lastReset = now;
     }
 
     if (now - this.hfQuota.lastReset >= DAY_MS) {
-      console.log(`[VisionCascade] 🔄 Reset HuggingFace quota (${this.hfQuota.used} → 0)`);
+      log.info('Vision quota reset', {
+        component: 'VisionCascade',
+        provider: 'huggingface',
+        previousUsed: this.hfQuota.used,
+        limit: this.hfQuota.limit
+      });
       this.hfQuota.used = 0;
       this.hfQuota.lastReset = now;
     }
