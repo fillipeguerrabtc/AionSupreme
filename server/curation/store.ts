@@ -179,11 +179,10 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
 
       console.log(`[Curation] ✅ Análise automática concluída para item ${itemId}: ${analysis.recommended} (score: ${analysis.score})`);
 
-      // 🚀 APROVAÇÃO AUTOMÁTICA TIERED (Alinhado com melhores práticas 2025)
+      // 🚀 AUTO-APPROVAL SYSTEM (Configuration-driven via DB)
       // ======================================================================
-      // Score ≥80 + SEM flags sensíveis → AUTO-APPROVE ✅
-      // Score <50 → AUTO-REJECT ❌
-      // Score 50-79 ou COM flags → HITL REVIEW ⚠️
+      // Uses autoApprovalService to apply DB-configured thresholds and rules
+      // Supports namespace filtering, content flags, and quality gates integration
       
       // 🔒 GUARD: Só processa auto-approval se análise foi bem-sucedida
       if (!analysis || typeof analysis.score !== 'number') {
@@ -191,13 +190,27 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
         return; // Sair sem processar - item fica pendente para revisão humana
       }
       
+      // Import auto-approval service (dynamic import for service layer)
+      const { autoApprovalService } = await import("../services/auto-approval-service");
+      
+      // Extract content flags and namespaces
       const contentFlags = (analysis as any).contentFlags || [];
-      const hasSensitiveFlags = contentFlags.some((flag: string) => 
-        ['adult', 'violence', 'medical', 'financial', 'pii'].includes(flag)
+      const namespaces = data.suggestedNamespaces || [];
+      
+      // Get auto-approval decision from service (uses DB config)
+      const decision = await autoApprovalService.decide(
+        analysis.score,
+        contentFlags,
+        namespaces
       );
+      
+      console.log(`[Curation] 🤖 Auto-approval decision: ${decision.action.toUpperCase()}`);
+      console.log(`[Curation] 📊 Reason: ${decision.reason}`);
+      console.log(`[Curation] ⚙️ Config: minScore=${decision.configUsed.minApprovalScore}, maxScore=${decision.configUsed.maxRejectScore}, flags=${decision.configUsed.sensitiveFlags.join(',')}`);
 
-      if (analysis.score >= 80 && !hasSensitiveFlags && analysis.recommended === 'approve') {
-        console.log(`[Curation] 🚀 AUTO-APROVAÇÃO: Score ${analysis.score}/100, sem flags sensíveis`);
+      // Execute decision
+      if (decision.action === 'approve' && analysis.recommended === 'approve') {
+        console.log(`[Curation] 🚀 AUTO-APROVAÇÃO: ${decision.reason}`);
         console.log(`[Curation] 💡 Conteúdo seguro detectado - aprovando automaticamente para acelerar aprendizado`);
         
         try {
@@ -226,11 +239,11 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
           
           // Continua para HITL se auto-approval falhar
         }
-      } else if (analysis.score < 50 && analysis.recommended === 'reject') {
-        console.log(`[Curation] ❌ AUTO-REJEIÇÃO: Score ${analysis.score}/100 muito baixo`);
+      } else if (decision.action === 'reject' && analysis.recommended === 'reject') {
+        console.log(`[Curation] ❌ AUTO-REJEIÇÃO: ${decision.reason}`);
         
         try {
-          await this.reject(itemId, 'auto-curator-agent', `Automaticamente rejeitado por score baixo (${analysis.score}/100). ${analysis.reasoning}`);
+          await this.reject(itemId, 'auto-curator-agent', `Automaticamente rejeitado. ${decision.reason}. ${analysis.reasoning}`);
           console.log(`[Curation] ✅ Item ${itemId} auto-rejeitado`);
           return; // Sair - item já processado
         } catch (autoRejectError: any) {
@@ -238,11 +251,8 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
           console.log(`[Curation] ⚠️ Mantendo em HITL review por segurança`);
         }
       } else {
-        // Score 50-79 ou flags sensíveis → HITL obrigatório
-        const reason = hasSensitiveFlags 
-          ? `flags sensíveis detectadas: ${contentFlags.join(', ')}`
-          : `score médio (${analysis.score}/100)`;
-        console.log(`[Curation] ⚠️ HITL REVIEW NECESSÁRIO: ${reason}`);
+        // HITL obrigatório (decision.action === 'review')
+        console.log(`[Curation] ⚠️ HITL REVIEW NECESSÁRIO: ${decision.reason}`);
         console.log(`[Curation] 👤 Aguardando aprovação humana para decisão final`);
       }
 
