@@ -30,8 +30,8 @@ async function throwIfResNotOk(res: Response) {
         throw new Error(`${res.status}: ${message}`);
       } catch (e) {
         if (e instanceof ValidationError) throw e;
-        const text = await res.text();
-        throw new Error(`${res.status}: ${text || res.statusText}`);
+        // 🔥 FIX: Don't read response body again - already consumed by res.json()
+        throw new Error(`${res.status}: ${res.statusText}`);
       }
     }
     

@@ -88,9 +88,11 @@ export class GPUPool {
    * INFERÊNCIA COM GPU (PRIORIDADE MÁXIMA)
    * 
    * COMPORTAMENTO:
+   * - ON-DEMAND: Start GPU automaticamente se nenhuma disponível
    * - Se GPU estiver treinando → PAUSA TREINO IMEDIATAMENTE
    * - Responde usuário (2-5s)
    * - Retoma treino automaticamente
+   * - Auto-shutdown após 10min idle
    * 
    * GPU NÃO divide poder! Ela alterna entre tarefas com preempção.
    */
@@ -98,18 +100,49 @@ export class GPUPool {
     try {
       console.log("\n🚨 [GPUPool] INFERÊNCIA - PRIORIDADE MÁXIMA");
 
-      // Buscar worker disponível
-      const workers = await this.getOnlineWorkers();
-      
-      if (workers.length === 0) {
-        console.log("   ⚠ Nenhuma GPU online");
+      // 🔥 ON-DEMAND GPU: Ensure GPU available (start if needed)
+      const { onDemandGPUService } = await import('../services/on-demand-gpu-service');
+      const gpuResult = await onDemandGPUService.ensureGPUAvailable();
+
+      if (!gpuResult.available) {
+        console.log(`   ⚠️  ON-DEMAND: Nenhuma GPU disponível - ${gpuResult.reason}`);
         return null;
       }
 
-      // Selecionar qualquer worker (prioriza menos carregado)
-      const selectedWorker = workers.reduce((prev, curr) => 
-        prev.currentLoad < curr.currentLoad ? prev : curr
-      );
+      if (gpuResult.startedNew) {
+        console.log(`   🚀 ON-DEMAND: Nova GPU #${gpuResult.workerId} provisionada`);
+      } else {
+        console.log(`   ✅ ON-DEMAND: Reusing GPU #${gpuResult.workerId}`);
+      }
+
+      // 🔥 FIX: Use the specific worker returned by ensureGPUAvailable
+      // This avoids status mismatch (healthy vs online)
+      const targetWorkerId = gpuResult.workerId;
+      
+      if (!targetWorkerId) {
+        console.log("   ⚠️  ON-DEMAND: No workerId returned");
+        return null;
+      }
+
+      // Fetch the specific worker confirmed by OnDemandGPUService
+      const worker = await db.query.gpuWorkers.findFirst({
+        where: eq(gpuWorkers.id, targetWorkerId),
+      });
+
+      if (!worker || !['healthy', 'online'].includes(worker.status)) {
+        console.log(`   ⚠️  Worker #${targetWorkerId} not available (status: ${worker?.status || 'not found'})`);
+        return null;
+      }
+
+      const selectedWorker = {
+        id: worker.id,
+        provider: worker.provider,
+        status: worker.status,
+        ngrokUrl: worker.ngrokUrl,
+        capabilities: worker.capabilities,
+        currentLoad: 0, // TODO: track actual load
+        quotaRemaining: 100,
+      };
 
       console.log(`   ✓ GPU selecionada: Worker #${selectedWorker.id} (${selectedWorker.provider})`);
       
@@ -141,6 +174,9 @@ export class GPUPool {
       const content = response.data.choices?.[0]?.message?.content || "";
 
       console.log(`   ✅ Inferência concluída em ${latencyMs}ms`);
+
+      // 🔥 ON-DEMAND: Track activity to prevent idle shutdown
+      await onDemandGPUService.trackInferenceActivity(selectedWorker.id);
 
       return {
         response: content,
