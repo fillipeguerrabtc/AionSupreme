@@ -418,7 +418,7 @@ export default function GPUOverviewPage() {
             <CardHeader>
               <CardTitle>
                 {selectedProvider ? 
-                  `Adicionar GPU ${selectedProvider === 'kaggle' ? 'Kaggle' : 'Colab'}` :
+                  `${selectedProvider === 'kaggle' ? 'Kaggle GPU' : 'Google Colab GPU'}` :
                   t.admin.gpuManagement.dialogs.addWorkerTitle
                 }
               </CardTitle>
@@ -432,24 +432,38 @@ export default function GPUOverviewPage() {
                   </p>
                   <div className="space-y-2">
                     <Button
-                      className="w-full"
+                      className="w-full justify-start"
                       onClick={() => setSelectedProvider('kaggle')}
                       data-testid="button-provision-kaggle"
                     >
-                      <Zap className="w-4 h-4 mr-2" />
-                      {t.admin.gpuManagement.dialogs.kaggleButton}
+                      <div className="flex items-center w-full">
+                        <Zap className="w-4 h-4 mr-3" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Kaggle GPU</div>
+                          <div className="text-xs text-muted-foreground font-normal">
+                            Sistema cria notebook automaticamente
+                          </div>
+                        </div>
+                      </div>
                     </Button>
                     <Button
-                      className="w-full"
+                      className="w-full justify-start"
                       onClick={() => setSelectedProvider('colab')}
                       data-testid="button-provision-colab"
                     >
-                      <Zap className="w-4 h-4 mr-2" />
-                      {t.admin.gpuManagement.dialogs.colabButton}
+                      <div className="flex items-center w-full">
+                        <Zap className="w-4 h-4 mr-3" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Google Colab GPU</div>
+                          <div className="text-xs text-muted-foreground font-normal">
+                            Sistema cria notebook automaticamente via Puppeteer
+                          </div>
+                        </div>
+                      </div>
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full"
+                      className="w-full justify-start"
                       onClick={() => {
                         toast({
                           title: t.admin.gpuManagement.dialogs.comingSoon,
@@ -458,8 +472,15 @@ export default function GPUOverviewPage() {
                       }}
                       data-testid="button-add-manual"
                     >
-                      <Cpu className="w-4 h-4 mr-2" />
-                      {t.admin.gpuManagement.dialogs.manualButton}
+                      <div className="flex items-center w-full">
+                        <Cpu className="w-4 h-4 mr-3" />
+                        <div className="flex-1 text-left">
+                          <div className="font-medium">Worker Manual</div>
+                          <div className="text-xs text-muted-foreground font-normal">
+                            Conectar worker existente via URL
+                          </div>
+                        </div>
+                      </div>
                     </Button>
                   </div>
                   <Button
@@ -482,8 +503,8 @@ export default function GPUOverviewPage() {
                 >
                   <p className="text-sm text-muted-foreground">
                     {selectedProvider === 'kaggle' 
-                      ? 'Forneça suas credenciais Kaggle para provisionamento automático'
-                      : 'Forneça suas credenciais Google para provisionamento automático via Puppeteer'
+                      ? 'Forneça suas credenciais. O sistema criará o notebook automaticamente.'
+                      : 'Forneça suas credenciais. O sistema criará o notebook automaticamente via Puppeteer.'
                     }
                   </p>
 
@@ -560,12 +581,12 @@ export default function GPUOverviewPage() {
                       {addGPUMutation.isPending ? (
                         <>
                           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Provisionando...
+                          Criando GPU...
                         </>
                       ) : (
                         <>
                           <Zap className="w-4 h-4 mr-2" />
-                          Auto-Provisionar GPU
+                          Criar GPU Worker
                         </>
                       )}
                     </Button>
