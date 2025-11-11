@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -87,6 +89,13 @@ export default function GPUOverviewPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [showProvisionDialog, setShowProvisionDialog] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<'kaggle' | 'colab' | null>(null);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    kaggleUsername: '',
+    kaggleKey: '',
+  });
 
   // Fetch unified GPU data
   const { data: overviewData, isLoading } = useQuery<OverviewData>({
@@ -124,6 +133,41 @@ export default function GPUOverviewPage() {
     onError: (error: Error) => {
       toast({
         title: t.admin.gpuManagement.toast.error,
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add GPU mutation
+  const addGPUMutation = useMutation({
+    mutationFn: async (data: typeof formData & { provider: string }) => {
+      return await apiRequest('/api/gpu/workers/notebooks', {
+        method: 'POST',
+        body: JSON.stringify({
+          provider: data.provider,
+          email: data.email,
+          password: data.password,
+          kaggleUsername: data.kaggleUsername,
+          kaggleKey: data.kaggleKey,
+          useGPU: true,
+          title: `AION ${data.provider === 'kaggle' ? 'Kaggle' : 'Colab'} Worker`,
+        }),
+      });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
+      toast({
+        title: "GPU Adicionada",
+        description: data.message || "Provisionamento automático iniciado",
+      });
+      setShowProvisionDialog(false);
+      setSelectedProvider(null);
+      setFormData({ email: '', password: '', kaggleUsername: '', kaggleKey: '' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao adicionar GPU",
         description: error.message,
         variant: "destructive",
       });
@@ -364,70 +408,170 @@ export default function GPUOverviewPage() {
         </CardContent>
       </Card>
 
-      {/* Provision Dialog Placeholder */}
+      {/* Provision Dialog - 2 Step Process */}
       {showProvisionDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => {
+          setShowProvisionDialog(false);
+          setSelectedProvider(null);
+        }}>
+          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
-              <CardTitle>{t.admin.gpuManagement.dialogs.addWorkerTitle}</CardTitle>
+              <CardTitle>
+                {selectedProvider ? 
+                  `Adicionar GPU ${selectedProvider === 'kaggle' ? 'Kaggle' : 'Colab'}` :
+                  t.admin.gpuManagement.dialogs.addWorkerTitle
+                }
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground mb-4">
-                {t.admin.gpuManagement.dialogs.chooseMethod}
-              </p>
-              <div className="space-y-2">
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    toast({
-                      title: t.admin.gpuManagement.dialogs.comingSoon,
-                      description: t.admin.gpuManagement.dialogs.kaggleDesc,
-                    });
-                    setShowProvisionDialog(false);
+              {!selectedProvider ? (
+                // Step 1: Provider Selection
+                <>
+                  <p className="text-muted-foreground mb-4">
+                    {t.admin.gpuManagement.dialogs.chooseMethod}
+                  </p>
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full"
+                      onClick={() => setSelectedProvider('kaggle')}
+                      data-testid="button-provision-kaggle"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      {t.admin.gpuManagement.dialogs.kaggleButton}
+                    </Button>
+                    <Button
+                      className="w-full"
+                      onClick={() => setSelectedProvider('colab')}
+                      data-testid="button-provision-colab"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      {t.admin.gpuManagement.dialogs.colabButton}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        toast({
+                          title: t.admin.gpuManagement.dialogs.comingSoon,
+                          description: t.admin.gpuManagement.dialogs.manualDesc,
+                        });
+                      }}
+                      data-testid="button-add-manual"
+                    >
+                      <Cpu className="w-4 h-4 mr-2" />
+                      {t.admin.gpuManagement.dialogs.manualButton}
+                    </Button>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="w-full mt-4"
+                    onClick={() => setShowProvisionDialog(false)}
+                    data-testid="button-cancel-provision"
+                  >
+                    {t.common.cancel}
+                  </Button>
+                </>
+              ) : (
+                // Step 2: Credentials Form
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    addGPUMutation.mutate({ ...formData, provider: selectedProvider });
                   }}
-                  data-testid="button-provision-kaggle"
+                  className="space-y-4"
                 >
-                  <Zap className="w-4 h-4 mr-2" />
-                  {t.admin.gpuManagement.dialogs.kaggleButton}
-                </Button>
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    toast({
-                      title: t.admin.gpuManagement.dialogs.comingSoon,
-                      description: t.admin.gpuManagement.dialogs.colabDesc,
-                    });
-                    setShowProvisionDialog(false);
-                  }}
-                  data-testid="button-provision-colab"
-                >
-                  <Zap className="w-4 h-4 mr-2" />
-                  {t.admin.gpuManagement.dialogs.colabButton}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => {
-                    toast({
-                      title: t.admin.gpuManagement.dialogs.comingSoon,
-                      description: t.admin.gpuManagement.dialogs.manualDesc,
-                    });
-                    setShowProvisionDialog(false);
-                  }}
-                  data-testid="button-add-manual"
-                >
-                  <Cpu className="w-4 h-4 mr-2" />
-                  {t.admin.gpuManagement.dialogs.manualButton}
-                </Button>
-              </div>
-              <Button
-                variant="ghost"
-                className="w-full mt-4"
-                onClick={() => setShowProvisionDialog(false)}
-                data-testid="button-cancel-provision"
-              >
-                {t.common.cancel}
-              </Button>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedProvider === 'kaggle' 
+                      ? 'Forneça suas credenciais Kaggle para provisionamento automático'
+                      : 'Forneça suas credenciais Google para provisionamento automático via Puppeteer'
+                    }
+                  </p>
+
+                  {selectedProvider === 'colab' ? (
+                    // Colab Form Fields
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Google</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          placeholder="user@gmail.com"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          required
+                          data-testid="input-email"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Senha (opcional se sessão existir)</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          data-testid="input-password"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    // Kaggle Form Fields
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="kaggleUsername">Username Kaggle</Label>
+                        <Input
+                          id="kaggleUsername"
+                          placeholder="seu-username"
+                          value={formData.kaggleUsername}
+                          onChange={(e) => setFormData({ ...formData, kaggleUsername: e.target.value })}
+                          required
+                          data-testid="input-kaggle-username"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="kaggleKey">API Key Kaggle</Label>
+                        <Input
+                          id="kaggleKey"
+                          type="password"
+                          placeholder="Obtenha em kaggle.com/account"
+                          value={formData.kaggleKey}
+                          onChange={(e) => setFormData({ ...formData, kaggleKey: e.target.value })}
+                          required
+                          data-testid="input-kaggle-key"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setSelectedProvider(null)}
+                      data-testid="button-back"
+                    >
+                      Voltar
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={addGPUMutation.isPending}
+                      className="flex-1"
+                      data-testid="button-submit-gpu"
+                    >
+                      {addGPUMutation.isPending ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Provisionando...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4 mr-2" />
+                          Auto-Provisionar GPU
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              )}
             </CardContent>
           </Card>
         </div>
