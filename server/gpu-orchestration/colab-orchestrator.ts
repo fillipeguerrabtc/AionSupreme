@@ -76,6 +76,11 @@ function randomDelay(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// Helper: waitForTimeout replacement (Puppeteer v20+ compatibility)
+async function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // ============================================================================
 // COLAB ORCHESTRATOR CLASS
 // ============================================================================
@@ -197,7 +202,7 @@ export class ColabOrchestrator {
       console.log(`[Colab] 🌐 Navigating to ${config.notebookUrl}...`);
       
       // ✅ P2.8.3: Random delay before navigation (human behavior)
-      await page.waitForTimeout(randomDelay(1000, 3000));
+      await delay(randomDelay(1000, 3000));
       
       await page.goto(config.notebookUrl, { 
         waitUntil: 'networkidle2', 
@@ -241,7 +246,7 @@ export class ColabOrchestrator {
         }
         
         // Navigate back to notebook
-        await page.waitForTimeout(randomDelay(2000, 4000));
+        await delay(randomDelay(2000, 4000));
         await page.goto(config.notebookUrl, { waitUntil: 'networkidle2' });
       }
       
@@ -250,7 +255,7 @@ export class ColabOrchestrator {
       // ============================================================================
       
       // Wait for Colab to load (random delay)
-      await page.waitForTimeout(randomDelay(4000, 6000));
+      await delay(randomDelay(4000, 6000));
       
       // Connect to runtime
       await this.connectRuntimeHumanized(page, cursor);
@@ -508,7 +513,7 @@ export class ColabOrchestrator {
       await page.waitForSelector('input[type="email"]', { timeout: 10000 });
       
       // Random delay before typing
-      await page.waitForTimeout(randomDelay(800, 1500));
+      await delay(randomDelay(800, 1500));
       
       // Type email with realistic delays (80-300ms between keystrokes)
       for (const char of email) {
@@ -518,13 +523,13 @@ export class ColabOrchestrator {
       }
       
       // Random delay before clicking Next
-      await page.waitForTimeout(randomDelay(500, 1200));
+      await delay(randomDelay(500, 1200));
       
       // Click Next button with ghost-cursor (natural movement)
       await cursor.click('#identifierNext');
       
       // Wait for password page (random delay)
-      await page.waitForTimeout(randomDelay(2000, 3500));
+      await delay(randomDelay(2000, 3500));
       
       // ============================================================================
       // PASSWORD STEP (WITH HUMANIZATION)
@@ -536,7 +541,7 @@ export class ColabOrchestrator {
       });
       
       // Random delay before typing password
-      await page.waitForTimeout(randomDelay(800, 1500));
+      await delay(randomDelay(800, 1500));
       
       // Type password with realistic delays
       for (const char of password) {
@@ -546,7 +551,7 @@ export class ColabOrchestrator {
       }
       
       // Random delay before clicking Next
-      await page.waitForTimeout(randomDelay(500, 1200));
+      await delay(randomDelay(500, 1200));
       
       // Click Next button with ghost-cursor
       await cursor.click('#passwordNext');
@@ -587,7 +592,7 @@ export class ColabOrchestrator {
       console.log(`[Colab] 🔌 Connecting to runtime...`);
       
       // Random delay before clicking
-      await page.waitForTimeout(randomDelay(1000, 2000));
+      await delay(randomDelay(1000, 2000));
       
       // Click connect button with ghost-cursor
       const connectButton = await page.$('[aria-label*="Connect"]');
@@ -596,7 +601,7 @@ export class ColabOrchestrator {
       }
       
       // Wait for connection (random delay)
-      await page.waitForTimeout(randomDelay(4000, 6000));
+      await delay(randomDelay(4000, 6000));
       
       console.log(`[Colab] ✅ Runtime connected`);
       
@@ -612,7 +617,7 @@ export class ColabOrchestrator {
   private async runAllCellsHumanized(page: Page, cursor: any): Promise<void> {
     try {
       // Random delay before opening Runtime menu
-      await page.waitForTimeout(randomDelay(1000, 2000));
+      await delay(randomDelay(1000, 2000));
       
       // Click Runtime menu
       await page.evaluate(() => {
@@ -623,7 +628,7 @@ export class ColabOrchestrator {
       });
       
       // Random delay before clicking "Run all"
-      await page.waitForTimeout(randomDelay(800, 1500));
+      await delay(randomDelay(800, 1500));
       
       // Click "Run all"
       await page.evaluate(() => {
@@ -678,7 +683,7 @@ export class ColabOrchestrator {
   private async stopRuntimeHumanized(page: Page, cursor: any): Promise<void> {
     try {
       // Random delay before opening Runtime menu
-      await page.waitForTimeout(randomDelay(1000, 2000));
+      await delay(randomDelay(1000, 2000));
       
       // Click Runtime menu
       await page.evaluate(() => {
@@ -689,7 +694,7 @@ export class ColabOrchestrator {
       });
       
       // Random delay before clicking disconnect
-      await page.waitForTimeout(randomDelay(800, 1500));
+      await delay(randomDelay(800, 1500));
       
       // Click "Disconnect and delete runtime"
       await page.evaluate(() => {
@@ -723,7 +728,7 @@ export class ColabOrchestrator {
       const y2 = randomDelay(600, 1000);
       
       await session.cursor.move({ x: x1, y: y1 });
-      await session.page.waitForTimeout(randomDelay(500, 1500));
+      await delay(randomDelay(500, 1500));
       await session.cursor.move({ x: x2, y: y2 });
       
     } catch (error) {
