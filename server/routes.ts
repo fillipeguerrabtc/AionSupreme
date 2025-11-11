@@ -5975,8 +5975,18 @@ export function registerRoutes(app: Express): Server {
   // POST /api/gpu/workers/notebooks - Add new Colab/Kaggle notebook for orchestration (AUTO-CREATE)
   app.post("/api/gpu/workers/notebooks", requireAuth, requirePermission("gpu:pool:manage"), async (req, res) => {
     try {
-      console.log("[GPU CRUD] Request body:", JSON.stringify(req.body, null, 2));
       const { provider, email, password, kaggleUsername, kaggleKey, useGPU, title } = req.body;
+      
+      // SECURE LOGGING: Only log presence/absence, never credentials
+      console.log("[GPU CRUD] Request received:", {
+        provider,
+        hasEmail: !!email,
+        hasPassword: !!password,
+        hasKaggleUsername: !!kaggleUsername,
+        hasKaggleKey: !!kaggleKey,
+        useGPU,
+        title
+      });
       
       // Validate provider
       if (!provider) {

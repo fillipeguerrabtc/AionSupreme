@@ -89,12 +89,13 @@ export default function GPUOverviewPage() {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [showProvisionDialog, setShowProvisionDialog] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<'kaggle' | 'colab' | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<'kaggle' | 'colab' | 'manual' | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     kaggleUsername: '',
     kaggleKey: '',
+    workerUrl: '',
   });
 
   // Fetch unified GPU data
@@ -139,7 +140,45 @@ export default function GPUOverviewPage() {
     },
   });
 
-  // Add GPU mutation
+  // Add Manual Worker mutation
+  const addManualWorkerMutation = useMutation({
+    mutationFn: async (url: string) => {
+      return await apiRequest('/api/admin/gpu/workers/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider: 'manual',
+          accountId: 'manual',
+          ngrokUrl: url,
+          capabilities: {
+            tor_enabled: false,
+            gpu_available: true,
+          },
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
+      toast({
+        title: "Worker Manual Adicionado",
+        description: "Worker conectado com sucesso",
+      });
+      setShowProvisionDialog(false);
+      setSelectedProvider(null);
+      setFormData({ email: '', password: '', kaggleUsername: '', kaggleKey: '', workerUrl: '' });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao conectar worker",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Add GPU mutation (Kaggle/Colab auto-provision)
   const addGPUMutation = useMutation({
     mutationFn: async (data: typeof formData & { provider: string }) => {
       console.log('[GPU Add] Sending request:', {
@@ -173,7 +212,7 @@ export default function GPUOverviewPage() {
       });
       setShowProvisionDialog(false);
       setSelectedProvider(null);
-      setFormData({ email: '', password: '', kaggleUsername: '', kaggleKey: '' });
+      setFormData({ email: '', password: '', kaggleUsername: '', kaggleKey: '', workerUrl: '' });
     },
     onError: (error: Error) => {
       toast({
@@ -474,12 +513,7 @@ export default function GPUOverviewPage() {
                     <Button
                       variant="outline"
                       className="w-full justify-start"
-                      onClick={() => {
-                        toast({
-                          title: t.admin.gpuManagement.dialogs.comingSoon,
-                          description: t.admin.gpuManagement.dialogs.manualDesc,
-                        });
-                      }}
+                      onClick={() => setSelectedProvider('manual')}
                       data-testid="button-add-manual"
                     >
                       <div className="flex items-center w-full">
@@ -507,18 +541,42 @@ export default function GPUOverviewPage() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    addGPUMutation.mutate({ ...formData, provider: selectedProvider });
+                    if (selectedProvider === 'manual') {
+                      addManualWorkerMutation.mutate(formData.workerUrl);
+                    } else {
+                      addGPUMutation.mutate({ ...formData, provider: selectedProvider });
+                    }
                   }}
                   className="space-y-4"
                 >
                   <p className="text-sm text-muted-foreground">
                     {selectedProvider === 'kaggle' 
                       ? 'Forneça suas credenciais. O sistema criará o notebook automaticamente.'
-                      : 'Forneça suas credenciais. O sistema criará o notebook automaticamente via Puppeteer.'
+                      : selectedProvider === 'colab'
+                      ? 'Forneça suas credenciais. O sistema criará o notebook automaticamente via Puppeteer.'
+                      : 'Forneça a URL do worker existente (ex: https://abc123.ngrok.io)'
                     }
                   </p>
 
-                  {selectedProvider === 'colab' ? (
+                  {selectedProvider === 'manual' ? (
+                    // Manual Worker Form
+                    <div className="space-y-2">
+                      <Label htmlFor="workerUrl">URL do Worker</Label>
+                      <Input
+                        id="workerUrl"
+                        type="url"
+                        placeholder="https://abc123.ngrok.io"
+                        value={formData.workerUrl}
+                        onChange={(e) => setFormData({ ...formData, workerUrl: e.target.value })}
+                        required
+                        autoComplete="off"
+                        data-testid="input-worker-url"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        URL do worker GPU já em execução (Kaggle, Colab, ou outro)
+                      </p>
+                    </div>
+                  ) : selectedProvider === 'colab' ? (
                     // Colab Form Fields
                     <>
                       <div className="space-y-2">
@@ -588,19 +646,19 @@ export default function GPUOverviewPage() {
                     </Button>
                     <Button
                       type="submit"
-                      disabled={addGPUMutation.isPending}
+                      disabled={selectedProvider === 'manual' ? addManualWorkerMutation.isPending : addGPUMutation.isPending}
                       className="flex-1"
                       data-testid="button-submit-gpu"
                     >
-                      {addGPUMutation.isPending ? (
+                      {(selectedProvider === 'manual' ? addManualWorkerMutation.isPending : addGPUMutation.isPending) ? (
                         <>
                           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Criando GPU...
+                          {selectedProvider === 'manual' ? 'Conectando...' : 'Criando GPU...'}
                         </>
                       ) : (
                         <>
-                          <Zap className="w-4 h-4 mr-2" />
-                          Criar GPU Worker
+                          {selectedProvider === 'manual' ? <Cpu className="w-4 h-4 mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+                          {selectedProvider === 'manual' ? 'Conectar Worker' : 'Criar GPU Worker'}
                         </>
                       )}
                     </Button>
