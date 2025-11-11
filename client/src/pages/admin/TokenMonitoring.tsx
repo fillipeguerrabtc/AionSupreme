@@ -850,7 +850,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   {showBreakdown ? (
                     <>
                       <Area type="monotone" dataKey="groq" stackId="1" stroke={COLORS.groq} fill="url(#groq)" name="Groq" />
-                      <Area type="monotone" dataKey="gemini" stackId="1" stroke={COLORS.gemini} fill="[PT]" name="Gemini" />
+                      <Area type="monotone" dataKey="gemini" stackId="1" stroke={COLORS.gemini} fill="hsl(var(--primary))" name="Gemini" />
                       <Area type="monotone" dataKey="huggingface" stackId="1" stroke={COLORS.huggingface} fill={COLORS.huggingface} fillOpacity={0.6} name="HuggingFace" />
                       <Area type="monotone" dataKey="openrouter" stackId="1" stroke={COLORS.openrouter} fill={COLORS.openrouter} fillOpacity={0.6} name="OpenRouter" />
                       <Area type="monotone" dataKey="openai" stackId="1" stroke={COLORS.openai} fill="url(#openai)" name="OpenAI" />
@@ -885,7 +885,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <Zap className="w-5 h-5" style={{ color: COLORS.groq }} />
                     Groq
                   </span>
-                  <Badge variant="outline">{getProviderQuota('groq')?.remaining.toLocaleString()} "[PT]"</Badge>
+                  <Badge variant="outline">{getProviderQuota('groq')?.remaining.toLocaleString()} restantes</Badge>
                 </CardTitle>
                 <CardDescription>{t.common.loading}</CardDescription>
               </CardHeader>
@@ -932,7 +932,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <Database className="w-5 h-5" style={{ color: COLORS.gemini }} />
                     Gemini
                   </span>
-                  <Badge variant="outline">{getProviderQuota('gemini')?.remaining.toLocaleString()} "[PT]"</Badge>
+                  <Badge variant="outline">{getProviderQuota('gemini')?.remaining.toLocaleString()} restantes</Badge>
                 </CardTitle>
                 <CardDescription>{t.common.loading}</CardDescription>
               </CardHeader>
@@ -979,7 +979,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <Activity className="w-5 h-5" style={{ color: COLORS.huggingface }} />
                     HuggingFace
                   </span>
-                  <Badge variant="outline">{getProviderQuota('huggingface')?.remaining.toLocaleString()} "[PT]"</Badge>
+                  <Badge variant="outline">{getProviderQuota('huggingface')?.remaining.toLocaleString()} restantes</Badge>
                 </CardTitle>
                 <CardDescription>{t.common.loading}</CardDescription>
               </CardHeader>
@@ -1026,7 +1026,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <Zap className="w-5 h-5" style={{ color: COLORS.openrouter }} />
                     OpenRouter
                   </span>
-                  <Badge variant="outline">{getProviderQuota('openrouter')?.remaining.toLocaleString()} "[PT]"</Badge>
+                  <Badge variant="outline">{getProviderQuota('openrouter')?.remaining.toLocaleString()} restantes</Badge>
                 </CardTitle>
                 <CardDescription>{t.common.loading}</CardDescription>
               </CardHeader>

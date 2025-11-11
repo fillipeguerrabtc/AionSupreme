@@ -252,13 +252,13 @@ export default function CurationQueuePage() {
       
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       toast({
-        title: "[PT]",
-        description: `${data.processedImages} imagens processadas`,
+        title: t.common.success,
+        description: `${data.processedImages} ${t.admin.curation.imagesProcessed}`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: t.common.error,
         description: error.message,
         variant: "destructive",
       });
@@ -277,13 +277,13 @@ export default function CurationQueuePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       const duplicatesFound = (data.stats?.exact || 0) + (data.stats?.near || 0);
       toast({
-        title: "[PT]",
+        title: "Sucesso",
         description: `${data.stats?.total || 0} itens analisados. ${duplicatesFound} duplicatas detectadas.`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -302,13 +302,13 @@ export default function CurationQueuePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       const duplicatesFound = (data.stats?.exact || 0) + (data.stats?.near || 0);
       toast({
-        title: "[PT]",
+        title: "Sucesso",
         description: `${data.stats?.total || 0} imagens analisadas. ${duplicatesFound} duplicatas detectadas.`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -326,13 +326,13 @@ export default function CurationQueuePage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       toast({
-        title: "[PT]",
+        title: "Sucesso",
         description: `Conteúdo reduzido de ${data.analysis.originalLength} para ${data.analysis.extractedLength} caracteres (${data.analysis.reductionPercent}% de redução). Duplicado de: "${data.duplicateTitle}"`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -569,7 +569,7 @@ export default function CurationQueuePage() {
               data-testid="button-element"
             >
               <Scan className="h-4 w-4 mr-2" />
-              {scanDuplicatesMutation.isPending ? t.common.scanning : "Escanear duplicatas"}
+              {scanDuplicatesMutation.isPending ? t.common.loading : "Escanear duplicatas"}
             </Button>
             <Button
               variant="outline"
@@ -749,7 +749,7 @@ export default function CurationQueuePage() {
                             <Badge 
                               className="bg-green-600 hover:bg-green-700 text-white font-semibold flex items-center gap-1" 
                               data-testid={`badge-dup-unique-${item.id}`}
-                              title="[PT]"
+                              title="Ação"
                             >
                               <CheckCircle className="h-3 w-3" />"Único"</Badge>
                           )}
@@ -789,7 +789,7 @@ export default function CurationQueuePage() {
                             onClick={() => setAbsorptionPreviewItem({ id: item.id, title: item.title })}
                             className="text-orange-600 hover:text-orange-700"
                             data-testid={`button-absorb-${item.id}`}
-                            title="[PT]"
+                            title="Ação"
                           >
                             <ArrowDownToLine className="h-4 w-4 mr-2" />{t.common.loading}</Button>
                         )}
@@ -883,7 +883,7 @@ export default function CurationQueuePage() {
                               variant="secondary" 
                               className="text-xs font-semibold shadow-md"
                             >
-                              {media.type === "video" ? "[PT]" : "Imagem"}
+                              {media.type === "video" ? "Vídeo" : "Imagem"}
                             </Badge>
                           </div>
                           {/* Image Duplication Badge */}
@@ -914,7 +914,7 @@ export default function CurationQueuePage() {
                             <div className="absolute top-1 right-1">
                               <Badge 
                                 className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold shadow-md flex items-center gap-1" 
-                                title="[PT]"
+                                title="Ação"
                               >
                                 <CheckCircle className="h-3 w-3" />"Único"</Badge>
                             </div>
@@ -922,7 +922,7 @@ export default function CurationQueuePage() {
                           <div className="flex items-center gap-2">
                             <span className="text-white text-xs flex items-center gap-1">
                               {media.type === "video" ? <Play className="h-4 w-4" /> : <Scan className="h-3 w-3" />}
-                              {media.type === "video" ? "[PT]" : "[PT]"}
+                              {media.type === "video" ? "Vídeo" : "Não disponível"}
                             </span>
                           </div>
                           {media.description && (
@@ -1021,7 +1021,7 @@ export default function CurationQueuePage() {
                     disabled={generateDescriptionsMutation.isPending}
                     data-testid="button-element"
                   >
-                    {generateDescriptionsMutation.isPending ? "Gerando..." : "[PT]"}
+                    {generateDescriptionsMutation.isPending ? "Gerando..." : "Não disponível"}
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -1035,7 +1035,7 @@ export default function CurationQueuePage() {
                       />
                       <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1">
                         <p className="truncate">{img.filename}</p>
-                        {img.description && img.description !== t("admin.curationqueue.toast.semdescricao") && (
+                        {img.description && img.description !== "Gerar Descrições" && (
                           <p className="text-[10px] text-green-400">{t.common.loading}</p>
                         )}
                         <p className="text-[10px] opacity-70">{(img.size / 1024).toFixed(1)} KB</p>
@@ -1064,7 +1064,7 @@ export default function CurationQueuePage() {
                 id="edit-note"
                 value={editNote}
                 onChange={(e) => setEditNote(e.target.value)}
-                placeholder="[PT]"
+                placeholder="Digite aqui..."
                 data-testid="input-edit-note"
               />
             </div>
@@ -1112,7 +1112,7 @@ export default function CurationQueuePage() {
           <Textarea
             value={rejectNote}
             onChange={(e) => setRejectNote(e.target.value)}
-            placeholder="[PT]"
+            placeholder="Digite aqui..."
             className="my-4"
             data-testid="input-reject-note"
           />
@@ -1136,7 +1136,7 @@ export default function CurationQueuePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Aprovar {selectedIds.size} Itens Selecionados</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja aprovar e publicar {selectedIds.size} "[PT]"
+              Tem certeza que deseja aprovar e publicar {selectedIds.size} itens
                                               </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1183,13 +1183,13 @@ export default function CurationQueuePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Rejeitar {selectedIds.size} Itens Selecionados</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja rejeitar {selectedIds.size} "[PT]"
+              Tem certeza que deseja rejeitar {selectedIds.size} itens
                                               </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
             value={bulkRejectNote}
             onChange={(e) => setBulkRejectNote(e.target.value)}
-            placeholder="[PT]"
+            placeholder="Digite aqui..."
             className="my-4"
             data-testid="input-bulk-reject-note"
           />
@@ -1221,7 +1221,7 @@ export default function CurationQueuePage() {
           <Textarea
             value={bulkRejectNote}
             onChange={(e) => setBulkRejectNote(e.target.value)}
-            placeholder="[PT]"
+            placeholder="Digite aqui..."
             className="my-4"
             data-testid="input-reject-all-note"
           />
@@ -1250,7 +1250,7 @@ export default function CurationQueuePage() {
           ) : !filteredHistoryItems || filteredHistoryItems.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <p className="text-muted-foreground">Nenhum item {contentFilter !== "all" ? `(filtro: ${contentFilter === "pages" ? "[PT]" : "imagens"})` : ""} "[PT]"</p>
+                <p className="text-muted-foreground">Nenhum item {contentFilter !== "all" ? `(filtro: ${contentFilter === "pages" ? "páginas" : "imagens"})` : ""} disponível</p>
               </CardContent>
             </Card>
           ) : (
@@ -1280,7 +1280,7 @@ export default function CurationQueuePage() {
                           {item.reviewedBy && item.reviewedAt && (
                             <div className="flex items-center gap-2">
                               <Clock className="h-3 w-3" />
-                              {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} "[PT]" {item.reviewedBy} em {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })} às {new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
+                              {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} por {item.reviewedBy} em {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })} às {new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           )}
                         </CardDescription>

@@ -76,7 +76,7 @@ export default function VisionPage() {
   });
 
   const getStatusColor = (status: "active" | "missing_key") => {
-    return status === "active" ? "default" : "[PT]";
+    return status === "active" ? "default" : "Não disponível";
   };
 
   const getTierColor = (tier: string) => {

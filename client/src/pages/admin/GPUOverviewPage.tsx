@@ -167,7 +167,7 @@ export default function GPUOverviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
       toast({
         title: "Worker Manual Adicionado",
-        description: "[PT]",
+        description: "Operação concluída com sucesso",
       });
       setShowProvisionDialog(false);
       setSelectedProvider(null);
@@ -175,7 +175,7 @@ export default function GPUOverviewPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -212,7 +212,7 @@ export default function GPUOverviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
       toast({
         title: "Provisionamento Iniciado",
-        description: "[PT]",
+        description: "Operação concluída com sucesso",
       });
       setShowProvisionDialog(false);
       setSelectedProvider(null);
@@ -220,7 +220,7 @@ export default function GPUOverviewPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -576,9 +576,9 @@ export default function GPUOverviewPage() {
                 >
                   <p className="text-sm text-muted-foreground">
                     {selectedProvider === 'kaggle' 
-                      ? "[PT]"
+                      ? "Sim"
                       : selectedProvider === 'colab'
-                      ? "[PT]"
+                      ? "Sim"
                       : 'Forneça a URL do worker existente (ex: https://abc123.ngrok.io)'
                     }
                   </p>
@@ -607,7 +607,7 @@ export default function GPUOverviewPage() {
                         <Input
                           id="email"
                           type="email"
-                          placeholder="[PT]"
+                          placeholder="Digite aqui..."
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           required
@@ -647,7 +647,7 @@ export default function GPUOverviewPage() {
                         <Input
                           id="kaggleKey"
                           type="password"
-                          placeholder="[PT]"
+                          placeholder="Digite aqui..."
                           value={formData.kaggleKey}
                           onChange={(e) => setFormData({ ...formData, kaggleKey: e.target.value })}
                           required

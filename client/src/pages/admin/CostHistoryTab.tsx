@@ -147,7 +147,7 @@ export default function CostHistoryTab() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={barChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="[PT]" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
                 <XAxis dataKey="provider" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip 

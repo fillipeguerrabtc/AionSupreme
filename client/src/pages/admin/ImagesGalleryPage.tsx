@@ -138,8 +138,8 @@ export default function ImagesGalleryPage() {
     },
     onSuccess: () => {
       toast({
-        title: "[PT]",
-        description: "[PT]",
+        title: "Sucesso",
+        description: "Operação concluída com sucesso",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images/all"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
@@ -148,7 +148,7 @@ export default function ImagesGalleryPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -170,7 +170,7 @@ export default function ImagesGalleryPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: "[PT]",
+        title: "Sucesso",
         description: `${data.deleted} imagem(ns) deletada(s) com sucesso`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images/all"] });
@@ -179,7 +179,7 @@ export default function ImagesGalleryPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -312,7 +312,7 @@ export default function ImagesGalleryPage() {
                   <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full sm:w-auto flex-wrap">
                     <div className="flex-1 sm:max-w-xs">
                       <Input
-                        placeholder="[PT]"
+                        placeholder="Digite aqui..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         data-testid="input-search-images"
@@ -424,7 +424,7 @@ export default function ImagesGalleryPage() {
                 <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">
                   {searchQuery || sourceFilter !== 'all' 
-                    ? "[PT]" 
+                    ? t.common.loading 
                     : 'Nenhuma imagem aprovada ainda'}
                 </p>
               </CardContent>
@@ -563,7 +563,7 @@ export default function ImagesGalleryPage() {
             <CardHeader>
               <CardTitle>Documentos Indexados</CardTitle>
               <CardDescription>
-                {kbDocuments.length} "[PT]"
+                {kbDocuments.length} documentos
                                             </CardDescription>
             </CardHeader>
             <CardContent>
@@ -724,12 +724,12 @@ export default function ImagesGalleryPage() {
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="[PT]">{t.common.loading}</Label>
+              <Label htmlFor="field">{t.common.loading}</Label>
               <Textarea
-                id="[PT]"
+                id="field"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="[PT]"
+                placeholder="Digite aqui..."
                 rows={4}
                 data-testid="text-element"
               />
@@ -751,7 +751,7 @@ export default function ImagesGalleryPage() {
                 disabled={updateDescriptionMutation.isPending}
                 data-testid="button-element"
               >
-                {updateDescriptionMutation.isPending ? 'Salvando...' : "[PT]"}
+                {updateDescriptionMutation.isPending ? 'Salvando...' : "Não disponível"}
               </Button>
             </div>
           </div>

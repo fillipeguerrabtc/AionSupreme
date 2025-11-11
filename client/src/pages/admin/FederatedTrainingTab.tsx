@@ -304,7 +304,7 @@ export default function FederatedTrainingTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="[PT]">{t.admin.federatedTraining.createDialog.modelBase}</Label>
+              <Label htmlFor="field">{t.admin.federatedTraining.createDialog.modelBase}</Label>
               <Select value={modelType} onValueChange={setModelType}>
                 <SelectTrigger data-testid="select-element">
                   <SelectValue />
@@ -634,17 +634,17 @@ export default function FederatedTrainingTab() {
                 id="dataset-name"
                 value={datasetName}
                 onChange={(e) => setDatasetName(e.target.value)}
-                placeholder="[PT]"
+                placeholder="Digite aqui..."
                 data-testid="input-dataset-name"
               />
             </div>
             <div>
-              <Label htmlFor="[PT]">Description (Optional)</Label>
+              <Label htmlFor="field">Description (Optional)</Label>
               <Textarea
-                id="[PT]"
+                id="field"
                 value={datasetDescription}
                 onChange={(e) => setDatasetDescription(e.target.value)}
-                placeholder="[PT]"
+                placeholder="Digite aqui..."
                 data-testid="text-element"
               />
             </div>

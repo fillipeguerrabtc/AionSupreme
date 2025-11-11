@@ -161,7 +161,7 @@ export default function LifecyclePoliciesTab() {
           <CardTitle className="flex items-center gap-2">
             <Info className="w-4 h-4" />{t.common.loading}</CardTitle>
           <CardDescription data-testid="text-global-defaults-info">
-            Timezone: {pendingChanges.globalDefaults.timezone} "[PT]" {pendingChanges.globalDefaults.retentionYears} anos
+            Fuso Horário: {pendingChanges.globalDefaults.timezone} | Retenção: {pendingChanges.globalDefaults.retentionYears} anos
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

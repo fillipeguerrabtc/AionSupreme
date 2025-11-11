@@ -312,7 +312,7 @@ export default function KnowledgeBasePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder="[PT]"
+                placeholder="Digite aqui..."
                 value={newTextTitle}
                 onChange={(e) => setNewTextTitle(e.target.value)}
                 data-testid="input-new-doc-title"
@@ -331,7 +331,7 @@ export default function KnowledgeBasePage() {
               </div>
               
               <Textarea
-                placeholder="[PT]"
+                placeholder="Digite aqui..."
                 value={newTextContent}
                 onChange={(e) => setNewTextContent(e.target.value)}
                 className="min-h-[200px]"
@@ -370,7 +370,7 @@ export default function KnowledgeBasePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder="[PT]"
+                placeholder="Digite aqui..."
                 value={urlToLearn}
                 onChange={(e) => setUrlToLearn(e.target.value)}
                 data-testid="input-url-to-learn"
@@ -415,7 +415,7 @@ export default function KnowledgeBasePage() {
                 data-testid="button-start-learn-url"
               >
                 <LinkIcon className="w-4 h-4 mr-2" />
-                {learnFromUrlMutation.isPending ? "[PT]" : "[PT]"}
+                {learnFromUrlMutation.isPending ? "Processando..." : "Não disponível"}
               </Button>
             </CardContent>
           </Card>
@@ -452,7 +452,7 @@ export default function KnowledgeBasePage() {
                 data-testid="button-start-web-search"
               >
                 <Search className="w-4 h-4 mr-2" />
-                {webSearchMutation.isPending ? "Pesquisando..." : "[PT]"}
+                {webSearchMutation.isPending ? "Pesquisando..." : "Não disponível"}
               </Button>
             </CardContent>
           </Card>
@@ -486,7 +486,7 @@ export default function KnowledgeBasePage() {
                           <Input
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
-                            placeholder="[PT]"
+                            placeholder="Digite aqui..."
                             data-testid={`input-edit-title-${doc.id}`}
                           />
                           
@@ -500,7 +500,7 @@ export default function KnowledgeBasePage() {
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
                             className="min-h-[100px]"
-                            placeholder="[PT]"
+                            placeholder="Digite aqui..."
                             data-testid={`textarea-edit-content-${doc.id}`}
                           />
                           

@@ -151,14 +151,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "[PT]",
-        description: "[PT]",
+        title: "Sucesso",
+        description: "Operação concluída com sucesso",
       });
       setEditDataset(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -173,14 +173,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "[PT]",
-        description: "[PT]",
+        title: "Sucesso",
+        description: "Operação concluída com sucesso",
       });
       setDeleteDatasetId(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -199,7 +199,7 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "[PT]",
+        title: "Sucesso",
         description: `${selectedDatasets.size} datasets removidos com sucesso`,
       });
       setSelectedDatasets(new Set());
@@ -207,7 +207,7 @@ export default function DatasetsTab() {
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -244,7 +244,7 @@ export default function DatasetsTab() {
       }
       
       toast({
-        title: "[PT]",
+        title: "Sucesso",
         description,
       });
       setEditTrainingData(null);
@@ -265,7 +265,7 @@ export default function DatasetsTab() {
       }
       
       toast({
-        title: "[PT]",
+        title: "Sucesso",
         description,
         variant: "destructive",
       });
@@ -280,14 +280,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "[PT]",
-        description: "[PT]",
+        title: "Sucesso",
+        description: "Operação concluída com sucesso",
       });
       setDeleteTrainingDataId(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -346,12 +346,12 @@ export default function DatasetsTab() {
       
       toast({
         title: "Download iniciado",
-        description: "[PT]",
+        description: "Operação concluída com sucesso",
       });
     } catch (error) {
       toast({
-        title: "[PT]",
-        description: error instanceof Error ? error.message : "[PT]",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao processar operação",
         variant: "destructive",
       });
     }
@@ -448,9 +448,9 @@ export default function DatasetsTab() {
 
   const getQualityBadge = (tier: "high" | "medium" | "low") => {
     const config = {
-      high: { color: "text-green-500", label: "[PT]" },
-      medium: { color: "text-yellow-500", label: "[PT]" },
-      low: { color: "text-gray-500", label: "[PT]" },
+      high: { color: "text-green-500", label: "Alta" },
+      medium: { color: "text-yellow-500", label: "Média" },
+      low: { color: "text-gray-500", label: "Baixa" },
     };
     return (
       <span className={`text-xs font-medium ${config[tier].color}`}>
@@ -626,7 +626,7 @@ export default function DatasetsTab() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="[PT]"
+                  placeholder="Digite aqui..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex items-center gap-2"
@@ -725,7 +725,7 @@ export default function DatasetsTab() {
               <p className="text-sm text-muted-foreground">
                 {searchQuery || filterType !== "all" || filterStatus !== "all"
                   ? "Tente ajustar os filtros"
-                  : "[PT]"}
+                  : "Nenhum dado disponível"}
               </p>
             </div>
           ) : (
@@ -930,12 +930,12 @@ export default function DatasetsTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="[PT]">{t.common.loading}</Label>
+              <Label htmlFor="instruction">{t.common.loading}</Label>
               <Textarea
-                id="[PT]"
+                id="instruction"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="[PT]"
+                placeholder="Digite aqui..."
                 rows={3}
                 data-testid="text-element"
               />
@@ -995,7 +995,7 @@ export default function DatasetsTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir {selectedDatasets.size} "[PT]"
+              Tem certeza que deseja excluir {selectedDatasets.size} datasets?
                                       </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1027,7 +1027,7 @@ export default function DatasetsTab() {
                 id="edit-training-instruction"
                 value={editTrainingInstruction}
                 onChange={(e) => setEditTrainingInstruction(e.target.value)}
-                placeholder="[PT]"
+                placeholder="Digite aqui..."
                 rows={4}
                 className="font-mono text-sm"
                 data-testid="textarea-edit-training-instruction"
@@ -1040,7 +1040,7 @@ export default function DatasetsTab() {
                 id="edit-training-output"
                 value={editTrainingOutput}
                 onChange={(e) => setEditTrainingOutput(e.target.value)}
-                placeholder="[PT]"
+                placeholder="Digite aqui..."
                 rows={8}
                 className="font-mono text-sm"
                 data-testid="textarea-edit-training-output"

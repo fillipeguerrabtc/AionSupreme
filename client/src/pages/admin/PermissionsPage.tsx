@@ -519,7 +519,7 @@ export default function PermissionsPage() {
 
               <FormField
                 control={form.control}
-                name="[PT]"
+                name="permission"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t.admin.permissions.crud.descriptionLabel}</FormLabel>

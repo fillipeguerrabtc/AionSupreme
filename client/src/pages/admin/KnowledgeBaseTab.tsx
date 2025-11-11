@@ -185,7 +185,7 @@ export default function KnowledgeBaseTab() {
       setYoutubeTitle("");
       setYoutubeNamespace(["kb/youtube"]);
       toast({ 
-        title: "[PT]",
+        title: "Sucesso",
         description: `${data.stats?.wordCount || 0} palavras extraídas do vídeo`,
       });
     },
@@ -248,7 +248,7 @@ export default function KnowledgeBaseTab() {
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images"] });
       toast({
-        title: "[PT]",
+        title: "Sucesso",
         description: `${count} imagens removidas com sucesso`,
       });
       setSelectedImages(new Set());
@@ -256,7 +256,7 @@ export default function KnowledgeBaseTab() {
     },
     onError: (error: Error) => {
       toast({
-        title: "[PT]",
+        title: "Erro",
         description: error.message,
         variant: "destructive",
       });
@@ -483,13 +483,13 @@ export default function KnowledgeBaseTab() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
-              placeholder="[PT]"
+              placeholder="Digite aqui..."
               value={youtubeUrl}
               onChange={(e) => setYoutubeUrl(e.target.value)}
               data-testid="input-youtube-url"
             />
             <Input
-              placeholder="[PT]"
+              placeholder="Digite aqui..."
               value={youtubeTitle}
               onChange={(e) => setYoutubeTitle(e.target.value)}
               data-testid="input-youtube-title"
@@ -506,7 +506,7 @@ export default function KnowledgeBaseTab() {
               data-testid="button-start-learn-youtube"
             >
               <Youtube className="w-4 h-4 mr-2" />
-              {learnFromYoutubeMutation.isPending ? "[PT]" : "[PT]"}
+              {learnFromYoutubeMutation.isPending ? "Processando..." : "Não disponível"}
             </Button>
           </CardContent>
         </Card>
@@ -821,7 +821,7 @@ export default function KnowledgeBaseTab() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir {selectedImages.size} "[PT]"
+              Tem certeza que deseja excluir {selectedImages.size} imagens
                                       </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

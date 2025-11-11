@@ -4042,5 +4042,41 @@
       "prose_prosesm_darkproseinvert_maxwnone": "prose prose-sm dark:prose-invert max-w-none",
       "wfull_maxh96_roundedmd": "w-full max-h-96 rounded-md"
     }
+  },
+  "common": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "save": "Save",
+    "success": "Success",
+    "error": "Error",
+    "errorProcessingRequest": "Error processing request",
+    "confirmDelete": "Confirm Delete",
+    "deleteWarning": "This action cannot be undone",
+    "icon": "Icon",
+    "actions": "Actions"
+  },
+  "admin": {
+    "overview": {
+      "totalTokens": "Total Tokens",
+      "allTime": "All Time",
+      "allProviders": "All providers",
+      "kbSearches": "KB Searches",
+      "knowledgeBaseQueries": "Knowledge Base Queries",
+      "freeApis": "Free APIs",
+      "freeApis_description": "Free API usage (Groq, Gemini, HuggingFace, OpenRouter)",
+      "openai": "OpenAI",
+      "requests": "Requests",
+      "paidApiRequests": "Paid API Requests",
+      "webSearches": "Web Searches",
+      "domainsSearched": "domains searched",
+      "duckduckgoProvider": "DuckDuckGo Provider",
+      "kbDocuments": "KB Documents",
+      "indexedKnowledge": "Indexed knowledge",
+      "gpuWorkers": "GPU Workers",
+      "federatedJobs": "Federated Jobs",
+      "completedTrainingJobs": "Completed training jobs",
+      "autoevolution": "Auto-Evolution",
+      "autoevolution_system_status": "Auto-Evolution System Status"
+    }
   }
 }

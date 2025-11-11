@@ -221,7 +221,7 @@ export default function NamespacesPage() {
             });
             toast({ 
               title: t.admin.namespaces.toast.contentQueued, 
-              description: "[PT]" 
+              description: "Operação concluída" 
             });
           } catch (error) {
             toast({ 
@@ -267,7 +267,7 @@ export default function NamespacesPage() {
               });
               toast({ 
                 title: t.admin.namespaces.toast.contentQueued, 
-                description: "[PT]" 
+                description: "Operação concluída" 
               });
             } catch (error) {
               toast({ 
@@ -305,7 +305,7 @@ export default function NamespacesPage() {
               });
               toast({ 
                 title: t.admin.namespaces.toast.contentQueued, 
-                description: "[PT]" 
+                description: "Operação concluída" 
               });
             } catch (error) {
               toast({ 
@@ -460,9 +460,9 @@ export default function NamespacesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="[PT]">{t.admin.namespaces.description}</Label>
+                <Label htmlFor="field">{t.admin.namespaces.description}</Label>
                 <Textarea
-                  id="[PT]"
+                  id="field"
                   placeholder={t.admin.namespaces.descriptionPlaceholder}
                   value={createDescription}
                   onChange={(e) => setCreateDescription(e.target.value)}
@@ -655,9 +655,9 @@ export default function NamespacesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="[PT]">{t.common.loading}</Label>
+              <Label htmlFor="field">{t.common.loading}</Label>
               <Textarea
-                id="[PT]"
+                id="field"
                 placeholder={t.admin.namespaces.descriptionPlaceholder}
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}

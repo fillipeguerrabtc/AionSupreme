@@ -268,7 +268,7 @@ export default function GPUDashboard() {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="[PT]"
+                      placeholder="Digite aqui..."
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
@@ -306,7 +306,7 @@ export default function GPUDashboard() {
                     <Input
                       id="kaggleKey"
                       type="password"
-                      placeholder="[PT]"
+                      placeholder="Digite aqui..."
                       value={formData.kaggleKey}
                       onChange={(e) => setFormData({ ...formData, kaggleKey: e.target.value })}
                       required
@@ -321,7 +321,7 @@ export default function GPUDashboard() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="[PT]"
+                  placeholder="Digite aqui..."
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required

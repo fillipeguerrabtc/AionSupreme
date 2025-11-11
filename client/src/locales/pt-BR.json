@@ -4042,5 +4042,41 @@
       "prose_prosesm_darkproseinvert_maxwnone": "prose prose-sm dark:prose-invert max-w-none",
       "wfull_maxh96_roundedmd": "w-full max-h-96 rounded-md"
     }
+  },
+  "common": {
+    "loading": "Carregando...",
+    "saving": "Salvando...",
+    "save": "Salvar",
+    "success": "Sucesso",
+    "error": "Erro",
+    "errorProcessingRequest": "Erro ao processar requisição",
+    "confirmDelete": "Confirmar Exclusão",
+    "deleteWarning": "Esta ação não pode ser desfeita",
+    "icon": "Ícone",
+    "actions": "Ações"
+  },
+  "admin": {
+    "overview": {
+      "totalTokens": "Total de Tokens",
+      "allTime": "Total Geral",
+      "allProviders": "Todos os provedores",
+      "kbSearches": "Buscas KB",
+      "knowledgeBaseQueries": "Consultas na Base de Conhecimento",
+      "freeApis": "APIs Gratuitas",
+      "freeApis_description": "Uso de APIs gratuitas (Groq, Gemini, HuggingFace, OpenRouter)",
+      "openai": "OpenAI",
+      "requests": "Requisições",
+      "paidApiRequests": "Requisições de API Paga",
+      "webSearches": "Buscas Web",
+      "domainsSearched": "domínios pesquisados",
+      "duckduckgoProvider": "Provedor DuckDuckGo",
+      "kbDocuments": "Documentos KB",
+      "indexedKnowledge": "Conhecimento indexado",
+      "gpuWorkers": "GPU Workers",
+      "federatedJobs": "Jobs Federados",
+      "completedTrainingJobs": "Jobs de treinamento completados",
+      "autoevolution": "Auto-Evolução",
+      "autoevolution_system_status": "Status do Sistema de Auto-Evolução"
+    }
   }
 }

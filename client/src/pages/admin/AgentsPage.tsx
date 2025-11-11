@@ -127,13 +127,13 @@ export default function AgentsPage() {
       setOrphanScanResult(data);
       setShowOrphanScanDialog(true);
       toast({ 
-        title: "[PT]", 
-        description: `${data.report.totalOrphans} orphans detectados` 
+        title: t.common.success, 
+        description: `${data.report.totalOrphans} ${t.admin.agents.orphansDetected}` 
       });
     },
     onError: (error: Error) => {
       toast({ 
-        title: "[PT]", 
+        title: t.common.error, 
         description: error.message, 
         variant: "destructive" 
       });
@@ -191,10 +191,9 @@ export default function AgentsPage() {
               variant="outline"
               onClick={() => orphanScanMutation.mutate()}
               disabled={orphanScanMutation.isPending}
-              title="[PT]"
             >
               <Search className="w-4 h-4 mr-2" />
-              {orphanScanMutation.isPending ? "[PT]" : "[PT]"}
+              {orphanScanMutation.isPending ? t.common.loading : t.admin.agents.scanOrphans}
             </Button>
           </div>
 
@@ -210,18 +209,18 @@ export default function AgentsPage() {
             <div className="text-center py-8 text-muted-foreground">{t.common.loading}</div>
           ) : agents.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum agente configurado. Crie o primeiro agente acima.
+              {t.admin.agents.noAgents}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t.common.loading}</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Namespaces</TableHead>
-                  <TableHead className="text-right">{t.common.loading}</TableHead>
+                  <TableHead>{t.common.icon}</TableHead>
+                  <TableHead>{t.common.name}</TableHead>
+                  <TableHead>{t.common.slug}</TableHead>
+                  <TableHead>{t.common.type}</TableHead>
+                  <TableHead>{t.common.namespaces}</TableHead>
+                  <TableHead className="text-right">{t.common.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -298,14 +297,14 @@ export default function AgentsPage() {
       <Dialog open={selectedAgent !== null} onOpenChange={(open) => !open && setSelectedAgent(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Editar Agente</DialogTitle>
-            <DialogDescription>{t.common.loading} {selectedAgent?.name}
+            <DialogTitle>{t.admin.agents.editAgent}</DialogTitle>
+            <DialogDescription>{t.admin.agents.editingAgent}: {selectedAgent?.name}
             </DialogDescription>
           </DialogHeader>
           {selectedAgent && (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="edit-name">Nome do Agente</Label>
+                <Label htmlFor="edit-name">{t.admin.agents.agentName}</Label>
                 <Input 
                   id="edit-name" 
                   value={editName}
@@ -315,25 +314,25 @@ export default function AgentsPage() {
                 />
               </div>
               <div>
-                <Label>Identificador (Slug)</Label>
+                <Label>{t.admin.agents.identifier}</Label>
                 <div className="flex items-center gap-2">
                   <code className="text-sm font-mono">{editSlug}</code>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{t.common.loading}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.admin.agents.slugInfo}</p>
               </div>
               <div>
-                <Label htmlFor="[PT]">{t.common.loading}</Label>
+                <Label htmlFor="field">{t.common.description}</Label>
                 <Input 
-                  id="[PT]" 
+                  id="field" 
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   data-testid="input-element" 
                 />
               </div>
               <div>
-                <Label htmlFor="[PT]">System Prompt</Label>
+                <Label htmlFor="field">{t.admin.agents.systemPrompt}</Label>
                 <Textarea
-                  id="[PT]"
+                  id="field"
                   value={editPrompt}
                   onChange={(e) => setEditPrompt(e.target.value)}
                   rows={5}
@@ -343,24 +342,24 @@ export default function AgentsPage() {
               {/* Namespace selection - conditional based on agent tier */}
               {selectedAgent.agentTier === "agent" ? (
                 <div>
-                  <Label htmlFor="edit-namespace">Namespace Raiz</Label>
-                  <p className="text-sm text-muted-foreground mb-2">{t.common.loading}</p>
+                  <Label htmlFor="edit-namespace">{t.admin.agents.rootNamespace}</Label>
+                  <p className="text-sm text-muted-foreground mb-2">{t.admin.agents.selectNamespaces}</p>
                   <NamespaceSelector 
                     value={editNamespaces} 
                     onChange={(namespaces) => setEditNamespaces(namespaces.slice(0, 1))}
-                    placeholder="Selecione 1 namespace raiz"
+                    placeholder={t.admin.agents.selectOneRootNamespace}
                     allowCustom={false}
                     allowWildcard={false}
                   />
                 </div>
               ) : (
                 <div>
-                  <Label htmlFor="edit-namespaces">Subnamespaces</Label>
-                  <p className="text-sm text-muted-foreground mb-2">{t.common.loading}</p>
+                  <Label htmlFor="edit-namespaces">{t.admin.agents.subnamespaces}</Label>
+                  <p className="text-sm text-muted-foreground mb-2">{t.admin.agents.availableTools}</p>
                   <NamespaceSelector 
                     value={editNamespaces} 
                     onChange={setEditNamespaces}
-                    placeholder="Selecione subnamespaces"
+                    placeholder={t.admin.agents.selectSubnamespaces}
                     allowCustom={false}
                     allowWildcard={false}
                   />
@@ -368,10 +367,10 @@ export default function AgentsPage() {
               )}
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setSelectedAgent(null)}>
-                  Cancelar
+                  {t.common.cancel}
                 </Button>
                 <Button onClick={handleSaveEdit} disabled={updateMutation.isPending} data-testid="button-save-agent">
-                  {updateMutation.isPending ? "[PT]" : "[PT]"}
+                  {updateMutation.isPending ? t.common.loading : t.common.saveChanges}
                 </Button>
               </div>
             </div>
@@ -383,11 +382,11 @@ export default function AgentsPage() {
       <AlertDialog open={!!deleteAgentId} onOpenChange={(open) => !open && setDeleteAgentId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
-            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
+            <AlertDialogTitle>{t.common.confirmDelete}</AlertDialogTitle>
+            <AlertDialogDescription>{t.common.deleteWarning}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-delete">{t.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteAgentId) {
@@ -396,8 +395,10 @@ export default function AgentsPage() {
                 }
               }}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-element"
-            >{t.common.loading}</AlertDialogAction>
+              data-testid="button-confirm-delete"
+            >
+              {t.admin.agents.deleteAgent}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -406,8 +407,8 @@ export default function AgentsPage() {
       <Dialog open={showOrphanScanDialog} onOpenChange={setShowOrphanScanDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>{t.common.loading}</DialogTitle>
-            <DialogDescription>{t.common.loading}</DialogDescription>
+            <DialogTitle>{t.admin.agents.scanDetails}</DialogTitle>
+            <DialogDescription>{t.admin.agents.scanResults}</DialogDescription>
           </DialogHeader>
           
           {orphanScanResult && (
@@ -417,19 +418,19 @@ export default function AgentsPage() {
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-destructive">{orphanScanResult.report.summary.high}</div>
-                      <p className="text-xs text-muted-foreground">Severidade Alta</p>
+                      <p className="text-xs text-muted-foreground">{t.admin.agents.severityHigh}</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-yellow-600">{orphanScanResult.report.summary.medium}</div>
-                      <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                      <p className="text-xs text-muted-foreground">{t.admin.agents.severityMedium}</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-green-600">{orphanScanResult.report.summary.low}</div>
-                      <p className="text-xs text-muted-foreground">Severidade Baixa</p>
+                      <p className="text-xs text-muted-foreground">{t.admin.agents.severityLow}</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -440,7 +441,7 @@ export default function AgentsPage() {
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center justify-between">
                           <span>📦 {module.module}</span>
-                          <Badge variant="secondary">{module.totalOrphans} "[PT]"</Badge>
+                          <Badge variant="secondary">{module.totalOrphans} {t.admin.agents.orphans}</Badge>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -457,7 +458,7 @@ export default function AgentsPage() {
                               </div>
                               <p className="text-sm">{orphan.reason}</p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                <strong>{t.common.loading}</strong> {orphan.suggestedAction}
+                                <strong>{t.admin.agents.suggestedAction}:</strong> {orphan.suggestedAction}
                               </p>
                             </div>
                           ))}
@@ -470,8 +471,8 @@ export default function AgentsPage() {
                 {orphanScanResult.report.totalOrphans === 0 && (
                   <Card>
                     <CardContent className="pt-6 text-center">
-                      <p className="text-lg text-green-600 font-semibold">{t.common.loading}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{t.common.loading}</p>
+                      <p className="text-lg text-green-600 font-semibold">{t.admin.agents.noOrphansFound}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{t.admin.agents.allAgentsConfigured}</p>
                     </CardContent>
                   </Card>
                 )}

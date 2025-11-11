@@ -298,7 +298,7 @@ export default function TelemetriaPage() {
                       dataKey="avgLatency" 
                       stroke="hsl(var(--primary))" 
                       strokeWidth={2}
-                      name="[PT]"
+                      name="Consultas"
                       dot={false}
                     />
                     <Line 
@@ -344,7 +344,7 @@ export default function TelemetriaPage() {
                             <span className="font-mono text-sm">{query.endpoint}</span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {query.count} "[PT]"
+                            {query.count} queries
                                                               </p>
                         </div>
                         <div className="text-right">
@@ -803,7 +803,7 @@ export default function TelemetriaPage() {
                         dataKey="count" 
                         stroke="hsl(var(--primary))" 
                         strokeWidth={2}
-                        name="[PT]"
+                        name="Consultas"
                         dot={false}
                       />
                     </LineChart>

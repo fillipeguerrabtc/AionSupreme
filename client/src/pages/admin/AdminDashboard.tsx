@@ -334,7 +334,7 @@ export default function AdminDashboard() {
       });
       
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: "[PT]" }));
+        const errorData = await res.json().catch(() => ({ message: t.common.errorProcessingRequest }));
         throw new Error(errorData.message || t.admin.settings.databaseManagement.toasts.restoreError);
       }
       
@@ -383,7 +383,7 @@ export default function AdminDashboard() {
       });
       
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: "[PT]" }));
+        const errorData = await res.json().catch(() => ({ message: t.common.errorProcessingRequest }));
         throw new Error(errorData.message || t.admin.settings.databaseManagement.toasts.restoreError);
       }
       
@@ -452,13 +452,13 @@ export default function AdminDashboard() {
           <SidebarInset className="flex flex-col flex-1">
             {/* Global Header - Fixed at top */}
             <header className="bg-background/95 backdrop-glass sticky top-0 z-50 border-b shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <SidebarTrigger data-testid="button-element" />
-                  {/* Logo + AION + Painel de Controle */}
+              <div className="flex items-center justify-between px-4 py-2 gap-4">
+                {/* Left Side - Logo & Brand */}
+                <div className="flex items-center gap-3">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
                   <button 
                     onClick={() => setActiveTab("overview")} 
-                    className="flex items-center gap-2" 
+                    className="flex items-center gap-3 rounded-md px-2 py-1 transition-all" 
                     data-testid="link-logo-home"
                   >
                     <AionLogo showText={false} size="md" />
@@ -468,41 +468,62 @@ export default function AdminDashboard() {
                     </div>
                   </button>
                 </div>
+
+                {/* Right Side - Actions */}
                 <div className="flex items-center gap-2">
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     onClick={() => navigate("/")}
-                    className="bg-muted border"
                     data-testid="button-back-to-chat"
                   >
                     <MessageSquare className="w-5 h-5" />
                   </Button>
+                  
+                  {/* Language Selector - Enterprise Style */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="bg-muted border" data-testid="button-language">
-                        <Languages className="w-5 h-5" />
+                      <Button 
+                        variant="outline" 
+                        className="gap-2" 
+                        data-testid="button-language-selector"
+                      >
+                        <Languages className="w-4 h-4" />
+                        <span className="hidden sm:inline font-medium">
+                          {language === "pt-BR" ? "PT-BR" : language === "en-US" ? "EN-US" : "ES-ES"}
+                        </span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-card border">
+                    <DropdownMenuContent align="end" className="w-48">
                       <DropdownMenuItem
                         onClick={() => setLanguage("pt-BR")}
-                        className={language === "pt-BR" ? "bg-primary/20" : ""}
+                        className={language === "pt-BR" ? "bg-primary text-primary-foreground font-semibold" : ""}
                         data-testid="lang-pt-BR"
-                      >Português (BR)</DropdownMenuItem>
+                      >
+                        <span className="flex items-center justify-between w-full">
+                          <span>Português (BR)</span>
+                          {language === "pt-BR" && <Globe className="w-4 h-4" />}
+                        </span>
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setLanguage("en-US")}
-                        className={language === "en-US" ? "bg-primary/20" : ""}
+                        className={language === "en-US" ? "bg-primary text-primary-foreground font-semibold" : ""}
                         data-testid="lang-en-US"
                       >
-                        English (US)
+                        <span className="flex items-center justify-between w-full">
+                          <span>English (US)</span>
+                          {language === "en-US" && <Globe className="w-4 h-4" />}
+                        </span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setLanguage("es-ES")}
-                        className={language === "es-ES" ? "bg-primary/20" : ""}
+                        className={language === "es-ES" ? "bg-primary text-primary-foreground font-semibold" : ""}
                         data-testid="lang-es-ES"
                       >
-                        Español (ES)
+                        <span className="flex items-center justify-between w-full">
+                          <span>Español (ES)</span>
+                          {language === "es-ES" && <Globe className="w-4 h-4" />}
+                        </span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -527,7 +548,7 @@ export default function AdminDashboard() {
             }}
             data-testid="card-total-tokens"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Activity className="w-4 h-4" />
                 {t.admin.overview.totalTokens}
@@ -538,7 +559,7 @@ export default function AdminDashboard() {
                   <span className="font-bold text-lg">{tokenSummary ? totalTokensToday.toLocaleString() : '...'}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">{t.common.loading}</span>
+                  <span className="text-muted-foreground">{t.admin.overview.allTime}</span>
                   <span className="font-bold text-primary">{tokenSummary ? totalTokensAllTime.toLocaleString() : '...'}</span>
                 </div>
               </div>
@@ -554,7 +575,7 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab("cost")}
             data-testid="card-total-cost"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 {t.admin.overview.totalCost}
@@ -581,7 +602,7 @@ export default function AdminDashboard() {
             }}
             data-testid="card-kb-searches"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Search className="w-4 h-4" />
                 {t.admin.overview.kbSearches}
@@ -608,7 +629,7 @@ export default function AdminDashboard() {
             }}
             data-testid="card-free-apis"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Zap className="w-4 h-4" />
                 {t.admin.overview.freeApis}
@@ -631,7 +652,9 @@ export default function AdminDashboard() {
                   <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.allTime?.requests || 0} req</span>
                 </div>
               </div>
-              <CardDescription className="text-xs mt-2">{t.common.loading}</CardDescription>
+              <CardDescription className="text-xs mt-2">
+                {t.admin.overview.freeApis_description}
+              </CardDescription>
             </CardHeader>
           </Card>
 
@@ -644,14 +667,14 @@ export default function AdminDashboard() {
             }}
             data-testid="card-openai"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
                 {t.admin.overview.openai}
               </CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">{t.common.loading}</span>
+                  <span className="text-muted-foreground">{t.admin.overview.requests}</span>
                   <span className="font-bold text-lg">{openaiStats ? (openaiStats.allTime?.requests || 0).toLocaleString() : '...'} req</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -674,7 +697,7 @@ export default function AdminDashboard() {
             }}
             data-testid="card-web-searches"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Globe className="w-4 h-4" />
                 {t.admin.overview.webSearches}
@@ -698,7 +721,7 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab("knowledge")}
             data-testid="card-kb-documents"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Database className="w-4 h-4" />
                 {t.admin.overview.kbDocuments}
@@ -718,10 +741,10 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab("gpu")}
             data-testid="card-gpu-workers"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Server className="w-4 h-4" />
-                GPU Workers
+                {t.admin.overview.gpuWorkers}
               </CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center gap-2">
@@ -758,7 +781,7 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab("federated")}
             data-testid="card-element"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Cpu className="w-4 h-4" />
                 {t.admin.overview.federatedJobs}
@@ -782,9 +805,11 @@ export default function AdminDashboard() {
             onClick={() => setActiveTab("meta-learning")}
             data-testid="card-auto-evolution"
           >
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />{t.common.loading}</CardTitle>
+                <Sparkles className="w-4 h-4" />
+                {t.admin.overview.autoevolution}
+              </CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Conversas:</span>
@@ -803,7 +828,9 @@ export default function AdminDashboard() {
                   <span className="font-bold">{autoEvolutionStats?.overview?.completedJobs || 0}/{autoEvolutionStats?.overview?.totalJobs || 0}</span>
                 </div>
               </div>
-              <CardDescription className="text-xs mt-2">{t.common.loading}</CardDescription>
+              <CardDescription className="text-xs mt-2">
+                {t.admin.overview.autoevolution_system_status}
+              </CardDescription>
             </CardHeader>
           </Card>
         </div>
@@ -1128,7 +1155,7 @@ export default function AdminDashboard() {
                     <Button
                       onClick={handleSaveChanges}
                       disabled={updatePolicy.isPending}
-                      className="bg-primary hover-elevate active-elevate-2"
+                      className="bg-primary"
                       data-testid="button-save-changes"
                     >
                       <Save className="w-4 h-4 mr-2" />
@@ -1162,7 +1189,7 @@ export default function AdminDashboard() {
                   <Button
                     onClick={() => updatePolicy.mutate({ systemPrompt: systemPromptValue })}
                     disabled={updatePolicy.isPending}
-                    className="bg-primary hover-elevate active-elevate-2"
+                    className="bg-primary"
                     data-testid="button-element"
                   >
                     <Save className="w-4 h-4 mr-2" />
@@ -1174,7 +1201,6 @@ export default function AdminDashboard() {
                       setShowFullPrompt(true);
                     }}
                     variant="outline"
-                    className="hover-elevate active-elevate-2"
                     data-testid="button-view-full-prompt"
                   >
                     <Eye className="w-4 h-4 mr-2" />
@@ -1236,7 +1262,7 @@ export default function AdminDashboard() {
                 <Button
                   onClick={() => saveTimezoneMutation.mutate(selectedTimezone)}
                   disabled={saveTimezoneMutation.isPending}
-                  className="bg-primary hover-elevate active-elevate-2"
+                  className="bg-primary"
                   data-testid="button-save-timezone"
                 >
                   <Save className="w-4 h-4 mr-2" />
@@ -1262,7 +1288,7 @@ export default function AdminDashboard() {
                   <Button
                     onClick={() => createBackupMutation.mutate()}
                     disabled={createBackupMutation.isPending}
-                    className="bg-primary hover-elevate active-elevate-2 w-full"
+                    className="bg-primary w-full"
                     data-testid="button-create-backup"
                   >
                     <Database className="w-4 h-4 mr-2" />
@@ -1297,7 +1323,6 @@ export default function AdminDashboard() {
                       }}
                       disabled={!selectedBackupFile || restoreBackupMutation.isPending}
                       variant="outline"
-                      className="hover-elevate active-elevate-2"
                       data-testid="button-restore-backup"
                     >
                       {restoreBackupMutation.isPending ? t.admin.settings.databaseManagement.actions.restoring : t.admin.settings.databaseManagement.actions.restoreBackup}
@@ -1394,7 +1419,7 @@ export default function AdminDashboard() {
                 }
               }}
               disabled={restoreBackupMutation.isPending}
-              className="bg-destructive hover-elevate active-elevate-2"
+              className="bg-destructive"
               data-testid="button-element"
             >
               {restoreBackupMutation.isPending ? t.admin.settings.databaseManagement.actions.restoring : t.admin.settings.databaseManagement.restore.confirm}
