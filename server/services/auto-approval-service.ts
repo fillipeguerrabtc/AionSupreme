@@ -55,9 +55,9 @@ export class AutoApprovalService {
           .insert(autoApprovalConfig)
           .values({
             enabled: true,
-            minApprovalScore: 80,
-            maxRejectScore: 50,
-            sensitiveFlags: ['adult', 'violence', 'medical', 'financial', 'pii'],
+            minApprovalScore: 70,
+            maxRejectScore: 30,
+            sensitiveFlags: ['adult', 'violence', 'medical', 'finance', 'legal', 'pii', 'hate-speech'],
             enabledNamespaces: ['*'],
             autoRejectEnabled: true,
             requireAllQualityGates: false,
@@ -81,9 +81,9 @@ export class AutoApprovalService {
       return {
         id: 0,
         enabled: true,
-        minApprovalScore: 80,
-        maxRejectScore: 50,
-        sensitiveFlags: ['adult', 'violence', 'medical', 'financial', 'pii'],
+        minApprovalScore: 70,
+        maxRejectScore: 30,
+        sensitiveFlags: ['adult', 'violence', 'medical', 'finance', 'legal', 'pii', 'hate-speech'],
         enabledNamespaces: ['*'],
         autoRejectEnabled: true,
         requireAllQualityGates: false,
@@ -131,16 +131,24 @@ export class AutoApprovalService {
   /**
    * Decide if item should be auto-approved, auto-rejected, or sent to HITL review
    * 
+   * BEST PRACTICE 2025: Cost-aware approval with semantic query frequency tracking
+   * - High quality (≥70) → auto-approve
+   * - High reuse value (40-69 score + ≥3x frequency) → auto-approve (cost optimization)
+   * - Low quality (<30) → auto-reject
+   * - Otherwise → HITL review
+   * 
    * @param score - Quality score 0-100 from curator agent
    * @param contentFlags - Array of content flags (e.g., ['adult', 'violence'])
    * @param namespaces - Array of suggested namespaces
    * @param qualityGatesPassed - Optional: if requireAllQualityGates is enabled
+   * @param queryText - Optional: original query for frequency tracking (reuse gate)
    */
   async decide(
     score: number,
     contentFlags: string[],
     namespaces: string[],
-    qualityGatesPassed?: boolean
+    qualityGatesPassed?: boolean,
+    queryText?: string
   ): Promise<AutoApprovalDecision> {
     const config = await this.getConfig();
 
@@ -221,7 +229,34 @@ export class AutoApprovalService {
       };
     }
 
-    // DECISION 2: AUTO-REJECT (score < threshold and enabled)
+    // DECISION 2: REUSE GATE - Cost-optimization for high-frequency queries
+    // If score is in gray zone (40-69) BUT query is frequently asked (≥3x in 7 days)
+    // → Approve to reduce external API costs via indexing
+    if (queryText && score >= 40 && score < config.minApprovalScore) {
+      try {
+        const { queryFrequencyService } = await import("./query-frequency-service");
+        const frequency = await queryFrequencyService.getFrequency(queryText, primaryNamespace);
+        
+        if (frequency && frequency.effectiveCount >= 3) {
+          return {
+            action: "approve",
+            reason: `Auto-approved: High-reuse value (score ${score}, query frequency ${frequency.effectiveCount}x in ${frequency.daysSinceLast}d) - Cost optimization via indexing`,
+            configUsed: {
+              enabled: config.enabled,
+              minApprovalScore: config.minApprovalScore,
+              maxRejectScore: config.maxRejectScore,
+              sensitiveFlags: config.sensitiveFlags,
+              enabledNamespaces: config.enabledNamespaces,
+            },
+          };
+        }
+      } catch (error: any) {
+        console.error(`[AutoApproval] Reuse gate check failed:`, error.message);
+        // Non-critical - continue with normal flow
+      }
+    }
+
+    // DECISION 3: AUTO-REJECT (score < threshold and enabled)
     if (config.autoRejectEnabled && score < config.maxRejectScore) {
       return {
         action: "reject",
@@ -236,7 +271,7 @@ export class AutoApprovalService {
       };
     }
 
-    // DECISION 3: HITL REVIEW (score in gray zone)
+    // DECISION 4: HITL REVIEW (score in gray zone, low frequency)
     return {
       action: "review",
       reason: `Score ${score}/100 in review range (${config.maxRejectScore}-${config.minApprovalScore})`,

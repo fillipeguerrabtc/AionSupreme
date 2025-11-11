@@ -59,9 +59,9 @@ export class QueryFrequencyService {
    */
   private async generateEmbedding(text: string): Promise<number[]> {
     try {
-      const { llmClient } = await import("../llm/client");
-      const embedding = await llmClient.createEmbedding(text);
-      return embedding;
+      const { llmClient } = await import("../model/llm-client");
+      const embeddings = await llmClient.generateEmbeddings([text]);
+      return embeddings[0] || [];
     } catch (error: any) {
       console.error(`[QueryFrequency] Embedding generation failed:`, error.message);
       return []; // Fallback to hash-only matching
@@ -138,7 +138,7 @@ export class QueryFrequencyService {
           })
           .where(eq(userQueryFrequency.id, similar.id));
 
-        console.log(`[QueryFrequency] ✅ Incremented similar query (ID: ${similar.id}, count: ${similar.hit_count + 1})`);
+        console.log(`[QueryFrequency] ✅ Incremented similar query (ID: ${similar.id}, count: ${similar.hitCount + 1})`);
       } else {
         // Create new query entry
         await db.insert(userQueryFrequency).values({
@@ -174,20 +174,20 @@ export class QueryFrequencyService {
       if (!similar) return null;
 
       const now = new Date();
-      const daysSinceFirst = Math.floor((now.getTime() - new Date(similar.first_seen_at).getTime()) / (1000 * 60 * 60 * 24));
-      const daysSinceLast = Math.floor((now.getTime() - new Date(similar.last_seen_at).getTime()) / (1000 * 60 * 60 * 24));
+      const daysSinceFirst = Math.floor((now.getTime() - new Date(similar.firstSeenAt).getTime()) / (1000 * 60 * 60 * 24));
+      const daysSinceLast = Math.floor((now.getTime() - new Date(similar.lastSeenAt).getTime()) / (1000 * 60 * 60 * 24));
 
       // Calculate decay factor
       const decayFactor = Math.pow(this.DECAY_BASE, daysSinceLast);
-      const effectiveCount = Math.round(similar.hit_count * decayFactor);
+      const effectiveCount = Math.round(similar.hitCount * decayFactor);
 
       return {
-        queryHash: similar.query_hash,
-        normalizedQuery: similar.normalized_query,
-        hitCount: similar.hit_count,
+        queryHash: similar.queryHash,
+        normalizedQuery: similar.normalizedQuery,
+        hitCount: similar.hitCount,
         effectiveCount,
-        firstSeenAt: new Date(similar.first_seen_at),
-        lastSeenAt: new Date(similar.last_seen_at),
+        firstSeenAt: new Date(similar.firstSeenAt),
+        lastSeenAt: new Date(similar.lastSeenAt),
         daysSinceFirst,
         daysSinceLast,
       };
