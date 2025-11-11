@@ -283,7 +283,7 @@ export default function CurationQueuePage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
+        title: t.admin.curation.error,
         description: error.message,
         variant: "destructive",
       });
@@ -308,7 +308,7 @@ export default function CurationQueuePage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
+        title: t.admin.curation.error,
         description: error.message,
         variant: "destructive",
       });
@@ -332,7 +332,7 @@ export default function CurationQueuePage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
+        title: t.admin.curation.error,
         description: error.message,
         variant: "destructive",
       });
@@ -569,7 +569,7 @@ export default function CurationQueuePage() {
               data-testid="button-element"
             >
               <Scan className="h-4 w-4 mr-2" />
-              {scanDuplicatesMutation.isPending ? t.common.loading : "Escanear duplicatas"}
+              {scanDuplicatesMutation.isPending ? t.common.loading : t.admin.curation.scanDuplicates}
             </Button>
             <Button
               variant="outline"
@@ -755,7 +755,7 @@ export default function CurationQueuePage() {
                           )}
                         </div>
                         <CardDescription className="space-y-1">
-                          <div className="flex items-center gap-2">{t.common.loading} {item.submittedBy || "Desconhecido"}
+                          <div className="flex items-center gap-2">{t.common.loading} {item.submittedBy || t.admin.curation.unknown}
                           </div>
                           <div className="flex items-center gap-2">
                             <Calendar className="h-3 w-3" />
@@ -1064,7 +1064,7 @@ export default function CurationQueuePage() {
                 id="edit-note"
                 value={editNote}
                 onChange={(e) => setEditNote(e.target.value)}
-                placeholder="Digite aqui..."
+                placeholder={t.admin.curation.enterNote}
                 data-testid="input-edit-note"
               />
             </div>
@@ -1090,7 +1090,7 @@ export default function CurationQueuePage() {
             <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-approve">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-approve">{t.admin.curation.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedItem && approveMutation.mutate(selectedItem.id)}
               disabled={approveMutation.isPending}
@@ -1112,12 +1112,12 @@ export default function CurationQueuePage() {
           <Textarea
             value={rejectNote}
             onChange={(e) => setRejectNote(e.target.value)}
-            placeholder="Digite aqui..."
+            placeholder={t.admin.curation.enterNote}
             className="my-4"
             data-testid="input-reject-note"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-reject">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-reject">{t.admin.curation.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedItem && rejectMutation.mutate({ id: selectedItem.id, note: rejectNote })}
               disabled={rejectMutation.isPending}
@@ -1140,7 +1140,7 @@ export default function CurationQueuePage() {
                                               </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-bulk-approve">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-bulk-approve">{t.admin.curation.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => bulkApproveMutation.mutate(Array.from(selectedIds))}
               disabled={bulkApproveMutation.isPending}
@@ -1164,7 +1164,7 @@ export default function CurationQueuePage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-approve-all">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-approve-all">{t.admin.curation.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => approveAllMutation.mutate()}
               disabled={approveAllMutation.isPending}
@@ -1189,12 +1189,12 @@ export default function CurationQueuePage() {
           <Textarea
             value={bulkRejectNote}
             onChange={(e) => setBulkRejectNote(e.target.value)}
-            placeholder="Digite aqui..."
+            placeholder={t.admin.curation.enterNote}
             className="my-4"
             data-testid="input-bulk-reject-note"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-bulk-reject">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-bulk-reject">{t.admin.curation.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => bulkRejectMutation.mutate({ ids: Array.from(selectedIds), note: bulkRejectNote })}
               disabled={bulkRejectMutation.isPending}
@@ -1221,12 +1221,12 @@ export default function CurationQueuePage() {
           <Textarea
             value={bulkRejectNote}
             onChange={(e) => setBulkRejectNote(e.target.value)}
-            placeholder="Digite aqui..."
+            placeholder={t.admin.curation.enterNote}
             className="my-4"
             data-testid="input-reject-all-note"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-reject-all">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-reject-all">{t.admin.curation.cancel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => rejectAllMutation.mutate(bulkRejectNote)}
               disabled={rejectAllMutation.isPending}

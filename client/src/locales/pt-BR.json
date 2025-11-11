@@ -4077,6 +4077,22 @@
       "completedTrainingJobs": "Jobs de treinamento completados",
       "autoevolution": "Auto-Evolução",
       "autoevolution_system_status": "Status do Sistema de Auto-Evolução"
+    },
+    "curation": {
+      "title": "Fila de Curadoria",
+      "subtitle": "Revise e aprove conteúdo antes da indexação",
+      "all": "Todos",
+      "pages": "Páginas",
+      "images": "Imagens",
+      "pending": "Pendentes",
+      "history": "Histórico",
+      "noPending": "Nenhum item pendente",
+      "imagesProcessed": "imagens processadas",
+      "scanDuplicates": "Escanear duplicatas",
+      "unknown": "Desconhecido",
+      "enterNote": "Digite aqui...",
+      "cancel": "Cancelar",
+      "error": "Erro"
     }
   }
 }

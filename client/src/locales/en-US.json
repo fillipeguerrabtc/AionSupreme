@@ -4077,6 +4077,22 @@
       "completedTrainingJobs": "Completed training jobs",
       "autoevolution": "Auto-Evolution",
       "autoevolution_system_status": "Auto-Evolution System Status"
+    },
+    "curation": {
+      "title": "Curation Queue",
+      "subtitle": "Review and approve content before indexing",
+      "all": "All",
+      "pages": "Pages",
+      "images": "Images",
+      "pending": "Pending",
+      "history": "History",
+      "noPending": "No pending items",
+      "imagesProcessed": "images processed",
+      "scanDuplicates": "Scan duplicates",
+      "unknown": "Unknown",
+      "enterNote": "Type here...",
+      "cancel": "Cancel",
+      "error": "Error"
     }
   }
 }

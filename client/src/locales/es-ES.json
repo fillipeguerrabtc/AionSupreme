@@ -4077,6 +4077,22 @@
       "completedTrainingJobs": "Jobs de entrenamiento completados",
       "autoevolution": "Auto-Evolución",
       "autoevolution_system_status": "Estado del Sistema de Auto-Evolución"
+    },
+    "curation": {
+      "title": "Cola de Curación",
+      "subtitle": "Revisar y aprobar contenido antes de la indexación",
+      "all": "Todos",
+      "pages": "Páginas",
+      "images": "Imágenes",
+      "pending": "Pendientes",
+      "history": "Historial",
+      "noPending": "Sin elementos pendientes",
+      "imagesProcessed": "imágenes procesadas",
+      "scanDuplicates": "Escanear duplicados",
+      "unknown": "Desconocido",
+      "enterNote": "Escriba aquí...",
+      "cancel": "Cancelar",
+      "error": "Error"
     }
   }
 }
