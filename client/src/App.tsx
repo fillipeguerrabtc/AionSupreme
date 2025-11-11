@@ -4,6 +4,7 @@ import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "./lib/i18n";
+import { I18nProvider } from "./lib/i18n-new";
 import { usePageTitle } from "./hooks/usePageTitle";
 import ChatPage from "@/pages/chat/ChatPage";
 import Login from "@/pages/Login";
@@ -80,12 +81,14 @@ function Router() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <TooltipProvider>
-          <Router />
-          <Toaster />
-        </TooltipProvider>
-      </LanguageProvider>
+      <I18nProvider>
+        <LanguageProvider>
+          <TooltipProvider>
+            <Router />
+            <Toaster />
+          </TooltipProvider>
+        </LanguageProvider>
+      </I18nProvider>
     </QueryClientProvider>
   );
 }
