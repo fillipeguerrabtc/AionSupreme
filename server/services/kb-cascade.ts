@@ -200,10 +200,9 @@ export class KBCascadeService {
             entityId: documentId,
             entityMetadata: {
               // GDPR-SAFE: ONLY system-controlled fields, ZERO user-provided strings
-              namespace: doc.namespace, // Safe: admin-controlled enum
+              namespace: doc.metadata?.namespaces?.[0] || 'general', // Safe: admin-controlled enum
               createdAt: doc.createdAt?.toISOString(), // Safe: timestamp
-              fileSizeBytes: doc.fileSize || undefined, // Safe: numeric
-              numAttachments: Array.isArray(doc.attachments) ? doc.attachments.length : 0, // Safe: count
+              size: doc.size || undefined, // Safe: numeric (file size in bytes)
               // REDACTED: title, tags, attachment names, any user-provided text
             },
             deletedBy: options.userId || null,
@@ -272,6 +271,12 @@ export class KBCascadeService {
       embeddingsDeleted: 0,
       filesDeleted: [],
       warnings: [],
+      affectedDatasets: [],
+      affectedModels: [],
+      taintedEntities: {
+        datasets: [],
+        models: [],
+      },
     };
 
     try {
