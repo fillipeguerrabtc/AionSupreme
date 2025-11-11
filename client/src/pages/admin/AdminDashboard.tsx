@@ -1196,7 +1196,7 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Activity className="w-4 h-4 text-accent animate-pulse" />
-                      <span>Você tem alterações não salvas</span>
+                      <span>{t.admin.behavior.unsavedChanges}</span>
                     </div>
                     <Button
                       onClick={handleSaveChanges}

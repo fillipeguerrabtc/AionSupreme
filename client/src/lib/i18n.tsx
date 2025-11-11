@@ -873,6 +873,7 @@ interface Translations {
       systemPromptDesc: string;
       systemPromptPlaceholder: string;
       viewFullPrompt: string;
+      unsavedChanges: string;
       previewModal: {
         title: string;
         description: string;
@@ -2290,6 +2291,7 @@ const translations: Record<Language, Translations> = {
         systemPromptDesc: "Instruções base para o comportamento da IA",
         systemPromptPlaceholder: "Digite o system prompt...",
         viewFullPrompt: "Ver Prompt Completo",
+        unsavedChanges: "Você tem alterações não salvas",
         previewModal: {
           title: "Prompt Completo (Enviado para as IAs)",
           description: "Este é o prompt REAL que o AION envia para OpenAI, Groq, Gemini e outras APIs. Inclui suas configurações customizadas + as 7 características do equalizador.",
@@ -3692,6 +3694,7 @@ const translations: Record<Language, Translations> = {
         systemPromptDesc: "Base instructions for AI behavior",
         systemPromptPlaceholder: "Enter system prompt...",
         viewFullPrompt: "View Full Prompt",
+        unsavedChanges: "You have unsaved changes",
         previewModal: {
           title: "Full Prompt (Sent to AI APIs)",
           description: "This is the REAL prompt that AION sends to OpenAI, Groq, Gemini and other APIs. Includes your custom settings + the 7 equalizer characteristics.",
@@ -5094,6 +5097,7 @@ const translations: Record<Language, Translations> = {
         systemPromptDesc: "Instrucciones base para el comportamiento de la IA",
         systemPromptPlaceholder: "Introduce el system prompt...",
         viewFullPrompt: "Ver Prompt Completo",
+        unsavedChanges: "Tienes cambios sin guardar",
         previewModal: {
           title: "Prompt Completo (Enviado a las IAs)",
           description: "Este es el prompt REAL que AION envía a OpenAI, Groq, Gemini y otras APIs. Incluye tus configuraciones personalizadas + las 7 características del ecualizador.",
