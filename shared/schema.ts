@@ -2092,6 +2092,16 @@ export const curationQueue = pgTable("curation_queue", {
   // Auto-quality score from chat ingestion (0-100)
   score: real("score"), // Quality score calculated by chat-ingestion.ts and quality-gates-enterprise.ts
   
+  // AUTO-ANALYSIS: Structured AI analysis for automatic approval (ENTERPRISE FEATURE)
+  autoAnalysis: jsonb("auto_analysis").$type<{
+    score: number; // 0-100
+    flags: string[]; // ["tech", "finance", "pii", etc]
+    suggestedNamespaces: string[]; // Auto-detected namespaces
+    reasoning: string;
+    recommended: "approve" | "reject" | "review";
+    concerns?: string[];
+  }>(),
+  
   // Deduplication fields
   contentHash: varchar("content_hash", { length: 64 }), // SHA256 hash for exact duplicate detection
   normalizedContent: text("normalized_content"), // Lowercased, trimmed content for fuzzy matching
@@ -3386,7 +3396,7 @@ export const autoApprovalConfig = pgTable("auto_approval_config", {
   maxRejectScore: integer("max_reject_score").notNull().default(50), // Score < this → auto-reject
   
   // Sensitive content flags that require HITL review
-  sensitiveFlags: jsonb("sensitive_flags").$type<string[]>().notNull().default(['adult', 'violence', 'medical', 'financial', 'pii']),
+  sensitiveFlags: jsonb("sensitive_flags").$type<string[]>().notNull().default(['adult', 'violence', 'medical', 'finance', 'legal', 'pii', 'hate-speech']),
   
   // Namespace filtering (null or [] = all namespaces, ["tech", "science"] = only these)
   enabledNamespaces: jsonb("enabled_namespaces").$type<string[]>().notNull().default(['*']), // "*" = all namespaces

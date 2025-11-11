@@ -17,10 +17,11 @@ export interface CurationAnalysis {
   recommended: "approve" | "reject" | "review";
   score: number; // 0-100
   reasoning: string;
+  flags: string[]; // ["tech", "finance", "pii", "medical", "adult", etc]
+  suggestedNamespaces: string[]; // Auto-detected namespaces
   suggestedEdits?: {
     title?: string;
     content?: string;
-    namespaces?: string[];
     tags?: string[];
   };
   concerns?: string[];
@@ -104,6 +105,8 @@ export class CuratorAgentDetector {
         recommended: "review",
         score: 50,
         reasoning: "Nenhum agente de curadoria disponível. Revisão manual necessária.",
+        flags: [],
+        suggestedNamespaces: suggestedNamespaces || [],
         concerns: ["Sistema não possui agente de curadoria configurado"]
       };
     }
@@ -133,15 +136,26 @@ Analise este conteúdo e forneça uma avaliação estruturada:
    - 30-49: Fraco, provavelmente rejeitar
    - 0-29: Péssimo, rejeitar imediatamente
 
-3. **RACIOCÍNIO:** Explique sua avaliação (2-3 frases)
+3. **FLAGS:** Detecte categorias/riscos do conteúdo (array de strings)
+   Opções: "tech", "finance", "medical", "legal", "pii", "adult", "violence", "hate-speech", "spam", "factcheck-needed"
+   - "pii": Contém informações pessoais identificáveis
+   - "medical": Conteúdo médico/saúde (requer verificação)
+   - "finance": Conselhos financeiros (requer verificação)
+   - "adult": Conteúdo adulto/sexual
+   - "violence": Violência/gore
+   - "factcheck-needed": Afirmações que precisam verificação
+   Exemplo: ["tech", "finance"] ou [] se nenhum
 
-4. **SUGESTÕES DE EDIÇÃO (opcional):**
+4. **NAMESPACES SUGERIDOS:** Auto-detecte namespaces apropriados baseado no conteúdo
+   Analise o conteúdo e sugira 1-3 namespaces hierárquicos (ex: ["tech/ai", "business"])
+
+5. **RACIOCÍNIO:** Explique sua avaliação (2-3 frases)
+
+6. **SUGESTÕES DE EDIÇÃO (opcional):**
    - Título melhorado (se necessário)
-   - Conteúdo editado (se necessário)
-   - Namespaces mais apropriados (se necessário)
    - Tags adicionais recomendadas (se necessário)
 
-5. **PREOCUPAÇÕES (opcional):**
+7. **PREOCUPAÇÕES (opcional):**
    - Liste quaisquer problemas encontrados (factual errors, bias, qualidade, etc)
 
 **CRITÉRIOS DE AVALIAÇÃO:**
@@ -158,10 +172,11 @@ Responda APENAS em formato JSON (sem markdown):
 {
   "recommended": "approve" | "reject" | "review",
   "score": 75,
+  "flags": ["tech", "finance"],
+  "suggestedNamespaces": ["tech/ai", "business"],
   "reasoning": "Conteúdo bem estruturado e factualmente correto...",
   "suggestedEdits": {
     "title": "Título melhorado (opcional)",
-    "namespaces": ["namespace1", "namespace2"] (opcional),
     "tags": ["tag1", "tag2"] (opcional)
   },
   "concerns": ["Preocupação 1", "Preocupação 2"] (opcional)
@@ -200,6 +215,10 @@ Responda APENAS em formato JSON (sem markdown):
             ? parsedResponse.recommended 
             : "review",
           score: Math.max(0, Math.min(100, parsedResponse.score || 50)),
+          flags: Array.isArray(parsedResponse.flags) ? parsedResponse.flags : [],
+          suggestedNamespaces: Array.isArray(parsedResponse.suggestedNamespaces) 
+            ? parsedResponse.suggestedNamespaces 
+            : (suggestedNamespaces || []),
           reasoning: parsedResponse.reasoning || "Análise automática do agente de curadoria.",
           suggestedEdits: parsedResponse.suggestedEdits || undefined,
           concerns: Array.isArray(parsedResponse.concerns) ? parsedResponse.concerns : undefined
@@ -214,6 +233,8 @@ Responda APENAS em formato JSON (sem markdown):
         return {
           recommended: "review",
           score: 50,
+          flags: [],
+          suggestedNamespaces: suggestedNamespaces || [],
           reasoning: `Agente de curadoria respondeu mas formato inválido. Resposta: "${response.content.substring(0, 200)}..."`,
           concerns: ["Erro ao parsear resposta do agente de curadoria"]
         };
@@ -227,6 +248,8 @@ Responda APENAS em formato JSON (sem markdown):
       return {
         recommended: "review",
         score: 50,
+        flags: [],
+        suggestedNamespaces: suggestedNamespaces || [],
         reasoning: `Erro ao executar análise automática: ${error.message}`,
         concerns: [`Falha na análise automática: ${error.message}`]
       };

@@ -1180,6 +1180,66 @@ export function registerCurationRoutes(app: Router) {
   });
 
   /**
+   * POST /api/curation/reprocess-pending
+   * Reprocessa TODOS os items pendentes para gerar autoAnalysis
+   * ENTERPRISE FEATURE: Fix for legacy items without structured analysis
+   */
+  app.post("/curation/reprocess-pending", async (req, res) => {
+    try {
+      console.log(`[Curation] 🔄 Starting reprocess of ALL pending items...`);
+      
+      const pendingItems = await curationStore.listPending();
+      
+      if (pendingItems.length === 0) {
+        return res.json({
+          success: true,
+          message: "No pending items to reprocess",
+          processed: 0
+        });
+      }
+      
+      console.log(`[Curation] 📋 Found ${pendingItems.length} pending items`);
+      
+      let processed = 0;
+      let errors = 0;
+      
+      // Reprocess each item sequentially (to avoid rate limits)
+      for (const item of pendingItems) {
+        try {
+          console.log(`[Curation] 🤖 Reprocessing item ${item.id}: "${item.title}"`);
+          
+          // Re-run auto-analysis
+          await curationStore.runAutoAnalysis(item.id, {
+            title: item.title,
+            content: item.content,
+            suggestedNamespaces: item.suggestedNamespaces || [],
+            tags: item.tags || [],
+            submittedBy: item.submittedBy || 'reprocess-job'
+          });
+          
+          processed++;
+        } catch (error: any) {
+          console.error(`[Curation] ❌ Failed to reprocess item ${item.id}:`, error.message);
+          errors++;
+        }
+      }
+      
+      console.log(`[Curation] ✅ Reprocess complete: ${processed} processed, ${errors} errors`);
+      
+      res.json({
+        success: true,
+        message: `Reprocessed ${processed} items`,
+        total: pendingItems.length,
+        processed,
+        errors
+      });
+    } catch (error: any) {
+      console.error('[Curation] Reprocess error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * DELETE /api/curation/:id
    * Remove item da fila (apenas para testes)
    */

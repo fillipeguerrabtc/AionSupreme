@@ -160,7 +160,7 @@ ${analysis.reasoning}
 
 ${analysis.suggestedEdits ? `
 ✏️ **Sugestões de Edição:**
-${analysis.suggestedEdits.title ? `- Título: "${analysis.suggestedEdits.title}"\n` : ''}${analysis.suggestedEdits.namespaces ? `- Namespaces: ${analysis.suggestedEdits.namespaces.join(', ')}\n` : ''}${analysis.suggestedEdits.tags ? `- Tags: ${analysis.suggestedEdits.tags.join(', ')}\n` : ''}
+${analysis.suggestedEdits.title ? `- Título: "${analysis.suggestedEdits.title}"\n` : ''}${analysis.suggestedEdits.tags ? `- Tags: ${analysis.suggestedEdits.tags.join(', ')}\n` : ''}
 ` : ''}${analysis.concerns && analysis.concerns.length > 0 ? `
 ⚠️ **Preocupações:**
 ${analysis.concerns.map(c => `- ${c}`).join('\n')}
@@ -168,11 +168,20 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
 ---
 *Análise automática gerada pelo agente de curadoria. A decisão final é humana.*`;
 
-      // Atualizar item com análise automática
+      // Atualizar item com análise automática (SALVAR STRUCTURED DATA!)
       await db
         .update(curationQueueTable)
         .set({
-          note: autoNote,
+          note: autoNote, // Human-readable markdown note
+          autoAnalysis: { // STRUCTURED DATA for auto-approval
+            score: analysis.score,
+            flags: analysis.flags,
+            suggestedNamespaces: analysis.suggestedNamespaces,
+            reasoning: analysis.reasoning,
+            recommended: analysis.recommended,
+            concerns: analysis.concerns
+          } as any,
+          score: analysis.score, // Também atualizar score legacy field
           updatedAt: new Date(),
         })
         .where(eq(curationQueueTable.id, itemId));
@@ -193,9 +202,9 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       // Import auto-approval service (dynamic import for service layer)
       const { autoApprovalService } = await import("../services/auto-approval-service");
       
-      // Extract content flags and namespaces
-      const contentFlags = (analysis as any).contentFlags || [];
-      const namespaces = data.suggestedNamespaces || [];
+      // Extract content flags and namespaces from structured analysis
+      const contentFlags = analysis.flags || [];
+      const namespaces = analysis.suggestedNamespaces || [];
       
       // Get auto-approval decision from service (uses DB config)
       const decision = await autoApprovalService.decide(

@@ -555,28 +555,36 @@ export class SchedulerService {
           
           // Process each pending item through auto-approval logic
           for (const item of itemsToProcess) {
-            // Extract score from DB (field is 'score', not 'qualityScore')
-            const qualityScore = item.score || 0;
+            // PREFERRED: Use structured autoAnalysis if available (enterprise feature)
+            const autoAnalysis = (item as any).autoAnalysis;
             
-            // Parse note field to extract contentFlags if available (from curator agent analysis)
-            // Note format: "Quality: X/100\nFlags: flag1,flag2\n..."
-            const contentFlags: string[] = [];
-            if (item.note) {
-              const flagsMatch = item.note.match(/Flags:\s*(.+)/i);
-              if (flagsMatch && flagsMatch[1]) {
-                const flags = flagsMatch[1].split(',').map(f => f.trim().toLowerCase()).filter(Boolean);
-                contentFlags.push(...flags);
-              }
+            let qualityScore: number;
+            let contentFlags: string[];
+            let suggestedNamespaces: string[];
+            
+            if (autoAnalysis && typeof autoAnalysis === 'object') {
+              // ✅ ENTERPRISE PATH: Use structured analysis from curator-agent
+              qualityScore = autoAnalysis.score || 0;
+              contentFlags = Array.isArray(autoAnalysis.flags) ? autoAnalysis.flags : [];
+              suggestedNamespaces = Array.isArray(autoAnalysis.suggestedNamespaces) 
+                ? autoAnalysis.suggestedNamespaces 
+                : (item.suggestedNamespaces || []);
+              
+              logger.info(`✅ Item ${item.id} has structured autoAnalysis (score: ${qualityScore}, flags: ${contentFlags.join(',') || 'none'})`);
+            } else {
+              // ⚠️  FALLBACK: Legacy items without autoAnalysis - skip auto-approval (HITL required)
+              logger.info(`⚠️  Item ${item.id} missing autoAnalysis - requiring HITL review`);
+              reviewed++;
+              continue; // Skip items without structured analysis (safety first)
             }
             
-            // SAFETY: For now, assume quality gates passed if score > 0 (basic heuristic)
-            // TODO: Add explicit qualityGatesPassed field to curationQueue schema
-            const qualityGatesPassed = qualityScore > 0 ? true : undefined;
+            // SAFETY: Auto-approval requires score > 0 AND proper analysis
+            const qualityGatesPassed = qualityScore > 0 && autoAnalysis.recommended !== 'reject';
             
-            // SAFETY: If requireAllQualityGates is enabled and item has unknown/failed gate status,
+            // SAFETY: If requireAllQualityGates is enabled and item failed quality gates,
             // skip auto-approval and leave for human review (defensive approach)
             if (config.requireAllQualityGates && !qualityGatesPassed) {
-              logger.info(`⚠️  Item ${item.id} skipped (unknown/failed quality gates, HITL required)`);
+              logger.info(`⚠️  Item ${item.id} skipped (failed quality gates, HITL required)`);
               reviewed++;
               continue;
             }
@@ -584,8 +592,8 @@ export class SchedulerService {
             const decision = await autoApprovalService.decide(
               qualityScore,
               contentFlags,
-              item.suggestedNamespaces || [],
-              qualityGatesPassed
+              suggestedNamespaces,
+              qualityGatesPassed // 4th param: optional quality gates
             );
             
             if (decision.action === 'approve') {
