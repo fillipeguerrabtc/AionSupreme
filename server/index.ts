@@ -188,6 +188,28 @@ app.use((req, res, next) => {
       console.error('Error stack:', err?.stack || 'No stack');
       console.error('Full error object:', JSON.stringify(err, null, 2));
     }
+    
+    // 🔒 Initialize GPU Watchdog Service (enforces 70% quota limits + auto-shutdown after restarts)
+    try {
+      const { GpuWatchdogService } = await import('./services/gpu-watchdog-service');
+      const { OrchestratorService } = await import('./gpu-orchestration/orchestrator-service');
+      
+      const watchdog = await GpuWatchdogService.create();
+      const orchestrator = new OrchestratorService();
+      
+      // Register unified shutdown callback for all providers (Colab, Kaggle)
+      watchdog.setShutdownCallback(async (sessionId: number, workerId: number, provider: string) => {
+        console.log(`[Watchdog] Force stopping ${provider} worker ${workerId} (session ${sessionId}) - quota limit reached`);
+        await orchestrator.stopGPU(workerId);
+      });
+      
+      watchdog.start();
+      console.log('✅ GPU Watchdog Service started (70% quota enforcement + durable auto-shutdown)');
+    } catch (err: any) {
+      console.error('⚠️ Failed to initialize GPU watchdog service:');
+      console.error('Error message:', err?.message || 'No message');
+      console.error('Error stack:', err?.stack || 'No stack');
+    }
   });
 })();
 

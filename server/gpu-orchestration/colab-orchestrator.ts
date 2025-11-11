@@ -291,22 +291,42 @@ export class ColabOrchestrator {
       
       this.activeSessions.set(config.workerId, session);
       
-      // ✅ CRITICAL FIX: Record session start in quota manager
-      await gpuCooldownManager.recordSessionStart(config.workerId);
+      // ============================================================================
+      // ENTERPRISE: Register session in PostgreSQL (70% quota enforcement)
+      // ============================================================================
+      
+      const sessionRegistration = await quotaService.startSession(
+        config.workerId,
+        'colab',
+        sessionId,
+        ngrokUrl
+      );
+      
+      if (!sessionRegistration.success) {
+        console.error(`[Colab] ❌ FATAL: Failed to register session in DB: ${sessionRegistration.error}`);
+        
+        // CRITICAL: Clean up Puppeteer session before throwing (prevent quota leakage)
+        console.log(`[Colab] 🧹 Cleaning up Puppeteer session due to DB registration failure...`);
+        try {
+          await browser.close();
+        } catch (cleanupError) {
+          console.error(`[Colab] ⚠️ Error during cleanup:`, cleanupError);
+        }
+        
+        this.activeSessions.delete(config.workerId);
+        throw new Error(`DB registration failed - cannot guarantee 70% quota enforcement: ${sessionRegistration.error}`);
+      }
+      
+      console.log(`[Colab] ✅ Session registered in DB (ID: ${sessionRegistration.sessionId}, auto-shutdown at ${sessionRegistration.autoShutdownAt?.toISOString()})`);
       
       // Start keep-alive (prevent idle disconnect)
       session.keepAliveInterval = setInterval(async () => {
         await this.keepAliveHumanized(config.workerId);
       }, this.KEEP_ALIVE_INTERVAL);
       
-      // ✅ CRITICAL FIX: Auto-shutdown at 11h limit (enforce quota)
-      const safeSessionMilliseconds = QUOTA_LIMITS.COLAB.SAFE_SESSION_SECONDS * 1000;
-      session.autoShutdownTimeout = setTimeout(async () => {
-        console.warn(
-          `[Colab] ⚠️  Session limit reached (11h) - auto-shutdown worker ${config.workerId}`
-        );
-        await this.stopSession(config.workerId);
-      }, safeSessionMilliseconds);
+      // ✅ REMOVED: In-memory auto-shutdown timer (replaced by watchdog)
+      // Watchdog Service monitors autoShutdownAt from DB and forces shutdown
+      // This ensures shutdown happens even if process crashes/restarts
       
       // Update database
       await db.update(gpuWorkers)
@@ -366,10 +386,6 @@ export class ColabOrchestrator {
         clearInterval(session.keepAliveInterval);
       }
       
-      if (session.autoShutdownTimeout) {
-        clearTimeout(session.autoShutdownTimeout);
-      }
-      
       // Stop runtime in Colab (humanized)
       await this.stopRuntimeHumanized(session.page, session.cursor);
       
@@ -379,8 +395,25 @@ export class ColabOrchestrator {
       // Remove from active sessions
       this.activeSessions.delete(workerId);
       
-      // ✅ CRITICAL FIX: Record session end + apply 36h cooldown
-      await gpuCooldownManager.recordSessionEnd(workerId, sessionDurationSeconds);
+      // ============================================================================
+      // ENTERPRISE: End session in PostgreSQL (apply cooldown, mark inactive)
+      // ============================================================================
+      
+      // Find session ID from DB
+      const quotaService = await getQuotaEnforcementService();
+      const activeSessions = await quotaService.getActiveSessions();
+      const dbSession = activeSessions.find(s => s.workerId === workerId);
+      
+      if (dbSession) {
+        const sessionEnded = await quotaService.endSession(dbSession.id, 'manual_stop');
+        if (!sessionEnded) {
+          console.error(`[Colab] ❌ Failed to end session in DB (ID: ${dbSession.id})`);
+        } else {
+          console.log(`[Colab] ✅ Session ended in DB (ID: ${dbSession.id}, 36h cooldown applied)`);
+        }
+      } else {
+        console.warn(`[Colab] ⚠️ Session not found in DB - may have been already ended by watchdog`);
+      }
       
       // Update database
       await db.update(gpuWorkers)

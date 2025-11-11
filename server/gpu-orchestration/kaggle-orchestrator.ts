@@ -151,7 +151,35 @@ export class KaggleOrchestrator {
       
       this.activeSessions.set(config.workerId, session);
       
-      // 8. Update database (including sessionStartedAt for orchestrator-service guard)
+      // ============================================================================
+      // 8. ENTERPRISE: Register session in PostgreSQL (70% quota enforcement)
+      // ============================================================================
+      
+      const sessionRegistration = await quotaService.startSession(
+        config.workerId,
+        'kaggle',
+        sessionId,
+        ngrokUrl
+      );
+      
+      if (!sessionRegistration.success) {
+        console.error(`[Kaggle] ❌ FATAL: Failed to register session in DB: ${sessionRegistration.error}`);
+        
+        // CRITICAL: Clean up Puppeteer session before throwing (prevent quota leakage)
+        console.log(`[Kaggle] 🧹 Cleaning up Puppeteer session due to DB registration failure...`);
+        try {
+          await browser.close();
+        } catch (cleanupError) {
+          console.error(`[Kaggle] ⚠️ Error during cleanup:`, cleanupError);
+        }
+        
+        this.activeSessions.delete(config.workerId);
+        throw new Error(`DB registration failed - cannot guarantee 70% quota enforcement: ${sessionRegistration.error}`);
+      }
+      
+      console.log(`[Kaggle] ✅ Session registered in DB (ID: ${sessionRegistration.sessionId}, auto-shutdown at ${sessionRegistration.autoShutdownAt?.toISOString()})`);
+      
+      // 9. Update database (including sessionStartedAt for orchestrator-service guard)
       await db.update(gpuWorkers)
         .set({
           puppeteerSessionId: sessionId,
@@ -195,7 +223,26 @@ export class KaggleOrchestrator {
       // 3. Remove session
       this.activeSessions.delete(workerId);
       
-      // 4. Update database (clear sessionStartedAt to allow future restarts)
+      // ============================================================================
+      // 4. ENTERPRISE: End session in PostgreSQL (mark inactive, update quota)
+      // ============================================================================
+      
+      const quotaService = await getQuotaEnforcementService();
+      const activeSessions = await quotaService.getActiveSessions();
+      const dbSession = activeSessions.find(s => s.workerId === workerId);
+      
+      if (dbSession) {
+        const sessionEnded = await quotaService.endSession(dbSession.id, 'manual_stop');
+        if (!sessionEnded) {
+          console.error(`[Kaggle] ❌ Failed to end session in DB (ID: ${dbSession.id})`);
+        } else {
+          console.log(`[Kaggle] ✅ Session ended in DB (ID: ${dbSession.id}, quota updated)`);
+        }
+      } else {
+        console.warn(`[Kaggle] ⚠️ Session not found in DB - may have been already ended by watchdog`);
+      }
+      
+      // 5. Update database (clear sessionStartedAt to allow future restarts)
       await db.update(gpuWorkers)
         .set({
           puppeteerSessionId: null,
