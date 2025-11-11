@@ -179,9 +179,9 @@ export default function AdminDashboard() {
   // Fetch GPU workers stats
   // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos
   const { data: gpuData } = useQuery({
-    queryKey: ["/api/gpu/status"],
+    queryKey: ["/api/gpu/overview"],
     queryFn: async () => {
-      const res = await fetch('/api/gpu/status');
+      const res = await fetch('/api/gpu/overview');
       return res.json();
     },
     refetchInterval: 10000,
