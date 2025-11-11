@@ -262,10 +262,47 @@ export class KBCascadeService {
   }
 
   /**
-   * Bulk delete documents with cascade
+   * Bulk delete documents with FULL cascade (transactional all-or-nothing)
+   * 
+   * @param documentIds - Array of document IDs to delete
+   * @param options - Deletion metadata (userId, reason, gdprReason, retentionDays)
+   * @returns Aggregated CascadeResult with combined stats
+   * 
+   * TRANSACTIONAL SEMANTICS:
+   * - All deletions succeed or ALL fail (rollback)
+   * - Dependency tracking for ALL documents
+   * - Model tainting for ALL affected models
+   * - Tombstone creation for EACH document
+   * - Physical file cleanup (best-effort outside transaction)
+   * 
+   * ROLLBACK SAFETY:
+   * - Aggregation happens AFTER transaction commits (no stale state on rollback)
+   * - Per-document data collected in array, aggregated only on success
+   * 
+   * LIMITS:
+   * - Max 100 documents per batch (prevent timeout/memory exhaustion)
    */
-  async deleteDocuments(documentIds: number[]): Promise<CascadeResult> {
-    const result: CascadeResult = {
+  async deleteBulk(
+    documentIds: number[], 
+    options: {
+      userId?: string;
+      reason?: string;
+      gdprReason?: string;
+      retentionDays?: number | null;
+    } = {}
+  ): Promise<CascadeResult & { tombstoneIds?: number[] }> {
+    const MAX_BATCH_SIZE = 100;
+    
+    if (documentIds.length === 0) {
+      throw new Error('No document IDs provided');
+    }
+
+    if (documentIds.length > MAX_BATCH_SIZE) {
+      throw new Error(`Batch size ${documentIds.length} exceeds limit of ${MAX_BATCH_SIZE}`);
+    }
+
+    // Aggregated result
+    const result: CascadeResult & { tombstoneIds?: number[] } = {
       success: false,
       documentsDeleted: 0,
       embeddingsDeleted: 0,
@@ -277,26 +314,34 @@ export class KBCascadeService {
         datasets: [],
         models: [],
       },
+      tombstoneIds: [],
     };
 
+    const filesToDelete: string[] = [];
+
     try {
-      // 1. Fetch all documents to get file paths
+      // =========================================================================
+      // STEP 1: VALIDATE - Fetch all documents
+      // =========================================================================
       const docs = await db.query.documents.findMany({
         where: inArray(documents.id, documentIds),
       });
 
       if (docs.length === 0) {
-        throw new Error(`No documents found for IDs: ${documentIds.join(", ")}`);
+        throw new Error(`No documents found for IDs: ${documentIds.join(', ')}`);
       }
 
-      // 2. Collect all file paths
-      const filesToDelete: string[] = [];
-      
+      if (docs.length !== documentIds.length) {
+        const foundIds = docs.map(d => d.id);
+        const missingIds = documentIds.filter(id => !foundIds.includes(id));
+        result.warnings.push(`Missing documents: ${missingIds.join(', ')}`);
+      }
+
+      // Collect file paths
       for (const doc of docs) {
         if (doc.storageUrl) {
           filesToDelete.push(doc.storageUrl);
         }
-
         if (doc.attachments && Array.isArray(doc.attachments)) {
           for (const attachment of doc.attachments) {
             if (attachment.url && !attachment.url.startsWith('http')) {
@@ -304,21 +349,136 @@ export class KBCascadeService {
             }
           }
         }
-
-        // Check for training data generation usage
-        if (doc.metadata && typeof doc.metadata === 'object') {
-          const meta = doc.metadata as Record<string, any>;
-          if (meta.autoIndexed || meta.query) {
-            result.warnings.push(
-              `Document "${doc.title}" was used for training data generation`
-            );
-          }
-        }
       }
 
-      // 3. Delete in transaction
+      // =========================================================================
+      // STEP 2: TRANSACTIONAL CASCADE DELETE (all-or-nothing)
+      // =========================================================================
+      // Per-document tracking (collected inside transaction, aggregated outside)
+      const perDocData: Array<{
+        documentId: number;
+        affectedDatasetIds: number[];
+        affectedModelIds: number[];
+        taintedDatasetIds: number[];
+        taintedModelIds: number[];
+        tombstoneId: number;
+      }> = [];
+
       await db.transaction(async (tx) => {
-        // 3a. Delete embeddings
+        for (const doc of docs) {
+          const documentId = doc.id;
+          const docData = {
+            documentId,
+            affectedDatasetIds: [] as number[],
+            affectedModelIds: [] as number[],
+            taintedDatasetIds: [] as number[],
+            taintedModelIds: [] as number[],
+            tombstoneId: 0,
+          };
+
+          // ───────────────────────────────────────────────────────────────────
+          // 2a. FIND AFFECTED DATASETS (array containment query)
+          // ───────────────────────────────────────────────────────────────────
+          const affectedDatasetVersions = await tx
+            .select({
+              id: datasetVersions.id,
+              status: datasetVersions.status,
+            })
+            .from(datasetVersions)
+            .where(sql`${datasetVersions.sourceKbDocumentIds} @> ARRAY[${documentId}]::integer[]`);
+
+          docData.affectedDatasetIds = affectedDatasetVersions.map(d => d.id);
+
+          // ───────────────────────────────────────────────────────────────────
+          // 2b. FIND AFFECTED MODELS (indirect KB document IDs)
+          // ───────────────────────────────────────────────────────────────────
+          const affectedModelVersions = await tx
+            .select({
+              id: modelVersions.id,
+              status: modelVersions.status,
+            })
+            .from(modelVersions)
+            .where(sql`${modelVersions.indirectKbDocumentIds} @> ARRAY[${documentId}]::integer[]`);
+
+          docData.affectedModelIds = affectedModelVersions.map(m => m.id);
+
+          // ───────────────────────────────────────────────────────────────────
+          // 2c. TAINT AFFECTED DATASETS
+          // ───────────────────────────────────────────────────────────────────
+          if (affectedDatasetVersions.length > 0) {
+            for (const dv of affectedDatasetVersions) {
+              await tx
+                .update(datasetVersions)
+                .set({
+                  status: 'tainted',
+                  taintReason: `KB document #${documentId} was deleted`,
+                })
+                .where(eq(datasetVersions.id, dv.id));
+              
+              docData.taintedDatasetIds.push(dv.id);
+            }
+          }
+
+          // ───────────────────────────────────────────────────────────────────
+          // 2d. TAINT AFFECTED MODELS
+          // ───────────────────────────────────────────────────────────────────
+          if (affectedModelVersions.length > 0) {
+            for (const mv of affectedModelVersions) {
+              await tx
+                .update(modelVersions)
+                .set({
+                  status: 'tainted',
+                  taintReason: `Indirect KB document #${documentId} was deleted`,
+                })
+                .where(eq(modelVersions.id, mv.id));
+              
+              docData.taintedModelIds.push(mv.id);
+            }
+          }
+
+          // ───────────────────────────────────────────────────────────────────
+          // 2e. CREATE DELETION TOMBSTONE (per document)
+          // ───────────────────────────────────────────────────────────────────
+          const retentionUntil = options.retentionDays
+            ? new Date(Date.now() + options.retentionDays * 24 * 60 * 60 * 1000)
+            : null;
+
+          // Aggregate ALL dependencies up to this point for this tombstone
+          const allAffectedSoFar = [...new Set([
+            ...perDocData.flatMap(d => d.affectedDatasetIds),
+            ...docData.affectedDatasetIds,
+          ])];
+          const allModelsSoFar = [...new Set([
+            ...perDocData.flatMap(d => d.affectedModelIds),
+            ...docData.affectedModelIds,
+          ])];
+
+          const [tombstone] = await tx.insert(deletionTombstones).values({
+            entityType: 'kb_document',
+            entityId: documentId,
+            entityMetadata: {
+              namespace: doc.metadata?.namespaces?.[0] || 'general',
+              createdAt: doc.createdAt?.toISOString(),
+              size: doc.size || undefined,
+            },
+            deletedBy: options.userId || null,
+            deletionReason: options.reason || 'bulk_delete',
+            cascadeImpact: {
+              affectedDatasets: allAffectedSoFar,
+              affectedModels: allModelsSoFar,
+              totalAffectedEntities: allAffectedSoFar.length + allModelsSoFar.length,
+            },
+            retentionUntil,
+            gdprReason: options.gdprReason || null,
+          }).returning();
+
+          docData.tombstoneId = tombstone.id;
+          perDocData.push(docData);
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 2f. HARD DELETE - Embeddings (bulk)
+        // ─────────────────────────────────────────────────────────────────────
         const deletedEmbeddings = await tx
           .delete(embeddings)
           .where(inArray(embeddings.documentId, documentIds))
@@ -326,7 +486,9 @@ export class KBCascadeService {
 
         result.embeddingsDeleted = deletedEmbeddings.length;
 
-        // 3b. Delete documents
+        // ─────────────────────────────────────────────────────────────────────
+        // 2g. HARD DELETE - Documents (bulk)
+        // ─────────────────────────────────────────────────────────────────────
         const deletedDocs = await tx
           .delete(documents)
           .where(inArray(documents.id, documentIds))
@@ -335,7 +497,32 @@ export class KBCascadeService {
         result.documentsDeleted = deletedDocs.length;
       });
 
-      // 4. Delete physical files
+      // =========================================================================
+      // STEP 3: AGGREGATE STATS (only after transaction commits successfully)
+      // =========================================================================
+      const allAffectedDatasetIds = new Set<number>();
+      const allAffectedModelIds = new Set<number>();
+      const allTaintedDatasetIds = new Set<number>();
+      const allTaintedModelIds = new Set<number>();
+
+      for (const data of perDocData) {
+        data.affectedDatasetIds.forEach(id => allAffectedDatasetIds.add(id));
+        data.affectedModelIds.forEach(id => allAffectedModelIds.add(id));
+        data.taintedDatasetIds.forEach(id => allTaintedDatasetIds.add(id));
+        data.taintedModelIds.forEach(id => allTaintedModelIds.add(id));
+      }
+
+      result.affectedDatasets = Array.from(allAffectedDatasetIds);
+      result.affectedModels = Array.from(allAffectedModelIds);
+      result.taintedEntities = {
+        datasets: Array.from(allTaintedDatasetIds),
+        models: Array.from(allTaintedModelIds),
+      };
+      result.tombstoneIds = perDocData.map(d => d.tombstoneId);
+
+      // =========================================================================
+      // STEP 4: DELETE PHYSICAL FILES (outside transaction, best-effort)
+      // =========================================================================
       for (const filePath of filesToDelete) {
         try {
           const fullPath = path.resolve(filePath);
@@ -354,6 +541,11 @@ export class KBCascadeService {
       return result;
     } catch (error: any) {
       result.error = error.message;
+      // Ensure stale data is cleared on failure
+      result.affectedDatasets = [];
+      result.affectedModels = [];
+      result.taintedEntities = { datasets: [], models: [] };
+      result.tombstoneIds = [];
       return result;
     }
   }

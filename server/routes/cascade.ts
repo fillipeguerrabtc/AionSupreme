@@ -21,8 +21,20 @@ import {
 import { eq, sql, desc, and, gte, lte } from "drizzle-orm";
 import { kbCascadeService } from "../services/kb-cascade";
 import { requireAdmin, getUserId } from "../middleware/auth";
+import { z } from "zod";
 
 const router = Router();
+
+// Validation schema for deletion requests
+const deletionPayloadSchema = z.object({
+  reason: z.enum(['expired', 'duplicate', 'request', 'quality', 'gdpr', 'bulk_delete']).optional(),
+  gdprReason: z.string().optional(),
+  retentionDays: z.number().int().min(0).max(3650).optional(), // 0-10 years
+});
+
+const bulkDeletePayloadSchema = deletionPayloadSchema.extend({
+  documentIds: z.array(z.number().int().positive()).min(1).max(100),
+});
 
 // ============================================================================
 // GET /api/cascade/dependencies/:documentId
@@ -294,7 +306,73 @@ router.post(
   }
 );
 
+// ============================================================================
+// POST /api/cascade/bulk-delete
+// Body: { documentIds: number[], reason?: string, gdprReason?: string, retentionDays?: number }
+// Returns: { success, result: CascadeResult }
+// ============================================================================
+router.post(
+  "/bulk-delete",
+  requireAdmin,
+  async (req, res) => {
+    try {
+      // Validate request body with Zod
+      const validation = bulkDeletePayloadSchema.safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid request body",
+          details: validation.error.errors,
+        });
+      }
+
+      const { documentIds, reason, gdprReason, retentionDays } = validation.data;
+
+      // Get user ID from session (Replit Auth)
+      const userId = getUserId(req);
+
+      // Trigger bulk cascade deletion
+      const result = await kbCascadeService.deleteBulk(documentIds, {
+        userId: userId || undefined,
+        reason,
+        gdprReason,
+        retentionDays: retentionDays !== undefined ? retentionDays : null,
+      });
+
+      if (!result.success) {
+        return res.status(500).json({
+          success: false,
+          error: result.error || "Bulk cascade deletion failed",
+          warnings: result.warnings,
+        });
+      }
+
+      return res.json({
+        success: true,
+        result: {
+          documentsDeleted: result.documentsDeleted,
+          embeddingsDeleted: result.embeddingsDeleted,
+          filesDeleted: result.filesDeleted.length,
+          affectedDatasets: result.affectedDatasets.length,
+          affectedModels: result.affectedModels.length,
+          taintedDatasets: result.taintedEntities.datasets.length,
+          taintedModels: result.taintedEntities.models.length,
+          tombstoneIds: result.tombstoneIds || [],
+          warnings: result.warnings,
+        },
+      });
+    } catch (error: any) {
+      console.error("[Cascade API] Error during bulk deletion:", error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Internal server error",
+      });
+    }
+  }
+);
+
 console.log("[Cascade Routes] Registering Enterprise Cascade Data Lineage routes...");
-console.log("[Cascade Routes] ✅ 4 routes registered: dependencies, tombstones, tombstone/:id, delete/:documentId");
+console.log("[Cascade Routes] ✅ 5 routes registered: dependencies, tombstones, tombstone/:id, delete/:documentId, bulk-delete");
 
 export default router;
