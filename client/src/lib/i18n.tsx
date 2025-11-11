@@ -1114,6 +1114,17 @@ interface Translations {
     datasets: {
       title: string;
       subtitle: string;
+      operationSuccess: string;
+      downloadStarted: string;
+      trainingDataUpdated: string;
+      unknownError: string;
+      problemsFound: string;
+      automaticCorrections: string;
+      warnings: string;
+      instructionTooShort: string;
+      outputTooShort: string;
+      outputSameAsInstruction: string;
+      instructionNotQuestion: string;
     };
     
     // Curation Page
@@ -2533,6 +2544,17 @@ const translations: Record<Language, Translations> = {
       datasets: {
         title: "Datasets de Treinamento",
         subtitle: "Gerencie datasets compilados e dados de treinamento",
+        operationSuccess: "Operação concluída com sucesso",
+        downloadStarted: "Download iniciado",
+        trainingDataUpdated: "Dados de treinamento atualizados com sucesso!",
+        unknownError: "Erro desconhecido",
+        problemsFound: "Problemas encontrados:",
+        automaticCorrections: "Correções automáticas:",
+        warnings: "Avisos:",
+        instructionTooShort: "Instruction muito curta ({length} chars, recomendado: 5+)",
+        outputTooShort: "Output muito curto ({length} chars, recomendado: 10+)",
+        outputSameAsInstruction: "Output não pode ser idêntico à Instruction",
+        instructionNotQuestion: "Instruction não parece ser uma pergunta ou comando",
       },
       
       curation: {
@@ -3942,6 +3964,17 @@ const translations: Record<Language, Translations> = {
       datasets: {
         title: "Training Datasets",
         subtitle: "Manage compiled datasets and training data",
+        operationSuccess: "Operation completed successfully",
+        downloadStarted: "Download started",
+        trainingDataUpdated: "Training data updated successfully!",
+        unknownError: "Unknown error",
+        problemsFound: "Problems found:",
+        automaticCorrections: "Automatic corrections:",
+        warnings: "Warnings:",
+        instructionTooShort: "Instruction too short ({length} chars, recommended: 5+)",
+        outputTooShort: "Output too short ({length} chars, recommended: 10+)",
+        outputSameAsInstruction: "Output cannot be identical to Instruction",
+        instructionNotQuestion: "Instruction doesn't seem to be a question or command",
       },
       
       curation: {
@@ -5351,6 +5384,17 @@ const translations: Record<Language, Translations> = {
       datasets: {
         title: "Datasets de Entrenamiento",
         subtitle: "Gestiona datasets compilados y datos de entrenamiento",
+        operationSuccess: "Operación completada con éxito",
+        downloadStarted: "Descarga iniciada",
+        trainingDataUpdated: "¡Datos de entrenamiento actualizados con éxito!",
+        unknownError: "Error desconocido",
+        problemsFound: "Problemas encontrados:",
+        automaticCorrections: "Correcciones automáticas:",
+        warnings: "Advertencias:",
+        instructionTooShort: "Instrucción demasiado corta ({length} caracteres, recomendado: 5+)",
+        outputTooShort: "Salida demasiado corta ({length} caracteres, recomendado: 10+)",
+        outputSameAsInstruction: "La salida no puede ser idéntica a la instrucción",
+        instructionNotQuestion: "La instrucción no parece ser una pregunta o comando",
       },
       
       curation: {
