@@ -9,8 +9,17 @@
  * - HALF_OPEN: Testando recuperação (algumas requisições passam)
  * 
  * Baseado no padrão "Release It!" de Michael Nygard
+ * 
+ * PRODUCTION UPDATES (Nov 2024):
+ * - PostgreSQL persistence for state survival across restarts
+ * - Structured logging with pino (zero console.log)
+ * - Automatic state recovery from DB on initialization
  */
 
+import { db } from "../db";
+import { circuitBreakerState } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { log } from "../utils/logger";
 
 export enum CircuitState {
   CLOSED = "CLOSED",       // Normal operation
@@ -63,11 +72,100 @@ export class CircuitBreaker {
         parseInt(process.env.CIRCUIT_BREAKER_TIMEOUT_MS || "60000"),
     };
     
-    console.log({
+    log.info({
       workerId,
       workerName,
       config: this.config,
-    }, "[CircuitBreaker] Initialized with config");
+      component: "CircuitBreaker"
+    }, "CircuitBreaker initialized with config");
+
+    // Load state from DB if exists
+    this.loadStateFromDB().catch(err => {
+      log.error({ 
+        workerId, 
+        workerName, 
+        error: err instanceof Error ? err.message : String(err),
+        component: "CircuitBreaker"
+      }, "Failed to load circuit breaker state from DB");
+    });
+  }
+
+  /**
+   * Load state from PostgreSQL (recovery on restart)
+   */
+  private async loadStateFromDB(): Promise<void> {
+    try {
+      const dbState = await db.query.circuitBreakerState.findFirst({
+        where: eq(circuitBreakerState.workerId, this.workerId),
+      });
+
+      if (dbState) {
+        this.state = dbState.state as CircuitState;
+        this.failureCount = dbState.failureCount;
+        this.successCount = dbState.successCount;
+        this.lastFailureTime = dbState.lastFailureTime ? dbState.lastFailureTime.getTime() : null;
+        this.lastSuccessTime = dbState.lastSuccessTime ? dbState.lastSuccessTime.getTime() : null;
+        this.nextRetryTime = dbState.nextRetryTime ? dbState.nextRetryTime.getTime() : null;
+
+        log.info({
+          workerId: this.workerId,
+          workerName: this.workerName,
+          state: this.state,
+          failureCount: this.failureCount,
+          component: "CircuitBreaker"
+        }, "Circuit breaker state recovered from DB");
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log.error({ 
+        workerId: this.workerId, 
+        workerName: this.workerName, 
+        error: errorMessage,
+        component: "CircuitBreaker"
+      }, "Failed to load state from DB");
+      throw error;
+    }
+  }
+
+  /**
+   * Persist state to PostgreSQL
+   */
+  private async saveStateToDB(): Promise<void> {
+    try {
+      await db
+        .insert(circuitBreakerState)
+        .values({
+          workerId: this.workerId,
+          state: this.state as "CLOSED" | "OPEN" | "HALF_OPEN",
+          failureCount: this.failureCount,
+          successCount: this.successCount,
+          lastFailureTime: this.lastFailureTime ? new Date(this.lastFailureTime) : null,
+          lastSuccessTime: this.lastSuccessTime ? new Date(this.lastSuccessTime) : null,
+          nextRetryTime: this.nextRetryTime ? new Date(this.nextRetryTime) : null,
+          config: this.config,
+        })
+        .onConflictDoUpdate({
+          target: circuitBreakerState.workerId,
+          set: {
+            state: this.state as "CLOSED" | "OPEN" | "HALF_OPEN",
+            failureCount: this.failureCount,
+            successCount: this.successCount,
+            lastFailureTime: this.lastFailureTime ? new Date(this.lastFailureTime) : null,
+            lastSuccessTime: this.lastSuccessTime ? new Date(this.lastSuccessTime) : null,
+            nextRetryTime: this.nextRetryTime ? new Date(this.nextRetryTime) : null,
+            updatedAt: new Date(),
+          },
+        });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log.error({ 
+        workerId: this.workerId, 
+        workerName: this.workerName, 
+        error: errorMessage,
+        component: "CircuitBreaker"
+      }, "Failed to save state to DB");
+      // Don't throw - state persistence failure shouldn't break circuit breaker logic
+    }
   }
 
   /**
@@ -84,24 +182,30 @@ export class CircuitBreaker {
       case CircuitState.OPEN:
         // Check if recovery timeout expired
         if (this.nextRetryTime && now >= this.nextRetryTime) {
-          console.log(
-            { workerId: this.workerId, workerName: this.workerName },
-            "[CircuitBreaker] Transitioning to HALF_OPEN - testing recovery"
+          log.info(
+            { 
+              workerId: this.workerId, 
+              workerName: this.workerName,
+              component: "CircuitBreaker"
+            },
+            "Transitioning to HALF_OPEN - testing recovery"
           );
           this.state = CircuitState.HALF_OPEN;
           this.successCount = 0;
+          this.saveStateToDB();
           return true;
         }
         
         // Still in cooldown
         const remainingMs = this.nextRetryTime ? this.nextRetryTime - now : 0;
-        console.warn(
+        log.warn(
           { 
             workerId: this.workerId, 
             workerName: this.workerName,
             remainingMs,
+            component: "CircuitBreaker"
           },
-          "[CircuitBreaker] Circuit OPEN - rejecting request"
+          "Circuit OPEN - rejecting request"
         );
         return false;
 
@@ -130,26 +234,32 @@ export class CircuitBreaker {
       case CircuitState.HALF_OPEN:
         // Check if enough successes to close
         if (this.successCount >= this.config.successThreshold) {
-          console.log(
+          log.info(
             { 
               workerId: this.workerId, 
               workerName: this.workerName,
               successCount: this.successCount,
+              component: "CircuitBreaker"
             },
-            "[CircuitBreaker] HALF_OPEN → CLOSED - worker recovered"
+            "HALF_OPEN → CLOSED - worker recovered"
           );
           this.state = CircuitState.CLOSED;
           this.failureCount = 0;
           this.successCount = 0;
           this.nextRetryTime = null;
+          this.saveStateToDB();
         }
         break;
 
       case CircuitState.OPEN:
         // Should not happen (can't execute when OPEN)
-        console.warn(
-          { workerId: this.workerId, workerName: this.workerName },
-          "[CircuitBreaker] Unexpected success while OPEN"
+        log.warn(
+          { 
+            workerId: this.workerId, 
+            workerName: this.workerName,
+            component: "CircuitBreaker"
+          },
+          "Unexpected success while OPEN"
         );
         break;
     }
@@ -172,13 +282,14 @@ export class CircuitBreaker {
 
       case CircuitState.HALF_OPEN:
         // Failed during recovery, go back to OPEN
-        console.warn(
+        log.warn(
           { 
             workerId: this.workerId, 
             workerName: this.workerName,
             error,
+            component: "CircuitBreaker"
           },
-          "[CircuitBreaker] HALF_OPEN → OPEN - recovery failed"
+          "HALF_OPEN → OPEN - recovery failed"
         );
         this.openCircuit();
         break;
@@ -197,15 +308,18 @@ export class CircuitBreaker {
     this.nextRetryTime = Date.now() + this.config.recoveryTimeout;
     this.successCount = 0;
 
-    console.error(
+    log.error(
       { 
         workerId: this.workerId, 
         workerName: this.workerName,
         failureCount: this.failureCount,
         recoveryTimeoutMs: this.config.recoveryTimeout,
+        component: "CircuitBreaker"
       },
-      "[CircuitBreaker] Circuit OPEN - too many failures"
+      "Circuit OPEN - too many failures"
     );
+    
+    this.saveStateToDB();
   }
 
   /**
@@ -217,10 +331,16 @@ export class CircuitBreaker {
     this.successCount = 0;
     this.nextRetryTime = null;
     
-    console.log(
-      { workerId: this.workerId, workerName: this.workerName },
-      "[CircuitBreaker] Circuit manually reset to CLOSED"
+    log.info(
+      { 
+        workerId: this.workerId, 
+        workerName: this.workerName,
+        component: "CircuitBreaker"
+      },
+      "Circuit manually reset to CLOSED"
     );
+    
+    this.saveStateToDB();
   }
 
   /**
@@ -264,7 +384,13 @@ export class CircuitBreakerManager {
    */
   setGlobalConfig(config: Partial<CircuitBreakerConfig>): void {
     this.globalConfig = config;
-    console.log({ config }, "[CircuitBreakerManager] Global config updated");
+    log.info(
+      { 
+        config,
+        component: "CircuitBreakerManager"
+      },
+      "Global config updated"
+    );
   }
 
   /**
@@ -285,14 +411,15 @@ export class CircuitBreakerManager {
       };
       
       this.breakers.set(workerId, new CircuitBreaker(workerId, workerName, mergedConfig));
-      console.log(
+      log.info(
         { 
           workerId, 
           workerName, 
           hasCustomConfig: !!customConfig,
           hasGlobalConfig: !!this.globalConfig,
+          component: "CircuitBreakerManager"
         },
-        "[CircuitBreakerManager] Created new circuit breaker"
+        "Created new circuit breaker"
       );
     }
     
@@ -305,7 +432,13 @@ export class CircuitBreakerManager {
   removeBreaker(workerId: number): void {
     if (this.breakers.has(workerId)) {
       this.breakers.delete(workerId);
-      console.log({ workerId }, "[CircuitBreakerManager] Removed circuit breaker");
+      log.info(
+        { 
+          workerId,
+          component: "CircuitBreakerManager"
+        },
+        "Removed circuit breaker"
+      );
     }
   }
 
@@ -316,7 +449,13 @@ export class CircuitBreakerManager {
     for (const breaker of Array.from(this.breakers.values())) {
       breaker.reset();
     }
-    console.log("[CircuitBreakerManager] Reset all circuit breakers");
+    log.info(
+      { 
+        count: this.breakers.size,
+        component: "CircuitBreakerManager"
+      },
+      "Reset all circuit breakers"
+    );
   }
 
   /**

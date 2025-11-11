@@ -972,6 +972,58 @@ export type InsertGpuWorker = z.infer<typeof insertGpuWorkerSchema>;
 export type GpuWorker = typeof gpuWorkers.$inferSelect;
 
 // ============================================================================
+// CIRCUIT BREAKER STATE - Production-grade GPU worker failure protection
+// Persists circuit breaker state to survive server restarts
+// ============================================================================
+export const circuitBreakerStateEnum = pgEnum("circuit_breaker_state", [
+  "CLOSED",
+  "OPEN", 
+  "HALF_OPEN"
+]);
+
+export const circuitBreakerState = pgTable("circuit_breaker_state", {
+  id: serial("id").primaryKey(),
+  
+  // Worker reference
+  workerId: integer("worker_id").notNull().references(() => gpuWorkers.id, { onDelete: 'cascade' }).unique(),
+  
+  // Circuit state
+  state: circuitBreakerStateEnum("state").notNull().default("CLOSED"),
+  
+  // Counters
+  failureCount: integer("failure_count").notNull().default(0),
+  successCount: integer("success_count").notNull().default(0),
+  
+  // Timestamps
+  lastFailureTime: timestamp("last_failure_time"),
+  lastSuccessTime: timestamp("last_success_time"),
+  nextRetryTime: timestamp("next_retry_time"), // When to retry after OPEN
+  
+  // Configuration (can override defaults)
+  config: jsonb("config").$type<{
+    failureThreshold?: number;
+    recoveryTimeout?: number;
+    successThreshold?: number;
+    timeout?: number;
+  }>().default({}),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  workerIdIdx: index("circuit_breaker_state_worker_id_idx").on(table.workerId),
+  stateIdx: index("circuit_breaker_state_state_idx").on(table.state),
+}));
+
+export const insertCircuitBreakerStateSchema = createInsertSchema(circuitBreakerState).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertCircuitBreakerState = z.infer<typeof insertCircuitBreakerStateSchema>;
+export type CircuitBreakerState = typeof circuitBreakerState.$inferSelect;
+
+// ============================================================================
 // MULTIMODAL MEDIA GENERATION - Autonomous Image/GIF Generation (Colab/Kaggle)
 // ============================================================================
 
