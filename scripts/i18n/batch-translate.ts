@@ -55,25 +55,35 @@ async function translateBatch(
     'es-ES': 'European Spanish'
   };
 
-  const prompt = `You are a professional translator. Translate the following Brazilian Portuguese texts to ${languageNames[targetLanguage]}.
+  const technicalGlossary = {
+    'en-US': 'GPU, API, token, dataset, agent, model, training, embedding, inference, prompt, chat, admin, dashboard, webhook',
+    'es-ES': 'GPU, API, token, dataset, agente, modelo, entrenamiento, embedding, inferencia, prompt, chat, admin, dashboard, webhook'
+  };
 
-CRITICAL RULES:
-1. Preserve ALL interpolation variables EXACTLY as they appear: {variable}, {{variable}}, {0}, {1}, etc.
-2. Maintain the same tone and style (formal/informal)
-3. Keep technical terms in English when appropriate
-4. Return ONLY the translations, one per line, in the EXACT same order
-5. Do NOT add explanations, comments, or any additional text
-6. If a text is already in English/Spanish (technical term), keep it unchanged
+  const prompt = `You are a professional translator specializing in enterprise software localization. Translate the following Brazilian Portuguese texts to ${languageNames[targetLanguage]}.
+
+CRITICAL RULES (MANDATORY):
+1. PRESERVE ALL interpolation variables EXACTLY: {variable}, {{variable}}, {0}, {1}, $\{var}, etc.
+2. TRANSLATE the text - DO NOT copy the original Portuguese unchanged
+3. Maintain the same tone and formality level
+4. Keep these technical terms in English: ${technicalGlossary[targetLanguage]}
+5. Return ONLY the translations, one per line, in the EXACT same order
+6. Do NOT add explanations, numbering, or any additional text
+7. Each line must be a TRANSLATED version, not a copy of the original
+
+EXAMPLE:
+Input: "Bem-vindo ao sistema"
+Output: "Welcome to the system" (NOT "Bem-vindo ao sistema")
 
 Texts to translate (one per line):
 ${texts.join('\n')}`;
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     messages: [
       {
         role: 'system',
-        content: 'You are a professional translator specializing in software localization. You preserve variable interpolations and maintain technical accuracy.'
+        content: 'You are a professional translator specializing in software localization. You MUST translate every text - never return the original Portuguese unchanged. Preserve variable interpolations and maintain technical accuracy.'
       },
       {
         role: 'user',
@@ -81,18 +91,44 @@ ${texts.join('\n')}`;
       }
     ],
     temperature: 0.3,
-    max_tokens: 8000,
+    max_tokens: 4000,
   });
 
   const translatedText = response.choices[0]?.message?.content || '';
   const translations = translatedText.split('\n').filter(line => line.trim());
 
+  // CRITICAL: Fail immediately on count mismatch (GPT-4o truncation/formatting error)
   if (translations.length !== texts.length) {
-    console.warn(`⚠️  Translation count mismatch: expected ${texts.length}, got ${translations.length}`);
-    // Fill missing with original text
-    while (translations.length < texts.length) {
-      translations.push(texts[translations.length]);
+    throw new Error(
+      `Translation count mismatch: expected ${texts.length}, got ${translations.length}. ` +
+      `This indicates GPT-4o truncation or formatting error. Batch rejected.`
+    );
+  }
+
+  // Quality validation: detect identical copies (translation failure)
+  // Whitelist: short technical terms (all caps, <5 chars)
+  const whitelist = new Set(['GPU', 'API', 'KB', 'LLM', 'RAG', 'MoE', 'RBAC', 'SQL', 'DB']);
+  let identicalCount = 0;
+  const identicalStrings: string[] = [];
+
+  for (let i = 0; i < texts.length; i++) {
+    if (translations[i] === texts[i]) {
+      // Skip whitelisted technical terms
+      if (whitelist.has(texts[i].trim())) {
+        continue;
+      }
+      identicalCount++;
+      identicalStrings.push(texts[i]);
+      console.warn(`   ⚠️  Identical copy detected: "${texts[i]}"`);
     }
+  }
+
+  // Strict threshold: fail on ANY non-whitelisted identical string
+  if (identicalCount > 0) {
+    throw new Error(
+      `Translation quality failure: ${identicalCount} strings are identical copies (not whitelisted). ` +
+      `Examples: ${identicalStrings.slice(0, 3).join(', ')}. Batch rejected.`
+    );
   }
 
   return translations;
@@ -113,10 +149,11 @@ async function main() {
   const values = Object.values(flattenedPtBR);
 
   console.log(`📊 Total strings to translate: ${keys.length}`);
-  console.log(`🎯 Target languages: EN-US, ES-ES\n`);
+  console.log(`🎯 Target languages: EN-US, ES-ES`);
+  console.log(`🤖 Using GPT-4o with 20-key batches for quality\n`);
 
-  // Batch size (larger batches for efficiency, GPT-4o-mini can handle it)
-  const BATCH_SIZE = 200;
+  // Batch size: 20 keys (Architect recommendation for quality + validation)
+  const BATCH_SIZE = 20;
   const languages: Array<'en-US' | 'es-ES'> = ['en-US', 'es-ES'];
 
   for (const targetLang of languages) {
@@ -130,18 +167,35 @@ async function main() {
 
       console.log(`   Batch ${batchNumber}/${totalBatches} (${batch.length} strings)...`);
 
-      try {
-        const translations = await translateBatch(batch, targetLang);
-        translatedValues.push(...translations);
+      let retryCount = 0;
+      const MAX_RETRIES = 2;
 
-        // Rate limiting: wait 500ms between batches to avoid hitting OpenAI limits
-        if (i + BATCH_SIZE < values.length) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+      while (retryCount <= MAX_RETRIES) {
+        try {
+          const translations = await translateBatch(batch, targetLang);
+          translatedValues.push(...translations);
+          console.log(`   ✅ Batch ${batchNumber} translated successfully`);
+
+          // Rate limiting: wait 1s between batches for GPT-4o
+          if (i + BATCH_SIZE < values.length) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+          break; // Success - exit retry loop
+        } catch (error: any) {
+          retryCount++;
+          console.error(`   ❌ Attempt ${retryCount}/${MAX_RETRIES + 1} failed:`, error.message);
+
+          if (retryCount > MAX_RETRIES) {
+            console.error(`   🛑 All retries exhausted for batch ${batchNumber}`);
+            console.error(`   ⚠️  Stopping translation - fix issues and resume from batch ${batchNumber}`);
+            throw error; // Fail-fast after retries
+          }
+
+          // Exponential backoff before retry
+          const backoffMs = 2000 * Math.pow(2, retryCount - 1);
+          console.log(`   🔄 Retrying in ${backoffMs}ms...`);
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
         }
-      } catch (error: any) {
-        console.error(`   ❌ Error in batch ${batchNumber}:`, error.message);
-        console.error('   Using original text as fallback...');
-        translatedValues.push(...batch);
       }
     }
 
