@@ -213,13 +213,24 @@ export class ColabNotebookCreator {
           signInButton.click(),
         ]);
 
-        // Email input com retry e timeout maior
+        // STEP 1: Email input
         await this.waitAndType(page, 'input[type="email"]', this.credentials.email, 15000);
-        await this.pressEnterAndWait(page, 5000);  // Mais tempo para processar
         
-        // Password input com retry e timeout maior
+        // STEP 2: Click "Next" button (usando selector atualizado 2025)
+        await page.click('#identifierNext');
+        
+        // STEP 3: Aguardar password field aparecer na mesma página
+        // Google 2025: password aparece na mesma tab após alguns segundos
+        await page.waitForSelector('input[type="password"]', { visible: true, timeout: 30000 });
+        
+        // STEP 4: Password input (selector atualizado 2025: input[type="password"])
         await this.waitAndType(page, 'input[type="password"]', this.credentials.password!, 15000);
-        await this.pressEnterAndWait(page, 5000);  // Mais tempo para processar
+        
+        // STEP 5: Click password Next button
+        await page.click('#passwordNext');
+        
+        // Wait for final navigation
+        await page.waitForTimeout(3000);
 
         // Detect 2FA challenge
         const is2FARequired = await this.detect2FA(page);
@@ -250,11 +261,15 @@ export class ColabNotebookCreator {
         lastError = error;
         console.error(`[Colab Creator] ❌ Login attempt ${attempt} failed:`, error.message);
 
-        // Screenshot para debugging
+        // Screenshot para debugging (capture todas as páginas abertas)
         try {
-          const screenshotPath = path.join('/tmp', `colab-login-error-${Date.now()}.png`);
-          await page.screenshot({ path: screenshotPath, fullPage: true });
-          console.log(`[Colab Creator] 📸 Error screenshot saved: ${screenshotPath}`);
+          const pages = await this.browser?.pages();
+          if (pages && pages.length > 0) {
+            // Screenshot da última página ativa (provavelmente a de login)
+            const screenshotPath = path.join('/tmp', `colab-login-error-${Date.now()}.png`);
+            await pages[pages.length - 1].screenshot({ path: screenshotPath, fullPage: true });
+            console.log(`[Colab Creator] 📸 Error screenshot saved: ${screenshotPath}`);
+          }
         } catch (screenshotError) {
           console.warn('[Colab Creator] Failed to save error screenshot');
         }
