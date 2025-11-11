@@ -1024,6 +1024,45 @@ export type InsertCircuitBreakerState = z.infer<typeof insertCircuitBreakerState
 export type CircuitBreakerState = typeof circuitBreakerState.$inferSelect;
 
 // ============================================================================
+// VISION QUOTA STATE - Production-grade Vision API quota tracking
+// Persists vision provider quotas to survive server restarts
+// ============================================================================
+export const visionProviderEnum = pgEnum("vision_provider_enum", [
+  "gemini",
+  "gpt4v-openrouter",
+  "claude3-openrouter",
+  "huggingface"
+]);
+
+export const visionQuotaState = pgTable("vision_quota_state", {
+  id: serial("id").primaryKey(),
+  
+  // Provider (unique - one row per provider)
+  provider: visionProviderEnum("provider").notNull().unique(),
+  
+  // Quota tracking
+  used: integer("used").notNull().default(0),
+  limit: integer("limit").notNull(),
+  
+  // Reset tracking
+  lastReset: timestamp("last_reset", { mode: 'date' }).notNull().defaultNow(),
+  
+  // Metadata
+  createdAt: timestamp("created_at", { mode: 'date' }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'date' }).notNull().defaultNow()
+}, (table) => ({
+  providerIdx: index("vision_quota_state_provider_idx").on(table.provider)
+}));
+
+export const insertVisionQuotaStateSchema = createInsertSchema(visionQuotaState).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertVisionQuotaState = z.infer<typeof insertVisionQuotaStateSchema>;
+export type VisionQuotaState = typeof visionQuotaState.$inferSelect;
+
+// ============================================================================
 // MULTIMODAL MEDIA GENERATION - Autonomous Image/GIF Generation (Colab/Kaggle)
 // ============================================================================
 
