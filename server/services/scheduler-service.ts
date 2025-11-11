@@ -23,6 +23,7 @@
  * - Training Queue Monitor: A cada 5min → Trigger Kaggle GPU se ≥25 KBs
  * - Weekly Quota Reset: Domingo 00:00 UTC → Reset weeklyUsageHours (28h/week ONLY)
  * - Auto-Stop Detection: A cada 5min → Auto-stop após job completion
+ * - GPU Idle Monitor: A cada 5min → Shutdown idle GPUs (10min threshold)
  */
 
 import * as cron from 'node-cron';
@@ -34,6 +35,7 @@ import { secretsVault } from './security/secrets-vault';
 import { modelDeploymentService } from './model-deployment-service';
 import { quotaTelemetryService } from './quota-telemetry-service';
 import { metaLearningOrchestrator } from '../meta/meta-learning-orchestrator';
+import { onDemandGPUService } from './on-demand-gpu-service';
 import { logger } from './logger-service';
 
 interface ScheduledJob {
@@ -477,7 +479,27 @@ export class SchedulerService {
       errorCount: 0,
     });
 
-    // 🔥 JOB 14: Conversation Finalizer - A cada 10 minutos (Consolidate inactive chats for curation)
+    // 🔥 JOB 14: GPU Idle Monitor - A cada 5 minutos (ON-DEMAND idle shutdown)
+    // CRITICAL: Auto-shutdown idle GPUs (10min threshold) to save quota
+    // - Monitors all healthy GPUs for inference activity
+    // - Gracefully shuts down via orchestrator (Kaggle/Colab)
+    // - Prevents quota waste from idle sessions
+    this.register({
+      name: 'gpu-idle-monitor',
+      schedule: '*/5 * * * *', // A cada 5 minutos
+      task: async () => {
+        try {
+          await onDemandGPUService.checkIdleGPUs();
+        } catch (error: any) {
+          logger.error(`GPU idle monitor error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 15: Conversation Finalizer - A cada 10 minutos (Consolidate inactive chats for curation)
     // CRITICAL: Detects conversations that have been idle for 10+ minutes
     // Consolidates all messages into a single curation item with full transcript + attachments
     this.register({
