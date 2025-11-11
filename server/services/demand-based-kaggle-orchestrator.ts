@@ -8,7 +8,7 @@
  * - Liga Kaggle SOMENTE quando há demanda real
  * - Triggers: ≥25 KBs OU inferência pesada
  * - Auto-shutdown após job completion
- * - Quota: 28h/semana total (não importa quantas sessões)
+ * - Quota: 21h/semana (70% de 30h total) - não importa quantas sessões
  * 
  * DIFFERENCE FROM TRADITIONAL APPROACH:
  * ❌ OLD: 4h/day fixed sessions (wasteful if no work)
@@ -17,7 +17,7 @@
  * FEATURES:
  * ✅ Smart trigger detection
  * ✅ Automatic start/stop
- * ✅ Quota enforcement (28h/week)
+ * ✅ Quota enforcement (21h/week - 70% de 30h)
  * ✅ Session tracking
  * ✅ Graceful shutdown after job completion
  */
@@ -91,7 +91,7 @@ export class DemandBasedKaggleOrchestrator {
       
       // ✅ BLOCKER #3 FIX: COLAB-FIRST POLICY
       // Verifica se já há algum worker online (especialmente Colab free)
-      // Se houver, NÃO ativa Kaggle (economiza quota on-demand de 28h/week)
+      // Se houver, NÃO ativa Kaggle (economiza quota on-demand de 21h/week)
       const { GPUPool } = await import('../gpu/pool');
       const onlineWorkers = await GPUPool.getOnlineWorkers();
       
@@ -141,7 +141,7 @@ export class DemandBasedKaggleOrchestrator {
             },
             autoManaged: true,
             maxSessionDurationSeconds: 9 * 3600,
-            maxWeeklySeconds: 28 * 3600,
+            maxWeeklySeconds: 21 * 3600,
             weeklyUsageHours: 0,
             dailyUsageHours: 0,
           }).returning();
@@ -321,7 +321,7 @@ export class DemandBasedKaggleOrchestrator {
         `  URL: ${provisionResult.kernelUrl}\n` +
         `  Reason: ${options.reason}\n` +
         `  Estimated: ${options.estimatedDurationMinutes}min\n` +
-        `  Weekly quota: ${cooldownStatus.weeklyUsageHours?.toFixed(2) || 0}h / 28h`
+        `  Weekly quota: ${cooldownStatus.weeklyUsageHours?.toFixed(2) || 0}h / 21h`
       );
       
       return {
@@ -554,11 +554,11 @@ export class DemandBasedKaggleOrchestrator {
     });
     
     if (kaggleWorkers.length === 0) {
-      return { used: 0, remaining: 28 };
+      return { used: 0, remaining: 21 };
     }
     
     const totalUsed = kaggleWorkers.reduce((sum, w) => sum + (w.weeklyUsageHours || 0), 0);
-    const remaining = Math.max(0, 28 - totalUsed);
+    const remaining = Math.max(0, 21 - totalUsed);
     
     return { used: totalUsed, remaining };
   }
@@ -581,7 +581,7 @@ export class DemandBasedKaggleOrchestrator {
     if (quotaStatus.remaining <= 0) {
       return {
         canStart: false,
-        reason: `Weekly quota exhausted: ${quotaStatus.used.toFixed(2)}h / 28h`,
+        reason: `Weekly quota exhausted: ${quotaStatus.used.toFixed(2)}h / 21h`,
       };
     }
     

@@ -6215,14 +6215,26 @@ export function registerRoutes(app: Express): Server {
         })
       );
       
-      // Calculate global stats
+      // Calculate global stats (FIXED: separate active vs historical)
+      const activeWorkers = allWorkers.filter(w => w.status === 'online' || w.status === 'healthy');
+      
       const stats = {
+        // Total counts (all workers, regardless of status)
         total: allWorkers.length,
+        active: activeWorkers.length,  // Currently online
         healthy: allWorkers.filter(w => w.status === 'healthy' || w.status === 'online').length,
         unhealthy: allWorkers.filter(w => w.status === 'unhealthy').length,
         offline: allWorkers.filter(w => w.status === 'offline').length,
         pending: allWorkers.filter(w => w.status === 'pending').length,
+        
+        // Historical totals (ALL workers, including offline)
         totalRequests: allWorkers.reduce((sum, w) => sum + (w.requestCount || 0), 0),
+        totalWeeklyHours: allWorkers.reduce((sum, w) => sum + (w.weeklyUsageHours || 0), 0),
+        
+        // Active-only metrics
+        activeRequests: activeWorkers.reduce((sum, w) => sum + (w.requestCount || 0), 0),
+        activeWeeklyHours: activeWorkers.reduce((sum, w) => sum + (w.weeklyUsageHours || 0), 0),
+        
         avgLatency: allWorkers.length > 0 
           ? allWorkers.reduce((sum, w) => sum + (w.averageLatencyMs || 0), 0) / allWorkers.length
           : 0,
