@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -528,7 +529,7 @@ export default function CurationQueuePage() {
       {/* Content Type Filter */}
       <div className="space-y-3">
         <div>
-          <Label className="text-sm font-medium mb-2 block">{t.common.loading}</Label>
+          <Label className="text-sm font-medium mb-2 block">Tipo de Conteúdo</Label>
           <div className="flex flex-wrap gap-2">
             <Button
               variant={contentFilter === "all" ? "default" : "outline"}
@@ -536,7 +537,7 @@ export default function CurationQueuePage() {
               onClick={() => setContentFilter("all")}
               data-testid="filter-all"
             >
-              {t.admin.curation.all} ({items?.length || 0})
+              {t.admin.curation.all} {isLoading ? <Skeleton className="h-4 w-8 inline-block ml-1" /> : `(${items?.length || 0})`}
             </Button>
             <Button
               variant={contentFilter === "pages" ? "default" : "outline"}
@@ -544,7 +545,7 @@ export default function CurationQueuePage() {
               onClick={() => setContentFilter("pages")}
               data-testid="filter-pages"
             >
-              {t.admin.curation.pages} ({(items?.filter(i => i.submittedBy !== "image-crawler" && i.submittedBy !== "image-crawler-consolidated") || []).length})
+              {t.admin.curation.pages} {isLoading ? <Skeleton className="h-4 w-8 inline-block ml-1" /> : `(${(items?.filter(i => i.submittedBy !== "image-crawler" && i.submittedBy !== "image-crawler-consolidated") || []).length})`}
             </Button>
             <Button
               variant={contentFilter === "images" ? "default" : "outline"}
@@ -552,15 +553,15 @@ export default function CurationQueuePage() {
               onClick={() => setContentFilter("images")}
               data-testid="filter-images"
             >
-              {t.admin.curation.images} ({(items?.filter(i => i.submittedBy === "image-crawler" || i.submittedBy === "image-crawler-consolidated") || []).length})
+              {t.admin.curation.images} {isLoading ? <Skeleton className="h-4 w-8 inline-block ml-1" /> : `(${(items?.filter(i => i.submittedBy === "image-crawler" || i.submittedBy === "image-crawler-consolidated") || []).length})`}
             </Button>
           </div>
         </div>
 
         {/* Duplication Status Filter */}
         <div>
-          <div className="flex items-center gap-2">
-            <Label className="text-sm font-medium">{t.common.loading}</Label>
+          <div className="flex items-center gap-2 mb-2">
+            <Label className="text-sm font-medium">Status de Duplicação</Label>
             <Button
               variant="outline"
               size="sm"
@@ -590,14 +591,15 @@ export default function CurationQueuePage() {
               onClick={() => setDuplicationFilter("all")}
               data-testid="filter-dup-all"
             >
-              Todos ({items?.length || 0})
+              Todos {isLoading ? <Skeleton className="h-4 w-8 inline-block ml-1" /> : `(${items?.length || 0})`}
             </Button>
             <Button
               variant={duplicationFilter === "unscanned" ? "default" : "outline"}
               size="sm"
               onClick={() => setDuplicationFilter("unscanned")}
               data-testid="filter-dup-unscanned"
-            >"Não Escaneados ("{(items?.filter(i => !i.duplicationStatus) || []).length})
+            >
+              Não Escaneados {isLoading ? <Skeleton className="h-4 w-8 inline-block ml-1" /> : `(${(items?.filter(i => !i.duplicationStatus) || []).length})`}
             </Button>
             <Button
               variant={duplicationFilter === "unique" ? "default" : "outline"}
@@ -605,7 +607,8 @@ export default function CurationQueuePage() {
               onClick={() => setDuplicationFilter("unique")}
               data-testid="filter-dup-unique"
               className="text-green-600 hover:text-green-700"
-            >"Únicos ("{(items?.filter(i => i.duplicationStatus === "unique") || []).length})
+            >
+              Únicos {isLoading ? <Skeleton className="h-4 w-8 inline-block ml-1" /> : `(${(items?.filter(i => i.duplicationStatus === "unique") || []).length})`}
             </Button>
             <Button
               variant={duplicationFilter === "near" ? "default" : "outline"}
@@ -614,7 +617,7 @@ export default function CurationQueuePage() {
               data-testid="filter-dup-near"
               className="text-yellow-600 hover:text-yellow-700"
             >
-              Similares ({(items?.filter(i => i.duplicationStatus === "near") || []).length})
+              Similares {isLoading ? <Skeleton className="h-4 w-8 inline-block ml-1" /> : `(${(items?.filter(i => i.duplicationStatus === "near") || []).length})`}
             </Button>
             <Button
               variant={duplicationFilter === "exact" ? "default" : "outline"}
@@ -623,7 +626,7 @@ export default function CurationQueuePage() {
               data-testid="filter-dup-exact"
               className="text-red-600 hover:text-red-700"
             >
-              Duplicatas Exatas ({(items?.filter(i => i.duplicationStatus === "exact") || []).length})
+              Duplicatas Exatas {isLoading ? <Skeleton className="h-4 w-8 inline-block ml-1" /> : `(${(items?.filter(i => i.duplicationStatus === "exact") || []).length})`}
             </Button>
           </div>
         </div>
@@ -632,11 +635,11 @@ export default function CurationQueuePage() {
       <Tabs defaultValue="pending" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="pending" data-testid="tab-pending">
-            {t.admin.curation.pending} ({filteredItems?.length || 0})
+            {t.admin.curation.pending} {isLoading ? <Skeleton className="h-4 w-8 inline-block ml-1" /> : `(${filteredItems?.length || 0})`}
           </TabsTrigger>
           <TabsTrigger value="history" data-testid="tab-history">
             <HistoryIcon className="h-4 w-4 mr-2" />
-            {t.admin.curation.history} ({filteredHistoryItems?.length || 0})
+            {t.admin.curation.history} {historyLoading ? <Skeleton className="h-4 w-8 inline-block ml-1" /> : `(${filteredHistoryItems?.length || 0})`}
           </TabsTrigger>
         </TabsList>
 
