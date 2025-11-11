@@ -3159,3 +3159,175 @@ export const insertBackupOperationSchema = createInsertSchema(backupOperations).
 });
 export type InsertBackupOperation = z.infer<typeof insertBackupOperationSchema>;
 export type BackupOperation = typeof backupOperations.$inferSelect;
+
+// ============================================================================
+// ENTERPRISE CASCADE DELETION - Data Lineage Tracking
+// ============================================================================
+
+/**
+ * DATASET VERSIONS - Tracks dataset lineage and source KB documents
+ * Used to implement cascade deletion with dependency tracking
+ */
+export const datasetVersions = pgTable("dataset_versions", {
+  id: serial("id").primaryKey(),
+  
+  // Dataset reference
+  datasetId: integer("dataset_id").notNull().references(() => datasets.id, { onDelete: 'cascade' }),
+  versionNumber: integer("version_number").notNull().default(1),
+  
+  // Source KB documents (lineage tracking)
+  sourceKbDocumentIds: integer("source_kb_document_ids").array().notNull().default(sql`ARRAY[]::integer[]`),
+  
+  // Dataset state snapshot
+  totalExamples: integer("total_examples").notNull(),
+  averageQualityScore: real("average_quality_score"), // 0-100
+  
+  // Metadata
+  metadata: jsonb("metadata").$type<{
+    generationMethod?: string; // "auto" | "manual" | "curated"
+    kbNamespaces?: string[]; // Which namespaces contributed to this dataset
+    conversationIds?: number[]; // Source conversations
+    createdBy?: string; // User ID
+  }>(),
+  
+  // Status
+  status: varchar("status", { length: 20 }).notNull().default("active"), // "active" | "deprecated" | "tainted"
+  taintReason: text("taint_reason"), // Why this version was tainted (e.g., "Source KB document deleted")
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  deprecatedAt: timestamp("deprecated_at"),
+}, (table) => ({
+  datasetIdIdx: index("dataset_versions_dataset_id_idx").on(table.datasetId),
+  statusIdx: index("dataset_versions_status_idx").on(table.status),
+  // UNIQUE constraint - prevent duplicate versions for same dataset
+  datasetVersionUnique: unique("dataset_versions_dataset_id_version_unique").on(table.datasetId, table.versionNumber),
+  // GIN index for efficient array containment queries (@> and && operators)
+  sourceKbDocumentsIdx: index("dataset_versions_source_kb_documents_idx").using("gin", table.sourceKbDocumentIds),
+}));
+
+export const insertDatasetVersionSchema = createInsertSchema(datasetVersions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertDatasetVersion = z.infer<typeof insertDatasetVersionSchema>;
+export type DatasetVersion = typeof datasetVersions.$inferSelect;
+
+/**
+ * MODEL VERSIONS - Tracks deployed models and their dataset/KB dependencies
+ * Used to implement model tainting when source data is deleted
+ */
+export const modelVersions = pgTable("model_versions", {
+  id: serial("id").primaryKey(),
+  
+  // Model metadata
+  modelName: varchar("model_name", { length: 255 }).notNull(),
+  versionId: varchar("version_id", { length: 100 }).notNull().unique(), // e.g., "v1234567890-job123"
+  
+  // Training job reference
+  trainingJobId: integer("training_job_id").references(() => trainingJobs.id, { onDelete: 'set null' }),
+  
+  // Lineage tracking - which datasets were used to train this model
+  sourceDatasetIds: integer("source_dataset_ids").array().notNull().default(sql`ARRAY[]::integer[]`),
+  
+  // Indirect lineage - KB documents that contributed to training data
+  indirectKbDocumentIds: integer("indirect_kb_document_ids").array().notNull().default(sql`ARRAY[]::integer[]`),
+  
+  // Model state
+  status: varchar("status", { length: 20 }).notNull().default("deployed"), // "deployed" | "deprecated" | "tainted"
+  taintReason: text("taint_reason"), // Why this model was tainted
+  performanceMetrics: jsonb("performance_metrics").$type<{
+    accuracy?: number;
+    loss?: number;
+    perplexity?: number;
+    bleuScore?: number;
+    customMetrics?: Record<string, number>;
+  }>(),
+  
+  // Deployment info
+  deployedAt: timestamp("deployed_at"),
+  deployedBy: varchar("deployed_by").references(() => users.id),
+  
+  // Metadata
+  metadata: jsonb("metadata").$type<{
+    baseModel?: string;
+    loraConfig?: any;
+    trainingDuration?: number;
+    hardwareUsed?: string;
+    tags?: string[];
+  }>(),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  deprecatedAt: timestamp("deprecated_at"),
+}, (table) => ({
+  modelNameIdx: index("model_versions_model_name_idx").on(table.modelName),
+  statusIdx: index("model_versions_status_idx").on(table.status),
+  trainingJobIdIdx: index("model_versions_training_job_id_idx").on(table.trainingJobId),
+  // GIN indexes for efficient array containment queries (@> and && operators)
+  sourceDatasetIdsIdx: index("model_versions_source_dataset_ids_idx").using("gin", table.sourceDatasetIds),
+  indirectKbDocumentIdsIdx: index("model_versions_indirect_kb_document_ids_idx").using("gin", table.indirectKbDocumentIds),
+}));
+
+export const insertModelVersionSchema = createInsertSchema(modelVersions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+export type InsertModelVersion = z.infer<typeof insertModelVersionSchema>;
+export type ModelVersion = typeof modelVersions.$inferSelect;
+
+/**
+ * DELETION TOMBSTONES - Immutable audit log for deleted data
+ * Preserves metadata after deletion for GDPR compliance and lineage tracking
+ * NEVER deleted - soft preserve for retention policy compliance
+ */
+export const deletionTombstones = pgTable("deletion_tombstones", {
+  id: serial("id").primaryKey(),
+  
+  // What was deleted
+  entityType: varchar("entity_type", { length: 50 }).notNull(), // "kb_document" | "dataset" | "model" | "conversation"
+  entityId: integer("entity_id").notNull(), // Original ID (no FK - entity is deleted)
+  
+  // Preserved metadata (GDPR-compliant - no PII)
+  entityMetadata: jsonb("entity_metadata").$type<{
+    title?: string;
+    namespace?: string;
+    createdAt?: string;
+    size?: number;
+    tags?: string[];
+    // NO PII: emails, names, personal data redacted
+  }>(),
+  
+  // Deletion context
+  deletedBy: varchar("deleted_by").references(() => users.id, { onDelete: 'set null' }),
+  deletionReason: text("deletion_reason"), // "user_request" | "retention_policy" | "gdpr_right_to_erasure" | "cascade"
+  
+  // Cascade impact tracking
+  cascadeImpact: jsonb("cascade_impact").$type<{
+    affectedDatasets?: number[]; // IDs of datasets tainted by this deletion
+    affectedModels?: number[]; // IDs of models tainted by this deletion
+    totalAffectedEntities?: number;
+  }>(),
+  
+  // Retention policy
+  retentionUntil: timestamp("retention_until"), // When this tombstone can be purged (null = keep forever)
+  
+  // Immutable audit trail
+  deletedAt: timestamp("deleted_at").notNull().defaultNow(),
+  
+  // GDPR compliance
+  gdprReason: varchar("gdpr_reason", { length: 100 }), // "right_to_erasure" | "data_minimization" | "storage_limitation"
+}, (table) => ({
+  entityTypeIdx: index("deletion_tombstones_entity_type_idx").on(table.entityType),
+  entityIdIdx: index("deletion_tombstones_entity_id_idx").on(table.entityId),
+  deletedByIdx: index("deletion_tombstones_deleted_by_idx").on(table.deletedBy),
+  deletedAtIdx: index("deletion_tombstones_deleted_at_idx").on(table.deletedAt),
+  retentionUntilIdx: index("deletion_tombstones_retention_until_idx").on(table.retentionUntil),
+}));
+
+export const insertDeletionTombstoneSchema = createInsertSchema(deletionTombstones).omit({ 
+  id: true, 
+  deletedAt: true 
+});
+export type InsertDeletionTombstone = z.infer<typeof insertDeletionTombstoneSchema>;
+export type DeletionTombstone = typeof deletionTombstones.$inferSelect;
