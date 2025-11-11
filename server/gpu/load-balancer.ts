@@ -133,8 +133,8 @@ export class GpuLoadBalancer {
       };
     }
 
-    // ⚡ FASE 2 - C2: Get circuit breaker for this worker
-    const breaker = circuitBreakerManager.getBreaker(worker.id, worker.provider || "unknown");
+    // ⚡ FASE 2 - C2: Get circuit breaker for this worker (async recovery from DB)
+    const breaker = await circuitBreakerManager.getBreaker(worker.id, worker.provider || "unknown");
 
     // Check if circuit allows execution
     if (!breaker.canExecute()) {

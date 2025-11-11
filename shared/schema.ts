@@ -975,7 +975,7 @@ export type GpuWorker = typeof gpuWorkers.$inferSelect;
 // CIRCUIT BREAKER STATE - Production-grade GPU worker failure protection
 // Persists circuit breaker state to survive server restarts
 // ============================================================================
-export const circuitBreakerStateEnum = pgEnum("circuit_breaker_state", [
+export const circuitBreakerStateEnum = pgEnum("circuit_breaker_state_enum", [
   "CLOSED",
   "OPEN", 
   "HALF_OPEN"

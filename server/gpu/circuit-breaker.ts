@@ -54,8 +54,9 @@ export class CircuitBreaker {
   private lastSuccessTime: number | null = null;
   private nextRetryTime: number | null = null;
   private config: CircuitBreakerConfig;
+  private initPromise: Promise<void>;
 
-  constructor(
+  private constructor(
     private workerId: number,
     private workerName: string,
     config?: Partial<CircuitBreakerConfig>
@@ -79,8 +80,8 @@ export class CircuitBreaker {
       component: "CircuitBreaker"
     }, "CircuitBreaker initialized with config");
 
-    // Load state from DB if exists
-    this.loadStateFromDB().catch(err => {
+    // ✅ FIX P0: Initialize async state recovery
+    this.initPromise = this.loadStateFromDB().catch(err => {
       log.error({ 
         workerId, 
         workerName, 
@@ -88,6 +89,25 @@ export class CircuitBreaker {
         component: "CircuitBreaker"
       }, "Failed to load circuit breaker state from DB");
     });
+  }
+
+  /**
+   * ✅ FIX P0: Factory method for async initialization
+   * Ensures state is loaded from DB BEFORE serving traffic
+   */
+  static async create(
+    workerId: number,
+    workerName: string,
+    config?: Partial<CircuitBreakerConfig>
+  ): Promise<CircuitBreaker> {
+    const breaker = new CircuitBreaker(workerId, workerName, config);
+    await breaker.initPromise;
+    log.info({
+      workerId,
+      workerName,
+      component: "CircuitBreaker"
+    }, "Circuit breaker ready (state recovered from DB)");
+    return breaker;
   }
 
   /**
@@ -396,12 +416,13 @@ export class CircuitBreakerManager {
   /**
    * Obtém ou cria circuit breaker para worker
    * ⚡ FASE 2 - C2: Suporta configuração customizada por worker
+   * ✅ FIX P0: Async para aguardar recovery de state do DB
    */
-  getBreaker(
+  async getBreaker(
     workerId: number, 
     workerName: string,
     customConfig?: Partial<CircuitBreakerConfig>
-  ): CircuitBreaker {
+  ): Promise<CircuitBreaker> {
     if (!this.breakers.has(workerId)) {
       // ⚡ Deep merge: custom > global > ENV > defaults
       // Combina custom + global antes de passar pro constructor
@@ -410,7 +431,8 @@ export class CircuitBreakerManager {
         ...customConfig,           // Custom overrides depois
       };
       
-      this.breakers.set(workerId, new CircuitBreaker(workerId, workerName, mergedConfig));
+      const breaker = await CircuitBreaker.create(workerId, workerName, mergedConfig);
+      this.breakers.set(workerId, breaker);
       log.info(
         { 
           workerId, 
