@@ -197,7 +197,7 @@ export default function TelemetriaPage() {
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold tracking-tight">{t.admin.tabs.telemetry}</h2>
-        <p className="text-muted-foreground">{t.common.loading}</p>
+        <p className="text-muted-foreground">{t.admin.telemetry.subtitle || "Métricas e análises do sistema"}</p>
       </div>
 
       {/* Tabs */}

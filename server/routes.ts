@@ -1941,7 +1941,7 @@ export function registerRoutes(app: Express): Server {
         success: results.every(r => r.success),
         documentsDeleted: results.reduce((sum, r) => sum + r.documentsDeleted, 0),
         embeddingsDeleted: results.reduce((sum, r) => sum + r.embeddingsDeleted, 0),
-        filesDeleted: results.reduce((sum, r) => sum + r.filesDeleted, 0),
+        filesDeleted: results.flatMap(r => r.filesDeleted || []),
         warnings: results.flatMap(r => r.warnings || []),
         error: results.find(r => !r.success)?.error,
       };

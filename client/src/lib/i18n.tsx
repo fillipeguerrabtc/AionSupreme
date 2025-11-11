@@ -1146,6 +1146,12 @@ interface Translations {
       all: string;
       pages: string;
       images: string;
+      imagesProcessed: string;
+      error: string;
+      scanDuplicates: string;
+      unknown: string;
+      enterNote: string;
+      cancel: string;
     };
     
     // Auto-Approval Configuration
@@ -2558,6 +2564,12 @@ const translations: Record<Language, Translations> = {
         all: "Todos",
         pages: "Páginas",
         images: "Imagens",
+        imagesProcessed: "imagens processadas",
+        error: "Erro",
+        scanDuplicates: "Escanear Duplicatas",
+        unknown: "Desconhecido",
+        enterNote: "Digite uma nota",
+        cancel: "Cancelar",
       },
       
       autoApproval: {
@@ -3961,6 +3973,12 @@ const translations: Record<Language, Translations> = {
         all: "All",
         pages: "Pages",
         images: "Images",
+        imagesProcessed: "images processed",
+        error: "Error",
+        scanDuplicates: "Scan Duplicates",
+        unknown: "Unknown",
+        enterNote: "Enter a note",
+        cancel: "Cancel",
       },
       
       autoApproval: {
@@ -5364,6 +5382,12 @@ const translations: Record<Language, Translations> = {
         all: "Todos",
         pages: "Páginas",
         images: "Imágenes",
+        imagesProcessed: "imágenes procesadas",
+        error: "Error",
+        scanDuplicates: "Escanear Duplicados",
+        unknown: "Desconocido",
+        enterNote: "Ingresa una nota",
+        cancel: "Cancelar",
       },
       
       autoApproval: {

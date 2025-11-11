@@ -100,9 +100,10 @@ export default function GPUOverviewPage() {
   });
 
   // Fetch unified GPU data with adaptive polling
-  const { data: overviewData, isLoading } = useQuery<OverviewData>({
+  const { data: overviewData, isLoading, error } = useQuery<OverviewData>({
     queryKey: ["/api/gpu/overview"],
     refetchInterval: 30000, // Standard 30s polling
+    refetchOnMount: 'always', // Force fresh data on mount
   });
 
   // Detect active provisioning by checking for pending workers
@@ -302,6 +303,18 @@ export default function GPUOverviewPage() {
     return (
       <div className="flex items-center gap-2">
         <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Card className="border-red-500/50 bg-red-500/10">
+          <CardContent className="p-4">
+            <p className="text-red-400">Error loading GPU data: {error.message}</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
