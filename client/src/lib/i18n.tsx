@@ -1125,6 +1125,8 @@ interface Translations {
       outputTooShort: string;
       outputSameAsInstruction: string;
       instructionNotQuestion: string;
+      datasetsRemoved: string;
+      processOperationError: string;
     };
     
     // Curation Page
@@ -2555,6 +2557,8 @@ const translations: Record<Language, Translations> = {
         outputTooShort: "Output muito curto ({length} chars, recomendado: 10+)",
         outputSameAsInstruction: "Output não pode ser idêntico à Instruction",
         instructionNotQuestion: "Instruction não parece ser uma pergunta ou comando",
+        datasetsRemoved: "{count} datasets removidos com sucesso",
+        processOperationError: "Erro ao processar operação",
       },
       
       curation: {
@@ -3975,6 +3979,8 @@ const translations: Record<Language, Translations> = {
         outputTooShort: "Output too short ({length} chars, recommended: 10+)",
         outputSameAsInstruction: "Output cannot be identical to Instruction",
         instructionNotQuestion: "Instruction doesn't seem to be a question or command",
+        datasetsRemoved: "{count} datasets removed successfully",
+        processOperationError: "Error processing operation",
       },
       
       curation: {
@@ -5395,6 +5401,8 @@ const translations: Record<Language, Translations> = {
         outputTooShort: "Salida demasiado corta ({length} caracteres, recomendado: 10+)",
         outputSameAsInstruction: "La salida no puede ser idéntica a la instrucción",
         instructionNotQuestion: "La instrucción no parece ser una pregunta o comando",
+        datasetsRemoved: "{count} datasets eliminados con éxito",
+        processOperationError: "Error al procesar operación",
       },
       
       curation: {

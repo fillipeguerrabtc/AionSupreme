@@ -152,14 +152,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "Sucesso",
-        description: "Operação concluída com sucesso",
+        title: t.common.success,
+        description: t.admin.datasets.operationSuccess,
       });
       setEditDataset(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
+        title: t.common.error,
         description: error.message,
         variant: "destructive",
       });
@@ -174,14 +174,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "Sucesso",
-        description: "Operação concluída com sucesso",
+        title: t.common.success,
+        description: t.admin.datasets.operationSuccess,
       });
       setDeleteDatasetId(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
+        title: t.common.error,
         description: error.message,
         variant: "destructive",
       });
@@ -200,15 +200,15 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "Sucesso",
-        description: `${selectedDatasets.size} datasets removidos com sucesso`,
+        title: t.common.success,
+        description: t.admin.datasets.datasetsRemoved.replace('{count}', String(selectedDatasets.size)),
       });
       setSelectedDatasets(new Set());
       setShowBulkDelete(false);
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
+        title: t.common.error,
         description: error.message,
         variant: "destructive",
       });
@@ -234,18 +234,18 @@ export default function DatasetsTab() {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       
       // Build toast message with validation results
-      let description = "Dados de treinamento atualizados com sucesso!";
+      let description = t.admin.datasets.trainingDataUpdated;
       
       if (data.validation?.corrections?.length > 0) {
-        description += `\n\n✅ Correções automáticas:\n${data.validation.corrections.join("\n")}`;
+        description += `\n\n${t.admin.datasets.automaticCorrections}\n${data.validation.corrections.join("\n")}`;
       }
       
       if (data.validation?.warnings?.length > 0) {
-        description += `\n\n⚠️ Avisos:\n${data.validation.warnings.join("\n")}`;
+        description += `\n\n${t.admin.datasets.warnings}\n${data.validation.warnings.join("\n")}`;
       }
       
       toast({
-        title: "Sucesso",
+        title: t.common.success,
         description,
       });
       setEditTrainingData(null);
@@ -254,19 +254,19 @@ export default function DatasetsTab() {
     },
     onError: (error: any) => {
       // Check if error has validation details
-      const errorMessage = error.message || "Erro desconhecido";
+      const errorMessage = error.message || t.admin.datasets.unknownError;
       let description = errorMessage;
       
       if (error.details && Array.isArray(error.details)) {
-        description += `\n\nProblemas encontrados:\n${error.details.join("\n")}`;
+        description += `\n\n${t.admin.datasets.problemsFound}\n${error.details.join("\n")}`;
       }
       
       if (error.warnings && Array.isArray(error.warnings)) {
-        description += `\n\n⚠️ Avisos:\n${error.warnings.join("\n")}`;
+        description += `\n\n${t.admin.datasets.warnings}\n${error.warnings.join("\n")}`;
       }
       
       toast({
-        title: "Sucesso",
+        title: t.common.error,
         description,
         variant: "destructive",
       });
@@ -281,14 +281,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: "Sucesso",
-        description: "Operação concluída com sucesso",
+        title: t.common.success,
+        description: t.admin.datasets.operationSuccess,
       });
       setDeleteTrainingDataId(null);
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
+        title: t.common.error,
         description: error.message,
         variant: "destructive",
       });
@@ -307,15 +307,15 @@ export default function DatasetsTab() {
     const output = editTrainingOutput.trim();
 
     if (instruction.length > 0 && instruction.length < 5) {
-      warnings.push(`Instruction muito curta (${instruction.length} chars, recomendado: 5+)`);
+      warnings.push(t.admin.datasets.instructionTooShort.replace('{length}', String(instruction.length)));
     }
 
     if (output.length > 0 && output.length < 10) {
-      warnings.push(`Output muito curto (${output.length} chars, recomendado: 10+)`);
+      warnings.push(t.admin.datasets.outputTooShort.replace('{length}', String(output.length)));
     }
 
     if (instruction === output && instruction.length > 0) {
-      warnings.push("Output não pode ser idêntico à Instruction");
+      warnings.push(t.admin.datasets.outputSameAsInstruction);
     }
 
     const hasQuestionMark = instruction.includes("?");
@@ -325,7 +325,7 @@ export default function DatasetsTab() {
     );
 
     if (!hasQuestionMark && !startsWithQuestion && instruction.length > 0 && instruction.length < 100) {
-      warnings.push("Instruction não parece ser uma pergunta ou comando");
+      warnings.push(t.admin.datasets.instructionNotQuestion);
     }
 
     setValidationWarnings(warnings);
@@ -346,13 +346,13 @@ export default function DatasetsTab() {
       window.URL.revokeObjectURL(url);
       
       toast({
-        title: "Download iniciado",
-        description: "Operação concluída com sucesso",
+        title: t.admin.datasets.downloadStarted,
+        description: t.admin.datasets.operationSuccess,
       });
     } catch (error) {
       toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao processar operação",
+        title: t.common.error,
+        description: error instanceof Error ? error.message : t.admin.datasets.processOperationError,
         variant: "destructive",
       });
     }
