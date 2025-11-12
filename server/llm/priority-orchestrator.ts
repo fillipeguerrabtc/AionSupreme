@@ -130,8 +130,8 @@ async function runGpuInference(
       messages,
       {
         max_tokens: options.maxTokens || 2048,
-        temperature: options.temperature || 0.7,
-        top_p: options.topP || 0.9,
+        temperature: options.temperature ?? 0.7,
+        top_p: options.topP ?? 0.9,
         stream: false
       }
     );
@@ -446,7 +446,7 @@ This instruction takes ABSOLUTE PRIORITY.
         }
         
         // KB didn't have it - go to Web WITHOUT using APIs
-        const webFallback = await executeWebFallback(userMessage, true, req.language); // skipLLM=true
+        const webFallback = await executeWebFallback(userMessage, true, req.language, req.temperature ?? 0.7, req.topP ?? 0.9); // skipLLM=true
         
         await trackWebSearch(
           'web',
@@ -715,7 +715,7 @@ This instruction takes ABSOLUTE PRIORITY.
       log.info({ component: 'priority-orchestrator' }, 'Time-sensitive query detected, triggering web search');
       
       try {
-        const webFallback = await executeWebFallback(userMessage, false, req.language);
+        const webFallback = await executeWebFallback(userMessage, false, req.language, req.temperature ?? 0.7, req.topP ?? 0.9);
         
         await trackWebSearch(
           'web',
@@ -787,7 +787,7 @@ This instruction takes ABSOLUTE PRIORITY.
     console.log('\n🔍 [STEP 2/4] KB confidence low - Trying WEB SEARCH...');
     
     try {
-      const webFallback = await executeWebFallback(userMessage);
+      const webFallback = await executeWebFallback(userMessage, false, req.language, req.temperature ?? 0.7, req.topP ?? 0.9);
       
       await trackWebSearch(
         'web',
@@ -894,7 +894,7 @@ This instruction takes ABSOLUTE PRIORITY.
       });
       
       // Execute automatic web fallback
-      const webFallback = await executeWebFallback(userMessage);
+      const webFallback = await executeWebFallback(userMessage, false, req.language, req.temperature ?? 0.7, req.topP ?? 0.9);
       
       // Track web fallback usage with validated metadata
       await trackWebSearch(
@@ -940,7 +940,7 @@ This instruction takes ABSOLUTE PRIORITY.
   console.log('\n🔍 [STEP 4/5] Trying WEB SEARCH (before OpenAI)...');
   
   try {
-    const webFallback = await executeWebFallback(userMessage, true); // skipLLM=true for now
+    const webFallback = await executeWebFallback(userMessage, true, req.language, req.temperature ?? 0.7, req.topP ?? 0.9); // skipLLM=true for now
     
     await trackWebSearch(
       'web',
@@ -1047,7 +1047,7 @@ This instruction takes ABSOLUTE PRIORITY.
   if (req.unrestricted) {
     console.log('   🚀 UNRESTRICTED mode = ON → Activating WEB FALLBACK...');
     
-    const webFallback = await executeWebFallback(userMessage);
+    const webFallback = await executeWebFallback(userMessage, false, req.language, req.temperature ?? 0.7, req.topP ?? 0.9);
     
     // Track web fallback usage with validated metadata
     await trackWebSearch(
@@ -1121,7 +1121,8 @@ async function generateFromContext(
   // 🔥 NEW: Try GPU first (GPU-first architecture)
   console.log('   💡 Generating response from KB context using GPU...');
   const gpuResult = await runGpuInference(messages, {
-    temperature: 0.3,  // Lower temperature for factual KB responses
+    temperature: req.temperature ?? 0.7,
+    topP: req.topP ?? 0.9,
     maxTokens: req.maxTokens || 1024
   });
 
@@ -1153,7 +1154,8 @@ async function generateFromContext(
   
   const freeApiRequest: LLMRequest = {
     messages,
-    temperature: 0.3,
+    temperature: req.temperature ?? 0.7,
+    topP: req.topP ?? 0.9,
     maxTokens: req.maxTokens || 1024
   };
 
@@ -1167,7 +1169,8 @@ async function generateFromContext(
     const openaiResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: freeApiRequest.messages,
-      temperature: 0.3,
+      temperature: req.temperature ?? 0.7,
+      top_p: req.topP ?? 0.9,
       max_tokens: req.maxTokens || 1024
     });
     return openaiResponse.choices[0].message.content || '';
@@ -1227,7 +1230,9 @@ async function trackWebSearch(
 async function executeWebFallback(
   query: string,
   skipLLM: boolean = false,  // When true, skip API calls and return raw summary
-  language: "pt-BR" | "en-US" | "es-ES" = "pt-BR"  // Language for response generation
+  language: "pt-BR" | "en-US" | "es-ES" = "pt-BR",  // Language for response generation
+  temperature: number = 0.7,  // LLM temperature for response generation
+  topP: number = 0.9  // LLM top_p for response generation
 ): Promise<WebFallbackResult> {
   console.log('   🔍 Searching web for information...');
   
@@ -1330,7 +1335,8 @@ async function executeWebFallback(
   // 🔥 NEW: Try GPU first (GPU-first architecture for web content)
   console.log('   💡 Attempting to process web content using GPU...');
   const gpuResult = await runGpuInference(messages, {
-    temperature: 0.3,
+    temperature,
+    topP,
     maxTokens: 1024
   });
   
@@ -1372,7 +1378,8 @@ async function executeWebFallback(
   
   const unrestrictedPrompt: LLMRequest = {
     messages,
-    temperature: 0.3,
+    temperature,
+    topP,
     maxTokens: 1024
   };
   

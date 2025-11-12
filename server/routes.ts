@@ -43,7 +43,7 @@ import { DatasetProcessor } from "./training/datasets/dataset-processor";
 import { DatasetValidator } from "./training/datasets/dataset-validator";
 import { db } from "./db";
 import { eq, and, gte, sql } from "drizzle-orm";
-import { trainingDataCollection, datasets, trainingJobs, uploadedAdapters } from "../shared/schema";
+import { trainingDataCollection, datasets, trainingJobs, uploadedAdapters, behaviorConfigSchema } from "../shared/schema";
 import { lifecyclePolicyUpdateSchema } from "./validation/lifecycle-policy-schema";
 import { idParamSchema, jobIdParamSchema, jobIdChunkIndexSchema, docIdAttachmentIndexSchema, jobIdWorkerIdStepSchema, jobIdStepSchema, validateParams, validateQuery, validateBody } from "./validation/route-params"; // ✅ FIX P0-2
 import { z } from "zod"; // ✅ FIX P0-2: Import z for inline schemas
@@ -1526,6 +1526,16 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/admin/policies", requireAdmin, requirePermission("settings:policies:update"), async (req, res) => {
     try {
+      if (req.body.behavior) {
+        const validationResult = behaviorConfigSchema.safeParse(req.body.behavior);
+        if (!validationResult.success) {
+          return res.status(400).json({ 
+            error: "Invalid behavior configuration",
+            details: validationResult.error.format()
+          });
+        }
+      }
+      
       const existing = await storage.getActivePolicy();
       
       if (existing) {

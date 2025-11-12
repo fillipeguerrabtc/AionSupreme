@@ -28,6 +28,7 @@ import {
   queryMetrics, type QueryMetric, type InsertQueryMetric,
   agentQueryResults, type AgentQueryResult, type InsertAgentQueryResult,
   backupOperations, type BackupOperation, type InsertBackupOperation,
+  normalizeBehavior
 } from "@shared/schema";
 import { type PermissionAction, generatePermissionCode, validatePermissionSelection } from "@shared/permissions-catalog";
 
@@ -473,6 +474,11 @@ export class DatabaseStorage implements IStorage {
     const [policy] = await db.select().from(policies)
       .where(eq(policies.isActive, true))
       .orderBy(desc(policies.createdAt));
+    
+    if (policy && policy.behavior) {
+      policy.behavior = normalizeBehavior(policy.behavior);
+    }
+    
     return policy;
   }
 
@@ -482,6 +488,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updatePolicy(id: number, data: Partial<InsertPolicy>): Promise<Policy> {
+    if (data.behavior) {
+      data.behavior = normalizeBehavior(data.behavior);
+    }
+    
     const [updated] = await db.update(policies)
       .set({ ...data, updatedAt: new Date() } as any)
       .where(eq(policies.id, id))

@@ -15,6 +15,7 @@ import { useLanguage, type Language } from "@/lib/i18n";
 import { AionLogo } from "@/components/AionLogo";
 import { COMMON_TIMEZONES, getCurrentDateTimeInTimezone } from "@/lib/datetime";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { DEFAULT_BEHAVIOR, normalizeBehavior, type BehaviorConfig } from "@shared/schema";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -409,7 +410,12 @@ export default function AdminDashboard() {
   const handleSaveChanges = () => {
     const updates: any = {};
     if (pendingRules) updates.rules = pendingRules;
-    if (pendingBehavior) updates.behavior = pendingBehavior;
+    
+    if (pendingBehavior) {
+      const currentBehavior = policy?.behavior || DEFAULT_BEHAVIOR;
+      updates.behavior = normalizeBehavior({ ...currentBehavior, ...pendingBehavior });
+    }
+    
     updatePolicy.mutate(updates);
   };
 

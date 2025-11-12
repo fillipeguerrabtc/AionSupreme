@@ -168,6 +168,42 @@ export type InsertPolicy = z.infer<typeof insertPolicySchema>;
 export type Policy = typeof policies.$inferSelect;
 
 // ============================================================================
+// BEHAVIOR SCHEMA - Complete validation with defaults
+// ============================================================================
+export const behaviorConfigSchema = z.object({
+  verbosity: z.number().min(0).max(1),
+  formality: z.number().min(0).max(1),
+  creativity: z.number().min(0).max(1),
+  precision: z.number().min(0).max(1),
+  persuasiveness: z.number().min(0).max(1),
+  empathy: z.number().min(0).max(1),
+  enthusiasm: z.number().min(0).max(1),
+});
+
+export type BehaviorConfig = z.infer<typeof behaviorConfigSchema>;
+
+// Default behavior configuration (middle-ground balanced AI)
+export const DEFAULT_BEHAVIOR: BehaviorConfig = {
+  verbosity: 0.7,      // 70% - detailed but not overly verbose
+  formality: 0.5,      // 50% - balanced casual/professional
+  creativity: 0.8,     // 80% - creative with occasional metaphors
+  precision: 0.9,      // 90% - precise and accurate
+  persuasiveness: 0.5, // 50% - moderately persuasive when appropriate
+  empathy: 0.7,        // 70% - empathetic and supportive
+  enthusiasm: 0.5,     // 50% - moderate energy level
+};
+
+/**
+ * Normalizes behavior config by merging with defaults.
+ * Ensures all 7 properties are present even if partial data provided.
+ * Validates ranges [0-1] for each property.
+ */
+export function normalizeBehavior(behavior?: Partial<BehaviorConfig>): BehaviorConfig {
+  const merged = { ...DEFAULT_BEHAVIOR, ...behavior };
+  return behaviorConfigSchema.parse(merged);
+}
+
+// ============================================================================
 // PROJECTS - ChatGPT-style project organization
 // ============================================================================
 export const projects = pgTable("projects", {
