@@ -24,6 +24,7 @@ export interface LLMRequest {
   maxTokens?: number;
   temperature?: number;
   topP?: number;
+  topK?: number;  // Top-K sampling (supported by Gemini, HuggingFace)
 }
 
 export interface LLMResponse {
@@ -110,8 +111,8 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
         model: 'llama-3.3-70b-versatile',  // Updated Oct 2025 - replaces deprecated llama-3.1-70b-versatile
         messages: req.messages,
         max_tokens: req.maxTokens || 1024,
-        temperature: req.temperature || 0.7,
-        top_p: req.topP || 0.9
+        temperature: req.temperature ?? 0.7,
+        top_p: req.topP ?? 0.9
       });
 
       // ✅ PRODUCTION: Track real usage from Groq API
@@ -175,8 +176,8 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
   const model = genAI.getGenerativeModel({ 
     model: 'gemini-2.0-flash-exp',
     generationConfig: {
-      temperature: req.temperature || 0.7,
-      topP: req.topP || 0.9,
+      temperature: req.temperature ?? 0.7,
+      topP: req.topP ?? 0.9,
       maxOutputTokens: req.maxTokens || 1024
     }
   });
@@ -274,8 +275,8 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
             inputs: prompt,
             parameters: {
               max_new_tokens: req.maxTokens || 1024,
-              temperature: req.temperature || 0.7,
-              top_p: req.topP || 0.9,
+              temperature: req.temperature ?? 0.7,
+              top_p: req.topP ?? 0.9,
               return_full_text: false
             }
           })
@@ -364,8 +365,8 @@ async function callOpenRouter(req: LLMRequest): Promise<LLMResponse> {
       model: 'meta-llama/llama-3.1-8b-instruct:free',
       messages: req.messages,
       max_tokens: req.maxTokens || 1024,
-      temperature: req.temperature || 0.7,
-      top_p: req.topP || 0.9
+      temperature: req.temperature ?? 0.7,
+      top_p: req.topP ?? 0.9
     })
   });
 
