@@ -452,10 +452,10 @@ export default function AdminDashboard() {
 
   return (
     <SidebarProvider style={sidebarStyle}>
-      <div className="flex h-screen w-full">
+      <div className="flex h-screen w-full overflow-x-hidden">
         <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
           
-          <SidebarInset className="flex flex-col flex-1">
+          <SidebarInset className="flex flex-col flex-1 max-w-full">
             {/* Global Header - Fixed at top */}
             <header className="bg-background/95 backdrop-glass sticky top-0 z-50 border-b shrink-0">
               <div className="flex items-center justify-between px-4 py-3">
@@ -519,8 +519,8 @@ export default function AdminDashboard() {
             </header>
 
             {/* Main Content Area */}
-            <main className="flex-1 overflow-auto bg-background">
-            <div className="p-6">
+            <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background">
+            <div className="p-6 w-full max-w-full">
               {/* Overview Tab */}
               {activeTab === "overview" && (
                 <div className="space-y-6">
