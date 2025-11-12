@@ -4986,11 +4986,12 @@ export function registerRoutes(app: Express): Server {
         .from(trainingDataCollection);
       const avgQualityScore = parseFloat(String(avgScoreResult[0]?.avg || 0));
 
-      // Datasets generated from KB (check description for "Auto-generated")
+      // Datasets generated from KB (check description for "gerado automaticamente" - Portuguese)
+      // FIXED: Query was looking for '%Auto-generated%KB%' but descriptions are in Portuguese
       const kbDatasetsResult = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(datasets)
-        .where(sql`${datasets.description} LIKE '%Auto-generated%KB%'`);
+        .where(sql`${datasets.description} ILIKE '%gerado automaticamente%'`);
       const kbGeneratedDatasets = kbDatasetsResult[0]?.count || 0;
 
       // Total datasets

@@ -797,10 +797,10 @@ export default function AdminDashboard() {
             </CardHeader>
           </Card>
 
-          {/* Card 11: Auto-Evolution → Meta-Learning Tab (consolidated) */}
+          {/* Card 11: Auto-Evolution → Datasets Tab (consolidated) */}
           <Card 
             className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
-            onClick={() => setActiveTab("meta-learning")}
+            onClick={() => setActiveTab("datasets")}
             data-testid="card-auto-evolution"
           >
             <CardHeader className="pb-3">
