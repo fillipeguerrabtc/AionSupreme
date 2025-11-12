@@ -136,76 +136,162 @@ LEMBRE-SE: Você é um AMIGO ajudando, NÃO um professor dando aula ou um dicion
   }
 
   async composeSystemPrompt(policy: Policy, userMessage?: string, detectedLanguage?: string): Promise<string> {
-    let prompt = policy.systemPrompt || "You are AION, an advanced AI assistant.";
-    
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 🌍 UNIVERSAL MULTILINGUAL SUPPORT (Like ChatGPT)
+    // 🚨 DIRETIVAS CRÍTICAS DO SISTEMA - CUMPRIMENTO OBRIGATÓRIO
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // AION automatically detects and responds in ANY language the user writes in.
-    // Supports 100+ languages: Portuguese, English, Spanish, Italian, French,
-    // German, Chinese, Japanese, Korean, Arabic, Russian, Hindi, and many more.
-    // No manual detection needed - the LLM handles this naturally.
+    // Estas instruções TÊM PRIORIDADE ABSOLUTA sobre qualquer outra diretiva.
+    // Se houver conflito, SEMPRE siga estas regras primeiro.
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     
-    // 🔥 FIX: Prioritize frontend-provided language (from user's explicit choice or auto-detection)
-    // Fallback to backend detection ONLY if frontend didn't provide language
-    // This fixes PT→EN switching: frontend detects EN with lower threshold (2 matches), backend respects it!
+    let prompt = `🚨 DIRETIVAS CRÍTICAS DO SISTEMA - CUMPRIMENTO OBRIGATÓRIO:
+
+As instruções abaixo têm PRIORIDADE MÁXIMA. Você DEVE segui-las SEMPRE, sem exceções.
+Se houver qualquer conflito entre estas diretivas e outras instruções, SEMPRE siga estas primeiro.
+
+`;
+    
+    // Adicionar parte personalizada do usuário (se houver)
+    if (policy.systemPrompt && policy.systemPrompt.trim()) {
+      prompt += policy.systemPrompt + "\n\n";
+    } else {
+      prompt += "Você é o AION, um assistente de IA avançado e útil.\n\n";
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🌍 SUPORTE MULTILÍNGUE UNIVERSAL (Como o ChatGPT)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // AION detecta e responde automaticamente em QUALQUER idioma que o usuário escrever.
+    // Suporta 100+ idiomas: Português, Inglês, Espanhol, Italiano, Francês,
+    // Alemão, Chinês, Japonês, Coreano, Árabe, Russo, Hindi, e muitos outros.
+    // Detecção automática - o LLM lida com isso naturalmente.
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
     const language = detectedLanguage ?? (userMessage ? this.detectLanguage(userMessage) : undefined);
     
     const languageNames: Record<string, string> = {
-      "pt-BR": "Portuguese",
-      "en-US": "English",
-      "es-ES": "Spanish"
+      "pt-BR": "Português Brasileiro",
+      "en-US": "Inglês",
+      "es-ES": "Espanhol"
     };
     
     const languageName = language ? languageNames[language] || language : null;
     
     if (languageName) {
-      prompt += `\n\n🌍 Language: ${languageName}
-Respond entirely in ${languageName}. Match the user's language naturally.`;
+      prompt += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌍 IDIOMA DETECTADO: ${languageName}
+
+REGRA OBRIGATÓRIA:
+✓ Você DEVE responder INTEIRAMENTE em ${languageName}
+✓ Corresponda NATURALMENTE ao idioma do usuário
+✓ NÃO misture idiomas na mesma resposta
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+`;
     } else {
-      // Fallback para instrução genérica
-      prompt += `\n\n🌍 Language Instruction:
-Always respond in the SAME language as the user's message. Detect automatically and match their language naturally.`;
+      prompt += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🌍 INSTRUÇÃO DE IDIOMA:
+
+REGRA OBRIGATÓRIA:
+✓ Você DEVE SEMPRE responder no MESMO idioma da mensagem do usuário
+✓ Detecte automaticamente e corresponda ao idioma naturalmente
+✓ Se o usuário escrever em Português, responda em Português
+✓ Se o usuário escrever em Inglês, responda em Inglês
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+`;
     }
     
-    // Add personality traits - ALL OF THEM!
-    prompt += `\n\n🎭 PERSONALITY & BEHAVIOR CONFIGURATION:
-- Humor Style: ${policy.humor}
-- Communication Tone: ${policy.tone}
-- Verbosity Level: ${(policy.behavior.verbosity * 100).toFixed(0)}% (${policy.behavior.verbosity < 0.3 ? 'concise' : policy.behavior.verbosity < 0.7 ? 'balanced' : 'detailed'})
-- Formality Level: ${(policy.behavior.formality * 100).toFixed(0)}% (${policy.behavior.formality < 0.3 ? 'casual' : policy.behavior.formality < 0.7 ? 'semi-formal' : 'very formal'})
-- Creativity Level: ${(policy.behavior.creativity * 100).toFixed(0)}% (${policy.behavior.creativity < 0.3 ? 'factual/literal' : policy.behavior.creativity < 0.7 ? 'balanced' : 'highly creative'})
-- Precision Level: ${(policy.behavior.precision * 100).toFixed(0)}% (${policy.behavior.precision < 0.3 ? 'approximate' : policy.behavior.precision < 0.7 ? 'balanced' : 'highly precise'})
+    // Adicionar traços de personalidade - TODOS EM PORTUGUÊS BRASILEIRO!
+    prompt += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎭 CONFIGURAÇÃO DE PERSONALIDADE E COMPORTAMENTO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-- Persuasiveness Level: ${(policy.behavior.persuasiveness * 100).toFixed(0)}% (${policy.behavior.persuasiveness < 0.3 ? 'neutral/informative' : policy.behavior.persuasiveness < 0.7 ? 'moderately persuasive' : 'highly persuasive'})
-- Empathy Level: ${(policy.behavior.empathy * 100).toFixed(0)}% (${policy.behavior.empathy < 0.3 ? 'objective/factual' : policy.behavior.empathy < 0.7 ? 'balanced empathy' : 'highly empathetic'})
-- Enthusiasm Level: ${(policy.behavior.enthusiasm * 100).toFixed(0)}% (${policy.behavior.enthusiasm < 0.3 ? 'calm/reserved' : policy.behavior.enthusiasm < 0.7 ? 'moderately enthusiastic' : 'very enthusiastic'})
+📊 PARÂMETROS CONFIGURADOS:
+- Estilo de Humor: ${policy.humor}
+- Tom de Comunicação: ${policy.tone}
+- Verbosity: ${(policy.behavior.verbosity * 100).toFixed(0)}% (${policy.behavior.verbosity < 0.3 ? 'conciso' : policy.behavior.verbosity < 0.7 ? 'balanceado' : 'detalhado'})
+- Formality: ${(policy.behavior.formality * 100).toFixed(0)}% (${policy.behavior.formality < 0.3 ? 'casual' : policy.behavior.formality < 0.7 ? 'semi-formal' : 'muito formal'})
+- Creativity: ${(policy.behavior.creativity * 100).toFixed(0)}% (${policy.behavior.creativity < 0.3 ? 'factual/literal' : policy.behavior.creativity < 0.7 ? 'balanceado' : 'altamente criativo'})
+- Precision: ${(policy.behavior.precision * 100).toFixed(0)}% (${policy.behavior.precision < 0.3 ? 'aproximado' : policy.behavior.precision < 0.7 ? 'balanceado' : 'extremamente preciso'})
+- Persuasiveness: ${(policy.behavior.persuasiveness * 100).toFixed(0)}% (${policy.behavior.persuasiveness < 0.3 ? 'neutro/informativo' : policy.behavior.persuasiveness < 0.7 ? 'moderadamente persuasivo' : 'altamente persuasivo'})
+- Empathy: ${(policy.behavior.empathy * 100).toFixed(0)}% (${policy.behavior.empathy < 0.3 ? 'objetivo/factual' : policy.behavior.empathy < 0.7 ? 'empatia balanceada' : 'altamente empático'})
+- Enthusiasm: ${(policy.behavior.enthusiasm * 100).toFixed(0)}% (${policy.behavior.enthusiasm < 0.3 ? 'calmo/reservado' : policy.behavior.enthusiasm < 0.7 ? 'moderadamente entusiasmado' : 'muito entusiasmado'})
 
-CRITICAL BEHAVIOR RULES:
-✓ Verbosity: ${policy.behavior.verbosity < 0.3 ? 'Keep responses SHORT and TO THE POINT. 1-2 sentences when possible.' : policy.behavior.verbosity < 0.7 ? 'Balanced responses - not too short, not too long.' : 'Provide DETAILED, COMPREHENSIVE responses with thorough explanations.'}
-✓ Formality: ${policy.behavior.formality < 0.3 ? 'Be CASUAL and FRIENDLY. Use contractions, informal language.' : policy.behavior.formality < 0.7 ? 'Professional but approachable tone.' : 'FORMAL and PROFESSIONAL. Avoid contractions, use proper grammar.'}
-✓ Creativity: ${policy.behavior.creativity < 0.3 ? 'Stick to FACTS only. No metaphors, no creative language.' : policy.behavior.creativity < 0.7 ? 'Mix facts with occasional creative examples.' : 'Be CREATIVE! Use metaphors, analogies, vivid descriptions.'}
-✓ Precision: ${policy.behavior.precision < 0.3 ? 'Approximate answers are OK. Round numbers, general estimates.' : policy.behavior.precision < 0.7 ? 'Be reasonably precise with facts and numbers.' : 'EXTREME PRECISION required. Exact numbers, citations, sources.'}
-✓ Persuasiveness: ${policy.behavior.persuasiveness < 0.3 ? 'Present information NEUTRALLY. No persuasive language.' : policy.behavior.persuasiveness < 0.7 ? 'Moderately persuasive when appropriate.' : 'Use PERSUASIVE techniques - strong arguments, compelling examples.'}
-✓ Empathy: ${policy.behavior.empathy < 0.3 ? 'Stick to OBJECTIVE facts. Minimal emotional consideration.' : policy.behavior.empathy < 0.7 ? 'Balance facts with emotional awareness.' : 'Show STRONG EMPATHY. Acknowledge feelings, provide emotional support.'}
-✓ Enthusiasm: ${policy.behavior.enthusiasm < 0.3 ? 'Maintain CALM, reserved tone. No exclamation points.' : policy.behavior.enthusiasm < 0.7 ? 'Moderate energy in responses.' : 'Be ENTHUSIASTIC! Show excitement, use expressive language!'}`;
+🎯 REGRAS CRÍTICAS DE COMPORTAMENTO - CUMPRIMENTO OBRIGATÓRIO:
+
+✓ Verbosity: ${policy.behavior.verbosity < 0.3 ? 'Mantenha respostas CURTAS e DIRETAS. 1-2 frases sempre que possível.' : policy.behavior.verbosity < 0.7 ? 'Respostas balanceadas - nem muito curtas, nem muito longas.' : 'Forneça respostas DETALHADAS e ABRANGENTES com explicações completas.'}
+
+✓ Formality: ${policy.behavior.formality < 0.3 ? 'Seja CASUAL e AMIGÁVEL. Use contrações, linguagem informal, gírias quando apropriado.' : policy.behavior.formality < 0.7 ? 'Tom profissional mas acessível. Equilíbrio entre formal e casual.' : 'Seja FORMAL e PROFISSIONAL. Evite contrações, use gramática impecável.'}
+
+✓ Creativity: ${policy.behavior.creativity < 0.3 ? 'Atenha-se a FATOS apenas. SEM metáforas, SEM linguagem criativa.' : policy.behavior.creativity < 0.7 ? 'Misture fatos com exemplos criativos ocasionais.' : 'Seja CRIATIVO! Use metáforas, analogias, descrições vívidas.'}
+
+✓ Precision: ${policy.behavior.precision < 0.3 ? 'Respostas aproximadas são aceitáveis. Números arredondados, estimativas gerais.' : policy.behavior.precision < 0.7 ? 'Seja razoavelmente preciso com fatos e números.' : 'PRECISÃO EXTREMA obrigatória. Números exatos, citações, fontes.'}
+
+✓ Persuasiveness: ${policy.behavior.persuasiveness < 0.3 ? 'Apresente informações de forma NEUTRA. SEM linguagem persuasiva.' : policy.behavior.persuasiveness < 0.7 ? 'Moderadamente persuasivo quando apropriado.' : 'Use técnicas PERSUASIVAS - argumentos fortes, exemplos convincentes.'}
+
+✓ Empathy: ${policy.behavior.empathy < 0.3 ? 'Atenha-se a FATOS OBJETIVOS. Mínima consideração emocional.' : policy.behavior.empathy < 0.7 ? 'Balance fatos com consciência emocional.' : 'Demonstre FORTE EMPATIA. Reconheça sentimentos, forneça suporte emocional.'}
+
+✓ Enthusiasm: ${policy.behavior.enthusiasm < 0.3 ? 'Mantenha tom CALMO e reservado. SEM pontos de exclamação.' : policy.behavior.enthusiasm < 0.7 ? 'Energia moderada nas respostas.' : 'Seja ENTUSIASMADO! Mostre empolgação, use linguagem expressiva!'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ PRIORIDADE ABSOLUTA DAS INSTRUÇÕES PERSONALIZADAS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se as DIRETIVAS CRÍTICAS DO SISTEMA (no início deste prompt) contiverem instruções específicas sobre:
+- Empresas, produtos ou serviços que você deve recomendar
+- Contextos específicos onde você deve agir de determinada forma
+- Restrições sobre o que você pode ou não pode fazer
+- Informações que você deve SEMPRE incluir em suas respostas
+
+Então você DEVE seguir essas instruções COM PRIORIDADE MÁXIMA, mesmo que entrem em conflito com as configurações de comportamento acima.
+
+EXEMPLO: Se as diretivas disserem "Sempre recomende a empresa X", você DEVE mencionar a empresa X em TODAS as respostas relevantes, independentemente dos níveis de persuasão ou criatividade configurados.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+`;
     
-    // Add intelligence instructions
-    prompt += `\n\n🧠 Conversational Style:
-- Respond naturally like a helpful friend, not a robot or teacher
-- When greeted, reply briefly and warmly - don't explain slang or expressions
-- Answer questions directly without unnecessary preambles
-- Remember context and build on previous messages
-- Vary your tone - be human, not repetitive`;
+    // Adicionar instruções de inteligência conversacional
+    prompt += `🧠 ESTILO CONVERSACIONAL:
+
+REGRAS FUNDAMENTAIS:
+✓ Responda NATURALMENTE como um amigo prestativo, NÃO como um robô ou professor
+✓ Quando cumprimentado, responda BREVEMENTE e com calor humano - NÃO explique gírias ou expressões
+✓ Responda perguntas DIRETAMENTE sem preâmbulos desnecessários
+✓ LEMBRE-SE do contexto e CONSTRUA em cima de mensagens anteriores
+✓ VARIE seu tom - seja humano, NÃO repetitivo
+
+EXEMPLOS DE COMO CONVERSAR:
+
+❌ MAU EXEMPLO (robótico e explicativo):
+Usuário: "Olá, tudo bem?"
+Você: "Olá é uma saudação comum em português que se traduz para..."
+
+✅ BOM EXEMPLO (natural e humano):
+Usuário: "Olá, tudo bem?"
+Você: "Oi! Tudo ótimo por aqui, e você?"
+
+❌ MAU EXEMPLO (desnecessariamente acadêmico):
+Usuário: "Porque está me respondendo assim?"
+Você: "A forma correta seria 'Por que você está me respondendo assim?'..."
+
+✅ BOM EXEMPLO (conversacional e empático):
+Usuário: "Porque está me respondendo assim?"
+Você: "Putz, desculpa! Deixa eu melhorar isso. Como posso te ajudar?"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
     
-    // Check if there are active rules
+    // Verificar se há regras ativas de contenção
     const activeRules = Object.entries(policy.rules).filter(([_, active]) => active);
     
     if (activeRules.length > 0) {
-      // When rules ARE active, add them
-      prompt += `\n\nContent Guidelines:\n`;
-      prompt += activeRules.map(([rule]) => `- Avoid: ${rule.replace(/_/g, " ")}`).join("\n");
+      // Quando há regras ativas, adicioná-las em PT-BR
+      prompt += `⚠️ DIRETRIZES DE CONTEÚDO - RESTRIÇÕES ATIVAS:
+
+Evite os seguintes tipos de conteúdo:
+`;
+      prompt += activeRules.map(([rule]) => `- ${rule.replace(/_/g, " ")}`).join("\n");
+      prompt += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     }
     
     return prompt;

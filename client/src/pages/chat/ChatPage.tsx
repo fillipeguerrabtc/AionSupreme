@@ -47,6 +47,7 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isSendingRef = useRef(false); // 🔒 FIX: Prevent duplicate sends
   
   // 🎯 FASE 2 - D1: SSE Streaming Hook
   const streamingChat = useStreamingChat();
@@ -378,9 +379,14 @@ export default function ChatPage() {
   }, []);
 
   const handleSend = async () => {
+    // 🔒 FIX: Prevent duplicate sends with synchronous ref guard
+    if (isSendingRef.current) return;
     if ((!input.trim() && attachedFiles.length === 0) || sendMutation.isPending || !conversationId) return;
     
-    const userMessage = input.trim() || `[${attachedFiles.length} file(s) attached]`;
+    isSendingRef.current = true; // Lock immediately
+    
+    try {
+      const userMessage = input.trim() || `[${attachedFiles.length} file(s) attached]`;
     
     // 🌐 DUAL LANGUAGE DETECTION - Level 2: Realtime message analysis
     // Automatically detect and switch language based on message content
@@ -464,6 +470,10 @@ export default function ChatPage() {
     } else {
       // Use traditional mutation for file uploads or when streaming disabled
       sendMutation.mutate({ userMessage, files: attachedFiles, requestLanguage: outgoingLanguage });
+    }
+    } finally {
+      // 🔒 FIX: Always reset lock, even if error occurs
+      isSendingRef.current = false;
     }
   };
 
@@ -879,6 +889,7 @@ export default function ChatPage() {
                   handleSend();
                 }
               }}
+              disabled={sendMutation.isPending || streamingChat.isStreaming}
               placeholder={t.chat.placeholder}
               className="bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none transition-all duration-200"
               rows={3}
@@ -1123,6 +1134,7 @@ export default function ChatPage() {
                   handleSend();
                 }
               }}
+              disabled={sendMutation.isPending || streamingChat.isStreaming}
               placeholder={t.chat.placeholder}
               className="bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none transition-all duration-200"
               rows={3}
