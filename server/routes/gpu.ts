@@ -106,6 +106,9 @@ export function registerGpuRoutes(app: Router) {
         capabilities 
       } = req.body;
 
+      const detectedProvider = (platform || type || "colab").toLowerCase();
+      
+      // ✅ CRITICAL: Populate quota fields based on provider (read from DB limits)
       const workerData = {
         provider: platform || type || "colab",
         accountId: accountEmail || "unknown",
@@ -125,6 +128,9 @@ export function registerGpuRoutes(app: Router) {
         } as any,
         status: "online",
         lastHealthCheck: new Date(),
+        // ✅ SEMPRE popular campos de quota do banco (70% safety limits)
+        maxSessionDurationSeconds: detectedProvider.includes('kaggle') ? 32400 : 30240,  // Kaggle: 9h, Colab: 8.4h
+        maxWeeklySeconds: detectedProvider.includes('kaggle') ? 75600 : null,  // Kaggle: 21h, Colab: null
       };
 
       const [worker] = await db.insert(gpuWorkers).values(workerData).returning();
@@ -153,6 +159,9 @@ export function registerGpuRoutes(app: Router) {
     try {
       const { provider, accountId, ngrokUrl, capabilities } = req.body;
 
+      const detectedProvider = (provider || "colab").toLowerCase();
+      
+      // ✅ CRITICAL: Populate quota fields based on provider (read from DB limits)
       const workerData = {
         provider: provider || "colab",
         accountId: accountId || "unknown",
@@ -166,6 +175,9 @@ export function registerGpuRoutes(app: Router) {
         },
         status: "pending",
         lastHealthCheck: new Date(),
+        // ✅ SEMPRE popular campos de quota do banco (70% safety limits)
+        maxSessionDurationSeconds: detectedProvider.includes('kaggle') ? 32400 : 30240,  // Kaggle: 9h, Colab: 8.4h
+        maxWeeklySeconds: detectedProvider.includes('kaggle') ? 75600 : null,  // Kaggle: 21h, Colab: null
       };
 
       const [worker] = await db.insert(gpuWorkers).values(workerData).returning();
