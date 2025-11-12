@@ -2,7 +2,7 @@ import type { Express, Router } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { extractTextContent } from "./utils/message-helpers";
-import { llmClient } from "./model/llm-client";
+import { LLMClient } from "./model/llm-client";
 import { freeLLMProviders } from "./model/free-llm-providers";
 import { gpuOrchestrator } from "./model/gpu-orchestrator";
 import { trainingDataCollector } from "./training/data-collector";
@@ -1164,8 +1164,11 @@ export function registerRoutes(app: Express): Server {
       
       metricsCollector.recordRequest();
       
+      // Create policy-aware LLM client
+      const client = await LLMClient.create();
+      
       // Chamar API OpenAI Whisper
-      const transcription = await llmClient.transcribeAudio(req.file.path);
+      const transcription = await client.transcribeAudio(req.file.path);
       
       const latency = Date.now() - startTime;
       metricsCollector.recordLatency(latency);
@@ -1293,7 +1296,10 @@ export function registerRoutes(app: Express): Server {
       const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage, detectedLanguage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...enrichedMessages];
       
-      const result = await llmClient.chatCompletion({
+      // Create policy-aware LLM client
+      const client = await LLMClient.create();
+      
+      const result = await client.chatCompletion({
         messages: fullMessages,
         temperature: policy.temperature,
         topP: policy.topP,

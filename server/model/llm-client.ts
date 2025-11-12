@@ -85,6 +85,20 @@ export interface ChatCompletionResult {
 const responseCache = new Map<string, { result: ChatCompletionResult; timestamp: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hora
 
+/**
+ * GLOBAL SHARED RATE LIMITER (CRITICAL FOR PRODUCTION)
+ * 
+ * Rate limiting MUST be shared across all LLMClient instances to ensure
+ * global throttling across the entire application.
+ * 
+ * Without this, each `await LLMClient.create()` would create a new rate limiter,
+ * effectively disabling the global throttle and exposing the platform to
+ * unbounded concurrent OpenAI calls.
+ * 
+ * Single-tenant mode: One global limiter for the entire application
+ * Future multi-tenant: Can be extended with per-tenant limiters using a Map
+ */
+
 // Rate limiting (simple token bucket)
 class RateLimiter {
   private tokens: number;
@@ -121,6 +135,12 @@ class RateLimiter {
   }
 }
 
+/**
+ * GLOBAL RATE LIMITER INSTANCE
+ * Shared across ALL LLMClient instances to ensure global throttling
+ */
+const globalRateLimiter = new RateLimiter(60, 1); // 60 req/min = 1 req/sec
+
 export class LLMClient {
   private openai: OpenAI;
   private rateLimiter: RateLimiter;
@@ -154,9 +174,9 @@ export class LLMClient {
     }
     this.openai = new OpenAI({ apiKey });
     
-    // Rate limiter global único (sistema é single-tenant)
-    // Padrão: 60 requisições por minuto = 1 requisição por segundo
-    this.rateLimiter = new RateLimiter(60, 1);
+    // Use GLOBAL SHARED rate limiter (CRITICAL for production)
+    // All instances share the same limiter to ensure global throttling
+    this.rateLimiter = globalRateLimiter;
     
     // Store policy for personality/behavior configuration
     this.policy = policy;

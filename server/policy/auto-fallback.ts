@@ -9,7 +9,7 @@
  * the underlying LLM provider has limitations
  */
 
-import { llmClient } from "../model/llm-client";
+import { LLMClient } from "../model/llm-client";
 import { ragService } from "../rag/vector-store";
 import { storage } from "../storage";
 import type { Policy } from "@shared/schema";
@@ -407,9 +407,12 @@ export class AutoFallback {
       console.log('[Fallback] No web results found - generating TRULY UNIVERSAL multilingual error via LLM');
       
       try {
+        // Create policy-aware LLM client
+        const client = await LLMClient.create();
+        
         // Use LLM to generate error message in EXACT same language as user
         // This ensures 100% universal language support (ALL languages, not just 20)
-        const errorResult = await llmClient.chatCompletion({
+        const errorResult = await client.chatCompletion({
           messages: [
             { 
               role: "system", 
@@ -497,9 +500,12 @@ export class AutoFallback {
       console.log('[Fallback] Insufficient content - generating TRULY UNIVERSAL multilingual error via LLM');
       
       try {
+        // Create policy-aware LLM client
+        const client = await LLMClient.create();
+        
         // Use LLM to generate error message in EXACT same language as user
         // This ensures 100% universal language support (ALL languages, not just 20)
-        const errorResult = await llmClient.chatCompletion({
+        const errorResult = await client.chatCompletion({
           messages: [
             { 
               role: "system", 
@@ -562,7 +568,10 @@ ${allContent.slice(0, 8000)}
 Com base nisso, dê uma resposta útil no MESMO idioma que o usuário escreveu.`;
     
     try {
-      const result = await llmClient.chatCompletion({
+      // Create policy-aware LLM client
+      const client = await LLMClient.create();
+      
+      const result = await client.chatCompletion({
         messages: [
           { role: "system", content: "Você é AION - conversa naturalmente como um amigo. Use os dados disponíveis para responder de forma direta e útil. NUNCA dê definições tipo dicionário. Sempre responda no MESMO idioma que o usuário escreveu." },
           { role: "user", content: unrestrictedPrompt }

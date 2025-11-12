@@ -8,7 +8,7 @@
  * - Result aggregation
  */
 
-import { llmClient } from "../model/llm-client";
+import { LLMClient } from "../model/llm-client";
 import { reactEngine } from "./react-engine";
 import type { AgentTool } from "./react-engine";
 
@@ -63,7 +63,10 @@ Rules:
 
 Respond with ONLY the JSON object, no explanation.`;
 
-    const response = await llmClient.chatCompletion({
+    // Create policy-aware LLM client
+    const client = await LLMClient.create();
+    
+    const response = await client.chatCompletion({
       messages: [{ role: "user", content: prompt }],
       model: "gpt-4",
       temperature: 0.3,
@@ -224,7 +227,10 @@ ${successfulResults.map((r, i) => `${i + 1}. ${r.result}`).join("\n\n")}
 
 Provide a comprehensive final answer that addresses the main goal:`;
 
-    const response = await llmClient.chatCompletion({
+    // Create policy-aware LLM client
+    const client = await LLMClient.create();
+    
+    const response = await client.chatCompletion({
       messages: [{ role: "user", content: prompt }],
       model: "gpt-4",
       temperature: 0.5,
