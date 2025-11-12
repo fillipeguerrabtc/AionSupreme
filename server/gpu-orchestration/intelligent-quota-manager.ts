@@ -277,7 +277,7 @@ export class IntelligentQuotaManager {
     return {
       hasOnlineGPU: onlineWorkers.length > 0,
       onlineCount: onlineWorkers.length,
-      providers: [...new Set(onlineWorkers.map(w => w.provider))],
+      providers: Array.from(new Set(onlineWorkers.map(w => w.provider))),
       workers: onlineWorkers.map(w => ({ 
         id: w.id, 
         provider: w.provider, 

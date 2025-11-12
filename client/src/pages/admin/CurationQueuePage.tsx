@@ -1293,19 +1293,19 @@ export default function CurationQueuePage() {
                           </Badge>
                         </div>
                         <CardDescription className="flex flex-col gap-2">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="h-3 w-3" />
-                            Enviado em {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}
-                            <Clock className="h-3 w-3" />
-                            {new Date(item.submittedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <Calendar className="h-3 w-3 flex-shrink-0" />
+                            <span className="break-words">Enviado em {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}</span>
+                            <Clock className="h-3 w-3 flex-shrink-0" />
+                            <span>{new Date(item.submittedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
-                          <div className="text-sm">
+                          <div className="text-sm break-words">
                             Por {item.submittedBy || "Desconhecido"}
                           </div>
                           {item.reviewedBy && item.reviewedAt && (
-                            <div className="flex items-center gap-2 text-sm font-medium">
-                              <Clock className="h-3 w-3" />
-                              {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} por {item.reviewedBy} em {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })} às {new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
+                            <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                              <Clock className="h-3 w-3 flex-shrink-0" />
+                              <span className="break-words">{item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} por {item.reviewedBy} em {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })} às {new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
                           )}
                         </CardDescription>
