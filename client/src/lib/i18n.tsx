@@ -851,18 +851,25 @@ interface Translations {
       description: string;
       verbosity: string;
       verbosityDesc: string;
+      verbosityLevels: string;
       formality: string;
       formalityDesc: string;
+      formalityLevels: string;
       creativity: string;
       creativityDesc: string;
+      creativityLevels: string;
       precision: string;
       precisionDesc: string;
+      precisionLevels: string;
       persuasiveness: string;
       persuasivenessDesc: string;
+      persuasivenessLevels: string;
       empathy: string;
       empathyDesc: string;
+      empathyLevels: string;
       enthusiasm: string;
       enthusiasmDesc: string;
+      enthusiasmLevels: string;
       systemPrompt: string;
       systemPromptDesc: string;
       systemPromptPlaceholder: string;
@@ -2262,18 +2269,25 @@ const translations: Record<Language, Translations> = {
         description: "Ajuste a personalidade e estilo de resposta com 7 características configuráveis",
         verbosity: "Verbosidade",
         verbosityDesc: "0% = Respostas curtas (1-2 frases) | 100% = Respostas detalhadas e completas",
+        verbosityLevels: "0-20%: muito conciso | 21-40%: conciso | 41-60%: balanceado | 61-80%: detalhado | 81-100%: muito detalhado",
         formality: "Formalidade",
         formalityDesc: "0% = Casual e amigável | 100% = Formal e profissional",
+        formalityLevels: "0-20%: super casual | 21-40%: casual | 41-60%: semi-formal | 61-80%: formal | 81-100%: muito formal",
         creativity: "Criatividade",
         creativityDesc: "0% = Somente fatos objetivos | 100% = Usa metáforas, analogias e linguagem criativa",
+        creativityLevels: "0-20%: puramente factual | 21-40%: factual/literal | 41-60%: balanceado | 61-80%: criativo | 81-100%: altamente criativo",
         precision: "Precisão",
         precisionDesc: "0% = Números aproximados e estimativas | 100% = Números exatos e fontes citadas",
+        precisionLevels: "0-20%: muito aproximado | 21-40%: aproximado | 41-60%: balanceado | 61-80%: preciso | 81-100%: extremamente preciso",
         persuasiveness: "Persuasão",
         persuasivenessDesc: "0% = Apresenta fatos neutros | 100% = Usa técnicas persuasivas e argumentos fortes",
+        persuasivenessLevels: "0-20%: puramente informativo | 21-40%: neutro/informativo | 41-60%: moderadamente persuasivo | 61-80%: persuasivo | 81-100%: altamente persuasivo",
         empathy: "Empatia",
         empathyDesc: "0% = Objetivo e factual | 100% = Mostra empatia e consideração emocional",
+        empathyLevels: "0-20%: puramente objetivo | 21-40%: objetivo/factual | 41-60%: empatia balanceada | 61-80%: empático | 81-100%: altamente empático",
         enthusiasm: "Entusiasmo",
         enthusiasmDesc: "0% = Tom calmo e reservado | 100% = Energia alta e linguagem expressiva!",
+        enthusiasmLevels: "0-20%: muito calmo | 21-40%: calmo/reservado | 41-60%: moderadamente entusiasmado | 61-80%: entusiasmado | 81-100%: muito entusiasmado",
         systemPrompt: "System Prompt",
         systemPromptDesc: "Instruções base para o comportamento da IA",
         systemPromptPlaceholder: "Digite o system prompt...",
@@ -3658,18 +3672,25 @@ const translations: Record<Language, Translations> = {
         description: "Adjust personality and response style with 7 configurable traits",
         verbosity: "Verbosity",
         verbosityDesc: "0% = Short answers (1-2 sentences) | 100% = Detailed and comprehensive responses",
+        verbosityLevels: "0-20%: very concise | 21-40%: concise | 41-60%: balanced | 61-80%: detailed | 81-100%: very detailed",
         formality: "Formality",
         formalityDesc: "0% = Casual and friendly | 100% = Formal and professional",
+        formalityLevels: "0-20%: super casual | 21-40%: casual | 41-60%: semi-formal | 61-80%: formal | 81-100%: very formal",
         creativity: "Creativity",
         creativityDesc: "0% = Only objective facts | 100% = Uses metaphors, analogies and creative language",
+        creativityLevels: "0-20%: purely factual | 21-40%: factual/literal | 41-60%: balanced | 61-80%: creative | 81-100%: highly creative",
         precision: "Precision",
         precisionDesc: "0% = Approximate numbers and estimates | 100% = Exact numbers and cited sources",
+        precisionLevels: "0-20%: very approximate | 21-40%: approximate | 41-60%: balanced | 61-80%: precise | 81-100%: extremely precise",
         persuasiveness: "Persuasiveness",
         persuasivenessDesc: "0% = Presents neutral facts | 100% = Uses persuasive techniques and strong arguments",
+        persuasivenessLevels: "0-20%: purely informative | 21-40%: neutral/informative | 41-60%: moderately persuasive | 61-80%: persuasive | 81-100%: highly persuasive",
         empathy: "Empathy",
         empathyDesc: "0% = Objective and factual | 100% = Shows empathy and emotional consideration",
+        empathyLevels: "0-20%: purely objective | 21-40%: objective/factual | 41-60%: balanced empathy | 61-80%: empathetic | 81-100%: highly empathetic",
         enthusiasm: "Enthusiasm",
         enthusiasmDesc: "0% = Calm and reserved tone | 100% = High energy and expressive language!",
+        enthusiasmLevels: "0-20%: very calm | 21-40%: calm/reserved | 41-60%: moderately enthusiastic | 61-80%: enthusiastic | 81-100%: very enthusiastic",
         systemPrompt: "System Prompt",
         systemPromptDesc: "Base instructions for AI behavior",
         systemPromptPlaceholder: "Enter system prompt...",
@@ -5054,18 +5075,25 @@ const translations: Record<Language, Translations> = {
         description: "Ajusta la personalidad y estilo de respuesta con 7 características configurables",
         verbosity: "Verbosidad",
         verbosityDesc: "0% = Respuestas cortas (1-2 frases) | 100% = Respuestas detalladas y completas",
+        verbosityLevels: "0-20%: muy conciso | 21-40%: conciso | 41-60%: balanceado | 61-80%: detallado | 81-100%: muy detallado",
         formality: "Formalidad",
         formalityDesc: "0% = Casual y amigable | 100% = Formal y profesional",
+        formalityLevels: "0-20%: super casual | 21-40%: casual | 41-60%: semi-formal | 61-80%: formal | 81-100%: muy formal",
         creativity: "Creatividad",
         creativityDesc: "0% = Solo hechos objetivos | 100% = Usa metáforas, analogías y lenguaje creativo",
+        creativityLevels: "0-20%: puramente factual | 21-40%: factual/literal | 41-60%: balanceado | 61-80%: creativo | 81-100%: altamente creativo",
         precision: "Precisión",
         precisionDesc: "0% = Números aproximados y estimaciones | 100% = Números exactos y fuentes citadas",
+        precisionLevels: "0-20%: muy aproximado | 21-40%: aproximado | 41-60%: balanceado | 61-80%: preciso | 81-100%: extremadamente preciso",
         persuasiveness: "Persuasión",
         persuasivenessDesc: "0% = Presenta hechos neutrales | 100% = Usa técnicas persuasivas y argumentos fuertes",
+        persuasivenessLevels: "0-20%: puramente informativo | 21-40%: neutral/informativo | 41-60%: moderadamente persuasivo | 61-80%: persuasivo | 81-100%: altamente persuasivo",
         empathy: "Empatía",
         empathyDesc: "0% = Objetivo y factual | 100% = Muestra empatía y consideración emocional",
+        empathyLevels: "0-20%: puramente objetivo | 21-40%: objetivo/factual | 41-60%: empatía balanceada | 61-80%: empático | 81-100%: altamente empático",
         enthusiasm: "Entusiasmo",
         enthusiasmDesc: "0% = Tono calmado y reservado | 100% = Alta energía y lenguaje expresivo!",
+        enthusiasmLevels: "0-20%: muy calmado | 21-40%: calmado/reservado | 41-60%: moderadamente entusiasmado | 61-80%: entusiasmado | 81-100%: muy entusiasmado",
         systemPrompt: "System Prompt",
         systemPromptDesc: "Instrucciones base para el comportamiento de la IA",
         systemPromptPlaceholder: "Introduce el system prompt...",

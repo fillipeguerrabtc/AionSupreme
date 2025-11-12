@@ -1043,6 +1043,9 @@ export default function AdminDashboard() {
                     className="bg-muted p-2 rounded-xl"
                     data-testid="slider-verbosity"
                   />
+                  <p className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded border border-border">
+                    📊 {t.admin.behavior.verbosityLevels}
+                  </p>
                 </div>
 
                 {/* 2. Formality */}
@@ -1060,6 +1063,9 @@ export default function AdminDashboard() {
                     className="bg-muted p-2 rounded-xl"
                     data-testid="slider-formality"
                   />
+                  <p className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded border border-border">
+                    📊 {t.admin.behavior.formalityLevels}
+                  </p>
                 </div>
 
                 {/* 3. Creativity */}
@@ -1077,6 +1083,9 @@ export default function AdminDashboard() {
                     className="bg-muted p-2 rounded-xl"
                     data-testid="slider-creativity"
                   />
+                  <p className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded border border-border">
+                    📊 {t.admin.behavior.creativityLevels}
+                  </p>
                 </div>
 
                 {/* 4. Precision */}
@@ -1094,6 +1103,9 @@ export default function AdminDashboard() {
                     className="bg-muted p-2 rounded-xl"
                     data-testid="slider-precision"
                   />
+                  <p className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded border border-border">
+                    📊 {t.admin.behavior.precisionLevels}
+                  </p>
                 </div>
 
                 {/* 5. Persuasiveness */}
@@ -1111,6 +1123,9 @@ export default function AdminDashboard() {
                     className="bg-muted p-2 rounded-xl"
                     data-testid="slider-persuasiveness"
                   />
+                  <p className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded border border-border">
+                    📊 {t.admin.behavior.persuasivenessLevels}
+                  </p>
                 </div>
 
                 {/* 6. Empathy */}
@@ -1128,6 +1143,9 @@ export default function AdminDashboard() {
                     className="bg-muted p-2 rounded-xl"
                     data-testid="slider-empathy"
                   />
+                  <p className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded border border-border">
+                    📊 {t.admin.behavior.empathyLevels}
+                  </p>
                 </div>
 
                 {/* 7. Enthusiasm */}
@@ -1145,6 +1163,9 @@ export default function AdminDashboard() {
                     className="bg-muted p-2 rounded-xl"
                     data-testid="slider-enthusiasm"
                   />
+                  <p className="text-xs text-muted-foreground font-mono bg-muted/50 p-2 rounded border border-border">
+                    📊 {t.admin.behavior.enthusiasmLevels}
+                  </p>
                 </div>
               </CardContent>
             </Card>
