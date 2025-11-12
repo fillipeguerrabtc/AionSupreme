@@ -233,11 +233,25 @@ export class AutoApprovalService {
     }
 
     // GUARD 2: Check namespace filtering
-    const primaryNamespace = namespaces && namespaces.length > 0 ? namespaces[0] : '*';
-    if (!this.isNamespaceEnabled(primaryNamespace, config)) {
+    // FIX: Iterate suggestedNamespaces array to find FIRST ENABLED namespace
+    // Rationale: AutoIndexer provides ranked array (e.g., ["raw_intake", "geral", "portugal"])
+    // Old bug: Checked only namespaces[0], failed if first was disabled
+    // New behavior: Use first enabled namespace from ranked list
+    let selectedNamespace = '*'; // Default wildcard
+    if (namespaces && namespaces.length > 0) {
+      // Find first enabled namespace in ranked order
+      const enabledNamespace = namespaces.find(ns => this.isNamespaceEnabled(ns, config));
+      if (enabledNamespace) {
+        selectedNamespace = enabledNamespace;
+        console.log(`[AutoApproval] ✅ Selected namespace "${selectedNamespace}" from ranked list: [${namespaces.join(', ')}]`);
+      }
+    }
+    
+    // Only reject if NO namespaces are enabled (not just first)
+    if (selectedNamespace === '*' && !config.enabledNamespaces.includes('*')) {
       return {
         action: "review",
-        reason: `Namespace "${primaryNamespace}" not enabled for auto-approval`,
+        reason: `No enabled namespace found in: [${namespaces?.join(', ') || 'none'}]. Enabled: [${config.enabledNamespaces.join(', ')}]`,
         configUsed: {
           enabled: config.enabled,
           minApprovalScore: config.minApprovalScore,
@@ -300,7 +314,7 @@ export class AutoApprovalService {
     if (queryText && score >= 40 && score < config.minApprovalScore) {
       try {
         const { queryFrequencyService } = await import("./query-frequency-service");
-        const frequency = await queryFrequencyService.getFrequency(queryText, primaryNamespace);
+        const frequency = await queryFrequencyService.getFrequency(queryText, selectedNamespace);
         
         if (frequency && frequency.effectiveCount >= 3) {
           return {

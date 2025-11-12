@@ -610,8 +610,8 @@ export default function NamespacesPage() {
                     <TableHead className="w-12"></TableHead>
                     <TableHead className="whitespace-nowrap">{t.admin.namespaces.name}</TableHead>
                     <TableHead className="whitespace-nowrap">{t.admin.namespaces.description}</TableHead>
-                    <TableHead className="text-center whitespace-nowrap">Priority</TableHead>
-                    <TableHead className="text-center whitespace-nowrap">Overrides</TableHead>
+                    <TableHead className="text-center whitespace-nowrap">{t.namespace.analytics.priority}</TableHead>
+                    <TableHead className="text-center whitespace-nowrap">{t.namespace.analytics.overrides}</TableHead>
                     <TableHead className="text-right whitespace-nowrap">{t.admin.namespaces.actions}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -725,7 +725,7 @@ export default function NamespacesPage() {
                             </TooltipProvider>
                           )}
                           {!namespace.sliderOverrides && !namespace.systemPromptOverride && (!namespace.triggers || namespace.triggers.length === 0) && (
-                            <span className="text-muted-foreground text-xs italic">None</span>
+                            <span className="text-muted-foreground text-xs italic">{t.namespace.analytics.none}</span>
                           )}
                         </div>
                       </TableCell>

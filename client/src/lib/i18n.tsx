@@ -1410,6 +1410,9 @@ interface Translations {
         successRate: string;
         topTriggers: string;
         noData: string;
+        overrides: string;
+        none: string;
+        priority: string;
       };
       
       validation: {
@@ -2911,6 +2914,9 @@ const translations: Record<Language, Translations> = {
           successRate: "Taxa de Sucesso",
           topTriggers: "Top Triggers",
           noData: "Nenhum dado disponível",
+          overrides: "Overrides",
+          none: "Nenhum",
+          priority: "Prioridade",
         },
         
         validation: {
@@ -4408,6 +4414,9 @@ const translations: Record<Language, Translations> = {
           successRate: "Success Rate",
           topTriggers: "Top Triggers",
           noData: "No data available",
+          overrides: "Overrides",
+          none: "None",
+          priority: "Priority",
         },
         
         validation: {
@@ -5905,6 +5914,9 @@ const translations: Record<Language, Translations> = {
           successRate: "Tasa de Éxito",
           topTriggers: "Top Triggers",
           noData: "No hay datos disponibles",
+          overrides: "Overrides",
+          none: "Ninguno",
+          priority: "Prioridad",
         },
         
         validation: {
