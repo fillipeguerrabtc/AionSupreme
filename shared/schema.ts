@@ -36,6 +36,46 @@ export const insertLlmProviderQuotaSchema = createInsertSchema(llmProviderQuotas
 export type InsertLlmProviderQuota = z.infer<typeof insertLlmProviderQuotaSchema>;
 export type LlmProviderQuota = typeof llmProviderQuotas.$inferSelect;
 
+// ============================================================================
+// PROVIDER LIMITS - Real-time tracking from provider APIs/headers
+// ============================================================================
+export const providerLimits = pgTable("provider_limits", {
+  id: serial("id").primaryKey(),
+  
+  provider: text("provider").notNull().unique(),
+  
+  rpm: integer("rpm"),
+  rpd: integer("rpd"),
+  tpm: integer("tpm"),
+  tpd: integer("tpd"),
+  
+  rpmUsed: integer("rpm_used").default(0),
+  rpdUsed: integer("rpd_used").default(0),
+  tpmUsed: integer("tpm_used").default(0),
+  tpdUsed: integer("tpd_used").default(0),
+  
+  rpmRemaining: integer("rpm_remaining"),
+  rpdRemaining: integer("rpd_remaining"),
+  tpmRemaining: integer("tpm_remaining"),
+  tpdRemaining: integer("tpd_remaining"),
+  
+  rpmResetAt: text("rpm_reset_at"),
+  rpdResetAt: text("rpd_reset_at"),
+  tpmResetAt: text("tpm_reset_at"),
+  tpdResetAt: text("tpd_reset_at"),
+  
+  creditsBalance: real("credits_balance"),
+  creditsUsed: real("credits_used"),
+  
+  rawHeaders: jsonb("raw_headers"),
+  rawResponse: jsonb("raw_response"),
+  
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  source: text("source").notNull(),
+});
+
+export type ProviderLimit = typeof providerLimits.$inferSelect;
+
 // 🔥 NEW: Provider Alternation State (Persistence)
 export const providerAlternationState = pgTable('provider_alternation_state', {
   id: serial('id').primaryKey(),

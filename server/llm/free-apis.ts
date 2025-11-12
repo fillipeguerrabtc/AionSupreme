@@ -94,12 +94,7 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY not set');
 
-  const groq = new OpenAI({
-    apiKey,
-    baseURL: 'https://api.groq.com/openai/v1'
-  });
-
-  // ✅ P2.3: Retry logic for rate limits (429) and transient errors (503/504)
+  // ✅ CRITICAL: Use fetch to capture response headers (OpenAI SDK doesn't expose them)
   const maxRetries = 3;
   const retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
   
@@ -107,18 +102,50 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',  // Updated Oct 2025 - replaces deprecated llama-3.1-70b-versatile
-        messages: req.messages,
-        max_tokens: req.maxTokens || 1024,
-        temperature: req.temperature ?? 0.7,
-        top_p: req.topP ?? 0.9
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: req.messages,
+          max_tokens: req.maxTokens || 1024,
+          temperature: req.temperature ?? 0.7,
+          top_p: req.topP ?? 0.9
+        })
       });
 
+      // ✅ CRITICAL: Extract REAL rate limit headers from Groq
+      const headers: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        if (key.startsWith('x-ratelimit-')) {
+          headers[key] = value;
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        const error = new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+        (error as any).status = response.status;
+        throw error;
+      }
+
+      const data = await response.json();
+
       // ✅ PRODUCTION: Track real usage from Groq API
-      const promptTokens = response.usage?.prompt_tokens || 0;
-      const completionTokens = response.usage?.completion_tokens || 0;
-      const totalTokens = response.usage?.total_tokens || 0;
+      const promptTokens = data.usage?.prompt_tokens || 0;
+      const completionTokens = data.usage?.completion_tokens || 0;
+      const totalTokens = data.usage?.total_tokens || 0;
+      
+      // ✅ CRITICAL: Update provider limits from REAL headers (non-blocking, never fail response)
+      try {
+        const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
+        await providerLimitsTracker.updateGroqLimits(headers);
+      } catch (trackerError: any) {
+        log.warn({ component: 'groq', error: trackerError.message }, 'Failed to update provider limits (non-critical)');
+      }
       
       // ✅ PRODUCTION: Track quota in PostgreSQL
       await apiQuotaRepository.incrementUsage('groq', 1, totalTokens);
@@ -130,13 +157,12 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
         promptTokens,
         completionTokens,
         totalTokens,
-        // cost: not provided → groq is free tier, returns $0.00
         requestType: 'chat',
         success: true
       });
 
       return {
-        text: response.choices[0].message.content || '',
+        text: data.choices[0].message.content || '',
         provider: 'groq',
         model: 'llama-3.3-70b-versatile',
         tokensUsed: totalTokens
@@ -148,7 +174,6 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
       const isRetryable = error.status === 429 || error.status === 503 || error.status === 504;
       
       if (!isRetryable || attempt === maxRetries) {
-        // Non-retryable error or max retries reached
         throw error;
       }
       
@@ -159,7 +184,6 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
     }
   }
   
-  // This should never be reached, but TypeScript needs it
   throw lastError || new Error('Groq API request failed after retries');
 }
 

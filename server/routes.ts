@@ -5596,6 +5596,34 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // ✅ GET /api/provider-limits - Get REAL limits from provider APIs/headers
+  app.get("/api/provider-limits", async (req, res) => {
+    try {
+      const { providerLimitsTracker } = await import("./services/provider-limits-tracker");
+      const limits = await providerLimitsTracker.getAllLimits();
+      
+      res.json({
+        success: true,
+        limits,
+        note: "Real data from provider APIs/headers - NOT calculated locally"
+      });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
+  // ✅ POST /api/provider-limits/sync-openrouter - Manually sync OpenRouter credits
+  app.post("/api/provider-limits/sync-openrouter", async (req, res) => {
+    try {
+      const { providerLimitsTracker } = await import("./services/provider-limits-tracker");
+      await providerLimitsTracker.updateOpenRouterLimits();
+      
+      res.json({ success: true, message: "OpenRouter credits synced" });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
   // ========================================================================
   // POLICY ENFORCEMENT - AION Supreme
   // ========================================================================
