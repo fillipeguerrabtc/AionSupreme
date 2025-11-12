@@ -221,7 +221,7 @@ export default function TelemetriaPage() {
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "system" | "analytics")}>
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="system" data-testid="test-id">
-            <Activity className="w-4 h-4 mr-2" />{t.common.loading}</TabsTrigger>
+            <Activity className="w-4 h-4 mr-2" />Sistema</TabsTrigger>
           <TabsTrigger value="analytics" data-testid="tab-analytics">
             <BarChart3 className="w-4 h-4 mr-2" />
             Analytics KB/Chat
@@ -276,11 +276,11 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-total-queries">
               <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />{t.common.loading}</CardTitle>
+                  <Activity className="w-4 h-4" />Total de Consultas</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? queryMetrics.totalQueries.toLocaleString() : "..."}
                 </div>
-                <CardDescription className="text-xs">{t.common.loading}</CardDescription>
+                <CardDescription className="text-xs">Últimas 24h</CardDescription>
               </CardHeader>
             </Card>
 
@@ -288,7 +288,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-avg-latency">
               <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Clock className="w-4 h-4" />{t.common.loading}</CardTitle>
+                  <Clock className="w-4 h-4" />Latência Média</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${queryMetrics.avgLatency.toFixed(0)}ms` : "..."}
                 </div>
@@ -302,7 +302,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-p95-latency">
               <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />{t.common.loading}</CardTitle>
+                  <TrendingUp className="w-4 h-4" />P95 Latência</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${queryMetrics.p95Latency.toFixed(0)}ms` : "..."}
                 </div>
@@ -316,7 +316,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-success-rate">
               <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Zap className="w-4 h-4" />{t.common.loading}</CardTitle>
+                  <Zap className="w-4 h-4" />Taxa de Sucesso</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${(queryMetrics.successRate * 100).toFixed(1)}%` : "..."}
                 </div>
@@ -331,8 +331,8 @@ export default function TelemetriaPage() {
           <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />{t.common.loading}</CardTitle>
-              <CardDescription>{t.common.loading}</CardDescription>
+                <BarChart3 className="w-5 h-5" />Tendências de Latência</CardTitle>
+              <CardDescription>Evolução da latência nas últimas horas</CardDescription>
             </CardHeader>
             <CardContent>
               {latencyTrends && latencyTrends.length > 0 ? (
