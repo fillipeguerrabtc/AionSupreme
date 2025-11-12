@@ -39,6 +39,56 @@ export class DuplicateContentError extends Error {
   }
 }
 
+// Custom error for auto-analysis timeout
+export class AutoAnalysisTimeoutError extends Error {
+  public readonly duration: number;
+  
+  constructor(message: string, duration: number) {
+    super(message);
+    this.name = 'AutoAnalysisTimeoutError';
+    this.duration = duration;
+    
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, AutoAnalysisTimeoutError);
+    }
+  }
+}
+
+// Timeout constant for auto-analysis (30s matches queue SLA)
+const AUTO_ANALYSIS_TIMEOUT_MS = 30000;
+
+/**
+ * Wraps a promise with timeout protection using Promise.race pattern
+ * Prevents LLM stalls from blocking ingestion pipeline
+ */
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  operationName: string
+): Promise<T> {
+  let timeoutId: NodeJS.Timeout;
+  const startTime = Date.now();
+  
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const duration = Date.now() - startTime;
+      reject(new AutoAnalysisTimeoutError(
+        `${operationName} exceeded timeout of ${timeoutMs}ms`,
+        duration
+      ));
+    }, timeoutMs);
+  });
+  
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timeoutId!);
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutId!);
+    throw error;
+  }
+}
+
 export const curationStore = {
   /**
    * Adiciona item à fila de curadoria com análise automática (se agente disponível)
@@ -136,7 +186,22 @@ export const curationStore = {
       }
     }
     
-    console.log(`[Curation] ✅ No duplicates found - proceeding with insert${generatedEmbedding ? ' (with embedding)' : ''}`);
+    // 🛡️ FALLBACK: If dedup service didn't generate embedding, generate it now!
+    // This ensures EVERY item has embedding for semantic search (critical!)
+    if (!generatedEmbedding && data.content) {
+      console.log(`[Curation] ⚠️ No embedding from dedup check - generating fallback embedding...`);
+      try {
+        const { embedText } = await import("../ai/embedder");
+        const embeddingResult = await embedText(data.content);
+        generatedEmbedding = embeddingResult; // embedText returns number[]
+        console.log(`[Curation] ✅ Fallback embedding generated (${generatedEmbedding.length} dimensions)`);
+      } catch (embedError: any) {
+        console.error(`[Curation] ❌ Failed to generate fallback embedding:`, embedError.message);
+        // Continue without embedding - will be backfilled later
+      }
+    }
+    
+    console.log(`[Curation] ✅ No duplicates found - proceeding with insert${generatedEmbedding ? ' (with embedding)' : ' (WITHOUT embedding - needs backfill)'}`);
 
     
     // STEP 1: Inserir na fila de curadoria (WITH embedding if generated)
@@ -186,8 +251,12 @@ export const curationStore = {
       await this.runAutoAnalysis(item.id, data);
       console.log(`[Curation] ✅ Análise automática completada para item ${item.id}`);
     } catch (error: any) {
-      console.error(`[Curation] ❌ Erro na análise automática do item ${item.id}:`, error.message);
-      console.error(`[Curation] ⚠️  Item ${item.id} criado SEM autoAnalysis - requer HITL review`);
+      if (error instanceof AutoAnalysisTimeoutError) {
+        console.error(`[Curation] ⏱️ Item ${item.id}: Timeout após ${error.duration}ms - aguardando HITL review`);
+      } else {
+        console.error(`[Curation] ❌ Erro na análise automática do item ${item.id}:`, error.message);
+      }
+      console.error(`[Curation] ⚠️ Item ${item.id} criado SEM autoAnalysis - requer HITL review`);
       // Item foi criado mas sem análise automática - vai precisar revisão humana (aceitável)
     }
 
@@ -211,12 +280,16 @@ export const curationStore = {
     try {
       console.log(`[Curation] 🤖 Iniciando análise automática do item ${itemId}...`);
 
-      const analysis = await curatorAgentDetector.analyzeCurationItem(
-        data.title,
-        data.content,
-        data.suggestedNamespaces,
-        data.tags || [],
-        data.submittedBy
+      const analysis = await withTimeout(
+        curatorAgentDetector.analyzeCurationItem(
+          data.title,
+          data.content,
+          data.suggestedNamespaces,
+          data.tags || [],
+          data.submittedBy
+        ),
+        AUTO_ANALYSIS_TIMEOUT_MS,
+        'Auto-analysis LLM call'
       );
 
       // Formatar nota com análise automática
@@ -340,8 +413,13 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
         console.log(`[Curation] 💡 Agente sugeriu edições (score alto: ${analysis.score}), mas mantendo valores originais para revisão humana`);
       }
     } catch (error: any) {
-      console.error(`[Curation] ❌ Falha na análise automática:`, error.message);
-      // Não propagar erro - análise automática é opcional
+      if (error instanceof AutoAnalysisTimeoutError) {
+        console.error(`[Curation] ⏱️ TIMEOUT: Análise automática excedeu ${error.duration}ms (limite: ${AUTO_ANALYSIS_TIMEOUT_MS}ms) para item ${itemId}`);
+        console.warn(`[Curation] ⚠️ Item ${itemId} mantido em HITL review - LLM não respondeu a tempo`);
+      } else {
+        console.error(`[Curation] ❌ Falha na análise automática:`, error.message);
+      }
+      // Não propagar erro - análise automática é opcional, item fica pendente para HITL
     }
   },
 

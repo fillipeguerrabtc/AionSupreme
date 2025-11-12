@@ -10,7 +10,7 @@
 import { db } from "../db";
 import { curationQueue } from "@shared/schema";
 import { sql, isNull } from "drizzle-orm";
-import { llmClient } from "../llm/client";
+import { embedText } from "../ai/embedder";
 
 async function backfillCurationEmbeddings() {
   console.log('\n🔄 [Embedding Backfill] Starting curation queue embedding generation...\n');
@@ -56,17 +56,11 @@ async function backfillCurationEmbeddings() {
           try {
             console.log(`  → Generating embedding for item ${item.id.substring(0, 8)}... (attempt ${retries + 1}/${maxRetries})`);
             
-            // Generate embedding using LLM client
-            const embeddingResult = await llmClient.createEmbedding(item.content);
+            // Generate embedding using embedText (returns number[] directly)
+            const embeddingVector = await embedText(item.content);
             
-            // CRITICAL FIX: createEmbedding() returns object, extract numeric vector
-            // Expected format: { embedding: number[] } or number[] directly
-            const embeddingVector = Array.isArray(embeddingResult) 
-              ? embeddingResult 
-              : (embeddingResult as any).embedding;
-            
-            if (!Array.isArray(embeddingVector) || embeddingVector.length === 0) {
-              throw new Error(`Invalid embedding format: ${typeof embeddingResult}`);
+            if (!Array.isArray(embeddingVector) || embeddingVector.length !== 1536) {
+              throw new Error(`Invalid embedding dimension: ${embeddingVector.length}, expected 1536`);
             }
             
             // Update item with embedding vector
