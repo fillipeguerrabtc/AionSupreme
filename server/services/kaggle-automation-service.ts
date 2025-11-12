@@ -324,7 +324,30 @@ export class KaggleAutomationService {
   }
 
   /**
+   * 🔧 PRODUCTION FIX: Sanitize title to Kaggle-compatible slug
+   * 
+   * Replicates Kaggle's slug generation algorithm:
+   * - Convert to lowercase
+   * - Replace spaces with dashes
+   * - Replace underscores with dashes
+   * - Remove special characters
+   * 
+   * Source: GitHub Issue #745, Kernel Metadata Wiki
+   */
+  private sanitizeToSlug(title: string): string {
+    return title
+      .toLowerCase()
+      .replace(/\s+/g, '-')       // Spaces → dashes
+      .replace(/_/g, '-')         // Underscores → dashes
+      .replace(/[^a-z0-9-]/g, '') // Remove special chars
+      .replace(/-+/g, '-')        // Multiple dashes → single dash
+      .replace(/^-|-$/g, '');     // Trim dashes from start/end
+  }
+
+  /**
    * Generate kernel-metadata.json (FOLLOWING OFFICIAL SPEC!)
+   * 
+   * 🚀 2025 PRODUCTION FIX: Title must "resolve" to slug to avoid 409 conflicts
    * 
    * Spec: https://github.com/Kaggle/kaggle-api/wiki/Kernel-Metadata
    */
@@ -335,16 +358,30 @@ export class KaggleAutomationService {
   ): Promise<string> {
     const metadataPath = path.join(kernelFolder, 'kernel-metadata.json');
 
-    const kernelSlug = `aion-gpu-worker-${workerId}-${Date.now()}`;
+    // ✅ Generate slug with timestamp for uniqueness
+    const timestamp = Date.now();
+    const kernelSlug = `aion-gpu-worker-${workerId}-${timestamp}`;
     
-    // ✅ 2025 BEST PRACTICE: Enforce 50-char title limit (Issue #179)
-    // Longer titles cause misleading "500 Internal Server Error"
-    const rawTitle = `AION GPU Worker ${workerId}`;
+    // ✅ 2025 CRITICAL FIX: Title MUST sanitize to match slug (avoid 409 conflict)
+    // Title: "AION GPU Worker 10 1762989601203" → slug: "aion-gpu-worker-10-1762989601203" ✅
+    const rawTitle = `AION GPU Worker ${workerId} ${timestamp}`;
+    
+    // ✅ Enforce 50-char limit (Issue #179)
     const title = rawTitle.length > 50 ? rawTitle.substring(0, 50) : rawTitle;
+    
+    // 🔒 VALIDATION: Ensure title sanitizes to exact slug
+    const sanitizedTitle = this.sanitizeToSlug(title);
+    if (sanitizedTitle !== kernelSlug) {
+      console.warn(`[Kaggle Automation] ⚠️ Slug mismatch detected!`);
+      console.warn(`   Expected slug: ${kernelSlug}`);
+      console.warn(`   Title sanitized to: ${sanitizedTitle}`);
+      console.warn(`   Title: ${title}`);
+      throw new Error('Title/slug mismatch - this would cause 409 conflict');
+    }
 
     const metadata: KernelMetadata = {
       id: `${username}/${kernelSlug}`,
-      title,                                // ✅ Title ≤50 chars
+      title,                                // ✅ Title resolves to slug
       code_file: 'worker.ipynb',
       language: 'python',
       kernel_type: 'notebook',
@@ -358,6 +395,11 @@ export class KaggleAutomationService {
     };
 
     await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+
+    console.log(`[Kaggle Automation] ✅ Metadata validated:`);
+    console.log(`   Title: "${title}"`);
+    console.log(`   Slug:  "${kernelSlug}"`);
+    console.log(`   ID:    "${metadata.id}"`);
 
     return metadataPath;
   }

@@ -149,12 +149,41 @@ app.use((req, res, next) => {
   // Isto serve tanto a API quanto o cliente.
   // É a única porta que não é bloqueada por firewall.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
+  
+  // 🛡️ ENTERPRISE: Store server reference for graceful shutdown
+  let httpServer: ReturnType<typeof server.listen>;
+  
+  httpServer = server.listen({
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, async () => {
     log(`serving on port ${port}`);
+    
+    // 🛡️ ENTERPRISE SHUTDOWN HANDLERS: Register AFTER server starts
+    const { shutdownService } = await import('./services/shutdown-service');
+    
+    process.once('SIGTERM', () => {
+      logger.warn('[Shutdown] SIGTERM received - starting graceful shutdown...');
+      shutdownService.gracefulShutdown(httpServer, 0);
+    });
+    
+    process.once('SIGINT', () => {
+      logger.warn('[Shutdown] SIGINT received (Ctrl+C) - starting graceful shutdown...');
+      shutdownService.gracefulShutdown(httpServer, 0);
+    });
+    
+    process.once('uncaughtException', (error) => {
+      console.error('[Shutdown] Uncaught exception:', error.message);
+      console.error('[Shutdown] Stack:', error.stack);
+      shutdownService.gracefulShutdown(httpServer, 1);
+    });
+    
+    process.once('unhandledRejection', (reason, promise) => {
+      console.error('[Shutdown] Unhandled rejection at:', promise);
+      console.error('[Shutdown] Reason:', reason);
+      shutdownService.gracefulShutdown(httpServer, 1);
+    });
     
     // ⏰ Initialize PRODUCTION SCHEDULER SERVICE (cron jobs reais!)
     try {
@@ -163,6 +192,14 @@ app.use((req, res, next) => {
       console.log('✅ Scheduler Service iniciado com cron jobs production-grade');
     } catch (err) {
       console.error('⚠️ Failed to initialize scheduler service:', err);
+    }
+    
+    // 🔄 ENTERPRISE RECOVERY: Detect and recover orphaned jobs (MUST run BEFORE auto-evolution)
+    try {
+      const { recoveryService } = await import('./services/recovery-service');
+      await recoveryService.recoverOrphanedJobs();
+    } catch (err) {
+      console.error('⚠️ Failed to run recovery service:', err);
     }
     
     // 🧠 Initialize Auto-Evolution System
@@ -220,30 +257,3 @@ app.use((req, res, next) => {
     }
   });
 })();
-
-// 💾 FASE 1 - Salvar Vector Store snapshot no shutdown (SINGLETON - fora do async block)
-let shutdownHandlersRegistered = false;
-
-async function gracefulShutdown(signal: string) {
-  const { vectorStore } = await import("./rag/vector-store");
-  const { schedulerService } = await import("./services/scheduler-service");
-  const { log } = await import("./utils/logger");
-  
-  console.log(`[Shutdown] Recebido sinal ${signal}, parando schedulers...`);
-  
-  // Parar schedulers primeiro
-  schedulerService.stop();
-  
-  // Salvar vector store
-  console.log('[Shutdown] Salvando snapshot do vector store...');
-  await vectorStore.save();
-  
-  console.log('[Shutdown] Shutdown concluído, encerrando processo');
-  process.exit(0);
-}
-
-if (!shutdownHandlersRegistered) {
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  shutdownHandlersRegistered = true;
-}
