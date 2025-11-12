@@ -388,10 +388,15 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
    * - SEMPRE verifica KB completa antes de aprovar
    * - SEMPRE extrai e salva SOMENTE conteúdo novo
    * - NUNCA duplica conteúdo existente
+   * 
+   * @param id - Item ID
+   * @param reviewedBy - Who approved (user or AUTO-CURATOR)
+   * @param approvalNote - Optional audit note (e.g., REUSE-GATE reason)
    */
   async approveAndPublish(
     id: string,
-    reviewedBy: string
+    reviewedBy: string,
+    approvalNote?: string
   ): Promise<{ item: CurationItem; publishedId: string }> {
     const item = await this.getById(id);
     if (!item || item.status !== "pending") {
@@ -629,6 +634,7 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
         reviewedAt: now,
         statusChangedAt: now, // Track when status changed for 5-year retention
         publishedId: newDoc.id.toString(),
+        note: approvalNote || null, // Optional audit note (e.g., REUSE-GATE reason)
         updatedAt: now,
       })
       .where(eq(curationQueueTable.id, id))

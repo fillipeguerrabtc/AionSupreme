@@ -604,8 +604,11 @@ export class SchedulerService {
             if (decision.action === 'approve') {
               // Check if approved via reuse gate (for audit trail)
               const isReuseGateApproval = decision.reason.includes('High-reuse value');
+              const isGreetingGate = decision.reason.includes('Greeting/casual phrase');
               const approvalNote = isReuseGateApproval 
                 ? `${decision.reason} [REUSE-GATE]`
+                : isGreetingGate
+                ? `${decision.reason} [GREETING-GATE]`
                 : decision.reason;
               
               await curationStore.approveAndPublish(item.id, 'AUTO-CURATOR', approvalNote);
