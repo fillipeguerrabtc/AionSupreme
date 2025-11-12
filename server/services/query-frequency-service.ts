@@ -121,13 +121,19 @@ export class QueryFrequencyService {
     namespace?: string,
     conversationId?: string
   ): Promise<void> {
+    console.log(`[QueryFrequency] 🎯 TRACK CALLED: query="${query.substring(0, 50)}...", namespace=${namespace}, conversationId=${conversationId}`);
+    
     try {
       const normalized = this.normalizeQuery(query);
       const hash = this.hashQuery(normalized);
+      console.log(`[QueryFrequency] → Normalized: "${normalized.substring(0, 50)}...", hash=${hash.substring(0, 16)}...`);
+      
       const embedding = await this.generateEmbedding(normalized);
+      console.log(`[QueryFrequency] → Embedding generated: ${embedding.length} dimensions`);
 
       // Try to find semantically similar query
       const similar = await this.findSimilarQuery(embedding, namespace);
+      console.log(`[QueryFrequency] → Similar query found: ${similar ? 'YES (ID: ' + similar.id + ')' : 'NO'}`);
 
       if (similar) {
         // Increment existing similar query
@@ -143,6 +149,7 @@ export class QueryFrequencyService {
         console.log(`[QueryFrequency] ✅ Incremented similar query (ID: ${similar.id}, count: ${similar.hitCount + 1})`);
       } else {
         // Create new query entry
+        console.log(`[QueryFrequency] → Inserting new entry...`);
         await db.insert(userQueryFrequency).values({
           queryHash: hash,
           normalizedQuery: normalized,
@@ -156,7 +163,7 @@ export class QueryFrequencyService {
         console.log(`[QueryFrequency] 📝 New query tracked: "${normalized.substring(0, 50)}..."`);
       }
     } catch (error: any) {
-      console.error(`[QueryFrequency] Track error:`, error.message);
+      console.error(`[QueryFrequency] ❌ TRACK ERROR:`, error.message, error.stack);
       // Non-critical - don't throw
     }
   }

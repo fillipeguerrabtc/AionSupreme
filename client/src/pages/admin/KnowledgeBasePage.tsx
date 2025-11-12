@@ -41,12 +41,17 @@ export default function KnowledgeBasePage() {
   
   // Scroll ScrollArea to top when page loads
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (viewport) {
-        viewport.scrollTop = 0;
+    // Use setTimeout to ensure viewport is rendered
+    const timer = setTimeout(() => {
+      if (scrollAreaRef.current) {
+        const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        if (viewport) {
+          viewport.scrollTop = 0;
+        }
       }
-    }
+    }, 50); // Small delay to ensure DOM is ready
+    
+    return () => clearTimeout(timer);
   }, [location]);
   const { toast } = useToast();
   const { t } = useLanguage();

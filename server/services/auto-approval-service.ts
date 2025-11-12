@@ -143,14 +143,34 @@ export class AutoApprovalService {
       .replace(/[.,!?;:"""''()[\]{}]/g, '')
       .replace(/\s+/g, ' ');
 
-    // Greeting patterns (PT/EN/ES)
+    // Greeting patterns (PT/EN/ES) - matches greetings at START of text
     const greetingPatterns = [
-      // Portuguese
-      /^(oi|olá|ola|opa|e aí|e ai|bom dia|boa tarde|boa noite|tchau|ate logo|até logo|falou|valeu|beleza|tudo bem|tudo bom|como vai|como você está|como voce esta|obrigad[ao]|de nada|por favor|com licença|com licenca)$/i,
-      // English  
-      /^(hi|hello|hey|yo|sup|good morning|good afternoon|good evening|good night|goodbye|bye|see you|later|thanks|thank you|you're welcome|youre welcome|please|excuse me|how are you|how do you do|whats up|what's up)$/i,
-      // Spanish
-      /^(hola|buenos días|buenos dias|buenas tardes|buenas noches|adiós|adios|hasta luego|chau|gracias|de nada|por favor|perdón|perdon|cómo estás|como estas|qué tal|que tal)$/i,
+      // Portuguese - common greetings
+      /^(oi|olá|ola|opa)\b/i,
+      /^(e aí|e ai)\b/i,
+      /^(bom dia|boa tarde|boa noite)\b/i,
+      /^(tchau|ate logo|até logo|falou|valeu)\b/i,
+      /^(beleza|tudo bem|tudo bom)\b/i,
+      /^(como vai|como você está|como voce esta)\b/i,
+      /^(obrigad[ao]|de nada|por favor)\b/i,
+      /^(com licença|com licenca)\b/i,
+      
+      // English - common greetings
+      /^(hi|hello|hey|yo|sup)\b/i,
+      /^(good morning|good afternoon|good evening|good night)\b/i,
+      /^(goodbye|bye|see you|later)\b/i,
+      /^(thanks|thank you)\b/i,
+      /^(you're welcome|youre welcome|please|excuse me)\b/i,
+      /^(how are you|how do you do|how are you doing)\b/i,
+      /^(whats up|what's up|wassup)\b/i,
+      
+      // Spanish - common greetings
+      /^(hola)\b/i,
+      /^(buenos días|buenos dias|buenas tardes|buenas noches)\b/i,
+      /^(adiós|adios|hasta luego|chau)\b/i,
+      /^(gracias|de nada|por favor)\b/i,
+      /^(perdón|perdon)\b/i,
+      /^(cómo estás|como estas|qué tal|que tal)\b/i,
     ];
 
     return greetingPatterns.some(pattern => pattern.test(normalized));
