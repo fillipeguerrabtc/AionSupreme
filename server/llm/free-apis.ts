@@ -37,7 +37,7 @@ export interface LLMResponse {
 
 interface APIProvider {
   name: string;
-  dailyLimit: number;
+  // ❌ REMOVED: dailyLimit (now fetched dynamically from provider_limits table)
   priority: number;
   models: string[];
   enabled: boolean;
@@ -50,28 +50,28 @@ interface APIProvider {
 const FREE_APIS: APIProvider[] = [
   {
     name: 'groq',
-    dailyLimit: 14400,  // 14.4k requests/day
+    // ✅ dailyLimit now fetched dynamically from provider_limits table
     priority: 1,        // HIGHEST priority (ultra-fast, no censorship)
     models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],  // Updated Oct 2025
     enabled: !!process.env.GROQ_API_KEY
   },
   {
     name: 'gemini',
-    dailyLimit: 6000000,  // 6M tokens/day (~12k requests @ 500 tokens/req)
+    // ✅ dailyLimit now fetched dynamically from provider_limits table
     priority: 2,
     models: ['gemini-2.0-flash-exp', 'gemini-1.5-flash'],
     enabled: !!process.env.GEMINI_API_KEY
   },
   {
     name: 'hf',
-    dailyLimit: 720,    // ~720 requests/day (estimated)
+    // ✅ dailyLimit now fetched dynamically from provider_limits table
     priority: 3,
     models: ['mistralai/Mistral-7B-Instruct-v0.2'],  // ✅ FIX: v0.2 is public (v0.3 returns 404)
     enabled: !!process.env.HUGGINGFACE_API_KEY
   },
   {
     name: 'openrouter',
-    dailyLimit: 50,     // 50 free credits
+    // ✅ dailyLimit now fetched dynamically from provider_limits table
     priority: 4,
     models: ['meta-llama/llama-3.1-8b-instruct:free', 'mistralai/mistral-7b-instruct:free'],
     enabled: !!process.env.OPEN_ROUTER_API_KEY
