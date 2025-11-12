@@ -129,6 +129,34 @@ export class AutoApprovalService {
   }
 
   /**
+   * GREETING GATE - Detect common greetings and casual phrases
+   * Best Practice 2025: Auto-approve greetings to train internal model
+   * Supports PT-BR, EN-US, ES-ES
+   */
+  isGreetingOrCasualPhrase(queryText?: string): boolean {
+    if (!queryText) return false;
+
+    // Normalize: lowercase, trim, remove punctuation
+    const normalized = queryText
+      .toLowerCase()
+      .trim()
+      .replace(/[.,!?;:"""''()[\]{}]/g, '')
+      .replace(/\s+/g, ' ');
+
+    // Greeting patterns (PT/EN/ES)
+    const greetingPatterns = [
+      // Portuguese
+      /^(oi|olá|ola|opa|e aí|e ai|bom dia|boa tarde|boa noite|tchau|ate logo|até logo|falou|valeu|beleza|tudo bem|tudo bom|como vai|como você está|como voce esta|obrigad[ao]|de nada|por favor|com licença|com licenca)$/i,
+      // English  
+      /^(hi|hello|hey|yo|sup|good morning|good afternoon|good evening|good night|goodbye|bye|see you|later|thanks|thank you|you're welcome|youre welcome|please|excuse me|how are you|how do you do|whats up|what's up)$/i,
+      // Spanish
+      /^(hola|buenos días|buenos dias|buenas tardes|buenas noches|adiós|adios|hasta luego|chau|gracias|de nada|por favor|perdón|perdon|cómo estás|como estas|qué tal|que tal)$/i,
+    ];
+
+    return greetingPatterns.some(pattern => pattern.test(normalized));
+  }
+
+  /**
    * Decide if item should be auto-approved, auto-rejected, or sent to HITL review
    * 
    * BEST PRACTICE 2025: Cost-aware approval with semantic query frequency tracking
@@ -151,6 +179,23 @@ export class AutoApprovalService {
     queryText?: string
   ): Promise<AutoApprovalDecision> {
     const config = await this.getConfig();
+
+    // 🚀 GREETING GATE - HIGHEST PRIORITY (bypasses all other checks)
+    // Best Practice 2025: Auto-approve greetings regardless of score
+    // Rationale: Train internal model with common phrases to reduce external API costs
+    if (this.isGreetingOrCasualPhrase(queryText)) {
+      return {
+        action: "approve",
+        reason: `Auto-approved: Greeting/casual phrase detected - Training internal model for cost optimization`,
+        configUsed: {
+          enabled: config.enabled,
+          minApprovalScore: config.minApprovalScore,
+          maxRejectScore: config.maxRejectScore,
+          sensitiveFlags: config.sensitiveFlags,
+          enabledNamespaces: config.enabledNamespaces,
+        },
+      };
+    }
 
     // GUARD 1: Auto-approval globally disabled
     if (!config.enabled) {
