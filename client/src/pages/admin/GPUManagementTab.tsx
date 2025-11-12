@@ -167,42 +167,46 @@ export default function GPUManagementTab() {
         }
 
         const metadata = worker.capabilities.metadata;
-        const maxSessionHours = metadata?.maxSessionHours;
         const sessionStart = metadata?.sessionStart;
+        const sessionRuntimeHours = metadata?.sessionRuntimeHours || 0;
+        const maxSessionHours = metadata?.maxSessionHours || 0;
 
-        if (!maxSessionHours) {
-          setTimeLeft(t.admin.gpuManagement.time.na);
-          return;
-        }
-
-        const startTime = sessionStart ? new Date(sessionStart).getTime() : new Date(worker.createdAt).getTime();
-        const maxRuntimeMs = maxSessionHours * 60 * 60 * 1000;
-        const shutdownTime = startTime + maxRuntimeMs;
-        const now = Date.now();
-        const remaining = shutdownTime - now;
-
-        if (remaining <= 0) {
-          setTimeLeft(t.admin.gpuManagement.time.shuttingDown);
-          return;
-        }
-
-        const hours = Math.floor(remaining / (1000 * 60 * 60));
-        const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-
-        if (hours > 0) {
-          setTimeLeft(`${hours}${t.admin.gpuManagement.time.hourUnit} ${minutes}${t.admin.gpuManagement.time.minuteUnit} ${seconds}${t.admin.gpuManagement.time.secondUnit}`);
-        } else if (minutes > 0) {
-          setTimeLeft(`${minutes}${t.admin.gpuManagement.time.minuteUnit} ${seconds}${t.admin.gpuManagement.time.secondUnit}`);
+        if (worker.provider === 'kaggle') {
+          // KAGGLE: Mostra quota SEMANAL (dados reais do PostgreSQL)
+          const usedHoursThisWeek = metadata?.usedHoursThisWeek || 0;
+          const quotaHoursPerWeek = metadata?.quotaHoursPerWeek || 30;
+          const safeWeeklyLimit = quotaHoursPerWeek * 0.7; // 70% safety margin
+          
+          setTimeLeft(`Semana: ${usedHoursThisWeek.toFixed(1)}h / ${safeWeeklyLimit.toFixed(0)}h`);
         } else {
-          setTimeLeft(`${seconds}${t.admin.gpuManagement.time.secondUnit}`);
+          // COLAB: Mostra quota de SESSÃO com countdown
+          if (!sessionStart) {
+            setTimeLeft(t.admin.gpuManagement.time.na);
+            return;
+          }
+
+          const startTime = new Date(sessionStart).getTime();
+          const maxRuntimeMs = maxSessionHours * 60 * 60 * 1000;
+          const shutdownTime = startTime + maxRuntimeMs;
+          const now = Date.now();
+          const remaining = shutdownTime - now;
+
+          if (remaining <= 0) {
+            setTimeLeft(t.admin.gpuManagement.time.shuttingDown);
+            return;
+          }
+
+          const hours = Math.floor(remaining / (1000 * 60 * 60));
+          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+
+          setTimeLeft(`Sessão: ${sessionRuntimeHours.toFixed(1)}h / ${maxSessionHours.toFixed(1)}h`);
         }
       };
 
       updateTimer();
       const interval = setInterval(updateTimer, 1000);
       return () => clearInterval(interval);
-    }, [worker.id, worker.status, worker.createdAt, worker.capabilities.metadata?.maxSessionHours, worker.capabilities.metadata?.sessionStart]);
+    }, [worker.id, worker.provider, worker.status, worker.capabilities.metadata]);
 
     return <span className="text-sm font-mono">{timeLeft}</span>;
   };
