@@ -144,7 +144,7 @@ export class IntelligentQuotaManager {
       utilizationPercent: utilization,
       canStart,
       shouldStop,
-      inCooldown: worker.provider === 'colab' ? inCooldown : undefined,  // Only relevant for Colab
+      inCooldown: worker.provider === 'colab' ? (inCooldown || false) : undefined,  // Only relevant for Colab
       cooldownRemainingSeconds: worker.provider === 'colab' ? cooldownRemainingSeconds : undefined,
       reason,
     };
