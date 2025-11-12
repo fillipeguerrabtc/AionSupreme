@@ -34,13 +34,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, FolderTree, FileText, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, FolderTree, FileText, Upload, Sliders, FileCode, Zap, BarChart3 } from "lucide-react";
 import { IconPicker } from "@/components/IconPicker";
 import { ICON_MAP } from "@/lib/icon-map";
 import { type Namespace } from "@shared/schema";
 import { useMemo } from "react";
 import { useLanguage } from "@/lib/i18n";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 export default function NamespacesPage() {
   const { t } = useLanguage();
@@ -59,11 +63,31 @@ export default function NamespacesPage() {
   const [createIcon, setCreateIcon] = useState("");
   const [createContent, setCreateContent] = useState("");
   
-  // Edit form state
+  // Edit form state - Basic Info
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editIcon, setEditIcon] = useState("");
   const [editContent, setEditContent] = useState("");
+  
+  // PHASE 2: Edit form state - Slider Overrides (0-1 scale per schema)
+  const [useCustomSliders, setUseCustomSliders] = useState(false);
+  const [sliders, setSliders] = useState({
+    verbosity: 0.5,
+    formality: 0.5,
+    creativity: 0.5,
+    precision: 0.5,
+    persuasiveness: 0.5,
+    empathy: 0.5,
+    enthusiasm: 0.5,
+  });
+  
+  // PHASE 2: Edit form state - System Prompt Override
+  const [systemPromptOverride, setSystemPromptOverride] = useState("");
+  const [mergeStrategy, setMergeStrategy] = useState<"override" | "merge" | "fallback">("merge");
+  
+  // PHASE 2: Edit form state - Triggers (simple string array per schema)
+  const [triggers, setTriggers] = useState<string[]>([]);
+  const [priority, setPriority] = useState(2); // 1=HIGH, 2=MEDIUM, 3=LOW
   
   // Fetch ALL namespaces from database (unified approach)
   const { data: allNamespaces = [], isLoading } = useQuery<Namespace[]>({
@@ -136,10 +160,44 @@ export default function NamespacesPage() {
   // Populate edit form when namespace is selected
   useEffect(() => {
     if (selectedNamespace) {
+      // Basic Info
       setEditName(selectedNamespace.name);
       setEditDescription(selectedNamespace.description || "");
       setEditIcon(selectedNamespace.icon || "");
       setEditContent("");
+      
+      // PHASE 2: Slider Overrides
+      if (selectedNamespace.sliderOverrides) {
+        setUseCustomSliders(true);
+        setSliders({
+          verbosity: selectedNamespace.sliderOverrides.verbosity ?? 0.5,
+          formality: selectedNamespace.sliderOverrides.formality ?? 0.5,
+          creativity: selectedNamespace.sliderOverrides.creativity ?? 0.5,
+          precision: selectedNamespace.sliderOverrides.precision ?? 0.5,
+          persuasiveness: selectedNamespace.sliderOverrides.persuasiveness ?? 0.5,
+          empathy: selectedNamespace.sliderOverrides.empathy ?? 0.5,
+          enthusiasm: selectedNamespace.sliderOverrides.enthusiasm ?? 0.5,
+        });
+      } else {
+        setUseCustomSliders(false);
+        setSliders({
+          verbosity: 0.5,
+          formality: 0.5,
+          creativity: 0.5,
+          precision: 0.5,
+          persuasiveness: 0.5,
+          empathy: 0.5,
+          enthusiasm: 0.5,
+        });
+      }
+      
+      // PHASE 2: System Prompt Override
+      setSystemPromptOverride(selectedNamespace.systemPromptOverride || "");
+      setMergeStrategy((selectedNamespace.mergeStrategy as "override" | "merge" | "fallback") || "merge");
+      
+      // PHASE 2: Triggers (simple string array)
+      setTriggers(selectedNamespace.triggers || []);
+      setPriority(selectedNamespace.priority ?? 2); // MEDIUM priority default
     }
   }, [selectedNamespace]);
 
@@ -289,6 +347,15 @@ export default function NamespacesPage() {
           name: editName,
           description: editDescription,
           icon: editIcon,
+          // PHASE 2: Slider Overrides
+          sliderOverrides: useCustomSliders ? sliders : null,
+          // PHASE 2: System Prompt Override
+          systemPromptOverride: systemPromptOverride || null,
+          mergeStrategy,
+          // PHASE 2: Triggers & Priority
+          triggers: triggers.length > 0 ? triggers : null,
+          priority,
+          // metadata: Reserved for analytics (usageCount, lastActivatedAt, classificationAccuracy)
         },
       }, {
         onSuccess: async () => {
@@ -543,6 +610,8 @@ export default function NamespacesPage() {
                     <TableHead className="w-12"></TableHead>
                     <TableHead className="whitespace-nowrap">{t.admin.namespaces.name}</TableHead>
                     <TableHead className="whitespace-nowrap">{t.admin.namespaces.description}</TableHead>
+                    <TableHead className="text-center whitespace-nowrap">Priority</TableHead>
+                    <TableHead className="text-center whitespace-nowrap">Overrides</TableHead>
                     <TableHead className="text-right whitespace-nowrap">{t.admin.namespaces.actions}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -601,6 +670,63 @@ export default function NamespacesPage() {
                       <TableCell className="min-w-0">
                         <div className="max-w-[400px] truncate">
                           {namespace.description || <span className="text-muted-foreground italic">Sem descrição</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant={namespace.priority && namespace.priority > 50 ? "default" : "secondary"} data-testid={`badge-priority-${namespace.id}`}>
+                          {namespace.priority ?? 50}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-1 flex-wrap">
+                          {namespace.sliderOverrides && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs" data-testid={`badge-sliders-${namespace.id}`}>
+                                    <Sliders className="h-3 w-3 mr-1" />
+                                    Sliders
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Custom personality sliders</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          {namespace.systemPromptOverride && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs" data-testid={`badge-prompt-${namespace.id}`}>
+                                    <FileCode className="h-3 w-3 mr-1" />
+                                    Prompt
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Custom system prompt ({namespace.mergeStrategy})</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          {namespace.triggers && namespace.triggers.length > 0 && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs" data-testid={`badge-triggers-${namespace.id}`}>
+                                    <Zap className="h-3 w-3 mr-1" />
+                                    {namespace.triggers.length}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">{namespace.triggers.length} detection triggers</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          {!namespace.sliderOverrides && !namespace.systemPromptOverride && (!namespace.triggers || namespace.triggers.length === 0) && (
+                            <span className="text-muted-foreground text-xs italic">None</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
