@@ -422,16 +422,20 @@ export class LLMClient {
       const hasSystemMessage = finalMessages.some(msg => msg.role === "system");
       
       if (!hasSystemMessage) {
-        // Generate or use custom system prompt
+        // CRITICAL FIX: System Prompt E Sliders impactam JUNTOS (não apenas um ou outro)
+        // Se ambos existem, concatena; se só sliders, usa personality; se só systemPrompt, usa custom
         let systemPrompt: string;
         
-        if (this.policy.systemPrompt && this.policy.systemPrompt.trim().length > 0) {
-          // Use custom system prompt from policy
-          systemPrompt = this.policy.systemPrompt;
-          console.log("[LLM] 🎭 Using custom system prompt from policy");
+        const hasCustomPrompt = this.policy.systemPrompt && this.policy.systemPrompt.trim().length > 0;
+        const personalityPrompt = generatePersonalityPrompt(this.policy.behavior);
+        
+        if (hasCustomPrompt) {
+          // AMBOS: Custom System Prompt + Personality Traits
+          systemPrompt = `${this.policy.systemPrompt}\n\n# Personality & Behavior Guidelines\n${personalityPrompt}`;
+          console.log("[LLM] 🎭 Using BOTH custom system prompt + personality traits");
         } else {
-          // Generate personality-driven prompt from behavior traits
-          systemPrompt = generatePersonalityPrompt(this.policy.behavior);
+          // APENAS: Personality-driven prompt from behavior traits
+          systemPrompt = personalityPrompt;
           console.log("[LLM] 🎭 Generated personality prompt from traits");
         }
         
