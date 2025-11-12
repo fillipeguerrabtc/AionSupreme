@@ -1286,7 +1286,7 @@ interface Translations {
       rate: string;
     };
     
-    // Namespaces Page
+    // Namespaces Page - PHASE 2 EXPANDED
     namespaces: {
       title: string;
       subtitle: string;
@@ -1326,6 +1326,92 @@ interface Translations {
       selectParent: string;
       editCustomVersion: string;
       editNamespace: string;
+      
+      // PHASE 2: Slider Overrides
+      sliders: {
+        title: string;
+        subtitle: string;
+        useGlobalSettings: string;
+        customizeForNamespace: string;
+        persuasiveness: string;
+        persuasivenessDesc: string;
+        professionalism: string;
+        professionalismDesc: string;
+        friendliness: string;
+        friendlinessDesc: string;
+        assertiveness: string;
+        assertivenessDesc: string;
+        creativity: string;
+        creativityDesc: string;
+        formality: string;
+        formalityDesc: string;
+        empathy: string;
+        empathyDesc: string;
+        resetToGlobal: string;
+        globalValue: string;
+        customValue: string;
+      };
+      
+      // PHASE 2: System Prompt Override
+      systemPrompt: {
+        title: string;
+        subtitle: string;
+        globalPrompt: string;
+        namespacePrompt: string;
+        placeholder: string;
+        mergeStrategy: string;
+        mergeStrategyDesc: string;
+        append: string;
+        prepend: string;
+        replace: string;
+        appendDesc: string;
+        prependDesc: string;
+        replaceDesc: string;
+        preview: string;
+        finalPrompt: string;
+      };
+      
+      // PHASE 2: Triggers & Priority
+      triggers: {
+        title: string;
+        subtitle: string;
+        add: string;
+        keyword: string;
+        keywordDesc: string;
+        pattern: string;
+        patternDesc: string;
+        semanticMatch: string;
+        semanticMatchDesc: string;
+        examples: string;
+        examplesPlaceholder: string;
+        priority: string;
+        priorityDesc: string;
+        confidence: string;
+        confidenceDesc: string;
+        remove: string;
+        noTriggers: string;
+      };
+      
+      // PHASE 2: Analytics
+      analytics: {
+        title: string;
+        subtitle: string;
+        usageStats: string;
+        detections: string;
+        detectionsDesc: string;
+        avgConfidence: string;
+        avgConfidenceDesc: string;
+        sliderImpact: string;
+        sliderImpactDesc: string;
+        promptOverrides: string;
+        promptOverridesDesc: string;
+        performance: string;
+        avgLatency: string;
+        successRate: string;
+        topTriggers: string;
+        noData: string;
+      };
+      
       validation: {
         nameRequired: string;
         nameRequiredDesc: string;
@@ -1335,6 +1421,10 @@ interface Translations {
         selectParentDesc: string;
         invalidFormat: string;
         subFormatError: string;
+        sliderOutOfBounds: string;
+        sliderOutOfBoundsDesc: string;
+        priorityRequired: string;
+        confidenceOutOfBounds: string;
       };
       toast: {
         created: string;
@@ -1344,6 +1434,10 @@ interface Translations {
         indexError: string;
         unknownError: string;
         customVersionCreated: string;
+        slidersSaved: string;
+        promptSaved: string;
+        triggerAdded: string;
+        triggerRemoved: string;
       };
     };
     
@@ -2733,6 +2827,92 @@ const translations: Record<Language, Translations> = {
         selectParent: "Selecionar namespace pai",
         editCustomVersion: "Criar Versão Customizada",
         editNamespace: "Editar Namespace",
+        
+        // PHASE 2: Slider Overrides
+        sliders: {
+          title: "Personalidade Específica",
+          subtitle: "Customize os sliders de personalidade para este namespace",
+          useGlobalSettings: "Usar Configurações Globais",
+          customizeForNamespace: "Customizar para este Namespace",
+          persuasiveness: "Persuasão",
+          persuasivenessDesc: "Nível de persuasão nas recomendações (0-100%)",
+          professionalism: "Profissionalismo",
+          professionalismDesc: "Grau de formalidade e seriedade (0-100%)",
+          friendliness: "Amigabilidade",
+          friendlinessDesc: "Tom caloroso e acolhedor (0-100%)",
+          assertiveness: "Assertividade",
+          assertivenessDesc: "Confiança e segurança nas respostas (0-100%)",
+          creativity: "Criatividade",
+          creativityDesc: "Originalidade e inovação (0-100%)",
+          formality: "Formalidade",
+          formalityDesc: "Nível de linguagem formal (0-100%)",
+          empathy: "Empatia",
+          empathyDesc: "Compreensão emocional e sensibilidade (0-100%)",
+          resetToGlobal: "Resetar para Global",
+          globalValue: "Global",
+          customValue: "Custom",
+        },
+        
+        // PHASE 2: System Prompt Override
+        systemPrompt: {
+          title: "System Prompt Customizado",
+          subtitle: "Adicione instruções específicas para este namespace",
+          globalPrompt: "Prompt Global",
+          namespacePrompt: "Prompt do Namespace",
+          placeholder: "Instruções adicionais para este namespace...",
+          mergeStrategy: "Estratégia de Merge",
+          mergeStrategyDesc: "Como combinar prompts global e namespace",
+          append: "Anexar",
+          prepend: "Prefixar",
+          replace: "Substituir",
+          appendDesc: "Adiciona ao final do prompt global",
+          prependDesc: "Adiciona antes do prompt global",
+          replaceDesc: "Substitui completamente o prompt global",
+          preview: "Pré-visualização",
+          finalPrompt: "Prompt Final",
+        },
+        
+        // PHASE 2: Triggers & Priority
+        triggers: {
+          title: "Triggers de Detecção",
+          subtitle: "Configure gatilhos para ativar este namespace",
+          add: "Adicionar Trigger",
+          keyword: "Palavra-chave",
+          keywordDesc: "Trigger por palavra exata",
+          pattern: "Padrão",
+          patternDesc: "Trigger por regex pattern",
+          semanticMatch: "Match Semântico",
+          semanticMatchDesc: "Trigger por similaridade semântica (LLM)",
+          examples: "Exemplos",
+          examplesPlaceholder: "turismo em Portugal, viagens, YYD, ...",
+          priority: "Prioridade",
+          priorityDesc: "Ordem de precedência (0-100, maior = mais prioritário)",
+          confidence: "Confiança Mínima",
+          confidenceDesc: "Threshold de confiança para ativação (0-100%)",
+          remove: "Remover",
+          noTriggers: "Nenhum trigger configurado",
+        },
+        
+        // PHASE 2: Analytics
+        analytics: {
+          title: "Analytics do Namespace",
+          subtitle: "Métricas de uso e performance",
+          usageStats: "Estatísticas de Uso",
+          detections: "Detecções",
+          detectionsDesc: "Quantas vezes este namespace foi detectado",
+          avgConfidence: "Confiança Média",
+          avgConfidenceDesc: "Confiança média nas detecções",
+          sliderImpact: "Impacto dos Sliders",
+          sliderImpactDesc: "Quantas respostas usaram sliders customizados",
+          promptOverrides: "Overrides de Prompt",
+          promptOverridesDesc: "Quantas respostas usaram prompt customizado",
+          performance: "Performance",
+          avgLatency: "Latência Média",
+          successRate: "Taxa de Sucesso",
+          topTriggers: "Top Triggers",
+          noData: "Nenhum dado disponível",
+        },
+        
         validation: {
           nameRequired: "Nome obrigatório",
           nameRequiredDesc: "Por favor, insira um nome para o namespace",
@@ -2742,6 +2922,10 @@ const translations: Record<Language, Translations> = {
           selectParentDesc: "Selecione o namespace pai para criar um sub-namespace",
           invalidFormat: "Formato inválido",
           subFormatError: "Sub-namespace deve estar no formato pai/filho",
+          sliderOutOfBounds: "Valor do slider inválido",
+          sliderOutOfBoundsDesc: "Os valores devem estar entre 0 e 100",
+          priorityRequired: "Prioridade obrigatória",
+          confidenceOutOfBounds: "Confiança deve estar entre 0 e 100",
         },
         toast: {
           created: "Namespace criado!",
@@ -2751,6 +2935,10 @@ const translations: Record<Language, Translations> = {
           indexError: "Erro ao indexar conteúdo",
           unknownError: "Erro desconhecido",
           customVersionCreated: "Versão customizada criada!",
+          slidersSaved: "Sliders salvos!",
+          promptSaved: "Prompt salvo!",
+          triggerAdded: "Trigger adicionado!",
+          triggerRemoved: "Trigger removido!",
         },
       },
       
@@ -4136,6 +4324,92 @@ const translations: Record<Language, Translations> = {
         selectParent: "Select parent namespace",
         editCustomVersion: "Create Custom Version",
         editNamespace: "Edit Namespace",
+        
+        // PHASE 2: Slider Overrides
+        sliders: {
+          title: "Specific Personality",
+          subtitle: "Customize personality sliders for this namespace",
+          useGlobalSettings: "Use Global Settings",
+          customizeForNamespace: "Customize for this Namespace",
+          persuasiveness: "Persuasiveness",
+          persuasivenessDesc: "Level of persuasion in recommendations (0-100%)",
+          professionalism: "Professionalism",
+          professionalismDesc: "Degree of formality and seriousness (0-100%)",
+          friendliness: "Friendliness",
+          friendlinessDesc: "Warm and welcoming tone (0-100%)",
+          assertiveness: "Assertiveness",
+          assertivenessDesc: "Confidence and certainty in responses (0-100%)",
+          creativity: "Creativity",
+          creativityDesc: "Originality and innovation (0-100%)",
+          formality: "Formality",
+          formalityDesc: "Level of formal language (0-100%)",
+          empathy: "Empathy",
+          empathyDesc: "Emotional understanding and sensitivity (0-100%)",
+          resetToGlobal: "Reset to Global",
+          globalValue: "Global",
+          customValue: "Custom",
+        },
+        
+        // PHASE 2: System Prompt Override
+        systemPrompt: {
+          title: "Custom System Prompt",
+          subtitle: "Add specific instructions for this namespace",
+          globalPrompt: "Global Prompt",
+          namespacePrompt: "Namespace Prompt",
+          placeholder: "Additional instructions for this namespace...",
+          mergeStrategy: "Merge Strategy",
+          mergeStrategyDesc: "How to combine global and namespace prompts",
+          append: "Append",
+          prepend: "Prepend",
+          replace: "Replace",
+          appendDesc: "Adds to the end of global prompt",
+          prependDesc: "Adds before global prompt",
+          replaceDesc: "Completely replaces global prompt",
+          preview: "Preview",
+          finalPrompt: "Final Prompt",
+        },
+        
+        // PHASE 2: Triggers & Priority
+        triggers: {
+          title: "Detection Triggers",
+          subtitle: "Configure triggers to activate this namespace",
+          add: "Add Trigger",
+          keyword: "Keyword",
+          keywordDesc: "Trigger by exact word",
+          pattern: "Pattern",
+          patternDesc: "Trigger by regex pattern",
+          semanticMatch: "Semantic Match",
+          semanticMatchDesc: "Trigger by semantic similarity (LLM)",
+          examples: "Examples",
+          examplesPlaceholder: "tourism in Portugal, travel, YYD, ...",
+          priority: "Priority",
+          priorityDesc: "Precedence order (0-100, higher = more priority)",
+          confidence: "Minimum Confidence",
+          confidenceDesc: "Confidence threshold for activation (0-100%)",
+          remove: "Remove",
+          noTriggers: "No triggers configured",
+        },
+        
+        // PHASE 2: Analytics
+        analytics: {
+          title: "Namespace Analytics",
+          subtitle: "Usage and performance metrics",
+          usageStats: "Usage Statistics",
+          detections: "Detections",
+          detectionsDesc: "How many times this namespace was detected",
+          avgConfidence: "Average Confidence",
+          avgConfidenceDesc: "Average confidence in detections",
+          sliderImpact: "Slider Impact",
+          sliderImpactDesc: "How many responses used custom sliders",
+          promptOverrides: "Prompt Overrides",
+          promptOverridesDesc: "How many responses used custom prompt",
+          performance: "Performance",
+          avgLatency: "Average Latency",
+          successRate: "Success Rate",
+          topTriggers: "Top Triggers",
+          noData: "No data available",
+        },
+        
         validation: {
           nameRequired: "Name required",
           nameRequiredDesc: "Please enter a namespace name",
@@ -4145,6 +4419,10 @@ const translations: Record<Language, Translations> = {
           selectParentDesc: "Select the parent namespace to create a sub-namespace",
           invalidFormat: "Invalid format",
           subFormatError: "Sub-namespace must be in parent/child format",
+          sliderOutOfBounds: "Invalid slider value",
+          sliderOutOfBoundsDesc: "Values must be between 0 and 100",
+          priorityRequired: "Priority required",
+          confidenceOutOfBounds: "Confidence must be between 0 and 100",
         },
         toast: {
           created: "Namespace created!",
@@ -4154,6 +4432,10 @@ const translations: Record<Language, Translations> = {
           indexError: "Error indexing content",
           unknownError: "Unknown error",
           customVersionCreated: "Custom version created!",
+          slidersSaved: "Sliders saved!",
+          promptSaved: "Prompt saved!",
+          triggerAdded: "Trigger added!",
+          triggerRemoved: "Trigger removed!",
         },
       },
       
@@ -5539,6 +5821,92 @@ const translations: Record<Language, Translations> = {
         selectParent: "Seleccionar namespace padre",
         editCustomVersion: "Crear Versión Personalizada",
         editNamespace: "Editar Namespace",
+        
+        // PHASE 2: Slider Overrides
+        sliders: {
+          title: "Personalidad Específica",
+          subtitle: "Personaliza los sliders de personalidad para este namespace",
+          useGlobalSettings: "Usar Configuración Global",
+          customizeForNamespace: "Personalizar para este Namespace",
+          persuasiveness: "Persuasión",
+          persuasivenessDesc: "Nivel de persuasión en recomendaciones (0-100%)",
+          professionalism: "Profesionalismo",
+          professionalismDesc: "Grado de formalidad y seriedad (0-100%)",
+          friendliness: "Amigabilidad",
+          friendlinessDesc: "Tono cálido y acogedor (0-100%)",
+          assertiveness: "Asertividad",
+          assertivenessDesc: "Confianza y seguridad en respuestas (0-100%)",
+          creativity: "Creatividad",
+          creativityDesc: "Originalidad e innovación (0-100%)",
+          formality: "Formalidad",
+          formalityDesc: "Nivel de lenguaje formal (0-100%)",
+          empathy: "Empatía",
+          empathyDesc: "Comprensión emocional y sensibilidad (0-100%)",
+          resetToGlobal: "Resetear a Global",
+          globalValue: "Global",
+          customValue: "Personalizado",
+        },
+        
+        // PHASE 2: System Prompt Override
+        systemPrompt: {
+          title: "System Prompt Personalizado",
+          subtitle: "Agrega instrucciones específicas para este namespace",
+          globalPrompt: "Prompt Global",
+          namespacePrompt: "Prompt del Namespace",
+          placeholder: "Instrucciones adicionales para este namespace...",
+          mergeStrategy: "Estrategia de Fusión",
+          mergeStrategyDesc: "Cómo combinar prompts global y namespace",
+          append: "Anexar",
+          prepend: "Prefijo",
+          replace: "Reemplazar",
+          appendDesc: "Agrega al final del prompt global",
+          prependDesc: "Agrega antes del prompt global",
+          replaceDesc: "Reemplaza completamente el prompt global",
+          preview: "Vista Previa",
+          finalPrompt: "Prompt Final",
+        },
+        
+        // PHASE 2: Triggers & Priority
+        triggers: {
+          title: "Triggers de Detección",
+          subtitle: "Configura gatillos para activar este namespace",
+          add: "Agregar Trigger",
+          keyword: "Palabra Clave",
+          keywordDesc: "Trigger por palabra exacta",
+          pattern: "Patrón",
+          patternDesc: "Trigger por patrón regex",
+          semanticMatch: "Coincidencia Semántica",
+          semanticMatchDesc: "Trigger por similitud semántica (LLM)",
+          examples: "Ejemplos",
+          examplesPlaceholder: "turismo en Portugal, viajes, YYD, ...",
+          priority: "Prioridad",
+          priorityDesc: "Orden de precedencia (0-100, mayor = más prioritario)",
+          confidence: "Confianza Mínima",
+          confidenceDesc: "Umbral de confianza para activación (0-100%)",
+          remove: "Eliminar",
+          noTriggers: "No hay triggers configurados",
+        },
+        
+        // PHASE 2: Analytics
+        analytics: {
+          title: "Analytics del Namespace",
+          subtitle: "Métricas de uso y rendimiento",
+          usageStats: "Estadísticas de Uso",
+          detections: "Detecciones",
+          detectionsDesc: "Cuántas veces se detectó este namespace",
+          avgConfidence: "Confianza Promedio",
+          avgConfidenceDesc: "Confianza promedio en detecciones",
+          sliderImpact: "Impacto de Sliders",
+          sliderImpactDesc: "Cuántas respuestas usaron sliders personalizados",
+          promptOverrides: "Overrides de Prompt",
+          promptOverridesDesc: "Cuántas respuestas usaron prompt personalizado",
+          performance: "Rendimiento",
+          avgLatency: "Latencia Promedio",
+          successRate: "Tasa de Éxito",
+          topTriggers: "Top Triggers",
+          noData: "No hay datos disponibles",
+        },
+        
         validation: {
           nameRequired: "Nombre obligatorio",
           nameRequiredDesc: "Por favor, ingresa un nombre para el namespace",
@@ -5548,6 +5916,10 @@ const translations: Record<Language, Translations> = {
           selectParentDesc: "Selecciona el namespace padre para crear un sub-namespace",
           invalidFormat: "Formato inválido",
           subFormatError: "Sub-namespace debe estar en formato padre/hijo",
+          sliderOutOfBounds: "Valor de slider inválido",
+          sliderOutOfBoundsDesc: "Los valores deben estar entre 0 y 100",
+          priorityRequired: "Prioridad obligatoria",
+          confidenceOutOfBounds: "La confianza debe estar entre 0 y 100",
         },
         toast: {
           created: "¡Namespace creado!",
@@ -5557,6 +5929,10 @@ const translations: Record<Language, Translations> = {
           indexError: "Error al indexar contenido",
           unknownError: "Error desconocido",
           customVersionCreated: "¡Versión personalizada creada!",
+          slidersSaved: "¡Sliders guardados!",
+          promptSaved: "¡Prompt guardado!",
+          triggerAdded: "¡Trigger agregado!",
+          triggerRemoved: "¡Trigger eliminado!",
         },
       },
       

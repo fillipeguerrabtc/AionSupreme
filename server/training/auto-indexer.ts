@@ -19,6 +19,7 @@ import { documents, embeddings, conversations, messages } from "../../shared/sch
 import { eq, desc, sql } from "drizzle-orm";
 import { ragService } from "../rag/vector-store";
 import { ConversationCollector } from "./collectors/conversation-collector";
+import { namespaceClassifier } from "../services/namespace-classifier"; // PHASE 2: Semantic namespace detection
 
 interface IndexableContent {
   title: string;
@@ -77,7 +78,10 @@ export class AutoIndexer {
     // NÃO salvar direto na KB - isso previne contaminação do conhecimento
     try {
       const title = this.extractTitle(userMessage, assistantResponse);
-      const suggestedNamespaces = [this.determineNamespace(userMessage, assistantResponse)];
+      
+      // PHASE 2: Use semantic namespace classification (LLM-based, not keywords)
+      const suggestedNamespaces = await this.determineNamespaceSemantic(userMessage, assistantResponse);
+      
       const qualityScore = this.calculateAutoQualityScore(userMessage, assistantResponse);
       
       // Importar curationQueue table
@@ -122,13 +126,17 @@ export class AutoIndexer {
     try {
       const title = this.extractTitle(query, content);
       const qualityScore = this.calculateAutoQualityScore(query, content);
+      
+      // PHASE 2: Use semantic namespace classification for web content
+      const suggestedNamespaces = await this.determineNamespaceSemantic(query, content);
+      
       const { curationQueue } = await import("../../shared/schema");
 
       // Send to curation queue for human review (tenantId defaults to 1 in schema)
       const [curationItem] = await db.insert(curationQueue).values({
         title,
         content,
-        suggestedNamespaces: ["web"],
+        suggestedNamespaces,
         tags: [`auto-web`, `quality-${qualityScore}`, url],
         status: "pending",
         submittedBy: "auto-indexer-web",
@@ -181,10 +189,13 @@ export class AutoIndexer {
         const content = `Pergunta: ${example.instruction}\n\nResposta: ${example.output}`;
         const title = this.extractTitle(example.instruction, example.output);
 
+        // PHASE 2: Use semantic namespace classification for conversations
+        const suggestedNamespaces = await this.determineNamespaceSemantic(example.instruction, example.output);
+
         await db.insert(curationQueue).values({
           title,
           content,
-          suggestedNamespaces: ["geral"],
+          suggestedNamespaces,
           tags: [`auto-conversation`, `quality-${metrics.score}`],
           status: "pending",
           submittedBy: "auto-indexer-conversation",
@@ -271,7 +282,38 @@ export class AutoIndexer {
   }
 
   /**
-   * Determina namespace baseado no conteúdo
+   * PHASE 2: Determina namespace usando classificação semântica (LLM-based)
+   * Substitui keyword matching por semantic understanding
+   */
+  private async determineNamespaceSemantic(query: string, response: string): Promise<string[]> {
+    try {
+      const combined = `${query}\n\n${response}`;
+      const title = this.extractTitle(query, response);
+      
+      // Call namespace classifier with title and content (2-3 args)
+      const classification = await namespaceClassifier.classifyContent(title, combined);
+      
+      if (classification && classification.confidence >= 50) {
+        // Return suggested namespace (high confidence)
+        return [classification.suggestedNamespace];
+      } else if (classification && classification.existingSimilar.length > 0) {
+        // Return most similar existing namespace as fallback
+        const mostSimilar = classification.existingSimilar[0];
+        if (mostSimilar.similarity >= 70) {
+          return [mostSimilar.namespace];
+        }
+      }
+    } catch (error: any) {
+      console.warn(`[AutoIndexer] Namespace classification failed, using fallback:`, error.message);
+    }
+    
+    // Fallback: usar namespace padrão "geral"
+    return ["geral"];
+  }
+
+  /**
+   * DEPRECATED: Old keyword-based namespace detection
+   * Kept for backward compatibility but not used
    */
   private determineNamespace(query: string, response: string): string {
     const combined = (query + " " + response).toLowerCase();
