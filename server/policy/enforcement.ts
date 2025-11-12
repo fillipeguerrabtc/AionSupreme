@@ -102,17 +102,36 @@ const VIOLATION_PATTERNS = {
 };
 
 // ============================================================================
-// POLICY LOADING
+// POLICY LOADING WITH LIGHTWEIGHT CACHE
 // ============================================================================
+
+/**
+ * PRODUCTION-GRADE POLICY CACHE
+ * 
+ * Reduces DB queries by caching active policy for 5 minutes.
+ * Architect recommendation: Add lightweight policy caching to avoid DB hits per request.
+ * 
+ * Cache invalidation: Call invalidatePolicyCache() from Admin API when updating policies
+ */
+const POLICY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+let policyCacheEntry: { policy: import('@shared/schema').Policy; cachedAt: number } | null = null;
 
 /**
  * Load active policy from database (single-tenant mode)
  * Returns full Policy type from schema for complete configuration access
  * 
+ * Uses lightweight in-memory cache with 5-minute TTL to reduce DB load
+ * 
  * @returns Active policy or null if none found
  */
 export async function loadPolicy(): Promise<import('@shared/schema').Policy | null> {
-  // Single-tenant mode: Just get the first active policy
+  // Check cache first (avoid DB hit)
+  if (policyCacheEntry && (Date.now() - policyCacheEntry.cachedAt) < POLICY_CACHE_TTL_MS) {
+    console.log("[Policy] ✓ Loaded from cache (TTL: 5min)");
+    return policyCacheEntry.policy;
+  }
+  
+  // Cache miss - load from DB
   const result = await db
     .select()
     .from(policies)
@@ -120,10 +139,25 @@ export async function loadPolicy(): Promise<import('@shared/schema').Policy | nu
     .limit(1);
 
   if (result.length === 0) {
+    policyCacheEntry = null; // Clear cache if no active policy
     return null;
   }
 
-  return result[0];
+  // Update cache
+  const policy = result[0];
+  policyCacheEntry = { policy, cachedAt: Date.now() };
+  console.log("[Policy] ✓ Loaded from DB and cached");
+  
+  return policy;
+}
+
+/**
+ * Invalidate policy cache (call from Admin API after policy updates)
+ * CRITICAL: Must be called when policies are created/updated/deleted via Admin Dashboard
+ */
+export function invalidatePolicyCache(): void {
+  policyCacheEntry = null;
+  console.log("[Policy] ✓ Cache invalidated - next loadPolicy() will query DB");
 }
 
 /**

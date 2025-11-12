@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { extractTextContent } from "./utils/message-helpers";
 import { LLMClient } from "./model/llm-client";
 import { freeLLMProviders } from "./model/free-llm-providers";
+import { invalidatePolicyCache } from "./policy/enforcement";
 import { gpuOrchestrator } from "./model/gpu-orchestrator";
 import { trainingDataCollector } from "./training/data-collector";
 import { ragService } from "./rag/vector-store";
@@ -1534,13 +1535,19 @@ export function registerRoutes(app: Express): Server {
     try {
       const existing = await storage.getActivePolicy();
       
+      let result;
       if (existing) {
-        const updated = await storage.updatePolicy(existing.id, req.body);
-        res.json(updated);
+        result = await storage.updatePolicy(existing.id, req.body);
       } else {
-        const created = await storage.createPolicy(req.body);
-        res.json(created);
+        result = await storage.createPolicy(req.body);
       }
+      
+      // CRITICAL: Invalidate policy cache so changes propagate immediately
+      // Without this, personality trait updates would take up to 5 minutes to reflect
+      invalidatePolicyCache();
+      console.log("[Admin API] Policy cache invalidated after update");
+      
+      res.json(result);
     } catch (error: unknown) {
       res.status(500).json({ error: getErrorMessage(error) });
     }

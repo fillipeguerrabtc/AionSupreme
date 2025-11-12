@@ -808,23 +808,11 @@ export class LLMClient {
 }
 
 /**
- * TEMPORARY SINGLETON - FOR BACKWARD COMPATIBILITY
+ * PRODUCTION-READY ASYNC FACTORY PATTERN
  * 
- * ⚠️  WARNING: This instance does NOT have policy loaded!
- * Personality traits and system prompts will NOT work with this instance.
+ * All callers MUST use:
+ *   const client = await LLMClient.create();
  * 
- * Migration in progress - Use `await LLMClient.create()` for new code
- * 
- * TODO: Remove after all callers are migrated to async factory pattern
+ * This ensures policy and personality traits are loaded from database
+ * and global rate limiting is enforced across all instances.
  */
-let _legacyInstance: LLMClient | null = null;
-
-export const llmClient = new Proxy({} as LLMClient, {
-  get(target, prop) {
-    if (!_legacyInstance) {
-      console.warn("[LLM] ⚠️  Using legacy singleton - policy NOT loaded. Migrate to await LLMClient.create()");
-      _legacyInstance = new (LLMClient as any)(null); // Bypass private constructor
-    }
-    return (_legacyInstance as any)[prop];
-  }
-});
