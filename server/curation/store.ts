@@ -178,11 +178,18 @@ export const curationStore = {
       console.error(`[Curation] ❌ Query frequency tracking failed:`, error.message, error.stack);
     }
 
-    // STEP 2: Tentar análise automática em background (não bloqueia)
-    // Isso roda de forma assíncrona e atualiza o item depois
-    this.runAutoAnalysis(item.id, data).catch(error => {
+    // STEP 2: Executar análise automática IMEDIATAMENTE (garantir autoAnalysis existe)
+    // CRITICAL: Auto-curator-processor depende de autoAnalysis para auto-approval
+    // Se análise falhar, item ficará pendente para HITL review (correto)
+    try {
+      console.log(`[Curation] 🤖 Executando análise automática SYNC para item ${item.id}...`);
+      await this.runAutoAnalysis(item.id, data);
+      console.log(`[Curation] ✅ Análise automática completada para item ${item.id}`);
+    } catch (error: any) {
       console.error(`[Curation] ❌ Erro na análise automática do item ${item.id}:`, error.message);
-    });
+      console.error(`[Curation] ⚠️  Item ${item.id} criado SEM autoAnalysis - requer HITL review`);
+      // Item foi criado mas sem análise automática - vai precisar revisão humana (aceitável)
+    }
 
     return item;
   },
