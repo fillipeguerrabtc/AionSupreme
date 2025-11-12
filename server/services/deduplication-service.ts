@@ -106,7 +106,7 @@ export class DeduplicationService {
         .select({
           documentId: embeddings.documentId,
           chunkText: embeddings.chunkText,
-          embedding: sql<number[]>`${embeddings.embedding}::jsonb`,
+          embedding: embeddings.embedding,
           documentTitle: documents.title,
           source: sql<string>`'kb'`
         })
@@ -123,7 +123,7 @@ export class DeduplicationService {
         .select({
           documentId: sql<number>`CAST(${curationQueue.id} AS INTEGER)`,
           chunkText: curationQueue.content,
-          embedding: sql<number[]>`${curationQueue.embedding}::jsonb`,
+          embedding: curationQueue.embedding,
           documentTitle: curationQueue.title,
           source: sql<string>`'curation'`
         })
@@ -406,6 +406,9 @@ export class DeduplicationService {
     // Query pgvector for similar items (top 15)
     console.log(`[Dedup] → Tier 2: Searching pgvector for similar items...`);
     
+    // Format embedding as pgvector literal: '[1,2,3]' (string with quotes + square brackets)
+    const embeddingLiteral = `'[${queryEmbedding.join(',')}]'`;
+    
     const similarItems = await db.execute(sql`
       SELECT 
         id,
@@ -413,17 +416,21 @@ export class DeduplicationService {
         content,
         content_hash,
         status,
-        (embedding <=> ${sql.raw(JSON.stringify(queryEmbedding))}::vector) as distance
+        (embedding <=> ${sql.raw(embeddingLiteral)}::vector) as distance
       FROM curation_queue
       WHERE embedding IS NOT NULL
       AND status IN ('pending', 'approved')
-      ORDER BY embedding <=> ${sql.raw(JSON.stringify(queryEmbedding))}::vector
+      ORDER BY embedding <=> ${sql.raw(embeddingLiteral)}::vector
       LIMIT 15
     `);
 
     if (similarItems.rows.length === 0) {
-      console.log(`[Dedup] ✅ Tier 2: No similar items found`);
-      return null; // No duplicates, return embedding for caller to store
+      console.log(`[Dedup] ✅ Tier 2: No similar items found - returning embedding for persistence`);
+      return {
+        isDuplicate: false,
+        method: 'none',
+        embedding: queryEmbedding, // Return embedding for caller to persist
+      };
     }
 
     // Calculate cosine similarity (distance → similarity)
@@ -477,8 +484,13 @@ export class DeduplicationService {
     }
 
     // Not a duplicate, but return embedding for caller to store
-    console.log(`[Dedup] ✅ Content is UNIQUE (similarity: ${(similarity * 100).toFixed(1)}%)`);
-    return null;
+    console.log(`[Dedup] ✅ Content is UNIQUE (similarity: ${(similarity * 100).toFixed(1)}%) - returning embedding for persistence`);
+    return {
+      isDuplicate: false,
+      method: 'none',
+      similarity,
+      embedding: queryEmbedding,
+    };
   }
 
   /**

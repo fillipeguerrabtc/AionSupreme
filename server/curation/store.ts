@@ -97,7 +97,10 @@ export const curationStore = {
     // Tier 1: Exact hash (instant)
     // Tier 2: Semantic similarity with pgvector (fast ANN)
     // Tier 3: LLM adjudication for borderline cases (0.85-0.92)
+    // Returns embedding for persistence to avoid re-generation
     console.log(`[Curation] 🔥 Gate 2: Tiered duplicate detection...`);
+    
+    let generatedEmbedding: number[] | undefined = undefined;
     
     if (data.content) {
       const { deduplicationService } = await import("../services/deduplication-service");
@@ -108,27 +111,35 @@ export const curationStore = {
       );
       
       if (duplicateCheck) {
-        const location = duplicateCheck.isPending ? 'curation queue' : 'Knowledge Base';
-        const errorMsg = duplicateCheck.isPending 
-          ? `This content is already pending approval in the curation queue as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`
-          : `This content already exists in the Knowledge Base as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`;
+        // Capture embedding even if duplicate (for logging/analytics)
+        generatedEmbedding = duplicateCheck.embedding;
         
-        console.log(`[Curation] ❌ Duplicate detected in ${location}: "${duplicateCheck.documentTitle}"`);
-        
-        // Throw custom error with rich metadata for API consumers
-        throw new DuplicateContentError(
-          errorMsg,
-          duplicateCheck.isPending ?? false, // Default to false if undefined
-          String(duplicateCheck.documentId), // Convert number to string
-          duplicateCheck.documentTitle || 'Unknown document' // Default if undefined
-        );
+        if (duplicateCheck.isDuplicate) {
+          const location = duplicateCheck.isPending ? 'curation queue' : 'Knowledge Base';
+          const errorMsg = duplicateCheck.isPending 
+            ? `This content is already pending approval in the curation queue as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`
+            : `This content already exists in the Knowledge Base as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`;
+          
+          console.log(`[Curation] ❌ Duplicate detected in ${location}: "${duplicateCheck.documentTitle}"`);
+          
+          // Throw custom error with rich metadata for API consumers
+          throw new DuplicateContentError(
+            errorMsg,
+            duplicateCheck.isPending ?? false,
+            String(duplicateCheck.documentId),
+            duplicateCheck.documentTitle || 'Unknown document'
+          );
+        } else {
+          // Not duplicate - capture embedding for persistence
+          generatedEmbedding = duplicateCheck.embedding;
+        }
       }
     }
     
-    console.log(`[Curation] ✅ No duplicates found - proceeding with insert`);
+    console.log(`[Curation] ✅ No duplicates found - proceeding with insert${generatedEmbedding ? ' (with embedding)' : ''}`);
 
     
-    // STEP 1: Inserir na fila de curadoria
+    // STEP 1: Inserir na fila de curadoria (WITH embedding if generated)
     const [item] = await db.insert(curationQueueTable).values({
       title: data.title,
       content: data.content,
@@ -138,6 +149,7 @@ export const curationStore = {
       submittedBy: data.submittedBy,
       contentHash: data.contentHash, // Store for O(1) dedup lookups
       normalizedContent: data.normalizedContent, // Store for fuzzy matching
+      embedding: generatedEmbedding || null, // 🎯 PERSIST embedding from dedup check (avoid re-generation!)
       // Consolidated conversation fields (if provided)
       conversationId: data.conversationId,
       messageTranscript: data.messageTranscript as any, // JSONB field

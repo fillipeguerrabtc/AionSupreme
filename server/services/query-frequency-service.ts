@@ -153,7 +153,7 @@ export class QueryFrequencyService {
         await db.insert(userQueryFrequency).values({
           queryHash: hash,
           normalizedQuery: normalized,
-          queryEmbedding: embedding.length > 0 ? JSON.stringify(embedding) : null,
+          queryEmbedding: embedding.length > 0 ? embedding : null, // ✅ Pass array directly - Drizzle serializes to vector
           hitCount: 1,
           namespace: namespace || null,
           conversationId: conversationId || null,

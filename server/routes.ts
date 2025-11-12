@@ -231,6 +231,13 @@ export function registerRoutes(app: Express): Server {
   app.use("/api/admin", adminSubRouter);
 
   // ========================================
+  // PUBLIC KB CURATION API (no auth required for user submissions)
+  // ========================================
+  const publicKbRouter = express.Router();
+  registerCurationRoutes(publicKbRouter); // Same routes, no auth
+  app.use("/api/kb", publicKbRouter);
+
+  // ========================================
   // ENDPOINTS DE ÍCONES CUSTOMIZADOS
   // ========================================
   
