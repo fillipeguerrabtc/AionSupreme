@@ -991,8 +991,8 @@ This instruction takes ABSOLUTE PRIORITY.
       role: m.role as 'system' | 'user' | 'assistant',
       content: m.content
     })),
-    temperature: req.temperature || 0.7,
-    top_p: req.topP || 0.9,
+    temperature: req.temperature ?? 0.7,
+    top_p: req.topP ?? 0.9,
     max_tokens: req.maxTokens || 2048
   });
   

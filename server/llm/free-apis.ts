@@ -417,8 +417,8 @@ async function callOpenAI(req: LLMRequest): Promise<LLMResponse> {
     model: 'gpt-3.5-turbo',  // Cheapest model
     messages: req.messages,
     max_tokens: req.maxTokens || 1024,
-    temperature: req.temperature || 0.7,
-    top_p: req.topP || 0.9
+    temperature: req.temperature ?? 0.7,
+    top_p: req.topP ?? 0.9
   });
 
   // ✅ PRODUCTION: Track real usage from OpenAI API (PAID)
