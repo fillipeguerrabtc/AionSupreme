@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Eye, CheckCircle2, XCircle, Clock, TrendingUp, Zap, AlertCircle } from "lucide-react";
+import { Eye, CheckCircle2, XCircle, Clock, TrendingUp, Zap, AlertCircle, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/lib/i18n";
 import { useScrollToTop } from "@/hooks/useScrollToTop";
@@ -34,6 +34,124 @@ interface UsageStats {
   totalCost: number;
   models: string[];
   successRate: number;
+}
+
+interface ProviderLimitData {
+  limits: {
+    rpm: number | null;
+    rpd: number | null;
+    tpm: number | null;
+    tpd: number | null;
+  };
+  usage: {
+    rpmUsed: number | null;
+    rpdUsed: number | null;
+    tpmUsed: number | null;
+    tpdUsed: number | null;
+  };
+  remaining: {
+    rpmRemaining: number | null;
+    rpdRemaining: number | null;
+    tpmRemaining: number | null;
+    tpdRemaining: number | null;
+  };
+  resetAt: {
+    rpmResetAt: string | null;
+    rpdResetAt: string | null;
+    tpmResetAt: string | null;
+    tpdResetAt: string | null;
+  };
+  creditsBalance: number | null;
+  lastUpdated: string;
+  source: string;
+}
+
+// Real Provider Limits Component (NO hardcoded values!)
+function RealProviderLimits() {
+  const { data, isLoading } = useQuery<{
+    success: boolean;
+    limits: Record<string, ProviderLimitData>;
+    note: string;
+  }>({
+    queryKey: ["/api/provider-limits"],
+    refetchInterval: 30000, // Atualiza a cada 30s
+  });
+
+  if (isLoading) {
+    return <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Skeleton key={i} className="h-24 w-full" />
+      ))}
+    </div>;
+  }
+
+  if (!data || !data.limits) {
+    return <div className="text-sm text-muted-foreground">No provider limit data available</div>;
+  }
+
+  const formatValue = (val: number | null, unit: string) => {
+    if (val === null) return <span className="text-muted-foreground">N/A</span>;
+    return <span>{val.toLocaleString()} {unit}</span>;
+  };
+
+  const formatCredits = (val: number | null) => {
+    if (val === null) return <span className="text-muted-foreground">N/A</span>;
+    return <span>${val.toFixed(2)}</span>;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+        <strong>Note:</strong> {data.note}
+      </div>
+
+      {Object.entries(data.limits).map(([provider, limitData]) => (
+        <div
+          key={provider}
+          className="border rounded-lg p-4 space-y-3"
+          data-testid={`provider-limit-${provider}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="uppercase">{provider}</Badge>
+              <span className="text-xs text-muted-foreground">
+                Source: {limitData.source}
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              Last updated: {new Date(limitData.lastUpdated).toLocaleString()}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <div className="text-xs text-muted-foreground">RPM Limit</div>
+              <div className="text-sm font-medium">{formatValue(limitData.limits.rpm, 'req/min')}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">RPD Limit</div>
+              <div className="text-sm font-medium">{formatValue(limitData.limits.rpd, 'req/day')}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">TPM Limit</div>
+              <div className="text-sm font-medium">{formatValue(limitData.limits.tpm, 'tok/min')}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">TPD Limit</div>
+              <div className="text-sm font-medium">{formatValue(limitData.limits.tpd, 'tok/day')}</div>
+            </div>
+          </div>
+
+          {limitData.creditsBalance !== null && (
+            <div className="pt-2 border-t">
+              <div className="text-xs text-muted-foreground">Credits Balance</div>
+              <div className="text-lg font-bold">{formatCredits(limitData.creditsBalance)}</div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function VisionPage() {
@@ -234,6 +352,22 @@ export default function VisionPage() {
           </>
         )}
       </div>
+
+      {/* Real Provider Limits (from /api/provider-limits) */}
+      <Card data-testid="card-real-provider-limits">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Real Provider Limits
+          </CardTitle>
+          <CardDescription>
+            Live data from provider APIs/headers - NO hardcoded values
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RealProviderLimits />
+        </CardContent>
+      </Card>
 
       {/* Provider Information */}
       <Card data-testid="card-providers">
