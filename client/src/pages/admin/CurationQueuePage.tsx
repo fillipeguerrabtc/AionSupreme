@@ -517,7 +517,7 @@ export default function CurationQueuePage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-full overflow-x-hidden">
+    <div className="p-6 space-y-6 w-full max-w-full min-w-0 overflow-x-hidden">
       <div>
         <h1 className="text-3xl font-bold break-words">{t.admin.curation.title}</h1>
         <p className="text-muted-foreground mt-2 break-words">
@@ -631,8 +631,8 @@ export default function CurationQueuePage() {
         </div>
       </div>
 
-      <Tabs defaultValue="pending" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+      <Tabs defaultValue="pending" className="w-full min-w-0 max-w-full">
+        <TabsList className="grid w-full max-w-full grid-cols-2">
           <TabsTrigger value="pending" data-testid="tab-pending">
             {t.admin.curation.pending} ({filteredItems?.length || 0})
           </TabsTrigger>
@@ -710,20 +710,20 @@ export default function CurationQueuePage() {
           </Card>
 
           {/* Items List */}
-          <div className="grid gap-4">
+          <div className="grid gap-4 w-full max-w-full min-w-0">
             {filteredItems.map((item) => (
-              <Card key={item.id} data-testid={`curation-item-${item.id}`}>
-                <CardHeader>
-                  <div className="flex items-start gap-3">
+              <Card key={item.id} data-testid={`curation-item-${item.id}`} className="w-full max-w-full min-w-0 overflow-hidden">
+                <CardHeader className="w-full max-w-full min-w-0">
+                  <div className="flex items-start gap-3 w-full max-w-full min-w-0">
                     <Checkbox
                       checked={selectedIds.has(item.id)}
                       onCheckedChange={() => toggleSelectItem(item.id)}
                       data-testid={`checkbox-item-${item.id}`}
-                      className="mt-1"
+                      className="mt-1 flex-shrink-0"
                     />
-                    <div className="flex items-start justify-between flex-1">
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-start justify-between flex-1 min-w-0 max-w-full gap-2 flex-wrap">
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0 max-w-full">
                           <CardTitle>{item.title}</CardTitle>
                           {/* Duplication Status Badge - Enhanced with % */}
                           {item.duplicationStatus === "exact" && (
@@ -775,7 +775,7 @@ export default function CurationQueuePage() {
                           </div>
                         </CardDescription>
                       </div>
-                      <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-2 flex-wrap min-w-0 flex-shrink-0">
                         <Button
                           variant="outline"
                           size="sm"
