@@ -147,8 +147,9 @@ LEMBRE-SE: Você é um AMIGO ajudando, NÃO um professor dando aula ou um dicion
     // No manual detection needed - the LLM handles this naturally.
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     
-    // ✅ FIX: Auto-detect language from user message if not explicitly provided
-    // This enables real-time language switching: PT→EN, EN→PT, etc.
+    // 🔥 FIX: Prioritize frontend-provided language (from user's explicit choice or auto-detection)
+    // Fallback to backend detection ONLY if frontend didn't provide language
+    // This fixes PT→EN switching: frontend detects EN with lower threshold (2 matches), backend respects it!
     const language = detectedLanguage ?? (userMessage ? this.detectLanguage(userMessage) : undefined);
     
     const languageNames: Record<string, string> = {
@@ -160,38 +161,12 @@ LEMBRE-SE: Você é um AMIGO ajudando, NÃO um professor dando aula ou um dicion
     const languageName = language ? languageNames[language] || language : null;
     
     if (languageName) {
-      prompt += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🌍 DETECTED LANGUAGE: ${languageName.toUpperCase()} 🌍
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚠️⚠️⚠️ CRITICAL INSTRUCTION ⚠️⚠️⚠️
-YOU MUST RESPOND IN ${languageName.toUpperCase()} ONLY!
-The user is writing in ${languageName}. You MUST respond 100% in ${languageName}.
-DO NOT use any other language under ANY circumstances.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+      prompt += `\n\n🌍 Language: ${languageName}
+Respond entirely in ${languageName}. Match the user's language naturally.`;
     } else {
       // Fallback para instrução genérica
-      prompt += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🌍 UNIVERSAL LANGUAGE INSTRUCTION 🌍
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚠️ CRITICAL: ALWAYS RESPOND IN THE SAME LANGUAGE AS THE USER'S MESSAGE ⚠️
-
-ABSOLUTE RULES:
-✓ Automatically detect the user's language from their message
-✓ Respond 100% in that SAME language (never switch languages)
-✓ Support ALL languages: Portuguese, English, Spanish, Italian, French, German,
-  Chinese, Japanese, Korean, Arabic, Russian, Hindi, and 100+ more
-✓ If the user writes in Portuguese → respond in Portuguese
-✓ If the user writes in English → respond in English  
-✓ If the user writes in ANY other language → respond in THAT language
-✓ Use natural, contextual, and varied responses in the detected language
-✓ If you respond in a different language than the user, it's a CRITICAL FAILURE
-
-This applies to ALL responses: normal answers, refusals, fallbacks, everything.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+      prompt += `\n\n🌍 Language Instruction:
+Always respond in the SAME language as the user's message. Detect automatically and match their language naturally.`;
     }
     
     // Add personality traits - ALL OF THEM!
@@ -217,14 +192,12 @@ CRITICAL BEHAVIOR RULES:
 ✓ Enthusiasm: ${policy.behavior.enthusiasm < 0.3 ? 'Maintain CALM, reserved tone. No exclamation points.' : policy.behavior.enthusiasm < 0.7 ? 'Moderate energy in responses.' : 'Be ENTHUSIASTIC! Show excitement, use expressive language!'}`;
     
     // Add intelligence instructions
-    prompt += `\n\n🧠 INTELLIGENCE & CONTEXT:
-- ALWAYS provide specific, contextual, and intelligent responses
-- Remember conversation context and build upon it
-- If asked a question, answer it directly and thoroughly
-- If greeted, respond naturally and briefly - NO need to explain expressions or translations
-- Vary your responses - never be repetitive or robotic
-- Be conversational and helpful, not didactic or explanatory
-- Keep greetings SHORT (1-2 sentences max) unless user asks for more`;
+    prompt += `\n\n🧠 Conversational Style:
+- Respond naturally like a helpful friend, not a robot or teacher
+- When greeted, reply briefly and warmly - don't explain slang or expressions
+- Answer questions directly without unnecessary preambles
+- Remember context and build on previous messages
+- Vary your tone - be human, not repetitive`;
     
     // Check if there are active rules
     const activeRules = Object.entries(policy.rules).filter(([_, active]) => active);

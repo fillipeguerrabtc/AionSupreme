@@ -194,7 +194,7 @@ export default function ChatPage() {
   };
 
   const sendMutation = useMutation({
-    mutationFn: async ({ userMessage, files }: { userMessage: string; files?: File[] }) => {
+    mutationFn: async ({ userMessage, files, requestLanguage }: { userMessage: string; files?: File[]; requestLanguage: Language }) => {
       if (!conversationId) throw new Error(t.chat.noConversationActive);
       
       const currentMessages = [...messages, { role: "user" as const, content: userMessage }];
@@ -205,7 +205,7 @@ export default function ChatPage() {
         // ✅ FIX BUG #2: Pass detected language to backend
         formData.append("data", JSON.stringify({
           messages: currentMessages,
-          language, // Pass detected language from frontend
+          language: requestLanguage, // Pass detected language from frontend (not stale state)
         }));
         
         files.forEach(file => {
@@ -235,7 +235,7 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: currentMessages,
-          language, // ✅ FIX BUG #2: Pass detected language to backend
+          language: requestLanguage, // ✅ FIX BUG #2: Pass detected language to backend (not stale state)
         }),
       });
       
@@ -463,7 +463,7 @@ export default function ChatPage() {
       setAttachedFiles([]);
     } else {
       // Use traditional mutation for file uploads or when streaming disabled
-      sendMutation.mutate({ userMessage, files: attachedFiles });
+      sendMutation.mutate({ userMessage, files: attachedFiles, requestLanguage: outgoingLanguage });
     }
   };
 

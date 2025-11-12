@@ -78,13 +78,28 @@ export class AutoLearningListener {
       console.log(`   📤 Mensagem standalone - enviando para curadoria imediatamente`);
       
       const { curationStore } = await import("../curation/store");
+      const { namespaceClassifier } = await import("../services/namespace-classifier");
       
       const conversationContent = `Q: ${payload.userMessage}\n\nA: ${payload.assistantResponse}`;
+      
+      // 🔥 FIX: Use SEMANTIC classification instead of hardcoded source-based namespace
+      let suggestedNamespaces: string[] = ["geral"]; // Fallback
+      try {
+        const classification = await namespaceClassifier.classifyContent(
+          payload.userMessage.substring(0, 100),
+          conversationContent,
+          1 // tenantId
+        );
+        suggestedNamespaces = [classification.suggestedNamespace];
+        console.log(`   🧠 Namespace classified semantically: ${classification.suggestedNamespace} (confidence: ${classification.confidence}%)`);
+      } catch (classifyError: any) {
+        console.warn(`   ⚠️ Namespace classification failed, using fallback:`, classifyError.message);
+      }
       
       const item = await curationStore.addToCuration({
         title: payload.userMessage.substring(0, 100),
         content: conversationContent,
-        suggestedNamespaces: ["chat/standalone"],
+        suggestedNamespaces, // 🔥 SEMANTIC namespaces, not source-based!
         tags: ["chat", "standalone", payload.source, payload.provider || "unknown"],
         submittedBy: "auto-learning",
       });
