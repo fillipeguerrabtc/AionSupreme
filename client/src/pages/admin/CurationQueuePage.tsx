@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink, Scan, ArrowDownToLine, AlertCircle, AlertTriangle, CheckCircle, Video, Play } from "lucide-react";
+import { Check, X, Edit, Trash2, CheckSquare, History as HistoryIcon, Calendar, Clock, Image as ImageIcon, ExternalLink, Scan, ArrowDownToLine, AlertCircle, AlertTriangle, CheckCircle, Video, Play, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -862,7 +862,9 @@ export default function CurationQueuePage() {
                           )}
                         </div>
                         <CardDescription className="space-y-1">
-                          <div className="flex items-center gap-2">{t.common.loading} {item.submittedBy || t.admin.curation.unknown}
+                          <div className="flex items-center gap-2">
+                            <User className="h-3 w-3" />
+                            {item.submittedBy || t.admin.curation.unknown}
                           </div>
                           <div className="flex items-center gap-2">
                             <Calendar className="h-3 w-3" />

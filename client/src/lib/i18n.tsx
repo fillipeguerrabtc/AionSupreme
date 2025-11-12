@@ -1719,6 +1719,8 @@ const translations: Record<Language, Translations> = {
           timestamp: "Data/Hora",
           noHistory: "Nenhum histórico disponível",
           noHistoryDesc: "Não há buscas registradas",
+          lowConfidence: "Confiança muito baixa - KB não retornou resultados relevantes",
+          technicalError: "Erro técnico na busca KB",
         },
         
         webSearches: {
@@ -3145,6 +3147,8 @@ const translations: Record<Language, Translations> = {
           timestamp: "Timestamp",
           noHistory: "No history available",
           noHistoryDesc: "No searches recorded",
+          lowConfidence: "Very low confidence - KB returned no relevant results",
+          technicalError: "Technical error in KB search",
         },
         
         webSearches: {
@@ -4571,6 +4575,8 @@ const translations: Record<Language, Translations> = {
           timestamp: "Fecha/Hora",
           noHistory: "No hay historial disponible",
           noHistoryDesc: "No hay búsquedas registradas",
+          lowConfidence: "Confianza muy baja - KB no retornó resultados relevantes",
+          technicalError: "Error técnico en la búsqueda KB",
         },
         
         webSearches: {

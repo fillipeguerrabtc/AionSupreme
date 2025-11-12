@@ -1237,8 +1237,8 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                         {entry.reason && entry.sourceUsed !== 'kb-own' && (
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">
-                              {entry.reason === 'low-confidence' && t("admin.tokenmonitoring.confiancamuito")}
-                              {entry.reason === 'kb-search-error' && t("admin.tokenmonitoring.errotecnico")}
+                              {entry.reason === 'low-confidence' && t.admin.tokenMonitoring.kbSearches.lowConfidence}
+                              {entry.reason === 'kb-search-error' && t.admin.tokenMonitoring.kbSearches.technicalError}
                               {!['low-confidence', 'kb-search-error'].includes(entry.reason) && `Motivo: ${entry.reason}`}
                             </span>
                           </div>
