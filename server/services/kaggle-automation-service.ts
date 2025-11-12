@@ -450,6 +450,16 @@ export class KaggleAutomationService {
         
         console.error(`[Kaggle Automation] ❌ Attempt ${attempt + 1} failed: ${errorMsg.substring(0, 200)}`);
         
+        // 🚫 KAGGLE QUOTA LIMIT - Don't retry (user needs to stop active sessions)
+        if (errorMsg.includes('Maximum batch GPU session count')) {
+          console.error('[Kaggle Automation] 🚫 Kaggle quota limit reached - aborting retries');
+          console.error('  → User has maximum GPU sessions active (typically 2)');
+          console.error('  → Solution: Stop active Kaggle sessions via "View Active Events"');
+          this.circuitBreakerFailures++;
+          this.circuitBreakerLastFailure = new Date();
+          throw new Error('Kaggle GPU quota exceeded: Maximum batch GPU session count reached. Stop active sessions at kaggle.com and retry.');
+        }
+        
         // 🚫 PERMANENT ERRORS - Don't retry (400, 401, 403, 404)
         if ([400, 401, 403, 404].includes(statusCode)) {
           console.error('[Kaggle Automation] 🚫 Permanent error detected - aborting retries');
@@ -543,32 +553,51 @@ export class KaggleAutomationService {
         throw new Error('Kaggle API returned HTML instead of JSON. Please verify: (1) Credentials are valid, (2) Phone is verified at kaggle.com/settings, (3) Generate NEW API token');
       }
 
-      // Extract kernel ID from output
-      // Output format: "Successfully created kernel <username>/<kernel-slug>"
-      const match = stdout.match(/created kernel\s+([^\s]+)/i) || 
-                    stdout.match(/updated kernel\s+([^\s]+)/i);
-
-      if (!match) {
-        console.error('[Kaggle Automation] ❌ Could not parse kernel ID from response');
-        console.error(`  → Full stdout: ${stdout.substring(0, 1000)}`);
-        throw new Error('Could not extract kernel ID from Kaggle API response. Check logs for full output.');
+      // 🔧 FIX: Extract kernel ID from URL (2025 Kaggle API format)
+      // Real output: "Kernel version 1 successfully pushed. Please check progress at https://www.kaggle.com/code/fillipeguerra/aion-gpu-worker-10-1762991100801"
+      const urlMatch = stdout.match(/kaggle\.com\/code\/([^\/\s]+\/[^\/\s\?]+)/i);
+      
+      if (urlMatch) {
+        const kernelId = urlMatch[1].trim();
+        console.log(`[Kaggle Automation] ✅ Extracted kernel ID from URL: ${kernelId}`);
+        return kernelId;
       }
-
-      const kernelId = match[1].trim();
-      console.log(`[Kaggle Automation] ✅ Extracted kernel ID: ${kernelId}`);
-
-      return kernelId;
+      
+      // Fallback: Try legacy format (for backwards compatibility)
+      const legacyMatch = stdout.match(/created kernel\s+([^\s]+)/i) || 
+                          stdout.match(/updated kernel\s+([^\s]+)/i);
+      
+      if (legacyMatch) {
+        const kernelId = legacyMatch[1].trim();
+        console.log(`[Kaggle Automation] ✅ Extracted kernel ID (legacy): ${kernelId}`);
+        return kernelId;
+      }
+      
+      // Neither format worked - log full output
+      console.error('[Kaggle Automation] ❌ Could not parse kernel ID from response');
+      console.error(`  → Full stdout: ${stdout.substring(0, 1000)}`);
+      throw new Error('Could not extract kernel ID from Kaggle API response. Check logs for full output.');
 
     } catch (error: any) {
       console.error('[Kaggle Automation] ❌ Push command failed');
       console.error(`  → Error message: ${error.message}`);
       
-      // Log stdout/stderr if available in error object
+      // 🔍 CAPTURE STDOUT/STDERR for quota limit detection
+      let stdout = '';
+      let stderr = '';
+      
       if (error.stdout) {
-        console.error(`  → STDOUT: ${error.stdout.substring(0, 500)}`);
+        stdout = error.stdout;
+        console.error(`  → STDOUT: ${stdout.substring(0, 500)}`);
       }
       if (error.stderr) {
-        console.error(`  → STDERR: ${error.stderr.substring(0, 500)}`);
+        stderr = error.stderr;
+        console.error(`  → STDERR: ${stderr.substring(0, 500)}`);
+      }
+      
+      // 🚫 Propagate Kaggle quota limit error with full context
+      if (stdout.includes('Maximum batch GPU session count') || stderr.includes('Maximum batch GPU session count')) {
+        throw new Error(`Kaggle GPU quota exceeded: Maximum batch GPU session count reached. ${stdout || stderr}`);
       }
       
       throw new Error(`Kaggle API push failed: ${error.message}`);
