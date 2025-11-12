@@ -194,14 +194,12 @@ export function registerNamespaceRoutes(app: Router) {
         }
       }
 
-      const updateData: Partial<typeof namespaces.$inferInsert> = {
-        ...validatedData,
-        updatedAt: new Date(),
-      };
-
       const [updatedNamespace] = await db
         .update(namespaces)
-        .set(updateData as any)
+        .set({
+          ...validatedData,
+          updatedAt: new Date(),
+        } as any)
         .where(eq(namespaces.id, id))
         .returning();
 

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useTranslation } from "@/lib/i18n";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,6 @@ export default function NamespaceDetailPage() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const t = useTranslation();
 
   // Fetch namespace data
   const { data: namespace, isLoading } = useQuery<Namespace>({
@@ -84,23 +82,19 @@ export default function NamespaceDetailPage() {
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Namespace>) => {
-      const response = await apiRequest(`/api/admin/namespaces/${id}`, {
-        method: "PATCH",
-        data,
-      });
-      return response;
+      return await apiRequest("PATCH", `/api/admin/namespaces/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/namespaces"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/namespaces", id] });
       toast({
-        title: t.namespace.toast.updated,
+        title: "Namespace updated successfully",
         variant: "default",
       });
     },
     onError: (error: any) => {
       toast({
-        title: t.namespace.toast.unknownError,
+        title: "Failed to update namespace",
         description: error.message,
         variant: "destructive",
       });
