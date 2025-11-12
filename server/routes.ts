@@ -60,6 +60,7 @@ import { registerKbAnalyticsRoutes } from "./routes/kb-analytics";
 import { registerTelemetryRoutes } from "./routes/telemetry";
 import { registerUserRoutes } from "./routes/users";
 import { registerPermissionsRoutes } from "./routes/permissions";
+import { registerJobsRoutes } from "./routes/jobs";
 import { registerMetaLearningRoutes } from "./routes/meta-learning";
 import { registerBackupRoutes } from "./routes/backup";
 import { registerAlertRoutes } from "./routes/alerts";
@@ -221,6 +222,9 @@ export function registerRoutes(app: Express): Server {
   
   // Registrar rotas de telemetria (analytics de agentes e namespaces)
   registerTelemetryRoutes(adminSubRouter);
+  
+  // Registrar rotas de Jobs (link capture crawling jobs)
+  registerJobsRoutes(adminSubRouter);
   
   // Registrar rotas de Cascade Data Lineage (enterprise deletion tracking)
   adminSubRouter.use("/cascade", cascadeRoutes);
@@ -5906,99 +5910,10 @@ export function registerRoutes(app: Express): Server {
   });
 
   // ============================================================================
-  // LINK CAPTURE JOBS - Endpoints para Jobs de Deep Crawling
+  // LINK CAPTURE JOBS - Now handled by registerJobsRoutes() in adminSubRouter
   // ============================================================================
-
-  // ✅ FIX P0-9: Add requireAdmin to prevent unauthorized access
-  app.get("/api/admin/jobs", requireAdmin, async (req, res) => {
-    try {
-      const { linkCaptureJobs } = await import("@shared/schema");
-      const { db } = await import("./db");
-      const { desc } = await import("drizzle-orm");
-      
-      const jobs = await db
-        .select()
-        .from(linkCaptureJobs)
-        .orderBy(desc(linkCaptureJobs.createdAt))
-        .limit(50);
-      
-      res.json(jobs);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // ✅ FIX P0-9: Add requireAdmin to prevent unauthorized access
-  app.get("/api/admin/jobs/:id", requireAdmin, async (req, res) => {
-    try {
-      // ✅ FIX P0-2: Validate route parameters
-      const params = validateParams(idParamSchema, req, res);
-      if (!params) return; // Error response already sent
-      
-      const { id } = params;
-      
-      const { linkCaptureJobs } = await import("@shared/schema");
-      const { db } = await import("./db");
-      const { eq } = await import("drizzle-orm");
-      
-      const [job] = await db
-        .select()
-        .from(linkCaptureJobs)
-        .where(eq(linkCaptureJobs.id, id))
-        .limit(1);
-      
-      if (!job) {
-        return res.status(404).json({ error: "Job not found" });
-      }
-      
-      res.json(job);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.patch("/api/admin/jobs/:id", requireAdmin, async (req, res) => {
-    try {
-      // ✅ FIX P0-2: Validate route parameters
-      const params = validateParams(idParamSchema, req, res);
-      if (!params) return; // Error response already sent
-      
-      const { id: jobId } = params;
-      const { action } = req.body; // "pause" | "resume" | "cancel"
-      
-      // ✅ SECURITY: Validate action parameter
-      if (!action || !["pause", "resume", "cancel"].includes(action)) {
-        return res.status(400).json({ error: "Invalid action. Must be pause, resume, or cancel" });
-      }
-      const { linkCaptureJobs } = await import("@shared/schema");
-      const { db } = await import("./db");
-      const { eq } = await import("drizzle-orm");
-      
-      const updates: any = {};
-      
-      if (action === "pause") {
-        // ✅ Apenas muda status para "paused" (worker detecta via callback)
-        updates.status = "paused";
-      } else if (action === "resume") {
-        // ✅ Muda status para "running" (worker continua processando)
-        updates.status = "running";
-      } else if (action === "cancel") {
-        // ✅ Muda status para "cancelled" (worker detecta via callback)
-        updates.status = "cancelled";
-        updates.completedAt = new Date();
-      }
-      
-      const [updatedJob] = await db
-        .update(linkCaptureJobs)
-        .set(updates)
-        .where(eq(linkCaptureJobs.id, jobId))
-        .returning();
-      
-      res.json(updatedJob);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // ✅ MOVED: Jobs routes now protected by CSRF + requireAdmin via adminSubRouter
+  // See server/routes/jobs.ts for implementation
 
   // ============================================================================
   // GPU AUTO-ORCHESTRATION - Puppeteer Automation (P1)
