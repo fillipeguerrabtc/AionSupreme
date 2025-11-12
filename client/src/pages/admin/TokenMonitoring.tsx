@@ -887,7 +887,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   </span>
                   <Badge variant="outline">{getProviderQuota('groq')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>Ultra-fast inference (limite: {getProviderQuota('groq')?.dailyLimit.toLocaleString()} requisições/dia)</CardDescription>
+                <CardDescription>Ultra-fast inference (limite: {getProviderQuota('groq')?.dailyLimit.toLocaleString() ?? '—'} requisições/dia)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -938,7 +938,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   </span>
                   <Badge variant="outline">{getProviderQuota('gemini')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>Google's AI (limite: {getProviderQuota('gemini')?.dailyLimit.toLocaleString()} requisições/dia)</CardDescription>
+                <CardDescription>Google's AI (limite: {getProviderQuota('gemini')?.dailyLimit.toLocaleString() ?? '—'} requisições/dia)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -989,7 +989,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   </span>
                   <Badge variant="outline">{getProviderQuota('huggingface')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>Open-source models (limite: {getProviderQuota('huggingface')?.dailyLimit.toLocaleString()} requisições/dia)</CardDescription>
+                <CardDescription>Open-source models (limite: {getProviderQuota('huggingface')?.dailyLimit.toLocaleString() ?? '—'} requisições/dia)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -1040,7 +1040,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   </span>
                   <Badge variant="outline">{getProviderQuota('openrouter')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>400+ models (limite: {getProviderQuota('openrouter')?.dailyLimit.toLocaleString()} requisições/dia grátis)</CardDescription>
+                <CardDescription>400+ models (limite: {getProviderQuota('openrouter')?.dailyLimit.toLocaleString() ?? '—'} requisições/dia grátis)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
