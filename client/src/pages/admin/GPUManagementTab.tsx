@@ -40,6 +40,18 @@ interface GpuWorker {
   createdAt: string;
   updatedAt: string;
   lastUsedAt?: string;
+  quotaStatus?: {
+    provider: string;
+    sessionRuntimeSeconds: number;
+    maxSessionSeconds: number;
+    remainingSessionSeconds: number;
+    weeklyUsedSeconds?: number;
+    weeklyRemainingSeconds?: number;
+    weeklyMaxSeconds?: number;
+    utilizationPercent: number;
+    canStart: boolean;
+    shouldStop: boolean;
+  };
 }
 
 interface PoolStats {
@@ -67,20 +79,20 @@ export default function GPUManagementTab() {
   });
   const timezone = systemTimezone?.timezone || "America/Sao_Paulo";
 
-  // Fetch GPU workers
+  // Fetch GPU workers with quota data
   const { data: gpuData, isLoading } = useQuery({
-    queryKey: ["/api/gpu/status"],
+    queryKey: ["/api/gpu/overview"],
     refetchInterval: showAddWorkerDialog || editingWorker ? false : 30000, // Pause refetch when modal is open, otherwise refresh every 30s
   });
 
   const workers: GpuWorker[] = (gpuData as any)?.workers || [];
   const stats: PoolStats = {
-    total: (gpuData as any)?.total || 0,
-    healthy: (gpuData as any)?.healthy || 0,
-    unhealthy: (gpuData as any)?.unhealthy || 0,
-    offline: (gpuData as any)?.offline || 0,
-    totalRequests: (gpuData as any)?.totalRequests || 0,
-    averageLatencyMs: (gpuData as any)?.avgLatency || 0,
+    total: (gpuData as any)?.stats?.total || 0,
+    healthy: (gpuData as any)?.stats?.healthy || 0,
+    unhealthy: (gpuData as any)?.stats?.unhealthy || 0,
+    offline: (gpuData as any)?.stats?.offline || 0,
+    totalRequests: (gpuData as any)?.stats?.totalRequests || 0,
+    averageLatencyMs: (gpuData as any)?.stats?.avgLatency || 0,
   };
 
   // Delete GPU worker mutation
@@ -92,7 +104,7 @@ export default function GPUManagementTab() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/gpu/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
       toast({
         title: t.admin.gpuManagement.toast.workerRemoved,
         description: t.admin.gpuManagement.toast.workerRemovedDesc,
@@ -167,40 +179,22 @@ export default function GPUManagementTab() {
           return;
         }
 
-        const metadata = worker.capabilities.metadata;
-        const sessionStart = metadata?.sessionStart;
-        const sessionRuntimeHours = metadata?.sessionRuntimeHours || 0;
-        const maxSessionHours = metadata?.maxSessionHours || 0;
-
-        console.log(`[DEBUG Worker ${worker.id}] provider="${worker.provider}" type=${typeof worker.provider} isKaggle=${worker.provider?.toLowerCase() === 'kaggle'}`);
+        // Usar quotaStatus do /api/gpu/overview (dados reais do PostgreSQL)
+        if (!worker.quotaStatus) {
+          setTimeLeft(t.admin.gpuManagement.time.na);
+          return;
+        }
 
         if (worker.provider?.toLowerCase() === 'kaggle') {
-          // KAGGLE: Mostra quota SEMANAL (dados reais do PostgreSQL)
-          const usedHoursThisWeek = metadata?.usedHoursThisWeek || 0;
-          const quotaHoursPerWeek = metadata?.quotaHoursPerWeek || 30;
-          const safeWeeklyLimit = quotaHoursPerWeek * 0.7; // 70% safety margin
+          // KAGGLE: Mostra quota SEMANAL (dados reais do quotaManager)
+          const weeklyUsedHours = (worker.quotaStatus.weeklyUsedSeconds || 0) / 3600;
+          const weeklyMaxHours = (worker.quotaStatus.weeklyMaxSeconds || 75600) / 3600;
           
-          setTimeLeft(`Semana: ${usedHoursThisWeek.toFixed(1)}h / ${safeWeeklyLimit.toFixed(0)}h`);
+          setTimeLeft(`Semana: ${weeklyUsedHours.toFixed(1)}h / ${weeklyMaxHours.toFixed(0)}h`);
         } else {
-          // COLAB: Mostra quota de SESSÃO com countdown
-          if (!sessionStart) {
-            setTimeLeft(t.admin.gpuManagement.time.na);
-            return;
-          }
-
-          const startTime = new Date(sessionStart).getTime();
-          const maxRuntimeMs = maxSessionHours * 60 * 60 * 1000;
-          const shutdownTime = startTime + maxRuntimeMs;
-          const now = Date.now();
-          const remaining = shutdownTime - now;
-
-          if (remaining <= 0) {
-            setTimeLeft(t.admin.gpuManagement.time.shuttingDown);
-            return;
-          }
-
-          const hours = Math.floor(remaining / (1000 * 60 * 60));
-          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+          // COLAB: Mostra quota de SESSÃO (dados reais do quotaManager)
+          const sessionRuntimeHours = worker.quotaStatus.sessionRuntimeSeconds / 3600;
+          const maxSessionHours = worker.quotaStatus.maxSessionSeconds / 3600;
 
           setTimeLeft(`Sessão: ${sessionRuntimeHours.toFixed(1)}h / ${maxSessionHours.toFixed(1)}h`);
         }
@@ -209,7 +203,7 @@ export default function GPUManagementTab() {
       updateTimer();
       const interval = setInterval(updateTimer, 1000);
       return () => clearInterval(interval);
-    }, [worker.id, worker.provider, worker.status, worker.capabilities.metadata]);
+    }, [worker.id, worker.provider, worker.status, worker.quotaStatus]);
 
     return <span className="text-sm font-mono">{timeLeft}</span>;
   };
@@ -282,7 +276,7 @@ export default function GPUManagementTab() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/gpu/status"] })}
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] })}
                 data-testid="button-refresh-gpus"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
