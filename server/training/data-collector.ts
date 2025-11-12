@@ -16,6 +16,7 @@
 
 import { storage } from "../storage";
 import fs from "fs/promises";
+import fsSync from "fs";
 import path from "path";
 
 export interface TrainingExample {
@@ -45,15 +46,19 @@ export class TrainingDataCollector {
   private dataDir = "./training/data";
 
   constructor() {
-    this.ensureDataDir();
+    // 🔒 SYNCHRONOUS INITIALIZATION - Prevents ENOENT race on first export
+    this.ensureDataDirSync();
   }
 
   /**
-   * Garantir que diretório de dados existe
+   * Garantir que diretório de dados existe (SYNCHRONOUS - safe for constructor)
+   * 
+   * ENTERPRISE FIX: Prevents race condition where first export() hits ENOENT
+   * before async ensureDataDir() completes.
    */
-  private async ensureDataDir(): Promise<void> {
+  private ensureDataDirSync(): void {
     try {
-      await fs.mkdir(this.dataDir, { recursive: true });
+      fsSync.mkdirSync(this.dataDir, { recursive: true });
     } catch (error) {
       console.error("[Training] Erro criando diretório de dados:", error);
     }

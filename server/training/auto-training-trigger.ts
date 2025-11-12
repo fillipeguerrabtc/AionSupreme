@@ -39,6 +39,7 @@ export class AutoTrainingTrigger {
   private checkIntervalMs = 30 * 60 * 1000; // 30 minutos
   private intervalId: NodeJS.Timeout | null = null;
   private enabled = true;
+  private isRunning = false; // 🔒 RE-ENTRANCY GUARD
 
   /**
    * Inicia monitoramento automático
@@ -78,18 +79,41 @@ export class AutoTrainingTrigger {
    * - Adaptive thresholds based on environment
    * - Differential Privacy budget tracking
    * - Quality gates enforcement
+   * - Re-entrancy protection (prevents concurrent execution)
    */
   private async checkAndTrigger(): Promise<void> {
     if (!this.enabled) {
       return;
     }
 
-    console.log("\n🤖 [AutoTrain] Verificando condições para auto-treino...");
-    
-    // Load adaptive configuration
-    const config = getMetaLearningConfig();
-    const threshold = config.thresholds.minKBItems; // ✅ BLOCKER #2 FIX: Use minKBItems
+    // 🔒 RE-ENTRANCY GUARD: Prevent concurrent execution
+    if (this.isRunning) {
+      console.log("\n⚠️ [AutoTrain] Ciclo anterior ainda em execução - pulando verificação");
+      return;
+    }
 
+    this.isRunning = true;
+
+    try {
+      console.log("\n🤖 [AutoTrain] Verificando condições para auto-treino...");
+      
+      // Load adaptive configuration
+      const config = getMetaLearningConfig();
+      const threshold = config.thresholds.minKBItems; // ✅ BLOCKER #2 FIX: Use minKBItems
+
+      await this.runCycle(config, threshold);
+    } catch (error: any) {
+      console.error(`[AutoTrain] ❌ Erro no check:`, error.message);
+    } finally {
+      // 🔓 Release lock ALWAYS (even on error)
+      this.isRunning = false;
+    }
+  }
+
+  /**
+   * Executa ciclo de verificação e treino (extracted for re-entrancy protection)
+   */
+  private async runCycle(config: ReturnType<typeof getMetaLearningConfig>, threshold: number): Promise<void> {
     try {
       // ✅ BLOCKER #2 FIX: Usar checkPendingKBItems() em vez de checkPendingExamples()
       // Conta APENAS KB items (documentos aprovados), não conversas
@@ -131,7 +155,8 @@ export class AutoTrainingTrigger {
 
       await this.triggerTraining(config);
     } catch (error: any) {
-      console.error(`[AutoTrain] ❌ Erro no check:`, error.message);
+      console.error(`[AutoTrain] ❌ Erro no runCycle:`, error.message);
+      throw error; // Re-throw para finally block liberar lock
     }
   }
 
