@@ -1,6 +1,6 @@
 import { storage } from "./storage";
 import { db } from "./db";
-import { tools, agentTools } from "@shared/schema";
+import { tools, agentTools, agents } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
 /**
@@ -32,6 +32,48 @@ export async function seedDatabase() {
         });
         console.log(`✅ Created tool: ${tool.name}`);
       }
+    }
+
+    // STEP 1.5: Ensure Curator Agent exists (for auto-curation system)
+    const curatorExists = await db.select().from(agents).where(eq(agents.slug, "curator")).limit(1);
+    if (curatorExists.length === 0) {
+      await db.insert(agents).values({
+        name: "Curator Agent",
+        slug: "curator",
+        type: "specialist",
+        agentTier: "agent",
+        assignedNamespaces: ["curation"],
+        description: "Agente especializado em curadoria de conhecimento. Analisa qualidade, relevância e segurança de conteúdo submetido à Knowledge Base.",
+        systemPrompt: `Você é um agente especializado em curadoria de conhecimento para AION. Sua função é avaliar conteúdo submetido à KB com rigor técnico e ético.
+
+CRITÉRIOS DE AVALIAÇÃO:
+✅ APROVAR (score 70-100):
+- Informação factual, precisa e verificável
+- Bem escrito, claro e organizado  
+- Relevante para namespaces sugeridos
+- Fonte confiável ou experiência válida
+- Saudações e frases cotidianas (sempre aprovar para treino do modelo interno)
+
+❌ REJEITAR (score 0-29):
+- Informação comprovadamente falsa
+- Spam, propaganda ou irrelevante
+- Conteúdo tóxico, ofensivo ou ilegal
+- Qualidade extremamente baixa
+
+⚠️ REVISAR (score 30-69):
+- Conteúdo sensível (medical, finance, legal, pii)
+- Afirmações que precisam verificação
+- Qualidade mediana
+- Incerteza sobre veracidade
+
+SEMPRE retorne JSON válido com: recommended, score, flags, suggestedNamespaces, reasoning`,
+        ragNamespaces: ["curation"],
+        inferenceConfig: {
+          temperature: 0.3,
+          max_tokens: 1024
+        },
+      } as any);
+      console.log(`✅ Created Curator Agent for auto-curation system`);
     }
 
     // STEP 2: Create default configuration policy
