@@ -410,8 +410,14 @@ export async function getProviderQuotas(): Promise<ProviderQuota[]> {
   
   for (const limit of limits) {
     const normalizedProvider = slugMap[limit.provider] || limit.provider;
-    const dailyLimit = limit.dailyRequestLimit || 0;
-    const used = limit.requestCount || 0;
+    
+    // ✅ Groq usa TOKENS (não requests)
+    const dailyLimit = (limit.provider === 'groq' && limit.dailyTokenLimit) 
+      ? limit.dailyTokenLimit 
+      : (limit.dailyRequestLimit || 0);
+    const used = (limit.provider === 'groq' && limit.tokenCount !== null)
+      ? limit.tokenCount
+      : (limit.requestCount || 0);
     const remaining = Math.max(0, dailyLimit - used);
     const percentage = dailyLimit > 0 ? (used / dailyLimit) * 100 : 0;
     
