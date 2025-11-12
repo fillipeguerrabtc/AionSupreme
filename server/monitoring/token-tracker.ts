@@ -386,7 +386,8 @@ export async function getUsageSummary(): Promise<UsageSummary[]> {
 // ============================================================================
 
 export async function getProviderQuotas(): Promise<ProviderQuota[]> {
-  const { apiQuotaRepository } = await import('../repositories/api-quota-repository');
+  // ✅ NEW: Fetch REAL data from provider_limits table (NOT in-memory)
+  const { providerLimits } = await import('@shared/schema');
   
   const now = new Date();
   const tomorrow = new Date(now);
@@ -395,20 +396,33 @@ export async function getProviderQuotas(): Promise<ProviderQuota[]> {
   
   const quotas: ProviderQuota[] = [];
   
-  const dbQuotas = await apiQuotaRepository.getAllQuotas();
+  // ✅ Fetch from provider_limits table (REAL data from APIs/docs)
+  const limits = await db.select().from(providerLimits);
   
-  for (const dbQuota of dbQuotas) {
-    const used = dbQuota.requestCount;
-    const remaining = Math.max(0, dbQuota.dailyRequestLimit - used);
-    const percentage = (used / dbQuota.dailyRequestLimit) * 100;
+  // ✅ Normalize slugs: 'hf' → 'huggingface' (frontend compatibility)
+  // Backend uses 'hf' internally, frontend expects 'huggingface'
+  const slugMap: Record<string, string> = {
+    'hf': 'huggingface',
+    'gemini': 'gemini',
+    'groq': 'groq',
+    'openrouter': 'openrouter',
+    'huggingface': 'huggingface' // Also accept 'huggingface' directly
+  };
+  
+  for (const limit of limits) {
+    const normalizedProvider = slugMap[limit.provider] || limit.provider;
+    const dailyLimit = limit.rpd || 0;
+    const used = limit.rpdUsed || 0;
+    const remaining = limit.rpdRemaining !== null ? limit.rpdRemaining : Math.max(0, dailyLimit - used);
+    const percentage = dailyLimit > 0 ? (used / dailyLimit) * 100 : 0;
     
     quotas.push({
-      provider: dbQuota.provider,
-      dailyLimit: dbQuota.dailyRequestLimit,
+      provider: normalizedProvider,
+      dailyLimit,
       used,
       remaining,
       percentage,
-      resetTime: tomorrow
+      resetTime: limit.rpdResetAt ? new Date(limit.rpdResetAt) : tomorrow
     });
   }
   

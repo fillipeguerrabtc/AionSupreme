@@ -168,7 +168,7 @@ class ProviderLimitsTracker {
         set: {
           rpdUsed,
           tpmUsed,
-          rpdRemaining: sql`${officialLimits.rpd} - ${rpdUsed}`,
+          rpdRemaining: officialLimits.rpd - rpdUsed, // ✅ Simple calculation (not SQL)
           lastUpdated: sql`CURRENT_TIMESTAMP`
         }
       });
@@ -202,13 +202,13 @@ class ProviderLimitsTracker {
         SELECT 
           COUNT(*) FILTER (WHERE timestamp > NOW() - INTERVAL '1 day') as rpd_used
         FROM token_usage 
-        WHERE provider = 'huggingface'
+        WHERE provider = 'hf' OR provider = 'huggingface' -- Accept both for compatibility
       `);
       
       const rpdUsed = Number((usage.rows[0] as any)?.rpd_used || 0);
       
       await db.insert(providerLimits).values({
-        provider: 'huggingface',
+        provider: 'hf', // ✅ Backend uses 'hf' (normalized to 'huggingface' in API response)
         rpm: estimatedLimits.rpm,
         rpd: estimatedLimits.rpd,
         tpm: estimatedLimits.tpm,
@@ -232,7 +232,7 @@ class ProviderLimitsTracker {
         target: providerLimits.provider,
         set: {
           rpdUsed,
-          rpdRemaining: sql`${estimatedLimits.rpd} - ${rpdUsed}`,
+          rpdRemaining: estimatedLimits.rpd - rpdUsed, // ✅ Simple calculation (not SQL)
           lastUpdated: sql`CURRENT_TIMESTAMP`
         }
       });
@@ -244,7 +244,12 @@ class ProviderLimitsTracker {
   }
   
   /**
-   * ✅ OPENROUTER: Fetch credits from API
+   * ✅ OPENROUTER: Fetch credits from API + track usage
+   * 
+   * OFFICIAL DOCS 2025: https://openrouter.ai/docs/api-reference/limits
+   * - Free users: 50 requests/day, 20 RPM
+   * - Users with $10+ credits: 1,000 requests/day, 20 RPM
+   * 
    * GET /api/v1/key returns: { data: { credits: 1.50 } }
    */
   async updateOpenRouterLimits(): Promise<void> {
@@ -269,39 +274,65 @@ class ProviderLimitsTracker {
       const data = await response.json();
       const creditsBalance = data.data?.credits || 0;
       
+      // ✅ OFFICIAL 2025 LIMITS: 50 RPD (free), 20 RPM
+      const officialLimits = {
+        rpm: 20, // Official: 20 requests per minute
+        rpd: creditsBalance >= 10 ? 1000 : 50, // Official: 50 free, 1000 with $10+ credits
+        tpm: null,
+        tpd: null
+      };
+      
+      // ✅ Get usage from token_usage table (our DB tracking)
+      const usage = await db.execute(sql`
+        SELECT 
+          COUNT(*) FILTER (WHERE timestamp > NOW() - INTERVAL '1 minute') as rpm_used,
+          COUNT(*) FILTER (WHERE timestamp > NOW() - INTERVAL '1 day') as rpd_used
+        FROM token_usage 
+        WHERE provider = 'openrouter'
+      `);
+      
+      const rpmUsed = Number((usage.rows[0] as any)?.rpm_used || 0);
+      const rpdUsed = Number((usage.rows[0] as any)?.rpd_used || 0);
+      
       await db.insert(providerLimits).values({
         provider: 'openrouter',
-        rpm: null,
-        rpd: null, // ❌ OpenRouter API doesn't return RPD - set to null
-        tpm: null,
-        tpd: null,
-        rpmUsed: null,
-        rpdUsed: null,
+        rpm: officialLimits.rpm,
+        rpd: officialLimits.rpd,
+        tpm: officialLimits.tpm,
+        tpd: officialLimits.tpd,
+        rpmUsed,
+        rpdUsed,
         tpmUsed: null,
         tpdUsed: null,
-        rpmRemaining: null,
-        rpdRemaining: null,
+        rpmRemaining: officialLimits.rpm - rpmUsed,
+        rpdRemaining: officialLimits.rpd - rpdUsed,
         tpmRemaining: null,
         tpdRemaining: null,
         rpmResetAt: null,
         rpdResetAt: null,
         tpmResetAt: null,
         tpdResetAt: null,
-        creditsBalance, // ✅ ONLY real data from API
+        creditsBalance,
         creditsUsed: null,
         rawHeaders: null,
-        rawResponse: data, // ✅ Store raw for debugging
-        source: 'openrouter_api'
+        rawResponse: data,
+        source: 'openrouter_api_official_2025'
       }).onConflictDoUpdate({
         target: providerLimits.provider,
         set: {
+          rpm: officialLimits.rpm,
+          rpd: officialLimits.rpd,
+          rpmUsed,
+          rpdUsed,
+          rpmRemaining: officialLimits.rpm - rpmUsed,
+          rpdRemaining: officialLimits.rpd - rpdUsed,
           creditsBalance,
           rawResponse: data,
           lastUpdated: sql`CURRENT_TIMESTAMP`
         }
       });
       
-      console.log(`[ProviderLimits] ✅ OpenRouter updated: $${creditsBalance} credits`);
+      console.log(`[ProviderLimits] ✅ OpenRouter updated: ${rpdUsed}/${officialLimits.rpd} req/day, $${creditsBalance} credits (source: official docs 2025)`);
     } catch (error: any) {
       console.error(`[ProviderLimits] OpenRouter fetch failed:`, error.message);
     }

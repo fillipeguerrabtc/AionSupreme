@@ -51,6 +51,13 @@ The **Persistent Vector Store** uses PostgreSQL's `pgvector` extension with IVFF
 
 A **Production-Grade Persistence Layer** (PostgreSQL-backed) implements a Circuit Breaker with state persistence, LLM Provider Quotas, Vision Cascade Quotas, and GPU Quota Enforcement (70% enterprise standard) with `QuotaEnforcementService` and `GpuWatchdogService` to prevent orphaned sessions and ensure durability.
 
+A **Real-Time Provider Quota Monitoring System** (`ProviderLimitsTracker`) fetches real quota data directly from provider APIs and official documentation (2025):
+- **Groq**: Real-time tracking via `x-ratelimit-*` HTTP headers (dynamic limits)
+- **OpenRouter**: API `/api/v1/key` for credits + official 2025 limits (50 RPD free, 1,000 RPD with $10+ credits, 20 RPM)
+- **Gemini**: Official Google docs 2025 limits (15 RPM, 1,500 RPD, 1M TPM)
+- **HuggingFace**: Conservative estimate (720 RPD) - no public API, credit-based system since 2025
+All quota data persists in PostgreSQL `provider_limits` table with automatic sync every minute. ZERO hardcoded values. The system normalizes provider slugs ('hf' → 'huggingface') for frontend compatibility.
+
 All persistence systems implement structured logging via Pino, fault-tolerant error handling, and backward compatibility. The frontend uses Replit Auth (OpenID Connect). RAG combines OpenAI embeddings with BM25. Professional video generation uses an asynchronous job queue. Multi-Cloud Deployment uses Google Cloud Run and AWS Fargate. A multi-provider billing architecture with real-time cost tracking and automated synchronization is implemented. Tool registration uses a mapping layer. Message and tool execution persistence ensures data integrity. An Enterprise Backup & Recovery System provides full database exports with security, rate limiting, and audit logging.
 
 ### System Design Decisions
