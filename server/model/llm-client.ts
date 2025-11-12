@@ -15,9 +15,11 @@
 
 import OpenAI from "openai";
 import { storage } from "../storage";
-import type { InsertMetric } from "@shared/schema";
+import type { InsertMetric, Policy } from "@shared/schema";
 import { freeLLMProviders } from "./free-llm-providers";
 import { GPUPool } from "../gpu/pool";
+import { loadPolicy } from "../policy/enforcement";
+import { generatePersonalityPrompt } from "../policy/personality-prompt-generator";
 
 /**
  * Erro customizado para recusas de conteúdo já tratadas
@@ -122,6 +124,7 @@ class RateLimiter {
 export class LLMClient {
   private openai: OpenAI;
   private rateLimiter: RateLimiter;
+  private policy: Policy | null;
 
   /**
    * Trigger billing sync após requests OpenAI
@@ -136,7 +139,11 @@ export class LLMClient {
     }
   }
 
-  constructor() {
+  /**
+   * Private constructor - Use LLMClient.create() instead
+   * Prevents direct instantiation to enforce async policy loading
+   */
+  private constructor(policy: Policy | null) {
     // Inicializar cliente OpenAI
     // Usa OPENAI_API_KEY do Replit Secrets (chave fornecida pelo usuário)
     const apiKey = process.env.OPENAI_API_KEY || "";
@@ -150,6 +157,37 @@ export class LLMClient {
     // Rate limiter global único (sistema é single-tenant)
     // Padrão: 60 requisições por minuto = 1 requisição por segundo
     this.rateLimiter = new RateLimiter(60, 1);
+    
+    // Store policy for personality/behavior configuration
+    this.policy = policy;
+    
+    if (policy) {
+      console.log("[LLM] ✓ Policy loaded successfully:", policy.policyName);
+      console.log(`[LLM] → Temperature: ${policy.temperature}, TopP: ${policy.topP}`);
+    } else {
+      console.warn("[LLM] ⚠️  No active policy found - using default configuration");
+    }
+  }
+
+  /**
+   * Async factory method - PRODUCTION-READY PATTERN
+   * 
+   * Loads active policy from database and hydrates LLMClient with configuration.
+   * This ensures personality traits and system prompts are applied to all LLM calls.
+   * 
+   * Single-tenant mode: Loads the first active policy
+   * Future multi-tenant: Can be extended to accept policyId parameter
+   * 
+   * @returns LLMClient instance with policy hydrated
+   */
+  static async create(): Promise<LLMClient> {
+    try {
+      const policy = await loadPolicy();
+      return new LLMClient(policy);
+    } catch (error) {
+      console.error("[LLM] Failed to load policy, using defaults:", error);
+      return new LLMClient(null);
+    }
   }
 
   /**
@@ -345,12 +383,56 @@ export class LLMClient {
    * 3º: OpenAI (ÚLTIMA opção, apenas se TODAS as anteriores falharem)
    * 
    * OpenAI é PAGA - usar apenas como último recurso!
+   * 
+   * 🎭 PERSONALITY INTEGRATION (NEW):
+   * - Automatically injects system prompt from policy (if loaded)
+   * - Custom systemPrompt takes precedence over generated personality prompt
+   * - Uses temperature/topP from policy configuration
    */
   async chatCompletion(options: ChatCompletionOptions): Promise<ChatCompletionResult> {
     const startTime = Date.now();
     
-    // Check cache first
-    const cacheKey = this.getCacheKey(options);
+    // ===================================================================
+    // 🎭 STEP 1: INJECT PERSONALITY & SYSTEM PROMPT (PRODUCTION-READY)
+    // ===================================================================
+    let finalMessages = [...options.messages];
+    
+    if (this.policy) {
+      // Check if system message already exists (avoid duplicates)
+      const hasSystemMessage = finalMessages.some(msg => msg.role === "system");
+      
+      if (!hasSystemMessage) {
+        // Generate or use custom system prompt
+        let systemPrompt: string;
+        
+        if (this.policy.systemPrompt && this.policy.systemPrompt.trim().length > 0) {
+          // Use custom system prompt from policy
+          systemPrompt = this.policy.systemPrompt;
+          console.log("[LLM] 🎭 Using custom system prompt from policy");
+        } else {
+          // Generate personality-driven prompt from behavior traits
+          systemPrompt = generatePersonalityPrompt(this.policy.behavior);
+          console.log("[LLM] 🎭 Generated personality prompt from traits");
+        }
+        
+        // Prepend system message
+        finalMessages = [
+          { role: "system", content: systemPrompt },
+          ...finalMessages
+        ];
+        
+        console.log(`[LLM] → Verbosity: ${(this.policy.behavior.verbosity * 100).toFixed(0)}%`);
+        console.log(`[LLM] → Formality: ${(this.policy.behavior.formality * 100).toFixed(0)}%`);
+        console.log(`[LLM] → Creativity: ${(this.policy.behavior.creativity * 100).toFixed(0)}%`);
+      } else {
+        console.log("[LLM] ⚠️  System message already exists, skipping policy injection");
+      }
+    } else {
+      console.log("[LLM] ⚠️  No policy loaded - using default behavior");
+    }
+    
+    // Check cache AFTER message injection (cache key includes full messages)
+    const cacheKey = this.getCacheKey({ ...options, messages: finalMessages });
     const cached = this.checkCache(cacheKey);
     if (cached) {
       console.log("[LLM] Cache hit");
@@ -361,11 +443,13 @@ export class LLMClient {
     const rateLimiter = this.getRateLimiter();
     await rateLimiter.acquire();
 
-    // Default model and parameters
+    // Model and parameters from policy (with fallbacks)
     const model = options.model || "gpt-4o";
-    const temperature = options.temperature ?? 0.7;
-    const topP = options.topP ?? 0.9;
+    const temperature = options.temperature ?? this.policy?.temperature ?? 0.7;
+    const topP = options.topP ?? this.policy?.topP ?? 0.9;
     const maxTokens = options.maxTokens ?? 2048;
+    
+    console.log(`[LLM] → Model: ${model}, Temp: ${temperature}, TopP: ${topP}`);
 
     // ===================================================================
     // 🔥 1º PRIORIDADE: GPU INFERENCE (KB INTERNA - ZERO CUSTO!)
@@ -382,7 +466,7 @@ export class LLMClient {
       
       try {
         const gpuResult = await GPUPool.inference({
-          messages: options.messages,
+          messages: finalMessages, // Use policy-injected messages
           temperature,
           maxTokens,
         });
@@ -431,7 +515,7 @@ export class LLMClient {
     console.log("[LLM] 🆓 Tentando APIs gratuitas (OpenRouter/Groq/Gemini/HF)...");
     
     try {
-      const freeResult = await freeLLMProviders.chatCompletion(options.messages);
+      const freeResult = await freeLLMProviders.chatCompletion(finalMessages); // Use policy-injected messages
       
       // Save to cache
       this.saveToCache(cacheKey, freeResult);
@@ -451,10 +535,10 @@ export class LLMClient {
     // 2º PRIORIDADE (ÚLTIMA OPÇÃO): OpenAI (PAGA!)
     // ===================================================================
     try {
-      // Call OpenAI API
+      // Call OpenAI API with policy-injected messages
       const completion = await this.openai.chat.completions.create({
         model,
-        messages: options.messages as any,
+        messages: finalMessages as any, // Use policy-injected messages
         temperature,
         top_p: topP,
         max_tokens: maxTokens,
@@ -703,5 +787,24 @@ export class LLMClient {
   }
 }
 
-// Singleton instance
-export const llmClient = new LLMClient();
+/**
+ * TEMPORARY SINGLETON - FOR BACKWARD COMPATIBILITY
+ * 
+ * ⚠️  WARNING: This instance does NOT have policy loaded!
+ * Personality traits and system prompts will NOT work with this instance.
+ * 
+ * Migration in progress - Use `await LLMClient.create()` for new code
+ * 
+ * TODO: Remove after all callers are migrated to async factory pattern
+ */
+let _legacyInstance: LLMClient | null = null;
+
+export const llmClient = new Proxy({} as LLMClient, {
+  get(target, prop) {
+    if (!_legacyInstance) {
+      console.warn("[LLM] ⚠️  Using legacy singleton - policy NOT loaded. Migrate to await LLMClient.create()");
+      _legacyInstance = new (LLMClient as any)(null); // Bypass private constructor
+    }
+    return (_legacyInstance as any)[prop];
+  }
+});

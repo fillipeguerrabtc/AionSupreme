@@ -105,7 +105,13 @@ const VIOLATION_PATTERNS = {
 // POLICY LOADING
 // ============================================================================
 
-export async function loadPolicy(): Promise<PolicyConfig | null> {
+/**
+ * Load active policy from database (single-tenant mode)
+ * Returns full Policy type from schema for complete configuration access
+ * 
+ * @returns Active policy or null if none found
+ */
+export async function loadPolicy(): Promise<import('@shared/schema').Policy | null> {
   // Single-tenant mode: Just get the first active policy
   const result = await db
     .select()
@@ -117,8 +123,14 @@ export async function loadPolicy(): Promise<PolicyConfig | null> {
     return null;
   }
 
-  const policy = result[0];
+  return result[0];
+}
 
+/**
+ * Convert full Policy to PolicyConfig (legacy compatibility)
+ * Use this when you need the reduced interface for enforcement logic
+ */
+export function policyToConfig(policy: import('@shared/schema').Policy): PolicyConfig {
   return {
     id: policy.id,
     name: policy.policyName,
@@ -136,7 +148,9 @@ export async function loadPolicy(): Promise<PolicyConfig | null> {
 // VIOLATION DETECTION
 // ============================================================================
 
-export function detectViolation(text: string, policy: PolicyConfig): ViolationResult {
+export function detectViolation(text: string, policy: PolicyConfig | import('@shared/schema').Policy): ViolationResult {
+  // Convert to PolicyConfig if needed
+  const config = 'policyName' in policy ? policyToConfig(policy) : policy;
   if (!text || text.trim().length === 0) {
     return {
       violated: false,
@@ -146,7 +160,7 @@ export function detectViolation(text: string, policy: PolicyConfig): ViolationRe
   }
 
   // Check each rule
-  for (const [category, enabled] of Object.entries(policy.rules)) {
+  for (const [category, enabled] of Object.entries(config.rules)) {
     if (!enabled) continue;  // Skip disabled rules
 
     const categoryPatterns = VIOLATION_PATTERNS[category as keyof typeof VIOLATION_PATTERNS];
@@ -159,7 +173,7 @@ export function detectViolation(text: string, policy: PolicyConfig): ViolationRe
           violated: true,
           category,
           severity: categoryPatterns.severity,
-          action: policy.onBlock,
+          action: config.onBlock,
           explanation: `Violates policy: ${category.replace('_', ' ')}`
         };
       }
