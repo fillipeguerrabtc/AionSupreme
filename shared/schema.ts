@@ -2141,10 +2141,10 @@ export const curationQueue = pgTable("curation_queue", {
     concerns?: string[];
   }>(),
   
-  // Deduplication fields
-  contentHash: varchar("content_hash", { length: 64 }), // SHA256 hash for exact duplicate detection
+  // Deduplication fields (2025 best practices: semantic + hash-based)
+  contentHash: varchar("content_hash", { length: 64 }), // SHA256 hash for exact duplicate detection (O(1) lookup)
   normalizedContent: text("normalized_content"), // Lowercased, trimmed content for fuzzy matching
-  embedding: jsonb("embedding").$type<number[]>(), // OpenAI embedding for semantic similarity
+  embedding: vector("embedding", { dimensions: 1536 }), // pgvector native type for ANN semantic search (OpenAI text-embedding-3-small)
   duplicationStatus: varchar("duplication_status", { length: 20 }), // "unique" | "exact" | "near" | null
   similarityScore: real("similarity_score"), // Cosine similarity score (0-1) if near-duplicate
   duplicateOfId: varchar("duplicate_of_id", { length: 50 }), // Reference to original KB document if duplicate

@@ -75,11 +75,37 @@ export const curationStore = {
       }>;
     }
   ): Promise<CurationItem> {
-    // 🔥 UNIVERSAL DUPLICATE CHECK - Protects against all callers, not just endpoints
-    // This ensures duplicate protection even if addToCuration() is called directly
+    // 🧠 GATE 1: PREPROCESSING PIPELINE (Compute BEFORE insert)
+    // Following 2025 best practices for semantic deduplication
+    console.log(`[Curation] 🧠 Gate 1: Preprocessing pipeline...`);
+    
+    // Import utilities
+    const { generateContentHash, normalizeContent } = await import("../utils/deduplication");
+    
+    // Compute normalized content and hash (for exact duplicate detection)
+    const normalizedText = normalizeContent(data.content);
+    const contentHash = generateContentHash(data.content);
+    
+    console.log(`[Curation] → Normalized: "${normalizedText.substring(0, 60)}..."`);
+    console.log(`[Curation] → Hash: ${contentHash.substring(0, 16)}...`);
+    
+    // Override data with computed values (ensure they're set!)
+    data.contentHash = contentHash;
+    data.normalizedContent = normalizedText;
+    
+    // 🔥 GATE 2: TIERED DUPLICATE DETECTION
+    // Tier 1: Exact hash (instant)
+    // Tier 2: Semantic similarity with pgvector (fast ANN)
+    // Tier 3: LLM adjudication for borderline cases (0.85-0.92)
+    console.log(`[Curation] 🔥 Gate 2: Tiered duplicate detection...`);
+    
     if (data.content) {
       const { deduplicationService } = await import("../services/deduplication-service");
-      const duplicateCheck = await deduplicationService.checkCurationRealtimeDuplicate(data.content);
+      const duplicateCheck = await deduplicationService.checkCurationRealtimeDuplicate(
+        data.content,
+        contentHash,
+        normalizedText
+      );
       
       if (duplicateCheck) {
         const location = duplicateCheck.isPending ? 'curation queue' : 'Knowledge Base';
@@ -98,6 +124,9 @@ export const curationStore = {
         );
       }
     }
+    
+    console.log(`[Curation] ✅ No duplicates found - proceeding with insert`);
+
     
     // STEP 1: Inserir na fila de curadoria
     const [item] = await db.insert(curationQueueTable).values({

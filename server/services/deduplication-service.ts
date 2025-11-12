@@ -280,46 +280,79 @@ export class DeduplicationService {
   // ============================================================================
 
   /**
-   * TIER 1 - Realtime Hash Check (used when submitting to curation)
-   * Checks if content hash exists in KB documents OR pending curation queue
-   * <1ms execution time - suitable for realtime blocking
+   * 🧠 INTELLIGENT SEMANTIC DEDUPLICATION (2025 Best Practices)
+   * 
+   * 4-Gate Tiered Detection System:
+   * - Gate 1: Exact hash lookup (O(1), <1ms)
+   * - Gate 2: pgvector ANN search (semantic similarity)
+   * - Gate 3: LLM adjudication for borderline cases (0.85-0.92)
+   * - Gate 4: Return embedding for reuse (avoid regeneration)
    * 
    * @param content - Raw text content
-   * @param tenantId - Tenant ID
-   * @returns Duplicate info if found, null otherwise
+   * @param contentHash - Pre-computed SHA256 hash
+   * @param normalizedContent - Pre-normalized text
+   * @param options - Configuration options
+   * @returns Duplicate info with method used, or null if unique
    */
   async checkCurationRealtimeDuplicate(
     content: string,
-    tenantId: number = 1
-  ): Promise<{ isDuplicate: boolean; documentId?: number; documentTitle?: string; isPending?: boolean } | null> {
-    // Generate hash
-    const hash = generateContentHash(content);
+    contentHash: string,
+    normalizedContent: string,
+    options: {
+      tenantId?: number;
+      enableSemantic?: boolean;
+      similarityThresholds?: {
+        exact: number;      // ≥0.92 = exact duplicate
+        borderline: number; // 0.85-0.92 = needs LLM verification
+      };
+    } = {}
+  ): Promise<{
+    isDuplicate: boolean;
+    documentId?: number;
+    documentTitle?: string;
+    isPending?: boolean;
+    method: 'hash' | 'semantic' | 'llm' | 'none';
+    similarity?: number;
+    embedding?: number[]; // Return for reuse by caller
+  } | null> {
+    const {
+      tenantId = 1,
+      enableSemantic = true, // MVP: enabled by default
+      similarityThresholds = {
+        exact: 0.92,       // ≥92% = auto-reject as duplicate
+        borderline: 0.85   // 85-92% = LLM verification needed
+      }
+    } = options;
 
-    // CRITICAL: Check BOTH documents (approved KB) AND curationQueue (pending items)
+    console.log(`[Dedup] 🧠 Starting tiered detection for hash: ${contentHash.substring(0, 12)}...`);
 
-    // 1. Check if hash exists in KB documents (approved content)
+    // =====================================================================
+    // TIER 1: EXACT HASH LOOKUP (O(1), <1ms)
+    // =====================================================================
+    console.log(`[Dedup] → Tier 1: Checking exact hash in KB...`);
+    
     const existingDoc = await db
       .select({
         id: documents.id,
         title: documents.title,
       })
       .from(documents)
-      .where(
-        eq(documents.contentHash, hash)
-      )
+      .where(eq(documents.contentHash, contentHash))
       .limit(1);
 
     if (existingDoc.length > 0) {
-      console.log(`[Deduplication] ❌ Exact duplicate found in KB: "${existingDoc[0].title}" (ID: ${existingDoc[0].id})`);
+      console.log(`[Dedup] ❌ EXACT duplicate in KB: "${existingDoc[0].title}"`);
       return {
         isDuplicate: true,
         documentId: existingDoc[0].id,
         documentTitle: existingDoc[0].title,
-        isPending: false
+        isPending: false,
+        method: 'hash',
       };
     }
 
-    // 2. Check if hash exists in curation queue (pending/approved items)
+    console.log(`[Dedup] → Tier 1: Checking exact hash in curation queue...`);
+    
     const existingQueue = await db
       .select({
         id: curationQueue.id,
@@ -329,23 +362,192 @@ export class DeduplicationService {
       .from(curationQueue)
       .where(
         and(
-          eq(curationQueue.contentHash, hash),
-          sql`${curationQueue.status} IN ('pending', 'approved')` // Don't block if rejected
+          eq(curationQueue.contentHash, contentHash),
+          sql`${curationQueue.status} IN ('pending', 'approved')`
         )
       )
       .limit(1);
 
     if (existingQueue.length > 0) {
-      console.log(`[Deduplication] ❌ Exact duplicate found in curation queue: "${existingQueue[0].title}" (ID: ${existingQueue[0].id}, status: ${existingQueue[0].status})`);
+      console.log(`[Dedup] ❌ EXACT duplicate in queue: "${existingQueue[0].title}"`);
       return {
         isDuplicate: true,
-        documentId: undefined, // No doc ID yet (still in queue)
+        documentId: undefined,
         documentTitle: existingQueue[0].title,
-        isPending: true
+        isPending: true,
+        method: 'hash',
       };
     }
 
+    console.log(`[Dedup] ✅ Tier 1 passed: No exact hash match`);
+
+    // =====================================================================
+    // TIER 2: SEMANTIC SIMILARITY (pgvector ANN search)
+    // =====================================================================
+    if (!enableSemantic || content.length < 100) {
+      console.log(`[Dedup] ⏩ Skipping semantic check (too short or disabled)`);
+      return null; // No duplicate found
+    }
+
+    console.log(`[Dedup] → Tier 2: Generating embedding for semantic search...`);
+    
+    let queryEmbedding: number[];
+    try {
+      const [result] = await embedder.generateEmbeddings([
+        { text: content, index: 0, tokens: Math.ceil(content.length / 4) }
+      ]);
+      queryEmbedding = result.embedding;
+      console.log(`[Dedup] ✅ Embedding generated (${queryEmbedding.length} dimensions)`);
+    } catch (error: any) {
+      console.error(`[Dedup] ❌ Embedding generation failed:`, error.message);
+      return null; // Degrade gracefully - don't block insert
+    }
+
+    // Query pgvector for similar items (top 15)
+    console.log(`[Dedup] → Tier 2: Searching pgvector for similar items...`);
+    
+    const similarItems = await db.execute(sql`
+      SELECT 
+        id,
+        title,
+        content,
+        content_hash,
+        status,
+        (embedding <=> ${sql.raw(JSON.stringify(queryEmbedding))}::vector) as distance
+      FROM curation_queue
+      WHERE embedding IS NOT NULL
+      AND status IN ('pending', 'approved')
+      ORDER BY embedding <=> ${sql.raw(JSON.stringify(queryEmbedding))}::vector
+      LIMIT 15
+    `);
+
+    if (similarItems.rows.length === 0) {
+      console.log(`[Dedup] ✅ Tier 2: No similar items found`);
+      return null; // No duplicates, return embedding for caller to store
+    }
+
+    // Calculate cosine similarity (distance → similarity)
+    const bestMatch = similarItems.rows[0] as any;
+    const similarity = 1 - bestMatch.distance; // pgvector <=> gives distance, we want similarity
+    
+    console.log(`[Dedup] → Best match: "${bestMatch.title.substring(0, 50)}..." (similarity: ${(similarity * 100).toFixed(1)}%)`);
+
+    // =====================================================================
+    // TIER 3: THRESHOLD LOGIC + LLM ADJUDICATION
+    // =====================================================================
+    
+    // Exact semantic duplicate (≥92%)
+    if (similarity >= similarityThresholds.exact) {
+      console.log(`[Dedup] ❌ SEMANTIC duplicate detected (${(similarity * 100).toFixed(1)}% ≥ ${similarityThresholds.exact * 100}%)`);
+      return {
+        isDuplicate: true,
+        documentId: undefined,
+        documentTitle: bestMatch.title,
+        isPending: true,
+        method: 'semantic',
+        similarity,
+        embedding: queryEmbedding, // Return for reuse
+      };
+    }
+
+    // Borderline case (85-92%) - needs LLM verification
+    if (similarity >= similarityThresholds.borderline) {
+      console.log(`[Dedup] ⚠️  BORDERLINE similarity (${(similarity * 100).toFixed(1)}%) - invoking LLM adjudicator...`);
+      
+      const llmVerdict = await this.llmDuplicateAdjudicator(
+        content,
+        bestMatch.content,
+        similarity
+      );
+
+      if (llmVerdict.isDuplicate) {
+        console.log(`[Dedup] ❌ LLM confirmed duplicate: ${llmVerdict.reason}`);
+        return {
+          isDuplicate: true,
+          documentId: undefined,
+          documentTitle: bestMatch.title,
+          isPending: true,
+          method: 'llm',
+          similarity,
+          embedding: queryEmbedding,
+        };
+      } else {
+        console.log(`[Dedup] ✅ LLM rejected duplicate: ${llmVerdict.reason}`);
+      }
+    }
+
+    // Not a duplicate, but return embedding for caller to store
+    console.log(`[Dedup] ✅ Content is UNIQUE (similarity: ${(similarity * 100).toFixed(1)}%)`);
     return null;
+  }
+
+  /**
+   * LLM Adjudicator for borderline duplicate cases (85-92% similarity)
+   * Uses GPT-4o-mini for fast, cheap, deterministic judgments
+   */
+  private async llmDuplicateAdjudicator(
+    candidateText: string,
+    existingText: string,
+    similarity: number
+  ): Promise<{
+    isDuplicate: boolean;
+    confidence: number;
+    reason: string;
+  }> {
+    try {
+      // Use OpenAI directly for fast adjudication
+      const { OpenAI } = await import('openai');
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+      });
+      
+      const prompt = `You are a duplicate detection AI. Compare these two texts and determine if they are semantically duplicate (same meaning, even if worded differently).
+
+**Candidate Text:**
+${candidateText.substring(0, 1000)}
+
+**Existing Text:**
+${existingText.substring(0, 1000)}
+
+**Semantic Similarity:** ${(similarity * 100).toFixed(1)}%
+
+Respond ONLY with valid JSON:
+{
+  "isDuplicate": true or false,
+  "confidence": 0.0 to 1.0,
+  "reason": "Brief explanation why they are/aren't duplicates"
+}`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a duplicate detection AI. Respond only with valid JSON. No markdown formatting.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 200,
+        temperature: 0.1, // Low temperature for consistent judgments
+      });
+
+      // Parse JSON response
+      const content = response.choices[0]?.message?.content || '{}';
+      // Remove markdown code blocks if present
+      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const verdict = JSON.parse(cleanedContent);
+      
+      return {
+        isDuplicate: verdict.isDuplicate ?? false,
+        confidence: verdict.confidence ?? 0,
+        reason: verdict.reason ?? 'No reason provided'
+      };
+    } catch (error: any) {
+      console.error(`[Dedup] LLM adjudicator failed:`, error.message);
+      // Degrade gracefully - assume NOT duplicate on LLM failure
+      return {
+        isDuplicate: false,
+        confidence: 0,
+        reason: `LLM verification failed: ${error.message}`
+      };
+    }
   }
 
   /**
