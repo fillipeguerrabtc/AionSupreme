@@ -80,6 +80,10 @@ interface ProvisionResult {
 
 export class KaggleAutomationService {
   private readonly TEMP_DIR: string;
+  private circuitBreakerFailures = 0;
+  private circuitBreakerLastFailure: Date | null = null;
+  private readonly CIRCUIT_BREAKER_THRESHOLD = 5;
+  private readonly CIRCUIT_BREAKER_TIMEOUT = 120000; // 2 minutes
 
   constructor() {
     this.TEMP_DIR = path.join(os.tmpdir(), 'kaggle-workers');
@@ -124,8 +128,8 @@ export class KaggleAutomationService {
       console.log(`   → Notebook: ${notebookPath}`);
       console.log(`   → Metadata: ${metadataPath}`);
 
-      // 4. Push kernel using Kaggle API (creates + runs automatically!)
-      const kernelId = await this.pushKernel(kernelFolder);
+      // 4. Push kernel using Kaggle API with PRODUCTION-GRADE RETRY (creates + runs automatically!)
+      const kernelId = await this.pushKernelWithRetry(kernelFolder);
 
       console.log(`[Kaggle Automation] ✅ Kernel pushed: ${kernelId}`);
       console.log('[Kaggle Automation] 📊 Kernel is now running with GPU!');
@@ -332,10 +336,15 @@ export class KaggleAutomationService {
     const metadataPath = path.join(kernelFolder, 'kernel-metadata.json');
 
     const kernelSlug = `aion-gpu-worker-${workerId}-${Date.now()}`;
+    
+    // ✅ 2025 BEST PRACTICE: Enforce 50-char title limit (Issue #179)
+    // Longer titles cause misleading "500 Internal Server Error"
+    const rawTitle = `AION GPU Worker ${workerId}`;
+    const title = rawTitle.length > 50 ? rawTitle.substring(0, 50) : rawTitle;
 
     const metadata: KernelMetadata = {
       id: `${username}/${kernelSlug}`,
-      title: `AION GPU Worker ${workerId}`,
+      title,                                // ✅ Title ≤50 chars
       code_file: 'worker.ipynb',
       language: 'python',
       kernel_type: 'notebook',
@@ -351,6 +360,100 @@ export class KaggleAutomationService {
     await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
 
     return metadataPath;
+  }
+
+  /**
+   * 🚀 PRODUCTION-GRADE: Push kernel with retry + exponential backoff + jitter + circuit breaker
+   * 
+   * 2025 BEST PRACTICES (from research):
+   * - Exponential backoff: 2s → 4s → 8s → 16s → 32s (max 60s)
+   * - Jitter: ±50% randomness to prevent thundering herd
+   * - Max 5 retries
+   * - Circuit breaker: Stop trying after N consecutive failures
+   * - Retry only transient errors (429, 500, 503)
+   * - NEVER retry permanent errors (400, 401, 403, 404)
+   */
+  private async pushKernelWithRetry(kernelFolder: string, maxRetries = 5): Promise<string> {
+    // 🔒 CIRCUIT BREAKER CHECK
+    if (this.circuitBreakerFailures >= this.CIRCUIT_BREAKER_THRESHOLD) {
+      const timeSinceLastFailure = this.circuitBreakerLastFailure
+        ? Date.now() - this.circuitBreakerLastFailure.getTime()
+        : Infinity;
+      
+      if (timeSinceLastFailure < this.CIRCUIT_BREAKER_TIMEOUT) {
+        throw new Error(`Circuit breaker OPEN: ${this.circuitBreakerFailures} consecutive failures. Wait ${Math.ceil((this.CIRCUIT_BREAKER_TIMEOUT - timeSinceLastFailure) / 1000)}s`);
+      } else {
+        // Reset circuit breaker after timeout
+        console.log('[Kaggle Automation] 🔓 Circuit breaker timeout elapsed - resetting');
+        this.circuitBreakerFailures = 0;
+        this.circuitBreakerLastFailure = null;
+      }
+    }
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        console.log(`[Kaggle Automation] 📤 Push attempt ${attempt + 1}/${maxRetries}`);
+        
+        const kernelId = await this.pushKernel(kernelFolder);
+        
+        // ✅ SUCCESS: Reset circuit breaker
+        this.circuitBreakerFailures = 0;
+        this.circuitBreakerLastFailure = null;
+        
+        return kernelId;
+
+      } catch (error: any) {
+        const errorMsg = error.message || String(error);
+        const statusCode = this.extractStatusCode(errorMsg);
+        
+        console.error(`[Kaggle Automation] ❌ Attempt ${attempt + 1} failed: ${errorMsg.substring(0, 200)}`);
+        
+        // 🚫 PERMANENT ERRORS - Don't retry (400, 401, 403, 404)
+        if ([400, 401, 403, 404].includes(statusCode)) {
+          console.error('[Kaggle Automation] 🚫 Permanent error detected - aborting retries');
+          this.circuitBreakerFailures++;
+          this.circuitBreakerLastFailure = new Date();
+          throw error;
+        }
+        
+        // 🔄 TRANSIENT ERRORS - Retry with backoff (429, 500, 503)
+        const isRetryable = [429, 500, 503].includes(statusCode) || statusCode === 0;
+        
+        if (isRetryable && attempt < maxRetries - 1) {
+          // Exponential backoff: 2^attempt * 2000ms (2s, 4s, 8s, 16s, 32s)
+          const baseDelay = Math.min(Math.pow(2, attempt) * 2000, 60000);
+          
+          // Jitter: ±50% randomness
+          const jitter = baseDelay * (0.5 + Math.random());
+          
+          console.log(`[Kaggle Automation] ⏳ Retrying in ${(jitter / 1000).toFixed(1)}s (exponential backoff + jitter)...`);
+          
+          await new Promise(resolve => setTimeout(resolve, jitter));
+          continue;
+        }
+        
+        // 💥 MAX RETRIES EXCEEDED
+        if (attempt >= maxRetries - 1) {
+          console.error(`[Kaggle Automation] 💥 Failed after ${maxRetries} attempts`);
+          this.circuitBreakerFailures++;
+          this.circuitBreakerLastFailure = new Date();
+          throw new Error(`Kaggle API push failed after ${maxRetries} retries: ${errorMsg}`);
+        }
+        
+        throw error;
+      }
+    }
+    
+    throw new Error('Unexpected retry loop exit');
+  }
+
+  /**
+   * Extract HTTP status code from error message
+   */
+  private extractStatusCode(errorMsg: string): number {
+    // Look for status codes in error messages
+    const match = errorMsg.match(/\b(4\d{2}|5\d{2})\b/);
+    return match ? parseInt(match[0], 10) : 0;
   }
 
   /**
@@ -431,55 +534,80 @@ export class KaggleAutomationService {
   }
 
   /**
-   * Monitor kernel status until worker registers
+   * 📊 PRODUCTION-GRADE: Monitor kernel status with adaptive polling
    * 
-   * Polls `kaggle kernels status` every 10 seconds
-   * Timeout: 5 minutes
+   * 2025 BEST PRACTICES (from research):
+   * - Adaptive polling: 5s → 10s → 30s → 60s (faster at start, slower later)
+   * - Timeout: 15 minutes (GPU initialization takes 8-12min typically)
+   * - Structured status parsing
+   * - Graceful degradation on parse errors
    */
   private async monitorKernelStatus(
     kernelId: string,
     workerId: number
   ): Promise<void> {
-    const MAX_ATTEMPTS = 30; // 5 minutes (10s interval)
-    let attempts = 0;
+    const ADAPTIVE_DELAYS = [5000, 10000, 30000, 60000]; // Adaptive polling intervals
+    const MAX_TIMEOUT = 15 * 60 * 1000; // 15 minutes (GPU setup takes 8-12min)
+    
+    const startTime = Date.now();
+    let checkNumber = 0;
 
     console.log(`[Kaggle Automation] 👀 Monitoring kernel ${kernelId}...`);
+    console.log(`[Kaggle Automation] ⏰ Timeout: 15 minutes (typical GPU init: 8-12min)`);
 
-    while (attempts < MAX_ATTEMPTS) {
+    while (Date.now() - startTime < MAX_TIMEOUT) {
       try {
         // Check kernel status
-        const { stdout } = await execAsync(`kaggle kernels status ${kernelId}`);
+        const { stdout } = await execAsync(`kaggle kernels status ${kernelId}`, {
+          timeout: 10000 // 10s timeout per check
+        });
 
-        console.log(`[Kaggle Automation] Status check ${attempts + 1}/${MAX_ATTEMPTS}:`);
-        console.log(stdout.trim());
+        const elapsed = Math.round((Date.now() - startTime) / 1000);
+        console.log(`[Kaggle Automation] Status check #${checkNumber + 1} (${elapsed}s elapsed):`);
+        console.log(`   ${stdout.trim()}`);
 
-        // Check if running
-        if (stdout.toLowerCase().includes('running') || 
-            stdout.toLowerCase().includes('complete')) {
-          console.log(`[Kaggle Automation] ✅ Kernel ${kernelId} is active!`);
-          
-          // Worker should register via /api/gpu/register soon
-          // Orchestrator will detect and update status
+        const status = stdout.toLowerCase();
+
+        // ✅ SUCCESS - Kernel is active
+        if (status.includes('running') || status.includes('complete')) {
+          console.log(`[Kaggle Automation] ✅ Kernel ${kernelId} is ACTIVE!`);
+          console.log(`[Kaggle Automation]    Worker will register via /api/gpu/register automatically`);
+          console.log(`[Kaggle Automation]    Total setup time: ${elapsed}s`);
           return;
         }
 
-        // Check for errors
-        if (stdout.toLowerCase().includes('error') || 
-            stdout.toLowerCase().includes('failed')) {
-          console.error(`[Kaggle Automation] ❌ Kernel ${kernelId} failed!`);
+        // ❌ FAILURE - Kernel errored
+        if (status.includes('error') || status.includes('failed')) {
+          console.error(`[Kaggle Automation] ❌ Kernel ${kernelId} FAILED!`);
+          console.error(`   Status: ${stdout.trim()}`);
           return;
+        }
+
+        // 🔄 STILL INITIALIZING - Kernel queued/starting
+        if (status.includes('queued') || status.includes('starting') || status.includes('pending')) {
+          console.log(`[Kaggle Automation] 🔄 Kernel initializing... (${elapsed}s)`);
         }
 
       } catch (error: any) {
-        console.error(`[Kaggle Automation] Status check error: ${error.message}`);
+        console.error(`[Kaggle Automation] ⚠️ Status check error: ${error.message}`);
+        // Continue monitoring - don't abort on transient errors
       }
 
-      // Wait 10 seconds before next check
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      attempts++;
+      // 📊 ADAPTIVE DELAY: Use exponentially increasing intervals
+      // Early checks: 5s, 10s (fast feedback during init)
+      // Later checks: 30s, 60s (don't spam API)
+      const delayIndex = Math.min(checkNumber, ADAPTIVE_DELAYS.length - 1);
+      const delay = ADAPTIVE_DELAYS[delayIndex];
+      
+      console.log(`[Kaggle Automation] ⏳ Next check in ${delay / 1000}s (adaptive polling)`);
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+      checkNumber++;
     }
 
-    console.warn(`[Kaggle Automation] ⚠️ Monitoring timeout for ${kernelId}`);
+    const totalTime = Math.round((Date.now() - startTime) / 1000);
+    console.warn(`[Kaggle Automation] ⏱️ Monitoring timeout after ${totalTime}s (15min limit)`);
+    console.warn(`[Kaggle Automation] ℹ️  Kernel ${kernelId} may still be initializing - check manually`);
   }
 
   /**
