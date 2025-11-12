@@ -44,6 +44,7 @@ interface GPUWorker {
     remainingSessionSeconds: number;
     weeklyUsedSeconds?: number;
     weeklyRemainingSeconds?: number;
+    weeklyMaxSeconds?: number;
     utilizationPercent: number;
     canStart: boolean;
     shouldStop: boolean;
@@ -411,14 +412,14 @@ export default function GPUDashboard() {
                         <div className="flex justify-between text-sm">
                           <span>Semana</span>
                           <span className="font-mono">
-                            {formatDuration(worker.quotaStatus.weeklyUsedSeconds || 0)} / 21h
+                            {formatDuration(worker.quotaStatus.weeklyUsedSeconds || 0)} / {formatDuration(worker.quotaStatus.weeklyMaxSeconds || 75600)}
                           </span>
                         </div>
                         <Progress value={worker.quotaStatus.utilizationPercent} />
                         <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Restante (70% de 30h)</span>
+                          <span>Restante</span>
                           <span className="font-mono">
-                            {formatDuration(worker.quotaStatus.weeklyRemainingSeconds || 75600)}
+                            {formatDuration(worker.quotaStatus.weeklyRemainingSeconds || 0)}
                           </span>
                         </div>
                       </>
