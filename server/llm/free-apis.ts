@@ -66,7 +66,7 @@ const FREE_APIS: APIProvider[] = [
     name: 'hf',
     dailyLimit: 720,    // ~720 requests/day (estimated)
     priority: 3,
-    models: ['mistralai/Mistral-7B-Instruct-v0.3'],
+    models: ['mistralai/Mistral-7B-Instruct-v0.2'],  // ✅ FIX: v0.2 is public (v0.3 returns 404)
     enabled: !!process.env.HUGGINGFACE_API_KEY
   },
   {
@@ -185,31 +185,32 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
   // Convert messages to Gemini format
   const systemPrompt = req.messages.find(m => m.role === 'system')?.content || '';
   
-  // 🔥 FIX: Gemini has 1000 char limit for systemInstruction - if longer, prepend to first message
-  const MAX_SYSTEM_INSTRUCTION_LENGTH = 1000;
-  let finalSystemPrompt = '';
-  let systemOverflow = '';
+  // ✅ ROBUST FIX: Gemini systemInstruction is unstable with long prompts
+  // If > 800 chars (safe margin below 1000), move ENTIRE system prompt to first message
+  const MAX_SAFE_SYSTEM_LENGTH = 800;
+  let finalSystemPrompt: string | undefined = undefined;
+  let prependToFirstMessage = '';
   
-  if (systemPrompt.length > MAX_SYSTEM_INSTRUCTION_LENGTH) {
-    finalSystemPrompt = systemPrompt.substring(0, MAX_SYSTEM_INSTRUCTION_LENGTH);
-    systemOverflow = systemPrompt.substring(MAX_SYSTEM_INSTRUCTION_LENGTH);
+  if (systemPrompt.length > MAX_SAFE_SYSTEM_LENGTH) {
+    // Move ENTIRE system prompt to first message for reliability
+    prependToFirstMessage = systemPrompt;
     log.warn({ 
       component: 'gemini', 
       originalLength: systemPrompt.length, 
-      truncatedTo: finalSystemPrompt.length 
-    }, 'System prompt too long, moving overflow to first message');
-  } else {
+      maxSafe: MAX_SAFE_SYSTEM_LENGTH
+    }, 'System prompt exceeds safe limit - moving ENTIRE prompt to first message');
+  } else if (systemPrompt.length > 0) {
     finalSystemPrompt = systemPrompt;
   }
   
   const conversationHistory = req.messages
     .filter(m => m.role !== 'system')
     .map((m, index) => {
-      // Prepend system overflow to first user message
-      if (index === 0 && m.role === 'user' && systemOverflow) {
+      // Prepend full system prompt to first user message if needed
+      if (index === 0 && m.role === 'user' && prependToFirstMessage) {
         return {
           role: 'user',
-          parts: [{ text: `${systemOverflow}\n\n${m.content}` }]
+          parts: [{ text: `SYSTEM INSTRUCTIONS:\n${prependToFirstMessage}\n\n---\n\nUSER MESSAGE:\n${m.content}` }]
         };
       }
       return {
@@ -220,7 +221,7 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
 
   const chat = model.startChat({
     history: conversationHistory.slice(0, -1),
-    systemInstruction: finalSystemPrompt || undefined  // Don't send empty string
+    systemInstruction: finalSystemPrompt  // Only send if < 800 chars
   });
 
   const lastMessage = conversationHistory[conversationHistory.length - 1];
@@ -271,7 +272,8 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
   const apiKey = process.env.HUGGINGFACE_API_KEY;
   if (!apiKey) throw new Error('HUGGINGFACE_API_KEY not set');
 
-  const model = 'mistralai/Mistral-7B-Instruct-v0.3';
+  // ✅ FIX: Use public Inference API model (v0.3 returns 404)
+  const model = 'mistralai/Mistral-7B-Instruct-v0.2';
   
   // Format prompt for Mistral
   const prompt = req.messages
@@ -336,7 +338,7 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
       
       await trackTokenUsage({
         provider: 'huggingface',
-        model: 'mistralai/Mistral-7B-Instruct-v0.3',
+        model: 'mistralai/Mistral-7B-Instruct-v0.2',
         promptTokens,
         completionTokens,
         totalTokens,
