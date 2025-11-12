@@ -5957,7 +5957,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch("/api/admin/jobs/:id", async (req, res) => {
+  app.patch("/api/admin/jobs/:id", requireAdmin, async (req, res) => {
     try {
       // ✅ FIX P0-2: Validate route parameters
       const params = validateParams(idParamSchema, req, res);
@@ -5965,6 +5965,11 @@ export function registerRoutes(app: Express): Server {
       
       const { id: jobId } = params;
       const { action } = req.body; // "pause" | "resume" | "cancel"
+      
+      // ✅ SECURITY: Validate action parameter
+      if (!action || !["pause", "resume", "cancel"].includes(action)) {
+        return res.status(400).json({ error: "Invalid action. Must be pause, resume, or cancel" });
+      }
       const { linkCaptureJobs } = await import("@shared/schema");
       const { db } = await import("./db");
       const { eq } = await import("drizzle-orm");
