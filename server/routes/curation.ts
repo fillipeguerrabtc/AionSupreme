@@ -1240,6 +1240,114 @@ export function registerCurationRoutes(app: Router) {
   });
 
   /**
+   * POST /api/curation/force-auto-process
+   * FORÇA execução manual do auto-curator-processor
+   * Processa items pendentes com auto-approval (GREETING_GATE, REUSE_GATE, score thresholds)
+   */
+  app.post("/curation/force-auto-process", async (req, res) => {
+    try {
+      console.log(`[Curation] 🚀 MANUAL TRIGGER: Force auto-curator-processor`);
+      
+      const { autoApprovalService } = await import("../services/auto-approval-service");
+      const pendingItems = await curationStore.listPending();
+      
+      if (pendingItems.length === 0) {
+        return res.json({
+          success: true,
+          message: "No pending items to process",
+          approved: 0,
+          rejected: 0,
+          reviewed: 0
+        });
+      }
+      
+      console.log(`[Curation] 📋 Processing ${pendingItems.length} pending items...`);
+      
+      let approved = 0;
+      let rejected = 0;
+      let reviewed = 0;
+      
+      const config = await autoApprovalService.getConfig();
+      
+      // Process each pending item through auto-approval logic
+      for (const item of pendingItems) {
+        const autoAnalysis = (item as any).autoAnalysis;
+        
+        let qualityScore: number;
+        let contentFlags: string[];
+        let suggestedNamespaces: string[];
+        
+        if (autoAnalysis && typeof autoAnalysis === 'object') {
+          qualityScore = autoAnalysis.score || 0;
+          contentFlags = Array.isArray(autoAnalysis.flags) ? autoAnalysis.flags : [];
+          suggestedNamespaces = Array.isArray(autoAnalysis.suggestedNamespaces) 
+            ? autoAnalysis.suggestedNamespaces 
+            : (item.suggestedNamespaces || []);
+          
+          console.log(`[Curation] ✅ Item ${item.id} has structured autoAnalysis (score: ${qualityScore})`);
+        } else {
+          console.log(`[Curation] ⚠️  Item ${item.id} missing autoAnalysis - skipping`);
+          reviewed++;
+          continue;
+        }
+        
+        const qualityGatesPassed = qualityScore > 0 && autoAnalysis.recommended !== 'reject';
+        
+        if (config.requireAllQualityGates && !qualityGatesPassed) {
+          console.log(`[Curation] ⚠️  Item ${item.id} skipped (failed quality gates)`);
+          reviewed++;
+          continue;
+        }
+        
+        // Extract query text for GREETING_GATE and REUSE_GATE
+        const queryText = item.content?.substring(0, 500) || '';
+        
+        const decision = await autoApprovalService.decide(
+          qualityScore,
+          contentFlags,
+          suggestedNamespaces,
+          qualityGatesPassed,
+          queryText // CRITICAL for gates to work
+        );
+        
+        console.log(`[Curation] Decision for item ${item.id}: ${decision.action} - ${decision.reason}`);
+        
+        if (decision.action === 'approve') {
+          const isReuseGateApproval = decision.reason.includes('High-reuse value');
+          const isGreetingGate = decision.reason.includes('Greeting/casual phrase');
+          const approvalNote = isReuseGateApproval 
+            ? `${decision.reason} [REUSE-GATE]`
+            : isGreetingGate
+            ? `${decision.reason} [GREETING-GATE]`
+            : decision.reason;
+          
+          await curationStore.approveAndPublish(item.id, 'MANUAL-AUTO-CURATOR', approvalNote);
+          approved++;
+        } else if (decision.action === 'reject') {
+          await curationStore.reject(item.id, 'MANUAL-AUTO-CURATOR', decision.reason);
+          rejected++;
+        } else {
+          reviewed++;
+        }
+      }
+      
+      console.log(`[Curation] ✅ Manual auto-process complete: approved=${approved}, rejected=${rejected}, review=${reviewed}`);
+      
+      res.json({
+        success: true,
+        message: `Processed ${pendingItems.length} items`,
+        total: pendingItems.length,
+        approved,
+        rejected,
+        reviewed
+      });
+    } catch (error: any) {
+      console.error('[Curation] Force auto-process error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * DELETE /api/curation/:id
    * Remove item da fila (apenas para testes)
    */
