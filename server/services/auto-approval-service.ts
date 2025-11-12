@@ -136,12 +136,16 @@ export class AutoApprovalService {
   isGreetingOrCasualPhrase(queryText?: string): boolean {
     if (!queryText) return false;
 
-    // Normalize: lowercase, trim, remove punctuation
+    // Normalize: lowercase, trim, remove Q&A markers (inline AND multiline), remove punctuation
+    // 🔥 BUG FIX #2 v2: Strip Q&A markers for BOTH inline ("Q: oi A: hello") AND multiline ("Q: oi\n\nA: hello")
     const normalized = queryText
       .toLowerCase()
       .trim()
-      .replace(/[.,!?;:"""''()[\]{}]/g, '')
-      .replace(/\s+/g, ' ');
+      .replace(/^q:\s*/i, '') // Remove leading "Q: " prefix
+      .split(/\s+a:\s*/i)[0] // Split on " A: " (inline OR multiline) and take question part only
+      .replace(/[.,!?;:"""''()[\]{}]/g, '') // Remove punctuation
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
 
     // Greeting patterns (PT/EN/ES) - matches greetings at START of text
     const greetingPatterns = [

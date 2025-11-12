@@ -598,8 +598,8 @@ export class DatasetGenerator {
         .from(documents)
         .where(
           and(
-            // Documentos que vieram de upload/manual/url (não de chat)
-            sql`${documents.source} IN ('upload', 'manual', 'url', 'web-search', 'youtube')`,
+            // 🔥 BUG FIX #3: Incluir 'curation_approved' e 'curation_absorption' para contar docs aprovados via HITL
+            sql`${documents.source} IN ('upload', 'manual', 'url', 'web-search', 'youtube', 'curation_approved', 'curation_absorption')`,
             // Que ainda não foram usados em dataset
             sql`NOT EXISTS (
               SELECT 1 FROM ${datasets} d 

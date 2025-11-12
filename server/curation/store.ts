@@ -577,12 +577,21 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       console.log(`[Curation] ✅ ${finalAttachments.filter((a: any) => a.type === 'image').length} imagens salvas após aprovação`);
     }
 
+    // 🔥 BUG FIX #1: Generate hash if missing (legacy entries) to prevent NOT NULL violation
+    const { generateContentHash } = await import("../utils/deduplication");
+    const finalContentHash = item.contentHash || generateContentHash(contentToSave);
+    
+    if (!item.contentHash) {
+      console.warn(`[Curation] ⚠️  Legacy item ${item.id} missing contentHash - generated runtime hash: ${finalContentHash.substring(0, 16)}...`);
+    }
+    
     // Create document record in database WITH ATTACHMENTS (tenantId defaults to 1 in schema)
     const [newDoc] = await db.insert(documents).values({
       title: item.title,
       content: contentToSave, // ← SÓ CONTEÚDO NOVO se near-duplicate!
       source: isAbsorption ? "curation_absorption" : "curation_approved",
       status: "indexed",
+      contentHash: finalContentHash, // 🔥 CRITICAL FIX BUG #1: Transfer hash from curation_queue, fallback to runtime generation
       attachments: finalAttachments || undefined, // Attachments FINAIS (já salvos no filesystem!)
       metadata: {
         namespaces: finalNamespaces, // ← USA NAMESPACES CONSOLIDADOS!

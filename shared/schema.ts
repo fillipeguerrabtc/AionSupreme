@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, unique, pgEnum, smallint, vector } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, uniqueIndex, unique, pgEnum, smallint, vector } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from 'drizzle-orm';
@@ -400,7 +400,7 @@ export const documents = pgTable("documents", {
   errorMessage: text("error_message"),
   
   // Deduplication fields (for faster lookup during curation)
-  contentHash: varchar("content_hash", { length: 64 }), // SHA256 hash for O(1) duplicate detection
+  contentHash: varchar("content_hash", { length: 64 }).notNull(), // SHA256 hash for O(1) duplicate detection - UNIQUE enforced at DB level
   
   // Metadata from file
   metadata: jsonb("metadata").$type<{
@@ -429,6 +429,7 @@ export const documents = pgTable("documents", {
   statusIdx: index("documents_status_idx").on(table.status),
   sourceIdx: index("documents_source_idx").on(table.source),
   contentHashIdx: index("documents_content_hash_idx").on(table.contentHash), // Index for O(1) duplicate lookup during curation
+  contentHashUnique: uniqueIndex("documents_content_hash_unique").on(table.contentHash), // UNIQUE constraint to prevent hash duplicates at DB level
 }));
 
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true, updatedAt: true });
