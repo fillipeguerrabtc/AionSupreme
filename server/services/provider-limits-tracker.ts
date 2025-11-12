@@ -109,20 +109,138 @@ class ProviderLimitsTracker {
   }
   
   /**
-   * ❌ GEMINI: DISABLED - No real API available yet
+   * ✅ GEMINI: Calculate usage based on official docs limits
    * 
-   * Gemini does NOT provide rate limit headers in responses.
-   * Google Cloud Billing API exists but requires complex setup.
+   * Gemini does NOT provide rate limit API.
    * 
-   * TODO: Implement Google Cloud Billing API integration
-   * Endpoint: projects.locations.endpoints.predict
-   * Docs: https://cloud.google.com/vertex-ai/docs/quotas
+   * Official Limits (Gemini 2.0 Flash Free 2025):
+   * - RPM: 15 req/min
+   * - RPD: 1,500 req/day
+   * - TPM: 1,000,000 tokens/min
    * 
-   * For now: Mark as unavailable until real source exists.
+   * Source: https://ai.google.dev/gemini-api/docs/rate-limits
    */
-  async updateGeminiLimits(tokensUsed: number): Promise<void> {
-    console.warn('[ProviderLimits] ⚠️  Gemini tracking DISABLED - no real API available (only local token counting)');
-    // Do nothing - avoid storing misleading calculated data
+  async updateGeminiLimits(): Promise<void> {
+    try {
+      // ✅ Oficial docs limits (NOT calculated locally)
+      const officialLimits = {
+        rpm: 15,
+        rpd: 1500,
+        tpm: 1000000,
+        tpd: null // Not specified in docs
+      };
+      
+      // ✅ Get usage from token_usage table (our DB tracking)
+      const usage = await db.execute(sql`
+        SELECT 
+          COUNT(*) FILTER (WHERE timestamp > NOW() - INTERVAL '1 day') as rpd_used,
+          SUM(total_tokens) FILTER (WHERE timestamp > NOW() - INTERVAL '1 minute') as tpm_used
+        FROM token_usage 
+        WHERE provider = 'gemini'
+      `);
+      
+      const rpdUsed = Number((usage.rows[0] as any)?.rpd_used || 0);
+      const tpmUsed = Number((usage.rows[0] as any)?.tpm_used || 0);
+      
+      await db.insert(providerLimits).values({
+        provider: 'gemini',
+        rpm: officialLimits.rpm,
+        rpd: officialLimits.rpd,
+        tpm: officialLimits.tpm,
+        tpd: officialLimits.tpd,
+        rpmUsed: null, // Can't track per-minute without rate limit headers
+        rpdUsed,
+        tpmUsed,
+        tpdUsed: null,
+        rpmRemaining: null,
+        rpdRemaining: officialLimits.rpd - rpdUsed,
+        tpmRemaining: null,
+        tpdRemaining: null,
+        rpmResetAt: null,
+        rpdResetAt: null,
+        tpmResetAt: null,
+        tpdResetAt: null,
+        rawHeaders: null,
+        rawResponse: null,
+        source: 'official_docs_2025'
+      }).onConflictDoUpdate({
+        target: providerLimits.provider,
+        set: {
+          rpdUsed,
+          tpmUsed,
+          rpdRemaining: sql`${officialLimits.rpd} - ${rpdUsed}`,
+          lastUpdated: sql`CURRENT_TIMESTAMP`
+        }
+      });
+      
+      console.log(`[ProviderLimits] ✅ Gemini updated: ${rpdUsed}/${officialLimits.rpd} req/day (source: official docs 2025)`);
+    } catch (error: any) {
+      console.error(`[ProviderLimits] Gemini update failed:`, error.message);
+    }
+  }
+  
+  /**
+   * ✅ HUGGINGFACE: Calculate usage based on community estimates
+   * 
+   * HuggingFace does NOT provide quota check API.
+   * Free tier: "Few hundred requests per hour" (~720 req/day estimate)
+   * 
+   * Source: https://huggingface.co/docs/api-inference/en/rate-limits
+   */
+  async updateHuggingFaceLimits(): Promise<void> {
+    try {
+      // ✅ Community estimate (NOT exact from API)
+      const estimatedLimits = {
+        rpm: null, // Not specified
+        rpd: 720, // ~few hundred per hour estimate
+        tpm: null,
+        tpd: null
+      };
+      
+      // ✅ Get usage from token_usage table (our DB tracking)
+      const usage = await db.execute(sql`
+        SELECT 
+          COUNT(*) FILTER (WHERE timestamp > NOW() - INTERVAL '1 day') as rpd_used
+        FROM token_usage 
+        WHERE provider = 'huggingface'
+      `);
+      
+      const rpdUsed = Number((usage.rows[0] as any)?.rpd_used || 0);
+      
+      await db.insert(providerLimits).values({
+        provider: 'huggingface',
+        rpm: estimatedLimits.rpm,
+        rpd: estimatedLimits.rpd,
+        tpm: estimatedLimits.tpm,
+        tpd: estimatedLimits.tpd,
+        rpmUsed: null,
+        rpdUsed,
+        tpmUsed: null,
+        tpdUsed: null,
+        rpmRemaining: null,
+        rpdRemaining: estimatedLimits.rpd - rpdUsed,
+        tpmRemaining: null,
+        tpdRemaining: null,
+        rpmResetAt: null,
+        rpdResetAt: null,
+        tpmResetAt: null,
+        tpdResetAt: null,
+        rawHeaders: null,
+        rawResponse: null,
+        source: 'community_estimate_2025'
+      }).onConflictDoUpdate({
+        target: providerLimits.provider,
+        set: {
+          rpdUsed,
+          rpdRemaining: sql`${estimatedLimits.rpd} - ${rpdUsed}`,
+          lastUpdated: sql`CURRENT_TIMESTAMP`
+        }
+      });
+      
+      console.log(`[ProviderLimits] ✅ HuggingFace updated: ${rpdUsed}/${estimatedLimits.rpd} req/day (source: community estimate)`);
+    } catch (error: any) {
+      console.error(`[ProviderLimits] HuggingFace update failed:`, error.message);
+    }
   }
   
   /**

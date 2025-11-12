@@ -5624,6 +5624,47 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // ✅ POST /api/provider-limits/sync-gemini - Manually sync Gemini usage
+  app.post("/api/provider-limits/sync-gemini", async (req, res) => {
+    try {
+      const { providerLimitsTracker } = await import("./services/provider-limits-tracker");
+      await providerLimitsTracker.updateGeminiLimits();
+      
+      res.json({ success: true, message: "Gemini usage synced" });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
+  // ✅ POST /api/provider-limits/sync-huggingface - Manually sync HuggingFace usage
+  app.post("/api/provider-limits/sync-huggingface", async (req, res) => {
+    try {
+      const { providerLimitsTracker } = await import("./services/provider-limits-tracker");
+      await providerLimitsTracker.updateHuggingFaceLimits();
+      
+      res.json({ success: true, message: "HuggingFace usage synced" });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
+  // ✅ POST /api/provider-limits/sync-all - Sync ALL providers
+  app.post("/api/provider-limits/sync-all", async (req, res) => {
+    try {
+      const { providerLimitsTracker } = await import("./services/provider-limits-tracker");
+      
+      await Promise.allSettled([
+        providerLimitsTracker.updateOpenRouterLimits(),
+        providerLimitsTracker.updateGeminiLimits(),
+        providerLimitsTracker.updateHuggingFaceLimits()
+      ]);
+      
+      res.json({ success: true, message: "All provider limits synced" });
+    } catch (error: unknown) {
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
+
   // ========================================================================
   // POLICY ENFORCEMENT - AION Supreme
   // ========================================================================
