@@ -278,16 +278,15 @@ export async function trackTokenUsage(data: TokenTrackingData): Promise<void> {
 
 export async function getUsageSummary(): Promise<UsageSummary[]> {
   const providers = ['groq', 'gemini', 'huggingface', 'openrouter', 'openai', 'kb', 'web'];
-  const now = new Date();
   
-  // Use local timezone (Brasília) for "today" and "this month" calculations
-  const todayStart = getLocalDayStart(now);
-  const monthStart = getLocalMonthStart(now);
-  
+  // 🔥 FIX CRÍTICO v2: Calcular timezone no PostgreSQL CORRETAMENTE
+  // PROBLEMA: date_trunc('day', timezone(...)) retorna timestamp WITHOUT time zone
+  // PostgreSQL COERCE de volta para UTC ao comparar com coluna timestamptz
+  // SOLUÇÃO: Duplo AT TIME ZONE para manter timestamptz em Brasília
   const summaries: UsageSummary[] = [];
   
   for (const provider of providers) {
-    // Get today's usage
+    // Get today's usage - usa AT TIME ZONE corretamente
     const todayUsage = await db
       .select({
         tokens: sql<number>`COALESCE(SUM(${tokenUsage.totalTokens}), 0)`,
@@ -299,11 +298,11 @@ export async function getUsageSummary(): Promise<UsageSummary[]> {
       .where(
         and(
           eq(tokenUsage.provider, provider),
-          gte(tokenUsage.timestamp, todayStart)
+          sql`${tokenUsage.timestamp} >= (date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo')`
         )
       );
     
-    // Get month's usage
+    // Get month's usage - usa AT TIME ZONE corretamente
     const monthUsage = await db
       .select({
         tokens: sql<number>`COALESCE(SUM(${tokenUsage.totalTokens}), 0)`,
@@ -314,7 +313,7 @@ export async function getUsageSummary(): Promise<UsageSummary[]> {
       .where(
         and(
           eq(tokenUsage.provider, provider),
-          gte(tokenUsage.timestamp, monthStart)
+          sql`${tokenUsage.timestamp} >= (date_trunc('month', now() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo')`
         )
       );
     
@@ -435,12 +434,8 @@ async function checkLimitsAndAlert(provider: string): Promise<void> {
   if (limits.length === 0) return;
   
   const limit = limits[0];
-  const now = new Date();
   
-  // Use local timezone (Brasília) for alert calculations
-  const todayStart = getLocalDayStart(now);
-  
-  // Get today's usage
+  // Get today's usage - usa AT TIME ZONE corretamente
   const usage = await db
     .select({
       tokens: sql<number>`COALESCE(SUM(${tokenUsage.totalTokens}), 0)`,
@@ -450,7 +445,7 @@ async function checkLimitsAndAlert(provider: string): Promise<void> {
     .where(
       and(
         eq(tokenUsage.provider, provider),
-        gte(tokenUsage.timestamp, todayStart)
+        sql`${tokenUsage.timestamp} >= (date_trunc('day', now() AT TIME ZONE 'America/Sao_Paulo') AT TIME ZONE 'America/Sao_Paulo')`
       )
     );
   
