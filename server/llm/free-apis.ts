@@ -506,9 +506,11 @@ export async function generateWithFreeAPIs(
       return response;
       
     } catch (error: any) {
-      const errorMsg = `${provider.name}: ${error.message}`;
+      // 🔥 FIX: Safely extract error message (handle both Error objects and strings)
+      const errorMessage = error?.message || error?.toString() || String(error) || 'Unknown error';
+      const errorMsg = `${provider.name}: ${errorMessage}`;
       errors.push(errorMsg);
-      log.error({ component: 'free-apis', provider: provider.name, error: error.message }, 'Provider failed');
+      log.error({ component: 'free-apis', provider: provider.name, error: errorMessage }, 'Provider failed');
       
       // Mark this provider as failed and try next one
       failedProviders.add(provider.name);
