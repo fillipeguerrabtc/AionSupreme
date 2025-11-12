@@ -1263,7 +1263,7 @@ export default function CurationQueuePage() {
       </AlertDialog>
         </TabsContent>
 
-        <TabsContent value="history" className="space-y-4 mt-6">
+        <TabsContent value="history" className="space-y-4 mt-6 w-full max-w-full min-w-0">
           {historyLoading ? (
             <Card>
               <CardContent className="p-12 text-center">
@@ -1277,14 +1277,14 @@ export default function CurationQueuePage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-4 w-full max-w-full min-w-0">
               {filteredHistoryItems.map((item) => (
-                <Card key={item.id} data-testid={`history-item-${item.id}`}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                          <CardTitle>{item.title}</CardTitle>
+                <Card key={item.id} data-testid={`history-item-${item.id}`} className="w-full max-w-full min-w-0 overflow-hidden">
+                  <CardHeader className="w-full max-w-full min-w-0">
+                    <div className="flex items-start justify-between w-full max-w-full min-w-0 gap-2 flex-wrap">
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0 max-w-full">
+                          <CardTitle className="break-words">{item.title}</CardTitle>
                           <Badge 
                             variant={item.status === 'approved' ? 'default' : 'destructive'}
                             data-testid={`badge-status-${item.id}`}
@@ -1292,18 +1292,18 @@ export default function CurationQueuePage() {
                             {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
                           </Badge>
                         </div>
-                        <CardDescription className="flex flex-col gap-2">
-                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <CardDescription className="flex flex-col gap-2 min-w-0 max-w-full">
+                          <div className="flex flex-wrap items-center gap-2 text-sm min-w-0 max-w-full">
                             <Calendar className="h-3 w-3 flex-shrink-0" />
                             <span className="break-words">Enviado em {new Date(item.submittedAt).toLocaleDateString("pt-BR", { dateStyle: "long" })}</span>
                             <Clock className="h-3 w-3 flex-shrink-0" />
-                            <span>{new Date(item.submittedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</span>
+                            <span className="break-words">{new Date(item.submittedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</span>
                           </div>
                           <div className="text-sm break-words">
                             Por {item.submittedBy || "Desconhecido"}
                           </div>
                           {item.reviewedBy && item.reviewedAt && (
-                            <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                            <div className="flex flex-wrap items-center gap-2 text-sm font-medium min-w-0 max-w-full">
                               <Clock className="h-3 w-3 flex-shrink-0" />
                               <span className="break-words">{item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} por {item.reviewedBy} em {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })} às {new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
