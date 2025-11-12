@@ -33,10 +33,36 @@ export interface BehaviorTraits {
  * Uses 3-tier thresholds (low: <0.35, high: >0.65, mid: between) for nuanced control
  * Returns structured prompt with clear sections following GPT-4.1 best practices
  * 
- * @param behavior - 7 personality traits (0-1 scale)
+ * CRITICAL: Admin Dashboard sliders POST 0-100 integers, but thresholds expect 0-1 floats.
+ * This function normalizes input automatically to handle both ranges.
+ * 
+ * @param behavior - 7 personality traits (0-100 from DB or 0-1 pre-normalized)
  * @returns Structured system prompt string
  */
 export function generatePersonalityPrompt(behavior: BehaviorTraits): string {
+  // CRITICAL FIX: Normalize traits from 0-100 (DB storage) to 0-1 (threshold range)
+  // Without this, all traits >1 are interpreted as "high" (>0.65 threshold), defeating
+  // the entire purpose of personality slider configuration in Admin Dashboard
+  const normalize = (value: number): number => {
+    // If value is already in 0-1 range, keep it
+    if (value <= 1) return Math.min(Math.max(value, 0), 1);
+    // If value is in 0-100 range, normalize it
+    return Math.min(Math.max(value / 100, 0), 1);
+  };
+  
+  const normalized: BehaviorTraits = {
+    verbosity: normalize(behavior.verbosity),
+    formality: normalize(behavior.formality),
+    creativity: normalize(behavior.creativity),
+    precision: normalize(behavior.precision),
+    persuasiveness: normalize(behavior.persuasiveness),
+    empathy: normalize(behavior.empathy),
+    enthusiasm: normalize(behavior.enthusiasm)
+  };
+  
+  // Use normalized values for all threshold checks
+  const b = normalized;
+  
   const sections: string[] = [];
 
   // ============================================================================
@@ -45,11 +71,11 @@ export function generatePersonalityPrompt(behavior: BehaviorTraits): string {
   const communicationStyle: string[] = [];
 
   // Verbosity (Response Length)
-  if (behavior.verbosity < 0.35) {
+  if (b.verbosity < 0.35) {
     communicationStyle.push(
       "**Response Length**: Be concise and direct. Keep responses under 150 words unless more detail is explicitly requested. Favor brevity and clarity."
     );
-  } else if (behavior.verbosity > 0.65) {
+  } else if (b.verbosity > 0.65) {
     communicationStyle.push(
       "**Response Length**: Provide comprehensive, detailed explanations. Include examples, step-by-step reasoning, and thorough context. Aim for completeness over brevity."
     );
@@ -60,11 +86,11 @@ export function generatePersonalityPrompt(behavior: BehaviorTraits): string {
   }
 
   // Formality (Tone & Language)
-  if (behavior.formality < 0.35) {
+  if (b.formality < 0.35) {
     communicationStyle.push(
       "**Tone**: Use a casual, friendly tone like talking to a colleague. Use contractions (e.g., 'you're', 'it's'), conversational language, and relatable examples."
     );
-  } else if (behavior.formality > 0.65) {
+  } else if (b.formality > 0.65) {
     communicationStyle.push(
       "**Tone**: Maintain formal, professional language appropriate for business and academic settings. Avoid contractions and colloquialisms. Use precise terminology."
     );
@@ -82,11 +108,11 @@ export function generatePersonalityPrompt(behavior: BehaviorTraits): string {
   const thinkingStyle: string[] = [];
 
   // Creativity (Innovation vs. Established Practices)
-  if (behavior.creativity < 0.35) {
+  if (b.creativity < 0.35) {
     thinkingStyle.push(
       "**Approach**: Focus on facts, established practices, and proven solutions. Avoid speculation or untested ideas. Cite sources and well-known methodologies."
     );
-  } else if (behavior.creativity > 0.65) {
+  } else if (b.creativity > 0.65) {
     thinkingStyle.push(
       "**Approach**: Think creatively and suggest innovative solutions. Explore unconventional approaches, make novel connections, and propose original ideas when appropriate."
     );
@@ -97,11 +123,11 @@ export function generatePersonalityPrompt(behavior: BehaviorTraits): string {
   }
 
   // Precision (Accuracy vs. Approximation)
-  if (behavior.precision < 0.35) {
+  if (b.precision < 0.35) {
     thinkingStyle.push(
       "**Precision**: Provide general estimates and approximate answers when exact figures aren't critical. Use round numbers and ranges (e.g., 'approximately 100', 'around 5-10%')."
     );
-  } else if (behavior.precision > 0.65) {
+  } else if (b.precision > 0.65) {
     thinkingStyle.push(
       "**Precision**: Be extremely precise and accurate. Use exact numbers, specific terminology, and detailed specifications. Avoid approximations unless explicitly stated as estimates."
     );
@@ -119,11 +145,11 @@ export function generatePersonalityPrompt(behavior: BehaviorTraits): string {
   const interactionStyle: string[] = [];
 
   // Persuasiveness (Neutral vs. Compelling)
-  if (behavior.persuasiveness < 0.35) {
+  if (b.persuasiveness < 0.35) {
     interactionStyle.push(
       "**Persuasiveness**: Present information neutrally and objectively. Avoid persuasive language, sales tactics, or strong opinions. Let facts speak for themselves."
     );
-  } else if (behavior.persuasiveness > 0.65) {
+  } else if (b.persuasiveness > 0.65) {
     interactionStyle.push(
       "**Persuasiveness**: Use persuasive, compelling language. Emphasize benefits, use power words, and guide the user toward recommended actions with confidence."
     );
@@ -134,11 +160,11 @@ export function generatePersonalityPrompt(behavior: BehaviorTraits): string {
   }
 
   // Empathy (Objective vs. Emotionally Aware)
-  if (behavior.empathy < 0.35) {
+  if (b.empathy < 0.35) {
     interactionStyle.push(
       "**Empathy**: Focus on objective facts and logical reasoning. Maintain professional distance and avoid emotional language or personal connections."
     );
-  } else if (behavior.empathy > 0.65) {
+  } else if (b.empathy > 0.65) {
     interactionStyle.push(
       "**Empathy**: Be emotionally aware and supportive. Acknowledge feelings, show understanding, and respond with warmth. Use phrases like 'I understand that...', 'It sounds like...', 'That can be challenging'."
     );
@@ -149,11 +175,11 @@ export function generatePersonalityPrompt(behavior: BehaviorTraits): string {
   }
 
   // Enthusiasm (Calm vs. Energetic)
-  if (behavior.enthusiasm < 0.35) {
+  if (b.enthusiasm < 0.35) {
     interactionStyle.push(
       "**Enthusiasm**: Maintain a calm, measured demeanor. Use neutral language and avoid exclamation marks or overly energetic expressions."
     );
-  } else if (behavior.enthusiasm > 0.65) {
+  } else if (b.enthusiasm > 0.65) {
     interactionStyle.push(
       "**Enthusiasm**: Show genuine excitement and energy. Use dynamic language, express positivity, and convey passion for helping the user succeed."
     );
@@ -175,10 +201,31 @@ export function generatePersonalityPrompt(behavior: BehaviorTraits): string {
  * Get a human-readable summary of personality configuration
  * Useful for debugging and admin UI display
  * 
- * @param behavior - 7 personality traits (0-1 scale)
+ * CRITICAL: Admin Dashboard sliders POST 0-100 integers, so this function
+ * normalizes automatically to handle both ranges (same as generatePersonalityPrompt)
+ * 
+ * @param behavior - 7 personality traits (0-100 from DB or 0-1 pre-normalized)
  * @returns Object with trait labels and values
  */
 export function getPersonalitySummary(behavior: BehaviorTraits): Record<string, string> {
+  // CRITICAL FIX: Normalize traits from 0-100 to 0-1 (same as generatePersonalityPrompt)
+  const normalize = (value: number): number => {
+    // If value is already in 0-1 range, keep it
+    if (value <= 1) return Math.min(Math.max(value, 0), 1);
+    // If value is in 0-100 range, normalize it
+    return Math.min(Math.max(value / 100, 0), 1);
+  };
+  
+  const b = {
+    verbosity: normalize(behavior.verbosity),
+    formality: normalize(behavior.formality),
+    creativity: normalize(behavior.creativity),
+    precision: normalize(behavior.precision),
+    persuasiveness: normalize(behavior.persuasiveness),
+    empathy: normalize(behavior.empathy),
+    enthusiasm: normalize(behavior.enthusiasm)
+  };
+  
   const scale = (value: number, low: string, mid: string, high: string): string => {
     if (value < 0.35) return low;
     if (value > 0.65) return high;
@@ -186,12 +233,12 @@ export function getPersonalitySummary(behavior: BehaviorTraits): Record<string, 
   };
 
   return {
-    verbosity: scale(behavior.verbosity, "Concise", "Balanced", "Detailed"),
-    formality: scale(behavior.formality, "Casual", "Professional", "Formal"),
-    creativity: scale(behavior.creativity, "Factual", "Balanced", "Creative"),
-    precision: scale(behavior.precision, "Approximate", "Standard", "Precise"),
-    persuasiveness: scale(behavior.persuasiveness, "Neutral", "Moderate", "Persuasive"),
-    empathy: scale(behavior.empathy, "Objective", "Balanced", "Empathetic"),
-    enthusiasm: scale(behavior.enthusiasm, "Calm", "Engaged", "Enthusiastic"),
+    verbosity: scale(b.verbosity, "Concise", "Balanced", "Detailed"),
+    formality: scale(b.formality, "Casual", "Professional", "Formal"),
+    creativity: scale(b.creativity, "Factual", "Balanced", "Creative"),
+    precision: scale(b.precision, "Approximate", "Standard", "Precise"),
+    persuasiveness: scale(b.persuasiveness, "Neutral", "Moderate", "Persuasive"),
+    empathy: scale(b.empathy, "Objective", "Balanced", "Empathetic"),
+    enthusiasm: scale(b.enthusiasm, "Calm", "Engaged", "Enthusiastic"),
   };
 }
