@@ -2279,8 +2279,8 @@ const translations: Record<Language, Translations> = {
         systemPromptPlaceholder: "Digite o system prompt...",
         viewFullPrompt: "Ver Prompt Completo",
         previewModal: {
-          title: "Prompt Completo (Enviado para as IAs)",
-          description: "Este é o prompt REAL que o AION envia para OpenAI, Groq, Gemini e outras APIs. Inclui suas configurações customizadas + as 7 características do equalizador.",
+          title: "System Prompt Completo",
+          description: "Os 7 sliders de comportamento geraram automaticamente este system prompt, que define como o AION se comporta em TODAS as suas respostas (usando GPU próprio ou qualquer API externa).",
           loading: "Carregando...",
           close: "Fechar",
           characters: "caracteres",
@@ -3675,8 +3675,8 @@ const translations: Record<Language, Translations> = {
         systemPromptPlaceholder: "Enter system prompt...",
         viewFullPrompt: "View Full Prompt",
         previewModal: {
-          title: "Full Prompt (Sent to AI APIs)",
-          description: "This is the REAL prompt that AION sends to OpenAI, Groq, Gemini and other APIs. Includes your custom settings + the 7 equalizer characteristics.",
+          title: "Complete System Prompt",
+          description: "The 7 behavior sliders automatically generated this system prompt, which defines how AION behaves in ALL responses (using its own GPU or any external API).",
           loading: "Loading...",
           close: "Close",
           characters: "characters",
@@ -5071,8 +5071,8 @@ const translations: Record<Language, Translations> = {
         systemPromptPlaceholder: "Introduce el system prompt...",
         viewFullPrompt: "Ver Prompt Completo",
         previewModal: {
-          title: "Prompt Completo (Enviado a las IAs)",
-          description: "Este es el prompt REAL que AION envía a OpenAI, Groq, Gemini y otras APIs. Incluye tus configuraciones personalizadas + las 7 características del ecualizador.",
+          title: "System Prompt Completo",
+          description: "Los 7 deslizadores de comportamiento generaron automáticamente este system prompt, que define cómo AION se comporta en TODAS sus respuestas (usando GPU propio o cualquier API externa).",
           loading: "Cargando...",
           close: "Cerrar",
           characters: "caracteres",
