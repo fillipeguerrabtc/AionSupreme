@@ -405,22 +405,41 @@ export default function GPUDashboard() {
                 {/* Quota Status */}
                 {worker.quotaStatus && (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Session Runtime</span>
-                      <span className="font-mono">
-                        {formatDuration(worker.quotaStatus.sessionRuntimeSeconds)} / 
-                        {formatDuration(worker.quotaStatus.maxSessionSeconds)}
-                      </span>
-                    </div>
-                    <Progress value={worker.quotaStatus.utilizationPercent} />
-
-                    {worker.quotaStatus.weeklyRemainingSeconds !== undefined && (
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>Weekly Quota</span>
-                        <span className="font-mono">
-                          {formatDuration(worker.quotaStatus.weeklyRemainingSeconds)} left
-                        </span>
-                      </div>
+                    {worker.provider === 'kaggle' ? (
+                      /* KAGGLE: Mostra quota SEMANAL (21h usado / 30h total) */
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span>Semana</span>
+                          <span className="font-mono">
+                            {formatDuration(worker.quotaStatus.weeklyUsedSeconds || 0)} / 21h
+                          </span>
+                        </div>
+                        <Progress value={worker.quotaStatus.utilizationPercent} />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Restante (70% de 30h)</span>
+                          <span className="font-mono">
+                            {formatDuration(worker.quotaStatus.weeklyRemainingSeconds || 75600)}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      /* COLAB: Mostra quota de SESSÃO (8.4h) */
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span>Sessão</span>
+                          <span className="font-mono">
+                            {formatDuration(worker.quotaStatus.sessionRuntimeSeconds)} / 
+                            {formatDuration(worker.quotaStatus.maxSessionSeconds)}
+                          </span>
+                        </div>
+                        <Progress value={worker.quotaStatus.utilizationPercent} />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Restante</span>
+                          <span className="font-mono">
+                            {formatDuration(worker.quotaStatus.remainingSessionSeconds)}
+                          </span>
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
