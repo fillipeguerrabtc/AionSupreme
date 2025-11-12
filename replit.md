@@ -63,6 +63,19 @@ All persistence systems implement structured logging via Pino, fault-tolerant er
 ### System Design Decisions
 Key decisions include a single-tenant architecture, externalized JSON behavioral configurations, and comprehensive observability and telemetry with query monitoring, granular hierarchical usage analytics, and a modern dashboard. Security involves AES-256-GCM encryption for API credentials stored in a SecretsVault, supporting multi-account management with individual quota tracking.
 
+### Recent Changes (November 2025)
+**Auto-Curation Sensitivity Refinement:**
+- Removed "finance" and "tech" from `sensitive_flags` in auto_approval_config
+- Enables automatic approval of technical and business content with quality score >= 70
+- Reduces manual review overhead for legitimate educational/technical submissions
+
+**Link Capture Jobs Security Hardening:**
+- Migrated jobs endpoints (GET /jobs, GET /jobs/:id, PATCH /jobs/:id) to adminSubRouter
+- Added CSRF protection via `csrfProtection` middleware
+- Centralized in `server/routes/jobs.ts` following modular pattern
+- Enhanced validation: action parameter (pause/resume/cancel), job existence checks
+- Frontend already implements single/deep crawl modes and multimedia download options
+
 ## External Dependencies
 
 ### Third-Party Services

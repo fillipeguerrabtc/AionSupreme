@@ -110,6 +110,10 @@ export function registerJobsRoutes(router: Router) {
         .where(eq(linkCaptureJobs.id, jobId))
         .returning();
       
+      if (!updatedJob) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
       res.json(updatedJob);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
