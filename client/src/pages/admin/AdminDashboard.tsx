@@ -827,7 +827,7 @@ export default function AdminDashboard() {
               {/* Telemetria Tab */}
               {activeTab === "telemetry" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <TelemetriaPage />
                   </div>
                 </Suspense>
@@ -836,7 +836,7 @@ export default function AdminDashboard() {
               {/* Token Monitoring Tab - TEMPORARILY DISABLED */}
               {activeTab === "tokens" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <TokenMonitoring initialTab={tokenSubtab} />
                   </div>
                 </Suspense>
@@ -845,7 +845,7 @@ export default function AdminDashboard() {
               {/* Token History Tab */}
               {activeTab === "history" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <TokenHistoryTab />
                   </div>
                 </Suspense>
@@ -854,7 +854,7 @@ export default function AdminDashboard() {
               {/* Cost History Tab */}
               {activeTab === "cost" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <CostHistoryTab />
                   </div>
                 </Suspense>
@@ -863,7 +863,7 @@ export default function AdminDashboard() {
               {/* Knowledge Base Tab */}
               {activeTab === "knowledge" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <KnowledgeBaseTab />
                   </div>
                 </Suspense>
@@ -872,14 +872,16 @@ export default function AdminDashboard() {
               {/* GPU Overview Tab - Unified Management */}
               {activeTab === "gpu" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <GPUOverviewPage />
+                  <div className="overflow-x-hidden w-full max-w-full min-w-0">
+                    <GPUOverviewPage />
+                  </div>
                 </Suspense>
               )}
 
               {/* Federated Training Tab */}
               {activeTab === "federated" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <FederatedTrainingTab />
                   </div>
                 </Suspense>
@@ -888,21 +890,25 @@ export default function AdminDashboard() {
               {/* Meta-Learning Tab (includes Auto-Evolution metrics) */}
               {activeTab === "meta-learning" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <MetaLearningDashboard />
+                  <div className="overflow-x-hidden w-full max-w-full min-w-0">
+                    <MetaLearningDashboard />
+                  </div>
                 </Suspense>
               )}
 
               {/* Datasets Tab */}
               {activeTab === "datasets" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <DatasetsTab />
+                  <div className="overflow-x-hidden w-full max-w-full min-w-0">
+                    <DatasetsTab />
+                  </div>
                 </Suspense>
               )}
 
               {/* Agents Tab */}
               {activeTab === "agents" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <AgentsPage />
                   </div>
                 </Suspense>
@@ -911,7 +917,7 @@ export default function AdminDashboard() {
               {/* Users Tab */}
               {activeTab === "users" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <UsersPage />
                   </div>
                 </Suspense>
@@ -920,7 +926,7 @@ export default function AdminDashboard() {
               {/* Permissions Tab */}
               {activeTab === "permissions" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <PermissionsPage />
                   </div>
                 </Suspense>
@@ -928,7 +934,7 @@ export default function AdminDashboard() {
 
               {activeTab === "auto-approval" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <AutoApprovalPage />
                   </div>
                 </Suspense>
@@ -936,7 +942,7 @@ export default function AdminDashboard() {
 
               {activeTab === "curation" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <CurationQueuePage />
                   </div>
                 </Suspense>
@@ -944,7 +950,7 @@ export default function AdminDashboard() {
 
               {activeTab === "jobs" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <JobsPage />
                   </div>
                 </Suspense>
@@ -952,7 +958,7 @@ export default function AdminDashboard() {
 
               {activeTab === "images" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <ImagesGalleryPage />
                   </div>
                 </Suspense>
@@ -960,7 +966,7 @@ export default function AdminDashboard() {
 
               {activeTab === "image-search" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <ImageSearchPage />
                   </div>
                 </Suspense>
@@ -968,7 +974,7 @@ export default function AdminDashboard() {
 
               {activeTab === "vision" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <VisionPage />
                   </div>
                 </Suspense>
@@ -976,7 +982,7 @@ export default function AdminDashboard() {
 
               {activeTab === "namespaces" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <NamespacesPage />
                   </div>
                 </Suspense>
@@ -984,7 +990,7 @@ export default function AdminDashboard() {
 
               {activeTab === "lifecycle" && (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="space-y-6">
+                  <div className="space-y-6 overflow-x-hidden w-full max-w-full min-w-0">
                     <LifecyclePoliciesTab />
                   </div>
                 </Suspense>
