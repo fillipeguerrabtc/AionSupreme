@@ -29,7 +29,20 @@ export function registerGpuRoutes(app: Router) {
       const kaggleCredentials: Array<{ id: string; username: string; hasKey: boolean }> = [];
       const colabCredentials: Array<{ id: string; email: string; hasPassword: boolean }> = [];
       
-      // Scan for Kaggle credentials (up to 10 accounts)
+      // 🔥 PRIMEIRO: Verificar credenciais SEM número (single account)
+      const singleUsername = process.env.KAGGLE_USERNAME;
+      const singleApiKey = process.env.KAGGLE_KEY;
+      
+      if (singleUsername) {
+        kaggleCredentials.push({
+          id: 'kaggle_1',
+          username: singleUsername,
+          hasKey: !!singleApiKey,
+        });
+        log.info({ component: 'gpu-credentials', account: 1, username: singleUsername, hasKey: !!singleApiKey }, 'Found Kaggle account (single)');
+      }
+      
+      // DEPOIS: Scan for numbered Kaggle credentials (up to 10 accounts)
       for (let i = 1; i <= 10; i++) {
         const usernameKey = `KAGGLE_USERNAME_${i}`;
         const apiKeyKey = `KAGGLE_KEY_${i}`;
@@ -37,13 +50,15 @@ export function registerGpuRoutes(app: Router) {
         const username = process.env[usernameKey];
         const apiKey = process.env[apiKeyKey];
         
-        if (username) {
+        // Skip se já adicionamos credencial única com mesmo username
+        if (username && username !== singleUsername) {
+          const nextId = kaggleCredentials.length + 1;
           kaggleCredentials.push({
-            id: `kaggle_${i}`,
+            id: `kaggle_${nextId}`,
             username,
             hasKey: !!apiKey,
           });
-          log.info({ component: 'gpu-credentials', account: i, username, hasKey: !!apiKey }, 'Found Kaggle account');
+          log.info({ component: 'gpu-credentials', account: nextId, username, hasKey: !!apiKey }, 'Found Kaggle account');
         }
       }
       
@@ -76,7 +91,7 @@ export function registerGpuRoutes(app: Router) {
         kaggle: kaggleCredentials,
         colab: colabCredentials,
         instructions: {
-          kaggle: "Add KAGGLE_USERNAME_1, KAGGLE_KEY_1, KAGGLE_USERNAME_2, KAGGLE_KEY_2... to Replit Secrets",
+          kaggle: "Add KAGGLE_USERNAME, KAGGLE_KEY (single account) OR KAGGLE_USERNAME_1, KAGGLE_KEY_1, KAGGLE_USERNAME_2, KAGGLE_KEY_2... (multi-account) to Replit Secrets",
           colab: "Add COLAB_EMAIL_1, COLAB_PASSWORD_1, COLAB_EMAIL_2, COLAB_PASSWORD_2... to Replit Secrets"
         }
       });

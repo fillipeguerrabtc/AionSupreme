@@ -14,6 +14,12 @@
  * - Rotação inteligente quando quota acaba
  * - Health checks constantes
  * - Auto-register GPUs no backend
+ * - 🔥 ENTERPRISE KEEP-ALIVE BUFFER (serverless pattern 2025):
+ *   - GPUs mantidas ativas por 10min após completar tarefa
+ *   - Timer renovável: nova tarefa = reset de 10min
+ *   - Reduz latência: cold start ~3min → warm start <5s
+ *   - Economiza quota: shutdown automático após idle
+ *   - Estratégia AWS Lambda / Cloud Run / Kubernetes HPA
  */
 
 import { quotaManager } from './intelligent-quota-manager';
@@ -26,12 +32,21 @@ import { eq } from 'drizzle-orm';
 interface OrchestratorConfig {
   autoStart?: boolean;  // Auto-start best GPU on init
   checkInterval?: number;  // Health check interval (ms)
+  idleShutdownDelayMs?: number;  // Keep-alive buffer duration (default: 10min)
 }
 
 export class OrchestratorService {
   private isRunning: boolean = false;
   private checkInterval?: NodeJS.Timeout;
   private readonly DEFAULT_CHECK_INTERVAL = 5 * 60 * 1000;  // 5min
+  
+  // 🔥 ENTERPRISE KEEP-ALIVE BUFFER (2025 Serverless Pattern)
+  // APENAS PARA KAGGLE (on-demand): Mantém GPU ativa 10min após completar tarefa
+  // COLAB: Schedule 24/7 fixo, NÃO usa keep-alive
+  // Maps workerId → idle shutdown timer
+  private idleShutdownTimers: Map<number, NodeJS.Timeout> = new Map();
+  private readonly DEFAULT_IDLE_SHUTDOWN_DELAY_MS = 10 * 60 * 1000;  // 10min
+  private idleShutdownDelayMs: number = this.DEFAULT_IDLE_SHUTDOWN_DELAY_MS;
   
   /**
    * Initialize orchestrator
@@ -40,6 +55,11 @@ export class OrchestratorService {
     console.log('[Orchestrator] Initializing GPU Auto-Orchestration Service...');
     
     this.isRunning = true;
+    
+    // Configure keep-alive buffer duration
+    this.idleShutdownDelayMs = config.idleShutdownDelayMs || this.DEFAULT_IDLE_SHUTDOWN_DELAY_MS;
+    const idleMinutes = Math.round(this.idleShutdownDelayMs / 60000);
+    console.log(`[Orchestrator] 🔥 Keep-alive buffer: ${idleMinutes}min (serverless pattern)`);
     
     // Start health check loop
     const interval = config.checkInterval || this.DEFAULT_CHECK_INTERVAL;
@@ -64,6 +84,9 @@ export class OrchestratorService {
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
     }
+    
+    // 🔥 ENTERPRISE: Clean up ALL keep-alive timers on shutdown
+    this.cleanupAllIdleTimers();
     
     console.log('[Orchestrator] Shutdown complete');
   }
@@ -303,6 +326,115 @@ export class OrchestratorService {
       activeGPUs,
       quotaStatuses: statuses,
     };
+  }
+  
+  /**
+   * 🔥 ENTERPRISE KEEP-ALIVE BUFFER - Schedule idle shutdown (APENAS KAGGLE)
+   * 
+   * Agenda shutdown automático após período idle (default: 10min)
+   * Timer é renovável: nova tarefa = reset
+   * 
+   * REGRAS:
+   * - APENAS Kaggle (on-demand): Liga → usa → keep-alive 10min → desliga
+   * - Colab: Schedule 24/7 fixo, NÃO usa keep-alive
+   * - Respeita quota 70%: KAGGLE_GPU_SAFETY = 8.4h, Weekly = 21h
+   * 
+   * PADRÃO 2025: AWS Lambda, Cloud Run, Kubernetes HPA
+   */
+  async scheduleKaggleIdleShutdown(workerId: number): Promise<void> {
+    try {
+      // 1. Verificar se é Kaggle (APENAS Kaggle usa keep-alive)
+      const worker = await db.query.gpuWorkers.findFirst({
+        where: eq(gpuWorkers.id, workerId),
+      });
+      
+      if (!worker || worker.provider !== 'kaggle') {
+        console.log(`[Orchestrator] ⚠️  Worker ${workerId} is not Kaggle - skip keep-alive`);
+        return;
+      }
+      
+      // 2. Cancelar timer existente (se houver)
+      this.cancelKaggleIdleShutdown(workerId);
+      
+      const idleMinutes = Math.round(this.idleShutdownDelayMs / 60000);
+      console.log(`[Orchestrator] 🕐 Kaggle GPU ${workerId} keep-alive: ${idleMinutes}min buffer started`);
+      
+      // 3. Agendar shutdown
+      const timer = setTimeout(async () => {
+        console.log(`[Orchestrator] ⏰ Kaggle GPU ${workerId} idle timeout (${idleMinutes}min) - shutting down to save quota`);
+        await this.stopGPU(workerId);
+        this.idleShutdownTimers.delete(workerId);
+      }, this.idleShutdownDelayMs);
+      
+      this.idleShutdownTimers.set(workerId, timer);
+      
+    } catch (error) {
+      console.error(`[Orchestrator] Error scheduling Kaggle idle shutdown:`, error);
+    }
+  }
+  
+  /**
+   * 🔥 Cancel Kaggle idle shutdown (reset timer)
+   * 
+   * Chamado quando nova tarefa chega durante período de keep-alive
+   * Timer é renovado após completar a nova tarefa
+   */
+  cancelKaggleIdleShutdown(workerId: number): void {
+    const timer = this.idleShutdownTimers.get(workerId);
+    if (timer) {
+      clearTimeout(timer);
+      this.idleShutdownTimers.delete(workerId);
+      console.log(`[Orchestrator] ♻️  Kaggle GPU ${workerId} keep-alive timer reset (new task arrived)`);
+    }
+  }
+  
+  /**
+   * 🔥 Cleanup ALL idle timers (shutdown orchestrator)
+   */
+  private cleanupAllIdleTimers(): void {
+    if (this.idleShutdownTimers.size > 0) {
+      console.log(`[Orchestrator] 🧹 Cleaning up ${this.idleShutdownTimers.size} keep-alive timer(s)...`);
+      
+      const timers = Array.from(this.idleShutdownTimers.entries());
+      for (const [workerId, timer] of timers) {
+        clearTimeout(timer);
+        console.log(`[Orchestrator]    - Cancelled timer for Kaggle GPU ${workerId}`);
+      }
+      
+      this.idleShutdownTimers.clear();
+    }
+  }
+  
+  /**
+   * 🔥 PUBLIC API: Notify task completion (triggers keep-alive for Kaggle)
+   * 
+   * Chamado por:
+   * - GPU Pool após completar inferência
+   * - Training Jobs após completar treino
+   * 
+   * Behavior:
+   * - Kaggle: Inicia keep-alive 10min
+   * - Colab: No-op (schedule 24/7 fixo)
+   */
+  async notifyTaskCompleted(workerId: number): Promise<void> {
+    console.log(`[Orchestrator] 📢 Task completed on GPU ${workerId}`);
+    await this.scheduleKaggleIdleShutdown(workerId);
+  }
+  
+  /**
+   * 🔥 PUBLIC API: Notify task started (cancels keep-alive for Kaggle)
+   * 
+   * Chamado por:
+   * - GPU Pool antes de iniciar inferência
+   * - Training Jobs antes de iniciar treino
+   * 
+   * Behavior:
+   * - Kaggle: Cancela timer idle (GPU volta a trabalhar)
+   * - Colab: No-op
+   */
+  async notifyTaskStarted(workerId: number): Promise<void> {
+    console.log(`[Orchestrator] 📢 Task started on GPU ${workerId}`);
+    this.cancelKaggleIdleShutdown(workerId);
   }
 }
 

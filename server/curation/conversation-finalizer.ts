@@ -77,31 +77,43 @@ export class ConversationFinalizer {
       const title = summary.firstUserMessage.substring(0, 100) || conversation.title;
       const content = this.generateConversationSummary(summary, conversation.title);
 
-      // Step 7: Submit to curation queue
-      const curationItem = await curationStore.addToCuration({
-        title,
-        content,
-        suggestedNamespaces: conversation.namespace ? [conversation.namespace] : ["chat/conversations"],
-        tags: ["chat", "conversation", `messages:${summary.messageCount}`],
-        submittedBy: "auto-learning",
-        conversationId: conversationId,
-        messageTranscript: messageTranscript as any, // Type assertion for JSONB
-        attachments: allAttachments.length > 0 ? allAttachments as any : undefined,
-      });
+      // Step 7: Submit to curation queue (with duplicate protection)
+      try {
+        const curationItem = await curationStore.addToCuration({
+          title,
+          content,
+          suggestedNamespaces: conversation.namespace ? [conversation.namespace] : ["chat/conversations"],
+          tags: ["chat", "conversation", `messages:${summary.messageCount}`],
+          submittedBy: "auto-learning",
+          conversationId: conversationId,
+          messageTranscript: messageTranscript as any, // Type assertion for JSONB
+          attachments: allAttachments.length > 0 ? allAttachments as any : undefined,
+        });
 
-      console.log(`[ConversationFinalizer] ✅ Conversation ${conversationId} consolidated → Curation item ${curationItem.id}`);
-      console.log(`   📊 ${summary.messageCount} messages, ${summary.totalAttachments} attachments`);
+        console.log(`[ConversationFinalizer] ✅ Conversation ${conversationId} consolidated → Curation item ${curationItem.id}`);
+        console.log(`   📊 ${summary.messageCount} messages, ${summary.totalAttachments} attachments`);
 
-      // Step 8: Update conversation's lastActivityAt to mark as finalized
-      await db
-        .update(conversations)
-        .set({ 
-          lastActivityAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(conversations.id, conversationId));
+        // Step 8: Update conversation's lastActivityAt to mark as finalized
+        await db
+          .update(conversations)
+          .set({ 
+            lastActivityAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(conversations.id, conversationId));
 
-      return curationItem.id;
+        return curationItem.id;
+      } catch (error: any) {
+        // 🔥 BUG #14 FIX: Gracefully handle duplicates (expected behavior)
+        if (error.message?.includes('already pending approval') || 
+            error.message?.includes('already exists in the Knowledge Base') ||
+            error.message?.includes('duplicate')) {
+          console.log(`[ConversationFinalizer] ℹ️  Conversation ${conversationId} already in curation/KB - skipping (duplicate protection)`);
+          return null;
+        }
+        // Re-throw unexpected errors
+        throw error;
+      }
     } catch (error: any) {
       console.error(`[ConversationFinalizer] ❌ Error finalizing conversation ${conversationId}:`, error.message);
       return null;

@@ -170,7 +170,8 @@ export const curationStore = {
             ? `This content is already pending approval in the curation queue as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`
             : `This content already exists in the Knowledge Base as "${duplicateCheck.documentTitle}". Skipped to avoid duplication.`;
           
-          console.log(`[Curation] ❌ Duplicate detected in ${location}: "${duplicateCheck.documentTitle}"`);
+          // BUG #13 FIX: INFO não ERROR (duplicate detection é comportamento esperado!)
+          console.log(`[Curation] ℹ️  Duplicate detected in ${location}: "${duplicateCheck.documentTitle}" - skipping to avoid duplication`);
           
           // Throw custom error with rich metadata for API consumers
           throw new DuplicateContentError(

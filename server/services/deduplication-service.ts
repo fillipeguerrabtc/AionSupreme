@@ -443,9 +443,9 @@ export class DeduplicationService {
     // TIER 3: THRESHOLD LOGIC + LLM ADJUDICATION
     // =====================================================================
     
-    // Exact semantic duplicate (≥92%)
+    // Exact semantic duplicate (≥92%) - BUG #13 FIX: INFO não ERROR!
     if (similarity >= similarityThresholds.exact) {
-      console.log(`[Dedup] ❌ SEMANTIC duplicate detected (${(similarity * 100).toFixed(1)}% ≥ ${similarityThresholds.exact * 100}%)`);
+      console.log(`[Dedup] ℹ️  SEMANTIC duplicate detected (${(similarity * 100).toFixed(1)}% ≥ ${similarityThresholds.exact * 100}%) - skipping to avoid duplication`);
       return {
         isDuplicate: true,
         documentId: undefined,
