@@ -169,6 +169,17 @@ export default function AdminDashboard() {
     refetchInterval: 10000,
   });
 
+  // Fetch provider quotas (fonte de verdade para uso diário)
+  // 🔥 AUTO-REFRESH: Atualiza a cada 10 segundos
+  const { data: quotas } = useQuery({
+    queryKey: ["/api/tokens/quotas"],
+    queryFn: async () => {
+      const res = await fetch('/api/tokens/quotas');
+      return res.json();
+    },
+    refetchInterval: 10000,
+  });
+
   // Fetch system timezone
   const { data: systemTimezone } = useQuery({
     queryKey: ["/api/admin/settings/timezone"],
@@ -624,23 +635,23 @@ export default function AdminDashboard() {
               <div className="space-y-2 mt-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Groq:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'groq')?.allTime?.requests || 0} req</span>
+                  <span className="font-bold">{quotas?.find((q: any) => q.provider === 'groq')?.used || 0} req</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Gemini:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'gemini')?.allTime?.requests || 0} req</span>
+                  <span className="font-bold">{quotas?.find((q: any) => q.provider === 'gemini')?.used || 0} req</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">HuggingFace:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'huggingface')?.allTime?.requests || 0} req</span>
+                  <span className="font-bold">{quotas?.find((q: any) => q.provider === 'huggingface')?.used || 0} req</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">OpenRouter:</span>
-                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.allTime?.requests || 0} req</span>
+                  <span className="font-bold">{quotas?.find((q: any) => q.provider === 'openrouter')?.used || 0} req</span>
                 </div>
               </div>
               <CardDescription className="text-xs mt-2">
-                Histórico Total (FREE)
+                Uso Hoje (UTC reset)
               </CardDescription>
             </CardHeader>
           </Card>

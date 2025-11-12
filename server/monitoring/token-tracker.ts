@@ -386,8 +386,8 @@ export async function getUsageSummary(): Promise<UsageSummary[]> {
 // ============================================================================
 
 export async function getProviderQuotas(): Promise<ProviderQuota[]> {
-  // ✅ NEW: Fetch REAL data from provider_limits table (NOT in-memory)
-  const { providerLimits } = await import('@shared/schema');
+  // ✅ FIXED: Use llm_provider_quotas table (REAL usage tracking)
+  const { llmProviderQuotas } = await import('@shared/schema');
   
   const now = new Date();
   const tomorrow = new Date(now);
@@ -396,24 +396,23 @@ export async function getProviderQuotas(): Promise<ProviderQuota[]> {
   
   const quotas: ProviderQuota[] = [];
   
-  // ✅ Fetch from provider_limits table (REAL data from APIs/docs)
-  const limits = await db.select().from(providerLimits);
+  // ✅ Fetch from llm_provider_quotas table (REAL tracking with incrementUsage())
+  const limits = await db.select().from(llmProviderQuotas);
   
   // ✅ Normalize slugs: 'hf' → 'huggingface' (frontend compatibility)
-  // Backend uses 'hf' internally, frontend expects 'huggingface'
   const slugMap: Record<string, string> = {
     'hf': 'huggingface',
     'gemini': 'gemini',
     'groq': 'groq',
     'openrouter': 'openrouter',
-    'huggingface': 'huggingface' // Also accept 'huggingface' directly
+    'huggingface': 'huggingface'
   };
   
   for (const limit of limits) {
     const normalizedProvider = slugMap[limit.provider] || limit.provider;
-    const dailyLimit = limit.rpd || 0;
-    const used = limit.rpdUsed || 0;
-    const remaining = limit.rpdRemaining !== null ? limit.rpdRemaining : Math.max(0, dailyLimit - used);
+    const dailyLimit = limit.dailyRequestLimit || 0;
+    const used = limit.requestCount || 0;
+    const remaining = Math.max(0, dailyLimit - used);
     const percentage = dailyLimit > 0 ? (used / dailyLimit) * 100 : 0;
     
     quotas.push({
@@ -422,7 +421,7 @@ export async function getProviderQuotas(): Promise<ProviderQuota[]> {
       used,
       remaining,
       percentage,
-      resetTime: limit.rpdResetAt ? new Date(limit.rpdResetAt) : tomorrow
+      resetTime: limit.lastResetAt ? new Date(new Date(limit.lastResetAt).getTime() + 24 * 60 * 60 * 1000) : tomorrow
     });
   }
   
