@@ -17,6 +17,223 @@ interface CreationResult {
 }
 
 /**
+ * 🎯 PRODUCTION-GRADE NAMESPACE DEFAULTS
+ * Calcula priority baseado em categorias semânticas (ACCENT-AWARE)
+ */
+function calculateNamespacePriority(name: string): number {
+  const lowercaseName = name.toLowerCase();
+  
+  // HIGH PRIORITY (80-90): Negócios, turismo, saúde
+  if (/turismo|viagem|viagens|travel|hotel|restaurante|gastronomia|sa[uú]de|health|medicina|m[eé]dico/.test(lowercaseName)) {
+    return 85;
+  }
+  
+  // MEDIUM-HIGH (70-79): Tecnologia, finanças, educação
+  if (/tecnologia|tech|software|programa[cç][aã]o|finan[cç]as|investimento|educa[cç][aã]o|ensino/.test(lowercaseName)) {
+    return 75;
+  }
+  
+  // MEDIUM (60-69): Cultura, entretenimento, filosofia
+  if (/cultura|arte|m[uú]sica|filme|cinema|filosofia|literatura|hist[oó]ria/.test(lowercaseName)) {
+    return 65;
+  }
+  
+  // LOW-MEDIUM (50-59): Geral, saudações, casual
+  if (/geral|geral|sauda[cç][oõ]es|greetings|casual|conversa|comunica[cç][aã]o/.test(lowercaseName)) {
+    return 50;
+  }
+  
+  // DEFAULT: 60 (balanced)
+  return 60;
+}
+
+/**
+ * 🎨 PRODUCTION-GRADE PERSONALITY SLIDERS
+ * Gera slider overrides baseado em domínio do namespace
+ * SEMPRE retorna valores (ZERO namespaces sem sliders)
+ */
+function generateSliderOverrides(name: string): Record<string, number> {
+  const lowercaseName = name.toLowerCase();
+  
+  // Turismo/Viagem: Alto persuasiveness, empathy, enthusiasm
+  if (/turismo|viagem|viagens|travel|hotel|restaurante|gastronomia|destino/.test(lowercaseName)) {
+    return {
+      verbosity: 0.6,
+      formality: 0.4,
+      creativity: 0.7,
+      precision: 0.5,
+      persuasiveness: 0.9,
+      empathy: 0.8,
+      enthusiasm: 0.85,
+    };
+  }
+  
+  // Tecnologia: Alto precision, baixo empathy/enthusiasm
+  if (/tecnologia|tech|software|programa[cç][aã]o|desenvolvimento|dev|codigo|c[oó]digo/.test(lowercaseName)) {
+    return {
+      verbosity: 0.5,
+      formality: 0.7,
+      creativity: 0.4,
+      precision: 0.9,
+      persuasiveness: 0.6,
+      empathy: 0.5,
+      enthusiasm: 0.55,
+    };
+  }
+  
+  // Filosofia/Cultura: Alto creativity, verbosity, empathy
+  if (/filosofia|cultura|arte|m[uú]sica|literatura|hist[oó]ria|cinema|filme/.test(lowercaseName)) {
+    return {
+      verbosity: 0.7,
+      formality: 0.5,
+      creativity: 0.8,
+      precision: 0.6,
+      persuasiveness: 0.65,
+      empathy: 0.75,
+      enthusiasm: 0.7,
+    };
+  }
+  
+  // Finanças: Alto precision, formality
+  if (/finan[cç]as|investimento|economia|dinheiro|neg[oó]cio|business/.test(lowercaseName)) {
+    return {
+      verbosity: 0.5,
+      formality: 0.8,
+      creativity: 0.3,
+      precision: 0.95,
+      persuasiveness: 0.7,
+      empathy: 0.5,
+      enthusiasm: 0.5,
+    };
+  }
+  
+  // Saúde: Alto empathy, precision, formality
+  if (/sa[uú]de|health|medicina|m[eé]dico|tratamento|diagn[oó]stico/.test(lowercaseName)) {
+    return {
+      verbosity: 0.6,
+      formality: 0.7,
+      creativity: 0.4,
+      precision: 0.85,
+      persuasiveness: 0.6,
+      empathy: 0.9,
+      enthusiasm: 0.6,
+    };
+  }
+  
+  // Educação: Balanced, alto empathy
+  if (/educa[cç][aã]o|ensino|escola|universidade|aprendizado/.test(lowercaseName)) {
+    return {
+      verbosity: 0.65,
+      formality: 0.6,
+      creativity: 0.6,
+      precision: 0.75,
+      persuasiveness: 0.65,
+      empathy: 0.8,
+      enthusiasm: 0.7,
+    };
+  }
+  
+  // Comunicação/Social: Alto empathy, enthusiasm
+  if (/comunica[cç][aã]o|social|conversa|atendimento|suporte/.test(lowercaseName)) {
+    return {
+      verbosity: 0.65,
+      formality: 0.5,
+      creativity: 0.6,
+      precision: 0.65,
+      persuasiveness: 0.75,
+      empathy: 0.85,
+      enthusiasm: 0.8,
+    };
+  }
+  
+  // Saudações/Casual: Alto empathy, enthusiasm, baixo formality
+  if (/sauda[cç][oõ]es|greeting|ol[aá]|oi|boas.vindas|casual/.test(lowercaseName)) {
+    return {
+      verbosity: 0.5,
+      formality: 0.3,
+      creativity: 0.6,
+      precision: 0.5,
+      persuasiveness: 0.6,
+      empathy: 0.9,
+      enthusiasm: 0.95,
+    };
+  }
+  
+  // DEFAULT BALANCED TEMPLATE (applies to ALL unmatched domains)
+  // ZERO namespaces sem sliders! Production-ready defaults
+  return {
+    verbosity: 0.6,
+    formality: 0.5,
+    creativity: 0.6,
+    precision: 0.7,
+    persuasiveness: 0.65,
+    empathy: 0.7,
+    enthusiasm: 0.65,
+  };
+}
+
+/**
+ * ⚡ PRODUCTION-GRADE DETECTION TRIGGERS
+ * Gera keywords relevantes para detecção automática (ACCENT-AWARE)
+ */
+function generateTriggers(name: string): string[] {
+  const lowercaseName = name.toLowerCase();
+  
+  // Turismo/Viagem
+  if (/turismo|viagem|viagens|travel|hotel|restaurante/.test(lowercaseName)) {
+    return ["turismo", "viagem", "viagens", "travel", "hotel", "passeio", "roteiro", "destino"];
+  }
+  
+  // Tecnologia
+  if (/tecnologia|tech|software|programa[cç][aã]o|desenvolvimento/.test(lowercaseName)) {
+    return ["tecnologia", "programação", "software", "código", "dev", "API", "tech"];
+  }
+  
+  // Filosofia
+  if (/filosofia/.test(lowercaseName)) {
+    return ["filosofia", "existência", "significado", "ética", "moral", "pensamento"];
+  }
+  
+  // Finanças
+  if (/finan[cç]as|investimento|economia|neg[oó]cio/.test(lowercaseName)) {
+    return ["finanças", "investimento", "dinheiro", "economia", "lucro", "renda"];
+  }
+  
+  // Cultura/Arte
+  if (/cultura|arte|m[uú]sica|hist[oó]ria/.test(lowercaseName)) {
+    return ["cultura", "arte", "música", "expressão", "criatividade", "artista", "história"];
+  }
+  
+  // Filmes/Cinema
+  if (/filme|cinema/.test(lowercaseName)) {
+    return ["filme", "cinema", "diretor", "ator", "roteiro", "cena", "produção"];
+  }
+  
+  // Saúde
+  if (/sa[uú]de|health|medicina|m[eé]dico|tratamento/.test(lowercaseName)) {
+    return ["saúde", "medicina", "tratamento", "diagnóstico", "sintoma", "médico"];
+  }
+  
+  // Educação
+  if (/educa[cç][aã]o|ensino|escola|universidade/.test(lowercaseName)) {
+    return ["educação", "ensino", "escola", "aprendizado", "conhecimento"];
+  }
+  
+  // Comunicação/Social
+  if (/comunica[cç][aã]o|social|atendimento|suporte/.test(lowercaseName)) {
+    return ["comunicação", "conversa", "atendimento", "suporte", "social"];
+  }
+  
+  // Saudações/Geral
+  if (/sauda[cç][oõ]es|greeting|ol[aá]|oi/.test(lowercaseName)) {
+    return ["olá", "oi", "bom dia", "boa tarde", "boa noite", "tudo bem"];
+  }
+  
+  // Default: usar nome do namespace como único trigger
+  return [name];
+}
+
+/**
  * AUTO-CRIAÇÃO AUTÔNOMA DE NAMESPACES E AGENTES
  * 
  * Sistema de orquestração automática que:
@@ -98,6 +315,12 @@ export async function autoCreateNamespacesAndAgents(
       const agentSlug = namespaceName.replace(/[\/\.]/g, '-').toLowerCase();
       const agentName = generateAgentName(namespaceName);
 
+      // 🎯 PRODUCTION-GRADE DEFAULTS: Calcular priority, sliders, triggers
+      const priority = calculateNamespacePriority(namespaceName);
+      const sliderOverrides = generateSliderOverrides(namespaceName);
+      const triggers = generateTriggers(namespaceName);
+      console.log(`[Auto-Creator] 🎨 Defaults calculados: priority=${priority}, sliders=${sliderOverrides ? 'YES' : 'NO'}, triggers=${triggers.length}`);
+
       // Check if agent already exists BEFORE starting transaction
       const existingAgent = await db
         .select()
@@ -113,11 +336,14 @@ export async function autoCreateNamespacesAndAgents(
       // ✅ FIX 2 VERIFICATION: Transaction ensures ATOMIC creation (both or neither)
       console.log(`[Auto-Creator] 🔍 FIX 2: Starting ATOMIC transaction for namespace + agent creation`);
       const transactionResult = await db.transaction(async (tx) => {
-        // Create namespace
+        // Create namespace with production-grade defaults (ZERO empty configs!)
         const [newNamespace] = await tx.insert(namespacesTable).values({
           name: namespaceName,
           description,
           icon,
+          priority,
+          sliderOverrides, // ALWAYS non-null (default balanced template)
+          triggers: triggers.length > 0 ? triggers : null,
         }).returning();
 
         console.log(`[Auto-Creator] ✅ Namespace criado na transação: "${namespaceName}" (ID: ${newNamespace.id})`);
