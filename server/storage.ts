@@ -626,7 +626,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDocument(document: InsertDocument): Promise<Document> {
-    const [created] = await db.insert(documents).values([document] as any).returning();
+    // 🔥 PRODUCTION FIX: Use centralized hash preparation (prevents duplicate bypass)
+    const { prepareDocumentForInsert } = await import("./utils/deduplication");
+    const documentWithHash = prepareDocumentForInsert(document);
+    
+    const [created] = await db.insert(documents).values([documentWithHash] as any).returning();
     return created;
   }
 

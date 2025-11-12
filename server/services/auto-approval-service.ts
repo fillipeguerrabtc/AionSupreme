@@ -136,15 +136,23 @@ export class AutoApprovalService {
   isGreetingOrCasualPhrase(queryText?: string): boolean {
     if (!queryText) return false;
 
-    // Normalize: lowercase, trim, remove Q&A markers (inline AND multiline), remove punctuation
-    // 🔥 BUG FIX #2 v2: Strip Q&A markers for BOTH inline ("Q: oi A: hello") AND multiline ("Q: oi\n\nA: hello")
-    const normalized = queryText
-      .toLowerCase()
-      .trim()
-      .replace(/^q:\s*/i, '') // Remove leading "Q: " prefix
-      .split(/\s+a:\s*/i)[0] // Split on " A: " (inline OR multiline) and take question part only
-      .replace(/[.,!?;:"""''()[\]{}]/g, '') // Remove punctuation
-      .replace(/\s+/g, ' ') // Normalize whitespace
+    // 🔥 PRODUCTION FIX: Two-step normalization (anchors + punctuation strip)
+    // Handles: "Q: oi A: hello", "oi?", "Q:  oi  \n\nA:\nhello", uppercase markers
+    let normalized = queryText.toLowerCase().trim();
+    
+    // Step 1: Remove leading "Q:" markers (flexible whitespace)
+    normalized = normalized.replace(/^q\s*:\s*/i, '');
+    
+    // Step 2: Split by "A:" (flexible whitespace, newlines)
+    normalized = normalized.split(/\s*a\s*:\s*/i)[0].trim();
+    
+    // Step 3: Strip trailing punctuation LAST (after Q&A extraction)
+    normalized = normalized.replace(/[?!.]+$/g, '').trim();
+    
+    // Step 4: Remove other punctuation and normalize whitespace
+    normalized = normalized
+      .replace(/[,;:"""''()[\]{}]/g, '')
+      .replace(/\s+/g, ' ')
       .trim();
 
     // Greeting patterns (PT/EN/ES) - matches greetings at START of text

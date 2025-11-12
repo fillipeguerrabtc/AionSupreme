@@ -26,6 +26,8 @@ export function normalizeContent(content: string): string {
  * Generates SHA256 hash from normalized content
  * Used for O(1) exact duplicate detection
  * 
+ * CRITICAL: This is the SINGLE source of truth for content_hash generation
+ * 
  * @param content - Raw text content
  * @returns 64-character hex SHA256 hash
  */
@@ -35,6 +37,26 @@ export function generateContentHash(content: string): string {
     .createHash('sha256')
     .update(normalized, 'utf8')
     .digest('hex');
+}
+
+/**
+ * CENTRALIZED Document Preparation for Database Insertion
+ * 
+ * Ensures content_hash is populated before ANY document insert.
+ * Use this wrapper in ALL insert paths to prevent duplicates:
+ * - storage.createDocument()
+ * - curation approvals
+ * - bulk imports
+ * - migrations
+ * 
+ * @param document - Document to prepare
+ * @returns Document with guaranteed content_hash
+ */
+export function prepareDocumentForInsert(document: any): any {
+  return {
+    ...document,
+    contentHash: document.contentHash || generateContentHash(document.content || ''),
+  };
 }
 
 /**

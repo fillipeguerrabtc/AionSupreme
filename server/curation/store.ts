@@ -577,31 +577,29 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       console.log(`[Curation] ✅ ${finalAttachments.filter((a: any) => a.type === 'image').length} imagens salvas após aprovação`);
     }
 
-    // 🔥 BUG FIX #1: Generate hash if missing (legacy entries) to prevent NOT NULL violation
-    const { generateContentHash } = await import("../utils/deduplication");
-    const finalContentHash = item.contentHash || generateContentHash(contentToSave);
+    // 🔥 PRODUCTION FIX: Use centralized preparation (prevents bypass)
+    const { prepareDocumentForInsert } = await import("../utils/deduplication");
     
-    if (!item.contentHash) {
-      console.warn(`[Curation] ⚠️  Legacy item ${item.id} missing contentHash - generated runtime hash: ${finalContentHash.substring(0, 16)}...`);
-    }
-    
-    // Create document record in database WITH ATTACHMENTS (tenantId defaults to 1 in schema)
-    const [newDoc] = await db.insert(documents).values({
+    // Prepare document data
+    const documentData = prepareDocumentForInsert({
       title: item.title,
-      content: contentToSave, // ← SÓ CONTEÚDO NOVO se near-duplicate!
+      content: contentToSave,
+      contentHash: item.contentHash, // Will be generated if missing
       source: isAbsorption ? "curation_absorption" : "curation_approved",
       status: "indexed",
-      contentHash: finalContentHash, // 🔥 CRITICAL FIX BUG #1: Transfer hash from curation_queue, fallback to runtime generation
-      attachments: finalAttachments || undefined, // Attachments FINAIS (já salvos no filesystem!)
+      attachments: finalAttachments || undefined,
       metadata: {
-        namespaces: finalNamespaces, // ← USA NAMESPACES CONSOLIDADOS!
+        namespaces: finalNamespaces,
         tags: item.tags,
         curationId: item.id,
         reviewedBy,
-        isAbsorption, // Flag para indicar que foi absorção
+        isAbsorption,
         ...(isAbsorption && item.duplicateOfId ? { absorbedFrom: item.duplicateOfId } : {})
       } as any,
-    } as any).returning();
+    });
+    
+    // Create document record in database
+    const [newDoc] = await db.insert(documents).values(documentData as any).returning();
 
     // Log attachments being saved
     if (item.attachments && item.attachments.length > 0) {

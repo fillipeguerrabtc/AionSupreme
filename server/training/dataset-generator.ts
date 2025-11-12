@@ -598,8 +598,9 @@ export class DatasetGenerator {
         .from(documents)
         .where(
           and(
-            // 🔥 BUG FIX #3: Incluir 'curation_approved' e 'curation_absorption' para contar docs aprovados via HITL
-            sql`${documents.source} IN ('upload', 'manual', 'url', 'web-search', 'youtube', 'curation_approved', 'curation_absorption')`,
+            // 🔥 PRODUCTION FIX: Use status flag instead of hardcoded source list
+            // Any document with status='indexed' is eligible (approved via any path)
+            eq(documents.status, 'indexed'),
             // Que ainda não foram usados em dataset
             sql`NOT EXISTS (
               SELECT 1 FROM ${datasets} d 
