@@ -186,10 +186,11 @@ class PatternAnalyzer {
           console.log(`[PatternAnalyzer] 📊 Gerando ${trainingExamples.length} TrainingExamples...`);
           
           try {
-            const outputPath = `./training/data/pattern_insights_${Date.now()}.jsonl`;
-            await trainingDataCollector.exportToJSONL(trainingExamples, outputPath);
+            // FIX #3: exportToJSONL() already prepends training/data, so pass only filename
+            const filename = `pattern_insights_${Date.now()}.jsonl`;
+            const savedPath = await trainingDataCollector.exportToJSONL(trainingExamples, filename);
             
-            console.log(`[PatternAnalyzer] ✅ TrainingExamples salvos em ${outputPath}`);
+            console.log(`[PatternAnalyzer] ✅ TrainingExamples salvos em ${savedPath}`);
             console.log("[PatternAnalyzer] 🔄 Feedback loop ATIVO: Telemetria → Padrões → Training Data → Modelo melhor");
           } catch (error) {
             console.error("[PatternAnalyzer] ❌ Erro ao salvar TrainingExamples:", error);

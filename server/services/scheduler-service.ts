@@ -611,8 +611,24 @@ export class SchedulerService {
                 ? `${decision.reason} [GREETING-GATE]`
                 : decision.reason;
               
-              await curationStore.approveAndPublish(item.id, 'AUTO-CURATOR', approvalNote);
-              approved++;
+              try {
+                await curationStore.approveAndPublish(item.id, 'AUTO-CURATOR', approvalNote);
+                approved++;
+              } catch (approveError: any) {
+                // FIX #2: Handle duplicate constraint gracefully (race condition protection)
+                const isDuplicateError = approveError.message?.includes('duplicate key') || 
+                                        approveError.message?.includes('content_hash_unique') ||
+                                        approveError.code === '23505';
+                
+                if (isDuplicateError) {
+                  // NO-OP: Don't increment any counter (already in KB, not a review item)
+                  logger.info(`ℹ️  Item ${item.id} duplicate detected during approval - skipping (already in KB, no action needed)`);
+                } else {
+                  // Real error - requires manual review
+                  logger.error(`❌ Failed to auto-approve item ${item.id}: ${approveError.message}`);
+                  reviewed++;
+                }
+              }
             } else if (decision.action === 'reject') {
               await curationStore.reject(item.id, 'AUTO-CURATOR', decision.reason);
               rejected++;

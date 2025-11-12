@@ -221,23 +221,41 @@ export class DemandBasedKaggleOrchestrator {
         };
       }
       
-      // 5. Get Kaggle credentials
+      // 5. Get Kaggle credentials (with env fallback for single-account support)
+      let username: string | undefined;
+      let apiKey: string | undefined;
+      
       const credentialsRaw = await secretsVault.retrieve('kaggle-main');
       
-      if (!credentialsRaw) {
+      if (credentialsRaw) {
+        // Vault credentials found
+        const credentials = JSON.parse(credentialsRaw);
+        username = credentials.username;
+        apiKey = credentials.apiKey;
+        console.log('[DemandBasedKaggle] ✅ Using credentials from secretsVault');
+      } else {
+        // FALLBACK: Check env for single-account support (BUG #12 FIX)
+        // Supports both KAGGLE_USERNAME/KAGGLE_KEY and KAGGLE_USERNAME_1/KAGGLE_KEY_1
+        username = process.env.KAGGLE_USERNAME || process.env.KAGGLE_USERNAME_1;
+        apiKey = process.env.KAGGLE_KEY || process.env.KAGGLE_KEY_1;
+        
+        if (username && apiKey) {
+          console.log('[DemandBasedKaggle] ✅ Using credentials from environment variables');
+        }
+      }
+      
+      if (!username || !apiKey) {
         console.error('[DemandBasedKaggle] ❌ No Kaggle credentials found!');
+        console.error('[DemandBasedKaggle]    Checked: secretsVault, KAGGLE_USERNAME, KAGGLE_USERNAME_1');
         
         // Release reservation
         await this.releaseReservation(workerId, sessionToken);
         
         return {
           success: false,
-          error: 'Kaggle credentials not configured - please add via Admin Panel',
+          error: 'Kaggle credentials not configured - please add via Admin Panel or environment variables',
         };
       }
-      
-      const credentials = JSON.parse(credentialsRaw);
-      const { username, apiKey } = credentials as { username: string; apiKey: string };
       
       // 6. Get AION base URL
       const aionBaseUrl = process.env.REPL_SLUG 
