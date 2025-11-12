@@ -172,7 +172,9 @@ export default function GPUManagementTab() {
         const sessionRuntimeHours = metadata?.sessionRuntimeHours || 0;
         const maxSessionHours = metadata?.maxSessionHours || 0;
 
-        if (worker.provider === 'kaggle') {
+        console.log(`[DEBUG Worker ${worker.id}] provider="${worker.provider}" type=${typeof worker.provider} isKaggle=${worker.provider?.toLowerCase() === 'kaggle'}`);
+
+        if (worker.provider?.toLowerCase() === 'kaggle') {
           // KAGGLE: Mostra quota SEMANAL (dados reais do PostgreSQL)
           const usedHoursThisWeek = metadata?.usedHoursThisWeek || 0;
           const quotaHoursPerWeek = metadata?.quotaHoursPerWeek || 30;
