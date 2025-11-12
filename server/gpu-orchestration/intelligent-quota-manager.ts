@@ -109,10 +109,11 @@ export class IntelligentQuotaManager {
       : 0;
     
     // Decision: should stop?
-    // 🔥 UPDATED: Para em 70% session + 70% weekly (Kaggle)
+    // 🔥 UPDATED: Para em 70% session + 70% weekly (Kaggle) - LÊ DO BANCO
+    const weeklyMaxSeconds = worker.maxWeeklySeconds || this.KAGGLE_WEEKLY_SAFETY;
     const shouldStop = 
       sessionRuntime >= maxSessionSeconds ||  // Reached 70% session safety limit
-      (worker.provider === 'kaggle' && weeklyUsed >= this.KAGGLE_WEEKLY_SAFETY);  // Reached 70% weekly quota (21h)
+      (worker.provider === 'kaggle' && weeklyUsed >= weeklyMaxSeconds);  // Reached weekly quota from DB
     
     // Decision: can start?
     // 🔥 CRITICAL FIX: Added cooldown check for Colab (36h mandatory rest between sessions)
@@ -139,7 +140,7 @@ export class IntelligentQuotaManager {
       remainingSessionSeconds: remainingSession,
       weeklyUsedSeconds: worker.provider === 'kaggle' ? weeklyUsed : undefined,
       weeklyRemainingSeconds: weeklyRemaining,
-      weeklyMaxSeconds: worker.provider === 'kaggle' ? this.KAGGLE_WEEKLY_SAFETY : undefined,  // 🔥 70% de 30h = 21h
+      weeklyMaxSeconds: worker.provider === 'kaggle' ? weeklyMaxSeconds : undefined,  // Lê do banco
       utilizationPercent: utilization,
       canStart,
       shouldStop,
