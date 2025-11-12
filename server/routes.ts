@@ -65,6 +65,7 @@ import { registerBackupRoutes } from "./routes/backup";
 import { registerAlertRoutes } from "./routes/alerts";
 import cascadeRoutes from "./routes/cascade";
 import autoApprovalRoutes from "./routes/auto-approval";
+import debugRoutes from "./routes/debug";
 
 // ============================================================================
 // TYPE DEFINITIONS - Eliminating 'as any' casts
@@ -226,6 +227,9 @@ export function registerRoutes(app: Express): Server {
   
   // Registrar rotas de Auto-Approval Configuration (curation system)
   adminSubRouter.use("/auto-approval", autoApprovalRoutes);
+  
+  // Registrar rotas de Debug (test free APIs)
+  adminSubRouter.use("/debug", debugRoutes);
   
   // Mount admin sub-router on /api/admin (NOT /api to avoid blocking public routes)
   app.use("/api/admin", adminSubRouter);
