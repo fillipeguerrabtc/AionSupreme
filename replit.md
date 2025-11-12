@@ -1,7 +1,7 @@
 # AION - Autonomous AI System
 
 ## Overview
-AION is an enterprise-grade autonomous AI system designed for robustness, flexibility, and self-operation, extending beyond current LLM limitations. Its purpose is to deliver a self-sustaining, continuously evolving AI that learns and improves autonomously, reducing reliance on external APIs over time. Key capabilities include configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agents using POMDP with a ReAct framework, and professional video generation. The system provides a chat interface for end-users and an administrative dashboard with a 7-Trait Personality Equalizer. It incorporates production-ready autonomous meta-learning capabilities, including a Meta-Learner Service, an Adaptive Mixture of Experts (ShiftEx MoE), a Personalized expert selection (PM-MoE Aggregator), and a Self-Improvement Engine for autonomous code analysis and patching.
+AION is an enterprise-grade autonomous AI system designed for robustness, flexibility, and self-operation, extending beyond current LLM limitations. Its core purpose is to deliver a self-sustaining, continuously evolving AI that learns and improves autonomously, reducing reliance on external APIs over time. Key capabilities include configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agents using POMDP with a ReAct framework, and professional video generation. The system provides a chat interface for end-users and an administrative dashboard with a 7-Trait Personality Equalizer. It incorporates production-ready autonomous meta-learning capabilities, including a Meta-Learner Service, an Adaptive Mixture of Experts (ShiftEx MoE), a Personalized expert selection (PM-MoE Aggregator), and a Self-Improvement Engine for autonomous code analysis and patching. The business vision is to provide a comprehensive, self-managing AI solution that offers significant market potential by automating complex tasks and continuous self-optimization across various enterprise applications.
 
 ## User Preferences
 Estilo de comunicação preferido: Linguagem simples e cotidiana.
@@ -35,46 +35,26 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 ## System Architecture
 
 ### Core System Design
-AION operates in a single-tenant mode with a multi-agent architecture and LLM-driven Mixture of Experts (MoE) routing, implementing a GPU-FIRST 4-level priority chain with automatic fallback and universal multi-language support. It supports specialized agents with dedicated knowledge base namespaces, tool access, and budget limits. A Human-in-the-Loop (HITL) knowledge curation system requires human approval for all content before indexing. The GPU-FIRST inference architecture prioritizes internal GPU usage, falling back to web search + GPU, then free APIs (Groq, Gemini, HuggingFace, OpenRouter), and finally OpenAI (GPT-4o) as a last resort. This includes a Production-Grade On-Demand GPU System (`OnDemandGPUService`) with intelligent management and a GPU Pool System. The system features a Continuous Self-Evolution System, Multimodal Processing, and a Vision Cascade System. Agent systems include a level-based hierarchy, federated learning, and enterprise-level User & RBAC Management. Namespace isolation with schema updates ensures cross-tenant protection, and privacy-preserving heuristics are implemented.
+AION operates in a single-tenant mode with a multi-agent architecture and LLM-driven Mixture of Experts (MoE) routing. It implements a GPU-FIRST 4-level priority chain with automatic fallback and universal multi-language support. Specialized agents have dedicated knowledge base namespaces, tool access, and budget limits. A Human-in-the-Loop (HITL) knowledge curation system requires human approval for content. The GPU-FIRST inference architecture prioritizes internal GPU usage, falling back to web search + GPU, then free APIs, and finally OpenAI as a last resort, managed by a Production-Grade On-Demand GPU System. The system features a Continuous Self-Evolution System, Multimodal Processing, Vision Cascade System, level-based agent hierarchy, federated learning, and enterprise-level User & RBAC Management. Namespace isolation with schema updates ensures cross-tenant protection, and privacy-preserving heuristics are implemented.
 
 ### UI/UX
-The frontend uses React 18, Vite, Wouter, and TanStack Query, built with Radix UI, shadcn/ui patterns, Tailwind CSS, and a custom HSL-based design system. It features a minimalist design with glassmorphism, offering a conversational chat interface and an enterprise-level Admin Panel with a consolidated hierarchical menu and full Internationalization (i18n) supporting PT-BR (default), EN-US, ES-ES. All administrative pages are fully translated. The Personality Equalizer offers granular control via 7 functional sliders. The GPU Management Dashboard unifies manual and auto-managed GPU workers with RBAC and automatic orchestration. The Cascade Deletion system features a reusable `CascadeDeleteDialog` component showing dependency impact preview and audit trail.
+The frontend uses React 18, Vite, Wouter, and TanStack Query, built with Radix UI, shadcn/ui patterns, Tailwind CSS, and a custom HSL-based design system. It features a minimalist, glassmorphism design with a conversational chat interface and an enterprise-level Admin Panel. The Admin Panel includes a consolidated hierarchical menu, full Internationalization (i18n) supporting PT-BR (default), EN-US, ES-ES, a 7-Trait Personality Equalizer with granular control, and a GPU Management Dashboard with RBAC and auto-orchestration. A reusable `CascadeDeleteDialog` component shows dependency impact preview and audit trails.
 
 ### Technical Implementations
-The backend uses Node.js, TypeScript, Express.js, and PostgreSQL via Drizzle ORM. Key services include an LLM Client, Storage, Multi-Agent Router (MoE), namespace-scoped RAG, Agent Engine (ReAct with POMDP), Automatic Fallback, Production-Grade Multimodal Processing, Web Content Discovery, YouTube Transcription Service, Vision Cascade, free LLM Provider rotation, GPU Orchestrator, GPU Pool Manager, GPU Load Balancer, Training Data Collector, Dataset Generator, Auto-Learning System, Token Monitoring, Lifecycle Management, Orphan Detection, Zod schema validation, and a Comprehensive Telemetry System. The Kaggle CLI Service uses environment variables for authentication and multi-account support. The Namespace Classifier uses LLM-based auto-classification.
+The backend uses Node.js, TypeScript, Express.js, and PostgreSQL via Drizzle ORM. Key services include an LLM Client, Storage, Multi-Agent Router (MoE), namespace-scoped RAG, Agent Engine (ReAct with POMDP), Automatic Fallback, Production-Grade Multimodal Processing, Web Content Discovery, YouTube Transcription Service, Vision Cascade, free LLM Provider rotation, GPU Orchestrator, GPU Pool Manager, GPU Load Balancer, Training Data Collector, Dataset Generator, Auto-Learning System, Token Monitoring, Lifecycle Management, Orphan Detection, Zod schema validation, and a Comprehensive Telemetry System. A Kaggle CLI Service uses environment variables for authentication. The Namespace Classifier uses LLM-based auto-classification.
 
-An **Enterprise Cascade Data Lineage System** (`KBCascadeService`) implements production-grade deletion tracking with a hybrid deletion strategy, dependency tracking, automatic model tainting, and 4 Admin API endpoints for impact preview, audit queries, and cascade deletion. It ensures GDPR compliance and uses type-safe contracts.
+An **Enterprise Cascade Data Lineage System** (`KBCascadeService`) implements production-grade deletion tracking with a hybrid strategy, dependency tracking, automatic model tainting, and 4 Admin API endpoints for impact preview, audit queries, and cascade deletion, ensuring GDPR compliance. A **Production-Grade Colab Orchestrator Service** (`ColabCreator`) automates notebook creation with Puppeteer, stealth anti-detection, session persistence, robust authentication, and secure worker code injection. The **Persistent Vector Store** uses PostgreSQL's `pgvector` extension with IVFFlat Index for approximate nearest neighbor search and multi-tenant isolation. A **Production-Grade Persistence Layer** (PostgreSQL-backed) implements a Circuit Breaker, LLM Provider Quotas, Vision Cascade Quotas, and GPU Quota Enforcement with `QuotaEnforcementService` and `GpuWatchdogService`. A **Real-Time Provider Quota Monitoring System** (`ProviderLimitsTracker`) fetches real quota data directly from provider APIs and documentation for Groq, OpenRouter, Gemini, and HuggingFace, persisting it in PostgreSQL with automatic synchronization. All persistence systems feature structured logging, fault-tolerant error handling, and backward compatibility. The frontend uses Replit Auth (OpenID Connect). RAG combines OpenAI embeddings with BM25. Professional video generation uses an asynchronous job queue. Multi-Cloud Deployment uses Google Cloud Run and AWS Fargate. A multi-provider billing architecture with real-time cost tracking is implemented. Message and tool execution persistence ensures data integrity. An Enterprise Backup & Recovery System provides full database exports with security, rate limiting, and audit logging.
 
-A **Production-Grade Colab Orchestrator Service** (`ColabCreator`) implements Puppeteer-based automation with stealth anti-detection, session persistence, robust authentication, resilient notebook creation, production-grade GPU configuration, and secure worker code injection.
-
-The **Persistent Vector Store** uses PostgreSQL's `pgvector` extension with IVFFlat Index for approximate nearest neighbor search and multi-tenant isolation.
-
-A **Production-Grade Persistence Layer** (PostgreSQL-backed) implements a Circuit Breaker with state persistence, LLM Provider Quotas, Vision Cascade Quotas, and GPU Quota Enforcement (70% enterprise standard) with `QuotaEnforcementService` and `GpuWatchdogService` to prevent orphaned sessions and ensure durability.
-
-A **Real-Time Provider Quota Monitoring System** (`ProviderLimitsTracker`) fetches real quota data directly from provider APIs and official documentation (2025):
-- **Groq**: Real-time tracking via `x-ratelimit-*` HTTP headers (dynamic limits)
-- **OpenRouter**: API `/api/v1/key` for credits + official 2025 limits (50 RPD free, 1,000 RPD with $10+ credits, 20 RPM)
-- **Gemini**: Official Google docs 2025 limits (15 RPM, 1,500 RPD, 1M TPM)
-- **HuggingFace**: Conservative estimate (720 RPD) - no public API, credit-based system since 2025
-All quota data persists in PostgreSQL `provider_limits` table with automatic sync every minute. ZERO hardcoded values. The system normalizes provider slugs ('hf' → 'huggingface') for frontend compatibility.
-
-All persistence systems implement structured logging via Pino, fault-tolerant error handling, and backward compatibility. The frontend uses Replit Auth (OpenID Connect). RAG combines OpenAI embeddings with BM25. Professional video generation uses an asynchronous job queue. Multi-Cloud Deployment uses Google Cloud Run and AWS Fargate. A multi-provider billing architecture with real-time cost tracking and automated synchronization is implemented. Tool registration uses a mapping layer. Message and tool execution persistence ensures data integrity. An Enterprise Backup & Recovery System provides full database exports with security, rate limiting, and audit logging.
+The **Semantic Enforcement System** ensures 100% semantic enforcement across all components using OpenAI embeddings:
+- **Query Frequency Service (`QueryFrequencyService`)**: Tracks query patterns system-wide with 1536-dimensional embeddings and 92% cosine similarity for semantic matching.
+- **Auto-Namespace Creator (`AutoNamespaceCreator`)**: Provides accent-aware defaults for Portuguese domains with intelligent priority assignment and domain-specific slider templates for 7 traits (verbosity, formality, creativity, precision, persuasiveness, empathy, enthusiasm).
+- **Namespace Classifier (`NamespaceClassifier`)**: Offers LLM-based intent classification with confidence scoring and automatic namespace creation.
+- **Auto-Approval Logic (`AutoApprovalService`)**: Implements a multi-stage approval process based on quality scores and semantic query frequency.
+- **Deduplication System (3-Tier)**: Prevents duplicate indexing using exact hash matching, semantic similarity, and cross-validation.
+- **Admin UX**: Provides dedicated pages for managing namespaces, including basic info, sliders, system prompts, and triggers, with real-time updates and production-grade validation.
 
 ### System Design Decisions
-Key decisions include a single-tenant architecture, externalized JSON behavioral configurations, and comprehensive observability and telemetry with query monitoring, granular hierarchical usage analytics, and a modern dashboard. Security involves AES-256-GCM encryption for API credentials stored in a SecretsVault, supporting multi-account management with individual quota tracking.
-
-### Recent Changes (November 2025)
-**Auto-Curation Sensitivity Refinement:**
-- Removed "finance" and "tech" from `sensitive_flags` in auto_approval_config
-- Enables automatic approval of technical and business content with quality score >= 70
-- Reduces manual review overhead for legitimate educational/technical submissions
-
-**Link Capture Jobs Security Hardening:**
-- Migrated jobs endpoints (GET /jobs, GET /jobs/:id, PATCH /jobs/:id) to adminSubRouter
-- Added CSRF protection via `csrfProtection` middleware
-- Centralized in `server/routes/jobs.ts` following modular pattern
-- Enhanced validation: action parameter (pause/resume/cancel), job existence checks
-- Frontend already implements single/deep crawl modes and multimedia download options
+Key decisions include a single-tenant architecture, externalized JSON behavioral configurations, and comprehensive observability and telemetry with query monitoring and granular usage analytics. Security involves AES-256-GCM encryption for API credentials stored in a SecretsVault, supporting multi-account management with individual quota tracking.
 
 ## External Dependencies
 
@@ -84,28 +64,27 @@ Key decisions include a single-tenant architecture, externalized JSON behavioral
 - **Google Cloud Run**: Primary deployment platform.
 - **AWS Fargate**: Backup deployment platform.
 - **DuckDuckGo**: Web search.
-- **OpenRouter**: Free LLM API gateway.
-- **Groq, Gemini, HuggingFace**: Free LLM API providers.
+- **OpenRouter, Groq, Gemini, HuggingFace**: Free LLM API providers.
 - **Google Colab, Kaggle, Modal**: Free GPU resources.
 - **RunPod/Modal**: GPU workers for video generation.
 - **Replit**: Development environment and authentication (OpenID Connect).
 
 ### Core Libraries (NPM)
-- **@neondatabase/serverless**: PostgreSQL client
-- **drizzle-orm**: Type-safe ORM
-- **openai**: Official OpenAI SDK
-- **@google/generative-ai**: Gemini API client
-- **@huggingface/inference**: HuggingFace API client
-- **groq-sdk**: Groq API client
-- **youtube-transcript**: YouTube caption/subtitle extraction
-- **@radix-ui/**: Accessible UI primitives
-- **@tanstack/react-query**: Server state management
-- **tailwindcss**: Utility-first CSS framework
-- **zod**: Schema validation
-- **mammoth**: DOCX to text extraction
-- **xlsx**: Excel file parsing
-- **xml2js**: XML parsing
-- **pdf-parse**: PDF text extraction
-- **cheerio**: HTML parsing and web scraping
-- **multer**: File upload handling
-- **file-type**: MIME type detection
+- **@neondatabase/serverless**: PostgreSQL client.
+- **drizzle-orm**: Type-safe ORM.
+- **openai**: Official OpenAI SDK.
+- **@google/generative-ai**: Gemini API client.
+- **@huggingface/inference**: HuggingFace API client.
+- **groq-sdk**: Groq API client.
+- **youtube-transcript**: YouTube caption/subtitle extraction.
+- **@radix-ui/**: Accessible UI primitives.
+- **@tanstack/react-query**: Server state management.
+- **tailwindcss**: Utility-first CSS framework.
+- **zod**: Schema validation.
+- **mammoth**: DOCX to text extraction.
+- **xlsx**: Excel file parsing.
+- **xml2js**: XML parsing.
+- **pdf-parse**: PDF text extraction.
+- **cheerio**: HTML parsing and web scraping.
+- **multer**: File upload handling.
+- **file-type**: MIME type detection.

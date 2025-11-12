@@ -18,28 +18,30 @@ interface CreationResult {
 
 /**
  * 🎯 PRODUCTION-GRADE NAMESPACE DEFAULTS
- * Calcula priority baseado em categorias semânticas (ACCENT-AWARE)
+ * Calcula priority baseado em categorias semânticas (UNICODE NFD NORMALIZED)
  */
 function calculateNamespacePriority(name: string): number {
-  const lowercaseName = name.toLowerCase();
+  // CRITICAL: Normalize Unicode (NFD) to handle ALL accent variations
+  // "finanças" → "financas" (NFD) matches /financ/ pattern
+  const normalized = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   
-  // HIGH PRIORITY (80-90): Negócios, turismo, saúde
-  if (/turismo|viagem|viagens|travel|hotel|restaurante|gastronomia|sa[uú]de|health|medicina|m[eé]dico/.test(lowercaseName)) {
+  // HIGH PRIORITY (80-90): Negócios, turismo, saúde (NFD normalized)
+  if (/turismo|viagem|viagens|travel|hotel|restaurante|gastronomia|saude|health|medicina|medico/.test(normalized)) {
     return 85;
   }
   
-  // MEDIUM-HIGH (70-79): Tecnologia, finanças, educação
-  if (/tecnologia|tech|software|programa[cç][aã]o|finan[cç]as|investimento|educa[cç][aã]o|ensino/.test(lowercaseName)) {
+  // MEDIUM-HIGH (70-79): Tecnologia, finanças, educação (NFD normalized)
+  if (/tecnologia|tech|software|programacao|financas|investimento|educacao|ensino/.test(normalized)) {
     return 75;
   }
   
-  // MEDIUM (60-69): Cultura, entretenimento, filosofia
-  if (/cultura|arte|m[uú]sica|filme|cinema|filosofia|literatura|hist[oó]ria/.test(lowercaseName)) {
+  // MEDIUM (60-69): Cultura, entretenimento, filosofia (NFD normalized)
+  if (/cultura|arte|musica|filme|cinema|filosofia|literatura|historia/.test(normalized)) {
     return 65;
   }
   
-  // LOW-MEDIUM (50-59): Geral, saudações, casual
-  if (/geral|geral|sauda[cç][oõ]es|greetings|casual|conversa|comunica[cç][aã]o/.test(lowercaseName)) {
+  // LOW-MEDIUM (50-59): Geral, saudações, casual (NFD normalized)
+  if (/geral|saudacoes|greetings|casual|conversa|comunicacao/.test(normalized)) {
     return 50;
   }
   
@@ -49,14 +51,15 @@ function calculateNamespacePriority(name: string): number {
 
 /**
  * 🎨 PRODUCTION-GRADE PERSONALITY SLIDERS
- * Gera slider overrides baseado em domínio do namespace
+ * Gera slider overrides baseado em domínio do namespace (UNICODE NFD NORMALIZED)
  * SEMPRE retorna valores (ZERO namespaces sem sliders)
  */
 function generateSliderOverrides(name: string): Record<string, number> {
-  const lowercaseName = name.toLowerCase();
+  // CRITICAL: Normalize Unicode (NFD) to handle ALL accent variations
+  const normalized = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   
   // Turismo/Viagem: Alto persuasiveness, empathy, enthusiasm
-  if (/turismo|viagem|viagens|travel|hotel|restaurante|gastronomia|destino/.test(lowercaseName)) {
+  if (/turismo|viagem|viagens|travel|hotel|restaurante|gastronomia|destino/.test(normalized)) {
     return {
       verbosity: 0.6,
       formality: 0.4,
@@ -69,7 +72,7 @@ function generateSliderOverrides(name: string): Record<string, number> {
   }
   
   // Tecnologia: Alto precision, baixo empathy/enthusiasm
-  if (/tecnologia|tech|software|programa[cç][aã]o|desenvolvimento|dev|codigo|c[oó]digo/.test(lowercaseName)) {
+  if (/tecnologia|tech|software|programacao|desenvolvimento|dev|codigo/.test(normalized)) {
     return {
       verbosity: 0.5,
       formality: 0.7,
@@ -82,7 +85,7 @@ function generateSliderOverrides(name: string): Record<string, number> {
   }
   
   // Filosofia/Cultura: Alto creativity, verbosity, empathy
-  if (/filosofia|cultura|arte|m[uú]sica|literatura|hist[oó]ria|cinema|filme/.test(lowercaseName)) {
+  if (/filosofia|cultura|arte|musica|literatura|historia|cinema|filme/.test(normalized)) {
     return {
       verbosity: 0.7,
       formality: 0.5,
@@ -95,7 +98,7 @@ function generateSliderOverrides(name: string): Record<string, number> {
   }
   
   // Finanças: Alto precision, formality
-  if (/finan[cç]as|investimento|economia|dinheiro|neg[oó]cio|business/.test(lowercaseName)) {
+  if (/financas|investimento|economia|dinheiro|negocio|business/.test(normalized)) {
     return {
       verbosity: 0.5,
       formality: 0.8,
@@ -108,7 +111,7 @@ function generateSliderOverrides(name: string): Record<string, number> {
   }
   
   // Saúde: Alto empathy, precision, formality
-  if (/sa[uú]de|health|medicina|m[eé]dico|tratamento|diagn[oó]stico/.test(lowercaseName)) {
+  if (/saude|health|medicina|medico|tratamento|diagnostico/.test(normalized)) {
     return {
       verbosity: 0.6,
       formality: 0.7,
@@ -121,7 +124,7 @@ function generateSliderOverrides(name: string): Record<string, number> {
   }
   
   // Educação: Balanced, alto empathy
-  if (/educa[cç][aã]o|ensino|escola|universidade|aprendizado/.test(lowercaseName)) {
+  if (/educacao|ensino|escola|universidade|aprendizado/.test(normalized)) {
     return {
       verbosity: 0.65,
       formality: 0.6,
@@ -134,7 +137,7 @@ function generateSliderOverrides(name: string): Record<string, number> {
   }
   
   // Comunicação/Social: Alto empathy, enthusiasm
-  if (/comunica[cç][aã]o|social|conversa|atendimento|suporte/.test(lowercaseName)) {
+  if (/comunicacao|social|conversa|atendimento|suporte/.test(normalized)) {
     return {
       verbosity: 0.65,
       formality: 0.5,
@@ -147,7 +150,7 @@ function generateSliderOverrides(name: string): Record<string, number> {
   }
   
   // Saudações/Casual: Alto empathy, enthusiasm, baixo formality
-  if (/sauda[cç][oõ]es|greeting|ol[aá]|oi|boas.vindas|casual/.test(lowercaseName)) {
+  if (/saudacoes|greeting|ola|oi|boas.vindas|casual/.test(normalized)) {
     return {
       verbosity: 0.5,
       formality: 0.3,
@@ -174,58 +177,59 @@ function generateSliderOverrides(name: string): Record<string, number> {
 
 /**
  * ⚡ PRODUCTION-GRADE DETECTION TRIGGERS
- * Gera keywords relevantes para detecção automática (ACCENT-AWARE)
+ * Gera keywords relevantes para detecção automática (UNICODE NFD NORMALIZED)
  */
 function generateTriggers(name: string): string[] {
-  const lowercaseName = name.toLowerCase();
+  // CRITICAL: Normalize Unicode (NFD) to handle ALL accent variations
+  const normalized = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   
   // Turismo/Viagem
-  if (/turismo|viagem|viagens|travel|hotel|restaurante/.test(lowercaseName)) {
+  if (/turismo|viagem|viagens|travel|hotel|restaurante/.test(normalized)) {
     return ["turismo", "viagem", "viagens", "travel", "hotel", "passeio", "roteiro", "destino"];
   }
   
   // Tecnologia
-  if (/tecnologia|tech|software|programa[cç][aã]o|desenvolvimento/.test(lowercaseName)) {
+  if (/tecnologia|tech|software|programacao|desenvolvimento/.test(normalized)) {
     return ["tecnologia", "programação", "software", "código", "dev", "API", "tech"];
   }
   
   // Filosofia
-  if (/filosofia/.test(lowercaseName)) {
+  if (/filosofia/.test(normalized)) {
     return ["filosofia", "existência", "significado", "ética", "moral", "pensamento"];
   }
   
   // Finanças
-  if (/finan[cç]as|investimento|economia|neg[oó]cio/.test(lowercaseName)) {
+  if (/financas|investimento|economia|negocio/.test(normalized)) {
     return ["finanças", "investimento", "dinheiro", "economia", "lucro", "renda"];
   }
   
   // Cultura/Arte
-  if (/cultura|arte|m[uú]sica|hist[oó]ria/.test(lowercaseName)) {
+  if (/cultura|arte|musica|historia/.test(normalized)) {
     return ["cultura", "arte", "música", "expressão", "criatividade", "artista", "história"];
   }
   
   // Filmes/Cinema
-  if (/filme|cinema/.test(lowercaseName)) {
+  if (/filme|cinema/.test(normalized)) {
     return ["filme", "cinema", "diretor", "ator", "roteiro", "cena", "produção"];
   }
   
   // Saúde
-  if (/sa[uú]de|health|medicina|m[eé]dico|tratamento/.test(lowercaseName)) {
+  if (/saude|health|medicina|medico|tratamento/.test(normalized)) {
     return ["saúde", "medicina", "tratamento", "diagnóstico", "sintoma", "médico"];
   }
   
   // Educação
-  if (/educa[cç][aã]o|ensino|escola|universidade/.test(lowercaseName)) {
+  if (/educacao|ensino|escola|universidade/.test(normalized)) {
     return ["educação", "ensino", "escola", "aprendizado", "conhecimento"];
   }
   
   // Comunicação/Social
-  if (/comunica[cç][aã]o|social|atendimento|suporte/.test(lowercaseName)) {
+  if (/comunicacao|social|atendimento|suporte/.test(normalized)) {
     return ["comunicação", "conversa", "atendimento", "suporte", "social"];
   }
   
   // Saudações/Geral
-  if (/sauda[cç][oõ]es|greeting|ol[aá]|oi/.test(lowercaseName)) {
+  if (/saudacoes|greeting|ola|oi/.test(normalized)) {
     return ["olá", "oi", "bom dia", "boa tarde", "boa noite", "tudo bem"];
   }
   

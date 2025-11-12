@@ -80,13 +80,14 @@ export class QueryFrequencyService {
 
     try {
       // Query for top 5 most similar queries using vector cosine distance
-      // CRITICAL FIX: Use AND for namespace filter to avoid double WHERE clause
+      // CRITICAL FIX: Use proper pgvector syntax with array literal
+      const vectorLiteral = `[${embedding.join(',')}]`;
       const results = await db.execute(sql`
-        SELECT *, 1 - (query_embedding <=> ${JSON.stringify(embedding)}::vector) as similarity
+        SELECT *, 1 - (query_embedding <=> ${vectorLiteral}::vector) as similarity
         FROM user_query_frequency
         WHERE query_embedding IS NOT NULL
         ${namespace ? sql`AND namespace = ${namespace}` : sql``}
-        ORDER BY query_embedding <=> ${JSON.stringify(embedding)}::vector
+        ORDER BY query_embedding <=> ${vectorLiteral}::vector
         LIMIT 5
       `);
 

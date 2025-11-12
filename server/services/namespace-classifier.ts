@@ -39,11 +39,15 @@ export class NamespaceClassifier {
   async classifyContent(
     title: string,
     content: string,
-    tenantId: number = 1
+    tenantId?: number
   ): Promise<NamespaceClassificationResult> {
-    console.log('[Namespace Classifier] Analyzing content:', title);
+    // CRITICAL: Respect tenant isolation - no hardcoded defaults
+    if (!tenantId) {
+      console.warn('[Namespace Classifier] ⚠️ No tenantId provided - using null (global)');
+    }
+    console.log(`[Namespace Classifier] Analyzing content: "${title}" (tenant: ${tenantId || 'global'})`);
 
-    // 1. Buscar todos namespaces existentes
+    // 1. Buscar todos namespaces existentes (respecting tenant isolation)
     const existingNamespaces = await this.getExistingNamespaces(tenantId);
     
     // 2. Usar LLM para análise semântica profunda
@@ -89,17 +93,25 @@ export class NamespaceClassifier {
   }
 
   /**
-   * Buscar todos namespaces existentes
+   * Buscar todos namespaces existentes (with tenant isolation)
    * NOTE: Namespaces são FLAT (ex: "educacao.matematica" é uma string, não hierarquia)
+   * CRITICAL: Filters by tenantId when provided to prevent cross-tenant leakage
+   * Uses JSON path extraction to match tenantId even when metadata has extra fields
    */
-  private async getExistingNamespaces(tenantId: number) {
-    const results = await db
+  private async getExistingNamespaces(tenantId?: number) {
+    const query = db
       .select({
         id: namespaces.id,
         name: namespaces.name,
         description: namespaces.description,
       })
       .from(namespaces);
+
+    // Apply tenant filter using JSON path extraction (prevents cross-tenant leakage)
+    // Matches rows where metadata->>'tenantId' equals tenantId (even if metadata has extra keys)
+    const results = tenantId 
+      ? await query.where(sql`(${namespaces.metadata}->>'tenantId')::int = ${tenantId}`)
+      : await query; // Global namespaces (no tenant filter)
 
     return results.map(ns => {
       // Detectar subnamespace pela presença de "." no nome
