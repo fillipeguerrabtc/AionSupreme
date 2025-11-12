@@ -101,6 +101,228 @@ LEMBRE-SE: Você é um AMIGO ajudando, NÃO um professor dando aula ou um dicion
   }
 
   /**
+   * Map slider value to 5-tier sensitivity level
+   * Thresholds: ≤20%, 21-40%, 41-60%, 61-80%, >80%
+   */
+  private getSliderLevel(value: number): 1 | 2 | 3 | 4 | 5 {
+    if (value <= 0.20) return 1;  // Very Low (0-20%)
+    if (value <= 0.40) return 2;  // Low (21-40%)
+    if (value <= 0.60) return 3;  // Balanced (41-60%)
+    if (value <= 0.80) return 4;  // High (61-80%)
+    return 5;                      // Very High (81-100%)
+  }
+
+  /**
+   * Get Verbosity description based on 5-tier system
+   */
+  private getVerbosityDescription(value: number): { short: string; detailed: string } {
+    const level = this.getSliderLevel(value);
+    const descriptions: Record<number, { short: string; detailed: string }> = {
+      1: {
+        short: "muito conciso",
+        detailed: "Respostas ULTRA CURTAS. Máximo 1 frase. Sem explicações adicionais."
+      },
+      2: {
+        short: "conciso",
+        detailed: "Mantenha respostas CURTAS e DIRETAS. 1-2 frases sempre que possível."
+      },
+      3: {
+        short: "balanceado",
+        detailed: "Respostas balanceadas - nem muito curtas, nem muito longas."
+      },
+      4: {
+        short: "detalhado",
+        detailed: "Forneça respostas DETALHADAS com explicações completas e contexto."
+      },
+      5: {
+        short: "muito detalhado",
+        detailed: "Respostas EXTREMAMENTE ABRANGENTES. Explore todos os ângulos, exemplos múltiplos, contexto profundo."
+      }
+    };
+    return descriptions[level];
+  }
+
+  /**
+   * Get Formality description based on 5-tier system
+   */
+  private getFormalityDescription(value: number): { short: string; detailed: string } {
+    const level = this.getSliderLevel(value);
+    const descriptions: Record<number, { short: string; detailed: string }> = {
+      1: {
+        short: "super casual",
+        detailed: "Seja SUPER CASUAL. Use gírias, abreviações, emoji quando apropriado. Fale como amigo próximo."
+      },
+      2: {
+        short: "casual",
+        detailed: "Seja CASUAL e AMIGÁVEL. Use contrações, linguagem informal quando apropriado."
+      },
+      3: {
+        short: "semi-formal",
+        detailed: "Tom profissional mas acessível. Equilíbrio entre formal e casual."
+      },
+      4: {
+        short: "formal",
+        detailed: "Seja FORMAL e PROFISSIONAL. Gramática correta, evite gírias."
+      },
+      5: {
+        short: "muito formal",
+        detailed: "FORMALIDADE MÁXIMA. Evite contrações, use gramática impecável, tom corporativo/acadêmico."
+      }
+    };
+    return descriptions[level];
+  }
+
+  /**
+   * Get Creativity description based on 5-tier system
+   */
+  private getCreativityDescription(value: number): { short: string; detailed: string } {
+    const level = this.getSliderLevel(value);
+    const descriptions: Record<number, { short: string; detailed: string }> = {
+      1: {
+        short: "puramente factual",
+        detailed: "Atenha-se ESTRITAMENTE a FATOS. ZERO metáforas, ZERO linguagem criativa, ZERO analogias."
+      },
+      2: {
+        short: "factual/literal",
+        detailed: "Atenha-se a FATOS apenas. SEM metáforas, SEM linguagem criativa."
+      },
+      3: {
+        short: "balanceado",
+        detailed: "Misture fatos com exemplos criativos ocasionais."
+      },
+      4: {
+        short: "criativo",
+        detailed: "Seja CRIATIVO! Use metáforas, analogias, descrições vívidas."
+      },
+      5: {
+        short: "altamente criativo",
+        detailed: "CRIATIVIDADE MÁXIMA! Use storytelling, metáforas elaboradas, analogias poderosas, linguagem poética quando apropriado."
+      }
+    };
+    return descriptions[level];
+  }
+
+  /**
+   * Get Precision description based on 5-tier system
+   */
+  private getPrecisionDescription(value: number): { short: string; detailed: string } {
+    const level = this.getSliderLevel(value);
+    const descriptions: Record<number, { short: string; detailed: string }> = {
+      1: {
+        short: "muito aproximado",
+        detailed: "Estimativas gerais são suficientes. Arredonde números livremente."
+      },
+      2: {
+        short: "aproximado",
+        detailed: "Respostas aproximadas são aceitáveis. Números arredondados, estimativas gerais."
+      },
+      3: {
+        short: "balanceado",
+        detailed: "Seja razoavelmente preciso com fatos e números."
+      },
+      4: {
+        short: "preciso",
+        detailed: "PRECISÃO ALTA obrigatória. Números exatos, dados verificados."
+      },
+      5: {
+        short: "extremamente preciso",
+        detailed: "PRECISÃO EXTREMA obrigatória. Números exatos com casas decimais, citações literais, fontes específicas, datas precisas."
+      }
+    };
+    return descriptions[level];
+  }
+
+  /**
+   * Get Persuasiveness description based on 5-tier system
+   */
+  private getPersuasivenessDescription(value: number): { short: string; detailed: string } {
+    const level = this.getSliderLevel(value);
+    const descriptions: Record<number, { short: string; detailed: string }> = {
+      1: {
+        short: "puramente informativo",
+        detailed: "Apresente informações de forma COMPLETAMENTE NEUTRA. ZERO linguagem persuasiva, ZERO opinião."
+      },
+      2: {
+        short: "neutro/informativo",
+        detailed: "Apresente informações de forma NEUTRA. SEM linguagem persuasiva."
+      },
+      3: {
+        short: "moderadamente persuasivo",
+        detailed: "Moderadamente persuasivo quando apropriado."
+      },
+      4: {
+        short: "persuasivo",
+        detailed: "Use técnicas PERSUASIVAS - argumentos fortes, exemplos convincentes."
+      },
+      5: {
+        short: "altamente persuasivo",
+        detailed: "PERSUASÃO MÁXIMA! Use técnicas avançadas: prova social, escassez, autoridade, reciprocidade, exemplos impactantes."
+      }
+    };
+    return descriptions[level];
+  }
+
+  /**
+   * Get Empathy description based on 5-tier system
+   */
+  private getEmpathyDescription(value: number): { short: string; detailed: string } {
+    const level = this.getSliderLevel(value);
+    const descriptions: Record<number, { short: string; detailed: string }> = {
+      1: {
+        short: "puramente objetivo",
+        detailed: "Atenha-se ESTRITAMENTE a FATOS OBJETIVOS. ZERO consideração emocional."
+      },
+      2: {
+        short: "objetivo/factual",
+        detailed: "Atenha-se a FATOS OBJETIVOS. Mínima consideração emocional."
+      },
+      3: {
+        short: "empatia balanceada",
+        detailed: "Balance fatos com consciência emocional."
+      },
+      4: {
+        short: "empático",
+        detailed: "Demonstre EMPATIA. Reconheça sentimentos, forneça suporte emocional."
+      },
+      5: {
+        short: "altamente empático",
+        detailed: "EMPATIA MÁXIMA! Conecte-se profundamente com emoções, valide sentimentos intensamente, ofereça suporte emocional robusto."
+      }
+    };
+    return descriptions[level];
+  }
+
+  /**
+   * Get Enthusiasm description based on 5-tier system
+   */
+  private getEnthusiasmDescription(value: number): { short: string; detailed: string } {
+    const level = this.getSliderLevel(value);
+    const descriptions: Record<number, { short: string; detailed: string }> = {
+      1: {
+        short: "muito calmo",
+        detailed: "Mantenha tom EXTREMAMENTE CALMO e reservado. ZERO pontos de exclamação, ZERO emoticons."
+      },
+      2: {
+        short: "calmo/reservado",
+        detailed: "Mantenha tom CALMO e reservado. SEM pontos de exclamação."
+      },
+      3: {
+        short: "moderadamente entusiasmado",
+        detailed: "Energia moderada nas respostas."
+      },
+      4: {
+        short: "entusiasmado",
+        detailed: "Seja ENTUSIASMADO! Mostre empolgação, use linguagem expressiva!"
+      },
+      5: {
+        short: "muito entusiasmado",
+        detailed: "ENTUSIASMO MÁXIMO! Demonstre MUITA empolgação, use linguagem altamente expressiva, celebre conquistas!"
+      }
+    };
+    return descriptions[level];
+  }
+
+  /**
    * Detect language from user message
    * Improved to handle short messages correctly
    */
@@ -202,6 +424,15 @@ REGRA OBRIGATÓRIA:
     }
     
     // Adicionar traços de personalidade - TODOS EM PORTUGUÊS BRASILEIRO!
+    // Sistema de 5 níveis de granularidade (≤20%, 21-40%, 41-60%, 61-80%, >80%)
+    const verbosityDesc = this.getVerbosityDescription(policy.behavior.verbosity);
+    const formalityDesc = this.getFormalityDescription(policy.behavior.formality);
+    const creativityDesc = this.getCreativityDescription(policy.behavior.creativity);
+    const precisionDesc = this.getPrecisionDescription(policy.behavior.precision);
+    const persuasivenessDesc = this.getPersuasivenessDescription(policy.behavior.persuasiveness);
+    const empathyDesc = this.getEmpathyDescription(policy.behavior.empathy);
+    const enthusiasmDesc = this.getEnthusiasmDescription(policy.behavior.enthusiasm);
+    
     prompt += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎭 CONFIGURAÇÃO DE PERSONALIDADE E COMPORTAMENTO:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -209,29 +440,29 @@ REGRA OBRIGATÓRIA:
 📊 PARÂMETROS CONFIGURADOS:
 - Estilo de Humor: ${policy.humor}
 - Tom de Comunicação: ${policy.tone}
-- Verbosity: ${(policy.behavior.verbosity * 100).toFixed(0)}% (${policy.behavior.verbosity < 0.3 ? 'conciso' : policy.behavior.verbosity < 0.7 ? 'balanceado' : 'detalhado'})
-- Formality: ${(policy.behavior.formality * 100).toFixed(0)}% (${policy.behavior.formality < 0.3 ? 'casual' : policy.behavior.formality < 0.7 ? 'semi-formal' : 'muito formal'})
-- Creativity: ${(policy.behavior.creativity * 100).toFixed(0)}% (${policy.behavior.creativity < 0.3 ? 'factual/literal' : policy.behavior.creativity < 0.7 ? 'balanceado' : 'altamente criativo'})
-- Precision: ${(policy.behavior.precision * 100).toFixed(0)}% (${policy.behavior.precision < 0.3 ? 'aproximado' : policy.behavior.precision < 0.7 ? 'balanceado' : 'extremamente preciso'})
-- Persuasiveness: ${(policy.behavior.persuasiveness * 100).toFixed(0)}% (${policy.behavior.persuasiveness < 0.3 ? 'neutro/informativo' : policy.behavior.persuasiveness < 0.7 ? 'moderadamente persuasivo' : 'altamente persuasivo'})
-- Empathy: ${(policy.behavior.empathy * 100).toFixed(0)}% (${policy.behavior.empathy < 0.3 ? 'objetivo/factual' : policy.behavior.empathy < 0.7 ? 'empatia balanceada' : 'altamente empático'})
-- Enthusiasm: ${(policy.behavior.enthusiasm * 100).toFixed(0)}% (${policy.behavior.enthusiasm < 0.3 ? 'calmo/reservado' : policy.behavior.enthusiasm < 0.7 ? 'moderadamente entusiasmado' : 'muito entusiasmado'})
+- Verbosity: ${(policy.behavior.verbosity * 100).toFixed(0)}% (${verbosityDesc.short})
+- Formality: ${(policy.behavior.formality * 100).toFixed(0)}% (${formalityDesc.short})
+- Creativity: ${(policy.behavior.creativity * 100).toFixed(0)}% (${creativityDesc.short})
+- Precision: ${(policy.behavior.precision * 100).toFixed(0)}% (${precisionDesc.short})
+- Persuasiveness: ${(policy.behavior.persuasiveness * 100).toFixed(0)}% (${persuasivenessDesc.short})
+- Empathy: ${(policy.behavior.empathy * 100).toFixed(0)}% (${empathyDesc.short})
+- Enthusiasm: ${(policy.behavior.enthusiasm * 100).toFixed(0)}% (${enthusiasmDesc.short})
 
 🎯 REGRAS CRÍTICAS DE COMPORTAMENTO - CUMPRIMENTO OBRIGATÓRIO:
 
-✓ Verbosity: ${policy.behavior.verbosity < 0.3 ? 'Mantenha respostas CURTAS e DIRETAS. 1-2 frases sempre que possível.' : policy.behavior.verbosity < 0.7 ? 'Respostas balanceadas - nem muito curtas, nem muito longas.' : 'Forneça respostas DETALHADAS e ABRANGENTES com explicações completas.'}
+✓ Verbosity: ${verbosityDesc.detailed}
 
-✓ Formality: ${policy.behavior.formality < 0.3 ? 'Seja CASUAL e AMIGÁVEL. Use contrações, linguagem informal, gírias quando apropriado.' : policy.behavior.formality < 0.7 ? 'Tom profissional mas acessível. Equilíbrio entre formal e casual.' : 'Seja FORMAL e PROFISSIONAL. Evite contrações, use gramática impecável.'}
+✓ Formality: ${formalityDesc.detailed}
 
-✓ Creativity: ${policy.behavior.creativity < 0.3 ? 'Atenha-se a FATOS apenas. SEM metáforas, SEM linguagem criativa.' : policy.behavior.creativity < 0.7 ? 'Misture fatos com exemplos criativos ocasionais.' : 'Seja CRIATIVO! Use metáforas, analogias, descrições vívidas.'}
+✓ Creativity: ${creativityDesc.detailed}
 
-✓ Precision: ${policy.behavior.precision < 0.3 ? 'Respostas aproximadas são aceitáveis. Números arredondados, estimativas gerais.' : policy.behavior.precision < 0.7 ? 'Seja razoavelmente preciso com fatos e números.' : 'PRECISÃO EXTREMA obrigatória. Números exatos, citações, fontes.'}
+✓ Precision: ${precisionDesc.detailed}
 
-✓ Persuasiveness: ${policy.behavior.persuasiveness < 0.3 ? 'Apresente informações de forma NEUTRA. SEM linguagem persuasiva.' : policy.behavior.persuasiveness < 0.7 ? 'Moderadamente persuasivo quando apropriado.' : 'Use técnicas PERSUASIVAS - argumentos fortes, exemplos convincentes.'}
+✓ Persuasiveness: ${persuasivenessDesc.detailed}
 
-✓ Empathy: ${policy.behavior.empathy < 0.3 ? 'Atenha-se a FATOS OBJETIVOS. Mínima consideração emocional.' : policy.behavior.empathy < 0.7 ? 'Balance fatos com consciência emocional.' : 'Demonstre FORTE EMPATIA. Reconheça sentimentos, forneça suporte emocional.'}
+✓ Empathy: ${empathyDesc.detailed}
 
-✓ Enthusiasm: ${policy.behavior.enthusiasm < 0.3 ? 'Mantenha tom CALMO e reservado. SEM pontos de exclamação.' : policy.behavior.enthusiasm < 0.7 ? 'Energia moderada nas respostas.' : 'Seja ENTUSIASMADO! Mostre empolgação, use linguagem expressiva!'}
+✓ Enthusiasm: ${enthusiasmDesc.detailed}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠️ PRIORIDADE ABSOLUTA DAS INSTRUÇÕES PERSONALIZADAS:

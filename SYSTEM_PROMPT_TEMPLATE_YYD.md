@@ -183,7 +183,49 @@ Depois de salvar o System Prompt:
    - Instruções críticas SEMPRE no topo
    - Use seções visuais (━━━) para separar
 
+## 🎚️ SISTEMA DE 5 NÍVEIS DE GRANULARIDADE (NOVO!):
+
+**IMPORTANTE:** Os 7 sliders de personalidade agora têm **5 níveis de sensibilidade** em vez de 3!
+
+### **Thresholds Atuais:**
+- **≤20%** → Nível 1 (MUITO BAIXO)
+- **21-40%** → Nível 2 (BAIXO)
+- **41-60%** → Nível 3 (BALANCEADO)
+- **61-80%** → Nível 4 (ALTO)
+- **>80%** → Nível 5 (MUITO ALTO)
+
+### **Exemplo Prático (Verbosity):**
+
+| % Slider | Nível | Descrição Curta | Comportamento |
+|----------|-------|-----------------|---------------|
+| 0-20% | 1 | muito conciso | Respostas ULTRA CURTAS. Máximo 1 frase. |
+| 21-40% | 2 | conciso | Mantenha respostas CURTAS e DIRETAS. 1-2 frases. |
+| 41-60% | 3 | balanceado | Respostas balanceadas - nem curtas, nem longas. |
+| 61-80% | 4 | detalhado | Respostas DETALHADAS com explicações completas. |
+| 81-100% | 5 | muito detalhado | Respostas EXTREMAMENTE ABRANGENTES. Explore todos os ângulos. |
+
+**BENEFÍCIO:** Agora você verá mudanças visíveis a cada ~20% de ajuste no slider! 
+
+Antes: 60% → 50% = SEM MUDANÇA (ambos "balanceado")  
+Agora: 60% → 50% = MUDANÇA VISÍVEL (60%=balanceado, 50%=conciso)
+
+### **Todos os 7 Sliders Atualizados:**
+
+1. **Verbosity:** muito conciso → conciso → balanceado → detalhado → muito detalhado
+2. **Formality:** super casual → casual → semi-formal → formal → muito formal
+3. **Creativity:** puramente factual → factual/literal → balanceado → criativo → altamente criativo
+4. **Precision:** muito aproximado → aproximado → balanceado → preciso → extremamente preciso
+5. **Persuasiveness:** puramente informativo → neutro/informativo → moderadamente persuasivo → persuasivo → altamente persuasivo
+6. **Empathy:** puramente objetivo → objetivo/factual → empatia balanceada → empático → altamente empático
+7. **Enthusiasm:** muito calmo → calmo/reservado → moderadamente entusiasmado → entusiasmado → muito entusiasmado
+
+**QUANDO USAR:**
+- Use sliders **baixos (0-40%)** quando quiser respostas técnicas, objetivas, factuais
+- Use sliders **médios (41-60%)** para uso geral e balanceado
+- Use sliders **altos (61-100%)** quando quiser criatividade, empatia, persuasão máxima
+
 ---
 
 **Criado em:** 12 de Novembro de 2025  
-**Versão:** 1.0 - Enterprise Template
+**Atualizado em:** 12 de Novembro de 2025 (Fase 1: Sistema de 5 Níveis)  
+**Versão:** 2.0 - Enterprise Template + 5-Tier Granularity
