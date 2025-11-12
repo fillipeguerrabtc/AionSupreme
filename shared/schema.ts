@@ -2106,28 +2106,123 @@ export const agentTools = pgTable("agent_tools", {
 });
 
 // ============================================================================
-// NAMESPACES - Knowledge base namespace management
+// NAMESPACES - Knowledge base namespace management + Enforcement Configuration (PHASE 2)
 // Allows admins to create, edit, and organize KB namespaces
 // Hierarchy is AUTOMATIC via naming (e.g., "financas" → "financas/investimentos")
+// PHASE 2: Each namespace can have specific sliders, system prompts, and enforcement rules
 // ============================================================================
 export const namespaces = pgTable("namespaces", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: varchar("name", { length: 255 }).notNull().unique(), // e.g., "financas/investimentos" (serve como ID e nome de exibição)
   description: text("description"),
   icon: varchar("icon", { length: 50 }), // Lucide icon name
+  
+  // ============================================================================
+  // PHASE 2: Namespace-Aware Enforcement Configuration
+  // ============================================================================
+  
+  // Agent assignment (optional - can reuse existing agent)
+  agentId: varchar("agent_id").references(() => agents.id, { onDelete: 'set null' }),
+  
+  // KB namespace mapping (can differ from display name)
+  kbNamespace: varchar("kb_namespace", { length: 255 }), // e.g., "portugal" for KB retrieval
+  
+  // Semantic triggers for automatic namespace detection
+  triggers: jsonb("triggers").$type<string[]>().default([]), // ["turismo", "portugal", "viagem"]
+  
+  // Confidence threshold for namespace activation (0.0 - 1.0)
+  confidenceThreshold: real("confidence_threshold").default(0.7), // 70% default
+  
+  // Priority for conflict resolution (1=HIGH, 2=MEDIUM, 3=LOW)
+  priority: integer("priority").default(2), // MEDIUM priority by default
+  
+  // Merge strategy when multiple namespaces match
+  mergeStrategy: varchar("merge_strategy", { length: 20 }).default("merge"), // "override" | "merge" | "fallback"
+  
+  // System prompt override (namespace-specific instructions)
+  systemPromptOverride: text("system_prompt_override"),
+  
+  // Slider overrides (namespace-specific behavior configuration)
+  // Same 7 traits as global policy, but specific to this namespace
+  sliderOverrides: jsonb("slider_overrides").$type<{
+    verbosity?: number; // 0-1 (concise vs detailed)
+    formality?: number; // 0-1 (casual vs formal)
+    creativity?: number; // 0-1 (factual vs creative)
+    precision?: number; // 0-1 (approximate vs precise)
+    persuasiveness?: number; // 0-1 (neutral vs persuasive)
+    empathy?: number; // 0-1 (objective vs empathetic)
+    enthusiasm?: number; // 0-1 (calm vs enthusiastic)
+  }>(),
+  
+  // Enable/disable namespace
+  enabled: boolean("enabled").default(true),
+  
+  // Metadata for analytics and extensibility
+  metadata: jsonb("metadata").$type<{
+    usageCount?: number; // How many times this namespace was activated
+    lastActivatedAt?: string; // ISO timestamp
+    classificationAccuracy?: number; // 0-100%
+    customFields?: Record<string, any>;
+  }>(),
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   nameIdx: index("namespaces_name_idx").on(table.name),
+  agentIdIdx: index("namespaces_agent_id_idx").on(table.agentId),
+  priorityIdx: index("namespaces_priority_idx").on(table.priority),
+  enabledIdx: index("namespaces_enabled_idx").on(table.enabled),
 }));
 
+// Namespace insert schema with validation
 export const insertNamespaceSchema = createInsertSchema(namespaces).omit({ 
   id: true, 
   createdAt: true, 
   updatedAt: true,
+}).extend({
+  // Validate triggers array
+  triggers: z.array(z.string().min(1).max(100)).max(50).optional(),
+  
+  // Validate confidence threshold (0.0 - 1.0)
+  confidenceThreshold: z.number().min(0).max(1).optional(),
+  
+  // Validate priority (1-3)
+  priority: z.number().int().min(1).max(3).optional(),
+  
+  // Validate merge strategy
+  mergeStrategy: z.enum(["override", "merge", "fallback"]).optional(),
+  
+  // Validate slider overrides (0.0 - 1.0 for each)
+  sliderOverrides: z.object({
+    verbosity: z.number().min(0).max(1).optional(),
+    formality: z.number().min(0).max(1).optional(),
+    creativity: z.number().min(0).max(1).optional(),
+    precision: z.number().min(0).max(1).optional(),
+    persuasiveness: z.number().min(0).max(1).optional(),
+    empathy: z.number().min(0).max(1).optional(),
+    enthusiasm: z.number().min(0).max(1).optional(),
+  }).optional(),
 });
+
+// Update schema with validation for system prompt override
+export const updateNamespaceSchema = insertNamespaceSchema.partial().extend({
+  id: z.string().uuid(),
+});
+
 export type InsertNamespace = z.infer<typeof insertNamespaceSchema>;
+export type UpdateNamespace = z.infer<typeof updateNamespaceSchema>;
 export type Namespace = typeof namespaces.$inferSelect;
+
+// Namespace slider overrides type (for type safety)
+export type NamespaceSliderOverrides = {
+  verbosity?: number;
+  formality?: number;
+  creativity?: number;
+  precision?: number;
+  persuasiveness?: number;
+  empathy?: number;
+  enthusiasm?: number;
+};
 
 /**
  * Curation Queue - HITL (Human-in-the-Loop) content curation workflow

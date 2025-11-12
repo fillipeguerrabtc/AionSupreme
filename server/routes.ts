@@ -11,6 +11,7 @@ import { reactEngine } from "./agent/react-engine";
 import { agentTools } from "./agent/tools";
 import { enforcementPipeline } from "./policy/enforcement-pipeline";
 import { autoFallback } from "./policy/auto-fallback";
+import { intentRouter } from "./services/intent-router"; // PHASE 2: Intent detection for namespace-aware enforcement
 import { fileProcessor } from "./multimodal/file-processor";
 import { knowledgeIndexer } from "./rag/knowledge-indexer";
 import { generateWithPriority } from "./llm/priority-orchestrator";
@@ -791,8 +792,18 @@ export function registerRoutes(app: Express): Server {
       
       // Obter política ou usar PADRÃO SEM RESTRIÇÕES (todas as regras = false)
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
+      
+      // PHASE 2: Detect namespace for semantic enforcement
+      const intentDetection = await intentRouter.detectIntent(lastUserMessage);
+      
       // ✅ FIX BUG #2: Passar detectedLanguage para system prompt
-      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage, detectedLanguage);
+      // PHASE 2: Pass namespaceId for namespace-aware enforcement
+      const systemPrompt = await enforcementPipeline.composeSystemPrompt(
+        policy, 
+        lastUserMessage, 
+        detectedLanguage,
+        intentDetection.namespaceId || undefined
+      );
       const fullMessages = [{ role: "system", content: systemPrompt }, ...messages];
       
       // Verificar se sistema está SEM RESTRIÇÕES (todas as regras = false)
@@ -1041,8 +1052,18 @@ export function registerRoutes(app: Express): Server {
       console.log("[SSE] Using priority orchestrator");
       
       const policy = await enforcementPipeline.getOrCreateDefaultPolicy();
+      
+      // PHASE 2: Detect namespace for semantic enforcement
+      const intentDetection = await intentRouter.detectIntent(message);
+      
       // ✅ FIX BUG #2: Passar detectedLanguage para system prompt
-      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, message, detectedLanguage);
+      // PHASE 2: Pass namespaceId for namespace-aware enforcement
+      const systemPrompt = await enforcementPipeline.composeSystemPrompt(
+        policy, 
+        message, 
+        detectedLanguage,
+        intentDetection.namespaceId || undefined
+      );
       const fullMessages = [{ role: "system", content: systemPrompt }, ...messages];
       
       const activeRules = Object.values(policy.rules).filter(v => v === true);
@@ -1305,7 +1326,16 @@ export function registerRoutes(app: Express): Server {
       const detectedLanguage = language || autoDetectLanguage(lastUserMessage);
       console.log(`[Chat Multimodal] Language: ${detectedLanguage} ${!language ? '(auto-detected)' : '(frontend)'}`);
       
-      const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage, detectedLanguage);
+      // PHASE 2: Detect namespace for semantic enforcement
+      const intentDetection = await intentRouter.detectIntent(lastUserMessage);
+      
+      // PHASE 2: Pass namespaceId for namespace-aware enforcement
+      const systemPrompt = await enforcementPipeline.composeSystemPrompt(
+        policy, 
+        lastUserMessage, 
+        detectedLanguage,
+        intentDetection.namespaceId || undefined
+      );
       const fullMessages = [{ role: "system", content: systemPrompt }, ...enrichedMessages];
       
       const result = await llmClient.chatCompletion({

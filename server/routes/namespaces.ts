@@ -108,15 +108,34 @@ export function registerNamespaceRoutes(app: Router) {
   });
 
   // POST /api/namespaces - Create new namespace
+  // PHASE 2: Supports namespace-specific sliders, system prompts, and enforcement config
   app.post("/namespaces", async (req: Request, res: Response) => {
     try {
+      // Validate with Phase 2 schema (includes sliderOverrides, triggers, etc)
       const validatedData = insertNamespaceSchema.parse(req.body);
+
+      // Verify agentId exists if provided
+      if (validatedData.agentId) {
+        const { agents } = await import("@shared/schema");
+        const [agent] = await db
+          .select()
+          .from(agents)
+          .where(eq(agents.id, validatedData.agentId));
+        
+        if (!agent) {
+          return res.status(400).json({
+            error: "Invalid agentId",
+            message: `Agent with ID "${validatedData.agentId}" does not exist`
+          });
+        }
+      }
 
       const [newNamespace] = await db
         .insert(namespaces)
-        .values(validatedData as any)
+        .values(validatedData as typeof namespaces.$inferInsert)
         .returning();
 
+      console.log(`[Namespaces] ✅ Created namespace "${newNamespace.name}" with Phase 2 config`);
       res.status(201).json(newNamespace);
     } catch (error) {
       console.error("Error creating namespace:", error);
@@ -136,6 +155,7 @@ export function registerNamespaceRoutes(app: Router) {
   });
 
   // PATCH /api/namespaces/:id - Update namespace
+  // PHASE 2: Supports updating namespace-specific sliders, system prompts, and enforcement config
   app.patch("/namespaces/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -150,21 +170,42 @@ export function registerNamespaceRoutes(app: Router) {
         return res.status(404).json({ error: "Namespace not found" });
       }
 
-      // Validate partial update data
+      // Validate partial update data with Phase 2 schema
       const updateSchema = insertNamespaceSchema.partial();
       const validatedData = updateSchema.parse(req.body);
 
-      const updateData: any = {
+      // Verify agentId exists if being updated
+      if (validatedData.agentId !== undefined) {
+        if (validatedData.agentId === null) {
+          // Explicitly setting to null is allowed (removes agent assignment)
+        } else {
+          const { agents } = await import("@shared/schema");
+          const [agent] = await db
+            .select()
+            .from(agents)
+            .where(eq(agents.id, validatedData.agentId));
+          
+          if (!agent) {
+            return res.status(400).json({
+              error: "Invalid agentId",
+              message: `Agent with ID "${validatedData.agentId}" does not exist`
+            });
+          }
+        }
+      }
+
+      const updateData: Partial<typeof namespaces.$inferInsert> = {
         ...validatedData,
         updatedAt: new Date(),
       };
 
       const [updatedNamespace] = await db
         .update(namespaces)
-        .set(updateData)
+        .set(updateData as any)
         .where(eq(namespaces.id, id))
         .returning();
 
+      console.log(`[Namespaces] ✅ Updated namespace "${updatedNamespace.name}" with Phase 2 config`);
       res.json(updatedNamespace);
     } catch (error) {
       console.error("Error updating namespace:", error);
@@ -420,8 +461,7 @@ export function registerNamespaceRoutes(app: Router) {
           name: namespaceName,
           description,
           icon: icon || null,
-          tenantId: 1,
-        } as InsertNamespace)
+        })
         .returning();
 
       // Importar serviço de agentes

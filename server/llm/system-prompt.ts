@@ -18,6 +18,7 @@
  */
 
 import { EnforcementPipeline } from '../policy/enforcement-pipeline';
+import { intentRouter } from '../services/intent-router'; // PHASE 2: Intent detection
 import type { LLMRequest } from './free-apis';
 
 /**
@@ -145,8 +146,17 @@ export async function composeConversationalRequest(
   const userMessages = baseMessages.filter(m => m.role === 'user');
   const userMessage = userMessages.length > 0 ? userMessages[userMessages.length - 1].content : undefined;
   
+  // PHASE 2: Detect namespace for semantic enforcement
+  const intentDetection = userMessage ? await intentRouter.detectIntent(userMessage) : { namespaceId: null };
+  
   // ✅ FIX: Pass detectedLanguage to prevent re-detection with limited regex
-  const baseSystemPrompt = await pipeline.composeSystemPrompt(policy, userMessage, detectedLanguage);
+  // PHASE 2: Pass namespaceId for namespace-aware enforcement
+  const baseSystemPrompt = await pipeline.composeSystemPrompt(
+    policy, 
+    userMessage, 
+    detectedLanguage,
+    intentDetection.namespaceId || undefined
+  );
 
   // Step 2: Build context injection (KB snippets, web results, etc)
   let contextInjection = '';

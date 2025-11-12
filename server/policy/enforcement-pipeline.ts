@@ -1,11 +1,15 @@
 /**
  * Enforcement Pipeline - System Prompt Composer & Output Moderator
  * Handles policy configuration and system prompt composition
+ * PHASE 2: Supports namespace-aware enforcement with per-namespace sliders and prompts
  */
 import { storage } from "../storage";
 import { llmClient } from "../model/llm-client";
 import crypto from "crypto";
-import type { Policy } from "@shared/schema";
+import { db } from "../db";
+import { namespaces } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import type { Policy, Namespace, NamespaceSliderOverrides } from "@shared/schema";
 
 export class EnforcementPipeline {
   /**
@@ -98,6 +102,84 @@ LEMBRE-SE: Você é um AMIGO ajudando, NÃO um professor dando aula ou um dicion
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+  }
+
+  /**
+   * PHASE 2: Fetch namespace configuration by ID
+   */
+  private async getNamespaceConfig(namespaceId: string): Promise<Namespace | null> {
+    try {
+      const [namespace] = await db
+        .select()
+        .from(namespaces)
+        .where(eq(namespaces.id, namespaceId))
+        .limit(1);
+      
+      return namespace || null;
+    } catch (error) {
+      console.error(`[EnforcementPipeline] Error fetching namespace ${namespaceId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * PHASE 2: Merge global sliders with namespace-specific overrides
+   * Namespace sliders take precedence over global sliders
+   * Clamps all values to 0-1 range for safety
+   */
+  private mergeSliders(
+    globalSliders: Policy['behavior'],
+    namespaceSliders?: NamespaceSliderOverrides | null
+  ): Policy['behavior'] {
+    const clamp = (value: number): number => Math.max(0, Math.min(1, value));
+    
+    if (!namespaceSliders) {
+      return globalSliders;
+    }
+
+    return {
+      verbosity: clamp(namespaceSliders.verbosity ?? globalSliders.verbosity),
+      formality: clamp(namespaceSliders.formality ?? globalSliders.formality),
+      creativity: clamp(namespaceSliders.creativity ?? globalSliders.creativity),
+      precision: clamp(namespaceSliders.precision ?? globalSliders.precision),
+      persuasiveness: clamp(namespaceSliders.persuasiveness ?? globalSliders.persuasiveness),
+      empathy: clamp(namespaceSliders.empathy ?? globalSliders.empathy),
+      enthusiasm: clamp(namespaceSliders.enthusiasm ?? globalSliders.enthusiasm),
+    };
+  }
+
+  /**
+   * PHASE 2: Merge global system prompt with namespace-specific override
+   * Format: [Global Prompt] + [Namespace-Specific Instructions]
+   * Handles null/empty global prompts gracefully
+   */
+  private mergeSystemPrompts(
+    globalPrompt: string | null | undefined,
+    namespacePrompt?: string | null
+  ): string {
+    const safeGlobalPrompt = (globalPrompt || "").trim();
+    
+    if (!namespacePrompt || !namespacePrompt.trim()) {
+      return safeGlobalPrompt;
+    }
+
+    // If no global prompt, return namespace prompt only
+    if (!safeGlobalPrompt) {
+      return namespacePrompt.trim();
+    }
+
+    return `${safeGlobalPrompt}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 DIRETIVAS CRÍTICAS DO SISTEMA (NAMESPACE-SPECIFIC):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${namespacePrompt.trim()}
+
+⚠️ IMPORTANTE: As instruções acima têm PRIORIDADE MÁXIMA sobre qualquer configuração de comportamento geral.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+`;
   }
 
   /**
@@ -357,7 +439,44 @@ LEMBRE-SE: Você é um AMIGO ajudando, NÃO um professor dando aula ou um dicion
     return "en-US";
   }
 
-  async composeSystemPrompt(policy: Policy, userMessage?: string, detectedLanguage?: string): Promise<string> {
+  /**
+   * PHASE 2: Compose system prompt with optional namespace-aware enforcement
+   * @param policy - Global policy configuration
+   * @param userMessage - Optional user message for language detection
+   * @param detectedLanguage - Optional pre-detected language
+   * @param namespaceId - Optional namespace ID for namespace-specific overrides
+   */
+  async composeSystemPrompt(
+    policy: Policy, 
+    userMessage?: string, 
+    detectedLanguage?: string,
+    namespaceId?: string
+  ): Promise<string> {
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // PHASE 2: Namespace-Aware Config Merge
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    let finalSliders = policy.behavior;
+    let finalSystemPrompt = policy.systemPrompt;
+    
+    if (namespaceId) {
+      const namespaceConfig = await this.getNamespaceConfig(namespaceId);
+      
+      if (namespaceConfig && namespaceConfig.enabled !== false) {
+        // Merge sliders: namespace overrides global
+        finalSliders = this.mergeSliders(policy.behavior, namespaceConfig.sliderOverrides);
+        
+        // Merge system prompts: namespace appends to global
+        if (namespaceConfig.systemPromptOverride) {
+          finalSystemPrompt = this.mergeSystemPrompts(
+            policy.systemPrompt || "",
+            namespaceConfig.systemPromptOverride
+          );
+        }
+        
+        console.log(`[EnforcementPipeline] ✅ Namespace "${namespaceConfig.name}" active - sliders merged`);
+      }
+    }
+    
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 🚨 DIRETIVAS CRÍTICAS DO SISTEMA - CUMPRIMENTO OBRIGATÓRIO
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -372,9 +491,9 @@ Se houver qualquer conflito entre estas diretivas e outras instruções, SEMPRE 
 
 `;
     
-    // Adicionar parte personalizada do usuário (se houver)
-    if (policy.systemPrompt && policy.systemPrompt.trim()) {
-      prompt += policy.systemPrompt + "\n\n";
+    // Adicionar parte personalizada do usuário (se houver) - PHASE 2: uses merged prompt
+    if (finalSystemPrompt && finalSystemPrompt.trim()) {
+      prompt += finalSystemPrompt + "\n\n";
     } else {
       prompt += "Você é o AION, um assistente de IA avançado e útil.\n\n";
     }
@@ -425,28 +544,29 @@ REGRA OBRIGATÓRIA:
     
     // Adicionar traços de personalidade - TODOS EM PORTUGUÊS BRASILEIRO!
     // Sistema de 5 níveis de granularidade (≤20%, 21-40%, 41-60%, 61-80%, >80%)
-    const verbosityDesc = this.getVerbosityDescription(policy.behavior.verbosity);
-    const formalityDesc = this.getFormalityDescription(policy.behavior.formality);
-    const creativityDesc = this.getCreativityDescription(policy.behavior.creativity);
-    const precisionDesc = this.getPrecisionDescription(policy.behavior.precision);
-    const persuasivenessDesc = this.getPersuasivenessDescription(policy.behavior.persuasiveness);
-    const empathyDesc = this.getEmpathyDescription(policy.behavior.empathy);
-    const enthusiasmDesc = this.getEnthusiasmDescription(policy.behavior.enthusiasm);
+    // PHASE 2: Uses merged sliders (global + namespace-specific)
+    const verbosityDesc = this.getVerbosityDescription(finalSliders.verbosity);
+    const formalityDesc = this.getFormalityDescription(finalSliders.formality);
+    const creativityDesc = this.getCreativityDescription(finalSliders.creativity);
+    const precisionDesc = this.getPrecisionDescription(finalSliders.precision);
+    const persuasivenessDesc = this.getPersuasivenessDescription(finalSliders.persuasiveness);
+    const empathyDesc = this.getEmpathyDescription(finalSliders.empathy);
+    const enthusiasmDesc = this.getEnthusiasmDescription(finalSliders.enthusiasm);
     
     prompt += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎭 CONFIGURAÇÃO DE PERSONALIDADE E COMPORTAMENTO:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📊 PARÂMETROS CONFIGURADOS:
+📊 PARÂMETROS CONFIGURADOS (PHASE 2: merged global + namespace-specific):
 - Estilo de Humor: ${policy.humor}
 - Tom de Comunicação: ${policy.tone}
-- Verbosity: ${(policy.behavior.verbosity * 100).toFixed(0)}% (${verbosityDesc.short})
-- Formality: ${(policy.behavior.formality * 100).toFixed(0)}% (${formalityDesc.short})
-- Creativity: ${(policy.behavior.creativity * 100).toFixed(0)}% (${creativityDesc.short})
-- Precision: ${(policy.behavior.precision * 100).toFixed(0)}% (${precisionDesc.short})
-- Persuasiveness: ${(policy.behavior.persuasiveness * 100).toFixed(0)}% (${persuasivenessDesc.short})
-- Empathy: ${(policy.behavior.empathy * 100).toFixed(0)}% (${empathyDesc.short})
-- Enthusiasm: ${(policy.behavior.enthusiasm * 100).toFixed(0)}% (${enthusiasmDesc.short})
+- Verbosity: ${(finalSliders.verbosity * 100).toFixed(0)}% (${verbosityDesc.short})
+- Formality: ${(finalSliders.formality * 100).toFixed(0)}% (${formalityDesc.short})
+- Creativity: ${(finalSliders.creativity * 100).toFixed(0)}% (${creativityDesc.short})
+- Precision: ${(finalSliders.precision * 100).toFixed(0)}% (${precisionDesc.short})
+- Persuasiveness: ${(finalSliders.persuasiveness * 100).toFixed(0)}% (${persuasivenessDesc.short})
+- Empathy: ${(finalSliders.empathy * 100).toFixed(0)}% (${empathyDesc.short})
+- Enthusiasm: ${(finalSliders.enthusiasm * 100).toFixed(0)}% (${enthusiasmDesc.short})
 
 🎯 REGRAS CRÍTICAS DE COMPORTAMENTO - CUMPRIMENTO OBRIGATÓRIO:
 
