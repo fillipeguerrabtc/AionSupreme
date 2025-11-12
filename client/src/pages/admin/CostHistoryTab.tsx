@@ -54,7 +54,7 @@ export default function CostHistoryTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center p-12">
         <Activity className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -75,7 +75,7 @@ export default function CostHistoryTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.costHistory.overview.totalCost}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">
@@ -84,7 +84,7 @@ export default function CostHistoryTab() {
           </CardHeader>
         </Card>
         
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.costHistory.overview.paidRequests}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">
@@ -93,7 +93,7 @@ export default function CostHistoryTab() {
           </CardHeader>
         </Card>
         
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.costHistory.overview.providers}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">
@@ -104,7 +104,7 @@ export default function CostHistoryTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-accent" />
@@ -137,7 +137,7 @@ export default function CostHistoryTab() {
           </CardContent>
         </Card>
 
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-accent" />
@@ -147,7 +147,7 @@ export default function CostHistoryTab() {
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={barChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="provider" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip 
@@ -161,7 +161,7 @@ export default function CostHistoryTab() {
         </Card>
       </div>
 
-      <Card className="flex items-center gap-2">
+      <Card className="glass-premium border-accent/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-accent" />
@@ -177,9 +177,9 @@ export default function CostHistoryTab() {
               {data?.records.map((record) => (
                 <div
                   key={record.id}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover-elevate"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3 flex-1">
                     <Badge style={{ 
                       backgroundColor: `${providerColors[record.provider]}20`,
                       color: providerColors[record.provider],

@@ -3,15 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useLanguage } from "@/lib/i18n";
 import { 
   BarChart3, 
   Activity, 
   Clock, 
   AlertTriangle,
-  AlertCircle,
   TrendingUp,
   Users,
   Database,
@@ -138,73 +136,58 @@ export default function TelemetriaPage() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"system" | "analytics">("system");
 
-  // Fetch query metrics (ENTERPRISE ERROR HANDLING)
-  const { data: queryMetrics, isLoading: metricsLoading, isError: metricsError } = useQuery<QueryMetrics>({
+  // Fetch query metrics
+  const { data: queryMetrics } = useQuery<QueryMetrics>({
     queryKey: ["/api/admin/query-metrics/summary"],
     refetchInterval: 10000, // Auto-refresh every 10s
-    retry: 2,
   });
 
-  // Fetch slow queries (ENTERPRISE ERROR HANDLING)
-  const { data: slowQueries, isLoading: slowLoading, isError: slowError } = useQuery<SlowQuery[]>({
+  // Fetch slow queries
+  const { data: slowQueries } = useQuery<SlowQuery[]>({
     queryKey: ["/api/admin/query-metrics/slow"],
     refetchInterval: 10000,
-    retry: 2,
   });
 
-  // Fetch latency trends (ENTERPRISE ERROR HANDLING)
-  const { data: latencyTrends, isLoading: trendsLoading, isError: trendsError } = useQuery<any[]>({
+  // Fetch latency trends
+  const { data: latencyTrends } = useQuery<any[]>({
     queryKey: ["/api/admin/query-metrics/trends"],
     refetchInterval: 30000, // Auto-refresh every 30s
-    retry: 2,
   });
 
-  // Fetch agent stats (ENTERPRISE ERROR HANDLING)
-  const { data: agentStats, isLoading: agentStatsLoading, isError: agentStatsError } = useQuery<AgentStats[]>({
+  // Fetch agent stats
+  const { data: agentStats } = useQuery<AgentStats[]>({
     queryKey: ["/api/admin/telemetry/agents/stats"],
     refetchInterval: 10000,
-    retry: 2,
   });
 
-  // Fetch namespace stats (ENTERPRISE ERROR HANDLING)
-  const { data: namespaceStats, isLoading: nsStatsLoading, isError: nsStatsError } = useQuery<NamespaceStats[]>({
+  // Fetch namespace stats
+  const { data: namespaceStats } = useQuery<NamespaceStats[]>({
     queryKey: ["/api/admin/telemetry/namespaces/stats"],
     refetchInterval: 10000,
-    retry: 2,
   });
 
-  // Fetch historical data (ENTERPRISE ERROR HANDLING)
-  const { data: agentHistory, isLoading: agentHistoryLoading, isError: agentHistoryError } = useQuery<any[]>({
+  // Fetch historical data
+  const { data: agentHistory } = useQuery<any[]>({
     queryKey: ["/api/admin/telemetry/agents/history"],
     refetchInterval: 30000,
-    retry: 2,
   });
 
-  const { data: namespaceHistory, isLoading: nsHistoryLoading, isError: nsHistoryError } = useQuery<any[]>({
+  const { data: namespaceHistory } = useQuery<any[]>({
     queryKey: ["/api/admin/telemetry/namespaces/history"],
     refetchInterval: 30000,
-    retry: 2,
   });
 
-  // Fetch hierarchical overview (ENTERPRISE ERROR HANDLING)
-  const { data: hierarchicalOverview, isLoading: overviewLoading, isError: overviewError } = useQuery<HierarchicalOverview>({
+  // Fetch hierarchical overview
+  const { data: hierarchicalOverview } = useQuery<HierarchicalOverview>({
     queryKey: ["/api/admin/telemetry/hierarchical-overview"],
     refetchInterval: 10000,
-    retry: 2,
   });
 
-  // ✨ NEW: Fetch KB & Chat Analytics (métricas valiosas) - ENTERPRISE ERROR HANDLING
-  const { data: kbAnalytics, isLoading: kbLoading, isError: kbError } = useQuery<KbAnalytics>({
+  // ✨ NEW: Fetch KB & Chat Analytics (métricas valiosas)
+  const { data: kbAnalytics } = useQuery<KbAnalytics>({
     queryKey: ["/api/admin/analytics/kb-chat"],
     refetchInterval: 15000, // Auto-refresh every 15s
-    retry: 2,
   });
-
-  // ENTERPRISE ERROR HANDLING: Aggregate loading/error states per tab
-  const systemTabLoading = metricsLoading || slowLoading || trendsLoading || agentStatsLoading || nsStatsLoading || agentHistoryLoading || nsHistoryLoading || overviewLoading;
-  const systemTabError = metricsError || slowError || trendsError || agentStatsError || nsStatsError || agentHistoryError || nsHistoryError || overviewError;
-  const analyticsTabLoading = kbLoading;
-  const analyticsTabError = kbError;
 
   // Chart colors
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#8884d8', '#82ca9d', '#ffc658'];
@@ -213,15 +196,19 @@ export default function TelemetriaPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">{t.admin.tabs.telemetry}</h2>
-        <p className="text-muted-foreground">{t.admin.telemetry.subtitle || "Métricas e análises do sistema"}</p>
+        <h2 className="text-3xl font-bold tracking-tight">Telemetria</h2>
+        <p className="text-muted-foreground">
+          Monitoramento em tempo real de performance do sistema e analytics de uso
+        </p>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "system" | "analytics")}>
         <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="system" data-testid="test-id">
-            <Activity className="w-4 h-4 mr-2" />Sistema</TabsTrigger>
+          <TabsTrigger value="system" data-testid="tab-system-metrics">
+            <Activity className="w-4 h-4 mr-2" />
+            Métricas de Sistema
+          </TabsTrigger>
           <TabsTrigger value="analytics" data-testid="tab-analytics">
             <BarChart3 className="w-4 h-4 mr-2" />
             Analytics KB/Chat
@@ -230,65 +217,31 @@ export default function TelemetriaPage() {
 
         {/* TAB 1: System Metrics */}
         <TabsContent value="system" className="space-y-6">
-          {/* ENTERPRISE ERROR HANDLING: System Tab Loading/Error States */}
-          {systemTabLoading ? (
-            <Card data-testid="card-system-loading">
-              <CardContent className="p-12 text-center space-y-4">
-                <Activity className="h-12 w-12 mx-auto text-muted-foreground animate-pulse" />
-                <p className="text-muted-foreground">{t.common.loading}</p>
-              </CardContent>
-            </Card>
-          ) : systemTabError ? (
-            <Card className="border-destructive" data-testid="card-system-error">
-              <CardContent className="p-12 text-center space-y-4">
-                <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
-                <div>
-                  <h3 className="text-lg font-semibold text-destructive mb-2">
-                    Erro ao Carregar Métricas do Sistema
-                  </h3>
-                  <p className="text-muted-foreground mb-4">
-                    Falha ao carregar uma ou mais métricas. Tente novamente.
-                  </p>
-                </div>
-                <Button
-                  onClick={() => {
-                    queryClient.invalidateQueries({ queryKey: ["/api/admin/query-metrics/summary"] });
-                    queryClient.invalidateQueries({ queryKey: ["/api/admin/query-metrics/slow"] });
-                    queryClient.invalidateQueries({ queryKey: ["/api/admin/query-metrics/trends"] });
-                    queryClient.invalidateQueries({ queryKey: ["/api/admin/telemetry/agents/stats"] });
-                    queryClient.invalidateQueries({ queryKey: ["/api/admin/telemetry/namespaces/stats"] });
-                    queryClient.invalidateQueries({ queryKey: ["/api/admin/telemetry/agents/history"] });
-                    queryClient.invalidateQueries({ queryKey: ["/api/admin/telemetry/namespaces/history"] });
-                    queryClient.invalidateQueries({ queryKey: ["/api/admin/telemetry/hierarchical-overview"] });
-                  }}
-                  variant="default"
-                  data-testid="button-retry-system"
-                >
-                  Tentar Novamente
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
           {/* Overview Cards */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {/* Total Queries */}
-            <Card className="flex items-center gap-2" data-testid="card-total-queries">
-              <CardHeader className="p-4 space-y-2 w-full">
+            <Card className="glass-modern" data-testid="card-total-queries">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />Total de Consultas</CardTitle>
+                  <Activity className="w-4 h-4" />
+                  Total de Queries
+                </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? queryMetrics.totalQueries.toLocaleString() : "..."}
                 </div>
-                <CardDescription className="text-xs">Últimas 24h</CardDescription>
+                <CardDescription className="text-xs">
+                  Últimas 24 horas
+                </CardDescription>
               </CardHeader>
             </Card>
 
             {/* Average Latency */}
-            <Card className="flex items-center gap-2" data-testid="card-avg-latency">
-              <CardHeader className="p-4 space-y-2 w-full">
+            <Card className="glass-modern" data-testid="card-avg-latency">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Clock className="w-4 h-4" />Latência Média</CardTitle>
+                  <Clock className="w-4 h-4" />
+                  Latência Média
+                </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${queryMetrics.avgLatency.toFixed(0)}ms` : "..."}
                 </div>
@@ -299,10 +252,12 @@ export default function TelemetriaPage() {
             </Card>
 
             {/* P95 Latency */}
-            <Card className="flex items-center gap-2" data-testid="card-p95-latency">
-              <CardHeader className="p-4 space-y-2 w-full">
+            <Card className="glass-modern" data-testid="card-p95-latency">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />P95 Latência</CardTitle>
+                  <TrendingUp className="w-4 h-4" />
+                  Latência P95
+                </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${queryMetrics.p95Latency.toFixed(0)}ms` : "..."}
                 </div>
@@ -313,10 +268,12 @@ export default function TelemetriaPage() {
             </Card>
 
             {/* Success Rate */}
-            <Card className="flex items-center gap-2" data-testid="card-success-rate">
-              <CardHeader className="p-4 space-y-2 w-full">
+            <Card className="glass-modern" data-testid="card-success-rate">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Zap className="w-4 h-4" />Taxa de Sucesso</CardTitle>
+                  <Zap className="w-4 h-4" />
+                  Taxa de Sucesso
+                </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {queryMetrics ? `${(queryMetrics.successRate * 100).toFixed(1)}%` : "..."}
                 </div>
@@ -328,11 +285,15 @@ export default function TelemetriaPage() {
           </div>
 
           {/* Latency Trends Chart */}
-          <Card className="flex items-center gap-2">
+          <Card className="glass-modern">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />Tendências de Latência</CardTitle>
-              <CardDescription>Evolução da latência nas últimas horas</CardDescription>
+                <BarChart3 className="w-5 h-5" />
+                Tendências de Latência
+              </CardTitle>
+              <CardDescription>
+                Evolução da latência nas últimas 24 horas
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {latencyTrends && latencyTrends.length > 0 ? (
@@ -347,7 +308,7 @@ export default function TelemetriaPage() {
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip 
                       labelFormatter={(value) => new Date(value).toLocaleString('pt-BR')}
-                      formatter={(value: number) => [`${value.toFixed(2)}ms`, "Latência"]}
+                      formatter={(value: number) => [`${value.toFixed(2)}ms`, 'Latência']}
                     />
                     <Legend />
                     <Line 
@@ -355,7 +316,7 @@ export default function TelemetriaPage() {
                       dataKey="avgLatency" 
                       stroke="hsl(var(--primary))" 
                       strokeWidth={2}
-                      name="Consultas"
+                      name="Média"
                       dot={false}
                     />
                     <Line 
@@ -369,19 +330,23 @@ export default function TelemetriaPage() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center gap-2">{t.common.loading}</div>
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                  Carregando dados de tendência...
+                </div>
               )}
             </CardContent>
           </Card>
 
           {/* Slow Queries Table */}
-          <Card className="flex items-center gap-2">
+          <Card className="glass-modern">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" />
                 Queries Mais Lentas
               </CardTitle>
-              <CardDescription>{t.common.loading}</CardDescription>
+              <CardDescription>
+                Endpoints com maior latência média
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[300px]">
@@ -390,7 +355,7 @@ export default function TelemetriaPage() {
                     {slowQueries.map((query, idx) => (
                       <div 
                         key={idx} 
-                        className="flex items-center gap-2"
+                        className="flex items-center justify-between p-3 rounded-md bg-card/50 hover-elevate"
                         data-testid={`slow-query-${idx}`}
                       >
                         <div className="flex-1">
@@ -401,68 +366,33 @@ export default function TelemetriaPage() {
                             <span className="font-mono text-sm">{query.endpoint}</span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {query.count} queries
-                                                              </p>
+                            {query.count} requisições
+                          </p>
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-bold">{query.avgLatency.toFixed(0)}ms</div>
-                          <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                          <p className="text-xs text-muted-foreground">média</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
                     Nenhuma query lenta detectada
                   </div>
                 )}
               </ScrollArea>
             </CardContent>
           </Card>
-          </>
-          )}
         </TabsContent>
 
         {/* TAB 2: Analytics KB/Chat - ✨ COMPLETAMENTE MODERNIZADO */}
         <TabsContent value="analytics" className="space-y-6">
-          {/* ENTERPRISE ERROR HANDLING: Analytics Tab Loading/Error States */}
-          {analyticsTabLoading ? (
-            <Card data-testid="card-analytics-loading">
-              <CardContent className="p-12 text-center space-y-4">
-                <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground animate-pulse" />
-                <p className="text-muted-foreground">{t.common.loading}</p>
-              </CardContent>
-            </Card>
-          ) : analyticsTabError ? (
-            <Card className="border-destructive" data-testid="card-analytics-error">
-              <CardContent className="p-12 text-center space-y-4">
-                <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
-                <div>
-                  <h3 className="text-lg font-semibold text-destructive mb-2">
-                    Erro ao Carregar Analytics KB/Chat
-                  </h3>
-                  <p className="text-muted-foreground mb-4">
-                    Falha ao carregar métricas de KB e Chat. Tente novamente.
-                  </p>
-                </div>
-                <Button
-                  onClick={() => {
-                    queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/kb-chat"] });
-                  }}
-                  variant="default"
-                  data-testid="button-retry-analytics"
-                >
-                  Tentar Novamente
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
           {/* ✨ NEW: KB & Chat Analytics Overview */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {/* KB Coverage */}
-            <Card className="flex items-center gap-2" data-testid="card-kb-coverage">
-              <CardHeader className="p-4 space-y-2 w-full">
+            <Card className="glass-modern" data-testid="card-kb-coverage">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Brain className="w-4 h-4" />
                   KB Coverage
@@ -473,16 +403,18 @@ export default function TelemetriaPage() {
                 <CardDescription className="text-xs">
                   {kbAnalytics?.overview?.totalRequests || 0} queries totais
                 </CardDescription>
-                <Progress 
-                  value={kbAnalytics?.overview?.kbCoverage || 0} 
-                  className="h-2" 
-                />
+                <div className="mt-2">
+                  <Progress 
+                    value={kbAnalytics?.overview?.kbCoverage || 0} 
+                    className="h-2" 
+                  />
+                </div>
               </CardHeader>
             </Card>
 
             {/* Free Coverage */}
-            <Card className="flex items-center gap-2" data-testid="card-free-coverage">
-              <CardHeader className="p-4 space-y-2 w-full">
+            <Card className="glass-modern" data-testid="card-free-coverage">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
                   APIs Gratuitas
@@ -502,8 +434,8 @@ export default function TelemetriaPage() {
             </Card>
 
             {/* Cost Savings */}
-            <Card className="flex items-center gap-2" data-testid="card-cost-savings">
-              <CardHeader className="p-4 space-y-2 w-full">
+            <Card className="glass-modern" data-testid="card-cost-savings">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <TrendingDown className="w-4 h-4 text-green-500" />
                   Economia
@@ -518,10 +450,12 @@ export default function TelemetriaPage() {
             </Card>
 
             {/* Total Requests */}
-            <Card className="flex items-center gap-2" data-testid="card-total-requests">
-              <CardHeader className="p-4 space-y-2 w-full">
+            <Card className="glass-modern" data-testid="card-total-requests">
+              <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />Total de Requisições</CardTitle>
+                  <Activity className="w-4 h-4" />
+                  Total de Requests
+                </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {kbAnalytics?.overview?.totalRequests?.toLocaleString() || "0"}
                 </div>
@@ -535,10 +469,12 @@ export default function TelemetriaPage() {
           {/* Source Distribution & Cost Efficiency */}
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             {/* Source Distribution Pie Chart */}
-            <Card className="flex items-center gap-2">
+            <Card className="glass-modern">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />Distribuição por Fonte</CardTitle>
+                  <BarChart3 className="w-5 h-5" />
+                  Distribuição por Fonte
+                </CardTitle>
                 <CardDescription>
                   Origem das respostas (KB, Web, APIs)
                 </CardDescription>
@@ -570,39 +506,43 @@ export default function TelemetriaPage() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">Nenhum dado disponível</div>
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    Carregando distribuição...
+                  </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Cost Efficiency Details */}
-            <Card className="flex items-center gap-2">
+            <Card className="glass-modern">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />Eficiência de Custos</CardTitle>
+                  <DollarSign className="w-5 h-5" />
+                  Eficiência de Custos
+                </CardTitle>
                 <CardDescription>
                   Economia usando KB/Web vs APIs pagas
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between p-3 rounded-md bg-card/50">
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-2" />
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
                       <span className="text-sm font-medium">Custo Total Real</span>
                     </div>
                     <span className="text-lg font-bold">${kbAnalytics?.costEfficiency?.totalCost || "0.00"}</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between p-3 rounded-md bg-card/50">
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-2" />
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
                       <span className="text-sm font-medium">Se Tudo Fosse Pago</span>
                     </div>
                     <span className="text-lg font-bold">${kbAnalytics?.costEfficiency?.estimatedCostIfAllPaid || "0.00"}</span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between p-3 rounded-md bg-green-500/10 border border-green-500/20">
                     <div className="flex items-center gap-2">
                       <TrendingDown className="w-4 h-4 text-green-500" />
                       <span className="text-sm font-medium text-green-600 dark:text-green-400">Economia Total</span>
@@ -613,9 +553,9 @@ export default function TelemetriaPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <span>Economia Total:</span>
+                <div className="pt-3 border-t">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Percentual de Economia</span>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400">
                       {kbAnalytics?.costEfficiency?.savingsPercent?.toFixed(1) || "0"}%
                     </span>
@@ -632,11 +572,15 @@ export default function TelemetriaPage() {
           {/* Response Quality & Top Knowledge Sources */}
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             {/* Response Quality by Source */}
-            <Card className="flex items-center gap-2">
+            <Card className="glass-modern">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Gauge className="w-5 h-5" />Qualidade por Fonte</CardTitle>
-                <CardDescription>Latência média por provedor</CardDescription>
+                  <Gauge className="w-5 h-5" />
+                  Qualidade por Fonte
+                </CardTitle>
+                <CardDescription>
+                  Latência média estimada por provider
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {kbAnalytics?.qualityMetrics && kbAnalytics.qualityMetrics.length > 0 ? (
@@ -646,22 +590,26 @@ export default function TelemetriaPage() {
                       <XAxis dataKey="provider" tick={{ fontSize: 12 }} />
                       <YAxis tick={{ fontSize: 12 }} label={{ value: 'ms', angle: -90, position: 'insideLeft' }} />
                       <Tooltip 
-                        formatter={(value: number) => [`${value}ms`, "Latência"]}
+                        formatter={(value: number) => [`${value}ms`, 'Latência']}
                       />
                       <Bar dataKey="estimatedLatency" fill="hsl(var(--primary))" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">Nenhum dado disponível</div>
+                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                    Carregando métricas...
+                  </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Top Knowledge Sources */}
-            <Card className="flex items-center gap-2">
+            <Card className="glass-modern">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />Fontes de Conhecimento Principais</CardTitle>
+                  <FileText className="w-5 h-5" />
+                  Top Fontes de Conhecimento
+                </CardTitle>
                 <CardDescription>
                   Documentos mais recentemente indexados
                 </CardDescription>
@@ -673,15 +621,15 @@ export default function TelemetriaPage() {
                       {kbAnalytics.topKnowledgeSources.map((doc, idx) => (
                         <div
                           key={doc.id}
-                          className="flex items-center gap-2"
+                          className="flex items-start gap-3 p-3 rounded-md bg-card/50 hover-elevate"
                           data-testid={`knowledge-source-${idx}`}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                             <span className="text-xs font-bold text-primary">{idx + 1}</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm truncate">{doc.title}</div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 mt-1">
                               <Badge variant="outline" className="text-[10px]">
                                 {doc.source}
                               </Badge>
@@ -696,7 +644,9 @@ export default function TelemetriaPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">Nenhum dado disponível</div>
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      Nenhum documento disponível
+                    </div>
                   )}
                 </ScrollArea>
               </CardContent>
@@ -706,10 +656,12 @@ export default function TelemetriaPage() {
           {/* ✨ NEW: Hierarchical Analytics */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {/* Total Namespace Searches */}
-            <Card className="flex items-center gap-2" data-testid="card-namespace-searches">
+            <Card className="glass-modern" data-testid="card-namespace-searches">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Database className="w-4 h-4" />Buscas em Namespaces</CardTitle>
+                  <Database className="w-4 h-4" />
+                  Buscas em Namespaces
+                </CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {hierarchicalOverview?.namespaces?.totalSearches?.toLocaleString() || "..."}
                 </div>
@@ -725,10 +677,12 @@ export default function TelemetriaPage() {
             </Card>
 
             {/* Most Active Agent */}
-            <Card className="flex items-center gap-2" data-testid="card-most-active-agent">
+            <Card className="glass-modern" data-testid="card-most-active-agent">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />Agente Mais Ativo</CardTitle>
+                  <TrendingUp className="w-4 h-4" />
+                  Agente Mais Ativo
+                </CardTitle>
                 <div className="text-lg font-bold text-foreground truncate">
                   {agentStats && agentStats.length > 0 
                     ? agentStats[0].agentName 
@@ -748,16 +702,18 @@ export default function TelemetriaPage() {
             </Card>
 
             {/* Hierarchical Distribution */}
-            <Card className="flex items-center gap-2" data-testid="card-hierarchy">
+            <Card className="glass-modern" data-testid="card-hierarchy">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />Distribuição Hierárquica</CardTitle>
+                  <Activity className="w-4 h-4" />
+                  Distribuição Hierárquica
+                </CardTitle>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Agents Raiz</span>
                     <span className="font-bold">{hierarchicalOverview?.agents?.rootAgents || 0}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Sub-Agents</span>
                     <span className="font-bold">{hierarchicalOverview?.agents?.subAgents || 0}</span>
                   </div>
@@ -767,11 +723,15 @@ export default function TelemetriaPage() {
           </div>
 
           {/* Agent Usage Chart */}
-          <Card className="flex items-center gap-2">
+          <Card className="glass-modern">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />Uso por Agentes</CardTitle>
-              <CardDescription>Agentes mais utilizados no sistema</CardDescription>
+                <Users className="w-5 h-5" />
+                Uso de Agentes Especialistas
+              </CardTitle>
+              <CardDescription>
+                Top 10 agentes mais executados (hierarquia visível)
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {agentStats && agentStats.length > 0 ? (
@@ -779,7 +739,7 @@ export default function TelemetriaPage() {
                   {agentStats.slice(0, 10).map((agent, idx) => (
                     <div 
                       key={idx} 
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-3 p-3 rounded-md bg-card/30 hover-elevate cursor-pointer"
                       data-testid={`agent-item-${idx}`}
                     >
                       <div className="flex-1 min-w-0">
@@ -805,23 +765,29 @@ export default function TelemetriaPage() {
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-lg font-bold">{agent.usageCount}</div>
-                        <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                        <p className="text-xs text-muted-foreground">execuções</p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center gap-2">{t.common.loading}</div>
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                  Nenhum dado de agentes disponível
+                </div>
               )}
             </CardContent>
           </Card>
 
           {/* Namespace Usage Chart */}
-          <Card className="flex items-center gap-2">
+          <Card className="glass-modern">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Database className="w-5 h-5" />{t.common.loading}</CardTitle>
-              <CardDescription>{t.common.loading}</CardDescription>
+                <Database className="w-5 h-5" />
+                Uso de Namespaces
+              </CardTitle>
+              <CardDescription>
+                Top 10 namespaces mais consultados (hierarquia visível)
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {namespaceStats && namespaceStats.length > 0 ? (
@@ -829,7 +795,7 @@ export default function TelemetriaPage() {
                   {namespaceStats.slice(0, 10).map((namespace, idx) => (
                     <div 
                       key={idx} 
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-3 p-3 rounded-md bg-card/30 hover-elevate cursor-pointer"
                       data-testid={`namespace-item-${idx}`}
                     >
                       <div className="flex-1 min-w-0">
@@ -861,7 +827,9 @@ export default function TelemetriaPage() {
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center gap-2">{t.common.loading}</div>
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                  Nenhum dado de namespaces disponível
+                </div>
               )}
             </CardContent>
           </Card>
@@ -869,10 +837,12 @@ export default function TelemetriaPage() {
           {/* Historical Usage Trends */}
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             {/* Agent History */}
-            <Card className="flex items-center gap-2">
+            <Card className="glass-modern">
               <CardHeader>
-                <CardTitle className="text-base">{t.common.loading}</CardTitle>
-                <CardDescription className="text-xs">{t.common.loading}</CardDescription>
+                <CardTitle className="text-base">Histórico de Agentes</CardTitle>
+                <CardDescription className="text-xs">
+                  Execuções ao longo do tempo
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {agentHistory && agentHistory.length > 0 ? (
@@ -893,21 +863,23 @@ export default function TelemetriaPage() {
                         dataKey="count" 
                         stroke="hsl(var(--primary))" 
                         strokeWidth={2}
-                        name="Consultas"
+                        name="Execuções"
                         dot={false}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">{t.common.loading}</div>
+                  <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
+                    Nenhum histórico disponível
+                  </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Namespace History */}
-            <Card className="flex items-center gap-2">
+            <Card className="glass-modern">
               <CardHeader>
-                <CardTitle className="text-base">{t.common.loading}</CardTitle>
+                <CardTitle className="text-base">Histórico de Namespaces</CardTitle>
                 <CardDescription className="text-xs">
                   Buscas ao longo do tempo
                 </CardDescription>
@@ -937,13 +909,13 @@ export default function TelemetriaPage() {
                     </LineChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">{t.common.loading}</div>
+                  <div className="flex items-center justify-center h-[250px] text-muted-foreground text-sm">
+                    Nenhum histórico disponível
+                  </div>
                 )}
               </CardContent>
             </Card>
           </div>
-          </>
-          )}
         </TabsContent>
       </Tabs>
     </div>

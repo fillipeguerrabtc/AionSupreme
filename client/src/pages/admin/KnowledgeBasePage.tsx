@@ -177,15 +177,15 @@ export default function KnowledgeBasePage() {
   // which calls POST /api/admin/cascade/delete/:documentId instead
 
   return (
-    <div className="flex items-center gap-2">
-      <header className="flex items-center gap-2">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 max-w-full overflow-x-hidden">
+      <header className="glass sticky top-0 z-50 border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => window.location.href = "/admin"}
-              className="flex items-center gap-2"
+              className="glass-premium"
               data-testid="button-back-to-admin"
             >
               <MessageSquare className="w-5 h-5" />
@@ -217,7 +217,9 @@ export default function KnowledgeBasePage() {
             className="hover:scale-105 active:scale-95 transition-all duration-300"
             data-testid="button-learn-url"
           >
-            <LinkIcon className="w-4 h-4 mr-2" />{t.common.loading}</Button>
+            <LinkIcon className="w-4 h-4 mr-2" />
+            Aprender de Link
+          </Button>
 
           <Button
             onClick={() => setShowWebSearch(!showWebSearch)}
@@ -296,9 +298,9 @@ export default function KnowledgeBasePage() {
 
         {/* Add Text Form */}
         {showAddText && (
-          <Card className="flex items-center gap-2">
+          <Card className="glass-premium border-primary/20 animate-slide-up">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center justify-between">
                 <span className="gradient-text">Adicionar Novo Conhecimento</span>
                 <Button
                   size="icon"
@@ -312,14 +314,14 @@ export default function KnowledgeBasePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder="Digite aqui..."
+                placeholder="Título do conhecimento..."
                 value={newTextTitle}
                 onChange={(e) => setNewTextTitle(e.target.value)}
                 data-testid="input-new-doc-title"
               />
               
               {/* Namespace Selector - MOVIDO PARA CIMA! */}
-              <div className="flex items-center gap-2">
+              <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
                 <label className="text-sm font-semibold text-primary">
                   🏷️ Namespaces (Multi-Agentes):
                 </label>
@@ -327,11 +329,13 @@ export default function KnowledgeBasePage() {
                   value={newNamespaces}
                   onChange={setNewNamespaces}
                 />
-                <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                <p className="text-xs text-muted-foreground">
+                  Selecione quais agentes terão acesso a este conhecimento
+                </p>
               </div>
               
               <Textarea
-                placeholder="Digite aqui..."
+                placeholder="Escreva o conteúdo aqui..."
                 value={newTextContent}
                 onChange={(e) => setNewTextContent(e.target.value)}
                 className="min-h-[200px]"
@@ -353,10 +357,10 @@ export default function KnowledgeBasePage() {
 
         {/* Learn from URL Form */}
         {showAddUrl && (
-          <Card className="flex items-center gap-2">
+          <Card className="glass-premium border-accent/20 animate-slide-up">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span className="gradient-text-vibrant">{t.common.loading}</span>
+              <CardTitle className="flex items-center justify-between">
+                <span className="gradient-text-vibrant">Aprender de um Link</span>
                 <Button
                   size="icon"
                   variant="ghost"
@@ -366,36 +370,42 @@ export default function KnowledgeBasePage() {
                   <X className="w-4 h-4" />
                 </Button>
               </CardTitle>
-              <CardDescription>{t.common.loading}</CardDescription>
+              <CardDescription>
+                AION vai acessar o link e aprender todo o conteúdo
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder="Digite aqui..."
+                placeholder="https://example.com/artigo"
                 value={urlToLearn}
                 onChange={(e) => setUrlToLearn(e.target.value)}
                 data-testid="input-url-to-learn"
               />
               
-              <div className="flex items-center gap-2">
-                <Label className="text-sm font-semibold">{t.common.loading}</Label>
+              <div className="space-y-3 border border-dashed border-accent/30 p-4 rounded-md">
+                <Label className="text-sm font-semibold">Modo de Aprendizado:</Label>
                 <RadioGroup
                   value={crawlMode}
                   onValueChange={(value) => setCrawlMode(value as "single" | "deep")}
-                  data-testid="test-id"
+                  data-testid="radio-group-crawl-mode"
                   className="space-y-2"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center space-x-2">
                     <RadioGroupItem value="single" id="single" data-testid="radio-single-page" />
-                    <Label htmlFor="single" className="cursor-pointer font-normal">{t.common.loading}</Label>
+                    <Label htmlFor="single" className="cursor-pointer font-normal">
+                      📄 Aprender da Página - Scan completo somente desta página/link
+                    </Label>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="deep" id="deep" data-testid="test-id" />
-                    <Label htmlFor="deep" className="cursor-pointer font-normal">{t.common.loading}</Label>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="deep" id="deep" data-testid="radio-deep-crawl" />
+                    <Label htmlFor="deep" className="cursor-pointer font-normal">
+                      🌐 Aprender Completo - Scan de todas as páginas e sublinks
+                    </Label>
                   </div>
                 </RadioGroup>
               </div>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center space-x-2 pt-2 border border-dashed border-accent/30 p-3 rounded-md">
                 <Checkbox
                   id="download-media"
                   checked={downloadMedia}
@@ -405,7 +415,9 @@ export default function KnowledgeBasePage() {
                 <Label
                   htmlFor="download-media"
                   className="cursor-pointer font-normal text-sm"
-                >{t.common.loading}</Label>
+                >
+                  📷 Baixar também imagens e vídeos (além do texto)
+                </Label>
               </div>
               
               <Button
@@ -415,7 +427,7 @@ export default function KnowledgeBasePage() {
                 data-testid="button-start-learn-url"
               >
                 <LinkIcon className="w-4 h-4 mr-2" />
-                {learnFromUrlMutation.isPending ? "Processando..." : "Não disponível"}
+                {learnFromUrlMutation.isPending ? "Aprendendo..." : "Aprender deste Link"}
               </Button>
             </CardContent>
           </Card>
@@ -423,9 +435,9 @@ export default function KnowledgeBasePage() {
 
         {/* Web Search Form */}
         {showWebSearch && (
-          <Card className="flex items-center gap-2">
+          <Card className="glass-premium border-accent/20 animate-slide-up">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center justify-between">
                 <span className="gradient-text-vibrant">Pesquisar e Aprender da Web</span>
                 <Button
                   size="icon"
@@ -436,7 +448,9 @@ export default function KnowledgeBasePage() {
                   <X className="w-4 h-4" />
                 </Button>
               </CardTitle>
-              <CardDescription>{t.common.loading}</CardDescription>
+              <CardDescription>
+                AION vai pesquisar na internet e indexar todo o conteúdo encontrado
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
@@ -452,14 +466,14 @@ export default function KnowledgeBasePage() {
                 data-testid="button-start-web-search"
               >
                 <Search className="w-4 h-4 mr-2" />
-                {webSearchMutation.isPending ? "Pesquisando..." : "Não disponível"}
+                {webSearchMutation.isPending ? "Pesquisando..." : "Pesquisar e Aprender"}
               </Button>
             </CardContent>
           </Card>
         )}
 
         {/* Documents List */}
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-primary/20">
           <CardHeader>
             <CardTitle className="gradient-text">Conhecimentos Armazenados ({documents.length})</CardTitle>
             <CardDescription>
@@ -470,7 +484,7 @@ export default function KnowledgeBasePage() {
             <ScrollArea ref={scrollAreaRef} className="h-[600px]">
               <div className="space-y-2">
                 {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">{t.common.loading}</div>
+                  <div className="text-center py-8 text-muted-foreground">Carregando...</div>
                 ) : documents.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     Nenhum conhecimento encontrado. Adicione novos conhecimentos acima!
@@ -479,14 +493,14 @@ export default function KnowledgeBasePage() {
                   documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="flex items-center gap-2"
+                      className="p-4 rounded-lg bg-card/50 border border-border/50 hover-elevate"
                     >
                       {editingDoc === doc.id ? (
                         <div className="space-y-3">
                           <Input
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
-                            placeholder="Digite aqui..."
+                            placeholder="Título do conhecimento"
                             data-testid={`input-edit-title-${doc.id}`}
                           />
                           
@@ -500,7 +514,7 @@ export default function KnowledgeBasePage() {
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
                             className="min-h-[100px]"
-                            placeholder="Digite aqui..."
+                            placeholder="Conteúdo do conhecimento"
                             data-testid={`textarea-edit-content-${doc.id}`}
                           />
                           
@@ -532,14 +546,14 @@ export default function KnowledgeBasePage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
-                            <h3 className="flex items-center gap-2">{doc.title}</h3>
+                            <h3 className="font-semibold text-sm mb-1">{doc.title}</h3>
                             <p className="text-xs text-muted-foreground line-clamp-2">
                               {doc.content}
                             </p>
                             <div className="flex flex-wrap gap-2 mt-2">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <span>Fonte: {doc.source || "manual"}</span>
                                 <span>•</span>
                                 <Calendar className="w-3 h-3" />
@@ -581,7 +595,7 @@ export default function KnowledgeBasePage() {
                               onClick={() => setDocumentToDelete(doc)}
                               data-testid={`button-delete-${doc.id}`}
                             >
-                              <Trash2 className="flex items-center gap-2" />
+                              <Trash2 className="w-4 h-4 text-destructive" />
                             </Button>
                           </div>
                         </div>

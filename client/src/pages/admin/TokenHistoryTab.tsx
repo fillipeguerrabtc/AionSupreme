@@ -57,7 +57,7 @@ export default function TokenHistoryTab() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center p-12">
         <Activity className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
@@ -71,21 +71,21 @@ export default function TokenHistoryTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.tokenHistory.overview.totalRecords}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">{history?.length || 0}</div>
           </CardHeader>
         </Card>
         
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.tokenHistory.overview.totalTokens}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">{totalTokens.toLocaleString()}</div>
           </CardHeader>
         </Card>
         
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.tokenHistory.overview.totalCost}</CardTitle>
             <div className="text-3xl font-bold gradient-text-vibrant">${totalCost.toFixed(4)}</div>
@@ -93,7 +93,7 @@ export default function TokenHistoryTab() {
         </Card>
       </div>
 
-      <Card className="flex items-center gap-2">
+      <Card className="glass-premium border-accent/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5 text-accent" />
@@ -109,9 +109,9 @@ export default function TokenHistoryTab() {
               {history?.map((record) => (
                 <div
                   key={record.id}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover-elevate"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3 flex-1">
                     <Badge className={providerColors[record.provider] || "bg-gray-500/10"}>
                       {record.provider.toUpperCase()}
                     </Badge>

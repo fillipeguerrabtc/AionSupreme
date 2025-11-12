@@ -3,7 +3,7 @@
  * Handles policy configuration and system prompt composition
  */
 import { storage } from "../storage";
-import { LLMClient } from "../model/llm-client";
+import { llmClient } from "../model/llm-client";
 import crypto from "crypto";
 import type { Policy } from "@shared/schema";
 
@@ -265,10 +265,7 @@ CRITICAL BEHAVIOR RULES:
     const ruleNames = rules.map(([name]) => name).join(", ");
     const prompt = `Check if the following content violates any of these rules: ${ruleNames}\n\nContent: ${content}\n\nRespond with only YES or NO:`;
     
-    // Create policy-aware LLM client
-    const client = await LLMClient.create();
-    
-    const result = await client.chatCompletion({
+    const result = await llmClient.chatCompletion({
       messages: [{ role: "user", content: prompt }],
       model: "gpt-3.5-turbo",
       temperature: 0,
@@ -280,11 +277,7 @@ CRITICAL BEHAVIOR RULES:
 
   private async rewriteContent(content: string): Promise<string> {
     const prompt = `Rewrite the following content to be appropriate and policy-compliant:\n\n${content}`;
-    
-    // Create policy-aware LLM client
-    const client = await LLMClient.create();
-    
-    const result = await client.chatCompletion({
+    const result = await llmClient.chatCompletion({
       messages: [{ role: "user", content: prompt }],
       model: "gpt-3.5-turbo",
       temperature: 0.7,

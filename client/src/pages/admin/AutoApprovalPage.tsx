@@ -116,7 +116,7 @@ export default function AutoApprovalPage() {
     onError: (error: any) => {
       toast({
         title: t.admin.autoApproval.configError,
-        description: error.message || "Erro desconhecido",
+        description: error.message || "Unknown error",
         variant: "destructive",
       });
     },
@@ -134,7 +134,7 @@ export default function AutoApprovalPage() {
     onError: (error: any) => {
       toast({
         title: t.admin.autoApproval.configError,
-        description: error.message || "Falha ao visualizar decisão",
+        description: error.message || "Failed to preview decision",
         variant: "destructive",
       });
     },
@@ -207,7 +207,7 @@ export default function AutoApprovalPage() {
 
   return (
     <div className="space-y-6 p-6" data-testid="page-auto-approval">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="title-auto-approval">
             <Settings className="h-8 w-8" />
@@ -241,7 +241,7 @@ export default function AutoApprovalPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
               <Label htmlFor="enabled" className="text-base">
                 {t.admin.autoApproval.enableAutoApproval}
               </Label>
@@ -255,7 +255,7 @@ export default function AutoApprovalPage() {
 
             <Separator />
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
               <Label htmlFor="auto-reject" className="text-base">
                 {t.admin.autoApproval.enableAutoReject}
               </Label>
@@ -269,7 +269,7 @@ export default function AutoApprovalPage() {
 
             <Separator />
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
               <Label htmlFor="quality-gates" className="text-base">
                 {t.admin.autoApproval.requireAllQualityGates}
               </Label>
@@ -293,7 +293,7 @@ export default function AutoApprovalPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between">
                 <Label htmlFor="min-approval" className="text-sm">
                   {t.admin.autoApproval.minApprovalScore}
                 </Label>
@@ -308,7 +308,7 @@ export default function AutoApprovalPage() {
                 step={1}
                 value={[minApprovalScore]}
                 onValueChange={([value]) => setMinApprovalScore(value)}
-                data-testid="test-id"
+                data-testid="slider-min-approval"
               />
               <p className="text-xs text-muted-foreground">
                 {t.admin.autoApproval.tooltips.minApprovalScore}
@@ -318,7 +318,7 @@ export default function AutoApprovalPage() {
             <Separator />
 
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between">
                 <Label htmlFor="max-reject" className="text-sm">
                   {t.admin.autoApproval.maxRejectScore}
                 </Label>
@@ -333,7 +333,7 @@ export default function AutoApprovalPage() {
                 step={1}
                 value={[maxRejectScore]}
                 onValueChange={([value]) => setMaxRejectScore(value)}
-                data-testid="test-id"
+                data-testid="slider-max-reject"
               />
               <p className="text-xs text-muted-foreground">
                 {t.admin.autoApproval.tooltips.maxRejectScore}
@@ -346,17 +346,17 @@ export default function AutoApprovalPage() {
               <Label className="text-sm font-medium">
                 {t.admin.autoApproval.reviewRange}
               </Label>
-              <div className="flex items-center gap-2">
-                <Badge variant="destructive" className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Badge variant="destructive" className="flex items-center gap-1">
                   <XCircle className="w-3 h-3" />
                   {"<"} {maxRejectScore}
                 </Badge>
                 <span className="text-muted-foreground">→</span>
-                <Badge variant="secondary" className="flex items-center gap-2">
+                <Badge variant="secondary" className="flex items-center gap-1">
                   {maxRejectScore} - {minApprovalScore}
                 </Badge>
                 <span className="text-muted-foreground">→</span>
-                <Badge variant="default" className="flex items-center gap-2">
+                <Badge variant="default" className="flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
                   {">="} {minApprovalScore}
                 </Badge>
@@ -377,11 +377,11 @@ export default function AutoApprovalPage() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {sensitiveFlags.map((flag) => (
-              <Badge key={flag} variant="secondary" className="flex items-center gap-2" data-testid={`badge-flag-${flag}`}>
+              <Badge key={flag} variant="secondary" className="flex items-center gap-1" data-testid={`badge-flag-${flag}`}>
                 {flag}
                 <button
                   onClick={() => handleRemoveFlag(flag)}
-                  className="flex items-center gap-2"
+                  className="ml-1 hover-elevate rounded-full"
                   data-testid={`button-remove-flag-${flag}`}
                 >
                   <X className="w-3 h-3" />
@@ -421,12 +421,12 @@ export default function AutoApprovalPage() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {enabledNamespaces.map((ns) => (
-              <Badge key={ns} variant="outline" className="flex items-center gap-2" data-testid={`badge-namespace-${ns}`}>
+              <Badge key={ns} variant="outline" className="flex items-center gap-1" data-testid={`badge-namespace-${ns}`}>
                 {ns}
                 {ns !== "*" && (
                   <button
                     onClick={() => handleRemoveNamespace(ns)}
-                    className="flex items-center gap-2"
+                    className="ml-1 hover-elevate rounded-full"
                     data-testid={`button-remove-namespace-${ns}`}
                   >
                     <X className="w-3 h-3" />
@@ -457,7 +457,7 @@ export default function AutoApprovalPage() {
       </Card>
 
       {/* Decision Preview Tester */}
-      <Card data-testid="card-element">
+      <Card data-testid="card-decision-tester">
         <CardHeader>
           <CardTitle>{t.admin.autoApproval.testDecision}</CardTitle>
           <CardDescription>
@@ -508,10 +508,10 @@ export default function AutoApprovalPage() {
           </Button>
 
           {previewResult && (
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
+            <div className="mt-4 p-4 border rounded-md space-y-2">
+              <div className="flex items-center justify-between">
                 <span className="font-medium">{t.admin.autoApproval.decisionResult}:</span>
-                <Badge variant={getDecisionBadgeVariant(previewResult.decision.action)} data-testid="test-id">
+                <Badge variant={getDecisionBadgeVariant(previewResult.decision.action)} data-testid="badge-decision-result">
                   {previewResult.decision.action.toUpperCase()}
                 </Badge>
               </div>

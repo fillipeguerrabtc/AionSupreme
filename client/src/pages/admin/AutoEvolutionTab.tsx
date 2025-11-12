@@ -48,7 +48,7 @@ export default function AutoEvolutionTab() {
 
   if (isLoading || !data) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center h-64">
         <div className="text-muted-foreground">{t.admin.autoEvolution.loading}</div>
       </div>
     );
@@ -69,7 +69,7 @@ export default function AutoEvolutionTab() {
       {/* Overview Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex items-center gap-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t.admin.autoEvolution.overview.conversationsCollected}</CardTitle>
             <Brain className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -84,7 +84,7 @@ export default function AutoEvolutionTab() {
         </Card>
 
         <Card>
-          <CardHeader className="flex items-center gap-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t.admin.autoEvolution.overview.avgQualityScore}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -99,7 +99,7 @@ export default function AutoEvolutionTab() {
         </Card>
 
         <Card>
-          <CardHeader className="flex items-center gap-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t.admin.autoEvolution.overview.kbGeneratedDatasets}</CardTitle>
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -114,7 +114,7 @@ export default function AutoEvolutionTab() {
         </Card>
 
         <Card>
-          <CardHeader className="flex items-center gap-2">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t.admin.autoEvolution.overview.trainingJobs}</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -256,7 +256,7 @@ export default function AutoEvolutionTab() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
               {t.admin.autoEvolution.timeline.noData}
             </div>
           )}
@@ -272,7 +272,7 @@ export default function AutoEvolutionTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="h-4 w-4 text-primary" />
               <span className="font-medium">{t.admin.autoEvolution.systemStatus.conversationCollection}</span>
@@ -286,7 +286,7 @@ export default function AutoEvolutionTab() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Database className="h-4 w-4 text-primary" />
               <span className="font-medium">{t.admin.autoEvolution.systemStatus.kbIntegration}</span>
@@ -300,7 +300,7 @@ export default function AutoEvolutionTab() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" />
               <span className="font-medium">{t.admin.autoEvolution.systemStatus.federatedTraining}</span>

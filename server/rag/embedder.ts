@@ -10,7 +10,7 @@
  * - Batch processing for efficiency
  */
 
-import { LLMClient } from "../model/llm-client";
+import { llmClient } from "../model/llm-client";
 
 export interface ChunkOptions {
   maxChunkSize?: number; // tokens
@@ -138,11 +138,8 @@ export class Embedder {
     // Extract text from chunks
     const texts = chunks.map(c => c.text);
     
-    // Create policy-aware LLM client
-    const client = await LLMClient.create();
-    
     // Generate embeddings via LLM client
-    const rawEmbeddings = await client.generateEmbeddings(texts);
+    const rawEmbeddings = await llmClient.generateEmbeddings(texts);
     
     // Normalize embeddings: ê = e/||e||
     const normalizedEmbeddings = rawEmbeddings.map(embedding => this.normalize(embedding));

@@ -11,7 +11,7 @@
 import { db } from '../db';
 import { namespaces, agents } from '@shared/schema';
 import { eq, sql, or, and, like } from 'drizzle-orm';
-import { LLMClient } from '../model/llm-client';
+import { llmClient } from '../model/llm-client';
 
 export interface NamespaceClassificationResult {
   suggestedNamespace: string;
@@ -184,10 +184,7 @@ ${namespaceList || 'Nenhum namespace existe ainda'}
 }`;
 
     try {
-      // Create policy-aware LLM client
-      const client = await LLMClient.create();
-      
-      const response = await client.chatCompletion({
+      const response = await llmClient.chatCompletion({
         model: 'gpt-4o-mini', // Mais barato para classificação
         messages: [
           { role: 'system', content: 'Você é um especialista em classificação de conhecimento. Responda APENAS em JSON válido.' },

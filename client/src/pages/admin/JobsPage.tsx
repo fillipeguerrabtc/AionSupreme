@@ -101,7 +101,7 @@ export default function JobsPage() {
     return (
       <div className="p-6">
         <div className="animate-pulse space-y-4">
-          <div className="bg-muted rounded w-1/3 h-8"></div>
+          <div className="h-8 bg-muted rounded w-1/3"></div>
           <div className="h-32 bg-muted rounded"></div>
           <div className="h-32 bg-muted rounded"></div>
         </div>
@@ -111,7 +111,7 @@ export default function JobsPage() {
 
   return (
     <div className="p-6 space-y-6" data-testid="page-jobs">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold" data-testid="text-jobs-title">{t.admin.jobs.title}</h1>
           <p className="text-muted-foreground" data-testid="text-jobs-subtitle">{t.admin.jobs.subtitle}</p>
@@ -136,7 +136,7 @@ export default function JobsPage() {
           <TabsTrigger value="active" data-testid="tab-active">
             {t.admin.jobs.filters.active} ({jobs?.filter(j => ["pending", "running", "paused"].includes(j.status)).length || 0})
           </TabsTrigger>
-          <TabsTrigger value="completed" data-testid="test-id">
+          <TabsTrigger value="completed" data-testid="tab-completed">
             {t.admin.jobs.filters.completed} ({jobs?.filter(j => j.status === "completed").length || 0})
           </TabsTrigger>
           <TabsTrigger value="failed" data-testid="tab-failed">
@@ -155,9 +155,9 @@ export default function JobsPage() {
             filteredJobs.map((job) => (
               <Card key={job.id} data-testid={`card-job-${job.id}`}>
                 <CardHeader>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mb-2">
                         <CardTitle className="text-lg truncate" data-testid={`text-job-url-${job.id}`}>
                           {job.url}
                         </CardTitle>
@@ -215,7 +215,7 @@ export default function JobsPage() {
                 <CardContent className="space-y-4">
                   {/* Progress Bar */}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground" data-testid={`text-progress-${job.id}`}>
                         {t.admin.jobs.progress}: {job.progress}%
                       </span>
@@ -240,7 +240,7 @@ export default function JobsPage() {
 
                   {/* Error Message */}
                   {job.errorMessage && (
-                    <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
+                    <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
                       <p className="text-sm text-destructive" data-testid={`text-error-${job.id}`}>
                         <strong>{t.common.error}:</strong> {job.errorMessage}
                       </p>

@@ -100,10 +100,9 @@ export default function GPUOverviewPage() {
   });
 
   // Fetch unified GPU data with adaptive polling
-  const { data: overviewData, isLoading, error } = useQuery<OverviewData>({
+  const { data: overviewData, isLoading } = useQuery<OverviewData>({
     queryKey: ["/api/gpu/overview"],
     refetchInterval: 30000, // Standard 30s polling
-    refetchOnMount: 'always', // Force fresh data on mount
   });
 
   // Detect active provisioning by checking for pending workers
@@ -168,7 +167,7 @@ export default function GPUOverviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
       toast({
         title: "Worker Manual Adicionado",
-        description: "Operação concluída com sucesso",
+        description: "Worker conectado com sucesso",
       });
       setShowProvisionDialog(false);
       setSelectedProvider(null);
@@ -176,7 +175,7 @@ export default function GPUOverviewPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
+        title: "Erro ao conectar worker",
         description: error.message,
         variant: "destructive",
       });
@@ -213,7 +212,7 @@ export default function GPUOverviewPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/gpu/overview"] });
       toast({
         title: "Provisionamento Iniciado",
-        description: "Operação concluída com sucesso",
+        description: "GPU sendo criada automaticamente. Acompanhe o status na tabela abaixo.",
       });
       setShowProvisionDialog(false);
       setSelectedProvider(null);
@@ -221,7 +220,7 @@ export default function GPUOverviewPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
+        title: "Erro ao adicionar GPU",
         description: error.message,
         variant: "destructive",
       });
@@ -280,28 +279,15 @@ export default function GPUOverviewPage() {
   };
 
   const formatQuotaInfo = (quota: QuotaStatus | undefined) => {
-    // DEFENSIVE CHECK #1: Quota object missing
     if (!quota) return null;
-
-    // DEFENSIVE CHECK #2: Session runtime data missing (NOT zero - zero is valid!)
-    if (quota.sessionRuntimeSeconds === null || quota.sessionRuntimeSeconds === undefined) {
-      return null;
-    }
-
-    // DEFENSIVE CHECK #3: Max session seconds missing (NOT zero - zero is valid!)
-    if (quota.maxSessionSeconds === null || quota.maxSessionSeconds === undefined) {
-      return null;
-    }
 
     const hoursUsed = (quota.sessionRuntimeSeconds / 3600).toFixed(1);
     const hoursMax = (quota.maxSessionSeconds / 3600).toFixed(0);
-    
-    // DEFENSIVE CHECK #4: Weekly data optional (null/undefined means not available)
-    const weeklyUsed = (quota.weeklyUsedSeconds !== null && quota.weeklyUsedSeconds !== undefined)
+    const weeklyUsed = quota.weeklyUsedSeconds
       ? (quota.weeklyUsedSeconds / 3600).toFixed(1)
       : null;
-    const weeklyMax = (quota.weeklyMaxSeconds !== null && quota.weeklyMaxSeconds !== undefined)
-      ? (quota.weeklyMaxSeconds / 3600).toFixed(0)
+    const weeklyMax = quota.weeklyMaxSeconds
+      ? (quota.weeklyMaxSeconds / 3600).toFixed(0)  // 70% de 30h = 21h
       : null;
 
     return (
@@ -314,20 +300,8 @@ export default function GPUOverviewPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center h-96">
         <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <Card className="border-red-500/50 bg-red-500/10">
-          <CardContent className="p-4">
-            <p className="text-red-400">Error loading GPU data: {error.message}</p>
-          </CardContent>
-        </Card>
       </div>
     );
   }
@@ -335,7 +309,7 @@ export default function GPUOverviewPage() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold" data-testid="title-gpu-overview">
             {t.admin.gpuManagement.header.title}
@@ -360,14 +334,16 @@ export default function GPUOverviewPage() {
       {hasPendingWorkers && (
         <Card className="border-blue-500/50 bg-blue-500/10" data-testid="banner-provisioning">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <RefreshCw className="w-5 h-5 animate-spin text-blue-400" />
               <div className="flex-1">
-                <p className="flex">
+                <p className="font-medium text-blue-300 flex items-center gap-2">
                   <Zap className="w-4 h-4" />
                   Criando GPU automaticamente...
                 </p>
-                <p className="text-sm text-muted-foreground">{t.common.loading}</p>
+                <p className="text-sm text-muted-foreground">
+                  Provisionamento em andamento. Acompanhe o status na tabela abaixo.
+                </p>
               </div>
             </div>
           </CardContent>
@@ -510,7 +486,7 @@ export default function GPUOverviewPage() {
 
       {/* Provision Dialog - 2 Step Process */}
       {showProvisionDialog && (
-        <div className="flex" onClick={() => {
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => {
           setShowProvisionDialog(false);
           setSelectedProvider(null);
         }}>
@@ -536,7 +512,7 @@ export default function GPUOverviewPage() {
                       onClick={() => setSelectedProvider('kaggle')}
                       data-testid="button-provision-kaggle"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center w-full">
                         <Zap className="w-4 h-4 mr-3" />
                         <div className="flex-1 text-left">
                           <div className="font-medium">Kaggle GPU</div>
@@ -551,7 +527,7 @@ export default function GPUOverviewPage() {
                       onClick={() => setSelectedProvider('colab')}
                       data-testid="button-provision-colab"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center w-full">
                         <Zap className="w-4 h-4 mr-3" />
                         <div className="flex-1 text-left">
                           <div className="font-medium">Google Colab GPU</div>
@@ -567,7 +543,7 @@ export default function GPUOverviewPage() {
                       onClick={() => setSelectedProvider('manual')}
                       data-testid="button-add-manual"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center w-full">
                         <Cpu className="w-4 h-4 mr-3" />
                         <div className="flex-1 text-left">
                           <div className="font-medium">Worker Manual</div>
@@ -602,9 +578,9 @@ export default function GPUOverviewPage() {
                 >
                   <p className="text-sm text-muted-foreground">
                     {selectedProvider === 'kaggle' 
-                      ? "Sim"
+                      ? 'Forneça suas credenciais. O sistema criará o notebook automaticamente.'
                       : selectedProvider === 'colab'
-                      ? "Sim"
+                      ? 'Forneça suas credenciais. O sistema criará o notebook automaticamente via Puppeteer.'
                       : 'Forneça a URL do worker existente (ex: https://abc123.ngrok.io)'
                     }
                   </p>
@@ -623,7 +599,9 @@ export default function GPUOverviewPage() {
                         autoComplete="off"
                         data-testid="input-worker-url"
                       />
-                      <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                      <p className="text-xs text-muted-foreground">
+                        URL do worker GPU já em execução (Kaggle, Colab, ou outro)
+                      </p>
                     </div>
                   ) : selectedProvider === 'colab' ? (
                     // Colab Form Fields
@@ -633,16 +611,16 @@ export default function GPUOverviewPage() {
                         <Input
                           id="email"
                           type="email"
-                          placeholder="Digite aqui..."
+                          placeholder="user@gmail.com"
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           required
                           autoComplete="off"
-                          data-testid="input-element"
+                          data-testid="input-email"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="password">{t.common.loading}</Label>
+                        <Label htmlFor="password">Senha (opcional se sessão existir)</Label>
                         <Input
                           id="password"
                           type="password"
@@ -673,7 +651,7 @@ export default function GPUOverviewPage() {
                         <Input
                           id="kaggleKey"
                           type="password"
-                          placeholder="Digite aqui..."
+                          placeholder="Obtenha em kaggle.com/account"
                           value={formData.kaggleKey}
                           onChange={(e) => setFormData({ ...formData, kaggleKey: e.target.value })}
                           required

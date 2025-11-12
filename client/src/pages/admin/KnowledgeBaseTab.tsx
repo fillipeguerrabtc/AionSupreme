@@ -185,7 +185,7 @@ export default function KnowledgeBaseTab() {
       setYoutubeTitle("");
       setYoutubeNamespace(["kb/youtube"]);
       toast({ 
-        title: "Sucesso",
+        title: "Transcrição do YouTube enviada para curadoria!",
         description: `${data.stats?.wordCount || 0} palavras extraídas do vídeo`,
       });
     },
@@ -248,7 +248,7 @@ export default function KnowledgeBaseTab() {
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images"] });
       toast({
-        title: "Sucesso",
+        title: "Imagens excluídas",
         description: `${count} imagens removidas com sucesso`,
       });
       setSelectedImages(new Set());
@@ -256,7 +256,7 @@ export default function KnowledgeBaseTab() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro",
+        title: "Erro ao excluir imagens",
         description: error.message,
         variant: "destructive",
       });
@@ -290,7 +290,7 @@ export default function KnowledgeBaseTab() {
         <Button
           onClick={() => setShowAddYoutube(!showAddYoutube)}
           variant="secondary"
-          className="flex items-center gap-2"
+          className="hover:scale-105 active:scale-95 transition-all duration-300 bg-red-600/10 hover:bg-red-600/20 text-red-600 dark:text-red-400 border-red-600/30"
           data-testid="button-learn-youtube"
         >
           <Youtube className="w-4 h-4 mr-2" />
@@ -374,9 +374,9 @@ export default function KnowledgeBaseTab() {
 
       {/* Add Text Form */}
       {showAddText && (
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-primary/20 animate-slide-up">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center justify-between">
               <span className="gradient-text">{t.admin.knowledgeBase.forms.addText.title}</span>
               <Button
                 size="icon"
@@ -424,9 +424,9 @@ export default function KnowledgeBaseTab() {
 
       {/* Learn from URL Form */}
       {showAddUrl && (
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20 animate-slide-up">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center justify-between">
               <span className="gradient-text-vibrant">{t.admin.knowledgeBase.forms.learnUrl.title}</span>
               <Button
                 size="icon"
@@ -463,12 +463,12 @@ export default function KnowledgeBaseTab() {
 
       {/* Learn from YouTube Form */}
       {showAddYoutube && (
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-red-600/20 animate-slide-up">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Youtube className="w-5 h-5 text-red-600 dark:text-red-400" />
-                <span className="gradient-text-vibrant">{t.common.loading}</span>
+                <span className="gradient-text-vibrant">Aprender de Vídeo do YouTube</span>
               </span>
               <Button
                 size="icon"
@@ -479,17 +479,19 @@ export default function KnowledgeBaseTab() {
                 <X className="w-4 h-4" />
               </Button>
             </CardTitle>
-            <CardDescription>{t.common.loading}</CardDescription>
+            <CardDescription>
+              Extrai a transcrição do vídeo e envia para fila de curadoria (HITL)
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Input
-              placeholder="Digite aqui..."
+              placeholder="https://www.youtube.com/watch?v=..."
               value={youtubeUrl}
               onChange={(e) => setYoutubeUrl(e.target.value)}
               data-testid="input-youtube-url"
             />
             <Input
-              placeholder="Digite aqui..."
+              placeholder="Título do vídeo (opcional - detectado automaticamente)"
               value={youtubeTitle}
               onChange={(e) => setYoutubeTitle(e.target.value)}
               data-testid="input-youtube-title"
@@ -506,7 +508,7 @@ export default function KnowledgeBaseTab() {
               data-testid="button-start-learn-youtube"
             >
               <Youtube className="w-4 h-4 mr-2" />
-              {learnFromYoutubeMutation.isPending ? "Processando..." : "Não disponível"}
+              {learnFromYoutubeMutation.isPending ? "Extraindo transcrição..." : "Extrair Transcrição"}
             </Button>
           </CardContent>
         </Card>
@@ -514,9 +516,9 @@ export default function KnowledgeBaseTab() {
 
       {/* Web Search Form */}
       {showWebSearch && (
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20 animate-slide-up">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center justify-between">
               <span className="gradient-text-vibrant">{t.admin.knowledgeBase.forms.webSearch.title}</span>
               <Button
                 size="icon"
@@ -566,7 +568,7 @@ export default function KnowledgeBaseTab() {
 
         {/* Documents Tab Content */}
         <TabsContent value="documents">
-          <Card className="flex items-center gap-2">
+          <Card className="glass-premium border-primary/20">
             <CardHeader>
               <CardTitle className="gradient-text">{t.admin.knowledgeBase.documents.title}</CardTitle>
               <CardDescription>
@@ -586,7 +588,7 @@ export default function KnowledgeBaseTab() {
                 documents.map((doc) => (
                   <div
                     key={doc.id}
-                    className="flex items-center gap-2"
+                    className="p-4 rounded-lg bg-card/50 border border-border/50 hover-elevate"
                   >
                     {editingDoc === doc.id ? (
                       <div className="space-y-3">
@@ -635,9 +637,9 @@ export default function KnowledgeBaseTab() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <h3 className="flex items-center gap-2">{doc.title}</h3>
+                          <h3 className="font-semibold text-sm mb-1">{doc.title}</h3>
                           
                           {/* Exibir namespaces como badges */}
                           {doc.metadata?.namespaces && doc.metadata.namespaces.length > 0 && (
@@ -684,7 +686,7 @@ export default function KnowledgeBaseTab() {
                             onClick={() => setDeleteDocId(doc.id)}
                             data-testid={`button-delete-${doc.id}`}
                           >
-                            <Trash2 className="flex items-center gap-2" />
+                            <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>
                       </div>
@@ -700,11 +702,11 @@ export default function KnowledgeBaseTab() {
 
     {/* Images Tab Content */}
     <TabsContent value="images">
-      <Card className="flex items-center gap-2">
+      <Card className="glass-premium border-primary/20">
         <CardHeader>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 gradient-text">
                 <ImageIcon className="w-5 h-5" />
                 Imagens Aprendidas
               </CardTitle>
@@ -717,9 +719,10 @@ export default function KnowledgeBaseTab() {
                 variant="destructive"
                 size="sm"
                 onClick={() => setShowBulkDeleteImages(true)}
-                data-testid="button-element"
+                data-testid="button-bulk-delete-images"
               >
-                <Trash2 className="w-4 h-4 mr-2" />{t.common.loading}{selectedImages.size})
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir Selecionadas ({selectedImages.size})
               </Button>
             )}
           </div>
@@ -727,7 +730,7 @@ export default function KnowledgeBaseTab() {
         <CardContent>
           <ScrollArea className="h-[600px]">
             {imagesLoading ? (
-              <div className="text-center py-8 text-muted-foreground">{t.common.loading}</div>
+              <div className="text-center py-8 text-muted-foreground">Carregando imagens...</div>
             ) : images.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">Nenhuma imagem encontrada</div>
             ) : (
@@ -757,7 +760,7 @@ export default function KnowledgeBaseTab() {
                           data-testid={`checkbox-image-${image.filename}`}
                         />
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="aspect-square overflow-hidden bg-muted">
                         <img
                           src={image.path}
                           alt={image.filename}
@@ -769,7 +772,7 @@ export default function KnowledgeBaseTab() {
                         <p className="text-xs font-medium truncate" title={image.filename}>
                           {image.filename}
                         </p>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <span>{(image.size / 1024).toFixed(1)}KB</span>
                           <Button
                             size="icon"
@@ -778,7 +781,7 @@ export default function KnowledgeBaseTab() {
                             onClick={() => setDeleteImageFilename(image.filename)}
                             data-testid={`button-delete-image-${image.filename}`}
                           >
-                            <Trash2 className="flex items-center gap-2" />
+                            <Trash2 className="w-3 h-3 text-destructive" />
                           </Button>
                         </div>
                       </div>
@@ -797,11 +800,13 @@ export default function KnowledgeBaseTab() {
       <AlertDialog open={!!deleteImageFilename} onOpenChange={(open) => !open && setDeleteImageFilename(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
-            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
+            <AlertDialogTitle>Confirmar Exclusão de Imagem</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta imagem? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-delete-image">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteImageFilename) {
@@ -809,23 +814,25 @@ export default function KnowledgeBaseTab() {
                 }
               }}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-element"
-            >{t.common.loading}</AlertDialogAction>
+              data-testid="button-confirm-delete-image"
+            >
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Bulk Delete Images Confirmation Dialog */}
       <AlertDialog open={showBulkDeleteImages} onOpenChange={setShowBulkDeleteImages}>
-        <AlertDialogContent className="flex items-center gap-2">
+        <AlertDialogContent className="glass-premium">
           <AlertDialogHeader>
-            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar exclusão em massa</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir {selectedImages.size} imagens
-                                      </AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedImages.size} imagens? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-bulk-delete-images">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 const filenamesToDelete = Array.from(selectedImages);
@@ -835,7 +842,7 @@ export default function KnowledgeBaseTab() {
               }}
               disabled={bulkDeleteImagesMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="button-element"
+              data-testid="button-confirm-bulk-delete-images"
             >
               {bulkDeleteImagesMutation.isPending ? t.common.deleting : t.common.delete}
             </AlertDialogAction>
@@ -847,11 +854,13 @@ export default function KnowledgeBaseTab() {
       <AlertDialog open={!!deleteDocId} onOpenChange={(open) => !open && setDeleteDocId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
-            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteDocId) {
@@ -860,8 +869,10 @@ export default function KnowledgeBaseTab() {
                 }
               }}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-element"
-            >{t.common.loading}</AlertDialogAction>
+              data-testid="button-confirm-delete"
+            >
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

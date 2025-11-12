@@ -10,7 +10,6 @@ import { gpuWorkers } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { quotaManager } from "../gpu-orchestration/intelligent-quota-manager";
 import { log } from "../utils/logger";
-import { requireAuth, requirePermission } from "../middleware/auth";
 
 export function registerGpuRoutes(app: Router) {
   log.info({ component: 'gpu-routes' }, 'Registering GPU Pool API routes');
@@ -189,14 +188,11 @@ export function registerGpuRoutes(app: Router) {
       const { workerId, sessionRuntimeHours, maxSessionHours, status } = req.body;
 
       // Se está desligando (status: "offline"), apenas atualiza status
-      // (weeklyUsageSeconds já foi atualizado por delta accumulation)
       if (status === "offline") {
         await db
           .update(gpuWorkers)
           .set({
             status: "offline",
-            sessionDurationSeconds: 0,  // Reset session counter
-            sessionStartedAt: null,     // Clear session start
             updatedAt: new Date(),
           })
           .where(eq(gpuWorkers.id, parseInt(workerId)));
@@ -219,7 +215,26 @@ export function registerGpuRoutes(app: Router) {
       const capabilities = (worker.capabilities as any) || {};
       const metadata = capabilities.metadata || {};
 
-      // Atualizar metadata com session runtime (weeklyUsageSeconds handled by quota-telemetry)
+      // CRITICAL: Acumular usedHoursThisWeek para Kaggle workers
+      let usedHoursThisWeek = metadata.usedHoursThisWeek || 0;
+      
+      if (worker.provider === "kaggle") {
+        // Para Kaggle, acumular horas desde o último heartbeat
+        const lastSessionRuntime = metadata.sessionRuntimeHours || 0;
+        const currentSessionRuntime = sessionRuntimeHours || 0;
+        const deltaHours = Math.max(0, currentSessionRuntime - lastSessionRuntime);
+        
+        // Acumular apenas se houve progresso (evita acumular em duplicidade)
+        if (deltaHours > 0 && deltaHours < 1) { // Delta razoável (< 1h entre heartbeats)
+          usedHoursThisWeek += deltaHours;
+          console.log(
+            `[GPU Heartbeat] Kaggle worker ${workerId}: +${deltaHours.toFixed(2)}h ` +
+            `(total week: ${usedHoursThisWeek.toFixed(2)}h)`
+          );
+        }
+      }
+
+      // Atualizar metadata com session runtime + weekly usage + sessionStart
       const updatedCapabilities = {
         ...capabilities,
         metadata: {
@@ -227,6 +242,7 @@ export function registerGpuRoutes(app: Router) {
           sessionStart: metadata.sessionStart || worker.createdAt.toISOString(), // Track session start (use createdAt on first heartbeat)
           sessionRuntimeHours: sessionRuntimeHours || 0,
           maxSessionHours: maxSessionHours || 12,
+          usedHoursThisWeek: worker.provider === "kaggle" ? usedHoursThisWeek : (metadata.usedHoursThisWeek || 0),
           lastHeartbeat: new Date().toISOString(),
         },
       };
@@ -286,9 +302,8 @@ export function registerGpuRoutes(app: Router) {
    * GET /api/gpu/overview
    * PRODUCTION-GRADE UNIFIED GPU OVERVIEW
    * Returns complete GPU status with quota information for dashboard
-   * SECURITY: requireAuth + requirePermission("gpu:pool:read")
    */
-  app.get("/api/gpu/overview", requireAuth, requirePermission("gpu:pool:read"), async (req: Request, res: Response) => {
+  app.get("/api/gpu/overview", async (req: Request, res: Response) => {
     try {
       // Fetch all workers from database
       const workers = await db

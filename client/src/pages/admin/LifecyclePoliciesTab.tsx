@@ -131,14 +131,14 @@ export default function LifecyclePoliciesTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold" data-testid="title-lifecycle-policies">{t.admin.lifecycle.title}</h2>
           <p className="text-sm text-muted-foreground">
             {t.admin.lifecycle.subtitle}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {hasChanges && (
             <Badge variant="outline" className="gap-2" data-testid="badge-unsaved-changes">
               <AlertTriangle className="w-3 h-3" />
@@ -156,20 +156,22 @@ export default function LifecyclePoliciesTab() {
         </div>
       </div>
 
-      <Card data-testid="card-element">
-        <CardHeader className="p-4">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Info className="w-4 h-4" />{t.common.loading}</CardTitle>
-          <CardDescription className="text-sm" data-testid="text-global-defaults-info">
-            Fuso Horário: {pendingChanges.globalDefaults.timezone} | Retenção: {pendingChanges.globalDefaults.retentionYears} anos
+      <Card data-testid="card-global-defaults">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="w-4 h-4" />
+            Configurações Globais
+          </CardTitle>
+          <CardDescription data-testid="text-global-defaults-info">
+            Timezone: {pendingChanges.globalDefaults.timezone} | Retenção padrão: {pendingChanges.globalDefaults.retentionYears} anos
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-4 pt-0 space-y-3">
+        <CardContent className="space-y-4">
           <div className="grid gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
               <div>
                 <Label>Audit Log Habilitado</Label>
-                <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                <p className="text-xs text-muted-foreground">Registrar todas as operações de lifecycle</p>
               </div>
               <Switch
                 checked={pendingChanges.globalDefaults.auditLogEnabled}
@@ -178,10 +180,10 @@ export default function LifecyclePoliciesTab() {
               />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between">
               <div>
                 <Label>Modo Dry Run</Label>
-                <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                <p className="text-xs text-muted-foreground">Simular limpeza sem deletar dados</p>
               </div>
               <Switch
                 checked={pendingChanges.globalDefaults.dryRun}
@@ -196,11 +198,11 @@ export default function LifecyclePoliciesTab() {
       <div className="grid gap-4">
         {Object.entries(pendingChanges.modules).map(([moduleName, moduleConfig]: [string, any]) => (
           <Card key={moduleName} data-testid={`card-module-${moduleName}`}>
-            <CardHeader className="p-4">
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <CardTitle className="capitalize text-base" data-testid={`text-module-${moduleName}-name`}>{moduleName}</CardTitle>
-                  <CardDescription className="text-sm" data-testid={`text-module-${moduleName}-description`}>{moduleConfig.description}</CardDescription>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="capitalize" data-testid={`text-module-${moduleName}-name`}>{moduleName}</CardTitle>
+                  <CardDescription data-testid={`text-module-${moduleName}-description`}>{moduleConfig.description}</CardDescription>
                 </div>
                 <Switch
                   checked={moduleConfig.enabled}
@@ -209,14 +211,14 @@ export default function LifecyclePoliciesTab() {
                 />
               </div>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent>
               {moduleConfig.enabled && moduleConfig.policies && (
                 <div className="space-y-4">
                   {moduleConfig.policies.map((policyRule: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-2" data-testid={`card-policy-${moduleName}-${idx}`}>
-                      <div className="flex items-center gap-2">
+                    <div key={idx} className="border rounded-md p-4 space-y-3" data-testid={`card-policy-${moduleName}-${idx}`}>
+                      <div className="flex items-center justify-between">
                         <div>
-                          <Label className="flex items-center gap-2" data-testid={`text-policy-${moduleName}-${idx}-name`}>{policyRule.name}</Label>
+                          <Label className="font-semibold" data-testid={`text-policy-${moduleName}-${idx}-name`}>{policyRule.name}</Label>
                           {policyRule.description && (
                             <p className="text-xs text-muted-foreground mt-1" data-testid={`text-policy-${moduleName}-${idx}-description`}>{policyRule.description}</p>
                           )}
@@ -231,11 +233,11 @@ export default function LifecyclePoliciesTab() {
                       </div>
 
                       {policyRule.enabled && policyRule.condition && (
-                        <div className="flex items-center gap-2">
+                        <div className="grid grid-cols-2 gap-4 pt-2 border-t">
                           {policyRule.condition.value !== undefined && (
                             <>
                               <div>
-                                <Label className="text-xs">{t.common.loading}</Label>
+                                <Label className="text-xs">Período de Retenção</Label>
                                 <Input
                                   type="number"
                                   value={policyRule.condition.value}

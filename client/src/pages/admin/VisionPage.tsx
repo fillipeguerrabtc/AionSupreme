@@ -76,7 +76,7 @@ export default function VisionPage() {
   });
 
   const getStatusColor = (status: "active" | "missing_key") => {
-    return status === "active" ? "default" : "Não disponível";
+    return status === "active" ? "default" : "destructive";
   };
 
   const getTierColor = (tier: string) => {
@@ -84,7 +84,7 @@ export default function VisionPage() {
   };
 
   const getQuotaColor = (percentage: number) => {
-    if (percentage >= 90) return t("admin.vision.destructive");
+    if (percentage >= 90) return "destructive";
     if (percentage >= 70) return "warning";
     return "default";
   };
@@ -92,7 +92,7 @@ export default function VisionPage() {
   return (
     <div className="space-y-6 p-6" data-testid="page-vision">
       {/* Header */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="title-vision">
             <Eye className="h-8 w-8" />
@@ -108,7 +108,7 @@ export default function VisionPage() {
       {providerError && (
         <Card className="border-destructive">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertCircle className="w-5 h-5" />
               {t.admin.vision.errorLoading}
             </CardTitle>
@@ -141,7 +141,7 @@ export default function VisionPage() {
         ) : (
           <>
             {/* Gemini */}
-            <Card data-testid="card-element">
+            <Card data-testid="card-quota-gemini">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center justify-between">
                   Gemini Vision
@@ -149,13 +149,13 @@ export default function VisionPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold" data-testid="test-id">
+                <div className="text-2xl font-bold" data-testid="quota-gemini-used">
                   {quotaStatus?.data.gemini.used || 0} / {quotaStatus?.data.gemini.limit || 0}
                 </div>
                 <Progress
                   value={quotaStatus?.data.gemini.percentage || 0}
                   className="mt-2"
-                  data-testid="test-id"
+                  data-testid="progress-gemini"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {quotaStatus?.data.gemini.percentage.toFixed(1)}% {t.admin.vision.used}
@@ -187,7 +187,7 @@ export default function VisionPage() {
             </Card>
 
             {/* Claude 3 OpenRouter */}
-            <Card data-testid="card-element">
+            <Card data-testid="card-quota-claude3">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center justify-between">
                   Claude 3 Haiku
@@ -195,13 +195,13 @@ export default function VisionPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold" data-testid="test-id">
+                <div className="text-2xl font-bold" data-testid="quota-claude3-used">
                   {quotaStatus?.data.claude3OpenRouter.used || 0} / {quotaStatus?.data.claude3OpenRouter.limit || 0}
                 </div>
                 <Progress
                   value={quotaStatus?.data.claude3OpenRouter.percentage || 0}
                   className="mt-2"
-                  data-testid="test-id"
+                  data-testid="progress-claude3"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {quotaStatus?.data.claude3OpenRouter.percentage.toFixed(1)}% {t.admin.vision.used}
@@ -236,7 +236,7 @@ export default function VisionPage() {
       </div>
 
       {/* Provider Information */}
-      <Card data-testid="card-element">
+      <Card data-testid="card-providers">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5" />
@@ -258,11 +258,11 @@ export default function VisionPage() {
               {providerInfo?.data.map((provider) => (
                 <div
                   key={provider.id}
-                  className="flex items-center gap-2"
+                  className="flex items-start justify-between p-4 border rounded-lg"
                   data-testid={`provider-${provider.id}`}
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium">{provider.name}</span>
                       <Badge variant={getTierColor(provider.tier)}>{provider.tier}</Badge>
                       {provider.status === "active" ? (
@@ -336,7 +336,7 @@ export default function VisionPage() {
               {Object.values(quotaHistory?.data.providers || {}).map((stat: UsageStats) => (
                 <div
                   key={stat.provider}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-between p-4 border rounded-lg"
                   data-testid={`stats-${stat.provider}`}
                 >
                   <div className="flex-1">

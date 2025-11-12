@@ -2,9 +2,8 @@ import type { Express, Router } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { extractTextContent } from "./utils/message-helpers";
-import { LLMClient } from "./model/llm-client";
+import { llmClient } from "./model/llm-client";
 import { freeLLMProviders } from "./model/free-llm-providers";
-import { invalidatePolicyCache } from "./policy/enforcement";
 import { gpuOrchestrator } from "./model/gpu-orchestrator";
 import { trainingDataCollector } from "./training/data-collector";
 import { ragService } from "./rag/vector-store";
@@ -1165,11 +1164,8 @@ export function registerRoutes(app: Express): Server {
       
       metricsCollector.recordRequest();
       
-      // Create policy-aware LLM client
-      const client = await LLMClient.create();
-      
       // Chamar API OpenAI Whisper
-      const transcription = await client.transcribeAudio(req.file.path);
+      const transcription = await llmClient.transcribeAudio(req.file.path);
       
       const latency = Date.now() - startTime;
       metricsCollector.recordLatency(latency);
@@ -1297,10 +1293,7 @@ export function registerRoutes(app: Express): Server {
       const systemPrompt = await enforcementPipeline.composeSystemPrompt(policy, lastUserMessage, detectedLanguage);
       const fullMessages = [{ role: "system", content: systemPrompt }, ...enrichedMessages];
       
-      // Create policy-aware LLM client
-      const client = await LLMClient.create();
-      
-      const result = await client.chatCompletion({
+      const result = await llmClient.chatCompletion({
         messages: fullMessages,
         temperature: policy.temperature,
         topP: policy.topP,
@@ -1535,19 +1528,13 @@ export function registerRoutes(app: Express): Server {
     try {
       const existing = await storage.getActivePolicy();
       
-      let result;
       if (existing) {
-        result = await storage.updatePolicy(existing.id, req.body);
+        const updated = await storage.updatePolicy(existing.id, req.body);
+        res.json(updated);
       } else {
-        result = await storage.createPolicy(req.body);
+        const created = await storage.createPolicy(req.body);
+        res.json(created);
       }
-      
-      // CRITICAL: Invalidate policy cache so changes propagate immediately
-      // Without this, personality trait updates would take up to 5 minutes to reflect
-      invalidatePolicyCache();
-      console.log("[Admin API] Policy cache invalidated after update");
-      
-      res.json(result);
     } catch (error: unknown) {
       res.status(500).json({ error: getErrorMessage(error) });
     }
@@ -1954,7 +1941,7 @@ export function registerRoutes(app: Express): Server {
         success: results.every(r => r.success),
         documentsDeleted: results.reduce((sum, r) => sum + r.documentsDeleted, 0),
         embeddingsDeleted: results.reduce((sum, r) => sum + r.embeddingsDeleted, 0),
-        filesDeleted: results.flatMap(r => r.filesDeleted || []),
+        filesDeleted: results.reduce((sum, r) => sum + r.filesDeleted, 0),
         warnings: results.flatMap(r => r.warnings || []),
         error: results.find(r => !r.success)?.error,
       };
@@ -6196,8 +6183,67 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // REMOVED: Duplicate /api/gpu/overview route (now handled by registerGpuRoutes)
-  // See server/routes/gpu.ts line 289 for the authoritative modular implementation
+  // GET /api/gpu/overview - UNIFIED endpoint for all GPU workers + stats
+  app.get("/api/gpu/overview", requireAuth, requirePermission("gpu:pool:read"), async (req, res) => {
+    try {
+      const { quotaManager } = await import("./gpu-orchestration/intelligent-quota-manager");
+      const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
+      
+      // Fetch ALL workers (manual + auto-managed)
+      const allWorkers = await db.query.gpuWorkers.findMany({
+        orderBy: (workers, { desc }) => [desc(workers.createdAt)],
+      });
+      
+      // Enrich workers with type-specific data
+      const enrichedWorkers = await Promise.all(
+        allWorkers.map(async (worker) => {
+          const baseWorker = {
+            ...worker,
+            source: worker.autoManaged ? 'auto' as const : 'manual' as const,
+          };
+          
+          // Add quota info for auto-managed workers
+          if (worker.autoManaged) {
+            const quotaStatus = await quotaManager.getQuotaStatus(worker.id);
+            return {
+              ...baseWorker,
+              quotaStatus,
+            };
+          }
+          
+          return baseWorker;
+        })
+      );
+      
+      // Calculate global stats
+      const stats = {
+        total: allWorkers.length,
+        healthy: allWorkers.filter(w => w.status === 'healthy' || w.status === 'online').length,
+        unhealthy: allWorkers.filter(w => w.status === 'unhealthy').length,
+        offline: allWorkers.filter(w => w.status === 'offline').length,
+        pending: allWorkers.filter(w => w.status === 'pending').length,
+        totalRequests: allWorkers.reduce((sum, w) => sum + (w.requestCount || 0), 0),
+        avgLatency: allWorkers.length > 0 
+          ? allWorkers.reduce((sum, w) => sum + (w.averageLatencyMs || 0), 0) / allWorkers.length
+          : 0,
+        autoManaged: allWorkers.filter(w => w.autoManaged).length,
+        manual: allWorkers.filter(w => !w.autoManaged).length,
+      };
+      
+      // Get orchestrator status
+      const orchestratorStatus = await orchestratorService.getStatus();
+      
+      res.json({
+        workers: enrichedWorkers,
+        stats,
+        orchestrator: orchestratorStatus,
+      });
+      
+    } catch (error: unknown) {
+      console.error("[GPU Overview] Error:", error);
+      res.status(500).json({ error: getErrorMessage(error) });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

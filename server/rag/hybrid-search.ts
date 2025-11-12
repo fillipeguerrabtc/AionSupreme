@@ -10,7 +10,7 @@
  */
 
 import { vectorStore, type RAGService } from "./vector-store";
-import { LLMClient } from "../model/llm-client";
+import { llmClient } from "../model/llm-client";
 
 interface HybridSearchResult {
   id: number;
@@ -124,9 +124,6 @@ export class HybridSearch {
     // Take top candidates for re-ranking (to save costs)
     const candidates = results.slice(0, Math.min(20, results.length));
     
-    // Create policy-aware LLM client
-    const client = await LLMClient.create();
-    
     // Re-rank each candidate
     const reranked: Array<HybridSearchResult & { rerankScore: number }> = [];
     
@@ -140,7 +137,7 @@ Passage: ${candidate.chunkText.slice(0, 500)}
 
 Respond with ONLY a number from 0-10:`;
 
-        const response = await client.chatCompletion({
+        const response = await llmClient.chatCompletion({
           messages: [{ role: "user", content: prompt }],
           model: "gpt-3.5-turbo", // Use cheaper model for re-ranking
           temperature: 0,

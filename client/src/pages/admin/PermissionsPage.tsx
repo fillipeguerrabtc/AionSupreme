@@ -256,7 +256,7 @@ export default function PermissionsPage() {
       const usage = await res.json();
       setPermissionUsage(usage);
     } catch (error) {
-      console.error("Erro ao buscar uso de permissões", error);
+      console.error("Error fetching permission usage:", error);
     }
     
     setIsDeleteDialogOpen(true);
@@ -300,7 +300,7 @@ export default function PermissionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Shield className="w-8 h-8" />
@@ -334,7 +334,7 @@ export default function PermissionsPage() {
                   <Button
                     variant="ghost"
                     onClick={() => toggleModule(module)}
-                    className="flex items-center gap-2"
+                    className="w-full justify-start font-semibold"
                     data-testid={`button-toggle-module-${module}`}
                   >
                     {isExpanded ? "▼" : "▶"} {module.toUpperCase()} ({permissions.length})
@@ -344,7 +344,7 @@ export default function PermissionsPage() {
                     <div className="ml-6 space-y-2">
                       {permissions.map(permission => {
                         return (
-                          <div key={permission.id} className="flex items-center gap-2">
+                          <div key={permission.id} className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
                             <div className="flex-1">
                               <div className="font-medium">{permission.name}</div>
                               <div className="text-sm text-muted-foreground flex items-center gap-2">
@@ -382,7 +382,7 @@ export default function PermissionsPage() {
                               onClick={() => handleDeleteClick(permission)}
                               data-testid={`button-delete-permission-${permission.id}`}
                             >
-                              <Trash2 className="flex items-center gap-2" />
+                              <Trash2 className="w-4 h-4 text-destructive" />
                             </Button>
                           </div>
                         );
@@ -486,7 +486,7 @@ export default function PermissionsPage() {
                           control={form.control}
                           name="actions"
                           render={({ field }) => (
-                            <FormItem className="flex items-center gap-2">
+                            <FormItem className="flex items-center gap-3 space-y-0">
                               <FormControl>
                                 <Checkbox
                                   checked={field.value?.includes(action)}
@@ -519,12 +519,12 @@ export default function PermissionsPage() {
 
               <FormField
                 control={form.control}
-                name="permission"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t.admin.permissions.crud.descriptionLabel}</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder={t.admin.permissions.crud.descriptionPlaceholder} data-testid="text-element" />
+                      <Textarea {...field} placeholder={t.admin.permissions.crud.descriptionPlaceholder} data-testid="textarea-description" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -532,11 +532,11 @@ export default function PermissionsPage() {
               />
 
               {previewCodes.length > 0 && (
-                <div className="flex items-center gap-2">
+                <div className="p-4 bg-muted rounded-lg">
                   <Label className="text-sm font-semibold mb-2 block">{t.admin.permissions.helpers.codesPreview}</Label>
                   <div className="space-y-1">
                     {previewCodes.map(code => (
-                      <div key={code} className="flex items-center gap-2">
+                      <div key={code} className="flex items-center gap-2 text-sm font-mono">
                         <Code className="w-3 h-3 text-muted-foreground" />
                         <code>{code}</code>
                       </div>
@@ -564,13 +564,13 @@ export default function PermissionsPage() {
 
       {/* Delete Permission Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent data-testid="test-id">
+        <AlertDialogContent data-testid="dialog-delete-permission">
           <AlertDialogHeader>
             <AlertDialogTitle>{t.admin.permissions.crud.deleteTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               {t.admin.permissions.crud.deleteConfirm} <strong>{selectedPermission?.name}</strong>?
               {permissionUsage && permissionUsage.inUse && (
-                <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
+                <div className="mt-3 p-3 bg-destructive/10 rounded-md">
                   <p className="text-destructive font-semibold">{t.admin.permissions.helpers.permissionInUse}</p>
                   <ul className="mt-2 space-y-1 text-sm">
                     <li>• {permissionUsage.roleCount} {t.admin.permissions.crud.rolesUsing}</li>
@@ -586,7 +586,7 @@ export default function PermissionsPage() {
             <AlertDialogAction
               onClick={() => selectedPermission && deletePermissionMutation.mutate(selectedPermission.id)}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-element"
+              data-testid="button-confirm-delete"
             >
               {deletePermissionMutation.isPending ? t.admin.permissions.crud.deleting : t.admin.permissions.crud.delete}
             </AlertDialogAction>

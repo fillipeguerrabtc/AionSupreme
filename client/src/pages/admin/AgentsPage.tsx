@@ -127,13 +127,13 @@ export default function AgentsPage() {
       setOrphanScanResult(data);
       setShowOrphanScanDialog(true);
       toast({ 
-        title: t.common.success, 
-        description: `${data.report.totalOrphans} ${t.admin.agents.orphansDetected}` 
+        title: "Scan completo", 
+        description: `${data.report.totalOrphans} orphans detectados` 
       });
     },
     onError: (error: Error) => {
       toast({ 
-        title: t.common.error, 
+        title: "Erro ao executar scan", 
         description: error.message, 
         variant: "destructive" 
       });
@@ -164,7 +164,7 @@ export default function AgentsPage() {
 
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex-1 min-w-0">
           <h1 className="text-3xl font-semibold flex items-center gap-2 break-words">
             <Users className="w-8 h-8 shrink-0" />
@@ -185,15 +185,16 @@ export default function AgentsPage() {
         </TabsList>
 
         <TabsContent value="list" className="space-y-4 mt-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-end gap-2 flex-wrap">
             <Button 
-              data-testid="button-element" 
+              data-testid="button-scan-orphans" 
               variant="outline"
               onClick={() => orphanScanMutation.mutate()}
               disabled={orphanScanMutation.isPending}
+              title="Escaneia toda a plataforma em busca de dados órfãos (sem referências válidas) - apenas diagnóstico, não deleta nada"
             >
               <Search className="w-4 h-4 mr-2" />
-              {orphanScanMutation.isPending ? t.common.loading : t.admin.agents.scanOrphans}
+              {orphanScanMutation.isPending ? "Escaneando..." : "Diagnosticar Integridade"}
             </Button>
           </div>
 
@@ -206,21 +207,21 @@ export default function AgentsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">{t.common.loading}</div>
+            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
           ) : agents.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {t.admin.agents.noAgents}
+              Nenhum agente configurado. Crie o primeiro agente acima.
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t.common.icon}</TableHead>
-                  <TableHead>{t.common.name}</TableHead>
-                  <TableHead>{t.common.slug}</TableHead>
-                  <TableHead>{t.common.type}</TableHead>
-                  <TableHead>{t.common.namespaces}</TableHead>
-                  <TableHead className="text-right">{t.common.actions}</TableHead>
+                  <TableHead>Ícones</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Slug</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Namespaces</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -297,14 +298,15 @@ export default function AgentsPage() {
       <Dialog open={selectedAgent !== null} onOpenChange={(open) => !open && setSelectedAgent(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t.admin.agents.editAgent}</DialogTitle>
-            <DialogDescription>{t.admin.agents.editingAgent}: {selectedAgent?.name}
+            <DialogTitle>Editar Agente</DialogTitle>
+            <DialogDescription>
+              Atualize a configuração do agente {selectedAgent?.name}
             </DialogDescription>
           </DialogHeader>
           {selectedAgent && (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="edit-name">{t.admin.agents.agentName}</Label>
+                <Label htmlFor="edit-name">Nome do Agente</Label>
                 <Input 
                   id="edit-name" 
                   value={editName}
@@ -314,25 +316,27 @@ export default function AgentsPage() {
                 />
               </div>
               <div>
-                <Label>{t.admin.agents.identifier}</Label>
-                <div className="flex items-center gap-2">
+                <Label>Identificador (Slug)</Label>
+                <div className="px-3 py-2 bg-muted rounded-md">
                   <code className="text-sm font-mono">{editSlug}</code>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">{t.admin.agents.slugInfo}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Gerado automaticamente pelo sistema - não editável
+                </p>
               </div>
               <div>
-                <Label htmlFor="field">{t.common.description}</Label>
+                <Label htmlFor="edit-description">Descrição</Label>
                 <Input 
-                  id="field" 
+                  id="edit-description" 
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  data-testid="input-element" 
+                  data-testid="input-agent-description" 
                 />
               </div>
               <div>
-                <Label htmlFor="field">{t.admin.agents.systemPrompt}</Label>
+                <Label htmlFor="edit-systemPrompt">System Prompt</Label>
                 <Textarea
-                  id="field"
+                  id="edit-systemPrompt"
                   value={editPrompt}
                   onChange={(e) => setEditPrompt(e.target.value)}
                   rows={5}
@@ -342,24 +346,28 @@ export default function AgentsPage() {
               {/* Namespace selection - conditional based on agent tier */}
               {selectedAgent.agentTier === "agent" ? (
                 <div>
-                  <Label htmlFor="edit-namespace">{t.admin.agents.rootNamespace}</Label>
-                  <p className="text-sm text-muted-foreground mb-2">{t.admin.agents.selectNamespaces}</p>
+                  <Label htmlFor="edit-namespace">Namespace Raiz</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Agents trabalham em 1 namespace raiz (ex: "financas", "tech")
+                  </p>
                   <NamespaceSelector 
                     value={editNamespaces} 
                     onChange={(namespaces) => setEditNamespaces(namespaces.slice(0, 1))}
-                    placeholder={t.admin.agents.selectOneRootNamespace}
+                    placeholder="Selecione 1 namespace raiz"
                     allowCustom={false}
                     allowWildcard={false}
                   />
                 </div>
               ) : (
                 <div>
-                  <Label htmlFor="edit-namespaces">{t.admin.agents.subnamespaces}</Label>
-                  <p className="text-sm text-muted-foreground mb-2">{t.admin.agents.availableTools}</p>
+                  <Label htmlFor="edit-namespaces">Subnamespaces</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    SubAgents podem ter múltiplos subnamespaces do mesmo namespace pai
+                  </p>
                   <NamespaceSelector 
                     value={editNamespaces} 
                     onChange={setEditNamespaces}
-                    placeholder={t.admin.agents.selectSubnamespaces}
+                    placeholder="Selecione subnamespaces"
                     allowCustom={false}
                     allowWildcard={false}
                   />
@@ -367,10 +375,10 @@ export default function AgentsPage() {
               )}
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setSelectedAgent(null)}>
-                  {t.common.cancel}
+                  Cancelar
                 </Button>
                 <Button onClick={handleSaveEdit} disabled={updateMutation.isPending} data-testid="button-save-agent">
-                  {updateMutation.isPending ? t.common.loading : t.common.saveChanges}
+                  {updateMutation.isPending ? "Atualizando..." : "Salvar Alterações"}
                 </Button>
               </div>
             </div>
@@ -382,11 +390,14 @@ export default function AgentsPage() {
       <AlertDialog open={!!deleteAgentId} onOpenChange={(open) => !open && setDeleteAgentId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t.common.confirmDelete}</AlertDialogTitle>
-            <AlertDialogDescription>{t.common.deleteWarning}</AlertDialogDescription>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este agente? Esta ação não pode ser desfeita.
+              O agente será removido permanentemente do sistema.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-delete">{t.common.cancel}</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteAgentId) {
@@ -397,7 +408,7 @@ export default function AgentsPage() {
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-confirm-delete"
             >
-              {t.admin.agents.deleteAgent}
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -407,8 +418,10 @@ export default function AgentsPage() {
       <Dialog open={showOrphanScanDialog} onOpenChange={setShowOrphanScanDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>{t.admin.agents.scanDetails}</DialogTitle>
-            <DialogDescription>{t.admin.agents.scanResults}</DialogDescription>
+            <DialogTitle>Diagnóstico de Integridade da Plataforma</DialogTitle>
+            <DialogDescription>
+              Recursos órfãos detectados em todos os módulos do sistema
+            </DialogDescription>
           </DialogHeader>
           
           {orphanScanResult && (
@@ -418,19 +431,19 @@ export default function AgentsPage() {
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-destructive">{orphanScanResult.report.summary.high}</div>
-                      <p className="text-xs text-muted-foreground">{t.admin.agents.severityHigh}</p>
+                      <p className="text-xs text-muted-foreground">Severidade Alta</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-yellow-600">{orphanScanResult.report.summary.medium}</div>
-                      <p className="text-xs text-muted-foreground">{t.admin.agents.severityMedium}</p>
+                      <p className="text-xs text-muted-foreground">Severidade Média</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-6">
                       <div className="text-2xl font-bold text-green-600">{orphanScanResult.report.summary.low}</div>
-                      <p className="text-xs text-muted-foreground">{t.admin.agents.severityLow}</p>
+                      <p className="text-xs text-muted-foreground">Severidade Baixa</p>
                     </CardContent>
                   </Card>
                 </div>
@@ -441,7 +454,7 @@ export default function AgentsPage() {
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center justify-between">
                           <span>📦 {module.module}</span>
-                          <Badge variant="secondary">{module.totalOrphans} {t.admin.agents.orphans}</Badge>
+                          <Badge variant="secondary">{module.totalOrphans} órfãos</Badge>
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -452,13 +465,13 @@ export default function AgentsPage() {
                                           orphan.severity === 'medium' ? 'rgb(234, 179, 8)' : 
                                           'rgb(34, 197, 94)'
                             }}>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 mb-1">
                                 <Badge variant="outline" className="text-xs">{orphan.type}</Badge>
                                 <span className="text-xs text-muted-foreground">ID: {orphan.id}</span>
                               </div>
                               <p className="text-sm">{orphan.reason}</p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                <strong>{t.admin.agents.suggestedAction}:</strong> {orphan.suggestedAction}
+                                <strong>Ação Sugerida:</strong> {orphan.suggestedAction}
                               </p>
                             </div>
                           ))}
@@ -471,8 +484,10 @@ export default function AgentsPage() {
                 {orphanScanResult.report.totalOrphans === 0 && (
                   <Card>
                     <CardContent className="pt-6 text-center">
-                      <p className="text-lg text-green-600 font-semibold">{t.admin.agents.noOrphansFound}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{t.admin.agents.allAgentsConfigured}</p>
+                      <p className="text-lg text-green-600 font-semibold">✅ Nenhum órfão detectado</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Todos os módulos da plataforma estão saudáveis!
+                      </p>
                     </CardContent>
                   </Card>
                 )}

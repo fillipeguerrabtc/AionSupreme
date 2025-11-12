@@ -39,7 +39,6 @@ interface Translations {
     files: string;
     processedAndIndexed: string;
     failedToProcess: string;
-    errorProcessingRequest: string;
     status: {
       ready: string;
       processing: string;
@@ -143,12 +142,9 @@ interface Translations {
       gpuWorkers: string;
       federatedJobs: string;
       allProviders: string;
-      allTime: string;
       openaiOnly: string;
       knowledgeBaseQueries: string;
-      freeApis_description: string;
       groqGeminiHfOpenrouter: string;
-      requests: string;
       paidApiRequests: string;
       domainsSearched: string;
       duckduckgoProvider: string;
@@ -156,8 +152,6 @@ interface Translations {
       indexedKnowledge: string;
       healthyGpuWorkers: string;
       completedTrainingJobs: string;
-      autoevolution: string;
-      autoevolution_system_status: string;
     };
     
     // Token Monitoring
@@ -313,11 +307,6 @@ interface Translations {
         acknowledging: string;
         viewSources: string;
       };
-    };
-    
-    // Telemetry
-    telemetry: {
-      subtitle: string;
     };
     
     // Auto-Evolution
@@ -878,7 +867,6 @@ interface Translations {
       systemPromptDesc: string;
       systemPromptPlaceholder: string;
       viewFullPrompt: string;
-      unsavedChanges: string;
       previewModal: {
         title: string;
         description: string;
@@ -1119,19 +1107,6 @@ interface Translations {
     datasets: {
       title: string;
       subtitle: string;
-      operationSuccess: string;
-      downloadStarted: string;
-      trainingDataUpdated: string;
-      unknownError: string;
-      problemsFound: string;
-      automaticCorrections: string;
-      warnings: string;
-      instructionTooShort: string;
-      outputTooShort: string;
-      outputSameAsInstruction: string;
-      instructionNotQuestion: string;
-      datasetsRemoved: string;
-      processOperationError: string;
     };
     
     // Curation Page
@@ -1164,12 +1139,6 @@ interface Translations {
       all: string;
       pages: string;
       images: string;
-      imagesProcessed: string;
-      error: string;
-      scanDuplicates: string;
-      unknown: string;
-      enterNote: string;
-      cancel: string;
     };
     
     // Auto-Approval Configuration
@@ -1516,7 +1485,6 @@ const translations: Record<Language, Translations> = {
       files: "arquivo(s)",
       processedAndIndexed: "processado(s) e indexado(s)",
       failedToProcess: "Falha ao processar arquivos",
-      errorProcessingRequest: "Erro ao processar solicitação",
       status: {
         ready: "Pronto",
         processing: "Processando",
@@ -1611,12 +1579,9 @@ const translations: Record<Language, Translations> = {
         gpuWorkers: "Trabalhadores GPU",
         federatedJobs: "Jobs de Treinamento",
         allProviders: "Todos provedores",
-        allTime: "Tempo Total",
         openaiOnly: "Apenas OpenAI",
         knowledgeBaseQueries: "Consultas Knowledge Base",
-        freeApis_description: "Groq, Gemini, HuggingFace, OpenRouter",
         groqGeminiHfOpenrouter: "Groq, Gemini, HF, OpenRouter",
-        requests: "Requisições",
         paidApiRequests: "Requisições API pagas",
         domainsSearched: "domínios pesquisados",
         duckduckgoProvider: "DuckDuckGo",
@@ -1624,8 +1589,6 @@ const translations: Record<Language, Translations> = {
         indexedKnowledge: "conhecimento indexado",
         healthyGpuWorkers: "GPUs ativas no pool",
         completedTrainingJobs: "jobs federados completados",
-        autoevolution: "Auto-Evolução",
-        autoevolution_system_status: "Sistema de aprendizado contínuo ativo",
       },
       
       tokenMonitoring: {
@@ -1719,8 +1682,6 @@ const translations: Record<Language, Translations> = {
           timestamp: "Data/Hora",
           noHistory: "Nenhum histórico disponível",
           noHistoryDesc: "Não há buscas registradas",
-          lowConfidence: "Confiança muito baixa - KB não retornou resultados relevantes",
-          technicalError: "Erro técnico na busca KB",
         },
         
         webSearches: {
@@ -1774,10 +1735,6 @@ const translations: Record<Language, Translations> = {
           acknowledging: "Reconhecendo...",
           viewSources: "Ver Fontes",
         },
-      },
-      
-      telemetry: {
-        subtitle: "Métricas e análises do sistema em tempo real",
       },
       
       autoEvolution: {
@@ -2321,7 +2278,6 @@ const translations: Record<Language, Translations> = {
         systemPromptDesc: "Instruções base para o comportamento da IA",
         systemPromptPlaceholder: "Digite o system prompt...",
         viewFullPrompt: "Ver Prompt Completo",
-        unsavedChanges: "Você tem alterações não salvas",
         previewModal: {
           title: "Prompt Completo (Enviado para as IAs)",
           description: "Este é o prompt REAL que o AION envia para OpenAI, Groq, Gemini e outras APIs. Inclui suas configurações customizadas + as 7 características do equalizador.",
@@ -2557,19 +2513,6 @@ const translations: Record<Language, Translations> = {
       datasets: {
         title: "Datasets de Treinamento",
         subtitle: "Gerencie datasets compilados e dados de treinamento",
-        operationSuccess: "Operação concluída com sucesso",
-        downloadStarted: "Download iniciado",
-        trainingDataUpdated: "Dados de treinamento atualizados com sucesso!",
-        unknownError: "Erro desconhecido",
-        problemsFound: "Problemas encontrados:",
-        automaticCorrections: "Correções automáticas:",
-        warnings: "Avisos:",
-        instructionTooShort: "Instruction muito curta ({length} chars, recomendado: 5+)",
-        outputTooShort: "Output muito curto ({length} chars, recomendado: 10+)",
-        outputSameAsInstruction: "Output não pode ser idêntico à Instruction",
-        instructionNotQuestion: "Instruction não parece ser uma pergunta ou comando",
-        datasetsRemoved: "{count} datasets removidos com sucesso",
-        processOperationError: "Erro ao processar operação",
       },
       
       curation: {
@@ -2601,12 +2544,6 @@ const translations: Record<Language, Translations> = {
         all: "Todos",
         pages: "Páginas",
         images: "Imagens",
-        imagesProcessed: "imagens processadas",
-        error: "Erro",
-        scanDuplicates: "Escanear Duplicatas",
-        unknown: "Desconhecido",
-        enterNote: "Digite uma nota",
-        cancel: "Cancelar",
       },
       
       autoApproval: {
@@ -2944,7 +2881,6 @@ const translations: Record<Language, Translations> = {
       files: "file(s)",
       processedAndIndexed: "processed and indexed",
       failedToProcess: "Failed to process files",
-      errorProcessingRequest: "Error processing request",
       status: {
         ready: "Ready",
         processing: "Processing",
@@ -3039,12 +2975,9 @@ const translations: Record<Language, Translations> = {
         gpuWorkers: "GPU Workers",
         federatedJobs: "Training Jobs",
         allProviders: "All providers",
-        allTime: "All Time",
         openaiOnly: "OpenAI only",
         knowledgeBaseQueries: "Knowledge Base queries",
-        freeApis_description: "Groq, Gemini, HuggingFace, OpenRouter",
         groqGeminiHfOpenrouter: "Groq, Gemini, HF, OpenRouter",
-        requests: "Requests",
         paidApiRequests: "Paid API requests",
         domainsSearched: "domains searched",
         duckduckgoProvider: "DuckDuckGo",
@@ -3052,8 +2985,6 @@ const translations: Record<Language, Translations> = {
         indexedKnowledge: "indexed knowledge",
         healthyGpuWorkers: "active GPUs in pool",
         completedTrainingJobs: "completed federated jobs",
-        autoevolution: "Auto-Evolution",
-        autoevolution_system_status: "Continuous learning system active",
       },
       
       tokenMonitoring: {
@@ -3147,8 +3078,6 @@ const translations: Record<Language, Translations> = {
           timestamp: "Timestamp",
           noHistory: "No history available",
           noHistoryDesc: "No searches recorded",
-          lowConfidence: "Very low confidence - KB returned no relevant results",
-          technicalError: "Technical error in KB search",
         },
         
         webSearches: {
@@ -3202,10 +3131,6 @@ const translations: Record<Language, Translations> = {
           acknowledging: "Acknowledging...",
           viewSources: "View Sources",
         },
-      },
-      
-      telemetry: {
-        subtitle: "Real-time system metrics and analytics",
       },
       
       autoEvolution: {
@@ -3749,7 +3674,6 @@ const translations: Record<Language, Translations> = {
         systemPromptDesc: "Base instructions for AI behavior",
         systemPromptPlaceholder: "Enter system prompt...",
         viewFullPrompt: "View Full Prompt",
-        unsavedChanges: "You have unsaved changes",
         previewModal: {
           title: "Full Prompt (Sent to AI APIs)",
           description: "This is the REAL prompt that AION sends to OpenAI, Groq, Gemini and other APIs. Includes your custom settings + the 7 equalizer characteristics.",
@@ -3985,19 +3909,6 @@ const translations: Record<Language, Translations> = {
       datasets: {
         title: "Training Datasets",
         subtitle: "Manage compiled datasets and training data",
-        operationSuccess: "Operation completed successfully",
-        downloadStarted: "Download started",
-        trainingDataUpdated: "Training data updated successfully!",
-        unknownError: "Unknown error",
-        problemsFound: "Problems found:",
-        automaticCorrections: "Automatic corrections:",
-        warnings: "Warnings:",
-        instructionTooShort: "Instruction too short ({length} chars, recommended: 5+)",
-        outputTooShort: "Output too short ({length} chars, recommended: 10+)",
-        outputSameAsInstruction: "Output cannot be identical to Instruction",
-        instructionNotQuestion: "Instruction doesn't seem to be a question or command",
-        datasetsRemoved: "{count} datasets removed successfully",
-        processOperationError: "Error processing operation",
       },
       
       curation: {
@@ -4029,12 +3940,6 @@ const translations: Record<Language, Translations> = {
         all: "All",
         pages: "Pages",
         images: "Images",
-        imagesProcessed: "images processed",
-        error: "Error",
-        scanDuplicates: "Scan Duplicates",
-        unknown: "Unknown",
-        enterNote: "Enter a note",
-        cancel: "Cancel",
       },
       
       autoApproval: {
@@ -4372,7 +4277,6 @@ const translations: Record<Language, Translations> = {
       files: "archivo(s)",
       processedAndIndexed: "procesado(s) e indexado(s)",
       failedToProcess: "Error al procesar archivos",
-      errorProcessingRequest: "Error al procesar solicitud",
       status: {
         ready: "Listo",
         processing: "Procesando",
@@ -4467,12 +4371,9 @@ const translations: Record<Language, Translations> = {
         gpuWorkers: "Trabajadores GPU",
         federatedJobs: "Jobs de Entrenamiento",
         allProviders: "Todos los proveedores",
-        allTime: "Todo el Tiempo",
         openaiOnly: "Solo OpenAI",
         knowledgeBaseQueries: "consultas Base de Conocimiento",
-        freeApis_description: "Groq, Gemini, HuggingFace, OpenRouter",
         groqGeminiHfOpenrouter: "Groq, Gemini, HF, OpenRouter",
-        requests: "Solicitudes",
         paidApiRequests: "Solicitudes API pagadas",
         domainsSearched: "dominios buscados",
         duckduckgoProvider: "DuckDuckGo",
@@ -4480,8 +4381,6 @@ const translations: Record<Language, Translations> = {
         indexedKnowledge: "conocimiento indexado",
         healthyGpuWorkers: "GPUs activas en el pool",
         completedTrainingJobs: "jobs federados completados",
-        autoevolution: "Auto-Evolución",
-        autoevolution_system_status: "Sistema de aprendizaje continuo activo",
       },
       
       tokenMonitoring: {
@@ -4575,8 +4474,6 @@ const translations: Record<Language, Translations> = {
           timestamp: "Fecha/Hora",
           noHistory: "No hay historial disponible",
           noHistoryDesc: "No hay búsquedas registradas",
-          lowConfidence: "Confianza muy baja - KB no retornó resultados relevantes",
-          technicalError: "Error técnico en la búsqueda KB",
         },
         
         webSearches: {
@@ -4630,10 +4527,6 @@ const translations: Record<Language, Translations> = {
           acknowledging: "Reconociendo...",
           viewSources: "Ver Fuentes",
         },
-      },
-      
-      telemetry: {
-        subtitle: "Métricas y análisis del sistema en tiempo real",
       },
       
       autoEvolution: {
@@ -5177,7 +5070,6 @@ const translations: Record<Language, Translations> = {
         systemPromptDesc: "Instrucciones base para el comportamiento de la IA",
         systemPromptPlaceholder: "Introduce el system prompt...",
         viewFullPrompt: "Ver Prompt Completo",
-        unsavedChanges: "Tienes cambios sin guardar",
         previewModal: {
           title: "Prompt Completo (Enviado a las IAs)",
           description: "Este es el prompt REAL que AION envía a OpenAI, Groq, Gemini y otras APIs. Incluye tus configuraciones personalizadas + las 7 características del ecualizador.",
@@ -5413,19 +5305,6 @@ const translations: Record<Language, Translations> = {
       datasets: {
         title: "Datasets de Entrenamiento",
         subtitle: "Gestiona datasets compilados y datos de entrenamiento",
-        operationSuccess: "Operación completada con éxito",
-        downloadStarted: "Descarga iniciada",
-        trainingDataUpdated: "¡Datos de entrenamiento actualizados con éxito!",
-        unknownError: "Error desconocido",
-        problemsFound: "Problemas encontrados:",
-        automaticCorrections: "Correcciones automáticas:",
-        warnings: "Advertencias:",
-        instructionTooShort: "Instrucción demasiado corta ({length} caracteres, recomendado: 5+)",
-        outputTooShort: "Salida demasiado corta ({length} caracteres, recomendado: 10+)",
-        outputSameAsInstruction: "La salida no puede ser idéntica a la instrucción",
-        instructionNotQuestion: "La instrucción no parece ser una pregunta o comando",
-        datasetsRemoved: "{count} datasets eliminados con éxito",
-        processOperationError: "Error al procesar operación",
       },
       
       curation: {
@@ -5457,12 +5336,6 @@ const translations: Record<Language, Translations> = {
         all: "Todos",
         pages: "Páginas",
         images: "Imágenes",
-        imagesProcessed: "imágenes procesadas",
-        error: "Error",
-        scanDuplicates: "Escanear Duplicados",
-        unknown: "Desconocido",
-        enterNote: "Ingresa una nota",
-        cancel: "Cancelar",
       },
       
       autoApproval: {

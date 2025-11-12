@@ -293,15 +293,15 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
       <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
         <p className="text-sm font-semibold text-foreground mb-2">{formattedDate}</p>
         {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center gap-2">
+          <div key={index} className="flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2">
               <div 
-                className="flex items-center gap-2" 
+                className="w-3 h-3 rounded-sm" 
                 style={{ backgroundColor: entry.color }}
               />
               <span className="text-muted-foreground">{entry.name}:</span>
             </div>
-            <span className="flex items-center gap-2">
+            <span className="font-semibold text-foreground">
               {entry.value.toLocaleString()} tokens
             </span>
           </div>
@@ -481,7 +481,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
   if (summaryLoading || quotasLoading) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center p-12">
         <div className="text-center space-y-4">
           <Activity className="w-12 h-12 mx-auto animate-pulse text-primary" />
           <p className="text-muted-foreground">{t.admin.tokenMonitoring.common.loading}</p>
@@ -492,7 +492,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
   return (
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-6">
-      <TabsList className="flex items-center gap-2">
+      <TabsList className="glass-premium border-primary/20">
         <TabsTrigger value="overview" data-testid="tab-overview">
           <BarChart3 className="w-4 h-4 mr-2" />
           {t.admin.tokenMonitoring.tabs.overview}
@@ -526,7 +526,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
           <Alert className="border-yellow-500/50 bg-yellow-500/10">
             <AlertCircle className="h-4 w-4 text-yellow-500" />
             <AlertDescription>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between">
                 <span className="font-medium">{alerts.length} {t.admin.tokenMonitoring.limits.activeAlerts}</span>
                 <Button 
                   variant="outline" 
@@ -541,10 +541,10 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         )}
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 w-full max-w-full">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Total Tokens */}
-          <Card>
-            <CardHeader>
+          <Card className="glass-premium border-accent/20 hover-elevate">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{t.admin.tokenMonitoring.overview.totalTokens}</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -562,7 +562,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <div className="text-sm font-semibold text-foreground">
                       {getTotalTokensMonth().toLocaleString()}
                     </div>
-                    <p className="text-xs text-muted-foreground">30 dias</p>
+                    <p className="text-xs text-muted-foreground">30d (Mês)</p>
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-primary">
@@ -577,8 +577,8 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
           </Card>
 
           {/* Total Cost */}
-          <Card>
-            <CardHeader>
+          <Card className="glass-premium border-accent/20 hover-elevate">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{t.admin.tokenMonitoring.overview.totalCost}</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -591,8 +591,8 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
           </Card>
 
           {/* Web Searches */}
-          <Card>
-            <CardHeader>
+          <Card className="glass-premium border-accent/20 hover-elevate">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{t.admin.overview.webSearches}</CardTitle>
               <Globe className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -608,7 +608,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         </div>
 
         {/* Usage by Provider - Pie Chart */}
-        <Card>
+        <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-accent" />
@@ -640,10 +640,10 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         </Card>
 
         {/* Trends Chart - Enterprise Grade */}
-        <Card data-chart="usage-trends">
+        <Card className="glass-premium border-accent/20" data-chart="usage-trends">
           <CardHeader>
             <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-accent" />
@@ -677,7 +677,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
               {/* Period Selection & Custom Range */}
               <div className="flex flex-col gap-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex gap-2">
                     <Button
                       variant={!customMode && selectedPeriod === 1 ? "default" : "outline"}
@@ -734,7 +734,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       variant="outline"
                       size="sm"
                       onClick={exportToCSV}
-                      data-testid="test-id"
+                      data-testid="export-csv"
                     >
                       CSV
                     </Button>
@@ -742,7 +742,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       variant="outline"
                       size="sm"
                       onClick={exportToPNG}
-                      data-testid="test-id"
+                      data-testid="export-png"
                     >
                       PNG
                     </Button>
@@ -750,7 +750,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 </div>
 
                 {/* Custom Date Range */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap bg-muted/30 p-3 rounded-lg">
                   <Label className="text-xs font-semibold">{t.admin.tokenMonitoring.overview.periodButtons.custom}:</Label>
                   <Input
                     type="date"
@@ -791,8 +791,8 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
           </CardHeader>
           <CardContent>
             {trendsLoading ? (
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center h-[400px]">
+                <div className="flex flex-col items-center gap-3">
                   <Activity className="w-8 h-8 animate-pulse text-primary" />
                   <p className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.common.loading}</p>
                 </div>
@@ -850,7 +850,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   {showBreakdown ? (
                     <>
                       <Area type="monotone" dataKey="groq" stackId="1" stroke={COLORS.groq} fill="url(#groq)" name="Groq" />
-                      <Area type="monotone" dataKey="gemini" stackId="1" stroke={COLORS.gemini} fill="hsl(var(--primary))" name="Gemini" />
+                      <Area type="monotone" dataKey="gemini" stackId="1" stroke={COLORS.gemini} fill="url(#gemini)" name="Gemini" />
                       <Area type="monotone" dataKey="huggingface" stackId="1" stroke={COLORS.huggingface} fill={COLORS.huggingface} fillOpacity={0.6} name="HuggingFace" />
                       <Area type="monotone" dataKey="openrouter" stackId="1" stroke={COLORS.openrouter} fill={COLORS.openrouter} fillOpacity={0.6} name="OpenRouter" />
                       <Area type="monotone" dataKey="openai" stackId="1" stroke={COLORS.openai} fill="url(#openai)" name="OpenAI" />
@@ -863,7 +863,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
                 <BarChart3 className="w-16 h-16 mb-3 opacity-30" />
                 <p className="text-base font-medium">{t.admin.tokenMonitoring.common.noData}</p>
                 <p className="text-sm mt-1">{t.admin.tokenMonitoring.overview.trendsDesc}</p>
@@ -875,25 +875,27 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* FREE APIS TAB */}
       <TabsContent value="free-apis" className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 w-full max-w-full">
+        <div className="grid gap-4 md:grid-cols-2">
           {/* Groq */}
           {getProviderQuota('groq') && (
-            <Card>
+            <Card className="glass-premium border-accent/20">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Zap className="w-5 h-5" style={{ color: COLORS.groq }} />
                     Groq
                   </span>
-                  <Badge variant="outline">{getProviderQuota('groq')?.remaining.toLocaleString()} restantes</Badge>
+                  <Badge variant="outline">{getProviderQuota('groq')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>API gratuita com reset diário</CardDescription>
+                <CardDescription>Ultra-fast inference (limite: 14.400 requisições/dia)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />Uso Diário</span>
+                      <Activity className="w-3.5 h-3.5" />
+                      Requisições (conta para limite)
+                    </span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('groq')?.used.toLocaleString()} / {getProviderQuota('groq')?.dailyLimit.toLocaleString()}
                     </span>
@@ -906,9 +908,11 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
                     <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />Requisições</p>
+                      <Zap className="w-3 h-3" />
+                      Requisições Hoje
+                    </p>
                     <p className="text-lg font-bold">{getProviderSummary('groq')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Hoje</p>
+                    <p className="text-xs text-muted-foreground mt-1">Contam para o limite</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -916,7 +920,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       Tokens Consumidos
                     </p>
                     <p className="text-lg font-bold">{(getProviderSummary('groq')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Hoje</p>
+                    <p className="text-xs text-muted-foreground mt-1">Só monitoramento</p>
                   </div>
                 </div>
               </CardContent>
@@ -925,22 +929,24 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
           {/* Gemini */}
           {getProviderQuota('gemini') && (
-            <Card>
+            <Card className="glass-premium border-accent/20">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Database className="w-5 h-5" style={{ color: COLORS.gemini }} />
                     Gemini
                   </span>
-                  <Badge variant="outline">{getProviderQuota('gemini')?.remaining.toLocaleString()} restantes</Badge>
+                  <Badge variant="outline">{getProviderQuota('gemini')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>API gratuita com reset diário</CardDescription>
+                <CardDescription>Google's AI (limite: 1.500 requisições/dia)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />Uso Diário</span>
+                      <Activity className="w-3.5 h-3.5" />
+                      Requisições (conta para limite)
+                    </span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('gemini')?.used.toLocaleString()} / {getProviderQuota('gemini')?.dailyLimit.toLocaleString()}
                     </span>
@@ -953,9 +959,11 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
                     <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />Requisições</p>
+                      <Zap className="w-3 h-3" />
+                      Requisições Hoje
+                    </p>
                     <p className="text-lg font-bold">{getProviderSummary('gemini')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Hoje</p>
+                    <p className="text-xs text-muted-foreground mt-1">Contam para o limite</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -963,7 +971,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       Tokens Consumidos
                     </p>
                     <p className="text-lg font-bold">{(getProviderSummary('gemini')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Hoje</p>
+                    <p className="text-xs text-muted-foreground mt-1">Só monitoramento</p>
                   </div>
                 </div>
               </CardContent>
@@ -972,22 +980,24 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
           {/* HuggingFace */}
           {getProviderQuota('huggingface') && (
-            <Card>
+            <Card className="glass-premium border-accent/20">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Activity className="w-5 h-5" style={{ color: COLORS.huggingface }} />
                     HuggingFace
                   </span>
-                  <Badge variant="outline">{getProviderQuota('huggingface')?.remaining.toLocaleString()} restantes</Badge>
+                  <Badge variant="outline">{getProviderQuota('huggingface')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>{t.common.loading}</CardDescription>
+                <CardDescription>Open-source models (limite: 720 requisições/dia)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />{t.common.loading}</span>
+                      <Activity className="w-3.5 h-3.5" />
+                      Requisições (conta para limite)
+                    </span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('huggingface')?.used.toLocaleString()} / {getProviderQuota('huggingface')?.dailyLimit.toLocaleString()}
                     </span>
@@ -1000,9 +1010,11 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
                     <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />{t.common.loading}</p>
+                      <Zap className="w-3 h-3" />
+                      Requisições Hoje
+                    </p>
                     <p className="text-lg font-bold">{getProviderSummary('huggingface')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t.common.loading}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Contam para o limite</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -1010,7 +1022,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       Tokens Consumidos
                     </p>
                     <p className="text-lg font-bold">{(getProviderSummary('huggingface')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t.common.loading}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Só monitoramento</p>
                   </div>
                 </div>
               </CardContent>
@@ -1019,22 +1031,24 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
           {/* OpenRouter */}
           {getProviderQuota('openrouter') && (
-            <Card>
+            <Card className="glass-premium border-accent/20">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Zap className="w-5 h-5" style={{ color: COLORS.openrouter }} />
                     OpenRouter
                   </span>
-                  <Badge variant="outline">{getProviderQuota('openrouter')?.remaining.toLocaleString()} restantes</Badge>
+                  <Badge variant="outline">{getProviderQuota('openrouter')?.remaining.toLocaleString()} requisições restantes</Badge>
                 </CardTitle>
-                <CardDescription>{t.common.loading}</CardDescription>
+                <CardDescription>400+ models (limite: 50 requisições/dia grátis)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />{t.common.loading}</span>
+                      <Activity className="w-3.5 h-3.5" />
+                      Requisições (conta para limite)
+                    </span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('openrouter')?.used.toLocaleString()} / {getProviderQuota('openrouter')?.dailyLimit.toLocaleString()}
                     </span>
@@ -1047,9 +1061,11 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
                     <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />{t.common.loading}</p>
+                      <Zap className="w-3 h-3" />
+                      Requisições Hoje
+                    </p>
                     <p className="text-lg font-bold">{getProviderSummary('openrouter')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t.common.loading}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Contam para o limite</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -1057,7 +1073,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       Tokens Consumidos
                     </p>
                     <p className="text-lg font-bold">{(getProviderSummary('openrouter')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t.common.loading}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Só monitoramento</p>
                   </div>
                 </div>
               </CardContent>
@@ -1066,7 +1082,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         </div>
 
         {/* Free APIs Historical Chart */}
-        <Card>
+        <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-accent" />
@@ -1092,7 +1108,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         </Card>
 
         {/* Free APIs Detailed History */}
-        <Card>
+        <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-accent" />
@@ -1107,9 +1123,9 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
               <ScrollArea className="h-[600px] pr-4">
                 <div className="space-y-4">
                   {freeAPIsHistory.map((entry) => (
-                    <Card key={entry.id} className="flex items-center gap-2">
+                    <Card key={entry.id} className="glass border-primary/10 hover-elevate">
                       <CardHeader className="pb-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <CardTitle className="text-sm font-medium">
                               {entry.provider.charAt(0).toUpperCase() + entry.provider.slice(1)}
@@ -1159,7 +1175,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* KB SEARCHES TAB */}
       <TabsContent value="kb" className="space-y-6">
-        <Card>
+        <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" style={{ color: COLORS.kb }} />
@@ -1174,9 +1190,9 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
               <ScrollArea className="h-[600px] pr-4">
                 <div className="space-y-4">
                   {kbHistory.map((entry) => (
-                    <Card key={entry.id} className="flex items-center gap-2">
+                    <Card key={entry.id} className="glass border-primary/10 hover-elevate">
                       <CardHeader className="pb-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <CardTitle className="text-sm font-medium truncate">
                               {entry.query || t.admin.tokenMonitoring.kbSearches.query}
@@ -1189,7 +1205,9 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                             {/* Source Badge - Shows WHERE the answer came from */}
                             {entry.sourceUsed === 'kb-own' && (
                               <Badge variant="default" className="bg-green-500/20 text-green-500 border-green-500/30 hover:bg-green-500/30">
-                                <CheckCircle2 className="w-3 h-3 mr-1" />{t.common.loading}</Badge>
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                KB Próprio
+                              </Badge>
                             )}
                             {entry.sourceUsed === 'fallback-needed' && (
                               <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/30">
@@ -1199,17 +1217,19 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                             )}
                             {entry.sourceUsed === 'kb-error' && (
                               <Badge variant="destructive" className="bg-red-500/20 text-red-500 border-red-500/30 hover:bg-red-500/30">
-                                <AlertCircle className="w-3 h-3 mr-1" />{t.common.loading}</Badge>
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Erro KB
+                              </Badge>
                             )}
                             {/* Success/Failed Badge */}
                             <Badge variant={entry.success ? "default" : "secondary"}>
                               {entry.success ? (
-                                <span className="flex items-center gap-2">
+                                <span className="flex items-center gap-1">
                                   <CheckCircle2 className="w-3 h-3" />
                                   {t.admin.tokenMonitoring.common.success}
                                 </span>
                               ) : (
-                                <span className="flex items-center gap-2">
+                                <span className="flex items-center gap-1">
                                   <AlertCircle className="w-3 h-3" />
                                   {t.admin.tokenMonitoring.common.failed}
                                 </span>
@@ -1235,10 +1255,10 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                         </div>
                         {/* Show reason for fallback/error if available */}
                         {entry.reason && entry.sourceUsed !== 'kb-own' && (
-                          <div className="flex items-center gap-2">
+                          <div className="mt-3 pt-3 border-t border-border/50">
                             <span className="text-xs text-muted-foreground">
-                              {entry.reason === 'low-confidence' && t.admin.tokenMonitoring.kbSearches.lowConfidence}
-                              {entry.reason === 'kb-search-error' && t.admin.tokenMonitoring.kbSearches.technicalError}
+                              {entry.reason === 'low-confidence' && '⚠️ Confiança muito baixa, usado fallback para Web/GPU/APIs'}
+                              {entry.reason === 'kb-search-error' && '❌ Erro técnico na busca KB'}
                               {!['low-confidence', 'kb-search-error'].includes(entry.reason) && `Motivo: ${entry.reason}`}
                             </span>
                           </div>
@@ -1260,7 +1280,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* OPENAI TAB */}
       <TabsContent value="openai" className="space-y-6">
-        <Card>
+        <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-green-500" />
@@ -1269,7 +1289,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
             <CardDescription>{t.admin.tokenMonitoring.openaiTab.trendsDesc}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3 w-full max-w-full">
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.openaiTab.totalRequests}</p>
                 <p className="text-3xl font-bold gradient-text">
@@ -1294,7 +1314,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
             {/* Cost Breakdown */}
             <div>
-              <h3 className="flex items-center gap-2">{t.admin.tokenMonitoring.openaiTab.costHistory}</h3>
+              <h3 className="font-semibold mb-4">{t.admin.tokenMonitoring.openaiTab.costHistory}</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={[]}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
@@ -1311,7 +1331,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
             {/* Historical Cost Chart */}
             <div>
-              <h3 className="flex items-center gap-2">{t.admin.tokenMonitoring.openaiTab.costHistoryDesc}</h3>
+              <h3 className="font-semibold mb-4">{t.admin.tokenMonitoring.openaiTab.costHistoryDesc}</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={trends?.daily ?? []}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
@@ -1329,7 +1349,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* WEB SEARCHES TAB */}
       <TabsContent value="web" className="space-y-6">
-        <Card>
+        <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Globe className="w-5 h-5 text-cyan-500" />
@@ -1364,12 +1384,12 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
             <ScrollArea className="h-[600px] pr-4">
               <div className="space-y-4">
                 {getWebSearchHistory().map((search, idx) => (
-                  <Card key={idx} className="flex items-center gap-2">
+                  <Card key={idx} className="glass border-cyan-500/20 hover-elevate">
                     <CardHeader>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <CardTitle className="text-lg">{search.query}</CardTitle>
-                          <CardDescription className="flex items-center gap-2">
+                          <CardDescription className="flex items-center gap-2 mt-1">
                             <Clock className="w-3 h-3" />
                             {new Date(search.timestamp).toLocaleString()}
                           </CardDescription>
@@ -1397,7 +1417,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       <div className="space-y-2">
                         <p className="text-sm font-semibold">{t.admin.tokenMonitoring.common.sources}:</p>
                         {(search.metadata?.sources || []).slice(0, 5).map((source: any, sidx: number) => (
-                          <div key={sidx} className="flex items-center gap-2">
+                          <div key={sidx} className="flex items-start gap-2 p-3 rounded-lg bg-background/50 border border-border/50">
                             <ExternalLink className="w-4 h-4 mt-0.5 text-cyan-500 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{source.title}</p>
@@ -1437,7 +1457,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* LIMITS & ALERTS TAB */}
       <TabsContent value="limits" className="space-y-6">
-        <Card>
+        <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings className="w-5 h-5 text-accent" />
@@ -1449,7 +1469,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
             <div className="grid gap-6 md:grid-cols-2">
               {/* Daily Limits */}
               <div className="space-y-4">
-                <h3 className="flex items-center gap-2">{t.admin.tokenMonitoring.limits.dailyLimits}</h3>
+                <h3 className="font-semibold">{t.admin.tokenMonitoring.limits.dailyLimits}</h3>
                 <div className="space-y-2">
                   <Label htmlFor="daily-tokens">{t.admin.tokenMonitoring.limits.dailyTokenLimit}</Label>
                   <Input
@@ -1477,7 +1497,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
               {/* Monthly Limits */}
               <div className="space-y-4">
-                <h3 className="flex items-center gap-2">{t.admin.tokenMonitoring.limits.monthlyLimits}</h3>
+                <h3 className="font-semibold">{t.admin.tokenMonitoring.limits.monthlyLimits}</h3>
                 <div className="space-y-2">
                   <Label htmlFor="monthly-tokens">{t.admin.tokenMonitoring.limits.monthlyTokenLimit}</Label>
                   <Input
@@ -1517,7 +1537,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         </Card>
 
         {/* Active Alerts */}
-        <Card>
+        <Card className="glass-premium border-accent/20">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="w-5 h-5 text-yellow-500" />
@@ -1532,7 +1552,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   <Alert key={alert.id} className="border-yellow-500/50 bg-yellow-500/10">
                     <AlertCircle className="h-4 w-4 text-yellow-500" />
                     <AlertDescription>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium">{alert.message}</p>
                           <p className="text-xs text-muted-foreground mt-1">

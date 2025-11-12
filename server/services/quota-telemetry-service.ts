@@ -142,15 +142,6 @@ export class QuotaTelemetryService {
         weekStartedAt = now;
       }
 
-      // 🔥 NEW: Compute runtime delta and accumulate to weekly usage
-      const previousSessionSeconds = worker.sessionDurationSeconds || 0;
-      const runtimeDelta = Math.max(0, sessionDurationSeconds - previousSessionSeconds);
-      weeklyUsageSeconds += runtimeDelta;
-
-      if (runtimeDelta > 0) {
-        console.log(`   📊 Worker ${workerId}: +${runtimeDelta}s to weekly quota (total: ${weeklyUsageSeconds}s / ${(weeklyUsageSeconds/3600).toFixed(1)}h)`);
-      }
-
       // CALCULATE SCHEDULED STOP TIME
       // 🔥 CRITICAL FIX: Use 70% safety limit (8.4h) for both Colab and Kaggle
       const maxSessionSeconds = worker.maxSessionDurationSeconds || 
@@ -224,12 +215,10 @@ export class QuotaTelemetryService {
 
       console.log(`\n🛑 [QuotaTelemetry] Auto-stopping worker ${workerId}: ${reason}`);
 
-      // Mark as offline (weeklyUsageSeconds already updated by delta accumulation)
+      // Mark as offline
       await db.update(gpuWorkers)
         .set({
           status: 'offline',
-          sessionDurationSeconds: 0,  // Reset session counter
-          sessionStartedAt: null,     // Clear session start
           lastHealthCheckError: `Auto-stopped: ${reason}`,
           updatedAt: new Date(),
         })

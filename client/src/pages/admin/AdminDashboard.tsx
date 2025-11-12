@@ -334,7 +334,7 @@ export default function AdminDashboard() {
       });
       
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: t.common.errorProcessingRequest }));
+        const errorData = await res.json().catch(() => ({ message: "Unknown error" }));
         throw new Error(errorData.message || t.admin.settings.databaseManagement.toasts.restoreError);
       }
       
@@ -383,7 +383,7 @@ export default function AdminDashboard() {
       });
       
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: t.common.errorProcessingRequest }));
+        const errorData = await res.json().catch(() => ({ message: "Unknown error" }));
         throw new Error(errorData.message || t.admin.settings.databaseManagement.toasts.restoreError);
       }
       
@@ -415,7 +415,7 @@ export default function AdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="bg-card border p-8 rounded-xl space-y-4 text-center">
           <div className="relative inline-block">
             <div className="bg-muted p-6 rounded-full">
@@ -430,7 +430,7 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="min-h-screen bg-gradient-to-b from-background via-background to-primary/5 flex items-center justify-center p-6">
         <Card className="bg-card max-w-md border border-destructive/50">
           <CardContent className="pt-6">
             <p className="text-destructive">{t.admin.messages.error}: {(error as Error).message}</p>
@@ -452,78 +452,59 @@ export default function AdminDashboard() {
           <SidebarInset className="flex flex-col flex-1">
             {/* Global Header - Fixed at top */}
             <header className="bg-background/95 backdrop-glass sticky top-0 z-50 border-b shrink-0">
-              <div className="flex items-center justify-between px-4 py-2 gap-4">
-                {/* Left Side - Logo & Brand */}
+              <div className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">
                   <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  {/* Logo + AION + Painel de Controle */}
                   <button 
                     onClick={() => setActiveTab("overview")} 
-                    className="flex items-center gap-3 rounded-md px-2 py-1 transition-all" 
+                    className="hover-elevate rounded-lg px-2 py-1 transition-all bg-transparent border-0 cursor-pointer flex items-center gap-3" 
                     data-testid="link-logo-home"
                   >
                     <AionLogo showText={false} size="md" />
                     <div>
                       <h1 className="font-bold text-xl text-foreground">AION</h1>
-                      <p className="text-xs text-muted-foreground">{t.admin.subtitle}</p>
+                      <p className="text-xs text-muted-foreground">Painel de Controle</p>
                     </div>
                   </button>
                 </div>
-
-                {/* Right Side - Actions */}
                 <div className="flex items-center gap-2">
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     onClick={() => navigate("/")}
+                    className="bg-muted border"
                     data-testid="button-back-to-chat"
                   >
                     <MessageSquare className="w-5 h-5" />
                   </Button>
-                  
-                  {/* Language Selector - Enterprise Style */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        className="gap-2" 
-                        data-testid="button-language-selector"
-                      >
-                        <Languages className="w-4 h-4" />
-                        <span className="hidden sm:inline font-medium">
-                          {language === "pt-BR" ? "PT-BR" : language === "en-US" ? "EN-US" : "ES-ES"}
-                        </span>
+                      <Button variant="ghost" size="icon" className="bg-muted border" data-testid="button-language">
+                        <Languages className="w-5 h-5" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuContent align="end" className="bg-card border">
                       <DropdownMenuItem
                         onClick={() => setLanguage("pt-BR")}
-                        className={language === "pt-BR" ? "bg-primary text-primary-foreground font-semibold" : ""}
+                        className={language === "pt-BR" ? "bg-primary/20" : ""}
                         data-testid="lang-pt-BR"
                       >
-                        <span className="flex items-center justify-between w-full">
-                          <span>Português (BR)</span>
-                          {language === "pt-BR" && <Globe className="w-4 h-4" />}
-                        </span>
+                        Português (BR)
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setLanguage("en-US")}
-                        className={language === "en-US" ? "bg-primary text-primary-foreground font-semibold" : ""}
+                        className={language === "en-US" ? "bg-primary/20" : ""}
                         data-testid="lang-en-US"
                       >
-                        <span className="flex items-center justify-between w-full">
-                          <span>English (US)</span>
-                          {language === "en-US" && <Globe className="w-4 h-4" />}
-                        </span>
+                        English (US)
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setLanguage("es-ES")}
-                        className={language === "es-ES" ? "bg-primary text-primary-foreground font-semibold" : ""}
+                        className={language === "es-ES" ? "bg-primary/20" : ""}
                         data-testid="lang-es-ES"
                       >
-                        <span className="flex items-center justify-between w-full">
-                          <span>Español (ES)</span>
-                          {language === "es-ES" && <Globe className="w-4 h-4" />}
-                        </span>
+                        Español (ES)
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -541,29 +522,29 @@ export default function AdminDashboard() {
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {/* Card 1: Total Tokens → Token Monitoring (Overview) */}
           <Card 
-            className="flex items-center gap-2 cursor-pointer" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('overview');
               setActiveTab("tokens");
             }}
             data-testid="card-total-tokens"
           >
-            <CardHeader className="p-4 space-y-2 w-full">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Activity className="w-4 h-4" />
                 {t.admin.overview.totalTokens}
               </CardTitle>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">24h (Hoje):</span>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">24h (Hoje):</span>
                   <span className="font-bold text-lg">{tokenSummary ? totalTokensToday.toLocaleString() : '...'}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{t.admin.overview.allTime}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Histórico:</span>
                   <span className="font-bold text-primary">{tokenSummary ? totalTokensAllTime.toLocaleString() : '...'}</span>
                 </div>
               </div>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs mt-2">
                 {t.admin.overview.allProviders}
               </CardDescription>
             </CardHeader>
@@ -571,11 +552,11 @@ export default function AdminDashboard() {
 
           {/* Card 2: Total Cost → Cost History Tab */}
           <Card 
-            className="flex items-center gap-2 cursor-pointer" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("cost")}
             data-testid="card-total-cost"
           >
-            <CardHeader className="p-4 space-y-2 w-full">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 {t.admin.overview.totalCost}
@@ -595,14 +576,14 @@ export default function AdminDashboard() {
 
           {/* Card 3: KB Searches → Token Monitoring (KB subtab) */}
           <Card 
-            className="flex items-center gap-2 cursor-pointer" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('kb');
               setActiveTab("tokens");
             }}
             data-testid="card-kb-searches"
           >
-            <CardHeader className="p-4 space-y-2 w-full">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Search className="w-4 h-4" />
                 {t.admin.overview.kbSearches}
@@ -622,67 +603,67 @@ export default function AdminDashboard() {
 
           {/* Card 4: Free APIs → Token Monitoring (Free APIs subtab) */}
           <Card 
-            className="flex items-center gap-2 cursor-pointer" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('free-apis');
               setActiveTab("tokens");
             }}
             data-testid="card-free-apis"
           >
-            <CardHeader className="p-4 space-y-2 w-full">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Zap className="w-4 h-4" />
                 {t.admin.overview.freeApis}
               </CardTitle>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Groq:</span>
-                  <span className="font-bold text-sm">{tokenSummary?.find((p: any) => p.provider === 'groq')?.allTime?.requests || 0} req</span>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Groq:</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'groq')?.allTime?.requests || 0} req</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Gemini:</span>
-                  <span className="font-bold text-sm">{tokenSummary?.find((p: any) => p.provider === 'gemini')?.allTime?.requests || 0} req</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Gemini:</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'gemini')?.allTime?.requests || 0} req</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">HuggingFace:</span>
-                  <span className="font-bold text-sm">{tokenSummary?.find((p: any) => p.provider === 'huggingface')?.allTime?.requests || 0} req</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">HuggingFace:</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'huggingface')?.allTime?.requests || 0} req</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">OpenRouter:</span>
-                  <span className="font-bold text-sm">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.allTime?.requests || 0} req</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">OpenRouter:</span>
+                  <span className="font-bold">{tokenSummary?.find((p: any) => p.provider === 'openrouter')?.allTime?.requests || 0} req</span>
                 </div>
               </div>
-              <CardDescription className="text-xs">
-                {t.admin.overview.freeApis_description}
+              <CardDescription className="text-xs mt-2">
+                Histórico Total (FREE)
               </CardDescription>
             </CardHeader>
           </Card>
 
           {/* Card 5: OpenAI → Token Monitoring (OpenAI subtab) */}
           <Card 
-            className="flex items-center gap-2 cursor-pointer" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('openai');
               setActiveTab("tokens");
             }}
             data-testid="card-openai"
           >
-            <CardHeader className="p-4 space-y-2 w-full">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
                 {t.admin.overview.openai}
               </CardTitle>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{t.admin.overview.requests}</span>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Histórico Total:</span>
                   <span className="font-bold text-lg">{openaiStats ? (openaiStats.allTime?.requests || 0).toLocaleString() : '...'} req</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Tokens:</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Tokens:</span>
                   <span className="font-bold text-primary">{openaiStats ? (openaiStats.allTime?.tokens || 0).toLocaleString() : '...'}</span>
                 </div>
               </div>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs mt-2">
                 {t.admin.overview.paidApiRequests}
               </CardDescription>
             </CardHeader>
@@ -690,14 +671,14 @@ export default function AdminDashboard() {
 
           {/* Card 6: Web Searches → Token Monitoring (Web subtab) */}
           <Card 
-            className="flex items-center gap-2 cursor-pointer" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => {
               setTokenSubtab('web');
               setActiveTab("tokens");
             }}
             data-testid="card-web-searches"
           >
-            <CardHeader className="p-4 space-y-2 w-full">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Globe className="w-4 h-4" />
                 {t.admin.overview.webSearches}
@@ -717,11 +698,11 @@ export default function AdminDashboard() {
 
           {/* Card 7: KB Documents → Knowledge Base Tab */}
           <Card 
-            className="flex items-center gap-2 cursor-pointer" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("knowledge")}
             data-testid="card-kb-documents"
           >
-            <CardHeader className="p-4 space-y-2 w-full">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Database className="w-4 h-4" />
                 {t.admin.overview.kbDocuments}
@@ -737,39 +718,39 @@ export default function AdminDashboard() {
 
           {/* Card 9: GPU Workers → GPU Management Tab */}
           <Card 
-            className="flex items-center gap-2 cursor-pointer" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("gpu")}
             data-testid="card-gpu-workers"
           >
-            <CardHeader className="p-4 space-y-2 w-full">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Server className="w-4 h-4" />
-                {t.admin.overview.gpuWorkers}
+                GPU Workers
               </CardTitle>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Total:</span>
-                  <span className="font-bold text-sm">{gpuData?.total || 0}</span>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Total:</span>
+                  <span className="font-bold">{gpuData?.total || 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-green-400">Healthy:</span>
-                  <span className="font-bold text-sm text-green-400">{gpuData?.healthy || 0}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-green-400">Healthy:</span>
+                  <span className="font-bold text-green-400">{gpuData?.healthy || 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-yellow-400">Unhealthy:</span>
-                  <span className="font-bold text-sm text-yellow-400">{gpuData?.unhealthy || 0}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-yellow-400">Unhealthy:</span>
+                  <span className="font-bold text-yellow-400">{gpuData?.unhealthy || 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-red-400">Offline:</span>
-                  <span className="font-bold text-sm text-red-400">{gpuData?.offline || 0}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-red-400">Offline:</span>
+                  <span className="font-bold text-red-400">{gpuData?.offline || 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Requests:</span>
-                  <span className="font-bold text-sm">{gpuData?.totalRequests || 0}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Requests:</span>
+                  <span className="font-bold">{gpuData?.totalRequests || 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Avg Latency:</span>
-                  <span className="font-bold text-sm">{(gpuData?.avgLatency || 0).toFixed(0)}ms</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Avg Latency:</span>
+                  <span className="font-bold">{(gpuData?.avgLatency || 0).toFixed(0)}ms</span>
                 </div>
               </div>
             </CardHeader>
@@ -777,11 +758,11 @@ export default function AdminDashboard() {
 
           {/* Card 10: Federated Training Jobs → Federated Training Tab */}
           <Card 
-            className="flex items-center gap-2 cursor-pointer" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("federated")}
-            data-testid="card-element"
+            data-testid="card-federated-jobs"
           >
-            <CardHeader className="p-4 space-y-2 w-full">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Cpu className="w-4 h-4" />
                 {t.admin.overview.federatedJobs}
@@ -801,35 +782,35 @@ export default function AdminDashboard() {
 
           {/* Card 11: Auto-Evolution → Meta-Learning Tab (consolidated) */}
           <Card 
-            className="flex items-center gap-2 cursor-pointer" 
+            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
             onClick={() => setActiveTab("meta-learning")}
             data-testid="card-auto-evolution"
           >
-            <CardHeader className="p-4 space-y-2 w-full">
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
-                {t.admin.overview.autoevolution}
+                Auto-Evolução
               </CardTitle>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Conversas:</span>
-                  <span className="font-bold text-sm">{autoEvolutionStats?.overview?.totalConversations || 0}</span>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Conversas:</span>
+                  <span className="font-bold">{autoEvolutionStats?.overview?.totalConversations || 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-green-400">Alta Qualidade:</span>
-                  <span className="font-bold text-sm text-green-400">{autoEvolutionStats?.overview?.highQualityConversations || 0}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-green-400">Alta Qualidade:</span>
+                  <span className="font-bold text-green-400">{autoEvolutionStats?.overview?.highQualityConversations || 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Datasets KB:</span>
-                  <span className="font-bold text-sm">{autoEvolutionStats?.overview?.kbGeneratedDatasets || 0}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Datasets KB:</span>
+                  <span className="font-bold">{autoEvolutionStats?.overview?.kbGeneratedDatasets || 0}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Jobs:</span>
-                  <span className="font-bold text-sm">{autoEvolutionStats?.overview?.completedJobs || 0}/{autoEvolutionStats?.overview?.totalJobs || 0}</span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Jobs:</span>
+                  <span className="font-bold">{autoEvolutionStats?.overview?.completedJobs || 0}/{autoEvolutionStats?.overview?.totalJobs || 0}</span>
                 </div>
               </div>
-              <CardDescription className="text-xs">
-                {t.admin.overview.autoevolution_system_status}
+              <CardDescription className="text-xs mt-2">
+                Sistema de auto-aprendizado
               </CardDescription>
             </CardHeader>
           </Card>
@@ -1013,7 +994,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Comportamento da IA */}
-            <Card className="p-4">
+            <Card className="glass-modern hover-elevate animate-slide-up max-w-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-accent" />
@@ -1023,7 +1004,7 @@ export default function AdminDashboard() {
                   {t.admin.behavior.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 {/* 1. Verbosity */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">
@@ -1037,7 +1018,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid="test-id"
+                    data-testid="slider-verbosity"
                   />
                 </div>
 
@@ -1054,7 +1035,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid="test-id"
+                    data-testid="slider-formality"
                   />
                 </div>
 
@@ -1071,7 +1052,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid="test-id"
+                    data-testid="slider-creativity"
                   />
                 </div>
 
@@ -1088,7 +1069,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid="test-id"
+                    data-testid="slider-precision"
                   />
                 </div>
 
@@ -1105,7 +1086,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid="test-id"
+                    data-testid="slider-persuasiveness"
                   />
                 </div>
 
@@ -1122,7 +1103,7 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid="test-id"
+                    data-testid="slider-empathy"
                   />
                 </div>
 
@@ -1139,14 +1120,37 @@ export default function AdminDashboard() {
                       setHasUnsavedChanges(true);
                     }}
                     className="bg-muted p-2 rounded-xl"
-                    data-testid="test-id"
+                    data-testid="slider-enthusiasm"
                   />
                 </div>
               </CardContent>
             </Card>
 
-            {/* System Prompt - Integrated Section */}
-            <Card className="p-4">
+            {/* Save Button */}
+            {hasUnsavedChanges && (
+              <Card className="glass-modern hover-elevate animate-slide-up">
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-accent animate-pulse" />
+                      Você tem alterações não salvas
+                    </p>
+                    <Button
+                      onClick={handleSaveChanges}
+                      disabled={updatePolicy.isPending}
+                      className="bg-primary hover-elevate active-elevate-2"
+                      data-testid="button-save-changes"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {updatePolicy.isPending ? t.common.saving : t.common.save}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* System Prompt */}
+            <Card className="glass-modern hover-elevate animate-slide-up" style={{ animationDelay: "200ms" }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-primary" />
@@ -1162,24 +1166,25 @@ export default function AdminDashboard() {
                   onChange={(e) => setSystemPromptValue(e.target.value)}
                   className="bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 min-h-[200px] max-h-[600px] font-mono text-sm resize-y transition-all duration-200"
                   placeholder={t.admin.behavior.systemPromptPlaceholder}
-                  data-testid="text-element"
+                  data-testid="textarea-system-prompt"
                 />
                 <div className="flex gap-2">
                   <Button
                     onClick={() => updatePolicy.mutate({ systemPrompt: systemPromptValue })}
                     disabled={updatePolicy.isPending}
-                    className="bg-primary"
-                    data-testid="button-element"
+                    className="bg-primary hover-elevate active-elevate-2"
+                    data-testid="button-save-system-prompt"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     {updatePolicy.isPending ? t.common.saving : t.common.save}
                   </Button>
                   <Button
                     onClick={() => {
-                      refetchPrompt();
+                      refetchPrompt(); // Atualiza preview antes de abrir
                       setShowFullPrompt(true);
                     }}
                     variant="outline"
+                    className="hover-elevate active-elevate-2"
                     data-testid="button-view-full-prompt"
                   >
                     <Eye className="w-4 h-4 mr-2" />
@@ -1189,31 +1194,8 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Save All Changes Button */}
-            {hasUnsavedChanges && (
-              <Card className="p-4">
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Activity className="w-4 h-4 text-accent animate-pulse" />
-                      <span>{t.admin.behavior.unsavedChanges}</span>
-                    </div>
-                    <Button
-                      onClick={handleSaveChanges}
-                      disabled={updatePolicy.isPending}
-                      className="bg-primary"
-                      data-testid="button-save-changes"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      {updatePolicy.isPending ? t.common.saving : t.common.save}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Timezone Selector */}
-            <Card className="p-4">
+            <Card className="glass-modern hover-elevate animate-slide-up" style={{ animationDelay: "300ms" }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
@@ -1252,7 +1234,7 @@ export default function AdminDashboard() {
                   </Select>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="p-4 rounded-xl bg-card/50 border border-border/50 space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">
                     {t.admin.settings.timezone.currentTime}
                   </p>
@@ -1264,7 +1246,7 @@ export default function AdminDashboard() {
                 <Button
                   onClick={() => saveTimezoneMutation.mutate(selectedTimezone)}
                   disabled={saveTimezoneMutation.isPending}
-                  className="bg-primary"
+                  className="bg-primary hover-elevate active-elevate-2"
                   data-testid="button-save-timezone"
                 >
                   <Save className="w-4 h-4 mr-2" />
@@ -1274,7 +1256,7 @@ export default function AdminDashboard() {
             </Card>
 
             {/* Database Management */}
-            <Card className="p-4">
+            <Card className="glass-modern hover-elevate animate-slide-up" style={{ animationDelay: "400ms" }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Database className="w-5 h-5 text-primary" />
@@ -1290,7 +1272,7 @@ export default function AdminDashboard() {
                   <Button
                     onClick={() => createBackupMutation.mutate()}
                     disabled={createBackupMutation.isPending}
-                    className="bg-primary w-full"
+                    className="bg-primary hover-elevate active-elevate-2 w-full"
                     data-testid="button-create-backup"
                   >
                     <Database className="w-4 h-4 mr-2" />
@@ -1299,7 +1281,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Restore Section */}
-                <div className="flex items-center gap-2">
+                <div className="space-y-3 p-4 rounded-xl bg-card/50 border border-border/50">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <Upload className="w-4 h-4" />
                     {t.admin.settings.databaseManagement.actions.restoreBackup}
@@ -1325,6 +1307,7 @@ export default function AdminDashboard() {
                       }}
                       disabled={!selectedBackupFile || restoreBackupMutation.isPending}
                       variant="outline"
+                      className="hover-elevate active-elevate-2"
                       data-testid="button-restore-backup"
                     >
                       {restoreBackupMutation.isPending ? t.admin.settings.databaseManagement.actions.restoring : t.admin.settings.databaseManagement.actions.restoreBackup}
@@ -1352,7 +1335,7 @@ export default function AdminDashboard() {
 
       {/* Modal: Ver Prompt Completo */}
       <Dialog open={showFullPrompt} onOpenChange={setShowFullPrompt}>
-        <DialogContent className="flex">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-primary" />
@@ -1370,7 +1353,7 @@ export default function AdminDashboard() {
               data-testid="textarea-full-prompt-preview"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex justify-between items-center pt-4 border-t">
             <div className="text-sm text-muted-foreground">
               {fullPromptData?.fullPrompt ? `${fullPromptData.fullPrompt.length} ${t.admin.behavior.previewModal.characters}` : ''}
             </div>
@@ -1390,7 +1373,7 @@ export default function AdminDashboard() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="flex items-center gap-2" />
+              <AlertCircle className="w-5 h-5 text-destructive" />
               {t.admin.settings.databaseManagement.restore.confirmTitle}
             </DialogTitle>
             <DialogDescription>
@@ -1398,7 +1381,7 @@ export default function AdminDashboard() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4">
+            <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
               <p className="text-sm text-destructive font-medium flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
                 {t.admin.settings.databaseManagement.restore.warningMessage}
@@ -1421,8 +1404,8 @@ export default function AdminDashboard() {
                 }
               }}
               disabled={restoreBackupMutation.isPending}
-              className="bg-destructive"
-              data-testid="button-element"
+              className="bg-destructive hover-elevate active-elevate-2"
+              data-testid="button-confirm-restore"
             >
               {restoreBackupMutation.isPending ? t.admin.settings.databaseManagement.actions.restoring : t.admin.settings.databaseManagement.restore.confirm}
             </Button>

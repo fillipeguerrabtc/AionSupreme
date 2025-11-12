@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -152,14 +151,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: t.common.success,
-        description: t.admin.datasets.operationSuccess,
+        title: "Dataset atualizado",
+        description: "Dataset atualizado com sucesso",
       });
       setEditDataset(null);
     },
     onError: (error: Error) => {
       toast({
-        title: t.common.error,
+        title: "Erro ao atualizar dataset",
         description: error.message,
         variant: "destructive",
       });
@@ -174,14 +173,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: t.common.success,
-        description: t.admin.datasets.operationSuccess,
+        title: "Dataset excluído",
+        description: "Dataset removido com sucesso",
       });
       setDeleteDatasetId(null);
     },
     onError: (error: Error) => {
       toast({
-        title: t.common.error,
+        title: "Erro ao excluir dataset",
         description: error.message,
         variant: "destructive",
       });
@@ -200,15 +199,15 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: t.common.success,
-        description: t.admin.datasets.datasetsRemoved.replace('{count}', String(selectedDatasets.size)),
+        title: "Datasets excluídos",
+        description: `${selectedDatasets.size} datasets removidos com sucesso`,
       });
       setSelectedDatasets(new Set());
       setShowBulkDelete(false);
     },
     onError: (error: Error) => {
       toast({
-        title: t.common.error,
+        title: "Erro ao excluir datasets",
         description: error.message,
         variant: "destructive",
       });
@@ -234,18 +233,18 @@ export default function DatasetsTab() {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       
       // Build toast message with validation results
-      let description = t.admin.datasets.trainingDataUpdated;
+      let description = "Dados de treinamento atualizados com sucesso";
       
       if (data.validation?.corrections?.length > 0) {
-        description += `\n\n${t.admin.datasets.automaticCorrections}\n${data.validation.corrections.join("\n")}`;
+        description += `\n\n✅ Correções automáticas:\n${data.validation.corrections.join("\n")}`;
       }
       
       if (data.validation?.warnings?.length > 0) {
-        description += `\n\n${t.admin.datasets.warnings}\n${data.validation.warnings.join("\n")}`;
+        description += `\n\n⚠️ Avisos:\n${data.validation.warnings.join("\n")}`;
       }
       
       toast({
-        title: t.common.success,
+        title: "Training Data atualizado",
         description,
       });
       setEditTrainingData(null);
@@ -254,19 +253,19 @@ export default function DatasetsTab() {
     },
     onError: (error: any) => {
       // Check if error has validation details
-      const errorMessage = error.message || t.admin.datasets.unknownError;
+      const errorMessage = error.message || "Erro desconhecido";
       let description = errorMessage;
       
       if (error.details && Array.isArray(error.details)) {
-        description += `\n\n${t.admin.datasets.problemsFound}\n${error.details.join("\n")}`;
+        description += `\n\nProblemas encontrados:\n${error.details.join("\n")}`;
       }
       
       if (error.warnings && Array.isArray(error.warnings)) {
-        description += `\n\n${t.admin.datasets.warnings}\n${error.warnings.join("\n")}`;
+        description += `\n\n⚠️ Avisos:\n${error.warnings.join("\n")}`;
       }
       
       toast({
-        title: t.common.error,
+        title: "Erro ao atualizar training data",
         description,
         variant: "destructive",
       });
@@ -281,14 +280,14 @@ export default function DatasetsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] });
       toast({
-        title: t.common.success,
-        description: t.admin.datasets.operationSuccess,
+        title: "Training Data excluído",
+        description: "Dados de treinamento removidos com sucesso",
       });
       setDeleteTrainingDataId(null);
     },
     onError: (error: Error) => {
       toast({
-        title: t.common.error,
+        title: "Erro ao excluir training data",
         description: error.message,
         variant: "destructive",
       });
@@ -307,15 +306,15 @@ export default function DatasetsTab() {
     const output = editTrainingOutput.trim();
 
     if (instruction.length > 0 && instruction.length < 5) {
-      warnings.push(t.admin.datasets.instructionTooShort.replace('{length}', String(instruction.length)));
+      warnings.push(`Instruction muito curta (${instruction.length} chars, recomendado: 5+)`);
     }
 
     if (output.length > 0 && output.length < 10) {
-      warnings.push(t.admin.datasets.outputTooShort.replace('{length}', String(output.length)));
+      warnings.push(`Output muito curto (${output.length} chars, recomendado: 10+)`);
     }
 
     if (instruction === output && instruction.length > 0) {
-      warnings.push(t.admin.datasets.outputSameAsInstruction);
+      warnings.push("Output não pode ser idêntico a Instruction");
     }
 
     const hasQuestionMark = instruction.includes("?");
@@ -325,7 +324,7 @@ export default function DatasetsTab() {
     );
 
     if (!hasQuestionMark && !startsWithQuestion && instruction.length > 0 && instruction.length < 100) {
-      warnings.push(t.admin.datasets.instructionNotQuestion);
+      warnings.push("Instruction não parece ser uma pergunta ou comando");
     }
 
     setValidationWarnings(warnings);
@@ -346,13 +345,13 @@ export default function DatasetsTab() {
       window.URL.revokeObjectURL(url);
       
       toast({
-        title: t.admin.datasets.downloadStarted,
-        description: t.admin.datasets.operationSuccess,
+        title: "Download iniciado",
+        description: "Seu dataset está sendo baixado",
       });
     } catch (error) {
       toast({
-        title: t.common.error,
-        description: error instanceof Error ? error.message : t.admin.datasets.processOperationError,
+        title: "Erro ao baixar dataset",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive",
       });
     }
@@ -449,9 +448,9 @@ export default function DatasetsTab() {
 
   const getQualityBadge = (tier: "high" | "medium" | "low") => {
     const config = {
-      high: { color: "text-green-500", label: "Alta" },
-      medium: { color: "text-yellow-500", label: "Média" },
-      low: { color: "text-gray-500", label: "Baixa" },
+      high: { color: "text-green-500", label: "Alta Qualidade" },
+      medium: { color: "text-yellow-500", label: "Média Qualidade" },
+      low: { color: "text-gray-500", label: "Baixa Qualidade" },
     };
     return (
       <span className={`text-xs font-medium ${config[tier].color}`}>
@@ -472,19 +471,10 @@ export default function DatasetsTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="glass border-primary/20">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                {isLoading ? (
-                  <>
-                    <Skeleton className="h-4 w-32 mb-2" />
-                    <Skeleton className="h-9 w-16" />
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-muted-foreground">Total de Datasets</p>
-                    <p className="text-3xl font-bold gradient-text" data-testid="stat-total-datasets">{apiStats.compiledDatasets}</p>
-                  </>
-                )}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total de Datasets</p>
+                <p className="text-3xl font-bold gradient-text" data-testid="stat-total-datasets">{apiStats.compiledDatasets}</p>
               </div>
               <Database className="w-8 h-8 text-primary opacity-50" />
             </div>
@@ -493,19 +483,10 @@ export default function DatasetsTab() {
 
         <Card className="glass border-primary/20">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                {isLoading ? (
-                  <>
-                    <Skeleton className="h-4 w-32 mb-2" />
-                    <Skeleton className="h-9 w-20" />
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-muted-foreground">Total de Exemplos</p>
-                    <p className="text-3xl font-bold gradient-text" data-testid="stat-total-examples">{apiStats.totalExamples.toLocaleString()}</p>
-                  </>
-                )}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total de Exemplos</p>
+                <p className="text-3xl font-bold gradient-text" data-testid="stat-total-examples">{apiStats.totalExamples.toLocaleString()}</p>
               </div>
               <BarChart3 className="w-8 h-8 text-primary opacity-50" />
             </div>
@@ -514,19 +495,10 @@ export default function DatasetsTab() {
 
         <Card className="glass border-primary/20">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                {isLoading ? (
-                  <>
-                    <Skeleton className="h-4 w-28 mb-2" />
-                    <Skeleton className="h-9 w-24" />
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-muted-foreground">Tamanho Total</p>
-                    <p className="text-3xl font-bold gradient-text" data-testid="stat-total-size">{formatFileSize(apiStats.totalSize)}</p>
-                  </>
-                )}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Tamanho Total</p>
+                <p className="text-3xl font-bold gradient-text" data-testid="stat-total-size">{formatFileSize(apiStats.totalSize)}</p>
               </div>
               <TrendingUp className="w-8 h-8 text-primary opacity-50" />
             </div>
@@ -535,19 +507,10 @@ export default function DatasetsTab() {
 
         <Card className="glass border-primary/20">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                {isLoading ? (
-                  <>
-                    <Skeleton className="h-4 w-36 mb-2" />
-                    <Skeleton className="h-9 w-16" />
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-muted-foreground">Auto-Gerados (KB)</p>
-                    <p className="text-3xl font-bold gradient-text" data-testid="stat-kb-generated">{apiStats.approvedExamples}</p>
-                  </>
-                )}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Auto-Gerados (KB)</p>
+                <p className="text-3xl font-bold gradient-text" data-testid="stat-kb-generated">{apiStats.approvedExamples}</p>
               </div>
               <Sparkles className="w-8 h-8 text-primary opacity-50" />
             </div>
@@ -556,27 +519,29 @@ export default function DatasetsTab() {
       </div>
 
       {/* Training Data Section (JSONL Format) */}
-      <Card className="glass border-primary/20">
+      <Card className="glass-premium border-accent/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="gradient-text-vibrant flex items-center gap-2">
             <Sparkles className="w-5 h-5" />
-            Dados de Treinamento (JSONL)
+            Dados de Treinamento (JSONL Instruction-Tuning)
           </CardTitle>
           <CardDescription>
-            Visualize e edite os dados de treinamento formatados
+            Formato convertido automaticamente para treinar modelos LoRA nas GPUs
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {trainingData.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Nenhum dado de treinamento disponível</p>
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum dado de treinamento aprovado ainda. Aprove conteúdos na Curadoria!
+              </p>
             ) : (
               <Accordion type="single" collapsible className="w-full">
                 {trainingData.slice(0, 10).map((data: any, idx: number) => (
                   <AccordionItem key={data.id} value={`item-${idx}`}>
                     <div className="flex items-center gap-2">
                       <AccordionTrigger className="text-sm hover-elevate px-3 rounded-md flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
                           <Badge variant="outline" className="text-xs shrink-0">
                             #{data.id}
                           </Badge>
@@ -589,11 +554,11 @@ export default function DatasetsTab() {
                         </div>
                       </AccordionTrigger>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 shrink-0 pr-3">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="flex items-center gap-2"
+                          className="h-7 w-7 glass border-primary/30"
                           onClick={(e) => {
                             e.stopPropagation();
                             setEditTrainingData(data);
@@ -608,18 +573,18 @@ export default function DatasetsTab() {
                         <Button
                           variant="outline"
                           size="icon"
-                          className="bg-destructive/10 border border-destructive/20 rounded-md p-4"
+                          className="h-7 w-7 glass border-destructive/30 hover:bg-destructive/10"
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeleteTrainingDataId(data.id);
                           }}
                           data-testid={`button-delete-training-${data.id}`}
                         >
-                          <Trash2 className="flex items-center gap-2" />
+                          <Trash2 className="w-3 h-3 text-destructive" />
                         </Button>
                       </div>
                     </div>
-                    <AccordionContent className="flex items-center gap-2">
+                    <AccordionContent className="max-w-full overflow-hidden">
                       <div className="space-y-3 pt-2">
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground mb-1">
@@ -660,25 +625,25 @@ export default function DatasetsTab() {
       </Card>
 
       {/* Filters and Actions */}
-      <Card className="flex items-center gap-2">
+      <Card className="glass-premium border-primary/20">
         <CardHeader>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex-1 min-w-[240px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Digite aqui..."
+                  placeholder="Buscar datasets..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex items-center gap-2"
+                  className="pl-10 glass border-primary/30"
                   data-testid="input-search-datasets"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="flex items-center gap-2" data-testid="select-filter-type">
+                <SelectTrigger className="w-[140px] glass border-primary/30" data-testid="select-filter-type">
                   <SelectValue placeholder="Tipo" />
                 </SelectTrigger>
                 <SelectContent>
@@ -694,19 +659,19 @@ export default function DatasetsTab() {
               </Select>
 
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="flex items-center gap-2" data-testid="select-filter-status">
+                <SelectTrigger className="w-[140px] glass border-primary/30" data-testid="select-filter-status">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos status</SelectItem>
                   <SelectItem value="ready">Pronto</SelectItem>
                   <SelectItem value="processing">Processando</SelectItem>
-                  <SelectItem value="failed">Falhou</SelectItem>
+                  <SelectItem value="failed">Erro</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-                <SelectTrigger className="flex items-center gap-2" data-testid="select-sort-by">
+                <SelectTrigger className="w-[140px] glass border-primary/30" data-testid="select-sort-by">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -721,8 +686,8 @@ export default function DatasetsTab() {
                 variant="outline"
                 size="icon"
                 onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                className="flex items-center gap-2"
-                data-testid="button-element"
+                className="glass border-primary/30"
+                data-testid="button-sort-order"
               >
                 {sortOrder === "asc" ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </Button>
@@ -731,7 +696,7 @@ export default function DatasetsTab() {
                 variant="outline"
                 size="icon"
                 onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/training/datasets"] })}
-                className="flex items-center gap-2"
+                className="glass border-primary/30"
                 data-testid="button-refresh"
               >
                 <RefreshCw className="w-4 h-4" />
@@ -742,10 +707,10 @@ export default function DatasetsTab() {
                   variant="destructive"
                   onClick={() => setShowBulkDelete(true)}
                   className="gap-2"
-                  data-testid="button-delete-bulk"
+                  data-testid="button-bulk-delete"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Excluir Selecionados ({selectedDatasets.size})
+                  Excluir ({selectedDatasets.size})
                 </Button>
               )}
             </div>
@@ -754,25 +719,25 @@ export default function DatasetsTab() {
       </Card>
 
       {/* Datasets List */}
-      <Card className="flex items-center gap-2">
+      <Card className="glass-premium border-primary/20">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center py-12">
               <RefreshCw className="w-6 h-6 animate-spin text-primary" />
             </div>
           ) : filteredDatasets.length === 0 ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-center justify-center py-12 text-center">
               <Database className="w-12 h-12 text-muted-foreground mb-4" />
               <p className="text-lg font-medium">Nenhum dataset encontrado</p>
               <p className="text-sm text-muted-foreground">
                 {searchQuery || filterType !== "all" || filterStatus !== "all"
                   ? "Tente ajustar os filtros"
-                  : "Nenhum dado disponível"}
+                  : "Faça upload de um dataset para começar"}
               </p>
             </div>
           ) : (
             <ScrollArea className="h-[600px]">
-              <div className="flex items-center gap-2">
+              <div className="divide-y divide-border/50">
                 {filteredDatasets.map((dataset) => {
                   const TypeIcon = getTypeIcon(dataset.datasetType);
                   const qualityTier = getQualityTier(dataset);
@@ -784,7 +749,7 @@ export default function DatasetsTab() {
                       className="p-4 hover-elevate transition-all duration-200"
                       data-testid={`dataset-row-${dataset.id}`}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-start gap-4 min-w-0">
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={(checked) => {
@@ -801,11 +766,11 @@ export default function DatasetsTab() {
                         />
 
                         <div className="flex-1 min-w-0 space-y-3">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <TypeIcon className="w-4 h-4 text-primary shrink-0" />
-                                <h3 className="flex items-center gap-2" data-testid={`text-dataset-name-${dataset.id}`}>
+                                <h3 className="font-semibold text-lg break-words" data-testid={`text-dataset-name-${dataset.id}`}>
                                   {dataset.name}
                                 </h3>
                                 {getStatusBadge(dataset.status)}
@@ -817,23 +782,23 @@ export default function DatasetsTab() {
                                 </p>
                               )}
 
-                              <div className="flex items-center gap-2">
-                                <span className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground min-w-0">
+                                <span className="flex items-center gap-1">
                                   <FileText className="w-4 h-4" />
                                   {dataset.totalExamples.toLocaleString()} exemplos
                                 </span>
-                                <span className="flex items-center gap-2">
+                                <span className="flex items-center gap-1">
                                   <Database className="w-4 h-4" />
                                   {formatFileSize(dataset.fileSize)}
                                 </span>
-                                <span className="flex items-center gap-2">
+                                <span className="flex items-center gap-1">
                                   <Calendar className="w-4 h-4" />
                                   {new Date(dataset.createdAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })}
                                   <Clock className="w-3 h-3 ml-1" />
                                   {new Date(dataset.createdAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 {dataset.averageLength && (
-                                  <span className="flex items-center gap-2">
+                                  <span className="flex items-center gap-1">
                                     <BarChart3 className="w-4 h-4" />
                                     Avg: {dataset.averageLength} chars
                                   </span>
@@ -842,21 +807,21 @@ export default function DatasetsTab() {
                               </div>
 
                               {dataset.validationErrors && dataset.validationErrors.length > 0 && (
-                                <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
-                                  <div className="flex items-center gap-2">
-                                    <AlertTriangle className="w-4 h-4 text-destructive" />
-                                    <span className="text-sm">Erros de validação: {dataset.validationErrors.join(", ")}</span>
+                                <div className="mt-2 p-2 rounded-md bg-destructive/10 border border-destructive/20">
+                                  <div className="flex items-center gap-2 text-sm text-destructive">
+                                    <AlertTriangle className="w-4 h-4" />
+                                    <span>Erros de validação: {dataset.validationErrors.join(", ")}</span>
                                   </div>
                                 </div>
                               )}
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
                               <Button
                                 variant="outline"
                                 size="icon"
                                 onClick={() => setPreviewDataset(dataset)}
-                                className="flex items-center gap-2"
+                                className="glass border-primary/30"
                                 data-testid={`button-preview-${dataset.id}`}
                               >
                                 <Eye className="w-4 h-4" />
@@ -870,7 +835,7 @@ export default function DatasetsTab() {
                                   setEditName(dataset.name);
                                   setEditDescription(dataset.description || "");
                                 }}
-                                className="flex items-center gap-2"
+                                className="glass border-primary/30"
                                 data-testid={`button-edit-${dataset.id}`}
                               >
                                 <Edit className="w-4 h-4" />
@@ -880,7 +845,7 @@ export default function DatasetsTab() {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => downloadDataset(dataset)}
-                                className="flex items-center gap-2"
+                                className="glass border-primary/30"
                                 data-testid={`button-download-${dataset.id}`}
                               >
                                 <Download className="w-4 h-4" />
@@ -890,7 +855,7 @@ export default function DatasetsTab() {
                                 variant="outline"
                                 size="icon"
                                 onClick={() => setDeleteDatasetId(dataset.id)}
-                                className="bg-destructive/10 border border-destructive/20 rounded-md p-4"
+                                className="glass border-destructive/30 text-destructive hover:bg-destructive/10"
                                 data-testid={`button-delete-${dataset.id}`}
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -919,20 +884,20 @@ export default function DatasetsTab() {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewDataset} onOpenChange={() => setPreviewDataset(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[80vh] glass-premium">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-primary" />
               Preview: {previewDataset?.name}
             </DialogTitle>
             <DialogDescription>
-              Visualize o conteúdo do dataset
+              Visualização das primeiras linhas do dataset
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex items-center gap-2">
+          <ScrollArea className="h-[500px] w-full rounded-md border border-border/50 p-4">
             {isLoadingPreview ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center py-8">
                 <RefreshCw className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : (
@@ -954,7 +919,7 @@ export default function DatasetsTab() {
 
       {/* Edit Dataset Dialog */}
       <Dialog open={!!editDataset} onOpenChange={(open) => !open && setEditDataset(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto glass-premium">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="w-5 h-5 text-primary" />
@@ -983,9 +948,9 @@ export default function DatasetsTab() {
                 id="edit-description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="Descrição opcional do dataset..."
+                placeholder="Descrição do dataset (opcional)"
                 rows={3}
-                data-testid="textarea-edit-description"
+                data-testid="textarea-edit-dataset-description"
               />
             </div>
           </div>
@@ -1011,7 +976,7 @@ export default function DatasetsTab() {
                 }
               }}
               disabled={updateMutation.isPending || !editName.trim()}
-              data-testid="button-element"
+              data-testid="button-confirm-edit"
             >
               {updateMutation.isPending ? t.common.saving : t.common.save}
             </Button>
@@ -1021,9 +986,9 @@ export default function DatasetsTab() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteDatasetId} onOpenChange={() => setDeleteDatasetId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass-premium">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir este dataset? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
@@ -1035,7 +1000,7 @@ export default function DatasetsTab() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-delete"
             >
-              Excluir Dataset
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1043,9 +1008,9 @@ export default function DatasetsTab() {
 
       {/* Bulk Delete Confirmation Dialog */}
       <AlertDialog open={showBulkDelete} onOpenChange={setShowBulkDelete}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass-premium">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão em Massa</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar exclusão em massa</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir {selectedDatasets.size} datasets? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
@@ -1057,7 +1022,7 @@ export default function DatasetsTab() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-bulk-delete"
             >
-              Excluir {selectedDatasets.size} Datasets
+              Excluir Todos
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1065,14 +1030,14 @@ export default function DatasetsTab() {
 
       {/* Edit Training Data Dialog */}
       <Dialog open={!!editTrainingData} onOpenChange={(open) => !open && setEditTrainingData(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto glass-premium">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="w-5 h-5 text-primary" />
               Editar Training Data
             </DialogTitle>
             <DialogDescription>
-              Edite a instrução e o output do dado de treinamento
+              Atualize a instrução e saída para treinamento do modelo
             </DialogDescription>
           </DialogHeader>
 
@@ -1083,7 +1048,7 @@ export default function DatasetsTab() {
                 id="edit-training-instruction"
                 value={editTrainingInstruction}
                 onChange={(e) => setEditTrainingInstruction(e.target.value)}
-                placeholder="Digite aqui..."
+                placeholder="Instrução para o modelo (ex: 'Explique inteligência artificial')"
                 rows={4}
                 className="font-mono text-sm"
                 data-testid="textarea-edit-training-instruction"
@@ -1096,23 +1061,23 @@ export default function DatasetsTab() {
                 id="edit-training-output"
                 value={editTrainingOutput}
                 onChange={(e) => setEditTrainingOutput(e.target.value)}
-                placeholder="Digite aqui..."
+                placeholder="Resposta que o modelo deve aprender (saída esperada)"
                 rows={8}
                 className="font-mono text-sm"
                 data-testid="textarea-edit-training-output"
               />
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{editTrainingOutput.length} caracteres</span>
                 {editTrainingOutput.length < 10 && editTrainingOutput.length > 0 && (
-                  <span className="text-yellow-500 font-medium">⚠️ Muito curto</span>
+                  <span className="text-yellow-500">Muito curto (mínimo recomendado: 10)</span>
                 )}
               </div>
             </div>
 
             {/* Validation Warnings Inline */}
             {validationWarnings.length > 0 && (
-              <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-3">
-                <div className="flex gap-2">
+              <div className="p-3 rounded-md bg-yellow-500/10 border border-yellow-500/30">
+                <div className="flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
                   <div className="flex-1 space-y-1">
                     <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">
@@ -1128,10 +1093,10 @@ export default function DatasetsTab() {
               </div>
             )}
 
-            <div className="bg-muted/50 border border-border rounded-md p-3">
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                As validações são aplicadas automaticamente ao salvar
+            <div className="p-3 rounded-md bg-primary/5 border border-primary/20">
+              <p className="text-xs text-muted-foreground">
+                <Sparkles className="w-3 h-3 inline mr-1" />
+                Estes dados serão usados para treinar modelos LoRA nas GPUs gratuitas
               </p>
             </div>
           </div>
@@ -1161,7 +1126,7 @@ export default function DatasetsTab() {
                 }
               }}
               disabled={updateTrainingDataMutation.isPending || !editTrainingInstruction.trim() || !editTrainingOutput.trim()}
-              data-testid="button-element"
+              data-testid="button-confirm-edit-training"
             >
               {updateTrainingDataMutation.isPending ? t.common.saving : t.common.save}
             </Button>
@@ -1171,9 +1136,9 @@ export default function DatasetsTab() {
 
       {/* Delete Training Data Confirmation Dialog */}
       <AlertDialog open={!!deleteTrainingDataId} onOpenChange={() => setDeleteTrainingDataId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass-premium">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar exclusão de Training Data</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir este dado de treinamento? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
@@ -1185,7 +1150,7 @@ export default function DatasetsTab() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-delete-training"
             >
-              Excluir Dado de Treinamento
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

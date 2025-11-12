@@ -211,42 +211,42 @@ export default function GPUManagementTab() {
     <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* Stats Overview */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.totalGPUs}</CardTitle>
             <div className="text-2xl font-bold gradient-text">{stats.total}</div>
           </CardHeader>
         </Card>
 
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-green-500/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.healthy}</CardTitle>
             <div className="text-2xl font-bold text-green-400">{stats.healthy}</div>
           </CardHeader>
         </Card>
 
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-yellow-500/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.unhealthy}</CardTitle>
             <div className="text-2xl font-bold text-yellow-400">{stats.unhealthy}</div>
           </CardHeader>
         </Card>
 
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-red-500/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.offline}</CardTitle>
             <div className="text-2xl font-bold text-red-400">{stats.offline}</div>
           </CardHeader>
         </Card>
 
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.totalRequests}</CardTitle>
             <div className="text-2xl font-bold gradient-text">{stats.totalRequests.toLocaleString()}</div>
           </CardHeader>
         </Card>
 
-        <Card className="flex items-center gap-2">
+        <Card className="glass-premium border-accent/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">{t.admin.gpuManagement.avgLatencyMs}</CardTitle>
             <div className="text-2xl font-bold gradient-text">{stats.averageLatencyMs.toFixed(0)}ms</div>
@@ -255,9 +255,9 @@ export default function GPUManagementTab() {
       </div>
 
       {/* GPU Workers Table */}
-      <Card className="flex items-center gap-2">
+      <Card className="glass-premium border-accent/20">
         <CardHeader>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Server className="w-5 h-5" />
               {t.admin.gpuManagement.registeredWorkers}
@@ -308,7 +308,7 @@ export default function GPUManagementTab() {
                     <TableHead>{t.admin.gpuManagement.gpu}</TableHead>
                     <TableHead>{t.admin.gpuManagement.status}</TableHead>
                     <TableHead>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {t.admin.gpuManagement.tempo}
                       </div>
@@ -342,7 +342,7 @@ export default function GPUManagementTab() {
                         {formatDate(worker.lastUsedAt)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -358,7 +358,7 @@ export default function GPUManagementTab() {
                             disabled={deleteMutation.isPending}
                             data-testid={`button-delete-gpu-${worker.id}`}
                           >
-                            <Trash2 className="flex items-center gap-2" />
+                            <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>
                       </TableCell>

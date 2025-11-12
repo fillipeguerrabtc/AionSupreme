@@ -221,7 +221,7 @@ export default function NamespacesPage() {
             });
             toast({ 
               title: t.admin.namespaces.toast.contentQueued, 
-              description: "Operação concluída" 
+              description: "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base" 
             });
           } catch (error) {
             toast({ 
@@ -239,7 +239,7 @@ export default function NamespacesPage() {
     if (!selectedNamespace) return;
 
     // Check if this is a predefined namespace being "customized"
-    const isPredefined = selectedNamespace.id.toString().startsWith("predefined");
+    const isPredefined = selectedNamespace.id.toString().startsWith("predefined-");
     
     if (isPredefined) {
       // Create a new custom namespace based on the predefined one
@@ -267,7 +267,7 @@ export default function NamespacesPage() {
               });
               toast({ 
                 title: t.admin.namespaces.toast.contentQueued, 
-                description: "Operação concluída" 
+                description: "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base" 
               });
             } catch (error) {
               toast({ 
@@ -305,7 +305,7 @@ export default function NamespacesPage() {
               });
               toast({ 
                 title: t.admin.namespaces.toast.contentQueued, 
-                description: "Operação concluída" 
+                description: "O conteúdo adicional aguarda aprovação humana antes de ser indexado na Knowledge Base" 
               });
             } catch (error) {
               toast({ 
@@ -329,7 +329,7 @@ export default function NamespacesPage() {
 
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex-1 min-w-0">
           <h2 className="text-3xl font-bold break-words" data-testid="text-namespaces-title">
             {t.admin.namespaces.title}
@@ -381,7 +381,7 @@ export default function NamespacesPage() {
             <div className="space-y-4 mt-4">
               {/* Modo de criação */}
               <div className="space-y-2">
-                <Label>{t.common.loading}</Label>
+                <Label>Tipo de Namespace</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
@@ -391,9 +391,9 @@ export default function NamespacesPage() {
                       setParentNamespace("");
                       setCreateName("");
                     }}
-                    className="flex"
+                    className="h-auto py-3 flex-col items-start gap-1"
                   >
-                    <span className="flex items-center gap-2">Namespace Raiz</span>
+                    <span className="font-semibold">Namespace Raiz</span>
                     <span className="text-xs text-muted-foreground font-normal">
                       Ex: "projetos" ou "vendas"
                     </span>
@@ -402,9 +402,9 @@ export default function NamespacesPage() {
                     type="button"
                     variant={createMode === "sub" ? "default" : "outline"}
                     onClick={() => setCreateMode("sub")}
-                    className="flex"
+                    className="h-auto py-3 flex-col items-start gap-1"
                   >
-                    <span className="flex items-center gap-2">Sub-namespace</span>
+                    <span className="font-semibold">Sub-namespace</span>
                     <span className="text-xs text-muted-foreground font-normal">
                       Ex: "financas/impostos"
                     </span>
@@ -430,7 +430,9 @@ export default function NamespacesPage() {
                     }}
                     data-testid="input-parent-namespace"
                   />
-                  <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Digite o nome do namespace raiz (sem o "/" no final)
+                  </p>
                 </div>
               )}
 
@@ -460,29 +462,33 @@ export default function NamespacesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="field">{t.admin.namespaces.description}</Label>
+                <Label htmlFor="create-description">{t.admin.namespaces.description}</Label>
                 <Textarea
-                  id="field"
+                  id="create-description"
                   placeholder={t.admin.namespaces.descriptionPlaceholder}
                   value={createDescription}
                   onChange={(e) => setCreateDescription(e.target.value)}
                   rows={3}
-                  data-testid="text-element"
+                  data-testid="textarea-create-namespace-description"
                 />
-                <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                <p className="text-xs text-muted-foreground">
+                  O Agente Curador usará esta descrição para entender e indexar conteúdo relacionado
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-icon">{t.common.loading}</Label>
+                <Label htmlFor="create-icon">Ícone</Label>
                 <IconPicker
                   value={createIcon}
                   onChange={setCreateIcon}
                 />
-                <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                <p className="text-xs text-muted-foreground">
+                  Opcional. Escolha um ícone visual para identificar este namespace
+                </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="create-content">{t.common.loading}</Label>
+                <Label htmlFor="create-content">Conteúdo Inicial (Opcional)</Label>
                 <Textarea
                   id="create-content"
                   placeholder={t.admin.namespaces.contentPlaceholder}
@@ -491,7 +497,9 @@ export default function NamespacesPage() {
                   rows={5}
                   data-testid="textarea-create-namespace-content"
                 />
-                <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                <p className="text-xs text-muted-foreground">
+                  O conteúdo será analisado e indexado pelo Agente Curador na Knowledge Base
+                </p>
               </div>
 
               <div className="flex justify-end gap-2">
@@ -548,7 +556,7 @@ export default function NamespacesPage() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div 
-                                className="flex items-center gap-2"
+                                className="flex items-center justify-center cursor-pointer hover-elevate active-elevate-2 rounded-md p-1"
                                 data-testid={`icon-namespace-${namespace.name}`}
                               >
                                 {namespace.icon && namespace.icon.startsWith('/') ? (
@@ -574,7 +582,7 @@ export default function NamespacesPage() {
                             </TooltipTrigger>
                             <TooltipContent>
                               <div className="text-sm">
-                                <div className="flex items-center gap-2">{namespace.name}</div>
+                                <div className="font-semibold">{namespace.name}</div>
                                 {namespace.description && (
                                   <div className="text-xs text-muted-foreground mt-1 max-w-xs">
                                     {namespace.description}
@@ -592,7 +600,7 @@ export default function NamespacesPage() {
                       </TableCell>
                       <TableCell className="min-w-0">
                         <div className="max-w-[400px] truncate">
-                          {namespace.description || <span className="text-muted-foreground italic">{t.common.loading}</span>}
+                          {namespace.description || <span className="text-muted-foreground italic">Sem descrição</span>}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
@@ -631,12 +639,12 @@ export default function NamespacesPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
-              {selectedNamespace?.id?.toString().startsWith("predefined") 
+              {selectedNamespace?.id?.toString().startsWith("predefined-") 
                 ? t.admin.namespaces.editCustomVersion 
                 : t.admin.namespaces.editNamespace}
             </DialogTitle>
             <DialogDescription>
-              {selectedNamespace?.id?.toString().startsWith("predefined")
+              {selectedNamespace?.id?.toString().startsWith("predefined-")
                 ? `Crie uma versão personalizada de "${selectedNamespace?.name}". O namespace original permanecerá inalterado.`
                 : `Atualize as informações do namespace ${selectedNamespace?.name}`}
             </DialogDescription>
@@ -651,32 +659,36 @@ export default function NamespacesPage() {
                 placeholder={t.admin.namespaces.rootPlaceholder}
                 data-testid="input-edit-namespace-name"
               />
-              <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+              <p className="text-xs text-muted-foreground">
+                Nome único que identifica o namespace
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="field">{t.common.loading}</Label>
+              <Label htmlFor="edit-description">Descrição</Label>
               <Textarea
-                id="field"
+                id="edit-description"
                 placeholder={t.admin.namespaces.descriptionPlaceholder}
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
                 rows={3}
-                data-testid="text-element"
+                data-testid="textarea-edit-namespace-description"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-icon">{t.common.loading}</Label>
+              <Label htmlFor="edit-icon">Ícone</Label>
               <IconPicker
                 value={editIcon}
                 onChange={setEditIcon}
               />
-              <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+              <p className="text-xs text-muted-foreground">
+                Opcional. Escolha um ícone visual para identificar este namespace
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-content">{t.common.loading}</Label>
+              <Label htmlFor="edit-content">Adicionar Conteúdo (Opcional)</Label>
               <Textarea
                 id="edit-content"
                 placeholder={t.admin.namespaces.contentPlaceholder}
@@ -685,9 +697,9 @@ export default function NamespacesPage() {
                 rows={5}
                 data-testid="textarea-edit-namespace-content"
               />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <FileText className="h-3 w-3" />
-                <span>{t.common.loading}</span>
+                <span>Novo conteúdo será analisado e indexado pelo Agente Curador</span>
               </div>
             </div>
 
@@ -715,16 +727,21 @@ export default function NamespacesPage() {
       <AlertDialog open={!!deleteNamespaceId} onOpenChange={(open) => !open && setDeleteNamespaceId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t.common.loading}</AlertDialogTitle>
-            <AlertDialogDescription>{t.common.loading}</AlertDialogDescription>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este namespace? Esta ação não pode ser desfeita.
+              Todo o conteúdo associado a este namespace permanecerá na Knowledge Base, mas não será mais filtrado por este namespace.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-element">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive hover:bg-destructive/90"
-              data-testid="button-element"
-            >{t.common.loading}</AlertDialogAction>
+              data-testid="button-confirm-delete"
+            >
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

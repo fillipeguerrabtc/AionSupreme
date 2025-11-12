@@ -8,7 +8,7 @@
  * - Stop criteria (confidence≥τ, T_max, no-progress heuristic)
  */
 
-import { LLMClient } from "../model/llm-client";
+import { llmClient } from "../model/llm-client";
 import { storage } from "../storage";
 import type { InsertToolExecution } from "@shared/schema";
 
@@ -218,10 +218,7 @@ Input: {"query": "transformer architecture machine learning"}
 
 Now, what is your next step?`;
 
-    // Create policy-aware LLM client
-    const client = await LLMClient.create();
-    
-    const response = await client.chatCompletion({
+    const response = await llmClient.chatCompletion({
       messages: [{ role: "user", content: prompt }],
       model: "gpt-4o",
       temperature: 0.7,
