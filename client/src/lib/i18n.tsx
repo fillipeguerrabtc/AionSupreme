@@ -5714,8 +5714,9 @@ export function detectMessageLanguage(text: string): Language | null {
     return sum + (matches ? matches.length : 0);
   }, 0);
   
-  // Require minimum confidence (at least 5 matches)
-  const minMatches = 5;
+  // 🔥 FIX: Lowered threshold from 5 to 2 for better detection of short messages
+  // Require minimum confidence (at least 2 matches)
+  const minMatches = 2;
   if (ptScore < minMatches && esScore < minMatches && enScore < minMatches) {
     return null;
   }
