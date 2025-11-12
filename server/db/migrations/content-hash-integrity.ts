@@ -2,7 +2,7 @@
  * PRODUCTION MIGRATION - Content Hash Integrity Enforcement
  * Run as dedicated pre-deploy worker (non-blocking)
  */
-import { db } from '../index';
+import { db } from '../../db';
 import { sql } from 'drizzle-orm';
 
 export async function ensureContentHashIntegrity(): Promise<void> {

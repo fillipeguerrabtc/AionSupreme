@@ -592,15 +592,31 @@ export class DatasetGenerator {
    */
   async checkPendingKBItems(): Promise<number> {
     try {
+      // 🔥 PRODUCTION FIX: Explicit whitelist for dataset eligibility
+      // Only production-ready sources (excludes staged, synthetic, test data)
+      const ELIGIBLE_SOURCES = [
+        'upload',
+        'manual',
+        'url',
+        'web-search',
+        'youtube',
+        'curation_approved',
+        'curation_absorption',
+        'chat_ingestion',
+        'link_ingestion',
+        'bulk_import',
+      ] as const;
+      
       // Buscar todos os documentos que vieram de curation aprovada
       const approvedDocs = await db
         .select({ count: sql<number>`count(*)` })
         .from(documents)
         .where(
           and(
-            // 🔥 PRODUCTION FIX: Use status flag instead of hardcoded source list
-            // Any document with status='indexed' is eligible (approved via any path)
+            // Status must be indexed
             eq(documents.status, 'indexed'),
+            // Source must be in whitelist (excludes synthetic/test/staged)
+            sql`${documents.source} IN (${sql.raw(ELIGIBLE_SOURCES.map(s => `'${s}'`).join(', '))})`,
             // Que ainda não foram usados em dataset
             sql`NOT EXISTS (
               SELECT 1 FROM ${datasets} d 

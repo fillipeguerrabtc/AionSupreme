@@ -146,8 +146,9 @@ export class AutoApprovalService {
     // Step 2: Split by "A:" (flexible whitespace, newlines)
     normalized = normalized.split(/\s*a\s*:\s*/i)[0].trim();
     
-    // Step 3: Strip trailing punctuation LAST (after Q&A extraction)
-    normalized = normalized.replace(/[?!.]+$/g, '').trim();
+    // Step 3: Strip ALL trailing punctuation LAST (after Q&A extraction)
+    // Removes: ?,!,.,,,;,:,etc from end of string
+    normalized = normalized.replace(/[?!.,;:"""'']+$/g, '').trim();
     
     // Step 4: Remove other punctuation and normalize whitespace
     normalized = normalized

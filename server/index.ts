@@ -80,6 +80,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // 🔄 PRODUCTION: Run database migrations (non-blocking background worker)
+  // Ensures contentHash integrity and other schema updates
+  const { runAllMigrations } = await import("./db/run-migrations");
+  runAllMigrations().catch((error) => {
+    logger.error('[Migration] Failed to run database migrations:', error);
+    // Don't block server startup - migrations may need manual intervention
+  });
+  
   // Configurar Replit Auth antes das rotas
   await setupAuth(app);
   
