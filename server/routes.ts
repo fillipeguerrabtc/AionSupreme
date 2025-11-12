@@ -6196,79 +6196,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/gpu/overview - UNIFIED endpoint for all GPU workers + stats
-  app.get("/api/gpu/overview", requireAuth, requirePermission("gpu:pool:read"), async (req, res) => {
-    try {
-      const { quotaManager } = await import("./gpu-orchestration/intelligent-quota-manager");
-      const { orchestratorService } = await import("./gpu-orchestration/orchestrator-service");
-      
-      // Fetch ALL workers (manual + auto-managed)
-      const allWorkers = await db.query.gpuWorkers.findMany({
-        orderBy: (workers, { desc }) => [desc(workers.createdAt)],
-      });
-      
-      // Enrich workers with type-specific data
-      const enrichedWorkers = await Promise.all(
-        allWorkers.map(async (worker) => {
-          const baseWorker = {
-            ...worker,
-            source: worker.autoManaged ? 'auto' as const : 'manual' as const,
-          };
-          
-          // Add quota info for auto-managed workers
-          if (worker.autoManaged) {
-            const quotaStatus = await quotaManager.getQuotaStatus(worker.id);
-            return {
-              ...baseWorker,
-              quotaStatus,
-            };
-          }
-          
-          return baseWorker;
-        })
-      );
-      
-      // Calculate global stats (FIXED: separate active vs historical)
-      const activeWorkers = allWorkers.filter(w => w.status === 'online' || w.status === 'healthy');
-      
-      const stats = {
-        // Total counts (all workers, regardless of status)
-        total: allWorkers.length,
-        active: activeWorkers.length,  // Currently online
-        healthy: allWorkers.filter(w => w.status === 'healthy' || w.status === 'online').length,
-        unhealthy: allWorkers.filter(w => w.status === 'unhealthy').length,
-        offline: allWorkers.filter(w => w.status === 'offline').length,
-        pending: allWorkers.filter(w => w.status === 'pending').length,
-        
-        // Historical totals (ALL workers, including offline)
-        totalRequests: allWorkers.reduce((sum, w) => sum + (w.requestCount || 0), 0),
-        totalWeeklyHours: allWorkers.reduce((sum, w) => sum + (w.weeklyUsageHours || 0), 0),
-        
-        // Active-only metrics
-        activeRequests: activeWorkers.reduce((sum, w) => sum + (w.requestCount || 0), 0),
-        activeWeeklyHours: activeWorkers.reduce((sum, w) => sum + (w.weeklyUsageHours || 0), 0),
-        
-        avgLatency: allWorkers.length > 0 
-          ? allWorkers.reduce((sum, w) => sum + (w.averageLatencyMs || 0), 0) / allWorkers.length
-          : 0,
-        autoManaged: allWorkers.filter(w => w.autoManaged).length,
-        manual: allWorkers.filter(w => !w.autoManaged).length,
-      };
-      
-      // Get orchestrator status
-      const orchestratorStatus = await orchestratorService.getStatus();
-      
-      res.json({
-        workers: enrichedWorkers,
-        stats,
-        orchestrator: orchestratorStatus,
-      });
-      
-    } catch (error: unknown) {
-      console.error("[GPU Overview] Error:", error);
-      res.status(500).json({ error: getErrorMessage(error) });
-    }
-  });
+  // REMOVED: Duplicate /api/gpu/overview route (now handled by registerGpuRoutes)
+  // See server/routes/gpu.ts line 289 for the authoritative modular implementation
 
   const httpServer = createServer(app);
   return httpServer;

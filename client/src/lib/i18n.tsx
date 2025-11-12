@@ -315,6 +315,11 @@ interface Translations {
       };
     };
     
+    // Telemetry
+    telemetry: {
+      subtitle: string;
+    };
+    
     // Auto-Evolution
     autoEvolution: {
       title: string;
@@ -1769,6 +1774,10 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      telemetry: {
+        subtitle: "Métricas e análises do sistema em tempo real",
+      },
+      
       autoEvolution: {
         title: "Auto-Evolução",
         subtitle: "Monitore métricas de aprendizado contínuo e auto-aperfeiçoamento",
@@ -3191,6 +3200,10 @@ const translations: Record<Language, Translations> = {
         },
       },
       
+      telemetry: {
+        subtitle: "Real-time system metrics and analytics",
+      },
+      
       autoEvolution: {
         title: "Auto-Evolution",
         subtitle: "Monitor continuous learning and self-improvement metrics",
@@ -4611,6 +4624,10 @@ const translations: Record<Language, Translations> = {
           acknowledging: "Reconociendo...",
           viewSources: "Ver Fuentes",
         },
+      },
+      
+      telemetry: {
+        subtitle: "Métricas y análisis del sistema en tiempo real",
       },
       
       autoEvolution: {

@@ -10,6 +10,7 @@ import { gpuWorkers } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { quotaManager } from "../gpu-orchestration/intelligent-quota-manager";
 import { log } from "../utils/logger";
+import { requireAuth, requirePermission } from "../middleware/auth";
 
 export function registerGpuRoutes(app: Router) {
   log.info({ component: 'gpu-routes' }, 'Registering GPU Pool API routes');
@@ -285,8 +286,9 @@ export function registerGpuRoutes(app: Router) {
    * GET /api/gpu/overview
    * PRODUCTION-GRADE UNIFIED GPU OVERVIEW
    * Returns complete GPU status with quota information for dashboard
+   * SECURITY: requireAuth + requirePermission("gpu:pool:read")
    */
-  app.get("/api/gpu/overview", async (req: Request, res: Response) => {
+  app.get("/api/gpu/overview", requireAuth, requirePermission("gpu:pool:read"), async (req: Request, res: Response) => {
     try {
       // Fetch all workers from database
       const workers = await db

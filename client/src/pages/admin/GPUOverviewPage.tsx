@@ -280,15 +280,28 @@ export default function GPUOverviewPage() {
   };
 
   const formatQuotaInfo = (quota: QuotaStatus | undefined) => {
+    // DEFENSIVE CHECK #1: Quota object missing
     if (!quota) return null;
+
+    // DEFENSIVE CHECK #2: Session runtime data missing (NOT zero - zero is valid!)
+    if (quota.sessionRuntimeSeconds === null || quota.sessionRuntimeSeconds === undefined) {
+      return null;
+    }
+
+    // DEFENSIVE CHECK #3: Max session seconds missing (NOT zero - zero is valid!)
+    if (quota.maxSessionSeconds === null || quota.maxSessionSeconds === undefined) {
+      return null;
+    }
 
     const hoursUsed = (quota.sessionRuntimeSeconds / 3600).toFixed(1);
     const hoursMax = (quota.maxSessionSeconds / 3600).toFixed(0);
-    const weeklyUsed = quota.weeklyUsedSeconds
+    
+    // DEFENSIVE CHECK #4: Weekly data optional (null/undefined means not available)
+    const weeklyUsed = (quota.weeklyUsedSeconds !== null && quota.weeklyUsedSeconds !== undefined)
       ? (quota.weeklyUsedSeconds / 3600).toFixed(1)
       : null;
-    const weeklyMax = quota.weeklyMaxSeconds
-      ? (quota.weeklyMaxSeconds / 3600).toFixed(0)  // 70% de 30h = 21h
+    const weeklyMax = (quota.weeklyMaxSeconds !== null && quota.weeklyMaxSeconds !== undefined)
+      ? (quota.weeklyMaxSeconds / 3600).toFixed(0)
       : null;
 
     return (
