@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "@/lib/i18n";
@@ -55,7 +55,7 @@ export default function NamespaceDetailPage() {
   const [newTrigger, setNewTrigger] = useState("");
 
   // Populate form when namespace loads
-  useState(() => {
+  useEffect(() => {
     if (namespace) {
       setName(namespace.name || "");
       setDescription(namespace.description || "");

@@ -14,6 +14,7 @@ import { LoadingSpinner } from "@/components/LoadingSpinner";
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const GPUDashboard = lazy(() => import("@/pages/admin/gpu-dashboard"));
 const MetaLearningDashboard = lazy(() => import("@/pages/meta-learning-dashboard"));
+const NamespaceDetailPage = lazy(() => import("@/pages/admin/NamespaceDetailPage"));
 
 function ProtectedRoute({ component: Component }: { component: any }) {
   const [location, setLocation] = useLocation();
@@ -69,6 +70,7 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/admin/meta-learning" component={() => <ProtectedRoute component={MetaLearningDashboard} />} />
         <Route path="/admin/gpu-dashboard" component={() => <ProtectedRoute component={GPUDashboard} />} />
+        <Route path="/admin/namespaces/:id" component={() => <ProtectedRoute component={NamespaceDetailPage} />} />
         <Route path="/admin" component={() => <ProtectedRoute component={AdminDashboard} />} />
         <Route path="/admin/:section" component={() => <ProtectedRoute component={AdminDashboard} />} />
         <Route component={NotFound} />

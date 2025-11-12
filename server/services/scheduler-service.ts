@@ -794,7 +794,7 @@ export class SchedulerService {
             await this.executeJob(name);
           },
           {
-            timezone: 'UTC',
+            timezone: 'America/Sao_Paulo',
           }
         );
 
@@ -858,7 +858,9 @@ export class SchedulerService {
    */
   private getNextRun(schedule: string): Date | undefined {
     try {
-      const task = cron.schedule(schedule, () => {});
+      const task = cron.schedule(schedule, () => {}, {
+        timezone: 'America/Sao_Paulo',
+      });
       // @ts-ignore - node-cron internal API
       const next = task.nextDates(1)?.[0];
       task.stop();
@@ -951,6 +953,8 @@ export class SchedulerService {
         // Iniciar job
         const cronJob = cron.schedule(job.schedule, async () => {
           await this.executeJob(name);
+        }, {
+          timezone: 'America/Sao_Paulo',
         });
         job.job = cronJob;
         logger.info(`SchedulerService: Job ${name} habilitado`);
