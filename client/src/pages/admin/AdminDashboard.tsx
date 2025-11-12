@@ -1033,7 +1033,6 @@ export default function AdminDashboard() {
                   <Label className="text-sm font-medium">
                     {t.admin.behavior.verbosity}: {(((pendingBehavior || policy?.behavior)?.verbosity || 0.7) * 100).toFixed(0)}%
                   </Label>
-                  <p className="text-xs text-muted-foreground">{t.admin.behavior.verbosityDesc}</p>
                   <Slider
                     value={[((pendingBehavior || policy?.behavior)?.verbosity || 0.7) * 100]}
                     onValueChange={([value]) => {
@@ -1053,7 +1052,6 @@ export default function AdminDashboard() {
                   <Label className="text-sm font-medium">
                     {t.admin.behavior.formality}: {(((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100).toFixed(0)}%
                   </Label>
-                  <p className="text-xs text-muted-foreground">{t.admin.behavior.formalityDesc}</p>
                   <Slider
                     value={[((pendingBehavior || policy?.behavior)?.formality || 0.5) * 100]}
                     onValueChange={([value]) => {
@@ -1073,7 +1071,6 @@ export default function AdminDashboard() {
                   <Label className="text-sm font-medium">
                     {t.admin.behavior.creativity}: {(((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100).toFixed(0)}%
                   </Label>
-                  <p className="text-xs text-muted-foreground">{t.admin.behavior.creativityDesc}</p>
                   <Slider
                     value={[((pendingBehavior || policy?.behavior)?.creativity || 0.8) * 100]}
                     onValueChange={([value]) => {
@@ -1093,7 +1090,6 @@ export default function AdminDashboard() {
                   <Label className="text-sm font-medium">
                     {t.admin.behavior.precision}: {(((pendingBehavior || policy?.behavior)?.precision || 0.8) * 100).toFixed(0)}%
                   </Label>
-                  <p className="text-xs text-muted-foreground">{t.admin.behavior.precisionDesc}</p>
                   <Slider
                     value={[((pendingBehavior || policy?.behavior)?.precision || 0.8) * 100]}
                     onValueChange={([value]) => {
@@ -1113,7 +1109,6 @@ export default function AdminDashboard() {
                   <Label className="text-sm font-medium">
                     {t.admin.behavior.persuasiveness}: {(((pendingBehavior || policy?.behavior)?.persuasiveness || 0.5) * 100).toFixed(0)}%
                   </Label>
-                  <p className="text-xs text-muted-foreground">{t.admin.behavior.persuasivenessDesc}</p>
                   <Slider
                     value={[((pendingBehavior || policy?.behavior)?.persuasiveness || 0.5) * 100]}
                     onValueChange={([value]) => {
@@ -1133,7 +1128,6 @@ export default function AdminDashboard() {
                   <Label className="text-sm font-medium">
                     {t.admin.behavior.empathy}: {(((pendingBehavior || policy?.behavior)?.empathy || 0.7) * 100).toFixed(0)}%
                   </Label>
-                  <p className="text-xs text-muted-foreground">{t.admin.behavior.empathyDesc}</p>
                   <Slider
                     value={[((pendingBehavior || policy?.behavior)?.empathy || 0.7) * 100]}
                     onValueChange={([value]) => {
@@ -1153,7 +1147,6 @@ export default function AdminDashboard() {
                   <Label className="text-sm font-medium">
                     {t.admin.behavior.enthusiasm}: {(((pendingBehavior || policy?.behavior)?.enthusiasm || 0.6) * 100).toFixed(0)}%
                   </Label>
-                  <p className="text-xs text-muted-foreground">{t.admin.behavior.enthusiasmDesc}</p>
                   <Slider
                     value={[((pendingBehavior || policy?.behavior)?.enthusiasm || 0.6) * 100]}
                     onValueChange={([value]) => {
