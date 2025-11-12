@@ -384,11 +384,14 @@ export default function ChatPage() {
     
     // 🌐 DUAL LANGUAGE DETECTION - Level 2: Realtime message analysis
     // Automatically detect and switch language based on message content
+    let outgoingLanguage = language; // 🔥 FIX: Cache current language for SSE request
+    
     if (userMessage && userMessage.length > 10) {
       const detectedLang = detectMessageLanguage(userMessage);
       if (detectedLang && detectedLang !== language) {
         console.log(`[Language Detection] Realtime: ${language} → ${detectedLang}`);
         setLanguage(detectedLang);
+        outgoingLanguage = detectedLang; // 🔥 FIX: Use freshly detected language (not stale state)
         const langName = detectedLang === "pt-BR" ? "Português" : detectedLang === "es-ES" ? "Español" : "English";
         toast({
           title: t.chat.languageDetected,
@@ -454,8 +457,9 @@ export default function ChatPage() {
     if (useStreaming && attachedFiles.length === 0) {
       // ✅ FIX BUG #1 (Avatar Duplicado): NÃO adicionar placeholder aqui
       // O streaming será renderizado via streamingChat.streamedMessage no useEffect
-      // ✅ FIX BUG #2 (Multi-language): Passar language detectado para o backend
-      streamingChat.sendMessage(userMessage, true, language);
+      // ✅ FIX BUG #2 (Multi-language): Passar language DETECTADO (não stale state) para o backend
+      console.log(`[SSE] Sending with language: ${outgoingLanguage}`); // Debug log
+      streamingChat.sendMessage(userMessage, true, outgoingLanguage);
       setAttachedFiles([]);
     } else {
       // Use traditional mutation for file uploads or when streaming disabled
