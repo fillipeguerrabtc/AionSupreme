@@ -887,13 +887,13 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   </span>
                   <Badge variant="outline">{getProviderQuota('groq')?.remaining.toLocaleString()} restantes</Badge>
                 </CardTitle>
-                <CardDescription>{t.common.loading}</CardDescription>
+                <CardDescription>API gratuita com reset diário</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />{t.common.loading}</span>
+                      <Activity className="w-3.5 h-3.5" />Uso Diário</span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('groq')?.used.toLocaleString()} / {getProviderQuota('groq')?.dailyLimit.toLocaleString()}
                     </span>
@@ -906,9 +906,9 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
                     <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />{t.common.loading}</p>
+                      <Zap className="w-3 h-3" />Requisições</p>
                     <p className="text-lg font-bold">{getProviderSummary('groq')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t.common.loading}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Hoje</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -916,7 +916,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       Tokens Consumidos
                     </p>
                     <p className="text-lg font-bold">{(getProviderSummary('groq')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t.common.loading}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Hoje</p>
                   </div>
                 </div>
               </CardContent>
@@ -934,13 +934,13 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                   </span>
                   <Badge variant="outline">{getProviderQuota('gemini')?.remaining.toLocaleString()} restantes</Badge>
                 </CardTitle>
-                <CardDescription>{t.common.loading}</CardDescription>
+                <CardDescription>API gratuita com reset diário</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />{t.common.loading}</span>
+                      <Activity className="w-3.5 h-3.5" />Uso Diário</span>
                     <span className="text-sm font-medium">
                       {getProviderQuota('gemini')?.used.toLocaleString()} / {getProviderQuota('gemini')?.dailyLimit.toLocaleString()}
                     </span>
@@ -953,9 +953,9 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
                     <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />{t.common.loading}</p>
+                      <Zap className="w-3 h-3" />Requisições</p>
                     <p className="text-lg font-bold">{getProviderSummary('gemini')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t.common.loading}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Hoje</p>
                   </div>
                   <div className="bg-muted/50 p-3 rounded-lg">
                     <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
@@ -963,7 +963,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                       Tokens Consumidos
                     </p>
                     <p className="text-lg font-bold">{(getProviderSummary('gemini')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{t.common.loading}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Hoje</p>
                   </div>
                 </div>
               </CardContent>
