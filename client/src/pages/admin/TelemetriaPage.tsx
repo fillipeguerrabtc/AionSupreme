@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { useLanguage } from "@/lib/i18n";
 import { 
@@ -10,6 +11,7 @@ import {
   Activity, 
   Clock, 
   AlertTriangle,
+  AlertCircle,
   TrendingUp,
   Users,
   Database,
@@ -136,58 +138,73 @@ export default function TelemetriaPage() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"system" | "analytics">("system");
 
-  // Fetch query metrics
-  const { data: queryMetrics } = useQuery<QueryMetrics>({
+  // Fetch query metrics (ENTERPRISE ERROR HANDLING)
+  const { data: queryMetrics, isLoading: metricsLoading, isError: metricsError } = useQuery<QueryMetrics>({
     queryKey: ["/api/admin/query-metrics/summary"],
     refetchInterval: 10000, // Auto-refresh every 10s
+    retry: 2,
   });
 
-  // Fetch slow queries
-  const { data: slowQueries } = useQuery<SlowQuery[]>({
+  // Fetch slow queries (ENTERPRISE ERROR HANDLING)
+  const { data: slowQueries, isLoading: slowLoading, isError: slowError } = useQuery<SlowQuery[]>({
     queryKey: ["/api/admin/query-metrics/slow"],
     refetchInterval: 10000,
+    retry: 2,
   });
 
-  // Fetch latency trends
-  const { data: latencyTrends } = useQuery<any[]>({
+  // Fetch latency trends (ENTERPRISE ERROR HANDLING)
+  const { data: latencyTrends, isLoading: trendsLoading, isError: trendsError } = useQuery<any[]>({
     queryKey: ["/api/admin/query-metrics/trends"],
     refetchInterval: 30000, // Auto-refresh every 30s
+    retry: 2,
   });
 
-  // Fetch agent stats
-  const { data: agentStats } = useQuery<AgentStats[]>({
+  // Fetch agent stats (ENTERPRISE ERROR HANDLING)
+  const { data: agentStats, isLoading: agentStatsLoading, isError: agentStatsError } = useQuery<AgentStats[]>({
     queryKey: ["/api/admin/telemetry/agents/stats"],
     refetchInterval: 10000,
+    retry: 2,
   });
 
-  // Fetch namespace stats
-  const { data: namespaceStats } = useQuery<NamespaceStats[]>({
+  // Fetch namespace stats (ENTERPRISE ERROR HANDLING)
+  const { data: namespaceStats, isLoading: nsStatsLoading, isError: nsStatsError } = useQuery<NamespaceStats[]>({
     queryKey: ["/api/admin/telemetry/namespaces/stats"],
     refetchInterval: 10000,
+    retry: 2,
   });
 
-  // Fetch historical data
-  const { data: agentHistory } = useQuery<any[]>({
+  // Fetch historical data (ENTERPRISE ERROR HANDLING)
+  const { data: agentHistory, isLoading: agentHistoryLoading, isError: agentHistoryError } = useQuery<any[]>({
     queryKey: ["/api/admin/telemetry/agents/history"],
     refetchInterval: 30000,
+    retry: 2,
   });
 
-  const { data: namespaceHistory } = useQuery<any[]>({
+  const { data: namespaceHistory, isLoading: nsHistoryLoading, isError: nsHistoryError } = useQuery<any[]>({
     queryKey: ["/api/admin/telemetry/namespaces/history"],
     refetchInterval: 30000,
+    retry: 2,
   });
 
-  // Fetch hierarchical overview
-  const { data: hierarchicalOverview } = useQuery<HierarchicalOverview>({
+  // Fetch hierarchical overview (ENTERPRISE ERROR HANDLING)
+  const { data: hierarchicalOverview, isLoading: overviewLoading, isError: overviewError } = useQuery<HierarchicalOverview>({
     queryKey: ["/api/admin/telemetry/hierarchical-overview"],
     refetchInterval: 10000,
+    retry: 2,
   });
 
-  // ✨ NEW: Fetch KB & Chat Analytics (métricas valiosas)
-  const { data: kbAnalytics } = useQuery<KbAnalytics>({
+  // ✨ NEW: Fetch KB & Chat Analytics (métricas valiosas) - ENTERPRISE ERROR HANDLING
+  const { data: kbAnalytics, isLoading: kbLoading, isError: kbError } = useQuery<KbAnalytics>({
     queryKey: ["/api/admin/analytics/kb-chat"],
     refetchInterval: 15000, // Auto-refresh every 15s
+    retry: 2,
   });
+
+  // ENTERPRISE ERROR HANDLING: Aggregate loading/error states per tab
+  const systemTabLoading = metricsLoading || slowLoading || trendsLoading || agentStatsLoading || nsStatsLoading || agentHistoryLoading || nsHistoryLoading || overviewLoading;
+  const systemTabError = metricsError || slowError || trendsError || agentStatsError || nsStatsError || agentHistoryError || nsHistoryError || overviewError;
+  const analyticsTabLoading = kbLoading;
+  const analyticsTabError = kbError;
 
   // Chart colors
   const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', '#8884d8', '#82ca9d', '#ffc658'];
@@ -213,6 +230,46 @@ export default function TelemetriaPage() {
 
         {/* TAB 1: System Metrics */}
         <TabsContent value="system" className="space-y-6">
+          {/* ENTERPRISE ERROR HANDLING: System Tab Loading/Error States */}
+          {systemTabLoading ? (
+            <Card data-testid="card-system-loading">
+              <CardContent className="p-12 text-center space-y-4">
+                <Activity className="h-12 w-12 mx-auto text-muted-foreground animate-pulse" />
+                <p className="text-muted-foreground">{t.common.loading}</p>
+              </CardContent>
+            </Card>
+          ) : systemTabError ? (
+            <Card className="border-destructive" data-testid="card-system-error">
+              <CardContent className="p-12 text-center space-y-4">
+                <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
+                <div>
+                  <h3 className="text-lg font-semibold text-destructive mb-2">
+                    Erro ao Carregar Métricas do Sistema
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    Falha ao carregar uma ou mais métricas. Tente novamente.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/query-metrics/summary"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/query-metrics/slow"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/query-metrics/trends"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/telemetry/agents/stats"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/telemetry/namespaces/stats"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/telemetry/agents/history"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/telemetry/namespaces/history"] });
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/telemetry/hierarchical-overview"] });
+                  }}
+                  variant="default"
+                  data-testid="button-retry-system"
+                >
+                  Tentar Novamente
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
           {/* Overview Cards */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {/* Total Queries */}
@@ -362,10 +419,45 @@ export default function TelemetriaPage() {
               </ScrollArea>
             </CardContent>
           </Card>
+          </>
+          )}
         </TabsContent>
 
         {/* TAB 2: Analytics KB/Chat - ✨ COMPLETAMENTE MODERNIZADO */}
         <TabsContent value="analytics" className="space-y-6">
+          {/* ENTERPRISE ERROR HANDLING: Analytics Tab Loading/Error States */}
+          {analyticsTabLoading ? (
+            <Card data-testid="card-analytics-loading">
+              <CardContent className="p-12 text-center space-y-4">
+                <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground animate-pulse" />
+                <p className="text-muted-foreground">{t.common.loading}</p>
+              </CardContent>
+            </Card>
+          ) : analyticsTabError ? (
+            <Card className="border-destructive" data-testid="card-analytics-error">
+              <CardContent className="p-12 text-center space-y-4">
+                <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
+                <div>
+                  <h3 className="text-lg font-semibold text-destructive mb-2">
+                    Erro ao Carregar Analytics KB/Chat
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    Falha ao carregar métricas de KB e Chat. Tente novamente.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/kb-chat"] });
+                  }}
+                  variant="default"
+                  data-testid="button-retry-analytics"
+                >
+                  Tentar Novamente
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
           {/* ✨ NEW: KB & Chat Analytics Overview */}
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {/* KB Coverage */}
@@ -850,6 +942,8 @@ export default function TelemetriaPage() {
               </CardContent>
             </Card>
           </div>
+          </>
+          )}
         </TabsContent>
       </Tabs>
     </div>

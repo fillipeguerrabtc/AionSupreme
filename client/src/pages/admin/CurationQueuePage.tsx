@@ -106,24 +106,72 @@ export default function CurationQueuePage() {
   
   const { toast } = useToast();
 
-  // Fetch pending items
-  const { data: items, isLoading } = useQuery<CurationItem[]>({
+  // Fetch pending items (ENTERPRISE ERROR HANDLING)
+  const { 
+    data: items, 
+    isLoading, 
+    isError, 
+    error,
+    isFetching,
+    refetch: refetchPending 
+  } = useQuery<CurationItem[]>({
     queryKey: ["/api/admin/curation/pending"],
     queryFn: async () => {
       const res = await fetch("/api/admin/curation/pending");
-      if (!res.ok) throw new Error(t.common.loadingError);
+      if (!res.ok) {
+        // Map HTTP status to user-friendly errors
+        if (res.status === 401 || res.status === 403) {
+          throw new Error("Sem permissão para acessar fila de curadoria");
+        }
+        if (res.status === 404) {
+          throw new Error("Endpoint de curadoria não encontrado");
+        }
+        if (res.status === 429) {
+          throw new Error("Muitas requisições. Tente novamente em alguns segundos");
+        }
+        if (res.status >= 500) {
+          throw new Error(`Erro no servidor (${res.status}). Tente novamente`);
+        }
+        throw new Error(`Erro ao carregar fila: ${res.statusText}`);
+      }
       return res.json();
     },
+    retry: 3, // Enterprise SLA: 3 retries with exponential backoff
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Fetch history items (approved + rejected, 5-year retention)
-  const { data: historyItems, isLoading: historyLoading } = useQuery<CurationItem[]>({
+  // Fetch history items (approved + rejected, 5-year retention) - ENTERPRISE ERROR HANDLING
+  const { 
+    data: historyItems, 
+    isLoading: historyLoading,
+    isError: historyIsError,
+    error: historyError,
+    isFetching: historyIsFetching,
+    refetch: refetchHistory
+  } = useQuery<CurationItem[]>({
     queryKey: ["/api/admin/curation/history"],
     queryFn: async () => {
       const res = await fetch("/api/admin/curation/history");
-      if (!res.ok) throw new Error(t.common.loadingError);
+      if (!res.ok) {
+        // Map HTTP status to user-friendly errors
+        if (res.status === 401 || res.status === 403) {
+          throw new Error("Sem permissão para acessar histórico");
+        }
+        if (res.status === 404) {
+          throw new Error("Endpoint de histórico não encontrado");
+        }
+        if (res.status === 429) {
+          throw new Error("Muitas requisições. Aguarde alguns segundos");
+        }
+        if (res.status >= 500) {
+          throw new Error(`Erro no servidor (${res.status}). Tente novamente`);
+        }
+        throw new Error(`Erro ao carregar histórico: ${res.statusText}`);
+      }
       return res.json();
     },
+    retry: 3, // Enterprise SLA: 3 retries with exponential backoff
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Filter items based on content type and duplication status
@@ -513,8 +561,64 @@ export default function CurationQueuePage() {
     setRejectAllDialogOpen(true);
   };
 
+  // ENTERPRISE ERROR HANDLING: Loading state
   if (isLoading) {
-    return <div className="p-6">{t.admin.curation.title}...</div>;
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">{t.admin.curation.title}</h1>
+          <p className="text-muted-foreground mt-2">{t.admin.curation.subtitle}</p>
+        </div>
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Skeleton className="h-8 w-48 mx-auto mb-4" data-testid="skeleton-loading" />
+            <p className="text-muted-foreground">{t.common.loading}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ENTERPRISE ERROR HANDLING: Error state with retry
+  if (isError) {
+    console.error("[CurationQueuePage] Pending items fetch failed:", error);
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">{t.admin.curation.title}</h1>
+          <p className="text-muted-foreground mt-2">{t.admin.curation.subtitle}</p>
+        </div>
+        <Card className="border-destructive" data-testid="card-error-pending">
+          <CardContent className="p-12 text-center space-y-4">
+            <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
+            <div>
+              <h3 className="text-lg font-semibold text-destructive mb-2">
+                Erro ao Carregar Fila de Curadoria
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {error instanceof Error ? error.message : "Erro desconhecido ao carregar dados"}
+              </p>
+            </div>
+            <div className="flex gap-2 justify-center">
+              <Button
+                onClick={() => refetchPending()}
+                variant="default"
+                data-testid="button-retry-pending"
+              >
+                Tentar Novamente
+              </Button>
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+                data-testid="button-refresh-page"
+              >
+                Recarregar Página
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -1247,7 +1351,38 @@ export default function CurationQueuePage() {
           {historyLoading ? (
             <Card>
               <CardContent className="p-12 text-center">
+                <Skeleton className="h-8 w-48 mx-auto mb-4" data-testid="skeleton-history-loading" />
                 <p className="text-muted-foreground">{t.common.loading}</p>
+              </CardContent>
+            </Card>
+          ) : historyIsError ? (
+            <Card className="border-destructive" data-testid="card-error-history">
+              <CardContent className="p-12 text-center space-y-4">
+                <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
+                <div>
+                  <h3 className="text-lg font-semibold text-destructive mb-2">
+                    Erro ao Carregar Histórico
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    {historyError instanceof Error ? historyError.message : "Erro desconhecido ao carregar histórico"}
+                  </p>
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    onClick={() => refetchHistory()}
+                    variant="default"
+                    data-testid="button-retry-history"
+                  >
+                    Tentar Novamente
+                  </Button>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                    data-testid="button-refresh-page-history"
+                  >
+                    Recarregar Página
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : !filteredHistoryItems || filteredHistoryItems.length === 0 ? (
