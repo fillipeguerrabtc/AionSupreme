@@ -76,12 +76,19 @@ RESPONDA APENAS NO FORMATO JSON:
   ]
 }`;
 
+    // 🔥 USE CENTRALIZED SYSTEM PROMPT (ensures conversational tone + 7 sliders!)
+    const { buildSimpleConversation } = await import('../llm/system-prompt');
+    
+    const llmRequest = await buildSimpleConversation(
+      [{ role: 'user', content: classificationPrompt }],
+      {
+        temperature: 0.3, // Low temperature for consistent routing
+        maxTokens: 500
+      }
+    );
+
     // Call LLM (Groq first, fallback to others)
-    const result = await generateWithFreeAPIs({
-      messages: [{ role: "user", content: classificationPrompt }],
-      temperature: 0.3, // Low temperature for consistent routing
-      maxTokens: 500,
-    });
+    const result = await generateWithFreeAPIs(llmRequest);
     const response = result.text;
 
     // Parse JSON response

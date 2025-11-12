@@ -109,7 +109,10 @@ async function getDemandKaggleOrchestrator() {
  * Executes inference using GPU with automatic shutdown after completion.
  * This is the CORE helper for GPU-first architecture.
  * 
- * @param messages - Conversation messages for inference
+ * 🔥 CRITICAL: Now uses composeConversationalRequest to ensure all 7 behavior sliders
+ * affect GPU responses! Messages are normalized with system prompt before GPU call.
+ * 
+ * @param messages - Conversation messages for inference (will be normalized with system prompt)
  * @param options - Inference options (temperature, maxTokens, etc)
  * @returns Inference response or null if GPU unavailable/failed
  */
@@ -124,14 +127,29 @@ async function runGpuInference(
   log.info({ component: 'gpu-inference' }, 'Attempting GPU inference');
   
   try {
+    // 🔥 NEW: Normalize messages with system prompt BEFORE GPU call
+    const { buildSimpleConversation } = await import('./system-prompt');
+    
+    const chatHistory = messages
+      .filter(m => m.role !== 'system')
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content
+      }));
+    
+    const normalizedRequest = await buildSimpleConversation(chatHistory, {
+      temperature: options.temperature,
+      maxTokens: options.maxTokens
+    });
+    
     const { gpuLoadBalancer } = await import('../gpu/load-balancer');
     
     const gpuResult = await gpuLoadBalancer.executeLLMRequest(
-      messages,
+      normalizedRequest.messages,
       {
-        max_tokens: options.maxTokens || 2048,
-        temperature: options.temperature ?? 0.7,
-        top_p: options.topP ?? 0.9,
+        max_tokens: normalizedRequest.maxTokens,
+        temperature: normalizedRequest.temperature,
+        top_p: normalizedRequest.topP,
         stream: false
       }
     );
@@ -568,15 +586,20 @@ This instruction takes ABSOLUTE PRIORITY.
     if (req.forcedSource === 'free-apis') {
       console.log('   💸 Using FREE APIs as requested...');
       try {
-        const freeApiRequest: LLMRequest = {
-          messages: req.messages.map(m => ({
-            role: m.role as 'system' | 'user' | 'assistant',
+        // 🔥 USE CENTRALIZED SYSTEM PROMPT (ensures conversational tone + 7 sliders!)
+        const { buildSimpleConversation } = await import('./system-prompt');
+        
+        const chatHistory = req.messages
+          .filter(m => m.role !== 'system')
+          .map(m => ({
+            role: m.role as 'user' | 'assistant',
             content: m.content
-          })),
+          }));
+        
+        const freeApiRequest = await buildSimpleConversation(chatHistory, {
           temperature: req.temperature,
-          topP: req.topP,
           maxTokens: req.maxTokens
-        };
+        });
         
         const freeResponse = await generateWithFreeAPIs(freeApiRequest);
         
@@ -983,17 +1006,32 @@ This instruction takes ABSOLUTE PRIORITY.
     throw new Error('All LLM providers exhausted and OPENAI_API_KEY not set');
   }
   
+  // 🔥 USE CENTRALIZED SYSTEM PROMPT (ensures conversational tone + 7 sliders!)
+  const { buildSimpleConversation } = await import('./system-prompt');
+  
+  const chatHistory = req.messages
+    .filter(m => m.role !== 'system')
+    .map(m => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content
+    }));
+  
+  const openaiRequest = await buildSimpleConversation(chatHistory, {
+    temperature: req.temperature,
+    maxTokens: req.maxTokens
+  });
+  
   const openai = new OpenAI({ apiKey: openaiKey });
   
   const openaiResponse = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
-    messages: req.messages.map(m => ({
+    messages: openaiRequest.messages.map(m => ({
       role: m.role as 'system' | 'user' | 'assistant',
       content: m.content
     })),
-    temperature: req.temperature ?? 0.7,
-    top_p: req.topP ?? 0.9,
-    max_tokens: req.maxTokens || 2048
+    temperature: openaiRequest.temperature,
+    top_p: openaiRequest.topP,
+    max_tokens: openaiRequest.maxTokens
   });
   
   const openaiText = openaiResponse.choices[0].message.content || '';

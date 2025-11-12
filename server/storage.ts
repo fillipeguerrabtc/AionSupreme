@@ -471,9 +471,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActivePolicy(): Promise<Policy | undefined> {
+    // 🔥 CRITICAL FIX: Use updatedAt instead of createdAt to get MOST RECENT policy
+    // This ensures we load the policy that was last edited, not first created
+    // Bug: User saves sliders → policy updated_at changes → but getActivePolicy()
+    // was loading oldest policy by created_at, ignoring latest changes!
     const [policy] = await db.select().from(policies)
       .where(eq(policies.isActive, true))
-      .orderBy(desc(policies.createdAt));
+      .orderBy(desc(policies.updatedAt));
     
     if (policy && policy.behavior) {
       policy.behavior = normalizeBehavior(policy.behavior);
