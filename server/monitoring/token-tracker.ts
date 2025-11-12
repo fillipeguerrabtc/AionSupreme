@@ -356,42 +356,25 @@ export async function getUsageSummary(): Promise<UsageSummary[]> {
 // ============================================================================
 
 export async function getProviderQuotas(): Promise<ProviderQuota[]> {
-  const freeProviders = [
-    { name: 'groq', dailyLimit: 14400 },
-    { name: 'gemini', dailyLimit: 12000 }, // ~12k requests @ 500 tokens/req
-    { name: 'huggingface', dailyLimit: 720 },
-    { name: 'openrouter', dailyLimit: 50 }
-  ];
+  const { apiQuotaRepository } = await import('../repositories/api-quota-repository');
   
   const now = new Date();
-  
-  // Use local timezone (Brasília) for daily reset calculation
-  const todayStart = getLocalDayStart(now);
-  const tomorrow = new Date(todayStart);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrow = new Date(now);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  tomorrow.setUTCHours(0, 0, 0, 0);
   
   const quotas: ProviderQuota[] = [];
   
-  for (const provider of freeProviders) {
-    const usage = await db
-      .select({
-        requests: sql<number>`COUNT(*)`
-      })
-      .from(tokenUsage)
-      .where(
-        and(
-          eq(tokenUsage.provider, provider.name),
-          gte(tokenUsage.timestamp, todayStart)
-        )
-      );
-    
-    const used = Number(usage[0].requests);
-    const remaining = Math.max(0, provider.dailyLimit - used);
-    const percentage = (used / provider.dailyLimit) * 100;
+  const dbQuotas = await apiQuotaRepository.getAllQuotas();
+  
+  for (const dbQuota of dbQuotas) {
+    const used = dbQuota.requestCount;
+    const remaining = Math.max(0, dbQuota.dailyRequestLimit - used);
+    const percentage = (used / dbQuota.dailyRequestLimit) * 100;
     
     quotas.push({
-      provider: provider.name,
-      dailyLimit: provider.dailyLimit,
+      provider: dbQuota.provider,
+      dailyLimit: dbQuota.dailyRequestLimit,
       used,
       remaining,
       percentage,
