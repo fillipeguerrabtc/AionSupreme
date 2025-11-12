@@ -252,11 +252,39 @@ export class VisionCascade {
 
   /**
    * Tenta Gemini Vision API
+   * 🔥 Uses centralized system prompt to ensure behavior sliders affect image descriptions
    */
   private async tryGemini(imageBuffer: Buffer, mimeType: string, alt?: string): Promise<VisionResult> {
     const startTime = Date.now();
     
-    const prompt = `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
+    // 🔥 NEW: Use centralized system prompt for consistent behavior
+    const { buildSimpleConversation } = await import('../llm/system-prompt');
+    
+    const llmRequest = await buildSimpleConversation(
+      [
+        {
+          role: 'user',
+          content: `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
+Inclua:
+- O que está na imagem
+- Cores, formas, objetos principais
+- Contexto e ambiente
+- Qualquer texto visível
+- Informações relevantes para busca semântica
+
+${alt ? `Contexto do alt text: "${alt}"` : ''}
+
+Descrição detalhada:`
+        }
+      ],
+      {
+        maxTokens: 300
+      }
+    );
+    
+    // Compose final prompt with system message + user request
+    const systemMessage = llmRequest.messages.find(m => m.role === 'system')?.content || '';
+    const userMessage = `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
 Inclua:
 - O que está na imagem
 - Cores, formas, objetos principais
@@ -267,12 +295,24 @@ Inclua:
 ${alt ? `Contexto do alt text: "${alt}"` : ''}
 
 Descrição detalhada:`;
+    
+    const fullPrompt = systemMessage ? `${systemMessage}\n\n${userMessage}` : userMessage;
 
     const genAI = new GoogleGenerativeAI(this.geminiKey!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.0-flash-exp',
+      // NOTE: Gemini doesn't accept system message in generateContent,
+      // so we prepend it to the user prompt
+      generationConfig: {
+        temperature: llmRequest.temperature,
+        topP: llmRequest.topP,
+        topK: llmRequest.topK,
+        maxOutputTokens: llmRequest.maxTokens
+      }
+    });
 
     const result = await model.generateContent([
-      prompt,
+      fullPrompt,
       {
         inlineData: {
           data: imageBuffer.toString('base64'),
@@ -322,8 +362,34 @@ Descrição detalhada:`;
 
   /**
    * Tenta GPT-4V via OpenRouter (FREE tier)
+   * 🔥 Uses centralized system prompt to ensure behavior sliders affect image descriptions
    */
   private async tryGPT4VOpenRouter(imageBuffer: Buffer, mimeType: string, alt?: string): Promise<VisionResult> {
+    // 🔥 NEW: Use centralized system prompt for consistent behavior
+    const { buildSimpleConversation } = await import('../llm/system-prompt');
+    
+    const llmRequest = await buildSimpleConversation(
+      [
+        {
+          role: 'user',
+          content: `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
+Inclua:
+- O que está na imagem
+- Cores, formas, objetos principais
+- Contexto e ambiente
+- Qualquer texto visível
+- Informações relevantes para busca semântica
+
+${alt ? `Contexto do alt text: "${alt}"` : ''}
+
+Descrição detalhada:`
+        }
+      ],
+      {
+        maxTokens: 300
+      }
+    );
+    
     const openrouter = new OpenAI({
       apiKey: this.openRouterKey!,
       baseURL: 'https://openrouter.ai/api/v1',
@@ -335,7 +401,17 @@ Descrição detalhada:`;
 
     const base64Image = imageBuffer.toString('base64');
 
-    const prompt = `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
+    const openrouterParams: any = {
+      model: 'openai/gpt-4-vision-preview:free',
+      messages: [
+        // Include system message from buildSimpleConversation
+        ...llmRequest.messages.filter(m => m.role === 'system'),
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
 Inclua:
 - O que está na imagem
 - Cores, formas, objetos principais
@@ -345,17 +421,7 @@ Inclua:
 
 ${alt ? `Contexto do alt text: "${alt}"` : ''}
 
-Descrição detalhada:`;
-
-    const response = await openrouter.chat.completions.create({
-      model: 'openai/gpt-4-vision-preview:free',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: prompt
+Descrição detalhada:`
             },
             {
               type: 'image_url',
@@ -366,8 +432,21 @@ Descrição detalhada:`;
           ]
         }
       ],
-      max_tokens: 300
-    } as any);
+      max_tokens: llmRequest.maxTokens
+    };
+    
+    // 🔥 Pass temperature/topP from policy
+    if (llmRequest.temperature !== undefined) {
+      openrouterParams.temperature = llmRequest.temperature;
+    }
+    if (llmRequest.topP !== undefined) {
+      openrouterParams.top_p = llmRequest.topP;
+    }
+    if (llmRequest.stop && llmRequest.stop.length > 0) {
+      openrouterParams.stop = llmRequest.stop;
+    }
+
+    const response = await openrouter.chat.completions.create(openrouterParams);
 
     const description = response.choices[0]?.message?.content || alt || 'Sem descrição';
     const tokensUsed = response.usage?.total_tokens || 0;
@@ -407,8 +486,34 @@ Descrição detalhada:`;
   /**
    * Tenta Claude 3 Haiku via OpenRouter (FREE tier)
    * NOTA: Claude usa formato OpenAI-compatible via OpenRouter
+   * 🔥 Uses centralized system prompt to ensure behavior sliders affect image descriptions
    */
   private async tryClaude3OpenRouter(imageBuffer: Buffer, mimeType: string, alt?: string): Promise<VisionResult> {
+    // 🔥 NEW: Use centralized system prompt for consistent behavior
+    const { buildSimpleConversation } = await import('../llm/system-prompt');
+    
+    const llmRequest = await buildSimpleConversation(
+      [
+        {
+          role: 'user',
+          content: `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
+Inclua:
+- O que está na imagem
+- Cores, formas, objetos principais
+- Contexto e ambiente
+- Qualquer texto visível
+- Informações relevantes para busca semântica
+
+${alt ? `Contexto do alt text: "${alt}"` : ''}
+
+Descrição detalhada:`
+        }
+      ],
+      {
+        maxTokens: 300
+      }
+    );
+    
     const openrouter = new OpenAI({
       apiKey: this.openRouterKey!,
       baseURL: 'https://openrouter.ai/api/v1',
@@ -420,7 +525,17 @@ Descrição detalhada:`;
 
     const base64Image = imageBuffer.toString('base64');
 
-    const prompt = `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
+    const openrouterParams: any = {
+      model: 'anthropic/claude-3-haiku:free',
+      messages: [
+        // Include system message from buildSimpleConversation
+        ...llmRequest.messages.filter(m => m.role === 'system'),
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Descreva esta imagem em detalhes para indexação em uma base de conhecimento. 
 Inclua:
 - O que está na imagem
 - Cores, formas, objetos principais
@@ -430,18 +545,7 @@ Inclua:
 
 ${alt ? `Contexto do alt text: "${alt}"` : ''}
 
-Descrição detalhada:`;
-
-    // Claude via OpenRouter aceita formato OpenAI-compatible
-    const response = await openrouter.chat.completions.create({
-      model: 'anthropic/claude-3-haiku:free',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: prompt
+Descrição detalhada:`
             },
             {
               type: 'image_url',
@@ -452,8 +556,22 @@ Descrição detalhada:`;
           ]
         }
       ],
-      max_tokens: 300
-    } as any);
+      max_tokens: llmRequest.maxTokens
+    };
+    
+    // 🔥 Pass temperature/topP from policy
+    if (llmRequest.temperature !== undefined) {
+      openrouterParams.temperature = llmRequest.temperature;
+    }
+    if (llmRequest.topP !== undefined) {
+      openrouterParams.top_p = llmRequest.topP;
+    }
+    if (llmRequest.stop && llmRequest.stop.length > 0) {
+      openrouterParams.stop = llmRequest.stop;
+    }
+
+    // Claude via OpenRouter aceita formato OpenAI-compatible
+    const response = await openrouter.chat.completions.create(openrouterParams);
 
     const description = response.choices[0]?.message?.content || alt || 'Sem descrição';
     const tokensUsed = response.usage?.total_tokens || 0;
@@ -492,19 +610,21 @@ Descrição detalhada:`;
 
   /**
    * Tenta HuggingFace Vision API
+   * 🔥 BLIP é modelo image-to-text simples (sem customização), mas fazemos segundo LLM pass
+   * para aplicar system prompt e garantir que descrição final honra os 7 sliders behavior
    */
   private async tryHuggingFace(imageBuffer: Buffer, alt?: string): Promise<VisionResult> {
     const hf = new HfInference(this.hfKey!);
 
-    // Usa modelo de image-to-text
+    // STEP 1: BLIP gera caption básico (sem system prompt - limitação do modelo)
     const result = await hf.imageToText({
       data: imageBuffer,
       model: 'Salesforce/blip-image-captioning-large'
     });
 
-    const description = result.generated_text || alt || 'Sem descrição';
+    const rawCaption = result.generated_text || alt || 'Imagem sem descrição';
 
-    // Incrementa quota
+    // Incrementa quota BLIP
     this.hfQuota.used++;
     
     // Persist quota state to DB
@@ -515,41 +635,114 @@ Descrição detalhada:`;
       new Date(this.hfQuota.lastReset)
     );
 
-    // Track usage
-    const tokensUsed = Math.ceil(description.length / 4);
-
+    // Track usage BLIP
+    const blipTokens = Math.ceil(rawCaption.length / 4);
     await trackTokenUsage({
       provider: 'huggingface',
       model: 'blip-image-captioning-large',
       requestType: 'image',
       promptTokens: 0,
-      completionTokens: tokensUsed,
-      totalTokens: tokensUsed,
+      completionTokens: blipTokens,
+      totalTokens: blipTokens,
       cost: 0,
       success: true,
       metadata: {} as any
     });
 
-    return {
-      description,
-      provider: 'huggingface',
-      success: true,
-      tokensUsed
-    };
+    // 🔥 STEP 2: Second LLM pass para aplicar system prompt aos 7 sliders behavior
+    // Usamos free API (Groq preferred) para reescrever caption com personality
+    const { buildSimpleConversation } = await import('../llm/system-prompt');
+    const { LLMClient } = await import('../model/llm-client');
+    
+    const llmRequest = await buildSimpleConversation(
+      [
+        {
+          role: 'user',
+          content: `Reescreva esta descrição de imagem seguindo o estilo configurado:
+
+Descrição original: "${rawCaption}"
+
+${alt ? `Contexto: "${alt}"` : ''}
+
+Mantenha o conteúdo factual, apenas ajuste o tom e estilo.`
+        }
+      ],
+      {
+        maxTokens: 300
+      }
+    );
+
+    try {
+      const llmClient = await LLMClient.create();
+      const enhancedResponse = await llmClient.chatCompletion(llmRequest);
+      const enhancedDescription = enhancedResponse.content.trim();
+
+      // Track usage do segundo LLM pass
+      await trackTokenUsage({
+        provider: enhancedResponse.provider,
+        model: enhancedResponse.model,
+        requestType: 'image-enhancement',
+        promptTokens: Math.ceil((rawCaption.length + 100) / 4),
+        completionTokens: Math.ceil(enhancedDescription.length / 4),
+        totalTokens: Math.ceil((rawCaption.length + enhancedDescription.length + 100) / 4),
+        cost: enhancedResponse.cost || 0,
+        success: true,
+        metadata: {} as any
+      });
+
+      return {
+        description: enhancedDescription,
+        provider: 'huggingface+llm-enhancement', // Indica que usou dois passos
+        success: true,
+        tokensUsed: blipTokens + Math.ceil(enhancedDescription.length / 4)
+      };
+    } catch (error) {
+      // 🔥 CRITICAL: Se LLM enhancement falhar, propagamos erro para continuar cascade
+      // NÃO retornamos descrição sem system prompt completo - isso violaria policy enforcement
+      log.error('HuggingFace BLIP enhancement failed - marking provider as failed', {
+        component: 'VisionCascade',
+        error: error instanceof Error ? error.message : String(error),
+        rawCaption: rawCaption.substring(0, 100) // Log snippet para debugging
+      });
+      
+      // Lança erro para cascade continuar tentando próximo provider
+      // (ou retornar fallback final se TODOS falharem)
+      throw new Error(`BLIP caption enhancement failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   /**
    * Tenta OpenAI Vision API (GPT-4 Vision)
+   * 🔥 Uses centralized system prompt to ensure behavior sliders affect image descriptions
    */
   private async tryOpenAI(imageBuffer: Buffer, mimeType: string, alt?: string): Promise<VisionResult> {
-    const openai = new OpenAI({ apiKey: this.openaiKey! });
-
+    // 🔥 NEW: Use centralized system prompt for consistent behavior
+    const { buildSimpleConversation } = await import('../llm/system-prompt');
+    
     const base64Image = imageBuffer.toString('base64');
     const dataUrl = `data:${mimeType};base64,${base64Image}`;
 
-    const response = await openai.chat.completions.create({
+    // Build request with system prompt
+    const llmRequest = await buildSimpleConversation(
+      [
+        {
+          role: 'user',
+          content: `Descreva esta imagem em detalhes para indexação. ${alt ? `Contexto: "${alt}"` : ''}`
+        }
+      ],
+      {
+        maxTokens: 300
+      }
+    );
+    
+    const openai = new OpenAI({ apiKey: this.openaiKey! });
+
+    // 🔥 Build OpenAI-compatible params with ALL behavior sliders (temp, topP, topK)
+    const openaiParams: any = {
       model: 'gpt-4o',
       messages: [
+        // Include system message from buildSimpleConversation
+        ...llmRequest.messages.filter(m => m.role === 'system'),
         {
           role: 'user',
           content: [
@@ -564,8 +757,28 @@ Descrição detalhada:`;
           ]
         }
       ],
-      max_tokens: 300
-    });
+      max_tokens: llmRequest.maxTokens
+    };
+
+    // 🔥 CRITICAL: Pass temperature/topP from policy to ensure behavior sliders take effect
+    if (llmRequest.temperature !== undefined) {
+      openaiParams.temperature = llmRequest.temperature;
+    }
+    if (llmRequest.topP !== undefined) {
+      openaiParams.top_p = llmRequest.topP;
+    }
+    if (llmRequest.topK !== undefined && llmRequest.topK > 0) {
+      // OpenAI doesn't support top_k, but we log it for consistency
+      log.info('topK parameter not supported by OpenAI Vision', {
+        component: 'VisionCascade',
+        topK: llmRequest.topK
+      });
+    }
+    if (llmRequest.stop && llmRequest.stop.length > 0) {
+      openaiParams.stop = llmRequest.stop;
+    }
+
+    const response = await openai.chat.completions.create(openaiParams);
 
     const description = response.choices[0]?.message?.content || alt || 'Sem descrição';
     const tokensUsed = response.usage?.total_tokens || 0;
