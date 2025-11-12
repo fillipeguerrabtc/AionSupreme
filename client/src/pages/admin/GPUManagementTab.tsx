@@ -29,6 +29,7 @@ interface GpuWorker {
       maxSessionHours?: number;
       lastHeartbeat?: string;
       usedHoursThisWeek?: number;
+      quotaHoursPerWeek?: number;
     };
   };
   status: "healthy" | "unhealthy" | "offline" | "pending" | "online";
