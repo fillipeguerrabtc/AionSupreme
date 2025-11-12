@@ -18,23 +18,54 @@ import { eq, and, gte, lte, sql, desc } from 'drizzle-orm';
 // ============================================================================
 
 /**
- * Obter início do dia atual em timezone local (Brasília)
- * Isto garante que "hoje" corresponde ao horário local do usuário, não UTC
+ * Obter início do dia atual em timezone de Brasília (America/Sao_Paulo)
+ * CRÍTICO: Usa timezone explícito para garantir que "hoje" seja em horário de Brasília, não UTC
+ * BUG ANTERIOR: setHours(0,0,0,0) usava timezone do servidor (UTC) e causava ZERO tokens no dashboard
  */
 function getLocalDayStart(date: Date = new Date()): Date {
-  const localDate = new Date(date);
-  localDate.setHours(0, 0, 0, 0);
-  return localDate;
+  // Converter para string em timezone de Brasília e parsear de volta
+  const brasiliaDateString = date.toLocaleString('en-US', { 
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  
+  // Parse: "11/12/2025, 02:48:00" -> Date em Brasília
+  const [datePart, timePart] = brasiliaDateString.split(', ');
+  const [month, day, year] = datePart.split('/');
+  
+  // Criar data às 00:00:00 em Brasília
+  const brasiliaStartOfDay = new Date(`${year}-${month}-${day}T00:00:00-03:00`);
+  
+  return brasiliaStartOfDay;
 }
 
 /**
- * Obter início do mês atual em timezone local (Brasília)
+ * Obter início do mês atual em timezone de Brasília (America/Sao_Paulo)
  */
 function getLocalMonthStart(date: Date = new Date()): Date {
-  const localDate = new Date(date);
-  localDate.setDate(1);
-  localDate.setHours(0, 0, 0, 0);
-  return localDate;
+  // Converter para string em timezone de Brasília
+  const brasiliaDateString = date.toLocaleString('en-US', { 
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour12: false
+  });
+  
+  // Parse: "11/12/2025" -> primeiro dia do mês
+  const [datePart] = brasiliaDateString.split(', ');
+  const [month, , year] = datePart.split('/');
+  
+  // Criar data no primeiro dia do mês às 00:00:00 em Brasília
+  const brasiliaStartOfMonth = new Date(`${year}-${month}-01T00:00:00-03:00`);
+  
+  return brasiliaStartOfMonth;
 }
 
 // ============================================================================
