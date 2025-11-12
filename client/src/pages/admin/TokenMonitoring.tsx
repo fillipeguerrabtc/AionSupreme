@@ -541,10 +541,10 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         )}
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 w-full max-w-full">
           {/* Total Tokens */}
-          <Card className="flex items-center gap-2">
-            <CardHeader className="flex items-center gap-2">
+          <Card>
+            <CardHeader>
               <CardTitle className="text-sm font-medium">{t.admin.tokenMonitoring.overview.totalTokens}</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -562,7 +562,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <div className="text-sm font-semibold text-foreground">
                       {getTotalTokensMonth().toLocaleString()}
                     </div>
-                    <p className="text-xs text-muted-foreground">{t.common.loading}</p>
+                    <p className="text-xs text-muted-foreground">30 dias</p>
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-primary">
@@ -577,8 +577,8 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
           </Card>
 
           {/* Total Cost */}
-          <Card className="flex items-center gap-2">
-            <CardHeader className="flex items-center gap-2">
+          <Card>
+            <CardHeader>
               <CardTitle className="text-sm font-medium">{t.admin.tokenMonitoring.overview.totalCost}</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -591,8 +591,8 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
           </Card>
 
           {/* Web Searches */}
-          <Card className="flex items-center gap-2">
-            <CardHeader className="flex items-center gap-2">
+          <Card>
+            <CardHeader>
               <CardTitle className="text-sm font-medium">{t.admin.overview.webSearches}</CardTitle>
               <Globe className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -608,7 +608,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         </div>
 
         {/* Usage by Provider - Pie Chart */}
-        <Card className="flex items-center gap-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-accent" />
@@ -640,7 +640,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         </Card>
 
         {/* Trends Chart - Enterprise Grade */}
-        <Card className="flex items-center gap-2" data-chart="usage-trends">
+        <Card data-chart="usage-trends">
           <CardHeader>
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
@@ -875,10 +875,10 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* FREE APIS TAB */}
       <TabsContent value="free-apis" className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 w-full max-w-full">
           {/* Groq */}
           {getProviderQuota('groq') && (
-            <Card className="flex items-center gap-2">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <span className="flex items-center gap-2">
@@ -925,7 +925,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
           {/* Gemini */}
           {getProviderQuota('gemini') && (
-            <Card className="flex items-center gap-2">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <span className="flex items-center gap-2">
@@ -972,7 +972,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
           {/* HuggingFace */}
           {getProviderQuota('huggingface') && (
-            <Card className="flex items-center gap-2">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <span className="flex items-center gap-2">
@@ -1019,7 +1019,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
           {/* OpenRouter */}
           {getProviderQuota('openrouter') && (
-            <Card className="flex items-center gap-2">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <span className="flex items-center gap-2">
@@ -1066,7 +1066,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         </div>
 
         {/* Free APIs Historical Chart */}
-        <Card className="flex items-center gap-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-accent" />
@@ -1092,7 +1092,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         </Card>
 
         {/* Free APIs Detailed History */}
-        <Card className="flex items-center gap-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-accent" />
@@ -1159,7 +1159,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* KB SEARCHES TAB */}
       <TabsContent value="kb" className="space-y-6">
-        <Card className="flex items-center gap-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="w-5 h-5" style={{ color: COLORS.kb }} />
@@ -1260,7 +1260,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* OPENAI TAB */}
       <TabsContent value="openai" className="space-y-6">
-        <Card className="flex items-center gap-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-green-500" />
@@ -1269,7 +1269,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
             <CardDescription>{t.admin.tokenMonitoring.openaiTab.trendsDesc}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3 w-full max-w-full">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">{t.admin.tokenMonitoring.openaiTab.totalRequests}</p>
                 <p className="text-3xl font-bold gradient-text">
@@ -1329,7 +1329,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* WEB SEARCHES TAB */}
       <TabsContent value="web" className="space-y-6">
-        <Card className="flex items-center gap-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Globe className="w-5 h-5 text-cyan-500" />
@@ -1437,7 +1437,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* LIMITS & ALERTS TAB */}
       <TabsContent value="limits" className="space-y-6">
-        <Card className="flex items-center gap-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings className="w-5 h-5 text-accent" />
@@ -1517,7 +1517,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
         </Card>
 
         {/* Active Alerts */}
-        <Card className="flex items-center gap-2">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="w-5 h-5 text-yellow-500" />

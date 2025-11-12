@@ -521,7 +521,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-total-requests">
               <CardHeader className="p-4 space-y-2 w-full">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />{t.common.loading}</CardTitle>
+                  <Activity className="w-4 h-4" />Total de Requisições</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {kbAnalytics?.overview?.totalRequests?.toLocaleString() || "0"}
                 </div>
@@ -538,7 +538,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5" />{t.common.loading}</CardTitle>
+                  <BarChart3 className="w-5 h-5" />Distribuição por Fonte</CardTitle>
                 <CardDescription>
                   Origem das respostas (KB, Web, APIs)
                 </CardDescription>
@@ -570,7 +570,7 @@ export default function TelemetriaPage() {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">{t.common.loading}</div>
+                  <div className="flex items-center gap-2">Nenhum dado disponível</div>
                 )}
               </CardContent>
             </Card>
@@ -579,7 +579,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />{t.common.loading}</CardTitle>
+                  <DollarSign className="w-5 h-5" />Eficiência de Custos</CardTitle>
                 <CardDescription>
                   Economia usando KB/Web vs APIs pagas
                 </CardDescription>
@@ -615,7 +615,7 @@ export default function TelemetriaPage() {
 
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2">
-                    <span>{t.common.loading}</span>
+                    <span>Economia Total:</span>
                     <span className="text-lg font-bold text-green-600 dark:text-green-400">
                       {kbAnalytics?.costEfficiency?.savingsPercent?.toFixed(1) || "0"}%
                     </span>
@@ -635,8 +635,8 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Gauge className="w-5 h-5" />{t.common.loading}</CardTitle>
-                <CardDescription>{t.common.loading}</CardDescription>
+                  <Gauge className="w-5 h-5" />Qualidade por Fonte</CardTitle>
+                <CardDescription>Latência média por provedor</CardDescription>
               </CardHeader>
               <CardContent>
                 {kbAnalytics?.qualityMetrics && kbAnalytics.qualityMetrics.length > 0 ? (
@@ -652,7 +652,7 @@ export default function TelemetriaPage() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center gap-2">{t.common.loading}</div>
+                  <div className="flex items-center gap-2">Nenhum dado disponível</div>
                 )}
               </CardContent>
             </Card>
@@ -661,7 +661,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5" />{t.common.loading}</CardTitle>
+                  <FileText className="w-5 h-5" />Fontes de Conhecimento Principais</CardTitle>
                 <CardDescription>
                   Documentos mais recentemente indexados
                 </CardDescription>
@@ -696,7 +696,7 @@ export default function TelemetriaPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2">{t.common.loading}</div>
+                    <div className="flex items-center gap-2">Nenhum dado disponível</div>
                   )}
                 </ScrollArea>
               </CardContent>
@@ -709,7 +709,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-namespace-searches">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Database className="w-4 h-4" />{t.common.loading}</CardTitle>
+                  <Database className="w-4 h-4" />Buscas em Namespaces</CardTitle>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">
                   {hierarchicalOverview?.namespaces?.totalSearches?.toLocaleString() || "..."}
                 </div>
@@ -728,7 +728,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-most-active-agent">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />{t.common.loading}</CardTitle>
+                  <TrendingUp className="w-4 h-4" />Agente Mais Ativo</CardTitle>
                 <div className="text-lg font-bold text-foreground truncate">
                   {agentStats && agentStats.length > 0 
                     ? agentStats[0].agentName 
@@ -751,7 +751,7 @@ export default function TelemetriaPage() {
             <Card className="flex items-center gap-2" data-testid="card-hierarchy">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Activity className="w-4 h-4" />{t.common.loading}</CardTitle>
+                  <Activity className="w-4 h-4" />Distribuição Hierárquica</CardTitle>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">Agents Raiz</span>
@@ -770,8 +770,8 @@ export default function TelemetriaPage() {
           <Card className="flex items-center gap-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />{t.common.loading}</CardTitle>
-              <CardDescription>{t.common.loading}</CardDescription>
+                <Users className="w-5 h-5" />Uso por Agentes</CardTitle>
+              <CardDescription>Agentes mais utilizados no sistema</CardDescription>
             </CardHeader>
             <CardContent>
               {agentStats && agentStats.length > 0 ? (
