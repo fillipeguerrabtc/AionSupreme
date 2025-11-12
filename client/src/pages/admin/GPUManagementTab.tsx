@@ -156,7 +156,7 @@ export default function GPUManagementTab() {
     return formatDateTimeInTimezone(dateStr, timezone, { format: 'short' });
   };
 
-  // Countdown timer component (real-time updates)
+  // Countdown timer component - KAGGLE mostra SEMANAL, COLAB mostra SESSÃO
   const TimeRemaining = ({ worker }: { worker: GpuWorker }) => {
     const [timeLeft, setTimeLeft] = useState<string>(t.admin.gpuManagement.time.na);
 
