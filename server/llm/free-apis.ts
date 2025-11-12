@@ -74,7 +74,7 @@ const FREE_APIS: APIProvider[] = [
     dailyLimit: 50,     // 50 free credits
     priority: 4,
     models: ['meta-llama/llama-3.1-8b-instruct:free', 'mistralai/mistral-7b-instruct:free'],
-    enabled: !!process.env.OPENROUTER_API_KEY
+    enabled: !!process.env.OPEN_ROUTER_API_KEY
   }
 ];
 
@@ -184,16 +184,43 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
 
   // Convert messages to Gemini format
   const systemPrompt = req.messages.find(m => m.role === 'system')?.content || '';
+  
+  // 🔥 FIX: Gemini has 1000 char limit for systemInstruction - if longer, prepend to first message
+  const MAX_SYSTEM_INSTRUCTION_LENGTH = 1000;
+  let finalSystemPrompt = '';
+  let systemOverflow = '';
+  
+  if (systemPrompt.length > MAX_SYSTEM_INSTRUCTION_LENGTH) {
+    finalSystemPrompt = systemPrompt.substring(0, MAX_SYSTEM_INSTRUCTION_LENGTH);
+    systemOverflow = systemPrompt.substring(MAX_SYSTEM_INSTRUCTION_LENGTH);
+    log.warn({ 
+      component: 'gemini', 
+      originalLength: systemPrompt.length, 
+      truncatedTo: finalSystemPrompt.length 
+    }, 'System prompt too long, moving overflow to first message');
+  } else {
+    finalSystemPrompt = systemPrompt;
+  }
+  
   const conversationHistory = req.messages
     .filter(m => m.role !== 'system')
-    .map(m => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }]
-    }));
+    .map((m, index) => {
+      // Prepend system overflow to first user message
+      if (index === 0 && m.role === 'user' && systemOverflow) {
+        return {
+          role: 'user',
+          parts: [{ text: `${systemOverflow}\n\n${m.content}` }]
+        };
+      }
+      return {
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      };
+    });
 
   const chat = model.startChat({
     history: conversationHistory.slice(0, -1),
-    systemInstruction: systemPrompt
+    systemInstruction: finalSystemPrompt || undefined  // Don't send empty string
   });
 
   const lastMessage = conversationHistory[conversationHistory.length - 1];
@@ -263,8 +290,9 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
+      // 🔥 FIX: HuggingFace migrated to new URL (2025)
       const response = await fetch(
-        `https://api-inference.huggingface.co/models/${model}`,
+        `https://router.huggingface.co/hf-inference/models/${model}`,
         {
           method: 'POST',
           headers: {
@@ -350,8 +378,8 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
 // ============================================================================
 
 async function callOpenRouter(req: LLMRequest): Promise<LLMResponse> {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error('OPENROUTER_API_KEY not set');
+  const apiKey = process.env.OPEN_ROUTER_API_KEY;
+  if (!apiKey) throw new Error('OPEN_ROUTER_API_KEY not set');
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -490,7 +518,8 @@ export async function generateWithFreeAPIs(
         case 'gemini':
           response = await callGemini(req);
           break;
-        case 'huggingface':
+        case 'hf':  // 🔥 FIX: Match the actual provider name in FREE_APIS array
+        case 'huggingface':  // Also accept 'huggingface' for compatibility
           response = await callHuggingFace(req);
           break;
         case 'openrouter':
@@ -506,8 +535,34 @@ export async function generateWithFreeAPIs(
       return response;
       
     } catch (error: any) {
+      // 🔥 FIX: Enhanced error debugging with FULL STACK TRACE
+      log.error({ 
+        component: 'free-apis', 
+        provider: provider.name,
+        errorType: typeof error,
+        errorConstructor: error?.constructor?.name,
+        errorKeys: error ? Object.keys(error) : [],
+        errorStack: error?.stack || 'No stack trace',
+        errorMessage: error?.message,
+        rawError: error
+      }, 'Provider failed - FULL ERROR DETAILS + STACK TRACE');
+      
       // 🔥 FIX: Safely extract error message (handle both Error objects and strings)
-      const errorMessage = error?.message || error?.toString() || String(error) || 'Unknown error';
+      let errorMessage = 'Unknown error';
+      try {
+        if (error?.message) {
+          errorMessage = error.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        } else if (error?.toString && typeof error.toString === 'function') {
+          errorMessage = error.toString();
+        } else {
+          errorMessage = JSON.stringify(error);
+        }
+      } catch (stringifyError) {
+        errorMessage = 'Error occurred but could not be stringified';
+      }
+      
       const errorMsg = `${provider.name}: ${errorMessage}`;
       errors.push(errorMsg);
       log.error({ component: 'free-apis', provider: provider.name, error: errorMessage }, 'Provider failed');

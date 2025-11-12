@@ -802,42 +802,10 @@ This instruction takes ABSOLUTE PRIORITY.
   }
   
   // ============================================================================
-  // STEP 2: WEB SEARCH (if KB failed and query is not time-sensitive handled above)
-  // If KB completely failed or has low confidence → try web search before Free APIs
+  // STEP 2: REMOVED - WEB SEARCH NOW HAPPENS AFTER FREE APIs
+  // 🔥 CRITICAL FIX: Free APIs MUST be tried BEFORE Web Search (which costs money!)
+  // Priority: KB → GPU → FREE APIs → Web Search → OpenAI
   // ============================================================================
-  
-  if (!kbResult || kbResult.shouldFallback) {
-    console.log('\n🔍 [STEP 2/4] KB confidence low - Trying WEB SEARCH...');
-    
-    try {
-      const webFallback = await executeWebFallback(userMessage, false, req.language, req.temperature ?? 0.7, req.topP ?? 0.9);
-      
-      await trackWebSearch(
-        'web',
-        webFallback.model,
-        webFallback.searchMetadata
-      );
-      
-      console.log('   ✅ Web search completed successfully!');
-      console.log('='.repeat(80) + '\n');
-      
-      return {
-        content: webFallback.content,
-        source: 'web-fallback',
-        provider: webFallback.provider,
-        model: webFallback.model,
-        metadata: {
-          refusalDetected: false,
-          webSearchPerformed: true,
-          documentsIndexed: webFallback.documentsIndexed,
-          kbConfidence: kbResult?.confidence || 0
-        }
-      };
-    } catch (webError: any) {
-      console.error('   ✗ Web search failed:', webError.message);
-      console.log('   → Proceeding to Free APIs...');
-    }
-  }
   
   // ============================================================================
   // STEP 3: FREE APIs (Groq → Gemini → HF → OpenRouter) with AUTO-FALLBACK

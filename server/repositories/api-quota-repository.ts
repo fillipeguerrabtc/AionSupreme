@@ -5,7 +5,7 @@
 
 import { db } from '../db';
 import { llmProviderQuotas, type LlmProviderQuota } from '../../shared/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, and } from 'drizzle-orm';
 import pino from 'pino';
 
 const logger = pino({ name: 'api-quota-repository' });
