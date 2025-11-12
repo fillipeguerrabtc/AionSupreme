@@ -296,7 +296,7 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
   const apiKey = process.env.HUGGINGFACE_API_KEY;
   if (!apiKey) throw new Error('HUGGINGFACE_API_KEY not set');
 
-  // ✅ FIX: Use public Inference API model (v0.3 returns 404)
+  // ✅ 2025: Use official Inference API endpoint
   const model = 'mistralai/Mistral-7B-Instruct-v0.2';
   
   // Format prompt for Mistral
@@ -316,9 +316,9 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      // 🔥 FIX: HuggingFace migrated to new URL (2025)
+      // ✅ 2025 OFFICIAL URL: api-inference.huggingface.co (NOT router.huggingface.co)
       const response = await fetch(
-        `https://router.huggingface.co/hf-inference/models/${model}`,
+        `https://api-inference.huggingface.co/models/${model}`,
         {
           method: 'POST',
           headers: {
