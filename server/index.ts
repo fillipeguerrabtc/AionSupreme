@@ -126,6 +126,10 @@ app.use((req, res, next) => {
   // Iniciar monitor de heartbeat de GPU (detecta workers offline a cada 60s)
   const { startHeartbeatMonitor } = await import("./gpu/heartbeat-monitor");
   startHeartbeatMonitor();
+  
+  // Iniciar sistema de polling de health via Ngrok (atualiza lastHealthCheck a cada 60s)
+  const { startNgrokHealthPoller } = await import("./gpu/ngrok-health-poller");
+  startNgrokHealthPoller();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

@@ -29,7 +29,23 @@ async function checkHeartbeats() {
     const workers = allWorkers.filter(w => w.status !== "offline");
 
     for (const worker of workers) {
-      const timeSinceLastHeartbeat = now.getTime() - new Date(worker.lastHealthCheck!).getTime();
+      // 🔥 FIX: Handle NULL lastHealthCheck (new workers without heartbeat yet)
+      // Fallback: sessionStartedAt → createdAt → skip worker until first heartbeat
+      const referenceTime = worker.lastHealthCheck 
+        ? new Date(worker.lastHealthCheck)
+        : worker.sessionStartedAt
+        ? new Date(worker.sessionStartedAt)
+        : worker.createdAt
+        ? new Date(worker.createdAt)
+        : null;
+      
+      // Skip workers without any reference time (should not happen)
+      if (!referenceTime) {
+        console.warn(`[Heartbeat Monitor] Worker ${worker.id} has no reference time - skipping`);
+        continue;
+      }
+      
+      const timeSinceLastHeartbeat = now.getTime() - referenceTime.getTime();
       
       // Mark as offline if no heartbeat for 3+ minutes
       if (timeSinceLastHeartbeat > HEARTBEAT_TIMEOUT_MS) {
