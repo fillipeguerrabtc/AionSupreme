@@ -107,8 +107,8 @@ export class IntelligentQuotaManager {
   private readonly KAGGLE_CPU_MAX_SESSION = GPU_QUOTA_CONSTANTS.KAGGLE_CPU_MAX_SESSION;
   private readonly KAGGLE_CPU_SAFETY = GPU_QUOTA_CONSTANTS.KAGGLE_CPU_SAFETY;
   
-  private readonly KAGGLE_WEEKLY_QUOTA = GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_QUOTA;
-  private readonly KAGGLE_WEEKLY_SAFETY = GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY
+  private readonly KAGGLE_WEEKLY_MAX = GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_MAX;
+  private readonly KAGGLE_WEEKLY_SAFETY = GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY;
   
   /**
    * Get current quota status for a specific GPU worker
@@ -372,7 +372,7 @@ export class IntelligentQuotaManager {
     let weeklyQuotaPercent = 0;
     if (status.provider === 'kaggle' && status.weeklyUsedSeconds !== undefined) {
       const weeklyAfterJob = status.weeklyUsedSeconds + estimatedSeconds;
-      weeklyQuotaPercent = (weeklyAfterJob / this.KAGGLE_WEEKLY_QUOTA) * 100;
+      weeklyQuotaPercent = (weeklyAfterJob / this.KAGGLE_WEEKLY_MAX) * 100;
       wouldExceedWeekly = weeklyQuotaPercent > 70;
     }
     

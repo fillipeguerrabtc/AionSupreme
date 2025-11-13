@@ -996,10 +996,10 @@ export const gpuWorkers = pgTable("gpu_workers", {
   startRequestedAt: timestamp("start_requested_at"), // When session start was requested
   reservationExpiresAt: timestamp("reservation_expires_at"), // TTL for reservation cleanup (5min)
   
-  // Session runtime tracking (Safety: stop 1h before limits)
+  // Session runtime tracking (Safety: 70% enforcement - 8.4h for 12h limit)
   sessionStartedAt: timestamp("session_started_at"), // When current session started
   sessionDurationSeconds: integer("session_duration_seconds").notNull().default(0), // Current runtime
-  maxSessionDurationSeconds: integer("max_session_duration_seconds").notNull().default(39600), // 11h default (12h-1h safety)
+  maxSessionDurationSeconds: integer("max_session_duration_seconds").notNull().default(30240), // 8.4h default (70% × 12h = 30240s)
   scheduledStopAt: timestamp("scheduled_stop_at"), // When orchestrator will auto-stop
   
   // Weekly quota tracking (Kaggle specific: 30h GPU/week)
