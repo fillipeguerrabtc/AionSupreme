@@ -3771,3 +3771,110 @@ export const insertUserQueryFrequencySchema = createInsertSchema(userQueryFreque
 });
 export type InsertUserQueryFrequency = z.infer<typeof insertUserQueryFrequencySchema>;
 export type UserQueryFrequency = typeof userQueryFrequency.$inferSelect;
+
+// ============================================================================
+// GOOGLE AUTH SESSIONS - Cookie sessions for Kaggle/Colab quota scraping
+// Stores encrypted Google OAuth cookies for automated quota retrieval
+// ============================================================================
+export const googleAuthSessions = pgTable("google_auth_sessions", {
+  id: serial("id").primaryKey(),
+  
+  // Account identification
+  accountEmail: varchar("account_email", { length: 255 }).notNull().unique(),
+  accountName: varchar("account_name", { length: 255 }),
+  
+  // Encrypted cookie storage (AES-256-GCM)
+  encryptedCookies: text("encrypted_cookies").notNull(), // Encrypted JSON array of cookies
+  cookieIv: varchar("cookie_iv", { length: 32 }).notNull(), // Initialization vector for AES-GCM
+  cookieAuthTag: varchar("cookie_auth_tag", { length: 32 }).notNull(), // Authentication tag for AES-GCM
+  
+  // Session status
+  isValid: boolean("is_valid").notNull().default(true),
+  lastValidated: timestamp("last_validated", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }), // ~30 days from creation
+  
+  // Provider coverage (which platforms this session can access)
+  providers: jsonb("providers").$type<string[]>().notNull().default(['kaggle', 'colab']), // Both use same Google login
+  
+  // Metadata
+  userAgent: text("user_agent"), // Browser user agent used during authentication
+  lastSyncAt: timestamp("last_sync_at", { withTimezone: true }), // Last successful quota sync
+  
+  // Audit fields
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("google_auth_sessions_email_idx").on(table.accountEmail),
+  index("google_auth_sessions_is_valid_idx").on(table.isValid),
+  index("google_auth_sessions_expires_at_idx").on(table.expiresAt),
+]);
+
+export const insertGoogleAuthSessionSchema = createInsertSchema(googleAuthSessions).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+export type InsertGoogleAuthSession = z.infer<typeof insertGoogleAuthSessionSchema>;
+export type GoogleAuthSession = typeof googleAuthSessions.$inferSelect;
+
+// ============================================================================
+// QUOTA SCRAPING RESULTS - Real quota data from Kaggle/Colab
+// Stores actual quota data scraped from provider dashboards/notebooks
+// ============================================================================
+export const quotaScrapingResults = pgTable("quota_scraping_results", {
+  id: serial("id").primaryKey(),
+  
+  // Provider information
+  provider: varchar("provider", { length: 20 }).notNull(), // 'kaggle' | 'colab'
+  accountEmail: varchar("account_email", { length: 255 }).notNull(),
+  
+  // Scraped quota data
+  quotaData: jsonb("quota_data").notNull().$type<{
+    // KAGGLE
+    sessionRemainingHours?: number;
+    sessionMaxHours?: number;
+    weeklyUsedHours?: number;
+    weeklyRemainingHours?: number;
+    weeklyMaxHours?: number;
+    
+    // COLAB
+    computeUnitsUsed?: number;
+    computeUnitsTotal?: number;
+    computeUnitsRemaining?: number;
+    sessionRemainingMinutes?: number;
+    
+    // COMMON
+    canStart?: boolean;
+    shouldStop?: boolean;
+    inCooldown?: boolean;
+    cooldownRemainingHours?: number;
+  }>(),
+  
+  // Scraping metadata
+  scrapingSuccess: boolean("scraping_success").notNull().default(true),
+  scrapingError: text("scraping_error"),
+  scrapingDurationMs: integer("scraping_duration_ms"), // How long scraping took
+  
+  // Raw scraped HTML (for debugging/audit)
+  rawHtmlSnippet: text("raw_html_snippet"), // Small snippet of quota HTML for validation
+  
+  // Timestamps
+  scrapedAt: timestamp("scraped_at", { withTimezone: true }).notNull().defaultNow(),
+  
+  // Data freshness (for stale data detection)
+  expiresAt: timestamp("expires_at", { withTimezone: true }), // 10 minutes after scraping
+}, (table) => [
+  index("quota_scraping_results_provider_idx").on(table.provider),
+  index("quota_scraping_results_account_email_idx").on(table.accountEmail),
+  index("quota_scraping_results_scraped_at_idx").on(table.scrapedAt),
+  index("quota_scraping_results_expires_at_idx").on(table.expiresAt),
+  // Composite index for latest quota lookup per provider + account
+  index("quota_scraping_results_provider_email_scraped_idx").on(table.provider, table.accountEmail, table.scrapedAt),
+]);
+
+export const insertQuotaScrapingResultSchema = createInsertSchema(quotaScrapingResults).omit({ 
+  id: true, 
+  scrapedAt: true 
+});
+export type InsertQuotaScrapingResult = z.infer<typeof insertQuotaScrapingResultSchema>;
+export type QuotaScrapingResult = typeof quotaScrapingResults.$inferSelect;
