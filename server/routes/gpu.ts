@@ -601,6 +601,33 @@ export function registerGpuRoutes(app: Router) {
           // Get quota status using IntelligentQuotaManager
           const quotaStatus = await quotaManager.getQuotaStatus(worker.id);
           
+          // Enrich quota status with detailed fields for UI
+          let enrichedQuota = quotaStatus;
+          if (quotaStatus) {
+            const isKaggle = worker.provider.toLowerCase().includes('kaggle');
+            const isColab = worker.provider.toLowerCase().includes('colab');
+            
+            enrichedQuota = {
+              ...quotaStatus,
+              // Session fields (both Kaggle and Colab)
+              sessionTotalSeconds: quotaStatus.maxSessionSeconds,
+              sessionUsedSeconds: quotaStatus.sessionRuntimeSeconds,
+              sessionRemainingSeconds: quotaStatus.remainingSessionSeconds,
+              
+              // Weekly fields (Kaggle only)
+              ...(isKaggle && quotaStatus.weeklyMaxSeconds ? {
+                weeklyTotalSeconds: quotaStatus.weeklyMaxSeconds,
+                weeklyUsedSeconds: quotaStatus.weeklyUsedSeconds || 0,
+                weeklyRemainingSeconds: quotaStatus.weeklyRemainingSeconds || 0,
+              } : {}),
+              
+              // Cooldown fields (Colab only)
+              ...(isColab ? {
+                cooldownRemainingSeconds: 0, // TODO: Implement Colab cooldown tracking
+              } : {}),
+            };
+          }
+          
           return {
             id: worker.id,
             provider: worker.provider,
@@ -620,7 +647,7 @@ export function registerGpuRoutes(app: Router) {
             createdAt: worker.createdAt.toISOString(),
             autoManaged: worker.autoManaged,
             source: worker.autoManaged ? 'auto' as const : 'manual' as const,
-            quotaStatus: quotaStatus || undefined,
+            quotaStatus: enrichedQuota || undefined,
           };
         })
       );

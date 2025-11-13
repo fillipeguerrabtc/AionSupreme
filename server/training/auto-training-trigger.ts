@@ -44,6 +44,10 @@ export class AutoTrainingTrigger {
 
   /**
    * Inicia monitoramento automático
+   * 
+   * 🔥 CRITICAL: NO IMMEDIATE CHECK on startup!
+   * GPU should be activated ON-DEMAND only (explicit training/inference requests)
+   * NOT automatically when detecting KB items ready for training
    */
   start(): void {
     if (this.intervalId) {
@@ -52,11 +56,12 @@ export class AutoTrainingTrigger {
     }
 
     console.log(`[AutoTrain] ✅ Iniciado - verificando a cada ${this.checkIntervalMs / 1000 / 60} min`);
+    console.log(`[AutoTrain] ⚠️  GPU ativação: ON-DEMAND apenas (não automático no startup)`);
 
-    // Verificar imediatamente
-    this.checkAndTrigger();
+    // 🔥 REMOVED: this.checkAndTrigger() - NO auto-activation on startup!
+    // GPU deve ser ativada apenas sob demanda explícita (training/inference)
 
-    // Depois verificar periodicamente
+    // Verificar periodicamente (mas não imediatamente)
     this.intervalId = setInterval(() => {
       this.checkAndTrigger();
     }, this.checkIntervalMs);
