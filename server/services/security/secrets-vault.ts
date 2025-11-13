@@ -327,6 +327,15 @@ export async function retrieveKaggleCredentials(
   identifier: string = 'default',
   username?: string
 ): Promise<{ username: string; key: string } | null> {
+  // PRIORITY 1: Check environment variables (Replit Secrets)
+  if (process.env.KAGGLE_USERNAME && process.env.KAGGLE_KEY) {
+    return {
+      username: process.env.KAGGLE_USERNAME,
+      key: process.env.KAGGLE_KEY
+    };
+  }
+
+  // PRIORITY 2: Check database SecretsVault
   const secretName = username
     ? `kaggle:${identifier}:${username}`
     : await findKaggleSecret(identifier);
@@ -363,6 +372,15 @@ export async function retrieveGoogleCredentials(
   identifier: string = 'default',
   email?: string
 ): Promise<{ email: string; password: string } | null> {
+  // PRIORITY 1: Check environment variables (Replit Secrets)
+  if (process.env.GOOGLE_EMAIL && process.env.GOOGLE_PASSWORD) {
+    return {
+      email: process.env.GOOGLE_EMAIL,
+      password: process.env.GOOGLE_PASSWORD
+    };
+  }
+
+  // PRIORITY 2: Check database SecretsVault
   const secretName = email
     ? `google:${identifier}:${email}`
     : await findGoogleSecret(identifier);
