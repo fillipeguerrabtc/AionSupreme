@@ -117,6 +117,8 @@ app.use((req, res, next) => {
   // 🧹 CLEANUP: Terminate orphaned sessions on startup (process restart recovery)
   // CRITICAL: Orphaned 'active'/'idle' sessions block new startups via partial unique index
   logger.info('[Startup] Cleaning up orphaned GPU sessions...');
+  
+  // Cleanup Kaggle sessions (On-Demand + 10min idle)
   try {
     const { kaggleOrchestrator } = await import("./gpu-orchestration/kaggle-orchestrator");
     await kaggleOrchestrator.cleanupOrphanedSessions();
@@ -125,14 +127,14 @@ app.use((req, res, next) => {
     logger.error('[Startup] ⚠️ Kaggle session cleanup failed (non-blocking):', error.message);
   }
   
-  // TODO: Add Colab cleanup when ColabOrchestrator is refactored
-  // try {
-  //   const { colabOrchestrator } = await import("./gpu-orchestration/colab-orchestrator");
-  //   await colabOrchestrator.cleanupOrphanedSessions();
-  //   logger.info('[Startup] ✅ Colab orphaned sessions cleaned up');
-  // } catch (error: any) {
-  //   logger.error('[Startup] ⚠️ Colab session cleanup failed (non-blocking):', error.message);
-  // }
+  // Cleanup Colab sessions (Schedule-based, runs full 8.4h)
+  try {
+    const { colabOrchestrator } = await import("./gpu-orchestration/colab-orchestrator");
+    await colabOrchestrator.cleanupOrphanedSessions();
+    logger.info('[Startup] ✅ Colab orphaned sessions cleaned up');
+  } catch (error: any) {
+    logger.error('[Startup] ⚠️ Colab session cleanup failed (non-blocking):', error.message);
+  }
   
   // 🔌 IDLE TIMEOUT: Start Kaggle idle shutdown monitoring (BAN AVOIDANCE!)
   // Monitors gpu_sessions.lastActivity and shuts down after 10min idle

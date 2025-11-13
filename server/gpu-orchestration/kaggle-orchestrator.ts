@@ -330,16 +330,15 @@ export class KaggleOrchestrator {
       // 7. Update gpuWorkers table
       // ============================================================================
       
-      const now = new Date();
       await db.update(gpuWorkers)
         .set({
           puppeteerSessionId: sessionId,
           ngrokUrl: ngrokUrl,
           status: 'healthy',
-          sessionStartedAt: now,
-          lastHealthCheck: now,
-          lastUsedAt: now, // ✅ Track activity for idle timeout
-          updatedAt: now,
+          sessionStartedAt: sessionNow, // ✅ Reuse sessionNow from line 260
+          lastHealthCheck: sessionNow,
+          lastUsedAt: sessionNow, // ✅ Track activity for idle timeout
+          updatedAt: sessionNow,
         })
         .where(eq(gpuWorkers.id, config.workerId));
       

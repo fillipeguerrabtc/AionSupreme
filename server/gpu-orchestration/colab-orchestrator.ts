@@ -30,10 +30,12 @@ import puppeteer from 'puppeteer-extra';
 import type { Browser, Page } from 'puppeteer';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { createCursor } from 'ghost-cursor';
+import { nanoid } from 'nanoid'; // ✅ DB-first session IDs
 import { db } from '../db';
-import { gpuWorkers } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { gpuWorkers, gpuSessions } from '../../shared/schema'; // ✅ DB-first tables
+import { eq, and, lt, gte, inArray } from 'drizzle-orm'; // ✅ DB-first queries
 import { getQuotaEnforcementService } from '../services/quota-enforcement-service';
+import { GPU_QUOTA_CONSTANTS } from './intelligent-quota-manager'; // ✅ Centralized constants
 import { QUOTA_LIMITS } from '../config/quota-limits';
 import { alertService } from '../services/alert-service';
 
@@ -82,36 +84,141 @@ async function delay(ms: number): Promise<void> {
 }
 
 // ============================================================================
-// COLAB ORCHESTRATOR CLASS
+// COLAB ORCHESTRATOR CLASS - ENTERPRISE DB-FIRST (2025)
 // ============================================================================
 
+/**
+ * CRITICAL: Runtime cache for NON-SERIALIZABLE Puppeteer objects only!
+ * All authoritative state lives in `gpu_sessions` table (DB-first).
+ */
+interface ColabRuntimeCache {
+  browser: Browser;
+  page: Page;
+  cursor: any; // ghost-cursor instance
+  keepAliveInterval: NodeJS.Timeout;
+}
+
 export class ColabOrchestrator {
-  private activeSessions: Map<number, ColabSession> = new Map();
+  /**
+   * ✅ MINIMAL RUNTIME CACHE: Puppeteer objects ONLY (not serializable)
+   * Authoritative session state lives in PostgreSQL `gpu_sessions` table
+   * 
+   * WARNING: activeSessions Map REMOVED (violated ZERO in-memory rule!)
+   */
+  private runtimeCache: Map<number, ColabRuntimeCache> = new Map();
+  
   private readonly CHROME_USER_DATA_DIR = './chrome-data/colab';
-  private readonly KEEP_ALIVE_INTERVAL = 60 * 60 * 1000; // 60min
   
   /**
-   * ✅ P2.8: Start Colab notebook session (ENTERPRISE 2025)
-   * ✅ CRITICAL FIX: Integrated with GPUCooldownManager for quota enforcement
+   * ✅ POSTGRESQL: Cleanup orphaned sessions on server startup
+   * 
+   * Terminates sessions that:
+   * 1. Are stuck in 'starting' status (timeout exceeded)
+   * 2. Have expired (expiresAt < now)
+   * 
+   * CRITICAL: Prevents session leaks after crashes/restarts!
+   */
+  async cleanupOrphanedSessions(): Promise<void> {
+    try {
+      console.log('[Colab] 🧹 Cleaning up orphaned sessions...');
+      const now = Date.now();
+      const startingTimeout = now - GPU_QUOTA_CONSTANTS.COLAB_STARTUP_TIMEOUT;
+      
+      // Query orphaned sessions
+      const orphanedSessions = await db.query.gpuSessions.findMany({
+        where: and(
+          eq(gpuSessions.provider, 'colab'),
+          inArray(gpuSessions.status, ['starting', 'active', 'idle']),
+        ),
+      });
+      
+      let cleanedCount = 0;
+      
+      for (const session of orphanedSessions) {
+        const shouldTerminate = 
+          // Case 1: Stuck in 'starting' (exceeded timeout)
+          (session.status === 'starting' && new Date(session.createdAt).getTime() < startingTimeout) ||
+          // Case 2: Expired session (quota exhausted)
+          (session.expiresAt && new Date(session.expiresAt).getTime() < now);
+        
+        if (shouldTerminate) {
+          const reason = session.status === 'starting' 
+            ? 'startup_timeout'
+            : 'quota_expired';
+          
+          await db.update(gpuSessions)
+            .set({
+              status: 'terminated',
+              stoppedAt: new Date(),
+              error: `Orphaned session cleanup: ${reason}`,
+            })
+            .where(eq(gpuSessions.id, session.id));
+          
+          cleanedCount++;
+          console.log(
+            `[Colab]    → Terminated session ${session.id} ` +
+            `(worker ${session.workerId}, reason: ${reason})`
+          );
+        }
+      }
+      
+      // Clean up runtime cache (all entries - stale after restart)
+      this.runtimeCache.clear();
+      
+      console.log(`[Colab] ✅ Cleanup complete: ${cleanedCount} orphaned sessions terminated`);
+      
+      // Log active Colab sessions for visibility
+      const activeSessions = await db.query.gpuSessions.findMany({
+        where: and(
+          eq(gpuSessions.provider, 'colab'),
+          inArray(gpuSessions.status, ['active', 'idle']),
+        ),
+      });
+      
+      if (activeSessions.length > 0) {
+        console.log(`[Colab] 📊 Active sessions: ${activeSessions.length}`);
+        for (const session of activeSessions) {
+          const now = Date.now();
+          const minutesRemaining = Math.floor(
+            (new Date(session.expiresAt).getTime() - now) / (60 * 1000)
+          );
+          console.log(
+            `[Colab]    → Worker ${session.workerId}: ` +
+            `${minutesRemaining}min quota remaining, ` +
+            `last activity ${Math.floor((now - new Date(session.lastActivity).getTime()) / (60 * 1000))}min ago`
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[Colab] ❌ Error during orphaned session cleanup:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * ✅ POSTGRESQL-BACKED: Start Colab notebook session (SCHEDULE-BASED!)
+   * 
+   * DB-FIRST FLOW:
+   * 1. INSERT gpu_sessions row (status='starting') - partial unique index prevents duplicates
+   * 2. Launch Puppeteer browser
+   * 3. UPDATE gpu_sessions to 'active' (with status guard + lastActivity)
+   * 4. Cache Puppeteer objects in runtime cache
+   * 5. Cleanup on failure (mark session terminated)
+   * 
+   * CRITICAL: Colab uses SCHEDULE-BASED activation (NOT on-demand like Kaggle!)
+   * - Runs FULL 8.4h session (no idle timeout)
+   * - 36h cooldown enforced by QuotaEnforcementService
    */
   async startSession(config: ColabConfig): Promise<{ success: boolean; ngrokUrl?: string; error?: string }> {
+    let dbSessionId: number | undefined;
+    let sessionId: string | undefined;
+    
     try {
       console.log(`[Colab] 🚀 Starting ENTERPRISE session for worker ${config.workerId}...`);
       
       // ============================================================================
-      // STEP 0A: GUARD - Check if session already exists (prevent duplicate GPU startups)
-      // ============================================================================
-      
-      if (this.activeSessions.has(config.workerId)) {
-        console.warn(`[Colab] ⚠️  Session already active for worker ${config.workerId} - preventing duplicate startup`);
-        return { 
-          success: false, 
-          error: `Session already active for worker ${config.workerId}` 
-        };
-      }
-      
-      // ============================================================================
-      // STEP 0B: CHECK COOLDOWN/QUOTA (ENTERPRISE 70% ENFORCEMENT)
+      // 1. CHECK QUOTA (ENTERPRISE 70% ENFORCEMENT - CRITICAL!)
+      // COLAB SPECIFIC: Schedule-based (8.4h → 36h rest), NOT on-demand!
       // ============================================================================
       
       const quotaService = await getQuotaEnforcementService();
@@ -129,9 +236,38 @@ export class ColabOrchestrator {
       
       console.log(`[Colab] ✅ Quota validation passed - ${quotaValidation.reason}`);
       
-      // STEP 0C: RESERVE worker (AFTER checks pass - prevent race condition)
-      // Set placeholder to block concurrent calls before browser launch
-      this.activeSessions.set(config.workerId, null as any);
+      // ============================================================================
+      // 2. ✅ POSTGRESQL: INSERT session row (DB-level exclusivity guard)
+      // Partial unique index prevents duplicate sessions for same worker
+      // ============================================================================
+      
+      sessionId = nanoid();
+      const maxSessionDurationMs = quotaValidation.quotaDetails?.sessionLimitMs || GPU_QUOTA_CONSTANTS.COLAB_SAFETY * 1000;
+      const expiresAt = new Date(Date.now() + maxSessionDurationMs);
+      const now = new Date();
+      
+      const [dbSession] = await db.insert(gpuSessions)
+        .values({
+          workerId: config.workerId,
+          sessionId,
+          provider: 'colab',
+          status: 'starting',
+          expiresAt,
+          lastActivity: now, // ✅ CRITICAL: Initialize lastActivity (observability)
+        })
+        .onConflictDoNothing()
+        .returning();
+      
+      if (!dbSession) {
+        console.warn(`[Colab] ⚠️  Session already active for worker ${config.workerId} (DB partial unique index)`);
+        return {
+          success: false,
+          error: `Session already active for worker ${config.workerId}`
+        };
+      }
+      
+      dbSessionId = dbSession.id;
+      console.log(`[Colab] ✅ DB session created (ID: ${dbSessionId}, status: starting)`);
       
       try {
         // ============================================================================
@@ -193,10 +329,8 @@ export class ColabOrchestrator {
       // ✅ P2.8.3: Create ghost-cursor for natural mouse movements
       const cursor = createCursor(page);
       
-      const sessionId = `colab-${config.workerId}-${Date.now()}`;
-      
       // ============================================================================
-      // STEP 2: NAVIGATE TO NOTEBOOK (WITH HUMANIZATION)
+      // 3. NAVIGATE TO NOTEBOOK (WITH HUMANIZATION)
       // ============================================================================
       
       console.log(`[Colab] 🌐 Navigating to ${config.notebookUrl}...`);
@@ -210,7 +344,7 @@ export class ColabOrchestrator {
       });
       
       // ============================================================================
-      // STEP 3: CHECK FOR CAPTCHA OR LOGIN
+      // 4. CHECK FOR CAPTCHA OR LOGIN
       // ============================================================================
       
       // ✅ P2.8.2: CAPTCHA detection (CRITICAL)
@@ -251,7 +385,7 @@ export class ColabOrchestrator {
       }
       
       // ============================================================================
-      // STEP 4: COLAB AUTOMATION (WITH HUMANIZATION)
+      // 5. COLAB AUTOMATION (WITH HUMANIZATION)
       // ============================================================================
       
       // Wait for Colab to load (random delay)
@@ -265,7 +399,7 @@ export class ColabOrchestrator {
       await this.runAllCellsHumanized(page, cursor);
       
       // ============================================================================
-      // STEP 5: MONITOR FOR NGROK URL
+      // 6. MONITOR FOR NGROK URL
       // ============================================================================
       
       console.log(`[Colab] 🔍 Monitoring logs for Ngrok URL...`);
@@ -279,83 +413,84 @@ export class ColabOrchestrator {
       console.log(`[Colab] ✅ Ngrok URL detected: ${ngrokUrl}`);
       
       // ============================================================================
-      // STEP 6: FINALIZE SESSION
+      // 7. ✅ POSTGRESQL: UPDATE session to 'active' (with status guard!)
+      // Status guard prevents race condition (concurrent stopSession overwriting)
       // ============================================================================
       
-      const sessionStartTime = new Date();
+      const sessionNow = new Date();
+      const updatedRows = await db.update(gpuSessions)
+        .set({
+          status: 'active',
+          ngrokUrl,
+          startedAt: sessionNow,
+          lastActivity: sessionNow, // ✅ CRITICAL: Update lastActivity (observability)
+        })
+        .where(and(
+          eq(gpuSessions.id, dbSessionId!),
+          eq(gpuSessions.status, 'starting') // ✅ Status guard (prevent race)
+        ))
+        .returning();
       
-      const session: ColabSession = {
-        browser,
-        page,
-        workerId: config.workerId,
-        sessionId,
-        ngrokUrl,
-        cursor,
-        sessionStartTime,
-      };
-      
-      this.activeSessions.set(config.workerId, session);
-      
-      // ============================================================================
-      // ENTERPRISE: Register session in PostgreSQL (70% quota enforcement)
-      // ============================================================================
-      
-      const sessionRegistration = await quotaService.startSession(
-        config.workerId,
-        'colab',
-        sessionId,
-        ngrokUrl
-      );
-      
-      if (!sessionRegistration.success) {
-        console.error(`[Colab] ❌ FATAL: Failed to register session in DB: ${sessionRegistration.error}`);
-        
-        // CRITICAL: Clean up Puppeteer session before throwing (prevent quota leakage)
-        console.log(`[Colab] 🧹 Cleaning up Puppeteer session due to DB registration failure...`);
-        try {
-          await browser.close();
-        } catch (cleanupError) {
-          console.error(`[Colab] ⚠️ Error during cleanup:`, cleanupError);
-        }
-        
-        this.activeSessions.delete(config.workerId);
-        throw new Error(`DB registration failed - cannot guarantee 70% quota enforcement: ${sessionRegistration.error}`);
+      if (updatedRows.length === 0) {
+        // Status guard failed - session was already stopped/terminated
+        console.error(`[Colab] ❌ Status guard failed - session ${dbSessionId} already stopped`);
+        await browser.close();
+        throw new Error('Session was stopped during startup (race condition)');
       }
       
-      console.log(`[Colab] ✅ Session registered in DB (ID: ${sessionRegistration.sessionId}, auto-shutdown at ${sessionRegistration.autoShutdownAt?.toISOString()})`);
+      console.log(`[Colab] ✅ DB session updated to 'active' (ID: ${dbSessionId})`);
       
-      // Start keep-alive (prevent idle disconnect)
-      session.keepAliveInterval = setInterval(async () => {
+      // ============================================================================
+      // 8. ✅ RUNTIME CACHE: Store Puppeteer objects (NOT serializable state!)
+      // ============================================================================
+      
+      const keepAliveInterval = setInterval(async () => {
         await this.keepAliveHumanized(config.workerId);
-      }, this.KEEP_ALIVE_INTERVAL);
+      }, GPU_QUOTA_CONSTANTS.COLAB_KEEP_ALIVE_INTERVAL); // ✅ Centralized constant
       
-      // ✅ REMOVED: In-memory auto-shutdown timer (replaced by watchdog)
-      // Watchdog Service monitors autoShutdownAt from DB and forces shutdown
-      // This ensures shutdown happens even if process crashes/restarts
+      this.runtimeCache.set(config.workerId, {
+        browser,
+        page,
+        cursor,
+        keepAliveInterval,
+      });
       
-      // Update database
+      // Update gpu_workers table (legacy compatibility)
       await db.update(gpuWorkers)
         .set({
           puppeteerSessionId: sessionId,
           ngrokUrl: ngrokUrl,
           status: 'healthy',
-          sessionStartedAt: new Date(), // Track session start time for orchestrator-service guard
+          sessionStartedAt: sessionNow,
         })
         .where(eq(gpuWorkers.id, config.workerId));
       
-      console.log(`[Colab] 🎉 Session started successfully! Auto-shutdown in 11h.`);
+      console.log(`[Colab] 🎉 Session started successfully! Auto-shutdown at ${expiresAt.toISOString()}`);
       return { success: true, ngrokUrl };
         
       } catch (error) {
-        console.error(`[Colab] ❌ Error starting session:`, error);
-        return { success: false, error: String(error) };
-      } finally {
-        // CRITICAL: Clean up placeholder if not replaced (prevent permanent lock)
-        // Only delete if still null (success path replaces with real session)
-        if (this.activeSessions.get(config.workerId) === null) {
-          this.activeSessions.delete(config.workerId);
-          console.warn(`[Colab] 🧹 Cleaned up placeholder for worker ${config.workerId}`);
+        // ============================================================================
+        // ERROR HANDLING: Mark session as terminated + cleanup runtime cache
+        // ============================================================================
+        console.error(`[Colab] ❌ Error during browser launch/setup:`, error);
+        
+        // ✅ POSTGRESQL: Mark session as terminated (if DB session created)
+        if (dbSessionId) {
+          try {
+            await db.update(gpuSessions)
+              .set({ 
+                status: 'terminated',
+                stoppedAt: new Date(),
+                error: String(error).slice(0, 500), // Store error (truncated)
+              })
+              .where(eq(gpuSessions.id, dbSessionId));
+            console.log(`[Colab] ✅ DB session marked as terminated (ID: ${dbSessionId})`);
+          } catch (dbError) {
+            console.error(`[Colab] ⚠️ Failed to mark session as terminated:`, dbError);
+          }
         }
+        
+        return { success: false, error: String(error) };
       }
     } catch (error) {
       // Outer catch for any errors outside try-finally
@@ -365,71 +500,104 @@ export class ColabOrchestrator {
   }
   
   /**
-   * ✅ P2.8: Stop Colab session gracefully
-   * ✅ CRITICAL FIX: Integrated with GPUCooldownManager for quota enforcement
+   * ✅ POSTGRESQL-BACKED: Stop Colab session gracefully
+   * 
+   * DB-FIRST FLOW:
+   * 1. Query gpu_sessions for active session (DB is source of truth)
+   * 2. Get runtime cache for Puppeteer objects
+   * 3. UPDATE gpu_sessions to 'completed' (with status guard)
+   * 4. Cleanup Puppeteer + runtime cache
    */
   async stopSession(workerId: number): Promise<{ success: boolean; error?: string }> {
     try {
-      const session = this.activeSessions.get(workerId);
-      
-      if (!session) {
-        return { success: false, error: 'Session not found' };
-      }
-      
-      console.log(`[Colab] 🛑 Stopping session for worker ${workerId}...`);
-      
-      // ✅ CRITICAL FIX: Calculate session duration
-      const sessionEndTime = new Date();
-      const sessionDurationMs = sessionEndTime.getTime() - session.sessionStartTime.getTime();
-      const sessionDurationSeconds = Math.floor(sessionDurationMs / 1000);
-      const sessionDurationHours = (sessionDurationSeconds / 3600).toFixed(2);
-      
-      console.log(`[Colab] ⏱️  Session duration: ${sessionDurationHours}h`);
-      
-      // Stop timers
-      if (session.keepAliveInterval) {
-        clearInterval(session.keepAliveInterval);
-      }
-      
-      // Stop runtime in Colab (humanized)
-      await this.stopRuntimeHumanized(session.page, session.cursor);
-      
-      // Close browser
-      await session.browser.close();
-      
-      // Remove from active sessions
-      this.activeSessions.delete(workerId);
-      
       // ============================================================================
-      // ENTERPRISE: End session in PostgreSQL (apply cooldown, mark inactive)
+      // 1. ✅ POSTGRESQL: Query DB for session (source of truth)
       // ============================================================================
       
-      // Find session ID from DB
-      const quotaService = await getQuotaEnforcementService();
-      const activeSessions = await quotaService.getActiveSessions();
-      const dbSession = activeSessions.find(s => s.workerId === workerId);
+      const [dbSession] = await db.query.gpuSessions.findMany({
+        where: and(
+          eq(gpuSessions.workerId, workerId),
+          eq(gpuSessions.provider, 'colab'),
+          inArray(gpuSessions.status, ['starting', 'active', 'idle']) // ✅ Status guard
+        ),
+        limit: 1,
+      });
       
-      if (dbSession) {
-        const sessionEnded = await quotaService.endSession(dbSession.id, 'manual_stop');
-        if (!sessionEnded) {
-          console.error(`[Colab] ❌ Failed to end session in DB (ID: ${dbSession.id})`);
-        } else {
-          console.log(`[Colab] ✅ Session ended in DB (ID: ${dbSession.id}, 36h cooldown applied)`);
+      if (!dbSession) {
+        console.warn(`[Colab] ⚠️  No active session found for worker ${workerId}`);
+        return { success: false, error: 'Session not found or already stopped' };
+      }
+      
+      console.log(`[Colab] 🛑 Stopping session for worker ${workerId} (DB ID: ${dbSession.id})...`);
+      
+      // ============================================================================
+      // 2. Get runtime cache for Puppeteer objects (if available)
+      // ============================================================================
+      
+      const cache = this.runtimeCache.get(workerId);
+      
+      if (cache) {
+        // Stop keep-alive timer
+        if (cache.keepAliveInterval) {
+          clearInterval(cache.keepAliveInterval);
         }
+        
+        // Stop runtime in Colab (humanized)
+        try {
+          await this.stopRuntimeHumanized(cache.page, cache.cursor);
+        } catch (error) {
+          console.warn(`[Colab] ⚠️ Error stopping runtime (non-fatal):`, error);
+        }
+        
+        // Close browser
+        try {
+          await cache.browser.close();
+        } catch (error) {
+          console.warn(`[Colab] ⚠️ Error closing browser (non-fatal):`, error);
+        }
+        
+        // Remove from runtime cache
+        this.runtimeCache.delete(workerId);
       } else {
-        console.warn(`[Colab] ⚠️ Session not found in DB - may have been already ended by watchdog`);
+        console.warn(`[Colab] ⚠️ Runtime cache not found (session may have crashed)`);
       }
       
-      // Update database
+      // ============================================================================
+      // 3. ✅ POSTGRESQL: UPDATE session to 'completed' (with status guard)
+      // ============================================================================
+      
+      const now = new Date();
+      const sessionDurationSeconds = dbSession.startedAt 
+        ? Math.floor((now.getTime() - dbSession.startedAt.getTime()) / 1000)
+        : 0;
+      
+      const updatedRows = await db.update(gpuSessions)
+        .set({
+          status: 'completed',
+          stoppedAt: now,
+        })
+        .where(and(
+          eq(gpuSessions.id, dbSession.id),
+          inArray(gpuSessions.status, ['starting', 'active', 'idle']) // ✅ Status guard
+        ))
+        .returning();
+      
+      if (updatedRows.length === 0) {
+        console.warn(`[Colab] ⚠️  Status guard failed - session ${dbSession.id} already stopped by concurrent call`);
+      } else {
+        console.log(`[Colab] ✅ DB session marked as completed (ID: ${dbSession.id}, runtime: ${(sessionDurationSeconds/3600).toFixed(2)}h)`);
+      }
+      
+      // Update gpu_workers table (legacy compatibility)
       await db.update(gpuWorkers)
         .set({
           puppeteerSessionId: null,
           status: 'offline',
-          sessionStartedAt: null, // Allow future restarts
+          sessionStartedAt: null,
         })
         .where(eq(gpuWorkers.id, workerId));
       
-      console.log(`[Colab] ✅ Session stopped successfully (${sessionDurationHours}h runtime)`);
+      console.log(`[Colab] ✅ Session stopped successfully (${(sessionDurationSeconds/3600).toFixed(2)}h runtime)`);
       return { success: true };
       
     } catch (error) {
