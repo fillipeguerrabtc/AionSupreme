@@ -430,6 +430,41 @@ export function registerGpuRoutes(app: Router) {
   });
 
   /**
+   * POST /api/training/jobs/:id/complete
+   * Worker reports job completion
+   */
+  app.post("/api/training/jobs/:id/complete", async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const { success, metrics, error } = req.body;
+      
+      log.info({ component: 'gpu-job-complete', jobId, success }, 'Job completion reported');
+      
+      const { trainingJobs } = await import('../../shared/schema');
+      
+      // Update job status
+      await db
+        .update(trainingJobs)
+        .set({
+          status: success ? 'completed' : 'failed',
+          completedAt: new Date(),
+          errorMessage: error || null,
+          metrics: metrics || null,
+        })
+        .where(eq(trainingJobs.id, jobId));
+      
+      res.json({ 
+        success: true, 
+        message: `Job ${jobId} marked as ${success ? 'completed' : 'failed'}` 
+      });
+      
+    } catch (error: any) {
+      log.error({ component: 'gpu-job-complete', error: error.message }, 'Error completing job');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * GET /api/gpu/status
    * Dashboard status - reads from database
    * Note: Heartbeat timeout detection is handled by background monitor (server/gpu/heartbeat-monitor.ts)
