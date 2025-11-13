@@ -20,13 +20,15 @@
  */
 
 import { db } from '../db';
-import { gpuWorkers } from '../../shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { gpuWorkers, gpuActivationLocks } from '../../shared/schema';
+import { eq, and, lt } from 'drizzle-orm';
 import { getQuotaEnforcementService } from './quota-enforcement-service';
 import { autoScalingService } from './auto-scaling-service';
 import { gpuManager } from '../gpu-orchestration/gpu-manager-service';
 import { KaggleOrchestrator } from '../gpu-orchestration/kaggle-orchestrator';
 import { ColabOrchestrator } from '../gpu-orchestration/colab-orchestrator';
+import { nanoid } from 'nanoid';
+import os from 'os';
 import pino from 'pino';
 
 const logger = pino({ name: 'OnDemandGPUService' });
@@ -50,9 +52,7 @@ export class OnDemandGPUService {
   private readonly IDLE_SHUTDOWN_THRESHOLD_MS = 10 * 60 * 1000; // 10min idle → shutdown
   private readonly DEFAULT_MAX_WAIT_MS = 180 * 1000; // 3min max wait for GPU startup
   private readonly POLL_INTERVAL_MS = 5 * 1000; // Poll every 5s to check if GPU is online
-
-  // Concurrency guard: prevents duplicate GPU starts when multiple inference requests arrive simultaneously
-  private gpuStartInProgress: Map<string, Promise<GPUEnsureResult>> = new Map(); // provider → pending promise
+  private readonly ACTIVATION_LOCK_EXPIRY_MS = 15 * 60 * 1000; // 15min lock expiry
 
   // Orchestrators for shutdown operations
   private kaggleOrchestrator: KaggleOrchestrator = new KaggleOrchestrator();
@@ -218,59 +218,169 @@ export class OnDemandGPUService {
   }
 
   /**
+   * ✅ POSTGRESQL-BACKED: Acquire activation lock via gpu_activation_locks table
+   * 
+   * Implements transactional locking:
+   * 1. DELETE expired locks for this worker
+   * 2. INSERT lock with ON CONFLICT DO NOTHING
+   * 3. If success → acquired lock
+   * 4. If conflict → wait loop (poll until lock released or worker healthy)
+   */
+  private async acquireActivationLock(workerId: number, maxWaitMs: number): Promise<{acquired: boolean; lockOwner?: string}> {
+    const lockOwner = `${os.hostname()}-${process.pid}-${nanoid(6)}`;
+    const expiresAt = new Date(Date.now() + this.ACTIVATION_LOCK_EXPIRY_MS);
+
+    // Transaction: cleanup expired + try insert
+    const acquired = await db.transaction(async (tx) => {
+      // Delete expired locks for this worker
+      await tx.delete(gpuActivationLocks)
+        .where(and(
+          eq(gpuActivationLocks.workerId, workerId),
+          lt(gpuActivationLocks.expiresAt, new Date())
+        ));
+
+      // Try to acquire lock
+      const inserted = await tx.insert(gpuActivationLocks)
+        .values({
+          workerId,
+          lockOwner,
+          expiresAt,
+          status: 'active',
+        })
+        .onConflictDoNothing()
+        .returning();
+
+      return inserted.length > 0;
+    });
+
+    if (acquired) {
+      logger.info({ workerId, lockOwner }, '🔒 Activation lock acquired');
+      return { acquired: true, lockOwner };
+    }
+
+    // Wait loop: poll until lock released or worker healthy
+    logger.info({ workerId }, '⏳ Activation already in progress - waiting...');
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < maxWaitMs) {
+      await new Promise(r => setTimeout(r, this.POLL_INTERVAL_MS));
+
+      // Check if lock released or expired
+      const existingLock = await db.query.gpuActivationLocks.findFirst({
+        where: eq(gpuActivationLocks.workerId, workerId),
+      });
+
+      if (!existingLock || new Date(existingLock.expiresAt) < new Date()) {
+        // Lock released/expired - try again
+        const remainingTime = maxWaitMs - (Date.now() - startTime);
+        if (remainingTime > 0) {
+          return this.acquireActivationLock(workerId, remainingTime);
+        }
+      }
+
+      // Check if worker became healthy (activation succeeded)
+      const worker = await db.query.gpuWorkers.findFirst({
+        where: eq(gpuWorkers.id, workerId),
+      });
+
+      if (worker?.status === 'healthy' || worker?.ngrokUrl) {
+        logger.info({ workerId }, '✅ Worker became healthy while waiting - using it');
+        return { acquired: false }; // Don't activate again
+      }
+    }
+
+    logger.warn({ workerId, waitedMs: Date.now() - startTime }, '⏰ Activation lock wait timeout');
+    return { acquired: false };
+  }
+
+  /**
+   * ✅ POSTGRESQL-BACKED: Release activation lock
+   */
+  private async releaseActivationLock(workerId: number, lockOwner: string): Promise<void> {
+    await db.delete(gpuActivationLocks)
+      .where(and(
+        eq(gpuActivationLocks.workerId, workerId),
+        eq(gpuActivationLocks.lockOwner, lockOwner)
+      ));
+    
+    logger.info({ workerId, lockOwner }, '🔓 Activation lock released');
+  }
+
+  /**
    * Activate offline worker using Replit Secrets
    * 
    * Steps:
-   * 1. Read credentials from Replit Secrets (accountId='kaggle-1' → KAGGLE_USERNAME_1)
-   * 2. Create notebook if doesn't exist yet (via Kaggle API)
-   * 3. UPDATE existing worker (don't create duplicate!)
-   * 4. Start session via orchestrator
+   * 1. ✅ Acquire activation lock (PostgreSQL-backed concurrency guard)
+   * 2. Read credentials from Replit Secrets (accountId='KAGGLE_1' → KAGGLE_USERNAME_1)
+   * 3. Create notebook if doesn't exist yet (via Kaggle API)
+   * 4. UPDATE existing worker (don't create duplicate!)
+   * 5. Start session via orchestrator
+   * 6. ✅ Release lock in finally block
    */
-  private async activateWorker(worker: typeof gpuWorkers.$inferSelect): Promise<GPUEnsureResult> {
+  private async activateWorker(worker: typeof gpuWorkers.$inferSelect, maxWaitMs: number = this.DEFAULT_MAX_WAIT_MS): Promise<GPUEnsureResult> {
     logger.info({ workerId: worker.id, accountId: worker.accountId }, 'Activating worker...');
 
-    // Concurrency guard: prevent duplicate activations
-    const lockKey = `activate-${worker.id}`;
-    if (this.gpuStartInProgress.has(lockKey)) {
-      logger.warn({ workerId: worker.id }, 'Activation already in progress - skipping');
-      const existingPromise = this.gpuStartInProgress.get(lockKey);
-      return await existingPromise!;
+    // ✅ Acquire PostgreSQL-backed activation lock
+    const lockResult = await this.acquireActivationLock(worker.id, maxWaitMs);
+    
+    if (!lockResult.acquired) {
+      // Lock not acquired (timeout or worker already healthy)
+      const workerNow = await db.query.gpuWorkers.findFirst({
+        where: eq(gpuWorkers.id, worker.id),
+      });
+
+      if (workerNow?.status === 'healthy' || workerNow?.ngrokUrl) {
+        return {
+          available: true,
+          workerId: worker.id,
+          workerUrl: workerNow.ngrokUrl || undefined,
+          reason: 'Worker became healthy while waiting for lock',
+          startedNew: false,
+        };
+      }
+
+      return {
+        available: false,
+        reason: 'Activation lock timeout - another process is activating this worker',
+        startedNew: false,
+      };
     }
 
-    // Create activation promise
-    const activationPromise = (async () => {
-      try {
-        // Parse accountId to get Secret index
-        // Example: "kaggle-1" → provider="kaggle", index=1
-        const match = worker.accountId?.match(/^(kaggle|colab)-(\d+)$/);
-        
-        if (!match) {
-          return {
-            available: false,
-            reason: `Invalid accountId format: ${worker.accountId}. Expected 'kaggle-N' or 'colab-N'`,
-            startedNew: false,
-          };
-        }
+    const { lockOwner } = lockResult;
 
-        const [_, provider, indexStr] = match;
-        const index = indexStr;
-
-        if (provider === 'kaggle') {
-          return await this.activateKaggleWorker(worker, index);
-        } else { // colab
-          return await this.activateColabWorker(worker, index);
-        }
-
-      } finally {
-        // Cleanup guard
-        this.gpuStartInProgress.delete(lockKey);
+    try {
+      // Parse accountId to get Secret index
+      // Example: "KAGGLE_1" → provider="KAGGLE", index="1"
+      const parts = worker.accountId?.split('_');
+      
+      if (!parts || parts.length !== 2) {
+        return {
+          available: false,
+          reason: `Invalid accountId format: ${worker.accountId}. Expected 'KAGGLE_N' or 'COLAB_N'`,
+          startedNew: false,
+        };
       }
-    })();
 
-    // Register promise in guard
-    this.gpuStartInProgress.set(lockKey, activationPromise);
+      const [provider, index] = parts;
 
-    return await activationPromise;
+      if (provider === 'KAGGLE') {
+        return await this.activateKaggleWorker(worker, index);
+      } else if (provider === 'COLAB') {
+        return await this.activateColabWorker(worker, index);
+      } else {
+        return {
+          available: false,
+          reason: `Unknown provider: ${provider}`,
+          startedNew: false,
+        };
+      }
+
+    } finally {
+      // ✅ Always release lock (even on error)
+      if (lockOwner) {
+        await this.releaseActivationLock(worker.id, lockOwner!);
+      }
+    }
   }
 
   /**
