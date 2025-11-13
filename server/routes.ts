@@ -1814,8 +1814,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const allDocs = await storage.getDocuments(1000);
       
-      // Filtrar para mostrar APENAS documentos aprovados (status='indexed')
-      const approvedDocs = allDocs.filter(doc => doc.status === 'indexed');
+      // Filtrar para mostrar APENAS documentos aprovados (status='approved')
+      const approvedDocs = allDocs.filter(doc => doc.status === 'approved');
       
       console.log(`[KB API] Returning ${approvedDocs.length} approved docs (filtered from ${allDocs.length} total)`);
       res.json(approvedDocs);

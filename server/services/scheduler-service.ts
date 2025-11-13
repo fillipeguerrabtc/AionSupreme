@@ -263,6 +263,8 @@ export class SchedulerService {
     });
 
     // 🔥 JOB 10: Training Queue Monitor - A cada 5 minutos (ON-DEMAND Kaggle trigger)
+    // 🚨 TEMPORARILY DISABLED - Auto-start causing quota waste + runaway kernels
+    // RE-ENABLE only after implementing proper Kaggle kernel deletion
     this.register({
       name: 'training-queue-monitor',
       schedule: '*/5 * * * *', // A cada 5 minutos
@@ -283,7 +285,7 @@ export class SchedulerService {
           logger.error(`Training queue monitor error: ${error.message}`);
         }
       },
-      enabled: true,
+      enabled: false, // 🚨 DISABLED until proper kernel deletion is implemented
       runCount: 0,
       errorCount: 0,
     });

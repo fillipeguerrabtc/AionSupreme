@@ -191,8 +191,10 @@ export class GPUCooldownManager {
   
   /**
    * Record session end and apply cooldown (Colab) or update daily usage (Kaggle)
+   * 🔥 FIX: Use persisted sessionDurationSeconds from worker (updated by heartbeats)
+   *         instead of recalculating to prevent double-counting
    */
-  async recordSessionEnd(workerId: number, sessionDurationSeconds: number): Promise<SessionEndResult> {
+  async recordSessionEnd(workerId: number, _unusedParam?: number): Promise<SessionEndResult> {
     try {
       const worker = await db.query.gpuWorkers.findFirst({
         where: eq(gpuWorkers.id, workerId),
@@ -204,6 +206,10 @@ export class GPUCooldownManager {
       
       const provider = worker.provider as 'colab' | 'kaggle';
       const now = new Date();
+      
+      // 🔥 FIX: Use authoritative sessionDurationSeconds from DB (updated by heartbeats)
+      // This prevents double-counting when heartbeats already accumulated time
+      const sessionDurationSeconds = worker.sessionDurationSeconds || 0;
       const durationHours = sessionDurationSeconds / 3600;
       
       if (provider === 'colab') {
@@ -245,6 +251,14 @@ export class GPUCooldownManager {
         console.log(
           `[GPUCooldownManager] 📊 Kaggle usage updated - Worker ${workerId} ` +
           `(+${durationHours.toFixed(2)}h → weekly: ${(currentWeeklyUsage + durationHours).toFixed(2)}h/${QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS}h)`
+        );
+        
+        // ⚠️ WARNING: Kaggle API cannot stop/delete kernels programmatically!
+        // User MUST manually stop kernels at: kaggle.com/code → "View Active Events"
+        console.warn(
+          `[GPUCooldownManager] ⚠️  MANUAL ACTION REQUIRED: ` +
+          `Kaggle kernel for Worker ${workerId} CANNOT be stopped via API. ` +
+          `User must manually stop kernel at: https://www.kaggle.com/code (View Active Events)`
         );
         
         return { success: true };

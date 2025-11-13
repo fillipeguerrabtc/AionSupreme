@@ -207,40 +207,48 @@ export function registerGpuRoutes(app: Router) {
   });
 
   /**
-   * POST /api/gpu/workers/heartbeat
-   * Worker sends heartbeat to stay online + runtime info
+   * SHARED HEARTBEAT HANDLER
+   * Processes heartbeat logic for both legacy and new endpoints
    */
-  app.post("/gpu/workers/heartbeat", async (req: Request, res: Response) => {
+  const handleHeartbeat = async (workerId: number, sessionRuntimeHours: number | undefined, maxSessionHours: number | undefined, status: string | undefined, res: Response) => {
     try {
-      const { workerId, sessionRuntimeHours, maxSessionHours, status } = req.body;
-
-      // Se está desligando (status: "offline"), apenas atualiza status
-      if (status === "offline") {
-        await db
-          .update(gpuWorkers)
-          .set({
-            status: "offline",
-            updatedAt: new Date(),
-          })
-          .where(eq(gpuWorkers.id, parseInt(workerId)));
-        
-        console.log(`[GPU Heartbeat] Worker ${workerId} going offline`);
-        return res.json({ success: true });
-      }
-
-      // Buscar worker atual para atualizar capabilities
+      // Buscar worker PRIMEIRO (validação universal)
       const [worker] = await db
         .select()
         .from(gpuWorkers)
-        .where(eq(gpuWorkers.id, parseInt(workerId)))
+        .where(eq(gpuWorkers.id, workerId))
         .limit(1);
 
       if (!worker) {
         return res.status(404).json({ error: "Worker not found" });
       }
 
+      // Se está desligando (status: "offline"), chamar recordSessionEnd IMEDIATAMENTE
+      if (status === "offline") {
+        console.log(`[GPU Heartbeat] Worker ${workerId} going offline - recording session end`);
+        
+        // 🔥 FIX: Chamar recordSessionEnd ANTES de mudar status
+        const { gpuCooldownManager } = await import("../services/gpu-cooldown-manager");
+        await gpuCooldownManager.recordSessionEnd(workerId);
+        
+        // 🔥 FIX: Agora persistir status="offline" e atualizar timestamps
+        // (recordSessionEnd já zerou sessionDurationSeconds e sessionStartedAt)
+        await db
+          .update(gpuWorkers)
+          .set({
+            status: "offline",
+            updatedAt: new Date(),
+          })
+          .where(eq(gpuWorkers.id, workerId));
+        
+        return res.json({ success: true });
+      }
+
       const capabilities = (worker.capabilities as any) || {};
       const metadata = capabilities.metadata || {};
+
+      // 🔥 FIX: Calculate sessionDurationSeconds for quota tracking
+      const sessionDurationSeconds = sessionRuntimeHours ? Math.round(sessionRuntimeHours * 3600) : 0;
 
       // CRITICAL: Acumular usedHoursThisWeek para Kaggle workers
       let usedHoursThisWeek = metadata.usedHoursThisWeek || 0;
@@ -256,7 +264,7 @@ export function registerGpuRoutes(app: Router) {
           usedHoursThisWeek += deltaHours;
           console.log(
             `[GPU Heartbeat] Kaggle worker ${workerId}: +${deltaHours.toFixed(2)}h ` +
-            `(total week: ${usedHoursThisWeek.toFixed(2)}h)`
+            `(session: ${sessionDurationSeconds}s, total week: ${usedHoursThisWeek.toFixed(2)}h)`
           );
         }
       }
@@ -274,21 +282,49 @@ export function registerGpuRoutes(app: Router) {
         },
       };
 
+      // 🔥 FIX: Update sessionDurationSeconds for quota tracking integration
       await db
         .update(gpuWorkers)
         .set({
           lastHealthCheck: new Date(),
           status: "healthy",
           capabilities: updatedCapabilities,
+          sessionDurationSeconds,  // 🔥 NEW: Persist for recordSessionEnd
           updatedAt: new Date(),
         })
-        .where(eq(gpuWorkers.id, parseInt(workerId)));
+        .where(eq(gpuWorkers.id, workerId));
 
       res.json({ success: true });
     } catch (error: any) {
       console.error("[GPU Heartbeat] Error:", error);
       res.status(500).json({ error: error.message });
     }
+  };
+
+  /**
+   * POST /gpu/workers/heartbeat (LEGACY)
+   * Backwards compatibility endpoint - accepts workerId in body
+   */
+  app.post("/gpu/workers/heartbeat", async (req: Request, res: Response) => {
+    const { workerId, sessionRuntimeHours, maxSessionHours, status } = req.body;
+    
+    // Validate workerId
+    const parsedId = parseInt(workerId);
+    if (isNaN(parsedId) || !workerId) {
+      return res.status(400).json({ error: "Invalid or missing workerId" });
+    }
+    
+    await handleHeartbeat(parsedId, sessionRuntimeHours, maxSessionHours, status, res);
+  });
+
+  /**
+   * POST /api/gpu/workers/:workerId/heartbeat (NEW)
+   * Modern endpoint - accepts workerId as path parameter
+   */
+  app.post("/api/gpu/workers/:workerId/heartbeat", async (req: Request, res: Response) => {
+    const workerId = parseInt(req.params.workerId);
+    const { sessionRuntimeHours, maxSessionHours, status } = req.body;
+    await handleHeartbeat(workerId, sessionRuntimeHours, maxSessionHours, status, res);
   });
 
   /**

@@ -509,6 +509,27 @@ export class KaggleAutomationService {
   }
 
   /**
+   * ❌ CRITICAL LIMITATION: Kaggle API Cannot Stop/Delete Kernels
+   * 
+   * The Kaggle API DOES NOT provide endpoints to:
+   * - Stop a running kernel
+   * - Delete a kernel
+   * 
+   * Available commands: list, init, push, pull, output, status (no stop/delete!)
+   * 
+   * This means:
+   * - When we mark worker as "offline", kernel KEEPS RUNNING!
+   * - User MUST manually stop kernels at: kaggle.com/code → "View Active Events"
+   * - Quota continues accruing until manual shutdown
+   * 
+   * Workaround: Disable auto-start (training-queue-monitor) to prevent orphaned kernels
+   * 
+   * References:
+   * - https://github.com/Kaggle/kaggle-api/blob/main/docs/README.md
+   * - https://www.kaggle.com/discussions/product-feedback/274181
+   */
+  
+  /**
    * Push kernel using Kaggle API (OFFICIAL METHOD!)
    * 
    * Uses `kaggle kernels push -p /path/to/folder`

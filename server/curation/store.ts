@@ -281,17 +281,82 @@ export const curationStore = {
     try {
       console.log(`[Curation] 🤖 Iniciando análise automática do item ${itemId}...`);
 
-      const analysis = await withTimeout(
-        curatorAgentDetector.analyzeCurationItem(
-          data.title,
-          data.content,
-          data.suggestedNamespaces,
-          data.tags || [],
-          data.submittedBy
-        ),
-        AUTO_ANALYSIS_TIMEOUT_MS,
-        'Auto-analysis LLM call'
-      );
+      // 🔥 FIX: Wrapper com fallback quando curatorAgentDetector falha
+      let analysis;
+      try {
+        analysis = await withTimeout(
+          curatorAgentDetector.analyzeCurationItem(
+            data.title,
+            data.content,
+            data.suggestedNamespaces,
+            data.tags || [],
+            data.submittedBy
+          ),
+          AUTO_ANALYSIS_TIMEOUT_MS,
+          'Auto-analysis LLM call'
+        );
+        
+        // 🔥 FIX: Verificar se analysis é null (quando curator agent offline)
+        if (!analysis) {
+          throw new Error('Curator agent returned null - agent may be offline');
+        }
+      } catch (curatorError: any) {
+        console.warn(`[Curation] ⚠️ Curator agent falhou: ${curatorError.message} - tentando fallback LLM...`);
+        
+        // 🔥 FALLBACK: Usar generateWithFreeAPIs para análise básica
+        const { generateWithFreeAPIs } = await import("../llm/free-apis");
+        
+        const fallbackPrompt = `Analise o seguinte conteúdo para curadoria da base de conhecimento:
+
+Título: ${data.title}
+Conteúdo: ${data.content.substring(0, 1000)}...
+Namespaces sugeridos: ${data.suggestedNamespaces.join(', ')}
+
+Responda em JSON com:
+{
+  "score": <número 0-100>,
+  "recommended": <"approve"|"review"|"reject">,
+  "reasoning": "<explicação breve>",
+  "concerns": [<lista de preocupações>]
+}`;
+
+        try {
+          const fallbackResponse = await generateWithFreeAPIs({
+            messages: [{ role: 'user', content: fallbackPrompt }],
+            temperature: 0.3,
+            max_tokens: 500
+          });
+          
+          // Parse JSON response
+          const jsonMatch = fallbackResponse.text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            analysis = {
+              score: parsed.score || 50,
+              recommended: parsed.recommended || 'review',
+              reasoning: parsed.reasoning || 'Análise automática via fallback LLM',
+              concerns: parsed.concerns || [],
+              flags: [],
+              suggestedNamespaces: data.suggestedNamespaces
+            };
+            console.log(`[Curation] ✅ Fallback LLM gerou análise: score=${analysis.score}, rec=${analysis.recommended}`);
+          } else {
+            throw new Error('Fallback LLM não retornou JSON válido');
+          }
+        } catch (fallbackError: any) {
+          console.error(`[Curation] ❌ Fallback LLM também falhou: ${fallbackError.message}`);
+          // 🔒 ÚLTIMO RECURSO: Análise conservadora para HITL review
+          analysis = {
+            score: 50,
+            recommended: 'review',
+            reasoning: 'Ambos curator agent e fallback LLM falharam - requer revisão humana por segurança',
+            concerns: ['Análise automática indisponível'],
+            flags: ['manual-review-required'],
+            suggestedNamespaces: data.suggestedNamespaces
+          };
+          console.log(`[Curation] 🛡️ Usando análise conservadora - item vai para HITL review`);
+        }
+      }
 
       // Formatar nota com análise automática
       const autoNote = `🤖 ANÁLISE AUTOMÁTICA (Agente de Curadoria):
