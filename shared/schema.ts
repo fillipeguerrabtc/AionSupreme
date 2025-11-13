@@ -1122,7 +1122,7 @@ export const visionQuotaState = pgTable("vision_quota_state", {
   
   // Quota tracking
   used: integer("used").notNull().default(0),
-  limit: integer("limit").notNull(),
+  limitValue: integer("limit_value").notNull(),
   
   // Reset tracking
   lastReset: timestamp("last_reset", { mode: 'date' }).notNull().defaultNow(),
@@ -1160,10 +1160,9 @@ export const gpuHealthState = pgTable("gpu_health_state", {
   // Failed health checks counter (max 3 before removal)
   failedChecks: integer("failed_checks").notNull().default(0),
   
-  // Last health check status
-  lastCheckSuccess: boolean("last_check_success"),
-  lastCheckTime: timestamp("last_check_time"),
-  lastCheckError: text("last_check_error"),
+  // Last health check timestamps
+  lastFailedAt: timestamp("last_failed_at"),
+  lastSuccessAt: timestamp("last_success_at"),
   
   // Metadata
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -1484,13 +1483,18 @@ export const trainingJobs = pgTable("training_jobs", {
   baseCheckpoint: text("base_checkpoint"), // URL or path to starting checkpoint
   
   // Dataset configuration
-  datasetPath: text("dataset_path").notNull(), // Path to full dataset
-  datasetSize: integer("dataset_size").notNull(), // Total examples
-  chunkSize: integer("chunk_size").notNull(), // Examples per GPU chunk
-  totalChunks: integer("total_chunks").notNull(), // Total number of chunks
+  datasetId: integer("dataset_id").references(() => datasets.id, { onDelete: "set null" }), // Reference to datasets table (new approach)
+  datasetPath: text("dataset_path"), // Path to full dataset (legacy, optional)
+  datasetSize: integer("dataset_size").notNull().default(0), // Total examples
+  chunkSize: integer("chunk_size").notNull().default(1), // Examples per GPU chunk
+  totalChunks: integer("total_chunks").notNull().default(1), // Total number of chunks
   
-  // Training hyperparameters
-  hyperparameters: jsonb("hyperparameters").notNull().$type<{
+  // Training hyperparameters (keep NOT NULL with safe default)
+  hyperparameters: jsonb("hyperparameters").notNull().default({
+    learning_rate: 2e-4,
+    batch_size: 4,
+    epochs: 1
+  }).$type<{
     learning_rate: number;
     batch_size: number;
     epochs: number;
@@ -1500,8 +1504,19 @@ export const trainingJobs = pgTable("training_jobs", {
     gradient_accumulation_steps?: number;
   }>(),
   
-  // Federated Learning settings
-  fedConfig: jsonb("fed_config").notNull().$type<{
+  // LoRA/PEFT Configuration (new auto-training approach)
+  config: jsonb("config").$type<{
+    lora_rank?: number;
+    lora_alpha?: number;
+    target_modules?: string[];
+    lora_dropout?: number;
+  }>(),
+  
+  // Model name (for worker compatibility)
+  model: text("model"), // e.g., "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  
+  // Federated Learning settings (optional for simple LoRA training)
+  fedConfig: jsonb("fed_config").$type<{
     aggregation_algorithm: "fedavg" | "fedprox" | "fedadam"; // FedAvg is default
     sync_interval: number; // Steps between gradient syncs
     min_workers: number; // Minimum workers to start
@@ -1509,11 +1524,21 @@ export const trainingJobs = pgTable("training_jobs", {
   }>(),
   
   // Progress tracking
-  status: text("status").notNull().default("pending"), // "pending" | "running" | "paused" | "completed" | "failed"
+  status: text("status").notNull().default("queued"), // "queued" | "running" | "paused" | "completed" | "failed"
   currentStep: integer("current_step").notNull().default(0),
-  totalSteps: integer("total_steps").notNull(),
+  totalSteps: integer("total_steps").notNull().default(0),
   globalLoss: real("global_loss"), // Aggregated loss from all workers
   bestLoss: real("best_loss"), // Best loss achieved
+  
+  // Training results
+  metrics: jsonb("metrics").$type<{
+    loss?: number;
+    trainable_params?: number;
+    epochs?: number;
+    examples_trained?: number;
+    adapter_path?: string;
+  }>(),
+  errorMessage: text("error_message"), // Error message if training failed
   
   // Worker management
   activeWorkers: integer("active_workers").notNull().default(0),
@@ -1537,6 +1562,7 @@ export const trainingJobs = pgTable("training_jobs", {
 }, (table) => ({
   statusIdx: index("training_jobs_status_idx").on(table.status),
   deployedIdx: index("training_jobs_deployed_idx").on(table.deployed),
+  datasetIdIdx: index("training_jobs_dataset_id_idx").on(table.datasetId),
   // Composite index for admin dashboard queries (status + date ordering)
   statusCreatedIdx: index("training_jobs_status_created_idx").on(table.status, table.createdAt),
 }));
