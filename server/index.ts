@@ -101,6 +101,19 @@ app.use((req, res, next) => {
   const { seedDatabase } = await import("./seed");
   await seedDatabase();
   
+  // 🔍 AUTO-DISCOVERY: Sync GPU workers with Replit Secrets (2025 Enterprise Architecture)
+  // Detects KAGGLE_USERNAME_1, KAGGLE_KEY_1, COLAB_EMAIL_1, COLAB_PASSWORD_1, etc
+  // Creates persistent workers in DB (ZERO duplicates, incremental sync)
+  logger.info('[Startup] Running GPU Auto-Discovery from Replit Secrets...');
+  try {
+    const { autoDiscoverGPUService } = await import("./gpu-orchestration/auto-discover-gpu-service");
+    await autoDiscoverGPUService.syncGPUsWithSecrets();
+    logger.info('[Startup] ✅ GPU Auto-Discovery completed successfully');
+  } catch (error: any) {
+    logger.error('[Startup] ⚠️ GPU Auto-Discovery failed (non-blocking):', error.message);
+    // Non-blocking - system can work without GPUs
+  }
+  
   // Carregar sistema multi-agente do banco de dados
   const { loadAgentsFromDatabase } = await import("./agent/loader");
   await loadAgentsFromDatabase(); // Modo single-tenant

@@ -65,11 +65,15 @@ export class OnDemandGPUService {
    * Ensure a GPU worker is available for inference/training
    * 
    * Logic:
-   * 1. Check if healthy GPU already exists
-   * 2. If yes → update last activity time, return immediately
-   * 3. If no → start new GPU (Kaggle or Colab based on quota)
-   * 4. Wait for GPU to come online
-   * 5. Return worker info
+   * 1. Check if ANY healthy GPU already exists (Kaggle OR Colab)
+   * 2. If yes → REUSE (don't waste quota activating another!)
+   * 3. If no → check offline workers (admin must restart manually)
+   * 4. If none → error (admin must add GPU via Secrets)
+   * 
+   * PRIORIZAÇÃO INTELIGENTE:
+   * - Colab schedule ativo → USAR Colab (já consumindo quota!)
+   * - Kaggle on-demand ativo → USAR Kaggle
+   * - Nenhum ativo → Admin deve ativar manualmente via UI
    */
   async ensureGPUAvailable(preferences: GPUStartPreference = {}): Promise<GPUEnsureResult> {
     const maxWaitMs = preferences.maxWaitMs || this.DEFAULT_MAX_WAIT_MS;
@@ -77,20 +81,24 @@ export class OnDemandGPUService {
 
     logger.info({ preferences }, 'Ensuring GPU availability');
 
-    // Step 1: Check if healthy GPU already exists
+    // Step 1: Check if ANY healthy/online GPU exists (Kaggle OR Colab)
+    // CRITICAL: Priorizar REUSO antes de ativar nova GPU!
     const existingWorker = await this.findHealthyGPU(requireGPU);
 
     if (existingWorker) {
-      // Update last activity time (prevent idle shutdown)
+      // Update last activity time (prevent idle shutdown for Kaggle)
       this.lastInferenceTime.set(existingWorker.id, Date.now());
 
-      logger.info({ workerId: existingWorker.id }, 'Reusing existing healthy GPU');
+      logger.info({ 
+        workerId: existingWorker.id,
+        provider: existingWorker.provider,
+      }, '♻️ REUSING existing GPU (avoiding quota waste)');
 
       return {
         available: true,
         workerId: existingWorker.id,
         workerUrl: existingWorker.ngrokUrl || undefined,
-        reason: 'Reused existing healthy GPU',
+        reason: `Reused existing ${existingWorker.provider} GPU (already active)`,
         startedNew: false,
       };
     }
@@ -108,30 +116,46 @@ export class OnDemandGPUService {
     })[0];
 
     if (manualOfflineGPU) {
-      // Found offline manual worker - RETURN IT so caller can decide to wait/retry
-      logger.warn({ 
+      // Found offline worker → ACTIVATE IT automatically!
+      logger.info({ 
         workerId: manualOfflineGPU.id, 
-        provider: manualOfflineGPU.provider 
-      }, '⚠️ Found offline manual worker - returning for caller to handle');
+        provider: manualOfflineGPU.provider,
+        accountId: manualOfflineGPU.accountId,
+      }, '🔄 Found offline worker - will activate automatically');
       
-      // Return offline worker info - caller should retry or wait for manual restart
-      this.lastInferenceTime.set(manualOfflineGPU.id, Date.now());
+      // Attempt to activate this worker using Replit Secrets
+      const activationResult = await this.activateWorker(manualOfflineGPU);
       
-      return {
-        available: true, // TRUE porque worker existe (mesmo offline)
-        workerId: manualOfflineGPU.id,
-        workerUrl: manualOfflineGPU.ngrokUrl || undefined,
-        reason: `GPU worker #${manualOfflineGPU.id} (${manualOfflineGPU.provider}) is offline. Admin must restart it manually in Admin Panel.`,
-        startedNew: false,
-      };
+      if (activationResult.success) {
+        this.lastInferenceTime.set(manualOfflineGPU.id, Date.now());
+        
+        return {
+          available: true,
+          workerId: manualOfflineGPU.id,
+          workerUrl: activationResult.workerUrl,
+          reason: `Activated ${manualOfflineGPU.provider} GPU worker #${manualOfflineGPU.id}`,
+          startedNew: true,
+        };
+      } else {
+        logger.error({ 
+          workerId: manualOfflineGPU.id,
+          error: activationResult.reason,
+        }, '❌ Failed to activate offline worker');
+        
+        return {
+          available: false,
+          reason: `Found offline worker but failed to activate: ${activationResult.reason}`,
+          startedNew: false,
+        };
+      }
     }
 
-    // Step 3: No workers available (neither online nor offline)
-    logger.error('❌ NO GPU WORKERS AVAILABLE - Manual provisioning required');
+    // Step 3: No workers available at all (AutoDiscovery didn't find any Secrets)
+    logger.error('❌ NO GPU WORKERS IN DATABASE - Check Replit Secrets');
 
     return {
       available: false,
-      reason: '🚨 No GPU workers available. Please add GPU manually in Admin Panel → Gerenciamento de GPUs → Adicionar GPU.',
+      reason: '🚨 No GPU workers found. Please add Kaggle/Colab credentials to Replit Secrets (KAGGLE_USERNAME_1, KAGGLE_KEY_1, etc).',
       startedNew: false,
     };
   }
@@ -192,12 +216,100 @@ export class OnDemandGPUService {
   }
 
   /**
-   * 🚨 DEPRECATED - AUTO-CREATION DISABLED (2025 Architecture Change)
+   * Activate offline worker using Replit Secrets
    * 
-   * GPUs must be provisioned MANUALLY by admin via Replit Secrets.
-   * System ONLY manages lifecycle (turn on/off based on quota/idle/cooldown).
+   * Reads credentials from environment variables based on accountId
+   * Example: accountId='kaggle-1' → KAGGLE_USERNAME_1, KAGGLE_KEY_1
+   */
+  private async activateWorker(worker: typeof gpuWorkers.$inferSelect): Promise<{
+    success: boolean;
+    workerUrl?: string;
+    reason?: string;
+  }> {
+    logger.info({ workerId: worker.id, accountId: worker.accountId }, 'Activating worker...');
+
+    try {
+      // Parse accountId to get Secret index
+      // Example: "kaggle-1" → provider="kaggle", index=1
+      const match = worker.accountId?.match(/^(kaggle|colab)-(\d+)$/);
+      
+      if (!match) {
+        return {
+          success: false,
+          reason: `Invalid accountId format: ${worker.accountId}. Expected 'kaggle-N' or 'colab-N'`,
+        };
+      }
+
+      const [_, provider, indexStr] = match;
+      const index = indexStr;
+
+      if (provider === 'kaggle') {
+        const username = process.env[`KAGGLE_USERNAME_${index}`];
+        const key = process.env[`KAGGLE_KEY_${index}`];
+
+        if (!username || !key) {
+          return {
+            success: false,
+            reason: `Kaggle credentials not found in Replit Secrets: KAGGLE_USERNAME_${index}, KAGGLE_KEY_${index}`,
+          };
+        }
+
+        // Activate via GPUManager
+        const result = await gpuManager.createGPU({
+          provider: 'kaggle',
+          email: '',
+          kaggleUsername: username,
+          kaggleKey: key,
+          enableGPU: true,
+          title: `AION Auto-Activated ${Date.now()}`,
+          autoStart: true, // Start session immediately
+        });
+
+        return {
+          success: true,
+          workerUrl: result.worker.ngrokUrl || undefined,
+        };
+
+      } else { // colab
+        const email = process.env[`COLAB_EMAIL_${index}`];
+        const password = process.env[`COLAB_PASSWORD_${index}`];
+
+        if (!email || !password) {
+          return {
+            success: false,
+            reason: `Colab credentials not found in Replit Secrets: COLAB_EMAIL_${index}, COLAB_PASSWORD_${index}`,
+          };
+        }
+
+        // Activate via GPUManager
+        const result = await gpuManager.createGPU({
+          provider: 'colab',
+          email,
+          password,
+          enableGPU: true,
+          title: `AION Auto-Activated ${Date.now()}`,
+          autoStart: true, // Start session immediately
+        });
+
+        return {
+          success: true,
+          workerUrl: result.worker.ngrokUrl || undefined,
+        };
+      }
+
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Failed to activate worker');
+      return {
+        success: false,
+        reason: `Activation error: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * 🚨 DEPRECATED - NO LONGER USED (2025 Architecture)
    * 
-   * This method now ONLY checks for existing workers - NEVER creates new ones.
+   * Use activateWorker() instead (reads from Replit Secrets)
    */
   private async startGPUOnDemand(preferProvider?: 'kaggle' | 'colab'): Promise<{
     success: boolean;
