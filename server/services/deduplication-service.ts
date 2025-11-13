@@ -121,7 +121,7 @@ export class DeduplicationService {
       // 🔥 VERIFICAÇÃO 2: Fila de curadoria (top 100 pendentes)
       const similarCuration = await db
         .select({
-          documentId: sql<number>`CAST(${curationQueue.id} AS INTEGER)`,
+          documentId: sql<string>`${curationQueue.id}::text`,
           chunkText: curationQueue.content,
           embedding: curationQueue.embedding,
           documentTitle: curationQueue.title,
@@ -134,7 +134,7 @@ export class DeduplicationService {
             sql`${curationQueue.embedding} IS NOT NULL`
           )
         )
-        .orderBy(sql`${curationQueue.id} DESC`) // Mais recentes primeiro
+        .orderBy(sql`${curationQueue.submittedAt} DESC`) // Mais recentes primeiro
         .limit(100);
 
       // Combinar resultados (máx 200 comparações)
@@ -194,7 +194,7 @@ export class DeduplicationService {
         return {
           isDuplicate: true,
           duplicateOf: {
-            id: bestMatch.documentId,
+            id: typeof bestMatch.documentId === 'string' ? parseInt(bestMatch.documentId) || 0 : bestMatch.documentId,
             title: bestMatch.documentTitle,
             hash: '',
             similarity: maxSimilarity
