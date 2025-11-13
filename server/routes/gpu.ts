@@ -294,7 +294,20 @@ export function registerGpuRoutes(app: Router) {
         })
         .where(eq(gpuWorkers.id, workerId));
 
-      res.json({ success: true });
+      // 🔥 AUTO-SHUTDOWN SYSTEM: Check if shutdown requested
+      // Backend can signal kernel to gracefully exit via heartbeat response
+      const shouldShutdown = worker.status === "shutdown_requested";
+      
+      if (shouldShutdown) {
+        console.log(`[GPU Heartbeat] ⚠️  Shutdown signal sent to worker ${workerId}`);
+        return res.json({
+          success: true,
+          shutdown: true,
+          message: "Backend requested graceful shutdown to preserve quota"
+        });
+      }
+
+      res.json({ success: true, shutdown: false });
     } catch (error: any) {
       console.error("[GPU Heartbeat] Error:", error);
       res.status(500).json({ error: error.message });

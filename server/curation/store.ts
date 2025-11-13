@@ -324,7 +324,7 @@ Responda em JSON com:
           const fallbackResponse = await generateWithFreeAPIs({
             messages: [{ role: 'user', content: fallbackPrompt }],
             temperature: 0.3,
-            max_tokens: 500
+            maxTokens: 500
           });
           
           // Parse JSON response
@@ -372,7 +372,7 @@ ${analysis.suggestedEdits ? `
 ${analysis.suggestedEdits.title ? `- Título: "${analysis.suggestedEdits.title}"\n` : ''}${analysis.suggestedEdits.tags ? `- Tags: ${analysis.suggestedEdits.tags.join(', ')}\n` : ''}
 ` : ''}${analysis.concerns && analysis.concerns.length > 0 ? `
 ⚠️ **Preocupações:**
-${analysis.concerns.map(c => `- ${c}`).join('\n')}
+${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
 ` : ''}
 ---
 *Análise automática gerada pelo agente de curadoria. A decisão final é humana.*`;
