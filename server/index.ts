@@ -186,15 +186,13 @@ app.use((req, res, next) => {
     });
     
     // ⏰ Initialize PRODUCTION SCHEDULER SERVICE (cron jobs reais!)
-    // ⚠️ DESATIVADO TEMPORARIAMENTE - Jobs automáticos consumindo recursos
-    // try {
-    //   const { schedulerService } = await import('./services/scheduler-service');
-    //   schedulerService.start();
-    //   console.log('✅ Scheduler Service iniciado com cron jobs production-grade');
-    // } catch (err) {
-    //   console.error('⚠️ Failed to initialize scheduler service:', err);
-    // }
-    console.log('⚠️ Scheduler Service DESATIVADO - Jobs automáticos pausados');
+    try {
+      const { schedulerService } = await import('./services/scheduler-service');
+      schedulerService.start();
+      console.log('✅ Scheduler Service iniciado com cron jobs production-grade');
+    } catch (err) {
+      console.error('⚠️ Failed to initialize scheduler service:', err);
+    }
     
     // 🔄 ENTERPRISE RECOVERY: Detect and recover orphaned jobs (MUST run BEFORE auto-evolution)
     try {
@@ -205,14 +203,12 @@ app.use((req, res, next) => {
     }
     
     // 🧠 Initialize Auto-Evolution System
-    // ⚠️ DESATIVADO TEMPORARIAMENTE - Sistema consumindo recursos automaticamente
-    // try {
-    //   const { initAutoEvolution } = await import('./training/init-auto-evolution');
-    //   initAutoEvolution();
-    // } catch (err) {
-    //   console.error('⚠️ Failed to initialize auto-evolution:', err);
-    // }
-    console.log('⚠️ Auto-Evolution System DESATIVADO - Treinos automáticos pausados');
+    try {
+      const { initAutoEvolution } = await import('./training/init-auto-evolution');
+      initAutoEvolution();
+    } catch (err) {
+      console.error('⚠️ Failed to initialize auto-evolution:', err);
+    }
     
     // ✅ P1.3: Backfill provider column for existing billing records (runs BEFORE billing syncs)
     try {

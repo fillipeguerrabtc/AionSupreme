@@ -410,14 +410,15 @@ export function registerGpuRoutes(app: Router) {
       
       log.info({ component: 'gpu-job-dispatch', workerId, jobId: nextJob.id }, 'Job assigned to worker');
       
-      // Return job details
+      // Return job details (matching worker Python expectations)
       res.json({
         hasJob: true,
         job: {
           id: nextJob.id,
           name: nextJob.name,
-          modelType: nextJob.modelType,
-          datasetPath: nextJob.datasetPath,
+          modelName: nextJob.model, // Worker expects "modelName"
+          datasetId: nextJob.datasetId, // Worker expects "datasetId"
+          config: nextJob.config, // Include LoRA config for training
           createdAt: nextJob.createdAt,
         },
       });
