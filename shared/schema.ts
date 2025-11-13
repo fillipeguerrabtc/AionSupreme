@@ -1032,12 +1032,13 @@ export const gpuWorkers = pgTable("gpu_workers", {
   // Timestamps
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  lastUsedAt: timestamp("last_used_at"), // When last served a request
+  lastUsedAt: timestamp("last_used_at"), // ✅ When last served a request (already used in code)
 }, (table) => ({
   providerIdx: index("gpu_workers_provider_idx").on(table.provider),
   statusIdx: index("gpu_workers_status_idx").on(table.status),
   accountIdIdx: index("gpu_workers_account_id_idx").on(table.accountId),
   sessionTokenIdx: index("gpu_workers_session_token_idx").on(table.sessionToken), // ✅ FIX P0-1
+  lastUsedAtIdx: index("gpu_workers_last_used_at_idx").on(table.lastUsedAt), // ✅ For idle timeout queries
 }));
 
 export const insertGpuWorkerSchema = createInsertSchema(gpuWorkers).omit({ 
@@ -1102,6 +1103,77 @@ export const insertCircuitBreakerStateSchema = createInsertSchema(circuitBreaker
 });
 export type InsertCircuitBreakerState = z.infer<typeof insertCircuitBreakerStateSchema>;
 export type CircuitBreakerState = typeof circuitBreakerState.$inferSelect;
+
+// ============================================================================
+// GPU ACTIVATION LOCKS - Persistent concurrency guard (replaces in-memory Map)
+// Prevents duplicate GPU activations via PostgreSQL-backed locks
+// ============================================================================
+export const gpuActivationLocks = pgTable("gpu_activation_locks", {
+  id: serial("id").primaryKey(),
+  workerId: integer("worker_id").notNull().references(() => gpuWorkers.id, { onDelete: 'cascade' }).unique(), // ONE lock per worker
+  lockOwner: varchar("lock_owner", { length: 255 }).notNull(), // Process/server ID
+  acquiredAt: timestamp("acquired_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(), // Auto-expire after 15min
+  status: text("status").notNull().default("active"), // 'active' | 'released' | 'expired'
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  workerIdIdx: index("gpu_activation_locks_worker_id_idx").on(table.workerId),
+  statusIdx: index("gpu_activation_locks_status_idx").on(table.status),
+  expiresAtIdx: index("gpu_activation_locks_expires_at_idx").on(table.expiresAt),
+}));
+
+export const insertGpuActivationLockSchema = createInsertSchema(gpuActivationLocks).omit({ id: true, createdAt: true });
+export type InsertGpuActivationLock = z.infer<typeof insertGpuActivationLockSchema>;
+export type GpuActivationLock = typeof gpuActivationLocks.$inferSelect;
+
+// ============================================================================
+// GPU SESSIONS - Persistent session tracking (replaces in-memory Map)
+// Tracks active Kaggle/Colab sessions with browser state, ngrok URLs, timing
+// ============================================================================
+export const gpuSessionStatusEnum = pgEnum("gpu_session_status", [
+  "starting", "active", "idle", "shutting_down", "terminated"
+]);
+
+export const gpuSessions = pgTable("gpu_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: varchar("session_id", { length: 64 }).notNull().unique(), // UUID/nanoid
+  workerId: integer("worker_id").notNull().references(() => gpuWorkers.id, { onDelete: 'cascade' }),
+  provider: text("provider").notNull(), // 'kaggle' | 'colab'
+  status: gpuSessionStatusEnum("status").notNull().default("starting"),
+  
+  // Runtime data
+  ngrokUrl: text("ngrok_url"), // Session-specific ngrok URL
+  browserState: jsonb("browser_state").$type<{
+    pageUrl?: string;
+    cookies?: any[];
+    userAgent?: string;
+  }>(),
+  
+  // Timing
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  lastActivity: timestamp("last_activity").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(), // Based on maxSessionDurationSeconds
+  terminatedAt: timestamp("terminated_at"),
+  
+  // Metrics
+  durationSeconds: integer("duration_seconds").default(0),
+  shutdownReason: text("shutdown_reason"), // 'timeout' | 'idle' | 'manual' | 'quota_exceeded'
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  workerIdStatusIdx: index("gpu_sessions_worker_status_idx").on(table.workerId, table.status),
+  providerStatusIdx: index("gpu_sessions_provider_status_idx").on(table.provider, table.status),
+  lastActivityIdx: index("gpu_sessions_last_activity_idx").on(table.lastActivity),
+  sessionIdIdx: index("gpu_sessions_session_id_idx").on(table.sessionId),
+  
+  // ✅ CRITICAL: Partial unique index preventing multiple active sessions per worker
+  uniqueActiveSessionPerWorker: uniqueIndex("gpu_sessions_unique_active_per_worker").on(table.workerId)
+    .where(sql`status IN ('starting', 'active', 'idle')`),
+}));
+
+export const insertGpuSessionSchema = createInsertSchema(gpuSessions).omit({ id: true, createdAt: true });
+export type InsertGpuSession = z.infer<typeof insertGpuSessionSchema>;
+export type GpuSession = typeof gpuSessions.$inferSelect;
 
 // ============================================================================
 // VISION QUOTA STATE - Production-grade Vision API quota tracking

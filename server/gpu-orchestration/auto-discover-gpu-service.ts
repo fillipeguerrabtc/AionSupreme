@@ -145,7 +145,7 @@ export class AutoDiscoverGPUService {
     }
 
     // Create new GPU worker (status='offline', persistent)
-    logger.info({ accountId, username: account.username }, '🆕 Creating new Kaggle GPU worker');
+    logger.info({ accountId }, '🆕 Creating new Kaggle GPU worker');
 
     const [worker] = await db.insert(gpuWorkers).values({
       provider: 'kaggle',
@@ -201,7 +201,7 @@ export class AutoDiscoverGPUService {
     }
 
     // Create new GPU worker (status='offline', persistent)
-    logger.info({ accountId, email: account.email }, '🆕 Creating new Colab GPU worker');
+    logger.info({ accountId }, '🆕 Creating new Colab GPU worker');
 
     const [worker] = await db.insert(gpuWorkers).values({
       provider: 'colab',
