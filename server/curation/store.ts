@@ -672,7 +672,7 @@ ${analysis.concerns.map(c => `- ${c}`).join('\n')}
       content: contentToSave,
       contentHash: item.contentHash, // Will be generated if missing
       source: isAbsorption ? "curation_absorption" : "curation_approved",
-      status: "indexed",
+      status: "approved",
       attachments: finalAttachments || undefined,
       metadata: {
         namespaces: finalNamespaces,

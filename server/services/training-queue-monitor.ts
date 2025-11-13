@@ -55,12 +55,13 @@ export class TrainingQueueMonitor {
       // - Documents with updated content since last training
       // - Failed training attempts
       
-      // Count documents that need training (no embeddings or outdated)
+      // Count documents approved and ready for training
+      // CRITICAL FIX: Must query for status='approved' to get docs ready for training
       const pendingKBs = await db
         .select({ count: sql<number>`count(*)` })
         .from(documents)
         .where(
-          sql`${documents.status} != 'indexed' OR ${documents.updatedAt} > ${documents.createdAt}`
+          sql`${documents.status} = 'approved'`
         );
       
       const readyCount = Number(pendingKBs[0]?.count || 0);
@@ -122,12 +123,24 @@ export class TrainingQueueMonitor {
         };
       }
       
-      // 2. Check weekly quota (28h/week limit)
+      // 2. Check weekly quota (21h/week limit = 70% of 30h)
       const kaggleQuotaCheck = await this.checkKaggleQuota();
       if (!kaggleQuotaCheck.hasQuota) {
         return {
           shouldTrigger: false,
-          reason: `⚠️ Weekly quota exhausted: ${kaggleQuotaCheck.usedHours.toFixed(2)}h / 28h`,
+          reason: `⚠️ Weekly quota exhausted: ${kaggleQuotaCheck.usedHours.toFixed(2)}h / 21h (70% safety limit)`,
+          batchSize: status.readyForTraining,
+        };
+      }
+      
+      // 3. CRITICAL: Verify estimated training time fits within remaining quota
+      const estimatedHours = status.estimatedDurationMinutes / 60;
+      const remainingHours = kaggleQuotaCheck.remainingHours;
+      
+      if (estimatedHours > remainingHours) {
+        return {
+          shouldTrigger: false,
+          reason: `⚠️ Estimated time (${estimatedHours.toFixed(2)}h) exceeds remaining quota (${remainingHours.toFixed(2)}h) - would exceed 70% safety limit`,
           batchSize: status.readyForTraining,
         };
       }
@@ -166,7 +179,7 @@ export class TrainingQueueMonitor {
         return sum + (worker.weeklyUsageHours || 0);
       }, 0);
       
-      const WEEKLY_LIMIT = 28; // 28h/week
+      const WEEKLY_LIMIT = 21; // 21h/week (70% of 30h Kaggle quota to avoid ban)
       const hasQuota = totalWeeklyUsage < WEEKLY_LIMIT;
       const remainingHours = Math.max(0, WEEKLY_LIMIT - totalWeeklyUsage);
       
