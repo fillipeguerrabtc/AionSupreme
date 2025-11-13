@@ -38,6 +38,7 @@ import { logger } from '../services/logger-service';
 
 export interface QuotaSyncResult {
   provider: 'kaggle' | 'colab';
+  accountEmail: string;
   success: boolean;
   quotaData?: KaggleQuotaData | ColabQuotaData;
   error?: string;
@@ -122,6 +123,7 @@ export class QuotaSyncService {
       
       return {
         provider: 'kaggle',
+        accountEmail: email,
         success: true,
         quotaData,
         durationMs,
@@ -144,6 +146,7 @@ export class QuotaSyncService {
       
       return {
         provider: 'kaggle',
+        accountEmail: email,
         success: false,
         error: errorMessage,
         durationMs,
@@ -186,6 +189,7 @@ export class QuotaSyncService {
       
       return {
         provider: 'colab',
+        accountEmail: email,
         success: true,
         quotaData,
         durationMs,
@@ -208,6 +212,7 @@ export class QuotaSyncService {
       
       return {
         provider: 'colab',
+        accountEmail: email,
         success: false,
         error: errorMessage,
         durationMs,
