@@ -1773,6 +1773,34 @@ export const insertDatasetSchema = createInsertSchema(datasets).omit({
 export type InsertDataset = z.infer<typeof insertDatasetSchema>;
 export type Dataset = typeof datasets.$inferSelect;
 
+/**
+ * PRODUCTION FIX: Dataset-Document Junction Table
+ * 
+ * Explicitly tracks which documents were used in which datasets.
+ * Replaces fragile "description LIKE '%docId%'" inference with proper FK relationships.
+ * 
+ * Benefits:
+ * - Accurate dataset usage tracking
+ * - Prevents double-counting documents in training
+ * - Enables proper checkPendingKBItems() logic
+ * - Cascade deletes maintain referential integrity
+ */
+export const datasetDocuments = pgTable("dataset_documents", {
+  datasetId: integer("dataset_id").notNull().references(() => datasets.id, { onDelete: "cascade" }),
+  documentId: integer("document_id").notNull().references(() => documents.id, { onDelete: "cascade" }),
+  addedAt: timestamp("added_at").notNull().defaultNow(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.datasetId, table.documentId] }),
+  datasetIdx: index("dataset_documents_dataset_idx").on(table.datasetId),
+  documentIdx: index("dataset_documents_document_idx").on(table.documentId),
+}));
+
+export const insertDatasetDocumentSchema = createInsertSchema(datasetDocuments).omit({
+  addedAt: true,
+});
+export type InsertDatasetDocument = z.infer<typeof insertDatasetDocumentSchema>;
+export type DatasetDocument = typeof datasetDocuments.$inferSelect;
+
 // ============================================================================
 // TRAINING_DATA_COLLECTION - Auto-evolution from conversations
 // Tracks high-quality conversations for model fine-tuning
@@ -1927,6 +1955,11 @@ export const agents = pgTable("agents", {
   budgetLimit: real("budget_limit"), // Optional per-agent budget limit in USD
   escalationAgent: varchar("escalation_agent", { length: 120 }), // Optional agent ID to escalate to
   metadata: jsonb("metadata"), // Optional metadata for custom agent properties
+  
+  // PRODUCTION FIX: Protect system agents from garbage collection
+  // System agents (like Curator Agent) are core infrastructure and must never be deleted
+  isSystemAgent: boolean("is_system_agent").notNull().default(false),
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
