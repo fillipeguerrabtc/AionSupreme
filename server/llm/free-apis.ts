@@ -139,25 +139,10 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
       const completionTokens = data.usage?.completion_tokens || 0;
       const totalTokens = data.usage?.total_tokens || 0;
       
-      // ✅ CRITICAL: Update REAL quota from Groq headers
+      // ✅ CRITICAL: Update REAL quota from Groq headers (existing service)
       try {
-        const { realQuotaSync } = await import('../monitoring/real-quota-sync');
-        const requestsRemaining = parseInt(headers['x-ratelimit-remaining-requests'] || '0');
-        const tokensRemaining = parseInt(headers['x-ratelimit-remaining-tokens'] || '0');
-        const requestsLimit = parseInt(headers['x-ratelimit-limit-requests'] || '500000');
-        const tokensLimit = parseInt(headers['x-ratelimit-limit-tokens'] || '500000');
-        
-        await import('../db').then(({ db }) =>
-          db.execute(import('drizzle-orm/sql').then(({ sql }) => sql`
-            UPDATE llm_provider_quotas 
-            SET daily_request_limit = ${requestsLimit},
-                request_count = ${requestsLimit - requestsRemaining},
-                daily_token_limit = ${tokensLimit},
-                token_count = ${tokensLimit - tokensRemaining},
-                last_reset = NOW()
-            WHERE provider = 'groq'
-          `))
-        );
+        const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
+        await providerLimitsTracker.updateGroqLimits(headers);
       } catch (trackerError: any) {
         log.warn({ component: 'groq', error: trackerError.message }, 'Failed to update real quota (non-critical)');
       }
@@ -272,6 +257,14 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
   const completionTokens = response.usageMetadata?.candidatesTokenCount || 0;
   const totalTokens = response.usageMetadata?.totalTokenCount || 0;
   
+  // ✅ CRITICAL: Update Gemini limits (docs + DB tracking)
+  try {
+    const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
+    await providerLimitsTracker.updateGeminiLimits();
+  } catch (trackerError: any) {
+    log.warn({ component: 'gemini', error: trackerError.message }, 'Failed to update Gemini limits (non-critical)');
+  }
+  
   // ✅ PRODUCTION: Track quota in PostgreSQL
   await apiQuotaRepository.incrementUsage('gemini', 1, totalTokens);
   
@@ -373,6 +366,14 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
       const completionTokens = Math.ceil(responseLength / 4);
       const totalTokens = promptTokens + completionTokens;
       
+      // ✅ CRITICAL: Update HuggingFace limits (estimate + DB tracking)
+      try {
+        const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
+        await providerLimitsTracker.updateHuggingFaceLimits();
+      } catch (trackerError: any) {
+        log.warn({ component: 'huggingface', error: trackerError.message }, 'Failed to update HF limits (non-critical)');
+      }
+      
       // ✅ PRODUCTION: Track quota in PostgreSQL
       await apiQuotaRepository.incrementUsage('hf', 1, totalTokens);
       
@@ -450,6 +451,14 @@ async function callOpenRouter(req: LLMRequest): Promise<LLMResponse> {
   const promptTokens = data.usage?.prompt_tokens || 0;
   const completionTokens = data.usage?.completion_tokens || 0;
   const totalTokens = data.usage?.total_tokens || 0;
+  
+  // ✅ CRITICAL: Update OpenRouter limits (API + DB tracking)
+  try {
+    const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
+    await providerLimitsTracker.updateOpenRouterLimits();
+  } catch (trackerError: any) {
+    log.warn({ component: 'openrouter', error: trackerError.message }, 'Failed to update OpenRouter limits (non-critical)');
+  }
   
   // ✅ PRODUCTION: Track quota in PostgreSQL
   await apiQuotaRepository.incrementUsage('openrouter', 1, totalTokens);
