@@ -8,11 +8,45 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 
 **REGRA FUNDAMENTAL DE TRABALHO:**
 1. **SEMPRE responda dúvidas do usuário primeiro**
-2. **SEMPRE continue tarefas em एंडamento até o final**
+2. **SEMPRE continue tarefas em andamento até o final**
 3. **NUNCA deixe tarefas incompletas para trás**
 4. Se o usuário pedir novas atividades → adicione à fila APÓS as tarefas atuais
 5. Fluxo obrigatório: Responder → Completar tarefas atuais → Iniciar novas tarefas
 6. **NUNCA comece tarefas novas antes de terminar as antigas**
+
+**🚨 REGRAS CRÍTICAS DE GPU - RISCO DE BAN!**
+
+**KAGGLE - On-Demand + Idle Timeout:**
+- 🔢 **Quota Semanal**: 30h oficial → Usamos 21h (70% safety) = 75600s
+- ⏱️ **Quota Sessão**: 12h oficial → Usamos 8.4h (70% safety) = 30240s
+- 🎯 **Ativação**: ON-DEMAND (liga quando chega tarefa: training/inference/KB/internet)
+- ⏲️ **Idle Timeout**: 10min após completar tarefa
+  - Executa → Aguarda 10min → Nova tarefa? → Executa + 10min novamente
+  - Sem tarefa em 10min? → DESLIGA automaticamente
+- ⚠️ **CRITICAL**: Respeitar AMBAS quotas (sessão E semanal) = OBRIGATÓRIO!
+  - Violar qualquer limite = BAN PERMANENTE da conta Google!
+- 📊 **Tracking**: PostgreSQL-based (Kaggle não tem API de quota)
+
+**COLAB - Schedule Fixo:**
+- ⏱️ **Quota Sessão**: 12h oficial → Usamos 8.4h (70% safety) = 30240s
+- ⏰ **Cooldown**: 36h obrigatório entre sessões = 129600s
+- 🔄 **Ativação**: ROTAÇÃO FIXA (schedule automático)
+  - Liga → Roda 8.4h → Desliga → 36h rest → Repete
+- ❌ **NUNCA on-demand** - apenas schedule fixo!
+- ⚠️ **CRITICAL**: Respeitar cooldown = OBRIGATÓRIO!
+  - Violar = BAN PERMANENTE da conta Google!
+
+**CONSTANTES CENTRALIZADAS:**
+```typescript
+// server/gpu-orchestration/intelligent-quota-manager.ts
+export const GPU_QUOTA_CONSTANTS = {
+  COLAB_SAFETY: 30240,        // 8.4h
+  COLAB_COOLDOWN: 129600,     // 36h
+  KAGGLE_GPU_SAFETY: 30240,   // 8.4h
+  KAGGLE_WEEKLY_SAFETY: 75600, // 21h
+  KAGGLE_IDLE_TIMEOUT: 600,   // 10min
+}
+```
 
 **🚨 REGRA CRÍTICA DE QUALIDADE - ZERO TOLERÂNCIA:**
 **"NADA NIVEL MVP - JA NASCE NIVEL PRODUÇÃO"**

@@ -8,7 +8,7 @@ import type { Request, Response } from "express";
 import { db } from "../db";
 import { gpuWorkers } from "../../shared/schema";
 import { eq, desc } from "drizzle-orm";
-import { quotaManager } from "../gpu-orchestration/intelligent-quota-manager";
+import { quotaManager, GPU_QUOTA_CONSTANTS } from "../gpu-orchestration/intelligent-quota-manager";
 import { log } from "../utils/logger";
 
 export function registerGpuRoutes(app: Router) {
@@ -124,7 +124,13 @@ export function registerGpuRoutes(app: Router) {
 
       const detectedProvider = (platform || type || "colab").toLowerCase();
       
-      // ✅ CRITICAL: Populate quota fields based on provider (read from DB limits)
+      // 🔥 CRITICAL: Use centralized constants to enforce 70% safety (prevent BAN!)
+      const isKaggle = detectedProvider.includes('kaggle');
+      const maxSessionSeconds = isKaggle 
+        ? GPU_QUOTA_CONSTANTS.KAGGLE_GPU_SAFETY 
+        : GPU_QUOTA_CONSTANTS.COLAB_SAFETY;
+      const maxWeeklySeconds = isKaggle ? GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY : null;
+      
       const workerData = {
         provider: platform || type || "colab",
         accountId: accountEmail || "unknown",
@@ -144,9 +150,9 @@ export function registerGpuRoutes(app: Router) {
         } as any,
         status: "online",
         lastHealthCheck: new Date(),
-        // ✅ SEMPRE popular campos de quota do banco (70% safety limits)
-        maxSessionDurationSeconds: detectedProvider.includes('kaggle') ? 32400 : 30240,  // Kaggle: 9h, Colab: 8.4h
-        maxWeeklySeconds: detectedProvider.includes('kaggle') ? 75600 : null,  // Kaggle: 21h, Colab: null
+        // 🔥 8.4h session (70% of 12h) + 21h weekly for Kaggle (70% of 30h)
+        maxSessionDurationSeconds: maxSessionSeconds,
+        maxWeeklySeconds: maxWeeklySeconds,
       };
 
       let worker;
@@ -199,7 +205,13 @@ export function registerGpuRoutes(app: Router) {
 
       const detectedProvider = (provider || "colab").toLowerCase();
       
-      // ✅ CRITICAL: Populate quota fields based on provider (read from DB limits)
+      // 🔥 CRITICAL: Use centralized constants to enforce 70% safety (prevent BAN!)
+      const isKaggle = detectedProvider.includes('kaggle');
+      const maxSessionSeconds = isKaggle 
+        ? GPU_QUOTA_CONSTANTS.KAGGLE_GPU_SAFETY 
+        : GPU_QUOTA_CONSTANTS.COLAB_SAFETY;
+      const maxWeeklySeconds = isKaggle ? GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY : null;
+      
       const workerData = {
         provider: provider || "colab",
         accountId: accountId || "unknown",
@@ -213,9 +225,9 @@ export function registerGpuRoutes(app: Router) {
         },
         status: "pending",
         lastHealthCheck: new Date(),
-        // ✅ SEMPRE popular campos de quota do banco (70% safety limits)
-        maxSessionDurationSeconds: detectedProvider.includes('kaggle') ? 32400 : 30240,  // Kaggle: 9h, Colab: 8.4h
-        maxWeeklySeconds: detectedProvider.includes('kaggle') ? 75600 : null,  // Kaggle: 21h, Colab: null
+        // 🔥 8.4h session (70% of 12h) + 21h weekly for Kaggle (70% of 30h)
+        maxSessionDurationSeconds: maxSessionSeconds,
+        maxWeeklySeconds: maxWeeklySeconds,
       };
 
       const [worker] = await db.insert(gpuWorkers).values(workerData).returning();

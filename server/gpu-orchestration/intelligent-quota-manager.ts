@@ -50,28 +50,52 @@ interface GPUSelectionResult {
   alternativesAvailable: boolean;
 }
 
+/**
+ * 🔥 CENTRALIZED QUOTA CONSTANTS
+ * 
+ * CRITICAL: 70% enforcement prevents BAN from Google accounts!
+ * - Kaggle: 12h session + 30h weekly (official 2025 limits)
+ * - Colab: 12h session + 36h cooldown (official 2025 limits)
+ * 
+ * ALL worker provisioning MUST import these constants!
+ */
+export const GPU_QUOTA_CONSTANTS = {
+  // COLAB (Schedule Fixo: 8.4h run → 36h rest)
+  COLAB_MAX_SESSION: 12 * 3600,  // 12h oficial
+  COLAB_SAFETY: Math.floor(12 * 3600 * 0.7),  // 70% = 8.4h = 30240s
+  COLAB_COOLDOWN: 36 * 3600,  // 36h mandatory rest
+  
+  // KAGGLE GPU (On-Demand + 10min idle timeout)
+  KAGGLE_GPU_MAX_SESSION: 12 * 3600,  // 12h oficial
+  KAGGLE_GPU_SAFETY: Math.floor(12 * 3600 * 0.7),  // 70% = 8.4h = 30240s
+  
+  // KAGGLE CPU (rarely used)
+  KAGGLE_CPU_MAX_SESSION: 9 * 3600,  // 9h oficial
+  KAGGLE_CPU_SAFETY: Math.floor(9 * 3600 * 0.7),  // 70% = 6.3h = 22680s
+  
+  // KAGGLE WEEKLY (applies to BOTH GPU and CPU combined!)
+  KAGGLE_WEEKLY_QUOTA: 30 * 3600,  // 30h oficial
+  KAGGLE_WEEKLY_SAFETY: Math.floor(30 * 3600 * 0.7),  // 70% = 21h = 75600s
+  
+  // KAGGLE IDLE (on-demand behavior)
+  KAGGLE_IDLE_TIMEOUT: 10 * 60,  // 10min wait after task completion
+} as const;
+
 export class IntelligentQuotaManager {
   
-  // Quota constants (in seconds)
-  // 🔥 UPDATED: 70% threshold para evitar alarmes de abuse!
+  // Use centralized constants
+  private readonly COLAB_MAX_SESSION = GPU_QUOTA_CONSTANTS.COLAB_MAX_SESSION;
+  private readonly COLAB_SAFETY = GPU_QUOTA_CONSTANTS.COLAB_SAFETY;
+  private readonly COLAB_COOLDOWN = GPU_QUOTA_CONSTANTS.COLAB_COOLDOWN;
   
-  // COLAB LIMITS
-  private readonly COLAB_MAX_SESSION = 12 * 3600;  // 12h
-  private readonly COLAB_SAFETY = Math.floor(12 * 3600 * 0.7);  // 70% = 8.4h
-  private readonly COLAB_COOLDOWN = 36 * 3600;  // 36h mandatory cooldown between sessions
+  private readonly KAGGLE_GPU_MAX_SESSION = GPU_QUOTA_CONSTANTS.KAGGLE_GPU_MAX_SESSION;
+  private readonly KAGGLE_GPU_SAFETY = GPU_QUOTA_CONSTANTS.KAGGLE_GPU_SAFETY;
   
-  // KAGGLE LIMITS
-  // 🔥 CRITICAL: Kaggle has DIFFERENT quotas for GPU vs CPU!
-  // - GPU: 12h/session, 30h/week (we use this)
-  // - CPU: 9h/session, 30h/week
-  private readonly KAGGLE_GPU_MAX_SESSION = 12 * 3600;  // 12h GPU session
-  private readonly KAGGLE_GPU_SAFETY = Math.floor(12 * 3600 * 0.7);  // 70% = 8.4h
+  private readonly KAGGLE_CPU_MAX_SESSION = GPU_QUOTA_CONSTANTS.KAGGLE_CPU_MAX_SESSION;
+  private readonly KAGGLE_CPU_SAFETY = GPU_QUOTA_CONSTANTS.KAGGLE_CPU_SAFETY;
   
-  private readonly KAGGLE_CPU_MAX_SESSION = 9 * 3600;   // 9h CPU session
-  private readonly KAGGLE_CPU_SAFETY = Math.floor(9 * 3600 * 0.7);  // 70% = 6.3h
-  
-  private readonly KAGGLE_WEEKLY_QUOTA = 30 * 3600;     // 30h/week (both GPU+CPU)
-  private readonly KAGGLE_WEEKLY_SAFETY = Math.floor(30 * 3600 * 0.7);  // 70% = 21h
+  private readonly KAGGLE_WEEKLY_QUOTA = GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_QUOTA;
+  private readonly KAGGLE_WEEKLY_SAFETY = GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY
   
   /**
    * Get current quota status for a specific GPU worker

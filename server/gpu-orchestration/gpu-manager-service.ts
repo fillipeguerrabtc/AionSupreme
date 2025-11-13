@@ -24,7 +24,7 @@ import { gpuWorkers } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { createKaggleAPI, KaggleAPI } from './providers/kaggle-api';
 import { createColabCreator, ColabNotebookCreator } from './providers/colab-creator';
-import { quotaManager } from './intelligent-quota-manager';
+import { quotaManager, GPU_QUOTA_CONSTANTS } from './intelligent-quota-manager';
 import { retrieveKaggleCredentials, retrieveGoogleCredentials } from '../services/security/secrets-vault';
 import { logger } from '../services/logger-service';
 
@@ -105,10 +105,17 @@ export class GPUManagerService {
     });
 
     // Inserir no DB (SALVAR URL COMPLETO para dashboard poder abrir)
+    // 🔥 CRITICAL: Use centralized constants to enforce 70% safety (prevent BAN!)
+    const isGPU = options.enableGPU;
+    const maxSessionSeconds = isGPU 
+      ? GPU_QUOTA_CONSTANTS.KAGGLE_GPU_SAFETY 
+      : GPU_QUOTA_CONSTANTS.KAGGLE_CPU_SAFETY;
+    const maxWeeklySeconds = GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY;
+
     const providerLimits = {
-      max_session_hours: options.enableGPU ? 12 : 9,
-      max_weekly_hours: 30,
-      safety_margin_hours: 1,
+      max_session_hours: isGPU ? 12 : 9,  // Official limits (informational)
+      max_weekly_hours: 30,  // Official limits (informational)
+      safety_margin_hours: isGPU ? 3.6 : 2.7,  // 30% safety margin (informational)
       kaggle_username: options.kaggleUsername,  // Guardar pra poder deletar depois
       kaggle_slug: slug,
     };
@@ -120,13 +127,13 @@ export class GPUManagerService {
       status: 'pending',
       autoManaged: true,
       capabilities: {
-        gpu: options.enableGPU ? 'T4' : 'CPU',
+        gpu: isGPU ? 'T4' : 'CPU',
         model: 'pending',
         tor_enabled: false,
       },
       providerLimits,
-      maxSessionDurationSeconds: (providerLimits.max_session_hours - providerLimits.safety_margin_hours) * 3600,
-      maxWeeklySeconds: providerLimits.max_weekly_hours * 3600,
+      maxSessionDurationSeconds: maxSessionSeconds,  // 🔥 8.4h GPU or 6.3h CPU (70% safety)
+      maxWeeklySeconds: maxWeeklySeconds,  // 🔥 21h (70% of 30h weekly quota)
     }).returning();
 
     log.info('Kaggle GPU created successfully', { notebookUrl, slug, workerId: worker.id });
@@ -166,10 +173,14 @@ export class GPUManagerService {
     });
 
     // Inserir no DB (SALVAR URL COMPLETO para dashboard)
+    // 🔥 CRITICAL: Use centralized constants to enforce 70% safety (prevent BAN!)
+    const maxSessionSeconds = GPU_QUOTA_CONSTANTS.COLAB_SAFETY;  // 8.4h (70% of 12h)
+    
     const providerLimits = {
-      max_session_hours: 12,
-      safety_margin_hours: 1,
+      max_session_hours: 12,  // Official limit (informational)
+      safety_margin_hours: 3.6,  // 30% safety margin (informational)
       idle_timeout_minutes: 90,
+      cooldown_hours: 36,  // Mandatory rest between sessions
       colab_notebook_id: notebookId,  // Guardar ID também
       google_email: options.email,  // ✅ CREDENTIAL EXTRACTION: Store email for SecretsVault lookup
     };
@@ -186,8 +197,8 @@ export class GPUManagerService {
         tor_enabled: false,
       },
       providerLimits,
-      maxSessionDurationSeconds: (providerLimits.max_session_hours - providerLimits.safety_margin_hours) * 3600,
-      maxWeeklySeconds: null,
+      maxSessionDurationSeconds: maxSessionSeconds,  // 🔥 8.4h (70% safety)
+      maxWeeklySeconds: null,  // Colab has no weekly limit, only 36h cooldown
     }).returning();
 
     log.info('Colab GPU created successfully', { notebookUrl, workerId: worker.id });
