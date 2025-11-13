@@ -51,34 +51,47 @@ interface GPUSelectionResult {
 }
 
 /**
- * 🔥 CENTRALIZED QUOTA CONSTANTS
+ * 🔥 CENTRALIZED QUOTA CONSTANTS - ENTERPRISE 2025
  * 
  * CRITICAL: 70% enforcement prevents BAN from Google accounts!
- * - Kaggle: 12h session + 30h weekly (official 2025 limits)
- * - Colab: 12h session + 36h cooldown (official 2025 limits)
  * 
- * ALL worker provisioning MUST import these constants!
+ * COLAB - SCHEDULE FIXO (NUNCA on-demand!):
+ * - Liga → 8.4h → Desliga → 36h rest → Repete
+ * - Session: 12h oficial → 8.4h (70% safety)
+ * - Cooldown: 36h obrigatório
+ * - ❌ SEM idle timeout (runs full session!)
+ * - Violar = BAN PERMANENTE!
+ * 
+ * KAGGLE - ON-DEMAND + IDLE TIMEOUT:
+ * - Liga quando tarefa chega (training/inference/KB/internet)
+ * - Executa → 10min idle → Desliga (se sem tarefa)
+ * - Session: 12h oficial → 8.4h (70% safety)
+ * - Weekly: 30h oficial → 21h (70% safety)
+ * - Violar QUALQUER quota = BAN PERMANENTE!
  */
 export const GPU_QUOTA_CONSTANTS = {
-  // COLAB (Schedule Fixo: 8.4h run → 36h rest)
+  // ============================================================================
+  // COLAB - SCHEDULE FIXO (NUNCA on-demand!)
+  // ============================================================================
   COLAB_MAX_SESSION: 12 * 3600,  // 12h oficial
-  COLAB_SAFETY: Math.floor(12 * 3600 * 0.7),  // 70% = 8.4h = 30240s
-  COLAB_COOLDOWN: 36 * 3600,  // 36h mandatory rest
+  COLAB_SAFETY: 30240,  // 8.4h = 70% × 12h (FIXED VALUE from replit.md)
+  COLAB_COOLDOWN: 129600,  // 36h mandatory rest (FIXED VALUE from replit.md)
+  COLAB_KEEP_ALIVE_INTERVAL: 60 * 60 * 1000,  // 60min (90min idle - 30min safety)
+  COLAB_STARTUP_TIMEOUT: 10 * 60 * 1000,  // 10min max for session startup
   
-  // KAGGLE GPU (On-Demand + 10min idle timeout)
+  // ============================================================================
+  // KAGGLE - ON-DEMAND + 10MIN IDLE TIMEOUT
+  // ============================================================================
   KAGGLE_GPU_MAX_SESSION: 12 * 3600,  // 12h oficial
-  KAGGLE_GPU_SAFETY: Math.floor(12 * 3600 * 0.7),  // 70% = 8.4h = 30240s
+  KAGGLE_GPU_SAFETY: 30240,  // 8.4h = 70% × 12h (FIXED VALUE from replit.md)
+  KAGGLE_WEEKLY_MAX: 30 * 3600,  // 30h oficial (weekly quota)
+  KAGGLE_WEEKLY_SAFETY: 75600,  // 21h = 70% × 30h (FIXED VALUE from replit.md)
+  KAGGLE_IDLE_TIMEOUT: 10 * 60 * 1000,  // 10min idle → shutdown (BAN avoidance!)
+  KAGGLE_STARTUP_TIMEOUT: 10 * 60 * 1000,  // 10min max for session startup
   
   // KAGGLE CPU (rarely used)
   KAGGLE_CPU_MAX_SESSION: 9 * 3600,  // 9h oficial
-  KAGGLE_CPU_SAFETY: Math.floor(9 * 3600 * 0.7),  // 70% = 6.3h = 22680s
-  
-  // KAGGLE WEEKLY (applies to BOTH GPU and CPU combined!)
-  KAGGLE_WEEKLY_QUOTA: 30 * 3600,  // 30h oficial
-  KAGGLE_WEEKLY_SAFETY: Math.floor(30 * 3600 * 0.7),  // 70% = 21h = 75600s
-  
-  // KAGGLE IDLE (on-demand behavior)
-  KAGGLE_IDLE_TIMEOUT: 10 * 60,  // 10min wait after task completion
+  KAGGLE_CPU_SAFETY: 22680,  // 6.3h = 70% × 9h
 } as const;
 
 export class IntelligentQuotaManager {

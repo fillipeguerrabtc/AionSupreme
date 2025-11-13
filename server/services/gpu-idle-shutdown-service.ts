@@ -72,17 +72,18 @@ export class GpuIdleShutdownService {
   /**
    * Check for idle sessions and shut them down
    * 
-   * CRITICAL: Only applies to Kaggle (on-demand model)
-   * Colab uses schedule-based activation (not idle-based)
+   * PROVIDER-SPECIFIC RULES:
+   * - Kaggle: On-demand model → shutdown after 10min idle (BAN avoidance!)
+   * - Colab: Schedule-based → SKIP idle shutdown (runs full 8.4h session)
    */
   private async checkIdleSessions(): Promise<void> {
     try {
-      // Query Kaggle sessions that are active/idle and haven't had activity in 10min
+      // ✅ CRITICAL: Only monitor Kaggle (Colab is schedule-based, no idle shutdown)
       const idleThreshold = new Date(Date.now() - this.IDLE_THRESHOLD_MS);
       
       const idleSessions = await db.query.gpuSessions.findMany({
         where: and(
-          eq(gpuSessions.provider, 'kaggle'),
+          eq(gpuSessions.provider, 'kaggle'), // ✅ SKIP Colab (schedule-based)
           inArray(gpuSessions.status, ['active', 'idle']),
           lt(gpuSessions.lastActivity, idleThreshold)
         ),
