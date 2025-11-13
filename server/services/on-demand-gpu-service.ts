@@ -95,58 +95,44 @@ export class OnDemandGPUService {
       };
     }
 
-    logger.warn({ requireGPU }, '🆕 CREATING NEW GPU - No healthy/online workers found (this consumes quota!)');
+    // Step 2: No healthy GPU found → check for offline manual workers that can be reused
+    logger.warn({ requireGPU }, '⚠️ No healthy/online GPU found - checking for offline manual workers');
 
-    // Step 2: No healthy GPU → start new one
-    const startResult = await this.startGPUOnDemand(preferences.preferProvider);
+    const offlineWorkers = await db.query.gpuWorkers.findMany({
+      where: eq(gpuWorkers.status, 'offline'),
+    });
 
-    if (!startResult.success) {
+    const manualOfflineGPU = offlineWorkers.filter(w => {
+      const capabilities = w.capabilities as any;
+      return capabilities?.gpu && capabilities.gpu !== 'CPU';
+    })[0];
+
+    if (manualOfflineGPU) {
+      // Found offline manual worker - RETURN IT so caller can decide to wait/retry
+      logger.warn({ 
+        workerId: manualOfflineGPU.id, 
+        provider: manualOfflineGPU.provider 
+      }, '⚠️ Found offline manual worker - returning for caller to handle');
+      
+      // Return offline worker info - caller should retry or wait for manual restart
+      this.lastInferenceTime.set(manualOfflineGPU.id, Date.now());
+      
       return {
-        available: false,
-        reason: startResult.reason || 'Failed to start GPU',
+        available: true, // TRUE porque worker existe (mesmo offline)
+        workerId: manualOfflineGPU.id,
+        workerUrl: manualOfflineGPU.ngrokUrl || undefined,
+        reason: `GPU worker #${manualOfflineGPU.id} (${manualOfflineGPU.provider}) is offline. Admin must restart it manually in Admin Panel.`,
         startedNew: false,
       };
     }
 
-    logger.info({ workerId: startResult.workerId }, 'GPU start initiated - waiting for online status');
-
-    // Step 3: Wait for GPU to come online
-    const startTime = Date.now();
-    const workerId = startResult.workerId!;
-
-    while (Date.now() - startTime < maxWaitMs) {
-      const worker = await db.query.gpuWorkers.findFirst({
-        where: eq(gpuWorkers.id, workerId),
-      });
-
-      if (worker?.status === 'healthy' && worker.ngrokUrl && worker.ngrokUrl !== 'pending') {
-        // GPU is online!
-        this.lastInferenceTime.set(workerId, Date.now());
-
-        const waitTimeMs = Date.now() - startTime;
-        logger.info({ workerId, waitTimeMs }, 'GPU successfully came online');
-
-        return {
-          available: true,
-          workerId: worker.id,
-          workerUrl: worker.ngrokUrl,
-          reason: 'Started new GPU successfully',
-          startedNew: true,
-          waitTimeMs,
-        };
-      }
-
-      // Wait before polling again
-      await new Promise(resolve => setTimeout(resolve, this.POLL_INTERVAL_MS));
-    }
-
-    // Timeout
-    logger.error({ workerId, maxWaitMs }, 'Timeout waiting for GPU to come online');
+    // Step 3: No workers available (neither online nor offline)
+    logger.error('❌ NO GPU WORKERS AVAILABLE - Manual provisioning required');
 
     return {
       available: false,
-      reason: `Timeout waiting for GPU ${workerId} to come online after ${maxWaitMs}ms`,
-      startedNew: true,
+      reason: '🚨 No GPU workers available. Please add GPU manually in Admin Panel → Gerenciamento de GPUs → Adicionar GPU.',
+      startedNew: false,
     };
   }
 
@@ -206,9 +192,12 @@ export class OnDemandGPUService {
   }
 
   /**
-   * Start GPU on-demand (choose best provider based on quota)
+   * 🚨 DEPRECATED - AUTO-CREATION DISABLED (2025 Architecture Change)
    * 
-   * CONCURRENCY GUARD: Prevents duplicate GPU starts when multiple inference requests arrive simultaneously
+   * GPUs must be provisioned MANUALLY by admin via Replit Secrets.
+   * System ONLY manages lifecycle (turn on/off based on quota/idle/cooldown).
+   * 
+   * This method now ONLY checks for existing workers - NEVER creates new ones.
    */
   private async startGPUOnDemand(preferProvider?: 'kaggle' | 'colab'): Promise<{
     success: boolean;
@@ -245,257 +234,32 @@ export class OnDemandGPUService {
       }
     }
 
-    if (!targetProvider) {
-      logger.error('No GPU providers have available quota');
-      return {
-        success: false,
-        reason: 'All GPU providers quota exceeded (Kaggle: 21h/week used, Colab: in cooldown)',
-      };
-    }
-
-    // 🔥 PRODUCTION-GRADE GUARD: Check active Kaggle GPUs BEFORE starting new one
-    // Kaggle FREE tier: 1 GPU session active at a time (official limit)
-    // Source: https://www.kaggle.com/docs (verified 2025)
-    if (targetProvider === 'kaggle') {
-      const activeKaggleWorkers = await db.query.gpuWorkers.findMany({
-        where: and(
-          eq(gpuWorkers.provider, 'kaggle'),
-          // Consider 'provisioning', 'pending', 'online', 'healthy' as active
-          // Don't include 'offline', 'failed' (these are safe to replace)
-        ),
-      });
-
-      // Filter for truly active states
-      const activeCount = activeKaggleWorkers.filter(w =>
-        ['provisioning', 'pending', 'online', 'healthy'].includes(w.status)
-      ).length;
-
-      const MAX_CONCURRENT_KAGGLE = 1; // Kaggle FREE tier official limit (1 GPU session per account)
-
-      if (activeCount >= MAX_CONCURRENT_KAGGLE) {
-        logger.warn({
-          activeCount,
-          maxAllowed: MAX_CONCURRENT_KAGGLE,
-          workers: activeKaggleWorkers.map(w => ({ id: w.id, status: w.status })),
-        }, 'GUARD BLOCKED: Kaggle allows only 1 GPU session per account');
-
-        return {
-          success: false,
-          reason: `Kaggle FREE tier allows only ${MAX_CONCURRENT_KAGGLE} GPU session active (${activeCount} already running). Delete unused worker or wait for session to end.`,
-        };
-      }
-
-      logger.info({
-        activeCount,
-        maxAllowed: MAX_CONCURRENT_KAGGLE,
-      }, 'GUARD PASSED: No active Kaggle GPU - safe to create new session');
-    }
-
-    // CONCURRENCY GUARD (Kaggle ONLY):
-    // - Kaggle limit: 1 concurrent session → MUST serialize starts
-    // - Colab allows multiple sessions → NO lock needed
-    const lockKey = targetProvider === 'kaggle' ? 'kaggle-lock' : null;
-
-    if (lockKey) {
-      const existingStart = this.gpuStartInProgress.get(lockKey);
-
-      if (existingStart) {
-        logger.info({ provider: targetProvider }, 'Kaggle GPU start already in progress - waiting for existing promise');
-        
-        // Wait for existing start to complete
-        const result = await existingStart;
-        
-        // Convert to expected format
-        return {
-          success: result.available,
-          workerId: result.workerId,
-          provider: targetProvider,
-          reason: result.reason,
-        };
-      }
-    }
-
-    // No lock needed (Colab) OR no start in progress (Kaggle) → initiate new start
-    logger.info({ provider: targetProvider, locked: !!lockKey }, 'Initiating new GPU start (quota available)');
-
-    // Create promise and register in guard Map (Kaggle only)
-    const startPromise = (async () => {
-      try {
-        if (targetProvider === 'kaggle') {
-          const result = await this.startKaggleGPU();
-          return {
-            available: result.success,
-            workerId: result.workerId,
-            workerUrl: undefined,
-            reason: result.reason || 'Kaggle GPU started',
-            startedNew: true,
-          };
-        } else {
-          const result = await this.startColabGPU();
-          return {
-            available: result.success,
-            workerId: result.workerId,
-            workerUrl: undefined,
-            reason: result.reason || 'Colab GPU started',
-            startedNew: true,
-          };
-        }
-      } finally {
-        // Cleanup: remove from in-progress map (Kaggle only)
-        if (lockKey) {
-          this.gpuStartInProgress.delete(lockKey);
-        }
-      }
-    })();
-
-    // Register promise BEFORE await (Kaggle only - prevents duplicate sessions)
-    if (lockKey) {
-      this.gpuStartInProgress.set(lockKey, startPromise);
-    }
-
-    // Wait for completion
-    const result = await startPromise;
-
+    // 🚨 2025 ARCHITECTURE: NO AUTO-CREATION
+    // Admin must provision GPUs manually via Replit Secrets
+    // System ONLY manages lifecycle (on/off based on quota/idle/cooldown)
+    
+    logger.error('❌ GPU AUTO-CREATION DISABLED - Please add GPU manually via Admin Panel');
+    
     return {
-      success: result.available,
-      workerId: result.workerId,
-      provider: targetProvider,
-      reason: result.reason,
+      success: false,
+      reason: '🚨 No GPU workers available. Please add GPU manually in Admin Panel → Gerenciamento de GPUs → Adicionar GPU. System will reuse existing workers automatically.',
     };
   }
 
   /**
-   * Check if Kaggle has quota available
+   * 🚨 DEPRECATED - Not used in 2025 architecture
+   * Kept for backward compatibility only
    */
   private async checkKaggleQuota(): Promise<boolean> {
-    const quotaService = await getQuotaEnforcementService();
-
-    // Create temporary worker to check quota (workerId=-1 is placeholder)
-    const quotaCheck = await quotaService.validateCanStart(-1, 'kaggle');
-
-    return quotaCheck.canStart;
+    return false; // Always return false - no auto-creation
   }
 
   /**
-   * Check if Colab has quota available (not in cooldown)
+   * 🚨 DEPRECATED - Not used in 2025 architecture
+   * Kept for backward compatibility only
    */
   private async checkColabQuota(): Promise<boolean> {
-    const quotaService = await getQuotaEnforcementService();
-
-    // Create temporary worker to check quota
-    const quotaCheck = await quotaService.validateCanStart(-1, 'colab');
-
-    return quotaCheck.canStart;
-  }
-
-  /**
-   * Start Kaggle GPU worker
-   */
-  private async startKaggleGPU(): Promise<{
-    success: boolean;
-    workerId?: number;
-    provider: 'kaggle';
-    reason?: string;
-  }> {
-    logger.info('Starting Kaggle GPU on-demand...');
-
-    try {
-      // Retrieve credentials from SecretsVault
-      // Try "default" identifier first (most common)
-      const credentials = await retrieveKaggleCredentials('default');
-
-      if (!credentials) {
-        logger.warn('No Kaggle credentials found in SecretsVault (identifier: default)');
-        return {
-          success: false,
-          provider: 'kaggle',
-          reason: 'No Kaggle credentials available in SecretsVault - please provision manually first',
-        };
-      }
-
-      logger.info({ username: credentials.username }, 'Found Kaggle credentials - creating GPU');
-
-      // Call GPUManagerService to create GPU
-      const result = await gpuManager.createGPU({
-        provider: 'kaggle',
-        email: '', // Not used for Kaggle
-        kaggleUsername: credentials.username,
-        kaggleKey: credentials.key,
-        enableGPU: true,
-        title: `AION Auto-GPU ${Date.now()}`,
-        autoStart: false, // Don't auto-start session yet - just create notebook
-      });
-
-      logger.info({ workerId: result.worker.id }, 'Kaggle GPU created successfully');
-
-      return {
-        success: true,
-        workerId: result.worker.id,
-        provider: 'kaggle',
-      };
-
-    } catch (error: any) {
-      logger.error({ error: error.message }, 'Failed to start Kaggle GPU');
-      return {
-        success: false,
-        provider: 'kaggle',
-        reason: `Kaggle start error: ${error.message}`,
-      };
-    }
-  }
-
-  /**
-   * Start Colab GPU worker
-   */
-  private async startColabGPU(): Promise<{
-    success: boolean;
-    workerId?: number;
-    provider: 'colab';
-    reason?: string;
-  }> {
-    logger.info('Starting Colab GPU on-demand...');
-
-    try {
-      // Retrieve credentials from SecretsVault
-      const credentials = await retrieveGoogleCredentials('default');
-
-      if (!credentials) {
-        logger.warn('No Google credentials found in SecretsVault (identifier: default)');
-        return {
-          success: false,
-          provider: 'colab',
-          reason: 'No Google credentials available in SecretsVault - please provision manually first',
-        };
-      }
-
-      logger.info({ email: credentials.email }, 'Found Google credentials - creating Colab GPU');
-
-      // Call GPUManagerService to create GPU
-      const result = await gpuManager.createGPU({
-        provider: 'colab',
-        email: credentials.email,
-        password: credentials.password,
-        enableGPU: true,
-        title: `AION Auto-GPU ${Date.now()}`,
-        autoStart: false,
-      });
-
-      logger.info({ workerId: result.worker.id }, 'Colab GPU created successfully');
-
-      return {
-        success: true,
-        workerId: result.worker.id,
-        provider: 'colab',
-      };
-
-    } catch (error: any) {
-      logger.error({ error: error.message }, 'Failed to start Colab GPU');
-      return {
-        success: false,
-        provider: 'colab',
-        reason: `Colab start error: ${error.message}`,
-      };
-    }
+    return false; // Always return false - no auto-creation
   }
 
   /**
