@@ -364,6 +364,71 @@ export function registerGpuRoutes(app: Router) {
   });
 
   /**
+   * GET /api/gpu/workers/:workerId/next-job
+   * Job polling endpoint - worker requests next training job
+   * Returns job if available, or {hasJob: false} if queue empty
+   */
+  app.get("/api/gpu/workers/:workerId/next-job", async (req: Request, res: Response) => {
+    try {
+      const workerId = parseInt(req.params.workerId);
+      
+      // Verify worker exists and is online
+      const [worker] = await db
+        .select()
+        .from(gpuWorkers)
+        .where(eq(gpuWorkers.id, workerId))
+        .limit(1);
+      
+      if (!worker) {
+        return res.status(404).json({ error: "Worker not found" });
+      }
+      
+      // Import training jobs schema
+      const { trainingJobs } = await import('../../shared/schema');
+      
+      // Find next pending/queued training job
+      const [nextJob] = await db
+        .select()
+        .from(trainingJobs)
+        .where(eq(trainingJobs.status, 'queued'))
+        .orderBy(desc(trainingJobs.createdAt))
+        .limit(1);
+      
+      if (!nextJob) {
+        // No jobs available
+        return res.json({ hasJob: false });
+      }
+      
+      // Mark job as running (worker assignment tracking not in schema yet)
+      await db
+        .update(trainingJobs)
+        .set({
+          status: 'running',
+          startedAt: new Date(),
+        })
+        .where(eq(trainingJobs.id, nextJob.id));
+      
+      log.info({ component: 'gpu-job-dispatch', workerId, jobId: nextJob.id }, 'Job assigned to worker');
+      
+      // Return job details
+      res.json({
+        hasJob: true,
+        job: {
+          id: nextJob.id,
+          name: nextJob.name,
+          modelType: nextJob.modelType,
+          datasetPath: nextJob.datasetPath,
+          createdAt: nextJob.createdAt,
+        },
+      });
+      
+    } catch (error: any) {
+      log.error({ component: 'gpu-job-dispatch', error: error.message }, 'Error fetching next job');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * GET /api/gpu/status
    * Dashboard status - reads from database
    * Note: Heartbeat timeout detection is handled by background monitor (server/gpu/heartbeat-monitor.ts)
