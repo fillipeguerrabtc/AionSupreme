@@ -194,7 +194,7 @@ export class QuotaManager {
       `(total: ${usedHoursThisWeek.toFixed(2)}h / ${quotaHoursPerWeek}h = ${utilization.toFixed(1)}%)`
     );
 
-    // Warning threshold: 93% of 30h = 28h (1h before safety limit of 29h)
+    // Warning threshold: 60% of 21h = 12.6h (8.4h before safety limit of 21h = 70% of 30h)
     const warningThreshold = QUOTA_LIMITS.WARNING_THRESHOLDS.KAGGLE_WEEKLY_PERCENT * 100;
     if (utilization > warningThreshold) {
       console.warn(

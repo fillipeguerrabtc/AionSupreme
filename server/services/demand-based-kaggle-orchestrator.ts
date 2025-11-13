@@ -30,6 +30,7 @@ import { tosComplianceMonitor } from './tos-compliance-monitor';
 import { kaggleAutomationService } from './kaggle-automation-service';
 import { secretsVault } from './security/secrets-vault';
 import { nanoid } from 'nanoid'; // ✅ FIX P0-1: For session tokens
+import { QUOTA_LIMITS } from '../config/quota-limits';
 
 interface StartOptions {
   reason: string;
@@ -141,7 +142,7 @@ export class DemandBasedKaggleOrchestrator {
             },
             autoManaged: true,
             maxSessionDurationSeconds: 9 * 3600,
-            maxWeeklySeconds: 28 * 3600,
+            maxWeeklySeconds: QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_SECONDS, // 70% of 30h Kaggle quota
             weeklyUsageHours: 0,
             dailyUsageHours: 0,
           }).returning();

@@ -94,7 +94,7 @@ export const QUOTA_LIMITS = {
     COLAB_COOLDOWN_REMAINING_HOURS: 6, // Warn when <6h remaining in cooldown
     
     // Kaggle thresholds (ON-DEMAND - weekly only)
-    KAGGLE_WEEKLY_PERCENT: 0.60,      // Warn at 60% (18h of 30h) - 10h before 28h limit
+    KAGGLE_WEEKLY_PERCENT: 0.60,      // Warn at 60% of 21h = 12.6h (8.4h before 21h limit)
   },
 
   /**
@@ -107,8 +107,8 @@ export const QUOTA_LIMITS = {
     COLAB_SESSION_PERCENT: 0.917,     // 91.7% of 12h = 11h 🔥 HARD STOP!
     COLAB_COOLDOWN_HOURS: 36,         // 36h minimum cooldown 🔥 STRICT ENFORCEMENT!
     
-    // Kaggle thresholds (ON-DEMAND - 28h/week only, NO daily limit)
-    KAGGLE_WEEKLY_PERCENT: 0.933,     // 93.3% of 30h = 28h 🔥 HARD STOP!
+    // Kaggle thresholds (ON-DEMAND - 21h/week only, NO daily limit)
+    KAGGLE_WEEKLY_PERCENT: 1.0,       // 100% of 21h = 21h 🔥 HARD STOP (21h is already 70% of 30h - ENTERPRISE STANDARD)!
   },
 };
 

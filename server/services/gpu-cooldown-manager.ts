@@ -5,7 +5,7 @@
  * Enforces ToS-compliant cooldown periods and quota limits for free GPU providers.
  * 
  * 🔥 ON-DEMAND STRATEGY (Architect-approved):
- * - Kaggle: 28h/week ONLY (NO daily limits - can use all 28h in one day!)
+ * - Kaggle: 21h/week ONLY (70% safety limit - can use all 21h in one day!)
  * - Colab: 36h cooldown between 11h sessions (3x/week, moderate risk)
  * 
  * FEATURES:
@@ -127,8 +127,8 @@ export class GPUCooldownManager {
   }
   
   /**
-   * Kaggle weekly quota enforcement (28h/week ON-DEMAND)
-   * ✅ NO daily limits - can use all 28h in one day if needed!
+   * Kaggle weekly quota enforcement (21h/week ON-DEMAND = 70% safety limit)
+   * ✅ NO daily limits - can use all 21h in one day if needed!
    */
   private async checkKaggleWeeklyQuota(worker: any): Promise<CooldownStatus> {
     const weeklyUsageHours = worker.weeklyUsageHours || 0;
@@ -139,7 +139,7 @@ export class GPUCooldownManager {
         workerId: worker.id,
         provider: 'kaggle',
         canStart: false,
-        reason: `Weekly limit reached - ${weeklyUsageHours.toFixed(2)}h of 28h used this week`,
+        reason: `Weekly limit reached - ${weeklyUsageHours.toFixed(2)}h of ${QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS}h used this week`,
         weeklyUsageHours,
         weeklyRemainingHours: 0,
       };
@@ -150,7 +150,7 @@ export class GPUCooldownManager {
       workerId: worker.id,
       provider: 'kaggle',
       canStart: true,
-      reason: `OK to start - ${weeklyRemainingHours.toFixed(2)}h of 28h remaining this week`,
+      reason: `OK to start - ${weeklyRemainingHours.toFixed(2)}h of ${QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS}h remaining this week`,
       weeklyUsageHours,
       weeklyRemainingHours,
     };
@@ -244,7 +244,7 @@ export class GPUCooldownManager {
         
         console.log(
           `[GPUCooldownManager] 📊 Kaggle usage updated - Worker ${workerId} ` +
-          `(+${durationHours.toFixed(2)}h → weekly: ${(currentWeeklyUsage + durationHours).toFixed(2)}h/28h)`
+          `(+${durationHours.toFixed(2)}h → weekly: ${(currentWeeklyUsage + durationHours).toFixed(2)}h/${QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS}h)`
         );
         
         return { success: true };

@@ -21,7 +21,7 @@
  * - KB Deduplication: Semanalmente (domingos 02:00 UTC)
  * 🔥 ON-DEMAND GPU JOBS:
  * - Training Queue Monitor: A cada 5min → Trigger Kaggle GPU se ≥25 KBs
- * - Weekly Quota Reset: Domingo 00:00 UTC → Reset weeklyUsageHours (28h/week ONLY)
+ * - Weekly Quota Reset: Domingo 00:00 UTC → Reset weeklyUsageHours (21h/week = 70% safety limit)
  * - Auto-Stop Detection: A cada 5min → Auto-stop após job completion
  * - GPU Idle Monitor: A cada 5min → Shutdown idle GPUs (10min threshold)
  */

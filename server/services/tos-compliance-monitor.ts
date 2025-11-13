@@ -11,7 +11,7 @@
  * MONITORED METRICS:
  * ✅ Colab session duration (11h limit)
  * ✅ Colab cooldown compliance (36h minimum)
- * ✅ Kaggle weekly quota (28h limit ON-DEMAND, NO daily limit)
+ * ✅ Kaggle weekly quota (21h limit ON-DEMAND = 70% safety, NO daily limit)
  * ✅ Session frequency patterns (detect abuse)
  * 
  * FEATURES:
@@ -210,7 +210,8 @@ export class ToSComplianceMonitor {
   
   /**
    * Monitor Kaggle compliance (ON-DEMAND weekly quota only)
-   * ❌ REMOVED daily limits - can use all 28h in one day if needed!
+   * ❌ REMOVED daily limits - can use all 21h in one day if needed!
+   * 🎯 ENTERPRISE STANDARD: 70% safety limit (21h/week of 30h Kaggle quota)
    */
   private async monitorKaggleCompliance(worker: any): Promise<ComplianceStatus> {
     const alerts: ComplianceAlert[] = [];
@@ -220,12 +221,12 @@ export class ToSComplianceMonitor {
     const now = new Date();
     
     // ❌ REMOVED: Daily limit checks (ON-DEMAND strategy)
-    // Only monitor weekly quota (28h/week)
+    // Only monitor weekly quota (21h/week = 70% of 30h)
     
-    const weeklyLimit = QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS;
+    const weeklyLimit = QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS; // 21h
     const weeklyUtilization = weeklyUsageHours / weeklyLimit;
     
-    // WARNING: 60% of 28h = 16.8h
+    // WARNING: 60% of 21h = 12.6h
     if (weeklyUtilization >= QUOTA_LIMITS.WARNING_THRESHOLDS.KAGGLE_WEEKLY_PERCENT && weeklyUtilization < QUOTA_LIMITS.SAFE_THRESHOLDS.KAGGLE_WEEKLY_PERCENT) {
       alerts.push({
         workerId: worker.id,
@@ -234,7 +235,7 @@ export class ToSComplianceMonitor {
         threshold: QUOTA_LIMITS.WARNING_THRESHOLDS.KAGGLE_WEEKLY_PERCENT,
         currentUsage: weeklyUsageHours,
         limit: weeklyLimit,
-        message: `Weekly quota approaching limit: ${weeklyUsageHours.toFixed(2)}h of 28h (${(weeklyUtilization * 100).toFixed(1)}%)`,
+        message: `Weekly quota approaching limit: ${weeklyUsageHours.toFixed(2)}h of ${weeklyLimit}h (${(weeklyUtilization * 100).toFixed(1)}%)`,
         timestamp: now,
         metric: 'weekly_usage',
       });
@@ -242,7 +243,7 @@ export class ToSComplianceMonitor {
       recommendations.push(`${(weeklyLimit - weeklyUsageHours).toFixed(2)}h remaining this week`);
     }
     
-    // CRITICAL: 93.3% of 30h = 28h (our safe limit)
+    // CRITICAL: 100% of 21h = 21h (70% of 30h Kaggle quota - ENTERPRISE STANDARD)
     if (weeklyUtilization >= QUOTA_LIMITS.SAFE_THRESHOLDS.KAGGLE_WEEKLY_PERCENT) {
       alerts.push({
         workerId: worker.id,
@@ -251,7 +252,7 @@ export class ToSComplianceMonitor {
         threshold: QUOTA_LIMITS.SAFE_THRESHOLDS.KAGGLE_WEEKLY_PERCENT,
         currentUsage: weeklyUsageHours,
         limit: weeklyLimit,
-        message: `Weekly limit reached: ${weeklyUsageHours.toFixed(2)}h of 28h - NO MORE THIS WEEK`,
+        message: `Weekly limit reached: ${weeklyUsageHours.toFixed(2)}h of ${weeklyLimit}h (70% safety limit) - NO MORE THIS WEEK`,
         timestamp: now,
         metric: 'weekly_usage',
       });

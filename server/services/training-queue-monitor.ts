@@ -8,20 +8,21 @@
  * - Monitors KB documents pending training
  * - Trigger: ≥25 KBs ready → Start Kaggle GPU
  * - No minimum duration requirement
- * - Respects 28h/week quota limit
+ * - Respects 21h/week quota limit (70% safety limit)
  * 
  * FEATURES:
  * ✅ Real-time queue monitoring
  * ✅ Smart trigger detection (≥25 KBs)
  * ✅ Batch workload estimation
  * ✅ GPU availability check before trigger
- * ✅ Quota-aware triggering (respects 28h/week)
+ * ✅ Quota-aware triggering (respects 21h/week = 70% safety limit)
  * ✅ Automatic GPU shutdown after batch completion
  */
 
 import { db } from '../db';
 import { documents } from '../../shared/schema';
 import { sql, and, isNull } from 'drizzle-orm';
+import { QUOTA_LIMITS } from '../config/quota-limits';
 
 interface TrainingQueueStatus {
   totalPending: number;
@@ -171,7 +172,11 @@ export class TrainingQueueMonitor {
       });
       
       if (kaggleWorkers.length === 0) {
-        return { hasQuota: true, usedHours: 0, remainingHours: 28 };
+        return { 
+          hasQuota: true, 
+          usedHours: 0, 
+          remainingHours: QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS 
+        };
       }
       
       // Sum weekly usage across all Kaggle workers
@@ -179,7 +184,7 @@ export class TrainingQueueMonitor {
         return sum + (worker.weeklyUsageHours || 0);
       }, 0);
       
-      const WEEKLY_LIMIT = 21; // 21h/week (70% of 30h Kaggle quota to avoid ban)
+      const WEEKLY_LIMIT = QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS; // 21h/week (70% of 30h Kaggle quota)
       const hasQuota = totalWeeklyUsage < WEEKLY_LIMIT;
       const remainingHours = Math.max(0, WEEKLY_LIMIT - totalWeeklyUsage);
       
@@ -199,12 +204,13 @@ export class TrainingQueueMonitor {
    */
   async prepareBatchJob(): Promise<BatchJob | null> {
     try {
-      // Get documents ready for training
+      // Get documents approved and ready for training
+      // CRITICAL FIX: Must query for status='approved' to get docs ready for training
       const readyKBs = await db
         .select()
         .from(documents)
         .where(
-          sql`${documents.status} != 'indexed' OR ${documents.updatedAt} > ${documents.createdAt}`
+          sql`${documents.status} = 'approved'`
         )
         .limit(100); // Process in batches of max 100
       

@@ -24,6 +24,8 @@
  * 4º OpenAI (último recurso)
  */
 
+import { QUOTA_LIMITS } from '../config/quota-limits';
+
 export type InferenceType = 
   | 'chat_simple'           // Simple chat, no KB
   | 'chat_kb_lookup'        // Chat with KB lookup
@@ -277,16 +279,17 @@ export class InferenceComplexityAnalyzer {
     
     if (kaggleWorkers.length > 0) {
       const totalWeeklyUsage = kaggleWorkers.reduce((sum, w) => sum + (w.weeklyUsageHours || 0), 0);
+      const weeklyLimit = QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_HOURS; // 21h
       
-      if (totalWeeklyUsage < 28) {
+      if (totalWeeklyUsage < weeklyLimit) {
         return {
           available: true,
-          reason: `Kaggle quota available (${(28 - totalWeeklyUsage).toFixed(1)}h remaining)`,
+          reason: `Kaggle quota available (${(weeklyLimit - totalWeeklyUsage).toFixed(1)}h remaining)`,
         };
       } else {
         return {
           available: false,
-          reason: 'Kaggle weekly quota exhausted (28h/week)',
+          reason: 'Kaggle weekly quota exhausted (21h/week = 70% safety limit)',
         };
       }
     }

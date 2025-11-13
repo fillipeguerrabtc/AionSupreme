@@ -699,7 +699,7 @@ This instruction takes ABSOLUTE PRIORITY.
     }
     
     // 🔥 CRITICAL FIX: Only try GPU if KB actually found relevant content
-    // GPU is expensive (28h/week quota), so we MUST verify KB has useful results first
+    // GPU is expensive (21h/week quota = 70% safety limit), so we MUST verify KB has useful results first
     shouldTryGPU = kbResult.topResults.length > 0 && kbResult.confidence >= 0.6;
     
     if (shouldTryGPU) {
