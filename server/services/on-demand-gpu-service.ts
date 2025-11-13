@@ -95,7 +95,7 @@ export class OnDemandGPUService {
       };
     }
 
-    logger.info('No healthy GPU found - starting new GPU on-demand');
+    logger.warn({ requireGPU }, '🆕 CREATING NEW GPU - No healthy/online workers found (this consumes quota!)');
 
     // Step 2: No healthy GPU → start new one
     const startResult = await this.startGPUOnDemand(preferences.preferProvider);
@@ -152,32 +152,57 @@ export class OnDemandGPUService {
 
   /**
    * Find existing healthy GPU worker
+   * 
+   * 🔥 CRITICAL FIX: Accept both 'healthy' AND 'online' status
+   * - 'healthy': Workers validated by heartbeat monitor
+   * - 'online': Workers just registered (manual or auto) but not yet heartbeat-checked
+   * 
+   * This enables IMMEDIATE REUSE of manually-created GPUs without waiting for heartbeat!
    */
   private async findHealthyGPU(requireGPU: boolean): Promise<typeof gpuWorkers.$inferSelect | null> {
-    const workers = await db.query.gpuWorkers.findMany({
-      where: eq(gpuWorkers.status, 'healthy'),
-    });
+    // Accept both 'healthy' and 'online' workers (fetch ALL, filter in-memory)
+    // Drizzle doesn't support OR in where clause easily, so we fetch all and filter
+    const workers = await db.query.gpuWorkers.findMany();
 
-    if (workers.length === 0) {
+    // Filter for healthy/online workers with valid ngrokUrl
+    const usableWorkers = workers.filter(w => 
+      ['healthy', 'online'].includes(w.status) &&
+      w.ngrokUrl &&
+      w.ngrokUrl !== 'pending' &&
+      !w.ngrokUrl.includes('placeholder')
+    );
+
+    if (usableWorkers.length === 0) {
       return null;
     }
 
     // Filter GPU workers if required
     if (requireGPU) {
-      const gpuWorkers = workers.filter(w => {
+      const gpuOnlyWorkers = usableWorkers.filter(w => {
         const capabilities = w.capabilities as any;
         return capabilities?.gpu && capabilities.gpu !== 'CPU';
       });
 
-      if (gpuWorkers.length === 0) {
+      if (gpuOnlyWorkers.length === 0) {
         return null;
       }
 
       // Return first available (could improve with load balancing)
-      return gpuWorkers[0];
+      logger.info({ 
+        workerId: gpuOnlyWorkers[0].id,
+        status: gpuOnlyWorkers[0].status,
+        provider: gpuOnlyWorkers[0].provider,
+      }, '♻️ REUSING EXISTING GPU (no new creation needed)');
+      
+      return gpuOnlyWorkers[0];
     }
 
-    return workers[0];
+    logger.info({ 
+      workerId: usableWorkers[0].id,
+      status: usableWorkers[0].status,
+    }, '♻️ REUSING EXISTING WORKER');
+    
+    return usableWorkers[0];
   }
 
   /**
@@ -226,6 +251,44 @@ export class OnDemandGPUService {
         success: false,
         reason: 'All GPU providers quota exceeded (Kaggle: 21h/week used, Colab: in cooldown)',
       };
+    }
+
+    // 🔥 PRODUCTION-GRADE GUARD: Check active Kaggle GPUs BEFORE starting new one
+    // Kaggle FREE tier: 1 GPU session active at a time (official limit)
+    // Source: https://www.kaggle.com/docs (verified 2025)
+    if (targetProvider === 'kaggle') {
+      const activeKaggleWorkers = await db.query.gpuWorkers.findMany({
+        where: and(
+          eq(gpuWorkers.provider, 'kaggle'),
+          // Consider 'provisioning', 'pending', 'online', 'healthy' as active
+          // Don't include 'offline', 'failed' (these are safe to replace)
+        ),
+      });
+
+      // Filter for truly active states
+      const activeCount = activeKaggleWorkers.filter(w =>
+        ['provisioning', 'pending', 'online', 'healthy'].includes(w.status)
+      ).length;
+
+      const MAX_CONCURRENT_KAGGLE = 1; // Kaggle FREE tier official limit (1 GPU session per account)
+
+      if (activeCount >= MAX_CONCURRENT_KAGGLE) {
+        logger.warn({
+          activeCount,
+          maxAllowed: MAX_CONCURRENT_KAGGLE,
+          workers: activeKaggleWorkers.map(w => ({ id: w.id, status: w.status })),
+        }, 'GUARD BLOCKED: Kaggle allows only 1 GPU session per account');
+
+        return {
+          success: false,
+          reason: `Kaggle FREE tier allows only ${MAX_CONCURRENT_KAGGLE} GPU session active (${activeCount} already running). Delete unused worker or wait for session to end.`,
+        };
+      }
+
+      logger.info({
+        activeCount,
+        maxAllowed: MAX_CONCURRENT_KAGGLE,
+      }, 'GUARD PASSED: No active Kaggle GPU - safe to create new session');
     }
 
     // CONCURRENCY GUARD (Kaggle ONLY):
