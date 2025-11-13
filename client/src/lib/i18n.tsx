@@ -586,6 +586,74 @@ interface Translations {
         manualButton: string;
       };
       
+      // NEW: Tabs Navigation
+      tabs: {
+        overview: string;
+        auth: string;
+        quotas: string;
+        timeline: string;
+        workersCount: string; // "Workers ({count})"
+      };
+      
+      // NEW: Auto-Refresh Configuration
+      autoRefresh: {
+        title: string;
+        description: string;
+        interval: string;
+        intervalOptions: {
+          tenSeconds: string;
+          thirtySeconds: string;
+          oneMinute: string;
+          fiveMinutes: string;
+        };
+        status: {
+          stale: string;
+          updated: string;
+        };
+      };
+      
+      // NEW: Authentication Section
+      auth: {
+        title: string;
+        description: string;
+        statusTitle: string;
+        accountsConnectedCount: string; // "{count} conta(s) conectada(s)"
+        addAccount: string;
+        connectAccount: string;
+        connectedAccountsTitle: string;
+        providers: string;
+        valid: string;
+        expired: string;
+      };
+      
+      // NEW: Quotas Section
+      quotas: {
+        title: string;
+        syncButton: string;
+        syncing: string;
+        emptyMessage: string;
+        emptyAction: string;
+      };
+      
+      // NEW: Usage History Section
+      usageHistory: {
+        title: string;
+        description: string;
+      };
+      
+      // NEW: Timeline Section
+      timeline: {
+        title: string;
+        description: string;
+        emptyMessage: string;
+      };
+      
+      // NEW: Time Templates
+      timeTemplates: {
+        week: string; // "Semana: {used}h / {max}h"
+        session: string; // "Sessão: {used}h / {max}h"
+      };
+      
       // Legacy fields (mantidos para compatibilidade)
       activeWorkers: string;
       totalGPUs: string;
@@ -2112,6 +2180,74 @@ const translations: Record<Language, Translations> = {
           manualButton: "Adicionar Worker Manual",
         },
         
+        // NEW: Tabs Navigation
+        tabs: {
+          overview: "Visão Geral",
+          auth: "Autenticação",
+          quotas: "Quotas",
+          timeline: "Timeline",
+          workersCount: "Workers ({count})",
+        },
+        
+        // NEW: Auto-Refresh Configuration
+        autoRefresh: {
+          title: "Configuração de Auto-Refresh",
+          description: "Frequência de atualização automática dos dados de quota",
+          interval: "Intervalo:",
+          intervalOptions: {
+            tenSeconds: "10 segundos",
+            thirtySeconds: "30 segundos",
+            oneMinute: "1 minuto",
+            fiveMinutes: "5 minutos",
+          },
+          status: {
+            stale: "Dados desatualizados (>10min)",
+            updated: "Dados atualizados",
+          },
+        },
+        
+        // NEW: Authentication Section
+        auth: {
+          title: "Autenticação Google (Kaggle + Colab)",
+          description: "Configure acesso seguro às plataformas de GPU via Google OAuth",
+          statusTitle: "Status de Autenticação",
+          accountsConnectedCount: "{count} conta(s) conectada(s)",
+          addAccount: "Adicionar Conta",
+          connectAccount: "Conectar Conta",
+          connectedAccountsTitle: "Contas Conectadas:",
+          providers: "Provedores:",
+          valid: "Válido",
+          expired: "Expirado",
+        },
+        
+        // NEW: Quotas Section
+        quotas: {
+          title: "Quotas de GPU em Tempo Real",
+          syncButton: "Sincronizar Agora",
+          syncing: "Sincronizando...",
+          emptyMessage: "Nenhuma quota disponível. Conecte uma conta Google para começar.",
+          emptyAction: "Conectar Conta Google",
+        },
+        
+        // NEW: Usage History Section
+        usageHistory: {
+          title: "Histórico de Uso",
+          description: "Gráfico de consumo de quota ao longo do tempo",
+        },
+        
+        // NEW: Timeline Section
+        timeline: {
+          title: "Timeline de Sessões",
+          description: "Visualização das sessões ativas, cooldowns e próximas disponibilidades",
+          emptyMessage: "Nenhuma sessão disponível. Conecte uma conta Google para visualizar a timeline.",
+        },
+        
+        // NEW: Time Templates
+        timeTemplates: {
+          week: "Semana: {used}h / {max}h",
+          session: "Sessão: {used}h / {max}h",
+        },
+        
         activeWorkers: "Workers Ativos",
         totalGPUs: "Total de GPUs",
         totalRequests: "Total de Requisições",
@@ -3612,6 +3748,74 @@ const translations: Record<Language, Translations> = {
           manualButton: "Add Manual Worker",
         },
         
+        // NEW: Tabs Navigation
+        tabs: {
+          overview: "Overview",
+          auth: "Authentication",
+          quotas: "Quotas",
+          timeline: "Timeline",
+          workersCount: "Workers ({count})",
+        },
+        
+        // NEW: Auto-Refresh Configuration
+        autoRefresh: {
+          title: "Auto-Refresh Configuration",
+          description: "Automatic quota data refresh frequency",
+          interval: "Interval:",
+          intervalOptions: {
+            tenSeconds: "10 seconds",
+            thirtySeconds: "30 seconds",
+            oneMinute: "1 minute",
+            fiveMinutes: "5 minutes",
+          },
+          status: {
+            stale: "Data stale (>10min)",
+            updated: "Data updated",
+          },
+        },
+        
+        // NEW: Authentication Section
+        auth: {
+          title: "Google Authentication (Kaggle + Colab)",
+          description: "Configure secure access to GPU platforms via Google OAuth",
+          statusTitle: "Authentication Status",
+          accountsConnectedCount: "{count} account(s) connected",
+          addAccount: "Add Account",
+          connectAccount: "Connect Account",
+          connectedAccountsTitle: "Connected Accounts:",
+          providers: "Providers:",
+          valid: "Valid",
+          expired: "Expired",
+        },
+        
+        // NEW: Quotas Section
+        quotas: {
+          title: "Real-Time GPU Quotas",
+          syncButton: "Sync Now",
+          syncing: "Syncing...",
+          emptyMessage: "No quota available. Connect a Google account to get started.",
+          emptyAction: "Connect Google Account",
+        },
+        
+        // NEW: Usage History Section
+        usageHistory: {
+          title: "Usage History",
+          description: "Quota consumption chart over time",
+        },
+        
+        // NEW: Timeline Section
+        timeline: {
+          title: "Session Timeline",
+          description: "Visualization of active sessions, cooldowns and next available slots",
+          emptyMessage: "No sessions available. Connect a Google account to view the timeline.",
+        },
+        
+        // NEW: Time Templates
+        timeTemplates: {
+          week: "Week: {used}h / {max}h",
+          session: "Session: {used}h / {max}h",
+        },
+        
         activeWorkers: "Active Workers",
         totalGPUs: "Total GPUs",
         totalRequests: "Total Requests",
@@ -5110,6 +5314,74 @@ const translations: Record<Language, Translations> = {
           kaggleButton: "Auto-Aprovisionar Kaggle",
           colabButton: "Auto-Aprovisionar Colab",
           manualButton: "Agregar Worker Manual",
+        },
+        
+        // NEW: Tabs Navigation
+        tabs: {
+          overview: "Visión General",
+          auth: "Autenticación",
+          quotas: "Cuotas",
+          timeline: "Cronología",
+          workersCount: "Workers ({count})",
+        },
+        
+        // NEW: Auto-Refresh Configuration
+        autoRefresh: {
+          title: "Configuración de Auto-Actualización",
+          description: "Frecuencia de actualización automática de datos de cuota",
+          interval: "Intervalo:",
+          intervalOptions: {
+            tenSeconds: "10 segundos",
+            thirtySeconds: "30 segundos",
+            oneMinute: "1 minuto",
+            fiveMinutes: "5 minutos",
+          },
+          status: {
+            stale: "Datos desactualizados (>10min)",
+            updated: "Datos actualizados",
+          },
+        },
+        
+        // NEW: Authentication Section
+        auth: {
+          title: "Autenticación Google (Kaggle + Colab)",
+          description: "Configure acceso seguro a plataformas GPU vía Google OAuth",
+          statusTitle: "Estado de Autenticación",
+          accountsConnectedCount: "{count} cuenta(s) conectada(s)",
+          addAccount: "Agregar Cuenta",
+          connectAccount: "Conectar Cuenta",
+          connectedAccountsTitle: "Cuentas Conectadas:",
+          providers: "Proveedores:",
+          valid: "Válido",
+          expired: "Expirado",
+        },
+        
+        // NEW: Quotas Section
+        quotas: {
+          title: "Cuotas GPU en Tiempo Real",
+          syncButton: "Sincronizar Ahora",
+          syncing: "Sincronizando...",
+          emptyMessage: "No hay cuota disponible. Conecta una cuenta de Google para comenzar.",
+          emptyAction: "Conectar Cuenta Google",
+        },
+        
+        // NEW: Usage History Section
+        usageHistory: {
+          title: "Historial de Uso",
+          description: "Gráfico de consumo de cuota a lo largo del tiempo",
+        },
+        
+        // NEW: Timeline Section
+        timeline: {
+          title: "Cronología de Sesiones",
+          description: "Visualización de sesiones activas, tiempos de espera y próximas disponibilidades",
+          emptyMessage: "No hay sesiones disponibles. Conecta una cuenta de Google para ver la cronología.",
+        },
+        
+        // NEW: Time Templates
+        timeTemplates: {
+          week: "Semana: {used}h / {max}h",
+          session: "Sesión: {used}h / {max}h",
         },
         
         activeWorkers: "Workers Activos",

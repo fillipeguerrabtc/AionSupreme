@@ -238,11 +238,19 @@ export default function GPUManagementTab() {
         if (worker.provider?.toLowerCase() === 'kaggle') {
           const weeklyUsedHours = (worker.quotaStatus.weeklyUsedSeconds || 0) / 3600;
           const weeklyMaxHours = (worker.quotaStatus.weeklyMaxSeconds || 75600) / 3600;
-          setTimeLeft(`Semana: ${weeklyUsedHours.toFixed(1)}h / ${weeklyMaxHours.toFixed(0)}h`);
+          setTimeLeft(
+            t.admin.gpuManagement.timeTemplates.week
+              .replace('{used}', weeklyUsedHours.toFixed(1))
+              .replace('{max}', weeklyMaxHours.toFixed(0))
+          );
         } else {
           const sessionRuntimeHours = worker.quotaStatus.sessionRuntimeSeconds / 3600;
           const maxSessionHours = worker.quotaStatus.maxSessionSeconds / 3600;
-          setTimeLeft(`Sessão: ${sessionRuntimeHours.toFixed(1)}h / ${maxSessionHours.toFixed(1)}h`);
+          setTimeLeft(
+            t.admin.gpuManagement.timeTemplates.session
+              .replace('{used}', sessionRuntimeHours.toFixed(1))
+              .replace('{max}', maxSessionHours.toFixed(1))
+          );
         }
       };
 
@@ -285,23 +293,23 @@ export default function GPUManagementTab() {
         <TabsList className="grid w-full grid-cols-5 gap-2">
           <TabsTrigger value="overview" data-testid="tab-overview">
             <TrendingUp className="w-4 h-4 mr-2" />
-            Visão Geral
+            {t.admin.gpuManagement.tabs.overview}
           </TabsTrigger>
           <TabsTrigger value="auth" data-testid="tab-auth">
             <Shield className="w-4 h-4 mr-2" />
-            Autenticação
+            {t.admin.gpuManagement.tabs.auth}
           </TabsTrigger>
           <TabsTrigger value="quotas" data-testid="tab-quotas">
             <Activity className="w-4 h-4 mr-2" />
-            Quotas
+            {t.admin.gpuManagement.tabs.quotas}
           </TabsTrigger>
           <TabsTrigger value="timeline" data-testid="tab-timeline">
             <Calendar className="w-4 h-4 mr-2" />
-            Timeline
+            {t.admin.gpuManagement.tabs.timeline}
           </TabsTrigger>
           <TabsTrigger value="workers" data-testid="tab-workers">
             <Server className="w-4 h-4 mr-2" />
-            Workers ({workers.length})
+            {t.admin.gpuManagement.tabs.workersCount.replace('{count}', String(workers.length))}
           </TabsTrigger>
         </TabsList>
 
@@ -357,15 +365,15 @@ export default function GPUManagementTab() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="w-5 h-5" />
-                Configuração de Auto-Refresh
+                {t.admin.gpuManagement.autoRefresh.title}
               </CardTitle>
               <CardDescription>
-                Frequência de atualização automática dos dados de quota
+                {t.admin.gpuManagement.autoRefresh.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center gap-4">
               <Label htmlFor="refresh-interval" className="whitespace-nowrap">
-                Intervalo:
+                {t.admin.gpuManagement.autoRefresh.interval}
               </Label>
               <Select
                 value={refreshInterval.toString()}
@@ -375,14 +383,14 @@ export default function GPUManagementTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="10">10 segundos</SelectItem>
-                  <SelectItem value="30">30 segundos</SelectItem>
-                  <SelectItem value="60">1 minuto</SelectItem>
-                  <SelectItem value="300">5 minutos</SelectItem>
+                  <SelectItem value="10">{t.admin.gpuManagement.autoRefresh.intervalOptions.tenSeconds}</SelectItem>
+                  <SelectItem value="30">{t.admin.gpuManagement.autoRefresh.intervalOptions.thirtySeconds}</SelectItem>
+                  <SelectItem value="60">{t.admin.gpuManagement.autoRefresh.intervalOptions.oneMinute}</SelectItem>
+                  <SelectItem value="300">{t.admin.gpuManagement.autoRefresh.intervalOptions.fiveMinutes}</SelectItem>
                 </SelectContent>
               </Select>
               <Badge variant="outline">
-                {quotaQuery.data?.isStale ? "Dados desatualizados (>10min)" : "Dados atualizados"}
+                {quotaQuery.data?.isStale ? t.admin.gpuManagement.autoRefresh.status.stale : t.admin.gpuManagement.autoRefresh.status.updated}
               </Badge>
             </CardContent>
           </Card>
@@ -394,16 +402,16 @@ export default function GPUManagementTab() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="w-5 h-5" />
-                Autenticação Google (Kaggle + Colab)
+                {t.admin.gpuManagement.auth.title}
               </CardTitle>
               <CardDescription>
-                Configure acesso seguro às plataformas de GPU via Google OAuth
+                {t.admin.gpuManagement.auth.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
-                  <h4 className="font-semibold">Status de Autenticação</h4>
+                  <h4 className="font-semibold">{t.admin.gpuManagement.auth.statusTitle}</h4>
                   <div className="flex items-center gap-2">
                     <AuthStatusBadge
                       status={
@@ -417,7 +425,7 @@ export default function GPUManagementTab() {
                     />
                     {googleAuth.sessions && googleAuth.sessions.length > 0 && (
                       <span className="text-sm text-muted-foreground">
-                        {googleAuth.sessions.length} conta(s) conectada(s)
+                        {t.admin.gpuManagement.auth.accountsConnectedCount.replace('{count}', String(googleAuth.sessions.length))}
                       </span>
                     )}
                   </div>
@@ -426,7 +434,7 @@ export default function GPUManagementTab() {
                   trigger={
                     <Button variant="default" data-testid="button-connect-google">
                       <Shield className="w-4 h-4 mr-2" />
-                      {googleAuth.hasKaggle || googleAuth.hasColab ? "Adicionar Conta" : "Conectar Conta"}
+                      {googleAuth.hasKaggle || googleAuth.hasColab ? t.admin.gpuManagement.auth.addAccount : t.admin.gpuManagement.auth.connectAccount}
                     </Button>
                   }
                 />
@@ -434,17 +442,17 @@ export default function GPUManagementTab() {
 
               {googleAuth.sessions && googleAuth.sessions.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-sm">Contas Conectadas:</h4>
+                  <h4 className="font-semibold text-sm">{t.admin.gpuManagement.auth.connectedAccountsTitle}</h4>
                   {googleAuth.sessions.map((session: any) => (
                     <div key={session.id} className="flex items-center justify-between p-3 border rounded-lg text-sm">
                       <div>
                         <p className="font-medium">{session.accountEmail}</p>
                         <p className="text-xs text-muted-foreground">
-                          Provedores: {session.providers.join(", ")}
+                          {t.admin.gpuManagement.auth.providers} {session.providers.join(", ")}
                         </p>
                       </div>
                       <Badge variant={session.isValid ? "default" : "destructive"}>
-                        {session.isValid ? "Válido" : "Expirado"}
+                        {session.isValid ? t.admin.gpuManagement.auth.valid : t.admin.gpuManagement.auth.expired}
                       </Badge>
                     </div>
                   ))}
@@ -457,7 +465,7 @@ export default function GPUManagementTab() {
         {/* TAB 3: QUOTAS */}
         <TabsContent value="quotas" className="space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Quotas de GPU em Tempo Real</h3>
+            <h3 className="text-lg font-semibold">{t.admin.gpuManagement.quotas.title}</h3>
             <Button
               variant="outline"
               size="sm"
@@ -466,7 +474,7 @@ export default function GPUManagementTab() {
               data-testid="button-sync-quotas"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? "Sincronizando..." : "Sincronizar Agora"}
+              {isSyncing ? t.admin.gpuManagement.quotas.syncing : t.admin.gpuManagement.quotas.syncButton}
             </Button>
           </div>
 
@@ -496,13 +504,13 @@ export default function GPUManagementTab() {
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <AlertTriangle className="w-12 h-12 text-muted-foreground opacity-50 mb-4" />
                   <p className="text-muted-foreground text-center">
-                    Nenhuma quota disponível. Conecte uma conta Google para começar.
+                    {t.admin.gpuManagement.quotas.emptyMessage}
                   </p>
                   <GoogleAuthDialog
                     trigger={
                       <Button variant="default" className="mt-4" data-testid="button-connect-google-from-quotas">
                         <Shield className="w-4 h-4 mr-2" />
-                        Conectar Conta Google
+                        {t.admin.gpuManagement.quotas.emptyAction}
                       </Button>
                     }
                   />
@@ -517,10 +525,10 @@ export default function GPUManagementTab() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5" />
-                  Histórico de Uso
+                  {t.admin.gpuManagement.usageHistory.title}
                 </CardTitle>
                 <CardDescription>
-                  Gráfico de consumo de quota ao longo do tempo
+                  {t.admin.gpuManagement.usageHistory.description}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -540,10 +548,10 @@ export default function GPUManagementTab() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Timeline de Sessões
+                {t.admin.gpuManagement.timeline.title}
               </CardTitle>
               <CardDescription>
-                Visualização das sessões ativas, cooldowns e próximas disponibilidades
+                {t.admin.gpuManagement.timeline.description}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -588,7 +596,7 @@ export default function GPUManagementTab() {
                 <div className="flex flex-col items-center justify-center py-12">
                   <Calendar className="w-12 h-12 text-muted-foreground opacity-50 mb-4" />
                   <p className="text-muted-foreground text-center">
-                    Nenhuma sessão disponível. Conecte uma conta Google para visualizar a timeline.
+                    {t.admin.gpuManagement.timeline.emptyMessage}
                   </p>
                 </div>
               )}
