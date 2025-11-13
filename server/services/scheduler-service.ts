@@ -777,6 +777,7 @@ export class SchedulerService {
     // 🔥 JOB 21: Auto-Curator Analysis Backfill - A cada 10min (P0.1 - Backfill missing autoAnalysis)
     // CRITICAL: Runs FIRST in pipeline to prevent processor seeing null autoAnalysis
     // Serialized execution prevents overlapping runs
+    // 🚨 TEMPORARIAMENTE DESABILITADO: Causando gasto excessivo OpenAI (todas free APIs falhando)
     this.register({
       name: 'auto-curator-analysis',
       schedule: '*/10 * * * *', // Every 10min
@@ -792,7 +793,7 @@ export class SchedulerService {
           logger.error(`❌ Auto-curator analysis error: ${error.message}`);
         }
       },
-      enabled: true,
+      enabled: false, // 🚨 DESABILITADO - Causando loop de gastos OpenAI
       runCount: 0,
       errorCount: 0,
     });
@@ -800,6 +801,7 @@ export class SchedulerService {
     // 🔥 JOB 22: Approval Promotion - A cada 5min (P0.2 - Promote approved → indexed docs)
     // Runs MORE FREQUENTLY than processor (5min vs 10min) for low latency
     // Mutex prevents double-processing
+    // 🚨 TEMPORARIAMENTE DESABILITADO: Aguardando fix de APIs gratuitas
     this.register({
       name: 'approval-promotion',
       schedule: '*/5 * * * *', // Every 5min
@@ -815,7 +817,7 @@ export class SchedulerService {
           logger.error(`❌ Approval promotion error: ${error.message}`);
         }
       },
-      enabled: true,
+      enabled: false, // 🚨 DESABILITADO - Evitar gastos desnecessários
       runCount: 0,
       errorCount: 0,
     });

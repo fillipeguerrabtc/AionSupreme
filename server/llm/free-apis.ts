@@ -316,9 +316,10 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      // ✅ 2025 OFFICIAL URL: api-inference.huggingface.co (NOT router.huggingface.co)
+      // 🚨 2025 MIGRATION: HuggingFace moved to router.huggingface.co (api-inference deprecated)
+      // https://router.huggingface.co/hf-inference is the new official endpoint
       const response = await fetch(
-        `https://api-inference.huggingface.co/models/${model}`,
+        `https://router.huggingface.co/hf-inference/models/${model}`,
         {
           method: 'POST',
           headers: {

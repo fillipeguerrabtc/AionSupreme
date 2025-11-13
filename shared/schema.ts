@@ -2295,7 +2295,7 @@ export const curationQueue = pgTable("curation_queue", {
   statusChangedAt: timestamp("status_changed_at"), // Timestamp when status changed
   expiresAt: timestamp("expires_at"), // Auto-deletion timestamp for rejected items (30 days after rejection)
   note: text("note"), // Admin notes (reason for rejection, etc.)
-  publishedId: varchar("published_id", { length: 50 }), // Document ID after approval
+  publishedId: integer("published_id"), // Document ID after approval - FK to documents table
   
   // Auto-quality score from chat ingestion (0-100)
   score: real("score"), // Quality score calculated by chat-ingestion.ts and quality-gates-enterprise.ts
