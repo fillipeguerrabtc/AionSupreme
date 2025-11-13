@@ -126,15 +126,15 @@ export default function GPUManagementTab() {
   });
 
   // Google Auth status
-  const { authStatus, isLoading: authLoading } = useGoogleAuth();
+  const googleAuth = useGoogleAuth();
 
   // Quota status with auto-refresh
-  const { quotaStatus, isStale, alertLevel } = useQuotaStatus({
-    pollingInterval: refreshInterval * 1000,
+  const quotaQuery = useQuotaStatus({
+    refreshInterval: refreshInterval * 1000,
   });
 
   // Manual sync mutation
-  const { syncNow, isSyncing } = useQuotaSync();
+  const { sync, isSyncing } = useQuotaSync();
 
   const workers: GpuWorker[] = (gpuData as any)?.workers || [];
   const stats: PoolStats = {
@@ -257,25 +257,27 @@ export default function GPUManagementTab() {
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* ALERT BANNER - Shows when quota > 70% */}
-      {quotaStatus && (
-        <>
-          {quotaStatus.kaggle && (
-            <QuotaAlertBanner
-              provider="kaggle"
-              quotaStatus={quotaStatus.kaggle}
-              onSync={() => syncNow()}
-              data-testid="quota-alert-kaggle"
-            />
-          )}
-          {quotaStatus.colab && (
-            <QuotaAlertBanner
-              provider="colab"
-              quotaStatus={quotaStatus.colab}
-              onSync={() => syncNow()}
-              data-testid="quota-alert-colab"
-            />
-          )}
-        </>
+      {quotaQuery.data?.kaggleAlert && quotaQuery.data.kaggleAlert.level !== 'normal' && (
+        <QuotaAlertBanner
+          level={quotaQuery.data.kaggleAlert.level as 'warning' | 'critical' | 'emergency'}
+          provider="kaggle"
+          percentage={quotaQuery.data.kaggleAlert.percentage}
+          message={quotaQuery.data.kaggleAlert.message}
+          onSync={sync}
+          t={t}
+          data-testid="alert-quota-kaggle"
+        />
+      )}
+      {quotaQuery.data?.colabAlert && quotaQuery.data.colabAlert.level !== 'normal' && (
+        <QuotaAlertBanner
+          level={quotaQuery.data.colabAlert.level as 'warning' | 'critical' | 'emergency'}
+          provider="colab"
+          percentage={quotaQuery.data.colabAlert.percentage}
+          message={quotaQuery.data.colabAlert.message}
+          onSync={sync}
+          t={t}
+          data-testid="alert-quota-colab"
+        />
       )}
 
       {/* TABS NAVIGATION */}
@@ -380,7 +382,7 @@ export default function GPUManagementTab() {
                 </SelectContent>
               </Select>
               <Badge variant="outline">
-                {isStale ? "Dados desatualizados (>10min)" : "Dados atualizados"}
+                {quotaQuery.data?.isStale ? "Dados desatualizados (>10min)" : "Dados atualizados"}
               </Badge>
             </CardContent>
           </Card>
@@ -404,14 +406,18 @@ export default function GPUManagementTab() {
                   <h4 className="font-semibold">Status de Autenticação</h4>
                   <div className="flex items-center gap-2">
                     <AuthStatusBadge
-                      hasKaggle={authStatus?.hasKaggle || false}
-                      hasColab={authStatus?.hasColab || false}
-                      isLoading={authLoading}
+                      status={
+                        googleAuth.hasKaggle || googleAuth.hasColab
+                          ? 'authenticated'
+                          : 'not_authenticated'
+                      }
+                      email={googleAuth.sessions[0]?.accountEmail}
+                      t={t}
                       data-testid="auth-status-badge"
                     />
-                    {authStatus?.sessions && authStatus.sessions.length > 0 && (
+                    {googleAuth.sessions && googleAuth.sessions.length > 0 && (
                       <span className="text-sm text-muted-foreground">
-                        {authStatus.sessions.length} conta(s) conectada(s)
+                        {googleAuth.sessions.length} conta(s) conectada(s)
                       </span>
                     )}
                   </div>
@@ -420,16 +426,16 @@ export default function GPUManagementTab() {
                   trigger={
                     <Button variant="default" data-testid="button-connect-google">
                       <Shield className="w-4 h-4 mr-2" />
-                      {authStatus?.hasKaggle || authStatus?.hasColab ? "Adicionar Conta" : "Conectar Conta"}
+                      {googleAuth.hasKaggle || googleAuth.hasColab ? "Adicionar Conta" : "Conectar Conta"}
                     </Button>
                   }
                 />
               </div>
 
-              {authStatus?.sessions && authStatus.sessions.length > 0 && (
+              {googleAuth.sessions && googleAuth.sessions.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="font-semibold text-sm">Contas Conectadas:</h4>
-                  {authStatus.sessions.map((session: any) => (
+                  {googleAuth.sessions.map((session: any) => (
                     <div key={session.id} className="flex items-center justify-between p-3 border rounded-lg text-sm">
                       <div>
                         <p className="font-medium">{session.accountEmail}</p>
@@ -455,7 +461,7 @@ export default function GPUManagementTab() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => syncNow()}
+              onClick={() => sync()}
               disabled={isSyncing}
               data-testid="button-sync-quotas"
             >
@@ -465,23 +471,27 @@ export default function GPUManagementTab() {
           </div>
 
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-            {quotaStatus?.kaggle && (
+            {quotaQuery.data?.kaggle && (
               <QuotaProviderCard
                 provider="kaggle"
-                quotaData={quotaStatus.kaggle}
-                isStale={isStale}
-                data-testid="quota-card-kaggle"
+                quotaData={quotaQuery.data.kaggle}
+                alertLevel={quotaQuery.data.kaggleAlert?.level || 'normal'}
+                isStale={quotaQuery.data.isStale || false}
+                t={t}
+                data-testid="card-quota-kaggle"
               />
             )}
-            {quotaStatus?.colab && (
+            {quotaQuery.data?.colab && (
               <QuotaProviderCard
                 provider="colab"
-                quotaData={quotaStatus.colab}
-                isStale={isStale}
-                data-testid="quota-card-colab"
+                quotaData={quotaQuery.data.colab}
+                alertLevel={quotaQuery.data.colabAlert?.level || 'normal'}
+                isStale={quotaQuery.data.isStale || false}
+                t={t}
+                data-testid="card-quota-colab"
               />
             )}
-            {!quotaStatus?.kaggle && !quotaStatus?.colab && (
+            {!quotaQuery.data?.kaggle && !quotaQuery.data?.colab && (
               <Card className="glass-premium border-accent/20 col-span-2">
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <AlertTriangle className="w-12 h-12 text-muted-foreground opacity-50 mb-4" />
@@ -502,7 +512,7 @@ export default function GPUManagementTab() {
           </div>
 
           {/* Usage Charts */}
-          {(quotaStatus?.kaggle || quotaStatus?.colab) && (
+          {(quotaQuery.data?.kaggle || quotaQuery.data?.colab) && (
             <Card className="glass-premium border-accent/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -514,7 +524,11 @@ export default function GPUManagementTab() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <UsageChart provider="kaggle" data-testid="usage-chart-kaggle" />
+                <UsageChart 
+                  data={[]} 
+                  t={t}
+                  data-testid="chart-usage" 
+                />
               </CardContent>
             </Card>
           )}
@@ -533,11 +547,42 @@ export default function GPUManagementTab() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {(quotaStatus?.kaggle || quotaStatus?.colab) ? (
+              {(quotaQuery.data?.kaggle || quotaQuery.data?.colab) ? (
                 <SessionTimeline
-                  kaggleQuota={quotaStatus?.kaggle}
-                  colabQuota={quotaStatus?.colab}
-                  data-testid="session-timeline"
+                  sessions={[
+                    quotaQuery.data?.kaggle && {
+                      provider: 'kaggle' as const,
+                      status: (() => {
+                        const q = quotaQuery.data.kaggle.quotaData;
+                        if (!q) return 'idle' as const;
+                        if (q.inCooldown) return 'cooldown' as const;
+                        if (q.sessionRemainingHours && q.sessionRemainingHours > 0) return 'active' as const;
+                        if (q.canStart) return 'available' as const;
+                        return 'idle' as const;
+                      })(),
+                      sessionRemaining: quotaQuery.data.kaggle.quotaData?.sessionRemainingHours,
+                      cooldownRemaining: quotaQuery.data.kaggle.quotaData?.cooldownRemainingHours,
+                      canStart: quotaQuery.data.kaggle.quotaData?.canStart,
+                      shouldStop: quotaQuery.data.kaggle.quotaData?.shouldStop,
+                    },
+                    quotaQuery.data?.colab && {
+                      provider: 'colab' as const,
+                      status: (() => {
+                        const q = quotaQuery.data.colab.quotaData;
+                        if (!q) return 'idle' as const;
+                        if (q.inCooldown) return 'cooldown' as const;
+                        if (q.sessionRemainingHours && q.sessionRemainingHours > 0) return 'active' as const;
+                        if (q.canStart) return 'available' as const;
+                        return 'idle' as const;
+                      })(),
+                      sessionRemaining: quotaQuery.data.colab.quotaData?.sessionRemainingHours,
+                      cooldownRemaining: quotaQuery.data.colab.quotaData?.cooldownRemainingHours,
+                      canStart: quotaQuery.data.colab.quotaData?.canStart,
+                      shouldStop: quotaQuery.data.colab.quotaData?.shouldStop,
+                    },
+                  ].filter(Boolean) as any[]}
+                  t={t}
+                  data-testid="timeline-sessions"
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center py-12">
