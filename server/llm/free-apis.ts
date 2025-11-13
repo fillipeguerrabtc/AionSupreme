@@ -139,12 +139,27 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
       const completionTokens = data.usage?.completion_tokens || 0;
       const totalTokens = data.usage?.total_tokens || 0;
       
-      // ✅ CRITICAL: Update provider limits from REAL headers (non-blocking, never fail response)
+      // ✅ CRITICAL: Update REAL quota from Groq headers
       try {
-        const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
-        await providerLimitsTracker.updateGroqLimits(headers);
+        const { realQuotaSync } = await import('../monitoring/real-quota-sync');
+        const requestsRemaining = parseInt(headers['x-ratelimit-remaining-requests'] || '0');
+        const tokensRemaining = parseInt(headers['x-ratelimit-remaining-tokens'] || '0');
+        const requestsLimit = parseInt(headers['x-ratelimit-limit-requests'] || '500000');
+        const tokensLimit = parseInt(headers['x-ratelimit-limit-tokens'] || '500000');
+        
+        await import('../db').then(({ db }) =>
+          db.execute(import('drizzle-orm/sql').then(({ sql }) => sql`
+            UPDATE llm_provider_quotas 
+            SET daily_request_limit = ${requestsLimit},
+                request_count = ${requestsLimit - requestsRemaining},
+                daily_token_limit = ${tokensLimit},
+                token_count = ${tokensLimit - tokensRemaining},
+                last_reset = NOW()
+            WHERE provider = 'groq'
+          `))
+        );
       } catch (trackerError: any) {
-        log.warn({ component: 'groq', error: trackerError.message }, 'Failed to update provider limits (non-critical)');
+        log.warn({ component: 'groq', error: trackerError.message }, 'Failed to update real quota (non-critical)');
       }
       
       // ✅ PRODUCTION: Track quota in PostgreSQL
