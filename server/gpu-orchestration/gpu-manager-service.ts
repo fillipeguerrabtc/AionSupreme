@@ -110,7 +110,8 @@ export class GPUManagerService {
     const maxSessionSeconds = isGPU 
       ? GPU_QUOTA_CONSTANTS.KAGGLE_GPU_SAFETY 
       : GPU_QUOTA_CONSTANTS.KAGGLE_CPU_SAFETY;
-    const maxWeeklySeconds = GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY;
+    // 🔥 CRITICAL: Only GPU workers get weekly quota (30h shared between GPU+CPU per account)
+    const maxWeeklySeconds = isGPU ? GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY : null;
 
     const providerLimits = {
       max_session_hours: isGPU ? 12 : 9,  // Official limits (informational)

@@ -126,10 +126,12 @@ export function registerGpuRoutes(app: Router) {
       
       // 🔥 CRITICAL: Use centralized constants to enforce 70% safety (prevent BAN!)
       const isKaggle = detectedProvider.includes('kaggle');
+      const isGPU = gpuType && gpuType.toLowerCase() !== 'cpu';
       const maxSessionSeconds = isKaggle 
-        ? GPU_QUOTA_CONSTANTS.KAGGLE_GPU_SAFETY 
+        ? (isGPU ? GPU_QUOTA_CONSTANTS.KAGGLE_GPU_SAFETY : GPU_QUOTA_CONSTANTS.KAGGLE_CPU_SAFETY)
         : GPU_QUOTA_CONSTANTS.COLAB_SAFETY;
-      const maxWeeklySeconds = isKaggle ? GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY : null;
+      // 🔥 CRITICAL: Only Kaggle GPU workers get weekly quota (CPU workers share but don't need separate tracking)
+      const maxWeeklySeconds = (isKaggle && isGPU) ? GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY : null;
       
       const workerData = {
         provider: platform || type || "colab",
@@ -207,10 +209,13 @@ export function registerGpuRoutes(app: Router) {
       
       // 🔥 CRITICAL: Use centralized constants to enforce 70% safety (prevent BAN!)
       const isKaggle = detectedProvider.includes('kaggle');
+      const gpuType = capabilities?.gpu || "Tesla T4";
+      const isGPU = gpuType && gpuType.toLowerCase() !== 'cpu';
       const maxSessionSeconds = isKaggle 
-        ? GPU_QUOTA_CONSTANTS.KAGGLE_GPU_SAFETY 
+        ? (isGPU ? GPU_QUOTA_CONSTANTS.KAGGLE_GPU_SAFETY : GPU_QUOTA_CONSTANTS.KAGGLE_CPU_SAFETY)
         : GPU_QUOTA_CONSTANTS.COLAB_SAFETY;
-      const maxWeeklySeconds = isKaggle ? GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY : null;
+      // 🔥 CRITICAL: Only Kaggle GPU workers get weekly quota (CPU workers share but don't need separate tracking)
+      const maxWeeklySeconds = (isKaggle && isGPU) ? GPU_QUOTA_CONSTANTS.KAGGLE_WEEKLY_SAFETY : null;
       
       const workerData = {
         provider: provider || "colab",
