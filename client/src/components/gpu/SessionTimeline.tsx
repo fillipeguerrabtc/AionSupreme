@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, Play, Pause, AlertTriangle } from 'lucide-react';
 import { CountdownTimer } from '../gpu/CountdownTimer';
 
-interface SessionState {
+export interface SessionState {
   provider: 'kaggle' | 'colab';
   status: 'idle' | 'active' | 'cooldown' | 'available';
   sessionRemaining?: number; // hours
@@ -28,7 +28,7 @@ interface SessionState {
   shouldStop?: boolean;
 }
 
-interface SessionTimelineProps {
+export interface SessionTimelineProps {
   sessions: SessionState[];
   t: (key: string) => string;
 }

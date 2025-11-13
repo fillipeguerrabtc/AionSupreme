@@ -45,7 +45,7 @@ import { AddWorkerDialog } from "@/components/admin/AddWorkerDialog";
 import { EditWorkerDialog } from "@/components/admin/EditWorkerDialog";
 import { GoogleAuthDialog } from "@/components/gpu/GoogleAuthDialog";
 import { QuotaProviderCard } from "@/components/gpu/QuotaProviderCard";
-import { SessionTimeline } from "@/components/gpu/SessionTimeline";
+import { SessionTimeline, SessionTimelineProps } from "@/components/gpu/SessionTimeline";
 import { UsageChart } from "@/components/gpu/UsageChart";
 import { AuthStatusBadge } from "@/components/gpu/AuthStatusBadge";
 import { QuotaAlertBanner } from "@/components/gpu/QuotaAlertBanner";
@@ -555,44 +555,65 @@ export default function GPUManagementTab() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {(quotaQuery.data?.kaggle || quotaQuery.data?.colab) ? (
-                <SessionTimeline
-                  sessions={[
-                    quotaQuery.data?.kaggle && {
-                      provider: 'kaggle' as const,
-                      status: (() => {
-                        const q = quotaQuery.data.kaggle.quotaData;
-                        if (!q) return 'idle' as const;
-                        if (q.inCooldown) return 'cooldown' as const;
-                        if (q.sessionRemainingHours && q.sessionRemainingHours > 0) return 'active' as const;
-                        if (q.canStart) return 'available' as const;
-                        return 'idle' as const;
-                      })(),
-                      sessionRemaining: quotaQuery.data.kaggle.quotaData?.sessionRemainingHours,
-                      cooldownRemaining: quotaQuery.data.kaggle.quotaData?.cooldownRemainingHours,
-                      canStart: quotaQuery.data.kaggle.quotaData?.canStart,
-                      shouldStop: quotaQuery.data.kaggle.quotaData?.shouldStop,
-                    },
-                    quotaQuery.data?.colab && {
-                      provider: 'colab' as const,
-                      status: (() => {
-                        const q = quotaQuery.data.colab.quotaData;
-                        if (!q) return 'idle' as const;
-                        if (q.inCooldown) return 'cooldown' as const;
-                        if (q.sessionRemainingHours && q.sessionRemainingHours > 0) return 'active' as const;
-                        if (q.canStart) return 'available' as const;
-                        return 'idle' as const;
-                      })(),
-                      sessionRemaining: quotaQuery.data.colab.quotaData?.sessionRemainingHours,
-                      cooldownRemaining: quotaQuery.data.colab.quotaData?.cooldownRemainingHours,
-                      canStart: quotaQuery.data.colab.quotaData?.canStart,
-                      shouldStop: quotaQuery.data.colab.quotaData?.shouldStop,
-                    },
-                  ].filter(Boolean) as any[]}
-                  t={t}
-                  data-testid="timeline-sessions"
-                />
-              ) : (
+              {(quotaQuery.data?.kaggle || quotaQuery.data?.colab) ? (() => {
+                const sessions: SessionTimelineProps['sessions'] = [];
+
+                if (quotaQuery.data?.kaggle) {
+                  const q = quotaQuery.data.kaggle.quotaData;
+                  let status: 'idle' | 'active' | 'cooldown' | 'available' = 'idle';
+                  
+                  if (q) {
+                    if (q.inCooldown) {
+                      status = 'cooldown';
+                    } else if (q.sessionRemainingHours && q.sessionRemainingHours > 0) {
+                      status = 'active';
+                    } else if (q.canStart) {
+                      status = 'available';
+                    }
+                  }
+
+                  sessions.push({
+                    provider: 'kaggle',
+                    status,
+                    sessionRemaining: quotaQuery.data.kaggle.quotaData?.sessionRemainingHours,
+                    cooldownRemaining: quotaQuery.data.kaggle.quotaData?.cooldownRemainingHours,
+                    canStart: quotaQuery.data.kaggle.quotaData?.canStart,
+                    shouldStop: quotaQuery.data.kaggle.quotaData?.shouldStop,
+                  });
+                }
+
+                if (quotaQuery.data?.colab) {
+                  const q = quotaQuery.data.colab.quotaData;
+                  let status: 'idle' | 'active' | 'cooldown' | 'available' = 'idle';
+                  
+                  if (q) {
+                    if (q.inCooldown) {
+                      status = 'cooldown';
+                    } else if (q.sessionRemainingHours && q.sessionRemainingHours > 0) {
+                      status = 'active';
+                    } else if (q.canStart) {
+                      status = 'available';
+                    }
+                  }
+
+                  sessions.push({
+                    provider: 'colab',
+                    status,
+                    sessionRemaining: quotaQuery.data.colab.quotaData?.sessionRemainingHours,
+                    cooldownRemaining: quotaQuery.data.colab.quotaData?.cooldownRemainingHours,
+                    canStart: quotaQuery.data.colab.quotaData?.canStart,
+                    shouldStop: quotaQuery.data.colab.quotaData?.shouldStop,
+                  });
+                }
+
+                return (
+                  <SessionTimeline
+                    sessions={sessions}
+                    t={t}
+                    data-testid="timeline-sessions"
+                  />
+                );
+              })() : (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Calendar className="w-12 h-12 text-muted-foreground opacity-50 mb-4" />
                   <p className="text-muted-foreground text-center">
