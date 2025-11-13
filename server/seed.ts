@@ -42,6 +42,7 @@ export async function seedDatabase() {
         slug: "curator",
         type: "specialist",
         agentTier: "agent",
+        isSystemAgent: true,
         assignedNamespaces: ["curation"],
         description: "Agente especializado em curadoria de conhecimento. Analisa qualidade, relevância e segurança de conteúdo submetido à Knowledge Base.",
         systemPrompt: `Você é um agente especializado em curadoria de conhecimento para AION. Sua função é avaliar conteúdo submetido à KB com rigor técnico e ético.

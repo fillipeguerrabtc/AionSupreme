@@ -216,6 +216,8 @@ export class NamespaceGarbageCollector {
         .select({
           id: agentsTable.id,
           name: agentsTable.name,
+          slug: agentsTable.slug,
+          isSystemAgent: agentsTable.isSystemAgent,
           assignedNamespaces: agentsTable.assignedNamespaces,
         })
         .from(agentsTable);
@@ -231,6 +233,11 @@ export class NamespaceGarbageCollector {
       const orphaned: Array<{ id: string; name: string; assignedNamespaces: string[] }> = [];
 
       for (const agent of allAgents) {
+        // CRITICAL: Never delete system agents (Curator, etc.) regardless of namespace validity
+        if (agent.isSystemAgent || agent.slug === "curator") {
+          continue;
+        }
+
         // Skip agents without assigned namespaces
         if (!agent.assignedNamespaces || agent.assignedNamespaces.length === 0) {
           continue;
