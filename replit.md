@@ -6,6 +6,12 @@ AION is an enterprise-grade autonomous AI system designed for robustness, flexib
 ## User Preferences
 Estilo de comunicação preferido: Linguagem simples e cotidiana.
 
+**🎯 PRIORIDADE ABSOLUTA: QUALIDADE > VELOCIDADE**
+- **NUNCA economizar tokens ou tomar atalhos** - Economizar tokens gera retrabalho e custos superiores no futuro
+- **NUNCA deixar atividades incompletas ou superficiais** - Cada tarefa deve ser 100% enterprise-grade desde o início
+- **SEMPRE revisar lista completa antes de finalizar** - Garantir que nenhuma tarefa ficou superficial ou incompleta
+- **SEMPRE verificar se implementação está completa** - Zero tolerância para "MVP", "placeholder", "TODO", "FIXME"
+
 **REGRA FUNDAMENTAL DE TRABALHO:**
 1. **SEMPRE responda dúvidas do usuário primeiro**
 2. **SEMPRE continue tarefas em andamento até o final**

@@ -609,10 +609,8 @@ export function registerGpuRoutes(app: Router) {
             
             enrichedQuota = {
               ...quotaStatus,
-              // Session fields (both Kaggle and Colab)
-              sessionTotalSeconds: quotaStatus.maxSessionSeconds,
-              sessionUsedSeconds: quotaStatus.sessionRuntimeSeconds,
-              sessionRemainingSeconds: quotaStatus.remainingSessionSeconds,
+              // Session fields already included in quotaStatus
+              // (maxSessionSeconds, sessionRuntimeSeconds, remainingSessionSeconds)
               
               // Weekly fields (Kaggle only)
               ...(isKaggle && quotaStatus.weeklyMaxSeconds ? {
@@ -1759,10 +1757,8 @@ export function registerGpuRoutes(app: Router) {
       const { CookieSessionService } = await import('../gpu-orchestration/cookie-session-service');
       const cookieSessionService = new CookieSessionService();
 
-      await cookieSessionService.saveCookies(accountEmail, cookies, {
-        providers: [provider],
-        userAgent: userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
-      });
+      // saveCookies signature: (email, name, cookies)
+      await cookieSessionService.saveCookies(accountEmail, accountEmail, cookies);
 
       res.json({
         success: true,
@@ -1774,6 +1770,51 @@ export function registerGpuRoutes(app: Router) {
 
     } catch (error: any) {
       log.error({ component: 'google-auth', error: error.message }, 'Error saving cookies');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/gpu/auth-google/status
+   * Get Google OAuth session status (authentication state)
+   * Returns: sessions, hasKaggle, hasColab
+   */
+  app.get("/api/gpu/auth-google/status", async (req: Request, res: Response) => {
+    try {
+      log.info({ component: 'google-auth-status' }, 'Fetching auth session status');
+
+      const { db } = await import('../db');
+      const { googleAuthSessions } = await import('../../shared/schema');
+      const { desc } = await import('drizzle-orm');
+
+      // Get all active Google auth sessions
+      const sessions = await db
+        .select()
+        .from(googleAuthSessions)
+        .orderBy(desc(googleAuthSessions.lastValidated));
+
+      // Check which providers are authenticated
+      const hasKaggle = sessions.some(s => s.providers.includes('kaggle'));
+      const hasColab = sessions.some(s => s.providers.includes('colab'));
+
+      res.json({
+        success: true,
+        sessions: sessions.map(s => ({
+          id: s.id,
+          accountEmail: s.accountEmail,
+          accountName: s.accountName,
+          providers: s.providers,
+          isValid: s.isValid,
+          lastValidated: s.lastValidated,
+          expiresAt: s.expiresAt,
+          createdAt: s.createdAt,
+        })),
+        hasKaggle,
+        hasColab,
+      });
+
+    } catch (error: any) {
+      log.error({ component: 'google-auth-status', error: error.message }, 'Error fetching auth status');
       res.status(500).json({ error: error.message });
     }
   });
@@ -1849,35 +1890,18 @@ export function registerGpuRoutes(app: Router) {
       const { QuotaSyncService } = await import('../gpu-orchestration/quota-sync-service');
       const quotaSyncService = new QuotaSyncService();
 
-      const results = {
-        kaggle: null as any,
-        colab: null as any,
-      };
-
-      // Sync Kaggle if requested
-      if (!provider || provider === 'kaggle') {
-        try {
-          results.kaggle = await quotaSyncService.syncKaggleQuota(accountEmail);
-        } catch (error: any) {
-          log.error({ component: 'quota-sync', provider: 'kaggle', error: error.message }, 'Kaggle sync failed');
-          results.kaggle = { success: false, error: error.message };
-        }
-      }
-
-      // Sync Colab if requested
-      if (!provider || provider === 'colab') {
-        try {
-          results.colab = await quotaSyncService.syncColabQuota(accountEmail);
-        } catch (error: any) {
-          log.error({ component: 'quota-sync', provider: 'colab', error: error.message }, 'Colab sync failed');
-          results.colab = { success: false, error: error.message };
-        }
-      }
+      // Sync all providers (Kaggle + Colab)
+      const results = await quotaSyncService.syncAll();
 
       res.json({
         success: true,
         message: 'Quota sync completed',
-        results,
+        results: {
+          total: results.length,
+          successful: results.filter(r => r.success).length,
+          failed: results.filter(r => !r.success).length,
+          details: results,
+        },
       });
 
     } catch (error: any) {
