@@ -202,7 +202,7 @@ export class AutoTrainingTrigger {
         description: `Treino automático com ${dataset.examplesCount} exemplos (modo: ${config.mode})`,
         model: "llama3-8b", // Default model
         datasetId: dataset.datasetId,
-        status: "pending",
+        status: "queued",
         config: {
           // LoRA configuration (parameter-efficient fine-tuning)
           lora: {
