@@ -774,6 +774,83 @@ export class SchedulerService {
       errorCount: 0,
     });
 
+    // 🔥 JOB 21: Auto-Curator Analysis Backfill - A cada 10min (P0.1 - Backfill missing autoAnalysis)
+    // CRITICAL: Runs FIRST in pipeline to prevent processor seeing null autoAnalysis
+    // Serialized execution prevents overlapping runs
+    this.register({
+      name: 'auto-curator-analysis',
+      schedule: '*/10 * * * *', // Every 10min
+      task: async () => {
+        try {
+          logger.info('🤖 Starting auto-curator analysis backfill...');
+          
+          const { autoCuratorAnalysisWorker } = await import('./auto-curator-analysis-worker');
+          const results = await autoCuratorAnalysisWorker.run();
+          
+          logger.info(`✅ Analysis backfill complete: ${results.processed} processed, ${results.analyzed} analyzed, ${results.failed} failed`);
+        } catch (error: any) {
+          logger.error(`❌ Auto-curator analysis error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 22: Approval Promotion - A cada 5min (P0.2 - Promote approved → indexed docs)
+    // Runs MORE FREQUENTLY than processor (5min vs 10min) for low latency
+    // Mutex prevents double-processing
+    this.register({
+      name: 'approval-promotion',
+      schedule: '*/5 * * * *', // Every 5min
+      task: async () => {
+        try {
+          logger.info('📝 Starting approval promotion...');
+          
+          const { approvalPromotionWorker } = await import('./approval-promotion-worker');
+          const results = await approvalPromotionWorker.run();
+          
+          logger.info(`✅ Approval promotion complete: ${results.promoted} promoted, ${results.duplicates} duplicates, ${results.failed} failed`);
+        } catch (error: any) {
+          logger.error(`❌ Approval promotion error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 23: Kaggle Quota Sync - A cada 30min (P1 - Hybrid strategy)
+    // Syncs real quota from Kaggle CLI to DB for UI display
+    // Scheduled sync (30min) + on-demand cached reads (5min TTL) balances accuracy vs API load
+    this.register({
+      name: 'kaggle-quota-sync',
+      schedule: '*/30 * * * *', // Every 30min
+      task: async () => {
+        try {
+          logger.info('📊 Starting Kaggle quota sync...');
+          
+          const { kaggleCLIService } = await import('./kaggle-cli-service');
+          const realQuota = await kaggleCLIService.fetchRealKaggleQuota();
+          
+          if (realQuota.success) {
+            logger.info(`✅ Kaggle quota sync: ${realQuota.quotaUsedHours}h / ${realQuota.quotaLimitHours}h (${realQuota.percentUsed}%)`);
+            
+            // Compare with heartbeat tracking for accuracy validation
+            const comparison = await kaggleCLIService.compareQuotaTracking();
+            logger.info(`📊 Quota accuracy: ${comparison.accuracy}`);
+          } else {
+            logger.warn(`⚠️ Kaggle quota sync failed: ${realQuota.error}`);
+          }
+        } catch (error: any) {
+          logger.error(`❌ Kaggle quota sync error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
     logger.info(`SchedulerService: ${this.jobs.size} jobs registrados`);
   }
 

@@ -20,6 +20,7 @@ import { eq, desc } from "drizzle-orm";
 import { datasetSplitter } from "../federated/dataset-splitter";
 import { gradientAggregator } from "../federated/gradient-aggregator";
 import { getMetaLearningConfig } from "./meta-learning-config";
+import { onDemandGPUService } from "../services/on-demand-gpu-service"; // 🔥 FIX: Import singleton at module scope
 
 interface TrainingConfig {
   model: string;
@@ -128,12 +129,29 @@ export class AutoTrainingTrigger {
 
       console.log(`   ✅ Threshold atingido! (${pendingKBItems} >= ${threshold} KB items)`);
 
-      // CONDIÇÃO 2: Verificar GPUs disponíveis
-      const onlineWorkers = await GPUPool.getOnlineWorkers();
+      // CONDIÇÃO 2: Verificar GPUs disponíveis + AUTO-START
+      let onlineWorkers = await GPUPool.getOnlineWorkers();
       
       if (onlineWorkers.length === 0) {
-        console.log("   ⚠ Nenhuma GPU online - aguardando workers");
-        return;
+        console.log("   ⚠ Nenhuma GPU online - ativando GPU on-demand...");
+        
+        // 🔥 P0.3: AUTO-START GPU INTEGRATION (using singleton imported at module scope)
+        const result = await onDemandGPUService.ensureGPUAvailable({
+          preferProvider: 'kaggle', // Preferir Kaggle (70% quota = 21h/week)
+          requireGPU: true,
+          maxWaitMs: 180000, // 3min timeout (GPU leva ~60-90s para registrar)
+        });
+        
+        if (!result.available) {
+          console.log(`   ❌ Falha ao ativar GPU: ${result.reason}`);
+          console.log("   ⏸️  Aguardando próximo ciclo...");
+          return;
+        }
+        
+        console.log(`   ✅ GPU ativada com sucesso! (workerId: ${result.workerId}, waitTime: ${result.waitTimeMs}ms)`);
+        
+        // Re-check workers após GPU start
+        onlineWorkers = await GPUPool.getOnlineWorkers();
       }
 
       console.log(`   ✅ ${onlineWorkers.length} GPU(s) online disponível(is)`);

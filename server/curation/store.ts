@@ -606,10 +606,18 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
     let duplicateDocId: number | null = null;
 
     try {
-      // Se já tem duplicateOfId marcado, usa direto
+      // Se já tem duplicateOfId marcado, valida e usa direto
       if (item.duplicateOfId) {
-        duplicateDocId = parseInt(item.duplicateOfId);
-      } else {
+        const numericId = Number(item.duplicateOfId);
+        if (Number.isInteger(numericId) && numericId > 0) {
+          duplicateDocId = numericId;
+        } else {
+          console.warn(`[Curation] ⚠️ duplicateOfId "${item.duplicateOfId}" is not a valid integer ID, forcing KB scan`);
+          // Fall through to KB scan
+        }
+      }
+      
+      if (!duplicateDocId) {
         // Caso contrário, FORÇA scan completo da KB agora
         console.log(`[Curation] 🔍 Verificando duplicação na KB para "${item.title}"...`);
         
@@ -846,6 +854,314 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
     console.log(`[Curation] ✅ Approved and published item ${id} to KB as document ${newDoc.id}`);
 
     return { item: updatedItem, publishedId: newDoc.id.toString() };
+  },
+
+  /**
+   * Publica item JÁ APROVADO para Knowledge Base
+   * 
+   * Diferente de approveAndPublish():
+   * - Assume que item.status = 'approved' (não muda status)
+   * - Usado por approval-promotion-worker para backfill de items já aprovados
+   * - Reutiliza lógica completa de publicação (deduplicação, namespaces, indexação)
+   * 
+   * @param id - Item ID (must have status='approved')
+   * @returns publishedId - ID do documento criado na KB
+   */
+  async publishApprovedItem(id: string): Promise<string> {
+    const item = await this.getById(id);
+    if (!item) {
+      throw new Error("Item not found");
+    }
+    
+    if (item.status !== "approved") {
+      throw new Error(`Item ${id} must be approved before publishing (current status: ${item.status})`);
+    }
+    
+    if (item.publishedId) {
+      console.log(`[Curation] ℹ️ Item ${id} already published as ${item.publishedId} - skipping`);
+      return item.publishedId;
+    }
+
+    // 🔥 VERIFICAÇÃO UNIVERSAL DE DUPLICAÇÃO (same as approveAndPublish)
+    let contentToSave = item.content;
+    let isAbsorption = false;
+    let duplicateDocId: number | null = null;
+
+    try {
+      if (item.duplicateOfId) {
+        const numericId = Number(item.duplicateOfId);
+        if (Number.isInteger(numericId) && numericId > 0) {
+          duplicateDocId = numericId;
+        } else {
+          console.warn(`[Curation] ⚠️ duplicateOfId "${item.duplicateOfId}" is not a valid integer ID, forcing KB scan`);
+          // Fall through to KB scan
+        }
+      }
+      
+      if (!duplicateDocId) {
+        console.log(`[Curation] 🔍 Verificando duplicação na KB para "${item.title}"...`);
+        
+        const { deduplicationService } = await import("../services/deduplication-service");
+        const dupCheck = await deduplicationService.checkDuplicate({
+          text: item.content,
+          tenantId: 1,
+          enableSemantic: true
+        });
+
+        if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
+          duplicateDocId = dupCheck.duplicateOf.id;
+          console.log(`[Curation] ⚠️ Duplicata detectada: ${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% similar a "${dupCheck.duplicateOf.title}" (ID: ${duplicateDocId})`);
+        }
+      }
+
+      // Absorção de conteúdo (same logic)
+      if (duplicateDocId) {
+        const [originalDoc] = await db
+          .select()
+          .from(documents)
+          .where(eq(documents.id, duplicateDocId))
+          .limit(1);
+
+        if (originalDoc) {
+          const { analyzeAbsorption } = await import("../utils/absorption");
+          const analysis = analyzeAbsorption(originalDoc.content, item.content);
+
+          if (analysis.shouldAbsorb) {
+            contentToSave = analysis.extractedContent;
+            isAbsorption = true;
+            console.log(`[Curation] 🔥 AUTO-ABSORÇÃO: ${analysis.stats.reductionPercent}% redução`);
+          } else {
+            // 🔥 FIX: Retornar ID do documento existente ao invés de throw
+            // Isso permite que worker salve publishedId correto (prevent reprocessing)
+            console.log(`[Curation] ⚠️ Conteúdo duplicado (${analysis.stats.newContentPercent}% novo < 10%) - usando documento existente ${originalDoc.id}`);
+            
+            // Atualizar publishedId para apontar documento existente
+            await db
+              .update(curationQueueTable)
+              .set({
+                publishedId: originalDoc.id.toString(),
+                note: item.note 
+                  ? `${item.note}\n\n---\n⚠️ Duplicate content - linked to existing document ${originalDoc.id} (${analysis.stats.newContentPercent}% new content < 10% threshold).`
+                  : `⚠️ Duplicate content - linked to existing document ${originalDoc.id} (${analysis.stats.newContentPercent}% new content < 10% threshold).`,
+                updatedAt: new Date(),
+              })
+              .where(eq(curationQueueTable.id, id));
+            
+            // Retornar ID do documento existente (NÃO criar novo)
+            return originalDoc.id.toString();
+          }
+        }
+      } else {
+        console.log(`[Curation] ✅ Conteúdo único detectado para "${item.title}"`);
+      }
+    } catch (verificationError: any) {
+      throw new Error(`Falha na verificação de duplicação: ${verificationError.message}`);
+    }
+
+    // Auto-criação de namespaces (same logic)
+    let finalNamespaces = item.suggestedNamespaces || [];
+    if (item.suggestedNamespaces && item.suggestedNamespaces.length > 0) {
+      const { autoCreateNamespacesAndAgents } = await import("../services/auto-namespace-creator");
+      const creationResult = await autoCreateNamespacesAndAgents(item.suggestedNamespaces, {
+        source: "curation_approved_promotion",
+        curationItemId: item.id,
+        reviewedBy: item.reviewedBy || 'SYSTEM',
+      });
+
+      finalNamespaces = item.suggestedNamespaces.map(ns => 
+        creationResult.consolidatedMapping[ns] || ns
+      );
+
+      const uniqueNamespaces = new Set(finalNamespaces.filter(ns => ns && ns.trim()));
+      finalNamespaces = Array.from(uniqueNamespaces);
+    }
+
+    if (!finalNamespaces || finalNamespaces.length === 0) {
+      finalNamespaces = ['geral'];
+    }
+
+    // Processamento de imagens (same logic)
+    let finalAttachments = item.attachments;
+    if (item.attachments && item.attachments.length > 0) {
+      const { ImageProcessor } = await import("../learn/image-processor");
+      const imageProcessor = await ImageProcessor.create();
+      
+      finalAttachments = await Promise.all(
+        item.attachments.map(async (att: any) => {
+          if (att.base64 && att.type === "image") {
+            const buffer = Buffer.from(att.base64, 'base64');
+            const localPath = await imageProcessor.saveImageFromBuffer(buffer, att.filename);
+            return {
+              type: att.type,
+              url: localPath,
+              filename: att.filename,
+              mimeType: att.mimeType,
+              size: att.size,
+              description: att.description
+            };
+          }
+          return att;
+        })
+      );
+    }
+
+    // Preparar documento (same logic)
+    const { prepareDocumentForInsert } = await import("../utils/deduplication");
+    const documentData = prepareDocumentForInsert({
+      title: item.title,
+      content: contentToSave,
+      contentHash: item.contentHash,
+      source: isAbsorption ? "curation_absorption" : "curation_approved",
+      status: "approved",
+      attachments: finalAttachments || undefined,
+      metadata: {
+        namespaces: finalNamespaces,
+        tags: item.tags,
+        curationId: item.id,
+        reviewedBy: item.reviewedBy || 'SYSTEM',
+        isAbsorption,
+        ...(isAbsorption && item.duplicateOfId ? { absorbedFrom: item.duplicateOfId } : {})
+      } as any,
+    });
+    
+    // 🔥 DUPLICATE HANDLING: Check if duplicateDocId exists and is valid
+    if (item.duplicateDocId) {
+      // documents.id is INTEGER, so validate numeric ID before querying
+      const numericId = Number(item.duplicateDocId);
+      
+      if (!Number.isInteger(numericId) || numericId <= 0) {
+        console.warn(`[Curation] ⚠️ duplicateDocId "${item.duplicateDocId}" is not a valid integer ID, creating new document instead`);
+        // Fall through to normal document creation
+      } else {
+        // Check if duplicate document exists
+        const existingDocs = await db.select().from(documents)
+          .where(eq(documents.id, numericId)).limit(1);
+        
+        if (existingDocs.length > 0) {
+          const existingDoc = existingDocs[0];
+          console.log(`[Curation] ♻️ Reusing existing document ${numericId} (duplicate absorption)`);
+          
+          // Find the publishedId used when this document was first indexed
+          // publishedId should be the stable identifier used by knowledgeIndexer
+          const existingPublishedId = existingDoc.id.toString(); // Use doc.id as canonical publishedId
+          
+          // Update publishedId to point to existing document
+          await db.update(curationQueueTable).set({
+            publishedId: existingPublishedId,
+            updatedAt: new Date(),
+          }).where(eq(curationQueueTable.id, id));
+          
+          return existingPublishedId;
+        } else{
+          console.warn(`[Curation] ⚠️ duplicateDocId ${numericId} not found in documents table, creating new document`);
+          // Fall through to normal document creation
+        }
+      }
+    }
+    
+    // 🔥 TRANSACTION SAFETY: Try-catch with cleanup on failure
+    let newDoc: typeof documents.$inferSelect;
+    try {
+      // Criar documento no DB
+      [newDoc] = await db.insert(documents).values(documentData as any).returning();
+    } catch (docError: any) {
+      // If document creation fails (e.g., duplicate content_hash), throw immediately
+      console.error(`[Curation] ❌ Failed to create document:`, docError.message);
+      throw new Error(`Document creation failed: ${docError.message}`);
+    }
+
+    // Indexação com attachments
+    let contentToIndex = newDoc.content;
+    if (finalAttachments && finalAttachments.length > 0) {
+      const attachmentDescriptions = finalAttachments
+        .filter((att: any) => att.description && att.description.trim())
+        .map((att: any) => `[${att.type === 'image' ? 'Imagem' : 'Vídeo'}] ${att.description}`)
+        .join('\n');
+      
+      if (attachmentDescriptions) {
+        contentToIndex = `${newDoc.content}\n\n--- Mídia Anexada ---\n${attachmentDescriptions}`;
+      }
+    }
+
+    const primaryNamespace = finalNamespaces[0] || 'general';
+    
+    // 🔥 TRANSACTION SAFETY: Cleanup orphan document if indexing fails
+    try {
+      await knowledgeIndexer.indexDocument(newDoc.id, contentToIndex, {
+        namespace: primaryNamespace,
+        title: item.title,
+        tags: item.tags,
+        source: "curation_approved",
+        curationId: item.id,
+      });
+    } catch (indexError: any) {
+      console.error(`[Curation] ❌ Indexing failed - cleaning up orphan document ${newDoc.id}:`, indexError.message);
+      
+      // Cleanup: Delete orphan document (no vector embeddings to clean - indexing failed before creation)
+      await db.delete(documents).where(eq(documents.id, newDoc.id));
+      
+      throw new Error(`Indexing failed (orphan cleaned up): ${indexError.message}`);
+    }
+
+    // Salvar em training_data_collection with cleanup on failure
+    try {
+      const { trainingDataCollection } = await import("@shared/schema");
+      const qualityTag = item.tags.find((t: any) => t.startsWith('quality-'));
+      const qualityScore = qualityTag ? 
+        Math.max(0, Math.min(100, parseInt(qualityTag.split('-')[1]) || 75)) : 
+        75;
+      
+      await db.insert(trainingDataCollection).values({
+        conversationId: null,
+        autoQualityScore: qualityScore,
+        status: "approved",
+        formattedData: [{
+          instruction: item.title,
+          output: item.content,
+        }],
+        metadata: {
+          source: "curation_approved_promotion",
+          curationItemId: item.id,
+          namespaces: finalNamespaces,
+          tags: item.tags,
+          reviewedBy: item.reviewedBy || 'SYSTEM',
+        },
+      } as any);
+      
+      console.log(`[Curation] ✅ Saved to training_data_collection (quality: ${qualityScore})`);
+    } catch (trainingError: any) {
+      console.error(`[Curation] ❌ Training data save failed - cleaning up document ${newDoc.id}:`, trainingError.message);
+      
+      // 🔥 COMPLETE CLEANUP: Delete document + vector embeddings + training data
+      try {
+        // Delete vector embeddings first
+        const { ragService } = await import("./vector-store");
+        await ragService.deleteDocument(newDoc.id);
+        
+        // Delete document from DB
+        await db.delete(documents).where(eq(documents.id, newDoc.id));
+        
+        console.log(`[Curation] ✅ Orphan cleaned up: document ${newDoc.id} + vector embeddings deleted`);
+      } catch (cleanupError: any) {
+        console.error(`[Curation] ⚠️ Cleanup failed for document ${newDoc.id}:`, cleanupError.message);
+        // Don't throw - original error is more important
+      }
+      
+      throw new Error(`Training data save failed (orphan cleaned up): ${trainingError.message}`);
+    }
+
+    // Atualizar publishedId (NÃO muda status - já é approved!)
+    await db
+      .update(curationQueueTable)
+      .set({
+        publishedId: newDoc.id.toString(),
+        updatedAt: new Date(),
+      })
+      .where(eq(curationQueueTable.id, id));
+
+    console.log(`[Curation] ✅ Published approved item ${id} to KB as document ${newDoc.id}`);
+
+    return newDoc.id.toString();
   },
 
   /**

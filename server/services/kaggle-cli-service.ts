@@ -246,7 +246,18 @@ export class KaggleCLIService {
         throw new Error(`Account ${username} not found`);
       }
 
+      // Store previous account for selective cache invalidation
+      const previousAccount = this.currentAccount;
+      
       this.currentAccount = username;
+      
+      // Delete only the previous account's cache entry (if exists)
+      // This preserves other accounts' cached quota data
+      if (previousAccount && previousAccount !== username) {
+        const prevKey = `kaggle-quota-${previousAccount}`;
+        this.quotaCache.delete(prevKey);
+        console.log(`[Kaggle CLI] 🗑️ Cleared cache for previous account: ${previousAccount}`);
+      }
 
       console.log(`[Kaggle CLI] ✅ Active account: ${username}`);
       console.log(`[Kaggle CLI] Using env vars (KAGGLE_USERNAME + KAGGLE_KEY) - official method #1`);
@@ -716,6 +727,167 @@ export class KaggleCLIService {
       console.error('[Kaggle CLI] Failed to load accounts:', error.message);
     }
   }
+
+  /**
+   * P1: Fetch REAL quota usage from Kaggle CLI
+   * 
+   * Executes `kaggle kernels usage` and parses the result
+   * Returns actual usage vs 70% quota limit (21h/week = 75600s)
+   * 
+   * CACHING: Per-account caching with 5min TTL to avoid excessive API calls
+   */
+  private quotaCache: Map<string, { timestamp: number; data: any }> = new Map();
+  private readonly QUOTA_CACHE_TTL_MS = 5 * 60 * 1000; // 5min
+
+  async fetchRealKaggleQuota(username?: string): Promise<{
+    success: boolean;
+    quotaUsedSeconds?: number;
+    quotaMaxSeconds?: number;
+    quotaUsedHours?: number;
+    quotaLimitHours?: number;
+    percentUsed?: number;
+    raw?: string;
+    error?: string;
+  }> {
+    try {
+      // Determine target username
+      const targetUsername = username || this.currentAccount;
+      if (!targetUsername) {
+        return {
+          success: false,
+          error: 'No active Kaggle account configured',
+        };
+      }
+      
+      // Switch account if needed
+      if (targetUsername !== this.currentAccount) {
+        await this.setActiveAccount(targetUsername);
+      }
+      
+      // Check per-account cache
+      const cacheKey = `kaggle-quota-${targetUsername}`;
+      const cached = this.quotaCache.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp) < this.QUOTA_CACHE_TTL_MS) {
+        console.log(`[Kaggle CLI] ✅ Returning cached quota data for ${targetUsername}`);
+        return cached.data;
+      }
+
+      console.log(`[Kaggle CLI] 🔍 Fetching real quota usage from Kaggle...`);
+
+      // Execute CLI command with 30s timeout
+      const { stdout, stderr } = await execAsync('kaggle kernels usage', { timeout: 30000 });
+
+      if (stderr && !stderr.includes('Warning')) {
+        throw new Error(`CLI stderr: ${stderr}`);
+      }
+
+      // Parse output (Kaggle CLI returns usage in seconds)
+      // Example output: "You have used 3600 seconds of your 108000 second quota."
+      const match = stdout.match(/used\s+(\d+)\s+seconds\s+of\s+your\s+(\d+)\s+second\s+quota/i);
+
+      if (!match) {
+        // Try alternative format
+        console.warn('[Kaggle CLI] ⚠️ Unexpected quota format:', stdout);
+        
+        return {
+          success: false,
+          raw: stdout,
+          error: 'Unable to parse quota usage (unexpected format)',
+        };
+      }
+
+      const usedSeconds = parseInt(match[1]);
+      const maxSeconds = parseInt(match[2]);
+      const usedHours = usedSeconds / 3600;
+      const limitHours = maxSeconds / 3600;
+      const percentUsed = (usedSeconds / maxSeconds) * 100;
+
+      const result = {
+        success: true,
+        quotaUsedSeconds: usedSeconds,
+        quotaMaxSeconds: maxSeconds,
+        quotaUsedHours: parseFloat(usedHours.toFixed(2)),
+        quotaLimitHours: parseFloat(limitHours.toFixed(2)),
+        percentUsed: parseFloat(percentUsed.toFixed(1)),
+        raw: stdout.trim(),
+      };
+
+      // Cache result with account-specific key
+      const cacheKey = `kaggle-quota-${targetUsername}`;
+      this.quotaCache.set(cacheKey, {
+        timestamp: Date.now(),
+        data: result,
+      });
+
+      console.log(`[Kaggle CLI] ✅ Real quota: ${result.quotaUsedHours}h / ${result.quotaLimitHours}h (${result.percentUsed}%)`);
+
+      return result;
+
+    } catch (error: any) {
+      console.error('[Kaggle CLI] ❌ Failed to fetch quota:', error.message);
+      
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Compare heartbeat tracking vs real Kaggle quota
+   * Useful for validating accuracy of heartbeat-based quota tracking
+   */
+  async compareQuotaTracking(username?: string): Promise<{
+    heartbeatSeconds: number;
+    realSeconds?: number;
+    diffSeconds?: number;
+    diffPercent?: number;
+    accuracy?: string;
+  }> {
+    const targetUsername = username || this.currentAccount;
+    if (!targetUsername) {
+      throw new Error('No active account');
+    }
+
+    await this.ensureAccountsLoaded();
+    const account = this.accounts.get(targetUsername);
+    if (!account) {
+      throw new Error(`Account not found: ${targetUsername}`);
+    }
+
+    const heartbeatSeconds = account.weeklyQuotaUsed;
+    const realQuota = await this.fetchRealKaggleQuota(targetUsername);
+
+    if (!realQuota.success || !realQuota.quotaUsedSeconds) {
+      return {
+        heartbeatSeconds,
+        accuracy: 'Unable to fetch real quota for comparison',
+      };
+    }
+
+    const diffSeconds = Math.abs(realQuota.quotaUsedSeconds - heartbeatSeconds);
+    const diffPercent = (diffSeconds / realQuota.quotaUsedSeconds) * 100;
+
+    let accuracy = 'unknown';
+    if (diffPercent < 5) accuracy = 'excellent (< 5% diff)';
+    else if (diffPercent < 10) accuracy = 'good (< 10% diff)';
+    else if (diffPercent < 20) accuracy = 'fair (< 20% diff)';
+    else accuracy = `poor (${diffPercent.toFixed(1)}% diff)`;
+
+    console.log(`[Kaggle CLI] 📊 Quota Comparison:
+      Heartbeat: ${(heartbeatSeconds / 3600).toFixed(2)}h
+      Real: ${(realQuota.quotaUsedSeconds / 3600).toFixed(2)}h
+      Diff: ${(diffSeconds / 3600).toFixed(2)}h (${diffPercent.toFixed(1)}%)
+      Accuracy: ${accuracy}`);
+
+    return {
+      heartbeatSeconds,
+      realSeconds: realQuota.quotaUsedSeconds,
+      diffSeconds,
+      diffPercent: parseFloat(diffPercent.toFixed(1)),
+      accuracy,
+    };
+  }
 }
 
 // Singleton
@@ -738,4 +910,7 @@ export const KaggleCLIAPI = {
   getNextAvailable: () => kaggleCLIService.getNextAvailableAccount(),
   updateQuota: (username: string, usedSeconds: number) => kaggleCLIService.updateAccountQuota(username, usedSeconds),
   resetQuotas: () => kaggleCLIService.resetWeeklyQuotas(),
+  // P1: Real-time quota telemetry
+  fetchRealQuota: (username?: string) => kaggleCLIService.fetchRealKaggleQuota(username),
+  compareQuota: (username?: string) => kaggleCLIService.compareQuotaTracking(username),
 };
