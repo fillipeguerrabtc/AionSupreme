@@ -1,0 +1,464 @@
+[
+  {
+    "key": "dialog.trigger",
+    "ptBR": "Conectar Conta Google",
+    "enUS": "Connect Google Account",
+    "esES": "Conectar Cuenta Google",
+    "context": "Button text"
+  },
+  {
+    "key": "dialog.title",
+    "ptBR": "Autenticação Google - Kaggle & Colab",
+    "enUS": "Google Authentication - Kaggle & Colab",
+    "esES": "Autenticación Google - Kaggle & Colab",
+    "context": "Dialog title"
+  },
+  {
+    "key": "dialog.description",
+    "ptBR": "Configure acesso seguro às plataformas de GPU com criptografia AES-256-GCM",
+    "enUS": "Configure secure access to GPU platforms with AES-256-GCM encryption",
+    "esES": "Configure acceso seguro a plataformas de GPU con cifrado AES-256-GCM",
+    "context": "Dialog description"
+  },
+  {
+    "key": "tabs.instructions",
+    "ptBR": "1. Instruções",
+    "enUS": "1. Instructions",
+    "esES": "1. Instrucciones",
+    "context": "Tab label"
+  },
+  {
+    "key": "tabs.kaggle",
+    "ptBR": "2. Kaggle",
+    "enUS": "2. Kaggle",
+    "esES": "2. Kaggle",
+    "context": "Tab label"
+  },
+  {
+    "key": "tabs.colab",
+    "ptBR": "3. Colab",
+    "enUS": "3. Colab",
+    "esES": "3. Colab",
+    "context": "Tab label"
+  },
+  {
+    "key": "instructions.howItWorks.title",
+    "ptBR": "Como funciona",
+    "enUS": "How it works",
+    "esES": "Cómo funciona",
+    "context": "Alert title"
+  },
+  {
+    "key": "instructions.howItWorks.description",
+    "ptBR": "Você fará login manualmente UMA VEZ no Google. Depois, copiaremos os cookies de autenticação e os salvaremos de forma criptografada. O sistema fará scraping automático das quotas a cada 10 minutos, sem precisar de login novamente por ~30 dias.",
+    "enUS": "You'll log in manually ONCE to Google. Then, we'll copy the authentication cookies and save them encrypted. The system will automatically scrape quotas every 10 minutes, without needing to log in again for ~30 days.",
+    "esES": "Iniciarás sesión manualmente UNA VEZ en Google. Luego, copiaremos las cookies de autenticación y las guardaremos cifradas. El sistema hará scraping automático de las cuotas cada 10 minutos, sin necesidad de iniciar sesión nuevamente por ~30 días.",
+    "context": "Alert description"
+  },
+  {
+    "key": "instructions.prerequisites.title",
+    "ptBR": "Pré-requisitos",
+    "enUS": "Prerequisites",
+    "esES": "Prerrequisitos",
+    "context": "Section title"
+  },
+  {
+    "key": "instructions.prerequisites.chrome",
+    "ptBR": "Navegador Google Chrome (recomendado para compatibilidade)",
+    "enUS": "Google Chrome browser (recommended for compatibility)",
+    "esES": "Navegador Google Chrome (recomendado para compatibilidad)",
+    "context": "List item"
+  },
+  {
+    "key": "instructions.prerequisites.account",
+    "ptBR": "Conta Google com acesso ao Kaggle e/ou Google Colab",
+    "enUS": "Google account with access to Kaggle and/or Google Colab",
+    "esES": "Cuenta Google con acceso a Kaggle y/o Google Colab",
+    "context": "List item"
+  },
+  {
+    "key": "instructions.prerequisites.devtools",
+    "ptBR": "DevTools aberto (F12) para copiar cookies",
+    "enUS": "DevTools open (F12) to copy cookies",
+    "esES": "DevTools abierto (F12) para copiar cookies",
+    "context": "List item"
+  },
+  {
+    "key": "instructions.security.title",
+    "ptBR": "Segurança",
+    "enUS": "Security",
+    "esES": "Seguridad",
+    "context": "Section title"
+  },
+  {
+    "key": "instructions.security.encryption",
+    "ptBR": "Cookies criptografados com AES-256-GCM usando SESSION_SECRET",
+    "enUS": "Cookies encrypted with AES-256-GCM using SESSION_SECRET",
+    "esES": "Cookies cifradas con AES-256-GCM usando SESSION_SECRET",
+    "context": "List item"
+  },
+  {
+    "key": "instructions.security.noPlaintext",
+    "ptBR": "Nenhum cookie armazenado em texto plano",
+    "enUS": "No cookies stored in plain text",
+    "esES": "Ninguna cookie almacenada en texto plano",
+    "context": "List item"
+  },
+  {
+    "key": "instructions.security.autoValidation",
+    "ptBR": "Validação automática a cada sync (10min)",
+    "enUS": "Automatic validation on every sync (10min)",
+    "esES": "Validación automática en cada sync (10min)",
+    "context": "List item"
+  },
+  {
+    "key": "instructions.security.expiration",
+    "ptBR": "Expiração após 30 dias (com avisos antecipados)",
+    "enUS": "Expiration after 30 days (with advance warnings)",
+    "esES": "Expiración después de 30 días (con avisos anticipados)",
+    "context": "List item"
+  },
+  {
+    "key": "instructions.warning.title",
+    "ptBR": "⚠️ IMPORTANTE - Risco de BAN",
+    "enUS": "⚠️ IMPORTANT - BAN Risk",
+    "esES": "⚠️ IMPORTANTE - Riesgo de BAN",
+    "context": "Alert title"
+  },
+  {
+    "key": "instructions.warning.kaggle",
+    "ptBR": "<strong>Kaggle:</strong> Max 8.4h/sessão, 21h/semana. Violação = BAN PERMANENTE.",
+    "enUS": "<strong>Kaggle:</strong> Max 8.4h/session, 21h/week. Violation = PERMANENT BAN.",
+    "esES": "<strong>Kaggle:</strong> Máx 8.4h/sesión, 21h/semana. Violación = BAN PERMANENTE.",
+    "context": "Warning text"
+  },
+  {
+    "key": "instructions.warning.colab",
+    "ptBR": "<strong>Colab:</strong> Max 8.4h/sessão, 36h cooldown. Violação = BAN PERMANENTE.",
+    "enUS": "<strong>Colab:</strong> Max 8.4h/session, 36h cooldown. Violation = PERMANENT BAN.",
+    "esES": "<strong>Colab:</strong> Máx 8.4h/sesión, 36h cooldown. Violación = BAN PERMANENTE.",
+    "context": "Warning text"
+  },
+  {
+    "key": "instructions.warning.auto",
+    "ptBR": "O sistema respeita automaticamente esses limites via quota scraping.",
+    "enUS": "The system automatically respects these limits via quota scraping.",
+    "esES": "El sistema respeta automáticamente estos límites vía scraping de cuotas.",
+    "context": "Warning text"
+  },
+  {
+    "key": "instructions.buttons.kaggle",
+    "ptBR": "Conectar Kaggle",
+    "enUS": "Connect Kaggle",
+    "esES": "Conectar Kaggle",
+    "context": "Button text"
+  },
+  {
+    "key": "instructions.buttons.colab",
+    "ptBR": "Conectar Colab",
+    "enUS": "Connect Colab",
+    "esES": "Conectar Colab",
+    "context": "Button text"
+  },
+  {
+    "key": "kaggle.title",
+    "ptBR": "Passo a passo - Kaggle",
+    "enUS": "Step by step - Kaggle",
+    "esES": "Paso a paso - Kaggle",
+    "context": "Alert title"
+  },
+  {
+    "key": "kaggle.step1",
+    "ptBR": "Abra www.kaggle.com em nova aba",
+    "enUS": "Open www.kaggle.com in new tab",
+    "esES": "Abre www.kaggle.com en nueva pestaña",
+    "context": "Step text"
+  },
+  {
+    "key": "kaggle.step2",
+    "ptBR": "Faça login com sua conta Google",
+    "enUS": "Log in with your Google account",
+    "esES": "Inicia sesión con tu cuenta Google",
+    "context": "Step text"
+  },
+  {
+    "key": "kaggle.step3",
+    "ptBR": "Abra DevTools (F12) → Console → Cole o comando abaixo",
+    "enUS": "Open DevTools (F12) → Console → Paste the command below",
+    "esES": "Abre DevTools (F12) → Consola → Pega el comando abajo",
+    "context": "Step text"
+  },
+  {
+    "key": "kaggle.step4",
+    "ptBR": "Copie o resultado e cole no campo \"Cookies\" abaixo",
+    "enUS": "Copy the result and paste in the \"Cookies\" field below",
+    "esES": "Copia el resultado y pega en el campo \"Cookies\" abajo",
+    "context": "Step text"
+  },
+  {
+    "key": "kaggle.cookieCommand.label",
+    "ptBR": "Comando para copiar cookies (Cole no Console do DevTools):",
+    "enUS": "Command to copy cookies (Paste in DevTools Console):",
+    "esES": "Comando para copiar cookies (Pega en Consola DevTools):",
+    "context": "Label text"
+  },
+  {
+    "key": "kaggle.email.label",
+    "ptBR": "Email da conta Google",
+    "enUS": "Google account email",
+    "esES": "Email de cuenta Google",
+    "context": "Label text"
+  },
+  {
+    "key": "kaggle.email.placeholder",
+    "ptBR": "seu-email@gmail.com",
+    "enUS": "your-email@gmail.com",
+    "esES": "tu-email@gmail.com",
+    "context": "Placeholder text"
+  },
+  {
+    "key": "kaggle.cookies.label",
+    "ptBR": "Cookies (Cole o resultado do Console)",
+    "enUS": "Cookies (Paste the Console result)",
+    "esES": "Cookies (Pega el resultado de la Consola)",
+    "context": "Label text"
+  },
+  {
+    "key": "kaggle.cookies.placeholder",
+    "ptBR": "KAGGLE_KEY=value; KAGGLE_USER_ID=123; ...",
+    "enUS": "KAGGLE_KEY=value; KAGGLE_USER_ID=123; ...",
+    "esES": "KAGGLE_KEY=value; KAGGLE_USER_ID=123; ...",
+    "context": "Placeholder text"
+  },
+  {
+    "key": "kaggle.cookies.hint",
+    "ptBR": "Formato esperado: name1=value1; name2=value2; ...",
+    "enUS": "Expected format: name1=value1; name2=value2; ...",
+    "esES": "Formato esperado: name1=value1; name2=value2; ...",
+    "context": "Hint text"
+  },
+  {
+    "key": "kaggle.buttons.back",
+    "ptBR": "Voltar",
+    "enUS": "Back",
+    "esES": "Volver",
+    "context": "Button text"
+  },
+  {
+    "key": "kaggle.buttons.save",
+    "ptBR": "Salvar Kaggle",
+    "enUS": "Save Kaggle",
+    "esES": "Guardar Kaggle",
+    "context": "Button text"
+  },
+  {
+    "key": "kaggle.buttons.saving",
+    "ptBR": "Salvando...",
+    "enUS": "Saving...",
+    "esES": "Guardando...",
+    "context": "Button text (loading)"
+  },
+  {
+    "key": "colab.title",
+    "ptBR": "Passo a passo - Google Colab",
+    "enUS": "Step by step - Google Colab",
+    "esES": "Paso a paso - Google Colab",
+    "context": "Alert title"
+  },
+  {
+    "key": "colab.step1",
+    "ptBR": "Abra colab.research.google.com em nova aba",
+    "enUS": "Open colab.research.google.com in new tab",
+    "esES": "Abre colab.research.google.com en nueva pestaña",
+    "context": "Step text"
+  },
+  {
+    "key": "colab.step2",
+    "ptBR": "Faça login com sua conta Google",
+    "enUS": "Log in with your Google account",
+    "esES": "Inicia sesión con tu cuenta Google",
+    "context": "Step text"
+  },
+  {
+    "key": "colab.step3",
+    "ptBR": "Abra DevTools (F12) → Console → Cole o comando abaixo",
+    "enUS": "Open DevTools (F12) → Console → Paste the command below",
+    "esES": "Abre DevTools (F12) → Consola → Pega el comando abajo",
+    "context": "Step text"
+  },
+  {
+    "key": "colab.step4",
+    "ptBR": "Copie o resultado e cole no campo \"Cookies\" abaixo",
+    "enUS": "Copy the result and paste in the \"Cookies\" field below",
+    "esES": "Copia el resultado y pega en el campo \"Cookies\" abajo",
+    "context": "Step text"
+  },
+  {
+    "key": "colab.cookieCommand.label",
+    "ptBR": "Comando para copiar cookies (Cole no Console do DevTools):",
+    "enUS": "Command to copy cookies (Paste in DevTools Console):",
+    "esES": "Comando para copiar cookies (Pega en Consola DevTools):",
+    "context": "Label text"
+  },
+  {
+    "key": "colab.email.label",
+    "ptBR": "Email da conta Google",
+    "enUS": "Google account email",
+    "esES": "Email de cuenta Google",
+    "context": "Label text"
+  },
+  {
+    "key": "colab.email.placeholder",
+    "ptBR": "seu-email@gmail.com",
+    "enUS": "your-email@gmail.com",
+    "esES": "tu-email@gmail.com",
+    "context": "Placeholder text"
+  },
+  {
+    "key": "colab.cookies.label",
+    "ptBR": "Cookies (Cole o resultado do Console)",
+    "enUS": "Cookies (Paste the Console result)",
+    "esES": "Cookies (Pega el resultado de la Consola)",
+    "context": "Label text"
+  },
+  {
+    "key": "colab.cookies.placeholder",
+    "ptBR": "GOOGLE_SESSION=value; GOOGLE_USER=123; ...",
+    "enUS": "GOOGLE_SESSION=value; GOOGLE_USER=123; ...",
+    "esES": "GOOGLE_SESSION=value; GOOGLE_USER=123; ...",
+    "context": "Placeholder text"
+  },
+  {
+    "key": "colab.cookies.hint",
+    "ptBR": "Formato esperado: name1=value1; name2=value2; ...",
+    "enUS": "Expected format: name1=value1; name2=value2; ...",
+    "esES": "Formato esperado: name1=value1; name2=value2; ...",
+    "context": "Hint text"
+  },
+  {
+    "key": "colab.buttons.back",
+    "ptBR": "Voltar",
+    "enUS": "Back",
+    "esES": "Volver",
+    "context": "Button text"
+  },
+  {
+    "key": "colab.buttons.save",
+    "ptBR": "Salvar Colab",
+    "enUS": "Save Colab",
+    "esES": "Guardar Colab",
+    "context": "Button text"
+  },
+  {
+    "key": "colab.buttons.saving",
+    "ptBR": "Salvando...",
+    "enUS": "Saving...",
+    "esES": "Guardando...",
+    "context": "Button text (loading)"
+  },
+  {
+    "key": "toasts.saveSuccess.title",
+    "ptBR": "✅ Autenticação salva",
+    "enUS": "✅ Authentication saved",
+    "esES": "✅ Autenticación guardada",
+    "context": "Success toast title"
+  },
+  {
+    "key": "toasts.saveSuccess.descriptionTemplate",
+    "ptBR": "Cookies do {{provider}} salvos com sucesso para {{email}}",
+    "enUS": "{{provider}} cookies successfully saved for {{email}}",
+    "esES": "Cookies de {{provider}} guardadas exitosamente para {{email}}",
+    "context": "Success toast description (uses formatTemplate)"
+  },
+  {
+    "key": "toasts.saveError.title",
+    "ptBR": "❌ Erro ao salvar autenticação",
+    "enUS": "❌ Error saving authentication",
+    "esES": "❌ Error al guardar autenticación",
+    "context": "Error toast title"
+  },
+  {
+    "key": "toasts.copied.title",
+    "ptBR": "✅ Copiado!",
+    "enUS": "✅ Copied!",
+    "esES": "✅ Copiado!",
+    "context": "Success toast title"
+  },
+  {
+    "key": "toasts.copied.description",
+    "ptBR": "Comando copiado para área de transferência",
+    "enUS": "Command copied to clipboard",
+    "esES": "Comando copiado al portapapeles",
+    "context": "Success toast description"
+  },
+  {
+    "key": "errors.emailRequired.title",
+    "ptBR": "Email obrigatório",
+    "enUS": "Email required",
+    "esES": "Email obligatorio",
+    "context": "Error toast title"
+  },
+  {
+    "key": "errors.emailRequired.description",
+    "ptBR": "Por favor, informe o email da sua conta Google",
+    "enUS": "Please enter your Google account email",
+    "esES": "Por favor ingresa el email de tu cuenta Google",
+    "context": "Error toast description"
+  },
+  {
+    "key": "errors.cookiesRequired.title",
+    "ptBR": "Cookies obrigatórios",
+    "enUS": "Cookies required",
+    "esES": "Cookies obligatorias",
+    "context": "Error toast title"
+  },
+  {
+    "key": "errors.cookiesRequired.description",
+    "ptBR": "Por favor, cole os cookies copiados do navegador",
+    "enUS": "Please paste the cookies copied from the browser",
+    "esES": "Por favor pega las cookies copiadas del navegador",
+    "context": "Error toast description"
+  },
+  {
+    "key": "errors.cookiesInvalid.title",
+    "ptBR": "Cookies inválidos",
+    "enUS": "Invalid cookies",
+    "esES": "Cookies inválidas",
+    "context": "Error toast title"
+  },
+  {
+    "key": "errors.cookiesInvalid.description",
+    "ptBR": "Não foi possível extrair cookies válidos do texto colado",
+    "enUS": "Could not extract valid cookies from pasted text",
+    "esES": "No se pudieron extraer cookies válidas del texto pegado",
+    "context": "Error toast description"
+  },
+  {
+    "key": "errors.processingError.title",
+    "ptBR": "Erro ao processar cookies",
+    "enUS": "Error processing cookies",
+    "esES": "Error al procesar cookies",
+    "context": "Error toast title"
+  },
+  {
+    "key": "errors.processingError.fallback",
+    "ptBR": "Formato inválido",
+    "enUS": "Invalid format",
+    "esES": "Formato inválido",
+    "context": "Error fallback message"
+  },
+  {
+    "key": "providers.kaggle",
+    "ptBR": "Kaggle",
+    "enUS": "Kaggle",
+    "esES": "Kaggle",
+    "context": "Provider name"
+  },
+  {
+    "key": "providers.colab",
+    "ptBR": "Colab",
+    "enUS": "Colab",
+    "esES": "Colab",
+    "context": "Provider name"
+  }
+]
