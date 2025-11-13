@@ -20,13 +20,13 @@
  */
 
 import { db } from '../db';
-import { gpuWorkers, gpuActivationLocks } from '../../shared/schema';
-import { eq, and, lt } from 'drizzle-orm';
+import { gpuWorkers, gpuActivationLocks, gpuSessions } from '../../shared/schema';
+import { eq, and, lt, inArray } from 'drizzle-orm';
 import { getQuotaEnforcementService } from './quota-enforcement-service';
 import { autoScalingService } from './auto-scaling-service';
 import { gpuManager } from '../gpu-orchestration/gpu-manager-service';
-import { KaggleOrchestrator } from '../gpu-orchestration/kaggle-orchestrator';
-import { ColabOrchestrator } from '../gpu-orchestration/colab-orchestrator';
+import { kaggleOrchestrator } from '../gpu-orchestration/kaggle-orchestrator';
+import { colabOrchestrator } from '../gpu-orchestration/colab-orchestrator';
 import { nanoid } from 'nanoid';
 import os from 'os';
 import pino from 'pino';
@@ -54,10 +54,6 @@ export class OnDemandGPUService {
   private readonly POLL_INTERVAL_MS = 5 * 1000; // Poll every 5s to check if GPU is online
   private readonly ACTIVATION_LOCK_EXPIRY_MS = 15 * 60 * 1000; // 15min lock expiry
 
-  // Orchestrators for shutdown operations
-  private kaggleOrchestrator: KaggleOrchestrator = new KaggleOrchestrator();
-  private colabOrchestrator: ColabOrchestrator = new ColabOrchestrator();
-
   /**
    * Ensure a GPU worker is available for inference/training
    * 
@@ -84,14 +80,28 @@ export class OnDemandGPUService {
 
     if (existingWorker) {
       // ✅ UPDATE last activity time in DB (prevent idle shutdown for Kaggle)
-      await db.update(gpuWorkers)
-        .set({ lastUsedAt: new Date() })
-        .where(eq(gpuWorkers.id, existingWorker.id));
+      const now = new Date();
+      
+      await Promise.all([
+        // Update gpuWorkers.lastUsedAt
+        db.update(gpuWorkers)
+          .set({ lastUsedAt: now })
+          .where(eq(gpuWorkers.id, existingWorker.id)),
+        
+        // ✅ CRITICAL: Update gpu_sessions.lastActivity (for idle timeout watcher)
+        db.update(gpuSessions)
+          .set({ lastActivity: now })
+          .where(and(
+            eq(gpuSessions.workerId, existingWorker.id),
+            eq(gpuSessions.provider, existingWorker.provider || 'kaggle'),
+            inArray(gpuSessions.status, ['active', 'idle'])
+          ))
+      ]);
 
       logger.info({ 
         workerId: existingWorker.id,
         provider: existingWorker.provider,
-      }, '♻️ REUSING existing GPU (avoiding quota waste)');
+      }, '♻️ REUSING existing GPU (avoiding quota waste + updated lastActivity)');
 
       return {
         available: true,
@@ -441,7 +451,7 @@ export class OnDemandGPUService {
     // Start session via orchestrator
     logger.info({ workerId: worker.id }, 'Starting Kaggle session...');
 
-    const sessionResult = await this.kaggleOrchestrator.startSession({
+    const sessionResult = await kaggleOrchestrator.startSession({
       notebookUrl,
       kaggleUsername: username,
       kagglePassword: '', // Not used (we use API key)
@@ -535,7 +545,7 @@ export class OnDemandGPUService {
     // Start session via orchestrator
     logger.info({ workerId: worker.id }, 'Starting Colab session...');
 
-    const sessionResult = await this.colabOrchestrator.startSession({
+    const sessionResult = await colabOrchestrator.startSession({
       notebookUrl,
       googleEmail: email,
       googlePassword: password,
@@ -635,9 +645,9 @@ export class OnDemandGPUService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       if (provider === 'kaggle') {
-        return await this.kaggleOrchestrator.stopSession(workerId);
+        return await kaggleOrchestrator.stopSession(workerId);
       } else if (provider === 'colab') {
-        return await this.colabOrchestrator.stopSession(workerId);
+        return await colabOrchestrator.stopSession(workerId);
       } else {
         return {
           success: false,

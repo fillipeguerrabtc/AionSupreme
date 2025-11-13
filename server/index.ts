@@ -114,6 +114,37 @@ app.use((req, res, next) => {
     // Non-blocking - system can work without GPUs
   }
   
+  // 🧹 CLEANUP: Terminate orphaned sessions on startup (process restart recovery)
+  // CRITICAL: Orphaned 'active'/'idle' sessions block new startups via partial unique index
+  logger.info('[Startup] Cleaning up orphaned GPU sessions...');
+  try {
+    const { kaggleOrchestrator } = await import("./gpu-orchestration/kaggle-orchestrator");
+    await kaggleOrchestrator.cleanupOrphanedSessions();
+    logger.info('[Startup] ✅ Kaggle orphaned sessions cleaned up');
+  } catch (error: any) {
+    logger.error('[Startup] ⚠️ Kaggle session cleanup failed (non-blocking):', error.message);
+  }
+  
+  // TODO: Add Colab cleanup when ColabOrchestrator is refactored
+  // try {
+  //   const { colabOrchestrator } = await import("./gpu-orchestration/colab-orchestrator");
+  //   await colabOrchestrator.cleanupOrphanedSessions();
+  //   logger.info('[Startup] ✅ Colab orphaned sessions cleaned up');
+  // } catch (error: any) {
+  //   logger.error('[Startup] ⚠️ Colab session cleanup failed (non-blocking):', error.message);
+  // }
+  
+  // 🔌 IDLE TIMEOUT: Start Kaggle idle shutdown monitoring (BAN AVOIDANCE!)
+  // Monitors gpu_sessions.lastActivity and shuts down after 10min idle
+  logger.info('[Startup] Starting GPU idle shutdown monitoring...');
+  try {
+    const { gpuIdleShutdownService } = await import("./services/gpu-idle-shutdown-service");
+    gpuIdleShutdownService.start();
+    logger.info('[Startup] ✅ GPU idle shutdown monitoring started (10min threshold)');
+  } catch (error: any) {
+    logger.error('[Startup] ⚠️ Idle shutdown service failed to start:', error.message);
+  }
+  
   // Carregar sistema multi-agente do banco de dados
   const { loadAgentsFromDatabase } = await import("./agent/loader");
   await loadAgentsFromDatabase(); // Modo single-tenant

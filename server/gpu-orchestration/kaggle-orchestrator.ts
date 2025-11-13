@@ -23,9 +23,10 @@ import puppeteer from 'puppeteer-extra';
 import type { Browser, Page } from 'puppeteer';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { db } from '../db';
-import { gpuWorkers } from '../../shared/schema';
-import { eq } from 'drizzle-orm';
+import { gpuWorkers, gpuSessions } from '../../shared/schema';
+import { eq, and, inArray, lt } from 'drizzle-orm';
 import { getQuotaEnforcementService } from '../services/quota-enforcement-service';
+import { nanoid } from 'nanoid';
 
 puppeteer.use(StealthPlugin());
 
@@ -38,37 +39,119 @@ interface KaggleConfig {
   headless?: boolean;
 }
 
-interface KaggleSession {
+// ✅ PRODUCTION: Runtime cache for Puppeteer objects ONLY (cannot be serialized to PostgreSQL)
+// All session state (status, ngrokUrl, timing) persists in gpu_sessions table
+interface RuntimeCacheEntry {
   browser: Browser;
   page: Page;
-  workerId: number;
   sessionId: string;
-  ngrokUrl?: string;
-  isGPU: boolean;
 }
 
 export class KaggleOrchestrator {
-  private activeSessions: Map<number, KaggleSession> = new Map();
+  // ✅ MINIMAL runtime cache - Puppeteer objects only (not serializable)
+  private runtimeCache: Map<number, RuntimeCacheEntry> = new Map();
   private readonly CHROME_USER_DATA_DIR = './chrome-data/kaggle';
   
   /**
-   * Start Kaggle notebook session
+   * ✅ STARTUP CLEANUP: Terminate orphaned sessions blocking new startups
+   * Called on service initialization to handle process restarts
+   * 
+   * STRATEGY:
+   * 1. Terminate 'starting' sessions older than 10min (startup timeout)
+   * 2. Terminate 'active'/'idle' sessions past their expiresAt (expired quota)
+   * 3. Log warning for valid active sessions (will be managed by idle timeout watcher)
+   */
+  async cleanupOrphanedSessions(): Promise<void> {
+    console.log('[Kaggle] Cleaning up orphaned sessions...');
+    
+    const now = new Date();
+    
+    // 1. Terminate old 'starting' sessions (startup timeout = 10min)
+    const failedStarting = await db.update(gpuSessions)
+      .set({
+        status: 'terminated',
+        shutdownReason: 'startup_timeout',
+        terminatedAt: now,
+        lastActivity: now,
+      })
+      .where(and(
+        eq(gpuSessions.provider, 'kaggle'),
+        eq(gpuSessions.status, 'starting'),
+        lt(gpuSessions.startedAt, new Date(Date.now() - 10 * 60 * 1000))
+      ))
+      .returning();
+    
+    if (failedStarting.length > 0) {
+      console.log(`[Kaggle] Terminated ${failedStarting.length} stuck 'starting' sessions`);
+    }
+    
+    // 2. ✅ CRITICAL FIX: Terminate sessions PAST their expiresAt (quota expired)
+    // This is a DURABLE indicator - doesn't rely on runtime cache
+    const expiredSessions = await db.update(gpuSessions)
+      .set({
+        status: 'terminated',
+        shutdownReason: 'quota_expired',
+        terminatedAt: now,
+        lastActivity: now,
+      })
+      .where(and(
+        eq(gpuSessions.provider, 'kaggle'),
+        inArray(gpuSessions.status, ['active', 'idle']),
+        lt(gpuSessions.expiresAt, now)
+      ))
+      .returning();
+    
+    if (expiredSessions.length > 0) {
+      console.log(`[Kaggle] ✅ Terminated ${expiredSessions.length} quota-expired sessions`);
+    }
+    
+    // 3. Log warning for valid active sessions (will be managed by idle timeout watcher)
+    const validActive = await db.query.gpuSessions.findMany({
+      where: and(
+        eq(gpuSessions.provider, 'kaggle'),
+        inArray(gpuSessions.status, ['active', 'idle']),
+        gt(gpuSessions.expiresAt, now) // ✅ CORRECT: expiresAt > now (still valid)
+      ),
+    });
+    
+    if (validActive.length > 0) {
+      console.log(
+        `[Kaggle] ℹ️  Found ${validActive.length} valid active sessions ` +
+        `(will be managed by idle timeout watcher)`
+      );
+      
+      for (const session of validActive) {
+        const minutesRemaining = Math.floor(
+          (new Date(session.expiresAt).getTime() - now.getTime()) / (60 * 1000)
+        );
+        console.log(
+          `[Kaggle]    → Worker ${session.workerId}: ` +
+          `${minutesRemaining}min quota remaining, ` +
+          `last activity ${Math.floor((now.getTime() - new Date(session.lastActivity).getTime()) / (60 * 1000))}min ago`
+        );
+      }
+    }
+  }
+  
+  /**
+   * ✅ POSTGRESQL-BACKED: Start Kaggle notebook session
+   * 
+   * DB-FIRST FLOW:
+   * 1. INSERT gpu_sessions row (status='starting') - partial unique index prevents duplicates
+   * 2. Launch Puppeteer browser
+   * 3. UPDATE gpu_sessions to 'active' (with status guard)
+   * 4. Cache Puppeteer objects in runtime cache
+   * 5. Cleanup on failure (mark session terminated)
    */
   async startSession(config: KaggleConfig): Promise<{ success: boolean; ngrokUrl?: string; error?: string }> {
+    let dbSessionId: number | undefined;
+    let sessionId: string | undefined;
+    
     try {
       console.log(`[Kaggle] Starting ${config.useGPU ? 'GPU' : 'CPU'} session for worker ${config.workerId}...`);
       
-      // 0. GUARD: Check if session already exists (prevent duplicate GPU startups)
-      if (this.activeSessions.has(config.workerId)) {
-        console.warn(`[Kaggle] ⚠️  Session already active for worker ${config.workerId} - preventing duplicate startup`);
-        return { 
-          success: false, 
-          error: `Session already active for worker ${config.workerId}` 
-        };
-      }
-      
       // ============================================================================
-      // 0B. CHECK QUOTA (ENTERPRISE 70% ENFORCEMENT - CRITICAL!)
+      // 1. CHECK QUOTA (ENTERPRISE 70% ENFORCEMENT - CRITICAL!)
       // ============================================================================
       
       const quotaService = await getQuotaEnforcementService();
@@ -86,11 +169,43 @@ export class KaggleOrchestrator {
       
       console.log(`[Kaggle] ✅ Quota validation passed - ${quotaValidation.reason}`);
       
-      // 0C. RESERVE worker immediately (prevent race condition)
-      // Set placeholder to block concurrent calls before browser launch
-      this.activeSessions.set(config.workerId, null as any);
+      // ============================================================================
+      // 2. ✅ POSTGRESQL: INSERT session row (DB-level exclusivity guard)
+      // Partial unique index prevents duplicate sessions for same worker
+      // ============================================================================
       
-      // 1. Launch browser
+      sessionId = nanoid();
+      const maxSessionDurationMs = quotaValidation.quotaDetails?.sessionLimitMs || (8.4 * 60 * 60 * 1000); // Default 8.4h
+      const expiresAt = new Date(Date.now() + maxSessionDurationMs);
+      const now = new Date();
+      
+      const [dbSession] = await db.insert(gpuSessions)
+        .values({
+          workerId: config.workerId,
+          sessionId,
+          provider: 'kaggle',
+          status: 'starting',
+          expiresAt,
+          lastActivity: now, // ✅ CRITICAL: Initialize lastActivity (idle timeout tracking)
+        })
+        .onConflictDoNothing()
+        .returning();
+      
+      if (!dbSession) {
+        console.warn(`[Kaggle] ⚠️  Session already active for worker ${config.workerId} (DB partial unique index)`);
+        return {
+          success: false,
+          error: `Session already active for worker ${config.workerId}`
+        };
+      }
+      
+      dbSessionId = dbSession.id;
+      console.log(`[Kaggle] ✅ DB session created (ID: ${dbSessionId}, status: starting)`);
+      
+      // ============================================================================
+      // 3. Launch Puppeteer browser
+      // ============================================================================
+      
       const browser = await puppeteer.launch({
         headless: config.headless ?? true,
         args: [
@@ -104,13 +219,11 @@ export class KaggleOrchestrator {
       const page = await browser.newPage();
       await page.setViewport({ width: 1920, height: 1080 });
       
-      const sessionId = `kaggle-${config.workerId}-${Date.now()}`;
-      
-      // 2. Navigate to notebook
+      // Navigate to notebook
       console.log(`[Kaggle] Navigating to ${config.notebookUrl}...`);
       await page.goto(config.notebookUrl, { waitUntil: 'networkidle2', timeout: 60000 });
       
-      // 3. Check if login required
+      // Check if login required
       const isLoginPage = await page.url().includes('/account/login');
       if (isLoginPage) {
         console.log(`[Kaggle] Login required - authenticating...`);
@@ -120,16 +233,16 @@ export class KaggleOrchestrator {
         await page.goto(config.notebookUrl, { waitUntil: 'networkidle2' });
       }
       
-      // 4. Enable GPU if requested
+      // Enable GPU if requested
       if (config.useGPU) {
         await this.enableGPU(page);
       }
       
-      // 5. Run all cells
+      // Run all cells
       console.log(`[Kaggle] Running all cells...`);
       await this.runAllCells(page);
       
-      // 6. Monitor for Ngrok URL
+      // Monitor for Ngrok URL
       console.log(`[Kaggle] Monitoring for Ngrok URL...`);
       const ngrokUrl = await this.waitForNgrokUrl(page);
       
@@ -139,55 +252,93 @@ export class KaggleOrchestrator {
       
       console.log(`[Kaggle] ✅ Ngrok URL detected: ${ngrokUrl}`);
       
-      // 7. Store session
-      const session: KaggleSession = {
-        browser,
-        page,
-        workerId: config.workerId,
-        sessionId,
-        ngrokUrl,
-        isGPU: config.useGPU ?? true,
-      };
+      // ============================================================================
+      // 4. ✅ POSTGRESQL: UPDATE session to 'active' (with status guard!)
+      // Status guard prevents race condition (concurrent stopSession overwriting)
+      // ============================================================================
       
-      this.activeSessions.set(config.workerId, session);
+      const sessionNow = new Date();
+      const updatedRows = await db.update(gpuSessions)
+        .set({
+          status: 'active',
+          ngrokUrl,
+          startedAt: sessionNow,
+          lastActivity: sessionNow, // ✅ CRITICAL: Update lastActivity (idle timeout)
+        })
+        .where(and(
+          eq(gpuSessions.id, dbSessionId!),
+          eq(gpuSessions.status, 'starting') // ✅ Status guard
+        ))
+        .returning();
+      
+      if (updatedRows.length === 0) {
+        // Session was terminated concurrently (watchdog/stopSession)
+        console.warn(`[Kaggle] ⚠️  Session ${dbSessionId} was terminated during startup - closing browser`);
+        await browser.close();
+        return {
+          success: false,
+          error: 'Session was terminated during startup'
+        };
+      }
+      
+      console.log(`[Kaggle] ✅ DB session updated to 'active' (ID: ${dbSessionId})`);
       
       // ============================================================================
-      // 8. ENTERPRISE: Register session in PostgreSQL (70% quota enforcement)
+      // 5. ✅ CACHE: Store Puppeteer objects in runtime cache
+      // ============================================================================
+      
+      this.runtimeCache.set(config.workerId, {
+        browser,
+        page,
+        sessionId: sessionId!,
+      });
+      
+      console.log(`[Kaggle] ✅ Runtime cache updated (worker ${config.workerId})`);
+      
+      // ============================================================================
+      // 6. ENTERPRISE: Register quota tracking (QuotaEnforcementService)
       // ============================================================================
       
       const sessionRegistration = await quotaService.startSession(
         config.workerId,
         'kaggle',
-        sessionId,
+        sessionId!,
         ngrokUrl
       );
       
       if (!sessionRegistration.success) {
-        console.error(`[Kaggle] ❌ FATAL: Failed to register session in DB: ${sessionRegistration.error}`);
+        console.error(`[Kaggle] ❌ FATAL: Quota service registration failed: ${sessionRegistration.error}`);
         
-        // CRITICAL: Clean up Puppeteer session before throwing (prevent quota leakage)
-        console.log(`[Kaggle] 🧹 Cleaning up Puppeteer session due to DB registration failure...`);
-        try {
-          await browser.close();
-        } catch (cleanupError) {
-          console.error(`[Kaggle] ⚠️ Error during cleanup:`, cleanupError);
-        }
+        // Cleanup: Close browser + mark session terminated
+        await browser.close();
+        this.runtimeCache.delete(config.workerId);
         
-        this.activeSessions.delete(config.workerId);
-        throw new Error(`DB registration failed - cannot guarantee 70% quota enforcement: ${sessionRegistration.error}`);
+        await db.update(gpuSessions)
+          .set({
+            status: 'terminated',
+            shutdownReason: 'quota_service_error',
+            terminatedAt: new Date(),
+          })
+          .where(eq(gpuSessions.id, dbSessionId!));
+        
+        throw new Error(`Quota service registration failed: ${sessionRegistration.error}`);
       }
       
-      console.log(`[Kaggle] ✅ Session registered in DB (ID: ${sessionRegistration.sessionId}, auto-shutdown at ${sessionRegistration.autoShutdownAt?.toISOString()})`);
+      console.log(`[Kaggle] ✅ Quota service registered (auto-shutdown at ${sessionRegistration.autoShutdownAt?.toISOString()})`);
       
-      // 9. Update database (including sessionStartedAt for orchestrator-service guard)
+      // ============================================================================
+      // 7. Update gpuWorkers table
+      // ============================================================================
+      
       const now = new Date();
       await db.update(gpuWorkers)
         .set({
           puppeteerSessionId: sessionId,
           ngrokUrl: ngrokUrl,
           status: 'healthy',
-          sessionStartedAt: now, // Track session start time
-          lastHealthCheck: now, // CRITICAL: Set initial health check to prevent timeout
+          sessionStartedAt: now,
+          lastHealthCheck: now,
+          lastUsedAt: now, // ✅ Track activity for idle timeout
           updatedAt: now,
         })
         .where(eq(gpuWorkers.id, config.workerId));
@@ -197,60 +348,138 @@ export class KaggleOrchestrator {
     } catch (error) {
       console.error(`[Kaggle] Error starting session:`, error);
       
-      // CRITICAL: Clean up placeholder on failure (prevent lock)
-      this.activeSessions.delete(config.workerId);
+      // ============================================================================
+      // ✅ CLEANUP: Mark session terminated on failure (release partial unique index lock)
+      // ============================================================================
+      
+      if (dbSessionId) {
+        await db.update(gpuSessions)
+          .set({
+            status: 'terminated',
+            shutdownReason: 'startup_error',
+            terminatedAt: new Date(),
+          })
+          .where(eq(gpuSessions.id, dbSessionId))
+          .catch(err => console.error(`[Kaggle] Failed to cleanup session ${dbSessionId}:`, err));
+      }
       
       return { success: false, error: String(error) };
     }
   }
   
   /**
-   * Stop Kaggle session
+   * ✅ POSTGRESQL-BACKED: Stop Kaggle session
+   * 
+   * DB-FIRST FLOW:
+   * 1. Query gpu_sessions table for active session
+   * 2. Close Puppeteer browser if available in runtime cache
+   * 3. UPDATE gpu_sessions to 'terminated'
+   * 4. End session in QuotaEnforcementService
+   * 5. Update gpuWorkers table
    */
   async stopSession(workerId: number): Promise<{ success: boolean; error?: string }> {
     try {
-      const session = this.activeSessions.get(workerId);
-      
-      if (!session) {
-        return { success: false, error: 'Session not found' };
-      }
-      
       console.log(`[Kaggle] Stopping session for worker ${workerId}...`);
       
-      // 1. Stop notebook execution
-      await this.stopNotebook(session.page);
+      // ============================================================================
+      // 1. ✅ POSTGRESQL: Query active session from DB (source of truth)
+      // ============================================================================
       
-      // 2. Close browser
-      await session.browser.close();
+      const dbSession = await db.query.gpuSessions.findFirst({
+        where: and(
+          eq(gpuSessions.workerId, workerId),
+          eq(gpuSessions.provider, 'kaggle'),
+          inArray(gpuSessions.status, ['starting', 'active', 'idle'])
+        ),
+      });
       
-      // 3. Remove session
-      this.activeSessions.delete(workerId);
+      if (!dbSession) {
+        console.warn(`[Kaggle] ⚠️  No active session found in DB for worker ${workerId}`);
+        return { success: false, error: 'Session not found in DB' };
+      }
+      
+      console.log(`[Kaggle] Found session in DB (ID: ${dbSession.id}, status: ${dbSession.status})`);
       
       // ============================================================================
-      // 4. ENTERPRISE: End session in PostgreSQL (mark inactive, update quota)
+      // 2. ✅ RUNTIME CACHE: Close Puppeteer browser if available
+      // ============================================================================
+      
+      const runtime = this.runtimeCache.get(workerId);
+      
+      if (runtime) {
+        try {
+          console.log(`[Kaggle] Stopping notebook execution...`);
+          await this.stopNotebook(runtime.page);
+          
+          console.log(`[Kaggle] Closing browser...`);
+          await runtime.browser.close();
+          
+          this.runtimeCache.delete(workerId);
+          console.log(`[Kaggle] ✅ Runtime cache cleaned (worker ${workerId})`);
+        } catch (browserError) {
+          console.error(`[Kaggle] Error closing browser:`, browserError);
+          // Continue with DB cleanup even if browser cleanup fails
+        }
+      } else {
+        console.warn(
+          `[Kaggle] ⚠️  Runtime cache missing for worker ${workerId} ` +
+          `(process restart or orphaned session) - marking as terminated anyway`
+        );
+      }
+      
+      // ============================================================================
+      // 3. ✅ POSTGRESQL: UPDATE session to 'terminated'
+      // ============================================================================
+      
+      const stopNow = new Date();
+      const durationSeconds = Math.floor(
+        (stopNow.getTime() - new Date(dbSession.startedAt).getTime()) / 1000
+      );
+      
+      // ✅ STATUS GUARD: Only update if session still active/starting/idle
+      // Prevents race condition with concurrent stopSession/idle shutdown
+      const updatedRows = await db.update(gpuSessions)
+        .set({
+          status: 'terminated',
+          terminatedAt: stopNow,
+          lastActivity: stopNow, // ✅ CRITICAL: Update lastActivity on stop
+          durationSeconds,
+          shutdownReason: 'manual_stop',
+        })
+        .where(and(
+          eq(gpuSessions.id, dbSession.id),
+          inArray(gpuSessions.status, ['starting', 'active', 'idle']) // ✅ Status guard
+        ))
+        .returning();
+      
+      if (updatedRows.length === 0) {
+        console.warn(`[Kaggle] ⚠️  Session ${dbSession.id} was already terminated (concurrent shutdown)`);
+      } else {
+        console.log(`[Kaggle] ✅ DB session marked as terminated (ID: ${dbSession.id}, duration: ${durationSeconds}s)`);
+      }
+      
+      // ============================================================================
+      // 4. ENTERPRISE: End session in QuotaEnforcementService
       // ============================================================================
       
       const quotaService = await getQuotaEnforcementService();
-      const activeSessions = await quotaService.getActiveSessions();
-      const dbSession = activeSessions.find(s => s.workerId === workerId);
+      const sessionEnded = await quotaService.endSession(dbSession.id, 'manual_stop');
       
-      if (dbSession) {
-        const sessionEnded = await quotaService.endSession(dbSession.id, 'manual_stop');
-        if (!sessionEnded) {
-          console.error(`[Kaggle] ❌ Failed to end session in DB (ID: ${dbSession.id})`);
-        } else {
-          console.log(`[Kaggle] ✅ Session ended in DB (ID: ${dbSession.id}, quota updated)`);
-        }
+      if (!sessionEnded) {
+        console.error(`[Kaggle] ❌ Failed to end session in QuotaEnforcementService (ID: ${dbSession.id})`);
       } else {
-        console.warn(`[Kaggle] ⚠️ Session not found in DB - may have been already ended by watchdog`);
+        console.log(`[Kaggle] ✅ Quota service session ended (ID: ${dbSession.id})`);
       }
       
-      // 5. Update database (clear sessionStartedAt to allow future restarts)
+      // ============================================================================
+      // 5. Update gpuWorkers table
+      // ============================================================================
+      
       await db.update(gpuWorkers)
         .set({
           puppeteerSessionId: null,
           status: 'offline',
-          sessionStartedAt: null, // Allow future startups
+          sessionStartedAt: null,
         })
         .where(eq(gpuWorkers.id, workerId));
       
@@ -436,17 +665,28 @@ export class KaggleOrchestrator {
   }
   
   /**
-   * Get session status
+   * ✅ POSTGRESQL-BACKED: Get session status from DB
    */
-  getSessionStatus(workerId: number): KaggleSession | undefined {
-    return this.activeSessions.get(workerId);
+  async getSessionStatus(workerId: number): Promise<typeof gpuSessions.$inferSelect | undefined> {
+    return await db.query.gpuSessions.findFirst({
+      where: and(
+        eq(gpuSessions.workerId, workerId),
+        eq(gpuSessions.provider, 'kaggle'),
+        inArray(gpuSessions.status, ['starting', 'active', 'idle'])
+      ),
+    });
   }
   
   /**
-   * Get all active sessions
+   * ✅ POSTGRESQL-BACKED: Get all active sessions from DB
    */
-  getAllSessions(): KaggleSession[] {
-    return Array.from(this.activeSessions.values());
+  async getAllSessions(): Promise<Array<typeof gpuSessions.$inferSelect>> {
+    return await db.query.gpuSessions.findMany({
+      where: and(
+        eq(gpuSessions.provider, 'kaggle'),
+        inArray(gpuSessions.status, ['starting', 'active', 'idle'])
+      ),
+    });
   }
 }
 
