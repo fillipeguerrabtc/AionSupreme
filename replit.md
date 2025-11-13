@@ -72,6 +72,39 @@ export const GPU_QUOTA_CONSTANTS = {
 - Sempre adicionar data-testid para testes E2E
 - Sempre revisar código com architect antes de marcar como completed
 
+## Recent Changes
+
+### 2025-11-13: PHASE1-4 - Full i18n Coverage for GPU Overview Cards
+**Status:** ✅ COMPLETED (Architect Approved)
+
+**Implemented:**
+- ✅ **QuotaOverviewCard.tsx** (368 lines): 100% i18n refactor with 33 translation keys
+  - Empty states, error states, Kaggle/Colab quota displays, actions
+  - Template interpolation using `formatTemplate()` helper
+  - ZERO hardcoded Portuguese strings
+  
+- ✅ **GPUWorkersCard.tsx** (267 lines): 100% i18n refactor with 20 translation keys
+  - Loading/empty states, health levels, status labels, metrics
+  - Proper singular/plural handling with dedicated keys
+  - ZERO hardcoded Portuguese strings
+  
+- ✅ **i18n Infrastructure** (client/src/lib/i18n.tsx):
+  - Added 246 lines across PT-BR/EN-US/ES-ES dictionaries
+  - TypeScript interface updated with consistent key structure
+  - Production-grade `formatTemplate()` helper with global regex
+  - Path: `t.admin.gpuManagement.overviewCards.{quotaCard|workersCard}.*`
+
+**Quality Metrics:**
+- TypeScript LSP: ZERO diagnostics errors
+- Code Coverage: 100% translation keys used (53 total)
+- Hardcoded Strings: ZERO detected in final validation
+- Architect Review: PASSED (production-ready)
+
+**Files Modified:**
+- `client/src/lib/i18n.tsx` (+246 lines)
+- `client/src/components/gpu/QuotaOverviewCard.tsx` (33 i18n keys, 3 formatTemplate calls)
+- `client/src/components/gpu/GPUWorkersCard.tsx` (20 i18n keys, 4 formatTemplate calls)
+
 ## System Architecture
 
 ### Core System Design
