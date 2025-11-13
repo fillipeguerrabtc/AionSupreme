@@ -201,6 +201,19 @@ export class ApprovalPromotionWorker {
       return 0;
     }
   }
+  
+  /**
+   * Scheduler-compatible run method
+   * Delegates to promoteApprovedItems with default batch size
+   */
+  async run(maxItems?: number): Promise<{
+    promoted: number;
+    duplicates: number;
+    failed: number;
+  }> {
+    const { promoted, duplicates, failed } = await this.promoteApprovedItems(maxItems);
+    return { promoted, duplicates, failed };
+  }
 }
 
 // Export singleton

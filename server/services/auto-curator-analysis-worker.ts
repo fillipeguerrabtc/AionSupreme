@@ -265,6 +265,19 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
       };
     }
   }
+  
+  /**
+   * Scheduler-compatible run method
+   * Delegates to processMissingAnalysis with default batch size
+   */
+  async run(maxItems?: number): Promise<{
+    processed: number;
+    analyzed: number;
+    failed: number;
+  }> {
+    const { processed, analyzed, failed, skipped } = await this.processMissingAnalysis(maxItems);
+    return { processed, analyzed, failed };
+  }
 }
 
 // Export singleton
