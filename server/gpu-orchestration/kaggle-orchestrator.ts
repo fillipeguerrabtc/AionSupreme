@@ -24,7 +24,7 @@ import type { Browser, Page } from 'puppeteer';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { db } from '../db';
 import { gpuWorkers, gpuSessions } from '../../shared/schema';
-import { eq, and, inArray, lt } from 'drizzle-orm';
+import { eq, and, inArray, lt, gt } from 'drizzle-orm';
 import { getQuotaEnforcementService } from '../services/quota-enforcement-service';
 import { nanoid } from 'nanoid';
 
@@ -62,74 +62,91 @@ export class KaggleOrchestrator {
    * 3. Log warning for valid active sessions (will be managed by idle timeout watcher)
    */
   async cleanupOrphanedSessions(): Promise<void> {
-    console.log('[Kaggle] Cleaning up orphaned sessions...');
-    
-    const now = new Date();
-    
-    // 1. Terminate old 'starting' sessions (startup timeout = 10min)
-    const failedStarting = await db.update(gpuSessions)
-      .set({
-        status: 'terminated',
-        shutdownReason: 'startup_timeout',
-        terminatedAt: now,
-        lastActivity: now,
-      })
-      .where(and(
-        eq(gpuSessions.provider, 'kaggle'),
-        eq(gpuSessions.status, 'starting'),
-        lt(gpuSessions.startedAt, new Date(Date.now() - 10 * 60 * 1000))
-      ))
-      .returning();
-    
-    if (failedStarting.length > 0) {
-      console.log(`[Kaggle] Terminated ${failedStarting.length} stuck 'starting' sessions`);
-    }
-    
-    // 2. ✅ CRITICAL FIX: Terminate sessions PAST their expiresAt (quota expired)
-    // This is a DURABLE indicator - doesn't rely on runtime cache
-    const expiredSessions = await db.update(gpuSessions)
-      .set({
-        status: 'terminated',
-        shutdownReason: 'quota_expired',
-        terminatedAt: now,
-        lastActivity: now,
-      })
-      .where(and(
-        eq(gpuSessions.provider, 'kaggle'),
-        inArray(gpuSessions.status, ['active', 'idle']),
-        lt(gpuSessions.expiresAt, now)
-      ))
-      .returning();
-    
-    if (expiredSessions.length > 0) {
-      console.log(`[Kaggle] ✅ Terminated ${expiredSessions.length} quota-expired sessions`);
-    }
-    
-    // 3. Log warning for valid active sessions (will be managed by idle timeout watcher)
-    const validActive = await db.query.gpuSessions.findMany({
-      where: and(
-        eq(gpuSessions.provider, 'kaggle'),
-        inArray(gpuSessions.status, ['active', 'idle']),
-        gt(gpuSessions.expiresAt, now) // ✅ CORRECT: expiresAt > now (still valid)
-      ),
-    });
-    
-    if (validActive.length > 0) {
-      console.log(
-        `[Kaggle] ℹ️  Found ${validActive.length} valid active sessions ` +
-        `(will be managed by idle timeout watcher)`
-      );
+    try {
+      console.log('[Kaggle] Cleaning up orphaned sessions...');
       
-      for (const session of validActive) {
-        const minutesRemaining = Math.floor(
-          (new Date(session.expiresAt).getTime() - now.getTime()) / (60 * 1000)
-        );
-        console.log(
-          `[Kaggle]    → Worker ${session.workerId}: ` +
-          `${minutesRemaining}min quota remaining, ` +
-          `last activity ${Math.floor((now.getTime() - new Date(session.lastActivity).getTime()) / (60 * 1000))}min ago`
-        );
+      const now = new Date();
+      
+      // 1. Terminate old 'starting' sessions (startup timeout = 10min)
+      const failedStarting = await db.update(gpuSessions)
+        .set({
+          status: 'terminated',
+          shutdownReason: 'startup_timeout',
+          terminatedAt: now,
+          lastActivity: now,
+        })
+        .where(and(
+          eq(gpuSessions.provider, 'kaggle'),
+          eq(gpuSessions.status, 'starting'),
+          lt(gpuSessions.startedAt, new Date(Date.now() - 10 * 60 * 1000))
+        ))
+        .returning();
+      
+      if (failedStarting.length > 0) {
+        console.log(`[Kaggle] Terminated ${failedStarting.length} stuck 'starting' sessions`);
       }
+      
+      // 2. ✅ CRITICAL FIX: Terminate sessions PAST their expiresAt (quota expired)
+      // This is a DURABLE indicator - doesn't rely on runtime cache
+      const expiredSessions = await db.update(gpuSessions)
+        .set({
+          status: 'terminated',
+          shutdownReason: 'quota_expired',
+          terminatedAt: now,
+          lastActivity: now,
+        })
+        .where(and(
+          eq(gpuSessions.provider, 'kaggle'),
+          inArray(gpuSessions.status, ['active', 'idle']),
+          lt(gpuSessions.expiresAt, now)
+        ))
+        .returning();
+      
+      if (expiredSessions.length > 0) {
+        console.log(`[Kaggle] ✅ Terminated ${expiredSessions.length} quota-expired sessions`);
+      }
+      
+      // 3. Log warning for valid active sessions (will be managed by idle timeout watcher)
+      const validActive = await db.query.gpuSessions.findMany({
+        where: and(
+          eq(gpuSessions.provider, 'kaggle'),
+          inArray(gpuSessions.status, ['active', 'idle']),
+          gt(gpuSessions.expiresAt, now) // ✅ CORRECT: expiresAt > now (still valid)
+        ),
+      });
+      
+      if (validActive.length > 0) {
+        console.log(
+          `[Kaggle] ℹ️  Found ${validActive.length} valid active sessions ` +
+          `(will be managed by idle timeout watcher)`
+        );
+        
+        for (const session of validActive) {
+          try {
+            const minutesRemaining = Math.floor(
+              (new Date(session.expiresAt).getTime() - now.getTime()) / (60 * 1000)
+            );
+            const lastActivityMs = session.lastActivity 
+              ? Math.floor((now.getTime() - new Date(session.lastActivity).getTime()) / (60 * 1000))
+              : 'unknown';
+            console.log(
+              `[Kaggle]    → Worker ${session.workerId}: ` +
+              `${minutesRemaining}min quota remaining, ` +
+              `last activity ${lastActivityMs}min ago`
+            );
+          } catch (err) {
+            console.warn(`[Kaggle]    → Worker ${session.workerId}: failed to parse timestamp`, err);
+          }
+        }
+      }
+      
+      // Clean up runtime cache (all entries - stale after restart)
+      this.runtimeCache.clear();
+      
+      console.log('[Kaggle] ✅ Cleanup complete');
+    } catch (error) {
+      // ✅ NON-BLOCKING: Log error but don't crash startup
+      console.error('[Kaggle] ❌ Error during orphaned session cleanup:', error);
     }
   }
   
