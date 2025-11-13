@@ -235,6 +235,7 @@ export class KaggleAutomationService {
         '    total_vram = vram_per_gpu * gpu_count\n',
         '    \n',
         '    payload = {\n',
+        '        "workerId": WORKER_DB_ID,  # ✅ FIX: Tell backend which DB record to update\n',
         '        "name": f"Kaggle-Worker-{WORKER_DB_ID}",\n',
         '        "url": ngrok_url,\n',
         '        "type": PROVIDER,\n',

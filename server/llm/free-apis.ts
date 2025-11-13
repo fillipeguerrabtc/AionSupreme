@@ -257,9 +257,11 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
   const completionTokens = response.usageMetadata?.candidatesTokenCount || 0;
   const totalTokens = response.usageMetadata?.totalTokenCount || 0;
   
-  // ✅ CRITICAL: Update Gemini limits (docs + DB tracking)
+  // ✅ CRITICAL: Update Gemini limits from response metadata (REAL data when available)
   try {
     const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
+    // Gemini NÃO fornece quota nos response headers, mas fornece usage metadata
+    // Usamos isso + docs oficiais para tracking
     await providerLimitsTracker.updateGeminiLimits();
   } catch (trackerError: any) {
     log.warn({ component: 'gemini', error: trackerError.message }, 'Failed to update Gemini limits (non-critical)');

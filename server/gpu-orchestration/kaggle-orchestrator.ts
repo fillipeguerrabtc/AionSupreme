@@ -344,33 +344,70 @@ export class KaggleOrchestrator {
   /**
    * Monitor output for Ngrok URL
    */
-  private async waitForNgrokUrl(page: Page, timeout = 120000): Promise<string | null> {
+  private async waitForNgrokUrl(page: Page, timeout = 180000): Promise<string | null> {
     const startTime = Date.now();
+    let lastLogTime = 0;
+    
+    console.log(`[Kaggle] 🔍 Iniciando detecção de ngrok URL (timeout: ${timeout/1000}s)...`);
     
     while (Date.now() - startTime < timeout) {
       try {
         const ngrokUrl = await page.evaluate(() => {
-          // Search cell outputs for ngrok URL
-          const outputs = Array.from(document.querySelectorAll('.output'));
+          // ✅ BUSCAR EM MÚLTIPLOS SELETORES (Kaggle muda UI frequentemente)
+          const selectors = [
+            '.output',           // Output cells
+            'pre',               // Code blocks
+            '.code-output',      // Code output
+            '[class*="output"]', // Any class with "output"
+            'div[role="log"]',   // Log containers
+          ];
           
-          for (const output of outputs) {
-            const text = output.textContent || '';
-            const match = text.match(/https:\/\/[\w-]+\.ngrok[-\w]*\.io/);
-            if (match) return match[0];
+          for (const selector of selectors) {
+            const elements = Array.from(document.querySelectorAll(selector));
+            for (const el of elements) {
+              const text = el.textContent || '';
+              
+              // ✅ REGEX mais abrangente para ngrok URLs
+              const patterns = [
+                /https:\/\/[\w-]+\.ngrok[-\w]*\.io/,           // Standard
+                /https:\/\/[\w-]+\.ngrok\.app/,                // New ngrok.app domain
+                /https:\/\/[\w-]+\.ngrok-free\.app/,           // Free tier
+                /Running on (https:\/\/[\w-]+\.ngrok[^\s]+)/,  // "Running on https://..."
+              ];
+              
+              for (const pattern of patterns) {
+                const match = text.match(pattern);
+                if (match) {
+                  // Se capturou grupo, use grupo 1, senão match[0]
+                  return match[1] || match[0];
+                }
+              }
+            }
           }
           
           return null;
         });
         
-        if (ngrokUrl) return ngrokUrl;
+        if (ngrokUrl) {
+          console.log(`[Kaggle] ✅ Ngrok URL detectada: ${ngrokUrl}`);
+          return ngrokUrl;
+        }
+        
+        // Log progress a cada 30s
+        const elapsed = Date.now() - startTime;
+        if (elapsed - lastLogTime > 30000) {
+          console.log(`[Kaggle] ⏳ Aguardando ngrok URL... (${Math.floor(elapsed/1000)}s/${timeout/1000}s)`);
+          lastLogTime = elapsed;
+        }
         
       } catch (error) {
-        // Continue
+        console.warn(`[Kaggle] ⚠️ Erro ao detectar ngrok:`, error);
       }
       
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000)); // Check a cada 3s
     }
     
+    console.error(`[Kaggle] ❌ TIMEOUT: Ngrok URL não detectada após ${timeout/1000}s`);
     return null;
   }
   

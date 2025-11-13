@@ -110,6 +110,7 @@ export function registerGpuRoutes(app: Router) {
     log.info({ component: 'gpu-register', body: req.body }, 'Worker registration request');
     try {
       const { 
+        workerId,  // ✅ NEW: Optional workerId to UPDATE existing worker
         name, 
         url, 
         type, 
@@ -148,9 +149,31 @@ export function registerGpuRoutes(app: Router) {
         maxWeeklySeconds: detectedProvider.includes('kaggle') ? 75600 : null,  // Kaggle: 21h, Colab: null
       };
 
-      const [worker] = await db.insert(gpuWorkers).values(workerData).returning();
-
-      console.log(`[GPU Pool] 🎮 Worker online: ${name} (ID: ${worker.id}, ${gpuType})`);
+      let worker;
+      
+      // ✅ FIX: If workerId provided, UPDATE existing worker (Kaggle/Colab automated provisioning)
+      if (workerId) {
+        log.info({ component: 'gpu-register', workerId }, 'Updating existing worker');
+        
+        [worker] = await db
+          .update(gpuWorkers)
+          .set({
+            ...workerData,
+            sessionStartedAt: new Date(),  // ✅ Track when worker came online
+          })
+          .where(eq(gpuWorkers.id, workerId))
+          .returning();
+        
+        if (!worker) {
+          return res.status(404).json({ error: `Worker ${workerId} not found` });
+        }
+        
+        console.log(`[GPU Pool] ✅ Worker updated: ${name} (ID: ${worker.id}, ${gpuType})`);
+      } else {
+        // Legacy behavior: Create new worker
+        [worker] = await db.insert(gpuWorkers).values(workerData).returning();
+        console.log(`[GPU Pool] 🎮 Worker created: ${name} (ID: ${worker.id}, ${gpuType})`);
+      }
 
       res.json({ 
         success: true, 

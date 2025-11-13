@@ -116,7 +116,7 @@ export class GPUManagerService {
     const [worker] = await db.insert(gpuWorkers).values({
       provider: 'kaggle',
       accountId: notebookUrl,  // SALVAR URL COMPLETO (não só slug)
-      ngrokUrl: 'pending',
+      ngrokUrl: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`, // ✅ FIX: unique placeholder até Kaggle orchestrator detectar URL
       status: 'pending',
       autoManaged: true,
       capabilities: {
@@ -177,7 +177,7 @@ export class GPUManagerService {
     const [worker] = await db.insert(gpuWorkers).values({
       provider: 'colab',
       accountId: notebookUrl,  // SALVAR URL COMPLETO
-      ngrokUrl: 'pending',
+      ngrokUrl: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`, // ✅ FIX: unique placeholder até Colab detectar URL
       status: 'pending',
       autoManaged: true,
       capabilities: {

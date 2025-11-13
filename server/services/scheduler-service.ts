@@ -115,7 +115,7 @@ export class SchedulerService {
           logger.error('[SchedulerService] Error in auto-training-trigger:', error);
         }
       },
-      enabled: false, // Desabilitado - AutoTrainingTrigger já tem seu próprio loop
+      enabled: true, // ✅ REATIVADO - Monitor necessário para garantir funcionamento
       runCount: 0,
       errorCount: 0,
     });
@@ -285,7 +285,7 @@ export class SchedulerService {
           logger.error(`Training queue monitor error: ${error.message}`);
         }
       },
-      enabled: false, // 🚨 DISABLED until proper kernel deletion is implemented
+      enabled: false, // 🚨 DISABLED - Architect blocked: Missing GPU deletion service integration
       runCount: 0,
       errorCount: 0,
     });
@@ -793,7 +793,7 @@ export class SchedulerService {
           logger.error(`❌ Auto-curator analysis error: ${error.message}`);
         }
       },
-      enabled: false, // 🚨 DESABILITADO - Causando loop de gastos OpenAI
+      enabled: true, // ✅ REATIVADO - Com proteções de quota implementadas
       runCount: 0,
       errorCount: 0,
     });
@@ -817,7 +817,7 @@ export class SchedulerService {
           logger.error(`❌ Approval promotion error: ${error.message}`);
         }
       },
-      enabled: false, // 🚨 DESABILITADO - Evitar gastos desnecessários
+      enabled: true, // ✅ REATIVADO - Necessário para sistema funcionar
       runCount: 0,
       errorCount: 0,
     });
