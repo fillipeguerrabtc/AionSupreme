@@ -600,18 +600,27 @@ export async function generateWithFreeAPIs(
     }
   }
 
-  // All free APIs failed - fallback to OpenAI if allowed
-  if (allowOpenAI) {
-    log.info({ component: 'free-apis' }, 'Falling back to OpenAI (paid)');
-    try {
-      return await callOpenAI(req);
-    } catch (error: any) {
-      errors.push(`openai: ${error.message}`);
-      throw new Error(`All LLM providers failed: ${errors.join('; ')}`);
-    }
-  }
+  // All free APIs failed - DO NOT fallback to OpenAI automatically
+  // 🚨 PRODUCTION SAFETY: Never auto-fallback to paid OpenAI
+  // User must explicitly enable OpenAI fallback per-request basis
+  log.error({ 
+    component: 'free-apis', 
+    failedProviders: Array.from(failedProviders),
+    errors
+  }, '🚨 ALL FREE APIs FAILED - Refusing to auto-fallback to OpenAI (cost protection)');
+  
+  // ❌ DISABLED: Automatic OpenAI fallback (causes cost spiral)
+  // if (allowOpenAI) {
+  //   log.info({ component: 'free-apis' }, 'Falling back to OpenAI (paid)');
+  //   try {
+  //     return await callOpenAI(req);
+  //   } catch (error: any) {
+  //     errors.push(`openai: ${error.message}`);
+  //     throw new Error(`All LLM providers failed: ${errors.join('; ')}`);
+  //   }
+  // }
 
-  throw new Error(`All free LLM providers failed: ${errors.join('; ')}`);
+  throw new Error(`❌ All free LLM providers failed. OpenAI fallback is disabled to prevent cost spiral. Errors: ${errors.join('; ')}`);
 }
 
 // ============================================================================
