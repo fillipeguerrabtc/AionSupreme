@@ -180,12 +180,15 @@ export class KaggleOrchestrator {
       console.log(`[Kaggle] ✅ Session registered in DB (ID: ${sessionRegistration.sessionId}, auto-shutdown at ${sessionRegistration.autoShutdownAt?.toISOString()})`);
       
       // 9. Update database (including sessionStartedAt for orchestrator-service guard)
+      const now = new Date();
       await db.update(gpuWorkers)
         .set({
           puppeteerSessionId: sessionId,
           ngrokUrl: ngrokUrl,
           status: 'healthy',
-          sessionStartedAt: new Date(), // Track session start time
+          sessionStartedAt: now, // Track session start time
+          lastHealthCheck: now, // CRITICAL: Set initial health check to prevent timeout
+          updatedAt: now,
         })
         .where(eq(gpuWorkers.id, config.workerId));
       
