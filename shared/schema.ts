@@ -965,7 +965,7 @@ export const gpuWorkers = pgTable("gpu_workers", {
   // Provider and identification
   provider: text("provider").notNull(), // "colab" | "kaggle" | "modal" | "paperspace" | "lightning"
   accountId: text("account_id"), // Google account email or unique identifier
-  ngrokUrl: text("ngrok_url").notNull().unique(),
+  ngrokUrl: text("ngrok_url"), // ✅ NULL until activation (workers offline não têm URL)
   
   // Capabilities and configuration
   capabilities: jsonb("capabilities").notNull().$type<{

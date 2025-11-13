@@ -28,7 +28,6 @@ import { eq, sql, and, lt } from 'drizzle-orm';
 import { gpuCooldownManager } from './gpu-cooldown-manager';
 import { tosComplianceMonitor } from './tos-compliance-monitor';
 import { kaggleAutomationService } from './kaggle-automation-service';
-import { secretsVault } from './security/secrets-vault';
 import { nanoid } from 'nanoid'; // ✅ FIX P0-1: For session tokens
 import { QUOTA_LIMITS } from '../config/quota-limits';
 
@@ -126,28 +125,13 @@ export class DemandBasedKaggleOrchestrator {
         
         let worker = kaggleWorkers[0];
         
-        // 2. Ensure worker exists
+        // ✅ 2. NO WORKER CREATION - AutoDiscovery is responsible for that
+        // If no worker exists, return error suggesting AutoDiscovery setup
         if (!worker) {
-          console.log('[DemandBasedKaggle] No Kaggle worker found - creating...');
-          
-          const [newWorker] = await tx.insert(gpuWorkers).values({
-            provider: 'kaggle',
-            accountId: 'kaggle-main',
-            ngrokUrl: 'pending',
-            status: 'offline',
-            capabilities: {
-              gpu: 'P100',
-              model: 'pending',
-              tor_enabled: false,
-            },
-            autoManaged: true,
-            maxSessionDurationSeconds: 9 * 3600,
-            maxWeeklySeconds: QUOTA_LIMITS.KAGGLE.SAFE_WEEKLY_SECONDS, // 70% of 30h Kaggle quota
-            weeklyUsageHours: 0,
-            dailyUsageHours: 0,
-          }).returning();
-          
-          worker = newWorker;
+          console.error('[DemandBasedKaggle] ❌ No Kaggle worker found in database!');
+          console.error('[DemandBasedKaggle] 💡 Add KAGGLE_USERNAME_1/KAGGLE_KEY_1 to Replit Secrets');
+          console.error('[DemandBasedKaggle] 💡 AutoDiscovery will auto-create workers on next startup');
+          throw new Error('No Kaggle workers configured. Add credentials to Replit Secrets and restart.');
         }
         
         // 3. Check if already reserved or active
@@ -222,32 +206,42 @@ export class DemandBasedKaggleOrchestrator {
         };
       }
       
-      // 5. Get Kaggle credentials (with env fallback for single-account support)
+      // ✅ 5. Get Kaggle credentials from Replit Secrets (per-worker via accountId)
       let username: string | undefined;
       let apiKey: string | undefined;
       
-      const credentialsRaw = await secretsVault.retrieve('kaggle-main');
+      // Extract index from worker's accountId (e.g., "kaggle-2" → "2")
+      const worker = await db.query.gpuWorkers.findFirst({
+        where: eq(gpuWorkers.id, workerId),
+      });
       
-      if (credentialsRaw) {
-        // Vault credentials found
-        const credentials = JSON.parse(credentialsRaw);
-        username = credentials.username;
-        apiKey = credentials.apiKey;
-        console.log('[DemandBasedKaggle] ✅ Using credentials from secretsVault');
-      } else {
-        // FALLBACK: Check env for single-account support (BUG #12 FIX)
-        // Supports both KAGGLE_USERNAME/KAGGLE_KEY and KAGGLE_USERNAME_1/KAGGLE_KEY_1
-        username = process.env.KAGGLE_USERNAME || process.env.KAGGLE_USERNAME_1;
-        apiKey = process.env.KAGGLE_KEY || process.env.KAGGLE_KEY_1;
-        
-        if (username && apiKey) {
-          console.log('[DemandBasedKaggle] ✅ Using credentials from environment variables');
-        }
+      if (!worker) {
+        console.error('[DemandBasedKaggle] ❌ Worker not found!');
+        await this.releaseReservation(workerId, sessionToken);
+        return { success: false, error: 'Worker not found' };
+      }
+      
+      // ✅ Parse accountId to get credentials index (KAGGLE_1 → '1')
+      const accountId = worker.accountId || 'KAGGLE_1';
+      const index = accountId.split('_')[1] || '1';
+      
+      username = process.env[`KAGGLE_USERNAME_${index}`];
+      apiKey = process.env[`KAGGLE_KEY_${index}`];
+      
+      // Fallback to legacy env vars (KAGGLE_USERNAME, KAGGLE_KEY) only if index=1 missing
+      if (!username && index === '1') {
+        username = process.env.KAGGLE_USERNAME;
+        apiKey = process.env.KAGGLE_KEY;
+        console.log('[DemandBasedKaggle] ⚠️ Using legacy KAGGLE_USERNAME/KAGGLE_KEY (add KAGGLE_USERNAME_1)');
+      }
+      
+      if (username && apiKey) {
+        console.log(`[DemandBasedKaggle] ✅ Using credentials from Replit Secrets (accountId: ${accountId})`);
       }
       
       if (!username || !apiKey) {
-        console.error('[DemandBasedKaggle] ❌ No Kaggle credentials found!');
-        console.error('[DemandBasedKaggle]    Checked: secretsVault, KAGGLE_USERNAME, KAGGLE_USERNAME_1');
+        console.error(`[DemandBasedKaggle] ❌ No Kaggle credentials found for ${accountId}!`);
+        console.error(`[DemandBasedKaggle]    Add KAGGLE_USERNAME_${index} and KAGGLE_KEY_${index} to Replit Secrets`);
         
         // Release reservation
         await this.releaseReservation(workerId, sessionToken);

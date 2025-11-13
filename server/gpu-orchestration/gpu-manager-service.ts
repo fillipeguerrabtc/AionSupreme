@@ -25,7 +25,6 @@ import { eq } from 'drizzle-orm';
 import { createKaggleAPI, KaggleAPI } from './providers/kaggle-api';
 import { createColabCreator, ColabNotebookCreator } from './providers/colab-creator';
 import { quotaManager, GPU_QUOTA_CONSTANTS } from './intelligent-quota-manager';
-import { retrieveKaggleCredentials, retrieveGoogleCredentials } from '../services/security/secrets-vault';
 import { logger } from '../services/logger-service';
 
 const log = logger.child('GPUManagerService');
@@ -296,7 +295,9 @@ export class GPUManagerService {
   }
 
   /**
-   * Delete Kaggle notebook remotely using stored credentials
+   * Delete Kaggle notebook remotely using Replit Secrets
+   * 
+   * 2025 Architecture: Credentials come from process.env (KAGGLE_USERNAME_1, etc)
    */
   private async deleteKaggleNotebook(worker: any): Promise<void> {
     try {
@@ -314,20 +315,27 @@ export class GPUManagerService {
         return;
       }
 
-      // Retrieve credentials from SecretsVault
-      const credentials = await retrieveKaggleCredentials('default', username);
+      // Try to find credentials in Replit Secrets by scanning KAGGLE_USERNAME_* env vars
+      let kaggleKey: string | undefined;
+      for (let i = 1; i <= 10; i++) {
+        const envUsername = process.env[`KAGGLE_USERNAME_${i}`];
+        if (envUsername === username) {
+          kaggleKey = process.env[`KAGGLE_KEY_${i}`];
+          break;
+        }
+      }
       
-      if (!credentials) {
-        log.error('Kaggle credentials not found in SecretsVault', {
+      if (!kaggleKey) {
+        log.error('Kaggle credentials not found in Replit Secrets', {
           workerId: worker.id,
           username,
         });
-        log.info('💡 Add credentials: POST /api/admin/secrets/kaggle');
+        log.info('💡 Add credentials to Replit Secrets: KAGGLE_USERNAME_N, KAGGLE_KEY_N');
         return;
       }
 
       // Create temporary KaggleAPI instance and delete notebook
-      const kaggleAPI = createKaggleAPI(credentials);
+      const kaggleAPI = createKaggleAPI({ username, key: kaggleKey });
       await kaggleAPI.deleteNotebook(slug);
 
       log.info('Kaggle notebook deleted successfully', {
@@ -346,6 +354,8 @@ export class GPUManagerService {
   /**
    * Delete Colab notebook remotely via Google Drive API
    * 
+   * 2025 Architecture: Credentials come from process.env (COLAB_EMAIL_1, etc)
+   * 
    * Colab notebooks are .ipynb files in Google Drive.
    * Requires Google Drive API implementation.
    */
@@ -363,21 +373,28 @@ export class GPUManagerService {
         return;
       }
 
-      // Retrieve Google credentials (identifier='default', email=googleEmail)
-      const credentials = await retrieveGoogleCredentials('default', googleEmail);
+      // Try to find credentials in Replit Secrets by scanning COLAB_EMAIL_* env vars
+      let password: string | undefined;
+      for (let i = 1; i <= 10; i++) {
+        const envEmail = process.env[`COLAB_EMAIL_${i}`];
+        if (envEmail === googleEmail) {
+          password = process.env[`COLAB_PASSWORD_${i}`];
+          break;
+        }
+      }
       
-      if (!credentials) {
-        log.error('Google credentials not found in SecretsVault', {
+      if (!password) {
+        log.error('Google credentials not found in Replit Secrets', {
           workerId: worker.id,
           googleEmail,
           notebookUrl: worker.accountId,
         });
-        log.info('💡 Add credentials: POST /api/admin/secrets/google');
+        log.info('💡 Add credentials to Replit Secrets: COLAB_EMAIL_N, COLAB_PASSWORD_N');
         return;
       }
 
       // TODO: Implement Google Drive API deletion
-      // 1. Initialize Google Drive API client with credentials
+      // 1. Initialize Google Drive API client with credentials (googleEmail, password)
       // 2. Extract notebook file ID from worker.accountId or metadata
       // 3. Call drive.files.delete(fileId)
       

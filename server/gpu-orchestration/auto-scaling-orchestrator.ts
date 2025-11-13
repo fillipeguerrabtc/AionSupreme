@@ -60,7 +60,6 @@ import { ColabOrchestrator } from './colab-orchestrator';
 import { KaggleOrchestrator } from './kaggle-orchestrator';
 import { quotaManager } from './intelligent-quota-manager';
 import { QUOTA_LIMITS } from '../config/quota-limits';
-import { retrieveKaggleCredentials, retrieveGoogleCredentials } from '../services/security/secrets-vault';
 import { providerAlternationService, sleepHuman, getProgressiveDelay, type Provider } from './provider-alternation-service';
 import { log } from '../utils/logger';
 
@@ -699,30 +698,40 @@ export class AutoScalingOrchestrator {
     let sessionStarted = false;
 
     try {
-      // 1. Buscar credenciais do SecretsVault ANTES de registrar sessão
+      // ✅ 1. Buscar credenciais de Replit Secrets (accountId format: kaggle-1, colab-2, etc)
       let credentials: any = null;
       const accountId = worker.accountId || 'default';
       
-      console.log(`[AutoScale] 🔐 Buscando credenciais no SecretsVault (provider: ${worker.provider}, account: ${accountId})...`);
+      console.log(`[AutoScale] 🔐 Reading credentials from Replit Secrets (provider: ${worker.provider}, accountId: ${accountId})...`);
       
       if (worker.provider === 'colab') {
-        credentials = await retrieveGoogleCredentials(accountId);
-        if (!credentials) {
-          console.error(`[AutoScale] ⚠️  Colab #${workerId} - Credenciais não encontradas no SecretsVault (accountId: ${accountId})`);
-          console.error(`[AutoScale] 💡 Dica: Use POST /api/admin/secrets/google para armazenar credenciais`);
+        // ✅ Extract index from accountId (COLAB_1 → '1')
+        const index = accountId.split('_')[1];
+        const email = process.env[`COLAB_EMAIL_${index}`];
+        const password = process.env[`COLAB_PASSWORD_${index}`];
+        
+        if (!email || !password) {
+          console.error(`[AutoScale] ⚠️  Colab #${workerId} - Credentials not found in Replit Secrets (accountId: ${accountId})`);
+          console.error(`[AutoScale] 💡 Add COLAB_EMAIL_${index} and COLAB_PASSWORD_${index} to Replit Secrets`);
           return;
         }
-        console.log(`[AutoScale] ✅ Credenciais Google recuperadas (account: ${accountId}, email: ${credentials.email})`);
+        credentials = { email, password };
+        console.log(`[AutoScale] ✅ Colab credentials loaded (account: ${accountId}, email: ${credentials.email})`);
       } else if (worker.provider === 'kaggle') {
-        credentials = await retrieveKaggleCredentials(accountId);
-        if (!credentials) {
-          console.error(`[AutoScale] ⚠️  Kaggle #${workerId} - Credenciais não encontradas no SecretsVault (accountId: ${accountId})`);
-          console.error(`[AutoScale] 💡 Dica: Use POST /api/admin/secrets/kaggle para armazenar credenciais`);
+        // ✅ Extract index from accountId (KAGGLE_1 → '1')
+        const index = accountId.split('_')[1];
+        const username = process.env[`KAGGLE_USERNAME_${index}`];
+        const apiKey = process.env[`KAGGLE_KEY_${index}`];
+        
+        if (!username || !apiKey) {
+          console.error(`[AutoScale] ⚠️  Kaggle #${workerId} - Credentials not found in Replit Secrets (accountId: ${accountId})`);
+          console.error(`[AutoScale] 💡 Add KAGGLE_USERNAME_${index} and KAGGLE_KEY_${index} to Replit Secrets`);
           return;
         }
-        console.log(`[AutoScale] ✅ Credenciais Kaggle recuperadas (account: ${accountId}, username: ${credentials.username})`);
+        credentials = { username, apiKey };
+        console.log(`[AutoScale] ✅ Kaggle credentials loaded (account: ${accountId}, username: ${credentials.username})`);
       } else {
-        console.error(`[AutoScale] ⚠️  GPU #${workerId} - Provider não suportado: ${worker.provider}`);
+        console.error(`[AutoScale] ⚠️  GPU #${workerId} - Unsupported provider: ${worker.provider}`);
         return;
       }
 

@@ -129,7 +129,7 @@ export class AutoDiscoverGPUService {
    * ANTI-DUPLICATA: Query by (provider='kaggle' AND accountId='kaggle-N')
    */
   private async ensureKaggleWorker(account: KaggleAccount): Promise<void> {
-    const accountId = `kaggle-${account.index}`;
+    const accountId = `KAGGLE_${account.index}`; // ✅ Matches Replit Secrets pattern
 
     // Check if already exists
     const existing = await db.query.gpuWorkers.findFirst({
@@ -149,8 +149,8 @@ export class AutoDiscoverGPUService {
 
     const [worker] = await db.insert(gpuWorkers).values({
       provider: 'kaggle',
-      accountId: accountId,
-      ngrokUrl: `pending-autodiscovery-${accountId}-${Date.now()}`, // Unique placeholder
+      accountId: accountId, // KAGGLE_1, KAGGLE_2, etc (matches Secrets)
+      ngrokUrl: null, // ✅ NULL until activation (NO hardcoded placeholders!)
       status: 'offline',
       capabilities: {
         gpu: 'T4',
@@ -185,7 +185,7 @@ export class AutoDiscoverGPUService {
    * ANTI-DUPLICATA: Query by (provider='colab' AND accountId='colab-N')
    */
   private async ensureColabWorker(account: ColabAccount): Promise<void> {
-    const accountId = `colab-${account.index}`;
+    const accountId = `COLAB_${account.index}`; // ✅ Matches Replit Secrets pattern
 
     // Check if already exists
     const existing = await db.query.gpuWorkers.findFirst({
@@ -205,8 +205,8 @@ export class AutoDiscoverGPUService {
 
     const [worker] = await db.insert(gpuWorkers).values({
       provider: 'colab',
-      accountId: accountId,
-      ngrokUrl: `pending-autodiscovery-${accountId}-${Date.now()}`, // Unique placeholder
+      accountId: accountId, // COLAB_1, COLAB_2, etc (matches Secrets)
+      ngrokUrl: null, // ✅ NULL until activation (NO hardcoded placeholders!)
       status: 'offline',
       capabilities: {
         gpu: 'T4',
@@ -243,15 +243,15 @@ export class AutoDiscoverGPUService {
     kaggleAccounts: KaggleAccount[],
     colabAccounts: ColabAccount[]
   ): Promise<void> {
-    // Build list of valid accountIds
+    // Build list of valid accountIds (matching Replit Secrets pattern)
     const validAccountIds = new Set<string>();
 
     for (const account of kaggleAccounts) {
-      validAccountIds.add(`kaggle-${account.index}`);
+      validAccountIds.add(`KAGGLE_${account.index}`);
     }
 
     for (const account of colabAccounts) {
-      validAccountIds.add(`colab-${account.index}`);
+      validAccountIds.add(`COLAB_${account.index}`);
     }
 
     // Find all auto-managed workers

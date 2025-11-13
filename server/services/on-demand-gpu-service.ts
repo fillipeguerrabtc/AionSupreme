@@ -24,7 +24,6 @@ import { gpuWorkers } from '../../shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { getQuotaEnforcementService } from './quota-enforcement-service';
 import { autoScalingService } from './auto-scaling-service';
-import { retrieveKaggleCredentials, retrieveGoogleCredentials } from './security/secrets-vault';
 import { gpuManager } from '../gpu-orchestration/gpu-manager-service';
 import { KaggleOrchestrator } from '../gpu-orchestration/kaggle-orchestrator';
 import { ColabOrchestrator } from '../gpu-orchestration/colab-orchestrator';
@@ -52,8 +51,6 @@ export class OnDemandGPUService {
   private readonly DEFAULT_MAX_WAIT_MS = 180 * 1000; // 3min max wait for GPU startup
   private readonly POLL_INTERVAL_MS = 5 * 1000; // Poll every 5s to check if GPU is online
 
-  private lastInferenceTime: Map<number, number> = new Map(); // workerId → timestamp
-  
   // Concurrency guard: prevents duplicate GPU starts when multiple inference requests arrive simultaneously
   private gpuStartInProgress: Map<string, Promise<GPUEnsureResult>> = new Map(); // provider → pending promise
 
@@ -86,8 +83,10 @@ export class OnDemandGPUService {
     const existingWorker = await this.findHealthyGPU(requireGPU);
 
     if (existingWorker) {
-      // Update last activity time (prevent idle shutdown for Kaggle)
-      this.lastInferenceTime.set(existingWorker.id, Date.now());
+      // ✅ UPDATE last activity time in DB (prevent idle shutdown for Kaggle)
+      await db.update(gpuWorkers)
+        .set({ lastUsedAt: new Date() })
+        .where(eq(gpuWorkers.id, existingWorker.id));
 
       logger.info({ 
         workerId: existingWorker.id,
@@ -126,8 +125,11 @@ export class OnDemandGPUService {
       // Attempt to activate this worker using Replit Secrets
       const activationResult = await this.activateWorker(manualOfflineGPU);
       
-      if (activationResult.success) {
-        this.lastInferenceTime.set(manualOfflineGPU.id, Date.now());
+      if (activationResult.available) {
+        // ✅ UPDATE last activity time in DB
+        await db.update(gpuWorkers)
+          .set({ lastUsedAt: new Date() })
+          .where(eq(gpuWorkers.id, manualOfflineGPU.id));
         
         return {
           available: true,
@@ -218,160 +220,245 @@ export class OnDemandGPUService {
   /**
    * Activate offline worker using Replit Secrets
    * 
-   * Reads credentials from environment variables based on accountId
-   * Example: accountId='kaggle-1' → KAGGLE_USERNAME_1, KAGGLE_KEY_1
+   * Steps:
+   * 1. Read credentials from Replit Secrets (accountId='kaggle-1' → KAGGLE_USERNAME_1)
+   * 2. Create notebook if doesn't exist yet (via Kaggle API)
+   * 3. UPDATE existing worker (don't create duplicate!)
+   * 4. Start session via orchestrator
    */
-  private async activateWorker(worker: typeof gpuWorkers.$inferSelect): Promise<{
-    success: boolean;
-    workerUrl?: string;
-    reason?: string;
-  }> {
+  private async activateWorker(worker: typeof gpuWorkers.$inferSelect): Promise<GPUEnsureResult> {
     logger.info({ workerId: worker.id, accountId: worker.accountId }, 'Activating worker...');
 
-    try {
-      // Parse accountId to get Secret index
-      // Example: "kaggle-1" → provider="kaggle", index=1
-      const match = worker.accountId?.match(/^(kaggle|colab)-(\d+)$/);
-      
-      if (!match) {
-        return {
-          success: false,
-          reason: `Invalid accountId format: ${worker.accountId}. Expected 'kaggle-N' or 'colab-N'`,
-        };
-      }
-
-      const [_, provider, indexStr] = match;
-      const index = indexStr;
-
-      if (provider === 'kaggle') {
-        const username = process.env[`KAGGLE_USERNAME_${index}`];
-        const key = process.env[`KAGGLE_KEY_${index}`];
-
-        if (!username || !key) {
-          return {
-            success: false,
-            reason: `Kaggle credentials not found in Replit Secrets: KAGGLE_USERNAME_${index}, KAGGLE_KEY_${index}`,
-          };
-        }
-
-        // Activate via GPUManager
-        const result = await gpuManager.createGPU({
-          provider: 'kaggle',
-          email: '',
-          kaggleUsername: username,
-          kaggleKey: key,
-          enableGPU: true,
-          title: `AION Auto-Activated ${Date.now()}`,
-          autoStart: true, // Start session immediately
-        });
-
-        return {
-          success: true,
-          workerUrl: result.worker.ngrokUrl || undefined,
-        };
-
-      } else { // colab
-        const email = process.env[`COLAB_EMAIL_${index}`];
-        const password = process.env[`COLAB_PASSWORD_${index}`];
-
-        if (!email || !password) {
-          return {
-            success: false,
-            reason: `Colab credentials not found in Replit Secrets: COLAB_EMAIL_${index}, COLAB_PASSWORD_${index}`,
-          };
-        }
-
-        // Activate via GPUManager
-        const result = await gpuManager.createGPU({
-          provider: 'colab',
-          email,
-          password,
-          enableGPU: true,
-          title: `AION Auto-Activated ${Date.now()}`,
-          autoStart: true, // Start session immediately
-        });
-
-        return {
-          success: true,
-          workerUrl: result.worker.ngrokUrl || undefined,
-        };
-      }
-
-    } catch (error: any) {
-      logger.error({ error: error.message }, 'Failed to activate worker');
-      return {
-        success: false,
-        reason: `Activation error: ${error.message}`,
-      };
+    // Concurrency guard: prevent duplicate activations
+    const lockKey = `activate-${worker.id}`;
+    if (this.gpuStartInProgress.has(lockKey)) {
+      logger.warn({ workerId: worker.id }, 'Activation already in progress - skipping');
+      const existingPromise = this.gpuStartInProgress.get(lockKey);
+      return await existingPromise!;
     }
+
+    // Create activation promise
+    const activationPromise = (async () => {
+      try {
+        // Parse accountId to get Secret index
+        // Example: "kaggle-1" → provider="kaggle", index=1
+        const match = worker.accountId?.match(/^(kaggle|colab)-(\d+)$/);
+        
+        if (!match) {
+          return {
+            available: false,
+            reason: `Invalid accountId format: ${worker.accountId}. Expected 'kaggle-N' or 'colab-N'`,
+            startedNew: false,
+          };
+        }
+
+        const [_, provider, indexStr] = match;
+        const index = indexStr;
+
+        if (provider === 'kaggle') {
+          return await this.activateKaggleWorker(worker, index);
+        } else { // colab
+          return await this.activateColabWorker(worker, index);
+        }
+
+      } finally {
+        // Cleanup guard
+        this.gpuStartInProgress.delete(lockKey);
+      }
+    })();
+
+    // Register promise in guard
+    this.gpuStartInProgress.set(lockKey, activationPromise);
+
+    return await activationPromise;
   }
 
   /**
-   * 🚨 DEPRECATED - NO LONGER USED (2025 Architecture)
-   * 
-   * Use activateWorker() instead (reads from Replit Secrets)
+   * Activate Kaggle worker (create notebook + start session)
    */
-  private async startGPUOnDemand(preferProvider?: 'kaggle' | 'colab'): Promise<{
-    success: boolean;
-    workerId?: number;
-    provider?: 'kaggle' | 'colab';
-    reason?: string;
-  }> {
-    const quotaService = await getQuotaEnforcementService();
+  private async activateKaggleWorker(worker: typeof gpuWorkers.$inferSelect, index: string): Promise<GPUEnsureResult> {
+    // ✅ Extract index from accountId (KAGGLE_1 → '1')
+    const accountIndex = worker.accountId?.split('_')[1] || index;
+    
+    const username = process.env[`KAGGLE_USERNAME_${accountIndex}`];
+    const key = process.env[`KAGGLE_KEY_${accountIndex}`];
 
-    // Determine target provider
-    let targetProvider: 'kaggle' | 'colab' | null = null;
-
-    if (preferProvider === 'kaggle') {
-      const canStartKaggle = await this.checkKaggleQuota();
-      if (canStartKaggle) {
-        targetProvider = 'kaggle';
-      }
-    } else if (preferProvider === 'colab') {
-      const canStartColab = await this.checkColabQuota();
-      if (canStartColab) {
-        targetProvider = 'colab';
-      }
+    if (!username || !key) {
+      return {
+        available: false,
+        reason: `Kaggle credentials not found in Replit Secrets: KAGGLE_USERNAME_${accountIndex}, KAGGLE_KEY_${accountIndex}`,
+        startedNew: false,
+      };
     }
 
-    // No preference → intelligent selection based on quota
-    if (!targetProvider) {
-      const canStartKaggle = await this.checkKaggleQuota();
-      const canStartColab = await this.checkColabQuota();
+    // Check if notebook already exists in providerLimits
+    const providerLimits = (worker.providerLimits as any) || {};
+    let notebookUrl = providerLimits.kaggle_notebook_url;
+    let slug = providerLimits.kaggle_slug;
 
-      if (canStartKaggle) {
-        targetProvider = 'kaggle';
-      } else if (canStartColab) {
-        targetProvider = 'colab';
-      }
+    // Create notebook if doesn't exist
+    if (!notebookUrl) {
+      logger.info({ workerId: worker.id }, 'Creating Kaggle notebook (first activation)...');
+
+      const { createKaggleAPI } = await import('../gpu-orchestration/providers/kaggle-api');
+      const kaggleAPI = createKaggleAPI({ username, key });
+
+      const result = await kaggleAPI.createNotebook({
+        title: `AION Auto-Activated ${Date.now()}`,
+        enableGPU: true,
+        enableInternet: true,
+        isPrivate: true,
+      });
+
+      notebookUrl = result.notebookUrl;
+      slug = result.slug;
+
+      // Update worker with notebook info
+      await db.update(gpuWorkers)
+        .set({
+          providerLimits: {
+            ...providerLimits,
+            kaggle_notebook_url: notebookUrl,
+            kaggle_slug: slug,
+            kaggle_username: username,
+          },
+        })
+        .where(eq(gpuWorkers.id, worker.id));
+
+      logger.info({ workerId: worker.id, notebookUrl }, '✅ Kaggle notebook created');
     }
 
-    // 🚨 2025 ARCHITECTURE: NO AUTO-CREATION
-    // Admin must provision GPUs manually via Replit Secrets
-    // System ONLY manages lifecycle (on/off based on quota/idle/cooldown)
-    
-    logger.error('❌ GPU AUTO-CREATION DISABLED - Please add GPU manually via Admin Panel');
-    
+    // Start session via orchestrator
+    logger.info({ workerId: worker.id }, 'Starting Kaggle session...');
+
+    const sessionResult = await this.kaggleOrchestrator.startSession({
+      notebookUrl,
+      kaggleUsername: username,
+      kagglePassword: '', // Not used (we use API key)
+      workerId: worker.id,
+      useGPU: true,
+    });
+
+    if (!sessionResult.success) {
+      return {
+        available: false,
+        reason: `Failed to start Kaggle session: ${sessionResult.error}`,
+        startedNew: false,
+      };
+    }
+
+    // 🔥 BUG FIX: UPDATE worker with ngrok URL + status after successful activation
+    if (sessionResult.ngrokUrl) {
+      await db.update(gpuWorkers)
+        .set({
+          ngrokUrl: sessionResult.ngrokUrl,
+          status: 'healthy' as const,
+        })
+        .where(eq(gpuWorkers.id, worker.id));
+      
+      logger.info({ workerId: worker.id, ngrokUrl: sessionResult.ngrokUrl }, '✅ Worker activated and updated in DB');
+    }
+
     return {
-      success: false,
-      reason: '🚨 No GPU workers available. Please add GPU manually in Admin Panel → Gerenciamento de GPUs → Adicionar GPU. System will reuse existing workers automatically.',
+      available: true,
+      workerId: worker.id,
+      workerUrl: sessionResult.ngrokUrl,
+      reason: 'Kaggle GPU activated successfully',
+      startedNew: true,
     };
   }
 
   /**
-   * 🚨 DEPRECATED - Not used in 2025 architecture
-   * Kept for backward compatibility only
+   * Activate Colab worker (create notebook + start session)
    */
-  private async checkKaggleQuota(): Promise<boolean> {
-    return false; // Always return false - no auto-creation
-  }
+  private async activateColabWorker(worker: typeof gpuWorkers.$inferSelect, index: string): Promise<GPUEnsureResult> {
+    // ✅ Extract index from accountId (COLAB_1 → '1')
+    const accountIndex = worker.accountId?.split('_')[1] || index;
+    
+    const email = process.env[`COLAB_EMAIL_${accountIndex}`];
+    const password = process.env[`COLAB_PASSWORD_${accountIndex}`];
 
-  /**
-   * 🚨 DEPRECATED - Not used in 2025 architecture
-   * Kept for backward compatibility only
-   */
-  private async checkColabQuota(): Promise<boolean> {
-    return false; // Always return false - no auto-creation
+    if (!email || !password) {
+      return {
+        available: false,
+        reason: `Colab credentials not found in Replit Secrets: COLAB_EMAIL_${accountIndex}, COLAB_PASSWORD_${accountIndex}`,
+        startedNew: false,
+      };
+    }
+
+    // Check if notebook already exists
+    const providerLimits = (worker.providerLimits as any) || {};
+    let notebookUrl = providerLimits.colab_notebook_url;
+    let notebookId = providerLimits.colab_notebook_id;
+
+    // Create notebook if doesn't exist
+    if (!notebookUrl) {
+      logger.info({ workerId: worker.id }, 'Creating Colab notebook (first activation)...');
+
+      const { createColabCreator } = await import('../gpu-orchestration/providers/colab-creator');
+      const colabCreator = createColabCreator({ email, password });
+
+      const result = await colabCreator.createNotebook({
+        title: `AION Auto-Activated ${Date.now()}`,
+        enableGPU: true,
+        enableTPU: false,
+      });
+
+      notebookUrl = result.notebookUrl;
+      notebookId = result.notebookId;
+
+      // Update worker with notebook info
+      await db.update(gpuWorkers)
+        .set({
+          providerLimits: {
+            ...providerLimits,
+            colab_notebook_url: notebookUrl,
+            colab_notebook_id: notebookId,
+            google_email: email,
+          },
+        })
+        .where(eq(gpuWorkers.id, worker.id));
+
+      logger.info({ workerId: worker.id, notebookUrl }, '✅ Colab notebook created');
+    }
+
+    // Start session via orchestrator
+    logger.info({ workerId: worker.id }, 'Starting Colab session...');
+
+    const sessionResult = await this.colabOrchestrator.startSession({
+      notebookUrl,
+      googleEmail: email,
+      googlePassword: password,
+      workerId: worker.id,
+    });
+
+    if (!sessionResult.success) {
+      return {
+        available: false,
+        reason: `Failed to start Colab session: ${sessionResult.error}`,
+        startedNew: false,
+      };
+    }
+
+    // 🔥 BUG FIX: UPDATE worker with ngrok URL + status after successful activation
+    if (sessionResult.ngrokUrl) {
+      await db.update(gpuWorkers)
+        .set({
+          ngrokUrl: sessionResult.ngrokUrl,
+          status: 'healthy' as const,
+        })
+        .where(eq(gpuWorkers.id, worker.id));
+      
+      logger.info({ workerId: worker.id, ngrokUrl: sessionResult.ngrokUrl }, '✅ Worker activated and updated in DB');
+    }
+
+    return {
+      available: true,
+      workerId: worker.id,
+      workerUrl: sessionResult.ngrokUrl,
+      reason: 'Colab GPU activated successfully',
+      startedNew: true,
+    };
   }
 
   /**
@@ -389,7 +476,8 @@ export class OnDemandGPUService {
     let shutdownCount = 0;
 
     for (const worker of healthyWorkers) {
-      const lastActivity = this.lastInferenceTime.get(worker.id);
+      // ✅ READ last activity from DB (not in-memory Map)
+      const lastActivity = worker.lastUsedAt?.getTime();
 
       // If no activity tracked, assume it's idle since startup
       if (!lastActivity) {
@@ -410,13 +498,8 @@ export class OnDemandGPUService {
         if (shutdownResult.success) {
           shutdownCount++;
           
-          // Cleanup activity tracking ONLY after successful shutdown
-          this.lastInferenceTime.delete(worker.id);
-          
           logger.info({ workerId: worker.id, provider: worker.provider }, 'GPU shutdown successful');
         } else {
-          // ⚠️ CRITICAL: Do NOT cleanup activity tracking - keep trying on next cycle
-          // This prevents marking worker as "handled" when shutdown failed
           logger.error(
             { workerId: worker.id, provider: worker.provider, error: shutdownResult.error, idleMinutes: (idleTimeMs / 60000).toFixed(1) },
             'Failed to shutdown idle GPU - will retry next cycle (5min)'
@@ -461,13 +544,17 @@ export class OnDemandGPUService {
 
   /**
    * Track inference activity (called after each inference)
+   * ✅ PERSISTENT: Updates PostgreSQL lastUsedAt (not in-memory Map)
    */
-  trackInferenceActivity(workerId: number): void {
-    this.lastInferenceTime.set(workerId, Date.now());
+  async trackInferenceActivity(workerId: number): Promise<void> {
+    await db.update(gpuWorkers)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(gpuWorkers.id, workerId));
   }
 
   /**
    * Get idle stats for all GPUs
+   * ✅ PERSISTENT: Reads from PostgreSQL lastUsedAt (not in-memory Map)
    */
   async getIdleStats(): Promise<Array<{
     workerId: number;
@@ -483,7 +570,8 @@ export class OnDemandGPUService {
     const now = Date.now();
 
     return healthyWorkers.map(worker => {
-      const lastActivity = this.lastInferenceTime.get(worker.id);
+      // ✅ READ from DB (not in-memory Map)
+      const lastActivity = worker.lastUsedAt?.getTime();
       const idleTimeMs = lastActivity ? now - lastActivity : null;
       const willShutdownIn = idleTimeMs !== null
         ? Math.max(0, this.IDLE_SHUTDOWN_THRESHOLD_MS - idleTimeMs)

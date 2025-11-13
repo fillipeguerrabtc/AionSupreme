@@ -26,7 +26,6 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { secretsVault } from './security/secrets-vault';
 
 const execAsync = promisify(exec);
 
@@ -119,66 +118,28 @@ export class KaggleCLIService {
   }
 
   /**
-   * Adicionar conta Kaggle (salva em SecretsVault)
+   * ✅ DEPRECATED: Now uses Replit Secrets (KAGGLE_USERNAME_1, KAGGLE_KEY_1, etc)
+   * 
+   * To add Kaggle account:
+   * 1. Go to Replit Secrets panel
+   * 2. Add KAGGLE_USERNAME_1 and KAGGLE_KEY_1
+   * 3. AutoDiscoverGPUService will detect automatically on next boot
    */
   async addAccount(username: string, apiKey: string): Promise<boolean> {
-    try {
-      // Save to SecretsVault
-      await secretsVault.store(`kaggle-${username}`, apiKey, 365); // 1 ano
-
-      // Add to memory
-      this.accounts.set(username, {
-        username,
-        apiKey,
-        isActive: true,
-        weeklyQuotaUsed: 0,
-        maxWeeklyQuota: 108000, // 30h
-      });
-
-      console.log(`[Kaggle CLI] ✅ Account added: ${username}`);
-
-      // Set as active if first account
-      if (this.accounts.size === 1) {
-        await this.setActiveAccount(username);
-      }
-
-      return true;
-
-    } catch (error: any) {
-      console.error(`[Kaggle CLI] Failed to add account:`, error.message);
-      return false;
-    }
+    console.error('[Kaggle CLI] ❌ DEPRECATED: This method no longer works. Use Replit Secrets instead (KAGGLE_USERNAME_1, KAGGLE_KEY_1)');
+    return false;
   }
 
   /**
-   * Remove conta
+   * ✅ DEPRECATED: Now uses Replit Secrets
+   * 
+   * To remove Kaggle account:
+   * 1. Delete KAGGLE_USERNAME_N and KAGGLE_KEY_N from Replit Secrets
+   * 2. AutoDiscoverGPUService will cleanup worker on next boot
    */
   async removeAccount(username: string): Promise<boolean> {
-    try {
-      // Remove from SecretsVault
-      await secretsVault.delete(`kaggle-${username}`);
-
-      // Remove from memory
-      this.accounts.delete(username);
-
-      console.log(`[Kaggle CLI] ✅ Account removed: ${username}`);
-
-      // Switch to another account if this was active
-      if (this.currentAccount === username) {
-        const remaining = Array.from(this.accounts.keys());
-        if (remaining.length > 0) {
-          await this.setActiveAccount(remaining[0]);
-        } else {
-          this.currentAccount = null;
-        }
-      }
-
-      return true;
-
-    } catch (error: any) {
-      console.error(`[Kaggle CLI] Failed to remove account:`, error.message);
-      return false;
-    }
+    console.error('[Kaggle CLI] ❌ DEPRECATED: This method no longer works. Delete credentials from Replit Secrets instead');
+    return false;
   }
 
   /**
@@ -213,22 +174,10 @@ export class KaggleCLIService {
   }
 
   /**
-   * Restore account from snapshot (preserves all metadata)
+   * ✅ DEPRECATED: Account restoration no longer needed (using Replit Secrets)
    */
   private async restoreAccountSnapshot(snapshot: KaggleAccount): Promise<void> {
-    // Save to SecretsVault
-    await secretsVault.store(`kaggle-${snapshot.username}`, snapshot.apiKey, 365);
-    
-    // Restore to memory with ALL metadata preserved
-    this.accounts.set(snapshot.username, {
-      username: snapshot.username,
-      apiKey: snapshot.apiKey,
-      isActive: snapshot.isActive,
-      weeklyQuotaUsed: snapshot.weeklyQuotaUsed,
-      maxWeeklyQuota: snapshot.maxWeeklyQuota,
-    });
-    
-    console.log(`[Kaggle CLI] ✅ Account snapshot restored: ${snapshot.username} (isActive: ${snapshot.isActive}, quota: ${Math.floor(snapshot.weeklyQuotaUsed / 3600)}h used)`);
+    console.error('[Kaggle CLI] ❌ DEPRECATED: Account snapshots no longer supported (use Replit Secrets)');
   }
 
   /**
@@ -271,18 +220,10 @@ export class KaggleCLIService {
   }
 
   /**
-   * Update ONLY the API key without touching metadata (for credential updates)
+   * ✅ DEPRECATED: Use Replit Secrets panel to update credentials
    */
   private async updateAccountSecret(username: string, newApiKey: string): Promise<void> {
-    // Update SecretsVault
-    await secretsVault.store(`kaggle-${username}`, newApiKey, 365);
-    
-    // Update ONLY apiKey in memory, preserve all other fields
-    const account = this.accounts.get(username);
-    if (account) {
-      account.apiKey = newApiKey;
-      console.log(`[Kaggle CLI] ✅ API key updated for ${username} (metadata preserved)`);
-    }
+    console.error('[Kaggle CLI] ❌ DEPRECATED: Update credentials in Replit Secrets panel');
   }
 
   /**
@@ -700,32 +641,15 @@ export class KaggleCLIService {
   }
 
 
+  /**
+   * ✅ DEPRECATED: Now uses AutoDiscoverGPUService (reads from Replit Secrets)
+   * 
+   * This service no longer manages accounts directly.
+   * Use AutoDiscoverGPUService.syncGPUsWithSecrets() instead.
+   */
   private async loadAccountsFromVault(): Promise<void> {
-    try {
-      // List all secrets starting with "kaggle-"
-      const allSecrets = await secretsVault.list();
-      const kaggleSecrets = allSecrets.filter((s: any) => s.name.startsWith('kaggle-'));
-
-      for (const secret of kaggleSecrets) {
-        const username = secret.name.replace('kaggle-', '');
-        const apiKey = await secretsVault.retrieve(secret.name);
-
-        if (apiKey) {
-          this.accounts.set(username, {
-            username,
-            apiKey,
-            isActive: true,
-            weeklyQuotaUsed: 0,
-            maxWeeklyQuota: 108000,
-          });
-        }
-      }
-
-      console.log(`[Kaggle CLI] ✅ Loaded ${this.accounts.size} accounts from vault`);
-
-    } catch (error: any) {
-      console.error('[Kaggle CLI] Failed to load accounts:', error.message);
-    }
+    console.log('[Kaggle CLI] ⚠️ DEPRECATED: Account loading moved to AutoDiscoverGPUService');
+    console.log('[Kaggle CLI] Add credentials via Replit Secrets: KAGGLE_USERNAME_1, KAGGLE_KEY_1');
   }
 
   /**

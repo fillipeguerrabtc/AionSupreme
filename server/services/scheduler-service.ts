@@ -31,7 +31,6 @@ import { chatIngestionService } from '../learn/chat-ingestion';
 import { datasetGenerator } from '../training/dataset-generator';
 import { autoTrainingTrigger } from '../training/auto-training-trigger';
 import { patternAnalyzer } from './pattern-analyzer';
-import { secretsVault } from './security/secrets-vault';
 import { modelDeploymentService } from './model-deployment-service';
 import { quotaTelemetryService } from './quota-telemetry-service';
 import { metaLearningOrchestrator } from '../meta/meta-learning-orchestrator';
@@ -137,23 +136,8 @@ export class SchedulerService {
       errorCount: 0,
     });
 
-    // JOB 5: Secrets Cleanup - Diariamente às 03:00 UTC
-    this.register({
-      name: 'secrets-cleanup',
-      schedule: '0 3 * * *', // 03:00 UTC (00:00 Brasília)
-      task: async () => {
-        try {
-          logger.info('Scheduler: Limpando secrets expirados');
-          const deleted = await secretsVault.cleanupExpired();
-          logger.info(`${deleted} secrets expirados removidos`);
-        } catch (error: any) {
-          logger.error('[SchedulerService] Error in secrets-cleanup:', error);
-        }
-      },
-      enabled: true,
-      runCount: 0,
-      errorCount: 0,
-    });
+    // ✅ JOB 5 REMOVED: Secrets Cleanup (no longer needed - using Replit Secrets)
+    // SecretsVault was deleted - now using process.env (Replit Secrets pattern)
 
     // JOB 6: Model Deployment - A cada 1 minuto (P0.3 - Fine-Tune Deployment)
     this.register({
