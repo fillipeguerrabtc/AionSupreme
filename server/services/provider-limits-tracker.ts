@@ -33,8 +33,8 @@
  */
 
 import { db } from "../db";
-import { providerLimits } from "@shared/schema";
-import { sql } from "drizzle-orm";
+import { providerLimits, llmProviderQuotas } from "@shared/schema";
+import { sql, eq } from "drizzle-orm";
 
 // ============================================================================
 // SERVICE CLASS
@@ -67,9 +67,21 @@ class ProviderLimitsTracker {
     const rpdUsed = (rpd && rpdRemaining !== null) ? (rpd - rpdRemaining) : null;
     const tpmUsed = (tpm && tpmRemaining !== null) ? (tpm - tpmRemaining) : null;
     
+    // ✅ UPDATE llm_provider_quotas (tabela usada pelo sistema)
+    await db.update(llmProviderQuotas)
+      .set({
+        dailyRequestLimit: rpd || 500000,
+        requestCount: rpdUsed || 0,
+        dailyTokenLimit: tpm || 500000,
+        tokenCount: tpmUsed || 0,
+        lastResetAt: sql`CURRENT_TIMESTAMP`,
+        updatedAt: sql`CURRENT_TIMESTAMP`
+      })
+      .where(eq(llmProviderQuotas.provider, 'groq'));
+    
+    // ✅ TAMBÉM atualiza provider_limits (para dashboard detalhado)
     await db.insert(providerLimits).values({
       provider: 'groq',
-      // ❌ NO hardcoded rpm/tpd - Groq doesn't send them
       rpm: null,
       rpd,
       tpm,
@@ -86,7 +98,7 @@ class ProviderLimitsTracker {
       rpdResetAt,
       tpmResetAt,
       tpdResetAt: null,
-      rawHeaders: headers, // ✅ Store RAW for debugging
+      rawHeaders: headers,
       rawResponse: null,
       source: 'groq_headers'
     }).onConflictDoUpdate({
@@ -142,6 +154,19 @@ class ProviderLimitsTracker {
       const rpdUsed = Number((usage.rows[0] as any)?.rpd_used || 0);
       const tpmUsed = Number((usage.rows[0] as any)?.tpm_used || 0);
       
+      // ✅ UPDATE llm_provider_quotas (tabela usada pelo sistema)
+      await db.update(llmProviderQuotas)
+        .set({
+          dailyRequestLimit: officialLimits.rpd,
+          requestCount: rpdUsed,
+          dailyTokenLimit: officialLimits.tpm,
+          tokenCount: tpmUsed,
+          lastResetAt: sql`CURRENT_TIMESTAMP`,
+          updatedAt: sql`CURRENT_TIMESTAMP`
+        })
+        .where(eq(llmProviderQuotas.provider, 'gemini'));
+      
+      // ✅ TAMBÉM atualiza provider_limits
       await db.insert(providerLimits).values({
         provider: 'gemini',
         rpm: officialLimits.rpm,
@@ -207,6 +232,17 @@ class ProviderLimitsTracker {
       
       const rpdUsed = Number((usage.rows[0] as any)?.rpd_used || 0);
       
+      // ✅ UPDATE llm_provider_quotas (tabela usada pelo sistema)
+      await db.update(llmProviderQuotas)
+        .set({
+          dailyRequestLimit: estimatedLimits.rpd,
+          requestCount: rpdUsed,
+          lastResetAt: sql`CURRENT_TIMESTAMP`,
+          updatedAt: sql`CURRENT_TIMESTAMP`
+        })
+        .where(eq(llmProviderQuotas.provider, 'hf'));
+      
+      // ✅ TAMBÉM atualiza provider_limits
       await db.insert(providerLimits).values({
         provider: 'hf', // ✅ Backend uses 'hf' (normalized to 'huggingface' in API response)
         rpm: estimatedLimits.rpm,
@@ -294,6 +330,17 @@ class ProviderLimitsTracker {
       const rpmUsed = Number((usage.rows[0] as any)?.rpm_used || 0);
       const rpdUsed = Number((usage.rows[0] as any)?.rpd_used || 0);
       
+      // ✅ UPDATE llm_provider_quotas (tabela usada pelo sistema)
+      await db.update(llmProviderQuotas)
+        .set({
+          dailyRequestLimit: officialLimits.rpd,
+          requestCount: rpdUsed,
+          lastResetAt: sql`CURRENT_TIMESTAMP`,
+          updatedAt: sql`CURRENT_TIMESTAMP`
+        })
+        .where(eq(llmProviderQuotas.provider, 'openrouter'));
+      
+      // ✅ TAMBÉM atualiza provider_limits
       await db.insert(providerLimits).values({
         provider: 'openrouter',
         rpm: officialLimits.rpm,
