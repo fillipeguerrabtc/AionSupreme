@@ -465,6 +465,73 @@ export function registerGpuRoutes(app: Router) {
   });
 
   /**
+   * GET /api/datasets/:id/download
+   * Download training dataset as structured JSON (for GPU workers)
+   * Returns: { examples: [{input, output}...], metadata: {...} }
+   */
+  app.get("/api/datasets/:id/download", async (req: Request, res: Response) => {
+    try {
+      const datasetId = parseInt(req.params.id);
+      
+      log.info({ component: 'dataset-download', datasetId }, 'Worker requesting dataset');
+      
+      const { datasets } = await import('../../shared/schema');
+      const fs = await import('fs/promises');
+      
+      // Get dataset from database
+      const [dataset] = await db
+        .select()
+        .from(datasets)
+        .where(eq(datasets.id, datasetId))
+        .limit(1);
+      
+      if (!dataset) {
+        return res.status(404).json({ error: "Dataset not found" });
+      }
+      
+      // Check if file exists
+      try {
+        await fs.access(dataset.storagePath);
+      } catch {
+        return res.status(404).json({ error: "Dataset file not found on disk" });
+      }
+      
+      // Read and parse JSONL file
+      const fileContent = await fs.readFile(dataset.storagePath, 'utf-8');
+      const lines = fileContent.trim().split('\n').filter(line => line.trim());
+      
+      const examples = lines.map(line => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      }).filter(ex => ex !== null);
+      
+      log.info({ 
+        component: 'dataset-download', 
+        datasetId, 
+        exampleCount: examples.length 
+      }, 'Dataset downloaded successfully');
+      
+      // Return structured JSON
+      res.json({
+        examples,
+        metadata: {
+          id: dataset.id,
+          name: dataset.name,
+          totalExamples: examples.length,
+          createdAt: dataset.createdAt,
+        },
+      });
+      
+    } catch (error: any) {
+      log.error({ component: 'dataset-download', error: error.message }, 'Error downloading dataset');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
    * GET /api/gpu/status
    * Dashboard status - reads from database
    * Note: Heartbeat timeout detection is handled by background monitor (server/gpu/heartbeat-monitor.ts)
