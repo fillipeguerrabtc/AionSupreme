@@ -704,6 +704,151 @@ export class KaggleOrchestrator {
       ),
     });
   }
+  
+  /**
+   * 🔥 SYNC REAL KAGGLE QUOTA from settings page
+   * 
+   * Scrapes https://www.kaggle.com/settings to get the actual weekly GPU usage
+   * displayed as "01:30 / 30 hrs" and updates the database.
+   * 
+   * This ensures we have the REAL quota value from Kaggle (not our internal tracking).
+   * 
+   * @param workerId - GPU worker ID to update
+   * @returns {usedSeconds: number, maxSeconds: number} or null if failed
+   */
+  async syncWeeklyQuotaFromSettings(workerId: number): Promise<{usedSeconds: number; maxSeconds: number} | null> {
+    let browser: Browser | undefined;
+    let page: Page | undefined;
+    
+    try {
+      console.log(`[Kaggle] 🔄 Syncing REAL weekly quota from settings page (worker ${workerId})...`);
+      
+      // Get worker and credentials from Replit Secrets
+      const worker = await db.query.gpuWorkers.findFirst({
+        where: eq(gpuWorkers.id, workerId),
+      });
+      
+      if (!worker) {
+        console.error(`[Kaggle] Worker ${workerId} not found`);
+        return null;
+      }
+      
+      // Extract account index from accountId (e.g., "KAGGLE_1" → "1")
+      const accountIndex = worker.accountId?.split('_')[1] || '';
+      const username = process.env[`KAGGLE_USERNAME_${accountIndex}`] || process.env.KAGGLE_USERNAME;
+      const password = process.env[`KAGGLE_KEY_${accountIndex}`] || process.env.KAGGLE_PASSWORD;
+      
+      if (!username || !password) {
+        console.error(`[Kaggle] Credentials not found in Replit Secrets for worker ${workerId}`);
+        console.error(`[Kaggle] Add KAGGLE_USERNAME_${accountIndex} and KAGGLE_KEY_${accountIndex} to Replit Secrets`);
+        return null;
+      }
+      
+      // Launch browser
+      browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--disable-gpu',
+        ],
+      });
+      
+      page = await browser.newPage();
+      await page.setViewport({ width: 1920, height: 1080 });
+      
+      // Navigate to settings page
+      console.log('[Kaggle] Navigating to settings page...');
+      await page.goto('https://www.kaggle.com/settings', { waitUntil: 'networkidle2', timeout: 60000 });
+      
+      // Check if we need to login
+      const isLoggedIn = await page.evaluate(() => {
+        return !window.location.href.includes('/account/login');
+      });
+      
+      if (!isLoggedIn) {
+        console.log('[Kaggle] Not logged in, performing login...');
+        
+        // Fill login form
+        await page.waitForSelector('input[name="username"]', { timeout: 10000 });
+        await page.type('input[name="username"]', username);
+        await page.type('input[name="password"]', password);
+        
+        // Click sign in
+        await page.click('button[type="submit"]');
+        
+        // Wait for navigation to settings
+        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+        
+        // Navigate to settings if not already there
+        if (!page.url().includes('/settings')) {
+          await page.goto('https://www.kaggle.com/settings', { waitUntil: 'networkidle2' });
+        }
+      }
+      
+      console.log('[Kaggle] Extracting GPU quota from settings page...');
+      
+      // Extract quota text from page
+      const quotaText = await page.evaluate(() => {
+        // Look for text containing "Kaggle GPU" section
+        const gpuSection = Array.from(document.querySelectorAll('*')).find(el => 
+          el.textContent?.includes('Kaggle GPU')
+        );
+        
+        if (!gpuSection) return null;
+        
+        // Find the quota text (format: "01:30 / 30 hrs" or "1:30 / 30 hrs")
+        const quotaMatch = gpuSection.parentElement?.textContent?.match(/(\d{1,2}):(\d{2})\s*\/\s*(\d+)\s*hrs?/);
+        
+        return quotaMatch ? {
+          hours: quotaMatch[1],
+          minutes: quotaMatch[2],
+          maxHours: quotaMatch[3],
+        } : null;
+      });
+      
+      if (!quotaText) {
+        console.error('[Kaggle] ❌ Failed to extract quota text from settings page');
+        return null;
+      }
+      
+      // Parse the quota values
+      const usedHours = parseInt(quotaText.hours);
+      const usedMinutes = parseInt(quotaText.minutes);
+      const maxHours = parseInt(quotaText.maxHours);
+      
+      const usedSeconds = (usedHours * 3600) + (usedMinutes * 60);
+      const maxSeconds = maxHours * 3600;
+      
+      console.log(
+        `[Kaggle] ✅ Extracted quota: ${quotaText.hours}:${quotaText.minutes} / ${maxHours}h ` +
+        `(${usedSeconds}s / ${maxSeconds}s)`
+      );
+      
+      // Update database
+      await db.update(gpuWorkers)
+        .set({
+          weeklyUsageSeconds: usedSeconds,
+          maxWeeklySeconds: maxSeconds,
+          weekStartedAt: new Date(), // Update week start to prevent auto-reset
+        })
+        .where(eq(gpuWorkers.id, workerId));
+      
+      console.log(`[Kaggle] ✅ Updated worker ${workerId} with REAL quota from Kaggle`);
+      
+      return { usedSeconds, maxSeconds };
+      
+    } catch (error) {
+      console.error(`[Kaggle] ❌ Error syncing weekly quota:`, error);
+      return null;
+    } finally {
+      if (browser) {
+        await browser.close();
+      }
+    }
+  }
 }
 
 // Singleton instance
