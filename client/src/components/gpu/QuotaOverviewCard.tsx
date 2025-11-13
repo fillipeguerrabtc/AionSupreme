@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { 
   Activity, 
+  AlertCircle,
   AlertTriangle, 
   CheckCircle2, 
   Clock,
@@ -52,7 +53,6 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
   
   // Extract quota data from query
   const quotaStatus = quotaQuery.data;
-  const isStale = quotaQuery.isStale;
 
   // Calculate overall status
   const hasKaggle = !!quotaStatus?.kaggle;
@@ -61,27 +61,30 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
 
   // Get highest alert level
   const getHighestAlert = () => {
-    const levels: Record<string, number> = {
-      'safe': 0,
-      'warning': 1,
-      'critical': 2,
-      'emergency': 3,
-    };
-
+    if (!quotaStatus) return 'safe';
+    
     let maxLevel = 0;
     
-    if (quotaStatus?.kaggle) {
-      const kagglePercent = (quotaStatus.kaggle.weeklyUsedSeconds || 0) / (quotaStatus.kaggle.weeklyMaxSeconds || 75600) * 100;
-      if (kagglePercent >= 95) maxLevel = Math.max(maxLevel, 3);
-      else if (kagglePercent >= 85) maxLevel = Math.max(maxLevel, 2);
-      else if (kagglePercent >= 70) maxLevel = Math.max(maxLevel, 1);
+    // Check Kaggle alert
+    if (quotaStatus.kaggleAlert) {
+      const levelMap: Record<string, number> = {
+        'normal': 0,
+        'warning': 1,
+        'critical': 2,
+        'emergency': 3,
+      };
+      maxLevel = Math.max(maxLevel, levelMap[quotaStatus.kaggleAlert.level] || 0);
     }
 
-    if (quotaStatus?.colab) {
-      const colabPercent = (quotaStatus.colab.sessionRuntimeSeconds || 0) / (quotaStatus.colab.maxSessionSeconds || 30240) * 100;
-      if (colabPercent >= 95) maxLevel = Math.max(maxLevel, 3);
-      else if (colabPercent >= 85) maxLevel = Math.max(maxLevel, 2);
-      else if (colabPercent >= 70) maxLevel = Math.max(maxLevel, 1);
+    // Check Colab alert
+    if (quotaStatus.colabAlert) {
+      const levelMap: Record<string, number> = {
+        'normal': 0,
+        'warning': 1,
+        'critical': 2,
+        'emergency': 3,
+      };
+      maxLevel = Math.max(maxLevel, levelMap[quotaStatus.colabAlert.level] || 0);
     }
 
     const levelNames: Record<number, string> = {
@@ -175,7 +178,7 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
                highestAlert === 'warning' ? 'Atenção' :
                highestAlert === 'critical' ? 'Crítico' : 'Emergência'}
             </Badge>
-            {isStale && (
+            {quotaStatus?.isStale && (
               <Badge variant="outline" className="text-xs">
                 <Clock className="w-3 h-3 mr-1" />
                 Desatualizado
@@ -189,7 +192,30 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* KAGGLE QUOTA */}
-        {hasKaggle && (
+        {hasKaggle && quotaStatus.kaggle && (
+          quotaStatus.kaggle.scrapingSuccess === false ? (
+            // Show error state if scraping failed
+            <div className="space-y-2 p-4 border border-red-500/30 rounded-lg bg-red-500/10">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400" />
+                <span className="font-semibold text-sm text-red-400">Kaggle: Erro ao Obter Quotas</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {quotaStatus.kaggle.scrapingError || 'Falha ao conectar com Kaggle. Tente sincronizar novamente.'}
+              </p>
+            </div>
+          ) : !quotaStatus.kaggle.quotaData ? (
+            // Show "no data" state if quotaData is missing
+            <div className="space-y-2 p-4 border border-yellow-500/30 rounded-lg bg-yellow-500/10">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                <span className="font-semibold text-sm text-yellow-400">Kaggle: Dados Indisponíveis</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Nenhum dado de quota disponível. Execute uma sincronização manual.
+              </p>
+            </div>
+          ) : quotaStatus.kaggle.quotaData && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -200,35 +226,69 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
                 </Badge>
               </div>
               <span className="text-xs text-muted-foreground">
-                Semanal: {((quotaStatus!.kaggle.weeklyUsedSeconds || 0) / 3600).toFixed(1)}h / {((quotaStatus!.kaggle.weeklyMaxSeconds || 75600) / 3600).toFixed(0)}h
+                Semanal: {(quotaStatus.kaggle.quotaData.weeklyUsedHours || 0).toFixed(1)}h / {quotaStatus.kaggle.quotaData.weeklyMaxHours?.toFixed(0) || '...'}h
               </span>
             </div>
             <Progress
-              value={(quotaStatus!.kaggle.weeklyUsedSeconds || 0) / (quotaStatus!.kaggle.weeklyMaxSeconds || 75600) * 100}
+              value={quotaStatus.kaggle.quotaData.weeklyMaxHours ? ((quotaStatus.kaggle.quotaData.weeklyUsedHours || 0) / quotaStatus.kaggle.quotaData.weeklyMaxHours) * 100 : 0}
               className="h-2"
               data-testid="progress-kaggle-weekly"
             />
             <div className="flex items-center justify-between text-xs">
               <span className={
-                ((quotaStatus!.kaggle.weeklyUsedSeconds || 0) / (quotaStatus!.kaggle.weeklyMaxSeconds || 75600) * 100) >= 95
+                quotaStatus.kaggle.quotaData.weeklyMaxHours && ((quotaStatus.kaggle.quotaData.weeklyUsedHours || 0) / quotaStatus.kaggle.quotaData.weeklyMaxHours * 100) >= 95
                   ? 'text-red-400 font-semibold'
-                  : ((quotaStatus!.kaggle.weeklyUsedSeconds || 0) / (quotaStatus!.kaggle.weeklyMaxSeconds || 75600) * 100) >= 85
+                  : quotaStatus.kaggle.quotaData.weeklyMaxHours && ((quotaStatus.kaggle.quotaData.weeklyUsedHours || 0) / quotaStatus.kaggle.quotaData.weeklyMaxHours * 100) >= 85
                   ? 'text-orange-400 font-semibold'
-                  : ((quotaStatus!.kaggle.weeklyUsedSeconds || 0) / (quotaStatus!.kaggle.weeklyMaxSeconds || 75600) * 100) >= 70
+                  : quotaStatus.kaggle.quotaData.weeklyMaxHours && ((quotaStatus.kaggle.quotaData.weeklyUsedHours || 0) / quotaStatus.kaggle.quotaData.weeklyMaxHours * 100) >= 70
                   ? 'text-yellow-400'
                   : 'text-green-400'
               }>
-                {((quotaStatus!.kaggle.weeklyUsedSeconds || 0) / (quotaStatus!.kaggle.weeklyMaxSeconds || 75600) * 100).toFixed(1)}% usado
+                {quotaStatus.kaggle.quotaData.weeklyMaxHours ? ((quotaStatus.kaggle.quotaData.weeklyUsedHours || 0) / quotaStatus.kaggle.quotaData.weeklyMaxHours * 100).toFixed(1) : '0.0'}% usado
               </span>
-              <span className="text-muted-foreground">
-                {quotaStatus!.kaggle.canStart ? '✅ Pode iniciar' : '🔴 Quota esgotada'}
+              <span className="text-muted-foreground flex items-center gap-1">
+                {quotaStatus.kaggle.quotaData.canStart ? (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 text-green-400" />
+                    Pode iniciar
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-3 h-3 text-red-400" />
+                    Quota esgotada
+                  </>
+                )}
               </span>
             </div>
           </div>
+          )
         )}
 
         {/* COLAB QUOTA */}
-        {hasColab && (
+        {hasColab && quotaStatus.colab && (
+          quotaStatus.colab.scrapingSuccess === false ? (
+            // Show error state if scraping failed
+            <div className="space-y-2 p-4 border border-red-500/30 rounded-lg bg-red-500/10">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400" />
+                <span className="font-semibold text-sm text-red-400">Colab: Erro ao Obter Quotas</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {quotaStatus.colab.scrapingError || 'Falha ao conectar com Google Colab. Tente sincronizar novamente.'}
+              </p>
+            </div>
+          ) : !quotaStatus.colab.quotaData ? (
+            // Show "no data" state if quotaData is missing
+            <div className="space-y-2 p-4 border border-yellow-500/30 rounded-lg bg-yellow-500/10">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                <span className="font-semibold text-sm text-yellow-400">Colab: Dados Indisponíveis</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Nenhum dado de quota disponível. Execute uma sincronização manual.
+              </p>
+            </div>
+          ) : quotaStatus.colab.quotaData && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -239,31 +299,42 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
                 </Badge>
               </div>
               <span className="text-xs text-muted-foreground">
-                Sessão: {((quotaStatus!.colab.sessionRuntimeSeconds || 0) / 3600).toFixed(1)}h / {((quotaStatus!.colab.maxSessionSeconds || 30240) / 3600).toFixed(1)}h
+                Unidades: {(quotaStatus.colab.quotaData.computeUnitsUsed || 0).toFixed(1)} / {quotaStatus.colab.quotaData.computeUnitsTotal?.toFixed(0) || '...'}
               </span>
             </div>
             <Progress
-              value={(quotaStatus!.colab.sessionRuntimeSeconds || 0) / (quotaStatus!.colab.maxSessionSeconds || 30240) * 100}
+              value={quotaStatus.colab.quotaData.computeUnitsTotal ? ((quotaStatus.colab.quotaData.computeUnitsUsed || 0) / quotaStatus.colab.quotaData.computeUnitsTotal) * 100 : 0}
               className="h-2"
               data-testid="progress-colab-session"
             />
             <div className="flex items-center justify-between text-xs">
               <span className={
-                ((quotaStatus!.colab.sessionRuntimeSeconds || 0) / (quotaStatus!.colab.maxSessionSeconds || 30240) * 100) >= 95
+                quotaStatus.colab.quotaData.computeUnitsTotal && ((quotaStatus.colab.quotaData.computeUnitsUsed || 0) / quotaStatus.colab.quotaData.computeUnitsTotal * 100) >= 95
                   ? 'text-red-400 font-semibold'
-                  : ((quotaStatus!.colab.sessionRuntimeSeconds || 0) / (quotaStatus!.colab.maxSessionSeconds || 30240) * 100) >= 85
+                  : quotaStatus.colab.quotaData.computeUnitsTotal && ((quotaStatus.colab.quotaData.computeUnitsUsed || 0) / quotaStatus.colab.quotaData.computeUnitsTotal * 100) >= 85
                   ? 'text-orange-400 font-semibold'
-                  : ((quotaStatus!.colab.sessionRuntimeSeconds || 0) / (quotaStatus!.colab.maxSessionSeconds || 30240) * 100) >= 70
+                  : quotaStatus.colab.quotaData.computeUnitsTotal && ((quotaStatus.colab.quotaData.computeUnitsUsed || 0) / quotaStatus.colab.quotaData.computeUnitsTotal * 100) >= 70
                   ? 'text-yellow-400'
                   : 'text-green-400'
               }>
-                {((quotaStatus!.colab.sessionRuntimeSeconds || 0) / (quotaStatus!.colab.maxSessionSeconds || 30240) * 100).toFixed(1)}% usado
+                {quotaStatus.colab.quotaData.computeUnitsTotal ? ((quotaStatus.colab.quotaData.computeUnitsUsed || 0) / quotaStatus.colab.quotaData.computeUnitsTotal * 100).toFixed(1) : '0.0'}% usado
               </span>
-              <span className="text-muted-foreground">
-                {quotaStatus!.colab.canStart ? '✅ Pode iniciar' : '🔴 Em cooldown'}
+              <span className="text-muted-foreground flex items-center gap-1">
+                {quotaStatus.colab.quotaData.canStart ? (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 text-green-400" />
+                    Pode iniciar
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-3 h-3 text-red-400" />
+                    Em cooldown
+                  </>
+                )}
               </span>
             </div>
           </div>
+          )
         )}
 
         {/* ACTIONS */}

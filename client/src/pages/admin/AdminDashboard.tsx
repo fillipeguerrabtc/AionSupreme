@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/dialog";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/AdminSidebar";
+import { QuotaOverviewCard } from "@/components/gpu/QuotaOverviewCard";
+import { GPUWorkersCard } from "@/components/gpu/GPUWorkersCard";
 
 const TokenMonitoring = lazy(() => import("./TokenMonitoring"));
 const KnowledgeBaseTab = lazy(() => import("./KnowledgeBaseTab"));
@@ -733,46 +735,6 @@ export default function AdminDashboard() {
             </CardHeader>
           </Card>
 
-          {/* Card 9: GPU Workers → GPU Management Tab */}
-          <Card 
-            className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
-            onClick={() => setActiveTab("gpu")}
-            data-testid="card-gpu-workers"
-          >
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Server className="w-4 h-4" />
-                GPU Workers
-              </CardTitle>
-              <div className="space-y-2 mt-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Total:</span>
-                  <span className="font-bold">{gpuData?.stats?.total || 0}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-green-400">Healthy:</span>
-                  <span className="font-bold text-green-400">{gpuData?.stats?.healthy || 0}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-yellow-400">Unhealthy:</span>
-                  <span className="font-bold text-yellow-400">{gpuData?.stats?.unhealthy || 0}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-red-400">Offline:</span>
-                  <span className="font-bold text-red-400">{gpuData?.stats?.offline || 0}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Requests:</span>
-                  <span className="font-bold">{gpuData?.stats?.totalRequests || 0}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Avg Latency:</span>
-                  <span className="font-bold">{Math.round(gpuData?.stats?.avgLatency || 0)}ms</span>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-
           {/* Card 10: Federated Training Jobs → Federated Training Tab */}
           <Card 
             className="glass-modern hover-elevate cursor-pointer transition-all duration-200" 
@@ -831,6 +793,15 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
           </Card>
+        </div>
+
+        {/* ENTERPRISE GPU MANAGEMENT CARDS - PRODUCTION 2025 */}
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 mt-6">
+          {/* GPU Quota Overview Card - Real-Time Monitoring */}
+          <QuotaOverviewCard className="w-full" />
+          
+          {/* GPU Workers Management Card - Pool Status */}
+          <GPUWorkersCard className="w-full" />
         </div>
               </div>
               )}

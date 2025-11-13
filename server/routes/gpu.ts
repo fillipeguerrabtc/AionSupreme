@@ -1823,51 +1823,68 @@ export function registerGpuRoutes(app: Router) {
    * GET /api/gpu/quota-status
    * Get REAL quota data from latest scraping results
    * Returns actual quota data from Kaggle/Colab dashboards - NO calculations!
+   * 
+   * RESPONSE FORMAT (for useQuotaStatus hook):
+   * {
+   *   kaggle: QuotaScrapingResult | null,
+   *   colab: QuotaScrapingResult | null
+   * }
    */
   app.get("/api/gpu/quota-status", async (req: Request, res: Response) => {
     try {
-      const { accountEmail, provider } = req.query as { accountEmail?: string; provider?: string };
-
-      log.info({ component: 'quota-status', accountEmail, provider }, 'Fetching quota status');
+      const { accountEmail, provider } = req.query as { accountEmail?: string; provider?: 'kaggle' | 'colab' };
+      
+      log.info({ component: 'quota-status', accountEmail, provider }, 'Fetching latest quota status');
 
       const { db } = await import('../db');
       const { quotaScrapingResults } = await import('../../shared/schema');
-      const { desc, and, eq } = await import('drizzle-orm');
+      const { desc, eq, and } = await import('drizzle-orm');
 
-      // Build query filters
-      const filters = [];
-      if (accountEmail) filters.push(eq(quotaScrapingResults.accountEmail, accountEmail));
-      if (provider) filters.push(eq(quotaScrapingResults.provider, provider));
-
-      // Get latest quota scraping results
-      const results = await db
-        .select()
-        .from(quotaScrapingResults)
-        .where(filters.length > 0 ? and(...filters) : undefined)
-        .orderBy(desc(quotaScrapingResults.scrapedAt))
-        .limit(provider ? 1 : 10); // 1 result if specific provider, 10 if all
-
-      if (results.length === 0) {
+      // If provider is specified, return only that provider
+      if (provider) {
+        const filters = [eq(quotaScrapingResults.provider, provider)];
+        if (accountEmail) filters.push(eq(quotaScrapingResults.accountEmail, accountEmail));
+        
+        const [latestQuota] = await db
+          .select()
+          .from(quotaScrapingResults)
+          .where(and(...filters))
+          .orderBy(desc(quotaScrapingResults.scrapedAt))
+          .limit(1);
+        
+        // Return single-provider response
         return res.json({
-          success: true,
-          message: 'No quota data available yet. Run POST /api/gpu/sync-quota-now to scrape quotas.',
-          results: [],
+          [provider]: latestQuota || null,
+          ...(provider === 'kaggle' ? { colab: null } : { kaggle: null }),
         });
       }
 
+      // Get latest Kaggle quota (with optional accountEmail filter)
+      const kaggleFilters = [eq(quotaScrapingResults.provider, 'kaggle')];
+      if (accountEmail) kaggleFilters.push(eq(quotaScrapingResults.accountEmail, accountEmail));
+      
+      const [latestKaggle] = await db
+        .select()
+        .from(quotaScrapingResults)
+        .where(and(...kaggleFilters))
+        .orderBy(desc(quotaScrapingResults.scrapedAt))
+        .limit(1);
+
+      // Get latest Colab quota (with optional accountEmail filter)
+      const colabFilters = [eq(quotaScrapingResults.provider, 'colab')];
+      if (accountEmail) colabFilters.push(eq(quotaScrapingResults.accountEmail, accountEmail));
+      
+      const [latestColab] = await db
+        .select()
+        .from(quotaScrapingResults)
+        .where(and(...colabFilters))
+        .orderBy(desc(quotaScrapingResults.scrapedAt))
+        .limit(1);
+
+      // Return combined response with all critical metadata
       res.json({
-        success: true,
-        results: results.map(r => ({
-          provider: r.provider,
-          accountEmail: r.accountEmail,
-          quotaData: r.quotaData,
-          scrapedAt: r.scrapedAt,
-          expiresAt: r.expiresAt,
-          isStale: r.expiresAt ? new Date(r.expiresAt) < new Date() : false,
-          scrapingSuccess: r.scrapingSuccess,
-          scrapingError: r.scrapingError,
-          scrapingDurationMs: r.scrapingDurationMs,
-        })),
+        kaggle: latestKaggle || null,
+        colab: latestColab || null,
       });
 
     } catch (error: any) {
