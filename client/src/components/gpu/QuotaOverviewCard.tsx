@@ -39,12 +39,15 @@ import {
 import { useQuotaStatus } from '@/hooks/useQuotaStatus';
 import { useQuotaSync } from '@/hooks/useQuotaSync';
 import { Link } from 'wouter';
+import { useLanguage, formatTemplate } from '@/lib/i18n';
 
 interface QuotaOverviewCardProps {
   className?: string;
 }
 
 export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
+  const { t } = useLanguage();
+  
   const quotaQuery = useQuotaStatus({
     refreshInterval: 30000, // 30s auto-refresh
   });
@@ -136,25 +139,25 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Activity className="w-5 h-5" />
-            Status de Quotas GPU
+            {t.admin.gpuManagement.overviewCards.quotaCard.title}
           </CardTitle>
           <CardDescription>
-            Monitore o uso de GPU em tempo real
+            {t.admin.gpuManagement.overviewCards.quotaCard.subtitle}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Shield className="w-12 h-12 text-muted-foreground opacity-50 mb-4" />
             <p className="text-sm text-muted-foreground mb-2">
-              Nenhuma conta Google conectada
+              {t.admin.gpuManagement.overviewCards.quotaCard.emptyState.noAccount}
             </p>
             <p className="text-xs text-muted-foreground mb-4">
-              Conecte uma conta para monitorar quotas
+              {t.admin.gpuManagement.overviewCards.quotaCard.emptyState.connectHint}
             </p>
             <Link href="/admin?tab=gpu">
               <Button variant="default" size="sm" data-testid="button-connect-from-overview">
                 <Shield className="w-4 h-4 mr-2" />
-                Conectar Conta
+                {t.admin.gpuManagement.overviewCards.quotaCard.emptyState.connectButton}
               </Button>
             </Link>
           </div>
@@ -169,25 +172,25 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Activity className="w-5 h-5" />
-            Status de Quotas GPU
+            {t.admin.gpuManagement.overviewCards.quotaCard.title}
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant={highestAlert === 'safe' ? 'default' : 'destructive'} className="flex items-center gap-1">
               <AlertIcon className="w-3 h-3" />
-              {highestAlert === 'safe' ? 'Normal' : 
-               highestAlert === 'warning' ? 'Atenção' :
-               highestAlert === 'critical' ? 'Crítico' : 'Emergência'}
+              {highestAlert === 'safe' ? t.admin.gpuManagement.overviewCards.quotaCard.alertLevels.normal : 
+               highestAlert === 'warning' ? t.admin.gpuManagement.overviewCards.quotaCard.alertLevels.warning :
+               highestAlert === 'critical' ? t.admin.gpuManagement.overviewCards.quotaCard.alertLevels.critical : t.admin.gpuManagement.overviewCards.quotaCard.alertLevels.emergency}
             </Badge>
             {quotaStatus?.isStale && (
               <Badge variant="outline" className="text-xs">
                 <Clock className="w-3 h-3 mr-1" />
-                Desatualizado
+                {t.admin.gpuManagement.overviewCards.quotaCard.stale}
               </Badge>
             )}
           </div>
         </div>
         <CardDescription>
-          Monitore o consumo de GPU Kaggle e Colab em tempo real
+          {t.admin.gpuManagement.overviewCards.quotaCard.descriptionFull}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -198,10 +201,10 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
             <div className="space-y-2 p-4 border border-red-500/30 rounded-lg bg-red-500/10">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-red-400" />
-                <span className="font-semibold text-sm text-red-400">Kaggle: Erro ao Obter Quotas</span>
+                <span className="font-semibold text-sm text-red-400">{t.admin.gpuManagement.overviewCards.quotaCard.kaggle.errorTitle}</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {quotaStatus.kaggle.scrapingError || 'Falha ao conectar com Kaggle. Tente sincronizar novamente.'}
+                {quotaStatus.kaggle.scrapingError || t.admin.gpuManagement.overviewCards.quotaCard.kaggle.errorFallback}
               </p>
             </div>
           ) : !quotaStatus.kaggle.quotaData ? (
@@ -209,10 +212,10 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
             <div className="space-y-2 p-4 border border-yellow-500/30 rounded-lg bg-yellow-500/10">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                <span className="font-semibold text-sm text-yellow-400">Kaggle: Dados Indisponíveis</span>
+                <span className="font-semibold text-sm text-yellow-400">{t.admin.gpuManagement.overviewCards.quotaCard.kaggle.noDataTitle}</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Nenhum dado de quota disponível. Execute uma sincronização manual.
+                {t.admin.gpuManagement.overviewCards.quotaCard.kaggle.noDataDesc}
               </p>
             </div>
           ) : quotaStatus.kaggle.quotaData && (
@@ -220,13 +223,16 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-blue-400" />
-                <span className="font-semibold text-sm">Kaggle</span>
+                <span className="font-semibold text-sm">{t.admin.gpuManagement.overviewCards.quotaCard.kaggle.label}</span>
                 <Badge variant="outline" className="text-xs">
-                  On-Demand + Idle (10min)
+                  {t.admin.gpuManagement.overviewCards.quotaCard.kaggle.modeBadge}
                 </Badge>
               </div>
               <span className="text-xs text-muted-foreground">
-                Semanal: {(quotaStatus.kaggle.quotaData.weeklyUsedHours || 0).toFixed(1)}h / {quotaStatus.kaggle.quotaData.weeklyMaxHours?.toFixed(0) || '...'}h
+                {formatTemplate(t.admin.gpuManagement.overviewCards.quotaCard.kaggle.weeklyTemplate, {
+                  used: (quotaStatus.kaggle.quotaData.weeklyUsedHours || 0).toFixed(1),
+                  max: quotaStatus.kaggle.quotaData.weeklyMaxHours?.toFixed(0) || '...'
+                })}
               </span>
             </div>
             <Progress
@@ -244,18 +250,18 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
                   ? 'text-yellow-400'
                   : 'text-green-400'
               }>
-                {quotaStatus.kaggle.quotaData.weeklyMaxHours ? ((quotaStatus.kaggle.quotaData.weeklyUsedHours || 0) / quotaStatus.kaggle.quotaData.weeklyMaxHours * 100).toFixed(1) : '0.0'}% usado
+                {quotaStatus.kaggle.quotaData.weeklyMaxHours ? ((quotaStatus.kaggle.quotaData.weeklyUsedHours || 0) / quotaStatus.kaggle.quotaData.weeklyMaxHours * 100).toFixed(1) : '0.0'}{t.admin.gpuManagement.overviewCards.quotaCard.kaggle.percentUsed}
               </span>
               <span className="text-muted-foreground flex items-center gap-1">
                 {quotaStatus.kaggle.quotaData.canStart ? (
                   <>
                     <CheckCircle2 className="w-3 h-3 text-green-400" />
-                    Pode iniciar
+                    {t.admin.gpuManagement.overviewCards.quotaCard.kaggle.canStart}
                   </>
                 ) : (
                   <>
                     <AlertCircle className="w-3 h-3 text-red-400" />
-                    Quota esgotada
+                    {t.admin.gpuManagement.overviewCards.quotaCard.kaggle.quotaExhausted}
                   </>
                 )}
               </span>
@@ -271,10 +277,10 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
             <div className="space-y-2 p-4 border border-red-500/30 rounded-lg bg-red-500/10">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-red-400" />
-                <span className="font-semibold text-sm text-red-400">Colab: Erro ao Obter Quotas</span>
+                <span className="font-semibold text-sm text-red-400">{t.admin.gpuManagement.overviewCards.quotaCard.colab.errorTitle}</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                {quotaStatus.colab.scrapingError || 'Falha ao conectar com Google Colab. Tente sincronizar novamente.'}
+                {quotaStatus.colab.scrapingError || t.admin.gpuManagement.overviewCards.quotaCard.colab.errorFallback}
               </p>
             </div>
           ) : !quotaStatus.colab.quotaData ? (
@@ -282,10 +288,10 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
             <div className="space-y-2 p-4 border border-yellow-500/30 rounded-lg bg-yellow-500/10">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                <span className="font-semibold text-sm text-yellow-400">Colab: Dados Indisponíveis</span>
+                <span className="font-semibold text-sm text-yellow-400">{t.admin.gpuManagement.overviewCards.quotaCard.colab.noDataTitle}</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Nenhum dado de quota disponível. Execute uma sincronização manual.
+                {t.admin.gpuManagement.overviewCards.quotaCard.colab.noDataDesc}
               </p>
             </div>
           ) : quotaStatus.colab.quotaData && (
@@ -293,13 +299,16 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-purple-400" />
-                <span className="font-semibold text-sm">Google Colab</span>
+                <span className="font-semibold text-sm">{t.admin.gpuManagement.overviewCards.quotaCard.colab.label}</span>
                 <Badge variant="outline" className="text-xs">
-                  Schedule Fixo (36h cooldown)
+                  {t.admin.gpuManagement.overviewCards.quotaCard.colab.modeBadge}
                 </Badge>
               </div>
               <span className="text-xs text-muted-foreground">
-                Unidades: {(quotaStatus.colab.quotaData.computeUnitsUsed || 0).toFixed(1)} / {quotaStatus.colab.quotaData.computeUnitsTotal?.toFixed(0) || '...'}
+                {formatTemplate(t.admin.gpuManagement.overviewCards.quotaCard.colab.unitsTemplate, {
+                  used: (quotaStatus.colab.quotaData.computeUnitsUsed || 0).toFixed(1),
+                  max: quotaStatus.colab.quotaData.computeUnitsTotal?.toFixed(0) || '...'
+                })}
               </span>
             </div>
             <Progress
@@ -317,18 +326,18 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
                   ? 'text-yellow-400'
                   : 'text-green-400'
               }>
-                {quotaStatus.colab.quotaData.computeUnitsTotal ? ((quotaStatus.colab.quotaData.computeUnitsUsed || 0) / quotaStatus.colab.quotaData.computeUnitsTotal * 100).toFixed(1) : '0.0'}% usado
+                {quotaStatus.colab.quotaData.computeUnitsTotal ? ((quotaStatus.colab.quotaData.computeUnitsUsed || 0) / quotaStatus.colab.quotaData.computeUnitsTotal * 100).toFixed(1) : '0.0'}{t.admin.gpuManagement.overviewCards.quotaCard.colab.percentUsed}
               </span>
               <span className="text-muted-foreground flex items-center gap-1">
                 {quotaStatus.colab.quotaData.canStart ? (
                   <>
                     <CheckCircle2 className="w-3 h-3 text-green-400" />
-                    Pode iniciar
+                    {t.admin.gpuManagement.overviewCards.quotaCard.colab.canStart}
                   </>
                 ) : (
                   <>
                     <Clock className="w-3 h-3 text-red-400" />
-                    Em cooldown
+                    {t.admin.gpuManagement.overviewCards.quotaCard.colab.inCooldown}
                   </>
                 )}
               </span>
@@ -341,7 +350,7 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
         <div className="flex items-center justify-between pt-2 border-t">
           <Link href="/admin?tab=gpu">
             <Button variant="ghost" size="sm" data-testid="button-view-details">
-              Ver Detalhes Completos
+              {t.admin.gpuManagement.overviewCards.quotaCard.actions.viewDetails}
             </Button>
           </Link>
           <Button
@@ -352,7 +361,7 @@ export function QuotaOverviewCard({ className }: QuotaOverviewCardProps) {
             data-testid="button-sync-quotas-overview"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+            {isSyncing ? t.admin.gpuManagement.overviewCards.quotaCard.actions.syncing : t.admin.gpuManagement.overviewCards.quotaCard.actions.sync}
           </Button>
         </div>
       </CardContent>

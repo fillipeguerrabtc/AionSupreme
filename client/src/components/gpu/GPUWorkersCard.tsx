@@ -29,6 +29,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { useState } from 'react';
 import { AddWorkerDialog } from '@/components/admin/AddWorkerDialog';
+import { useLanguage, formatTemplate } from '@/lib/i18n';
 
 interface GPUWorkersCardProps {
   className?: string;
@@ -44,6 +45,7 @@ interface PoolStats {
 }
 
 export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
+  const { t } = useLanguage();
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   // Fetch GPU pool overview
@@ -110,10 +112,10 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Server className="w-5 h-5" />
-            GPU Workers
+            {t.admin.gpuManagement.overviewCards.workersCard.title}
           </CardTitle>
           <CardDescription>
-            Monitorando workers de GPU...
+            {t.admin.gpuManagement.overviewCards.workersCard.loading}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -131,20 +133,20 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Server className="w-5 h-5" />
-            GPU Workers
+            {t.admin.gpuManagement.overviewCards.workersCard.title}
           </CardTitle>
           <CardDescription>
-            Gerencie workers de GPU
+            {t.admin.gpuManagement.overviewCards.workersCard.manage}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Server className="w-12 h-12 text-muted-foreground opacity-50 mb-4" />
             <p className="text-sm text-muted-foreground mb-2">
-              Nenhum worker GPU registrado
+              {t.admin.gpuManagement.overviewCards.workersCard.emptyState.noWorkers}
             </p>
             <p className="text-xs text-muted-foreground mb-4">
-              Adicione um worker para começar
+              {t.admin.gpuManagement.overviewCards.workersCard.emptyState.addHint}
             </p>
             <Button 
               variant="default" 
@@ -153,7 +155,7 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
               data-testid="button-add-first-worker"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Adicionar Worker
+              {t.admin.gpuManagement.overviewCards.workersCard.emptyState.addButton}
             </Button>
           </div>
         </CardContent>
@@ -172,17 +174,19 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Server className="w-5 h-5" />
-            GPU Workers
+            {t.admin.gpuManagement.overviewCards.workersCard.title}
           </CardTitle>
           <Badge variant={health === 'excellent' || health === 'good' ? 'default' : 'destructive'} className="flex items-center gap-1">
             <HealthIcon className="w-3 h-3" />
-            {health === 'excellent' ? 'Excelente' :
-             health === 'good' ? 'Bom' :
-             health === 'degraded' ? 'Degradado' : 'Crítico'}
+            {health === 'excellent' ? t.admin.gpuManagement.overviewCards.workersCard.healthLevels.excellent :
+             health === 'good' ? t.admin.gpuManagement.overviewCards.workersCard.healthLevels.good :
+             health === 'degraded' ? t.admin.gpuManagement.overviewCards.workersCard.healthLevels.degraded : t.admin.gpuManagement.overviewCards.workersCard.healthLevels.critical}
           </Badge>
         </div>
         <CardDescription>
-          Pool de {stats.total} worker{stats.total !== 1 ? 's' : ''} GPU
+          {stats.total === 1
+            ? formatTemplate(t.admin.gpuManagement.overviewCards.workersCard.poolDescriptionSingular, { count: stats.total })
+            : formatTemplate(t.admin.gpuManagement.overviewCards.workersCard.poolDescriptionPlural, { count: stats.total })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -191,7 +195,7 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
           <div className="flex items-center gap-2">
             <Circle className="w-3 h-3 fill-green-400 text-green-400" />
             <div className="flex-1">
-              <div className="text-xs text-muted-foreground">Healthy</div>
+              <div className="text-xs text-muted-foreground">{t.admin.gpuManagement.overviewCards.workersCard.statusLabels.healthy}</div>
               <div className="text-lg font-semibold text-green-400">{stats.healthy}</div>
             </div>
           </div>
@@ -199,7 +203,7 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
           <div className="flex items-center gap-2">
             <Circle className="w-3 h-3 fill-yellow-400 text-yellow-400" />
             <div className="flex-1">
-              <div className="text-xs text-muted-foreground">Unhealthy</div>
+              <div className="text-xs text-muted-foreground">{t.admin.gpuManagement.overviewCards.workersCard.statusLabels.unhealthy}</div>
               <div className="text-lg font-semibold text-yellow-400">{stats.unhealthy}</div>
             </div>
           </div>
@@ -207,7 +211,7 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
           <div className="flex items-center gap-2">
             <Circle className="w-3 h-3 fill-red-400 text-red-400" />
             <div className="flex-1">
-              <div className="text-xs text-muted-foreground">Offline</div>
+              <div className="text-xs text-muted-foreground">{t.admin.gpuManagement.overviewCards.workersCard.statusLabels.offline}</div>
               <div className="text-lg font-semibold text-red-400">{stats.offline}</div>
             </div>
           </div>
@@ -218,7 +222,7 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-blue-400" />
             <div>
-              <div className="text-xs text-muted-foreground">Total Requests</div>
+              <div className="text-xs text-muted-foreground">{t.admin.gpuManagement.overviewCards.workersCard.metrics.totalRequests}</div>
               <div className="text-sm font-semibold">{stats.totalRequests.toLocaleString()}</div>
             </div>
           </div>
@@ -226,7 +230,7 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-purple-400" />
             <div>
-              <div className="text-xs text-muted-foreground">Avg Latency</div>
+              <div className="text-xs text-muted-foreground">{t.admin.gpuManagement.overviewCards.workersCard.metrics.avgLatency}</div>
               <div className="text-sm font-semibold">{stats.averageLatencyMs.toFixed(0)}ms</div>
             </div>
           </div>
@@ -236,7 +240,7 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
         <div className="flex items-center justify-between pt-2 border-t">
           <Link href="/admin?tab=gpu">
             <Button variant="ghost" size="sm" data-testid="button-view-all-workers">
-              Ver Todos ({stats.total})
+              {formatTemplate(t.admin.gpuManagement.overviewCards.workersCard.actions.viewAll, { count: stats.total })}
             </Button>
           </Link>
           <Button
@@ -246,7 +250,7 @@ export function GPUWorkersCard({ className }: GPUWorkersCardProps) {
             data-testid="button-add-worker-overview"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Adicionar
+            {t.admin.gpuManagement.overviewCards.workersCard.actions.add}
           </Button>
         </div>
       </CardContent>

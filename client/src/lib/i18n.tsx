@@ -654,6 +654,87 @@ interface Translations {
         session: string; // "Sessão: {used}h / {max}h"
       };
       
+      // NEW: Overview Cards (QuotaOverviewCard + GPUWorkersCard)
+      overviewCards: {
+        quotaCard: {
+          title: string;
+          subtitle: string;
+          emptyState: {
+            noAccount: string;
+            connectHint: string;
+            connectButton: string;
+          };
+          alertLevels: {
+            normal: string;
+            warning: string;
+            critical: string;
+            emergency: string;
+          };
+          stale: string;
+          descriptionFull: string;
+          kaggle: {
+            errorTitle: string;
+            errorFallback: string;
+            noDataTitle: string;
+            noDataDesc: string;
+            label: string;
+            modeBadge: string; // "On-Demand + Idle (10min)"
+            weeklyTemplate: string; // "Semanal: {used}h / {max}h"
+            percentUsed: string; // "% usado"
+            canStart: string;
+            quotaExhausted: string;
+          };
+          colab: {
+            errorTitle: string;
+            errorFallback: string;
+            noDataTitle: string;
+            noDataDesc: string;
+            label: string;
+            modeBadge: string; // "Schedule Fixo (36h cooldown)"
+            unitsTemplate: string; // "Unidades: {used} / {max}"
+            percentUsed: string;
+            canStart: string;
+            inCooldown: string;
+          };
+          actions: {
+            viewDetails: string;
+            sync: string;
+            syncing: string;
+          };
+        };
+        workersCard: {
+          title: string;
+          loading: string;
+          manage: string;
+          emptyState: {
+            noWorkers: string;
+            addHint: string;
+            addButton: string;
+          };
+          healthLevels: {
+            excellent: string;
+            good: string;
+            degraded: string;
+            critical: string;
+          };
+          poolDescriptionSingular: string; // "Pool de {count} worker GPU"
+          poolDescriptionPlural: string; // "Pool de {count} workers GPU"
+          statusLabels: {
+            healthy: string;
+            unhealthy: string;
+            offline: string;
+          };
+          metrics: {
+            totalRequests: string;
+            avgLatency: string;
+          };
+          actions: {
+            viewAll: string; // "Ver Todos ({count})"
+            add: string;
+          };
+        };
+      };
+      
       // Legacy fields (mantidos para compatibilidade)
       activeWorkers: string;
       totalGPUs: string;
@@ -2248,6 +2329,87 @@ const translations: Record<Language, Translations> = {
           session: "Sessão: {used}h / {max}h",
         },
         
+        // NEW: Overview Cards (QuotaOverviewCard + GPUWorkersCard)
+        overviewCards: {
+          quotaCard: {
+            title: "Status de Quotas GPU",
+            subtitle: "Monitore o uso de GPU em tempo real",
+            emptyState: {
+              noAccount: "Nenhuma conta Google conectada",
+              connectHint: "Conecte uma conta para monitorar quotas",
+              connectButton: "Conectar Conta",
+            },
+            alertLevels: {
+              normal: "Normal",
+              warning: "Atenção",
+              critical: "Crítico",
+              emergency: "Emergência",
+            },
+            stale: "Desatualizado",
+            descriptionFull: "Monitore o consumo de GPU Kaggle e Colab em tempo real",
+            kaggle: {
+              errorTitle: "Kaggle: Erro ao Obter Quotas",
+              errorFallback: "Falha ao conectar com Kaggle. Tente sincronizar novamente.",
+              noDataTitle: "Kaggle: Dados Indisponíveis",
+              noDataDesc: "Nenhum dado de quota disponível. Execute uma sincronização manual.",
+              label: "Kaggle",
+              modeBadge: "On-Demand + Idle (10min)",
+              weeklyTemplate: "Semanal: {used}h / {max}h",
+              percentUsed: "% usado",
+              canStart: "Pode iniciar",
+              quotaExhausted: "Quota esgotada",
+            },
+            colab: {
+              errorTitle: "Colab: Erro ao Obter Quotas",
+              errorFallback: "Falha ao conectar com Google Colab. Tente sincronizar novamente.",
+              noDataTitle: "Colab: Dados Indisponíveis",
+              noDataDesc: "Nenhum dado de quota disponível. Execute uma sincronização manual.",
+              label: "Google Colab",
+              modeBadge: "Schedule Fixo (36h cooldown)",
+              unitsTemplate: "Unidades: {used} / {max}",
+              percentUsed: "% usado",
+              canStart: "Pode iniciar",
+              inCooldown: "Em cooldown",
+            },
+            actions: {
+              viewDetails: "Ver Detalhes Completos",
+              sync: "Sincronizar",
+              syncing: "Sincronizando...",
+            },
+          },
+          workersCard: {
+            title: "GPU Workers",
+            loading: "Monitorando workers de GPU...",
+            manage: "Gerencie workers de GPU",
+            emptyState: {
+              noWorkers: "Nenhum worker GPU registrado",
+              addHint: "Adicione um worker para começar",
+              addButton: "Adicionar Worker",
+            },
+            healthLevels: {
+              excellent: "Excelente",
+              good: "Bom",
+              degraded: "Degradado",
+              critical: "Crítico",
+            },
+            poolDescriptionSingular: "Pool de {count} worker GPU",
+            poolDescriptionPlural: "Pool de {count} workers GPU",
+            statusLabels: {
+              healthy: "Healthy",
+              unhealthy: "Unhealthy",
+              offline: "Offline",
+            },
+            metrics: {
+              totalRequests: "Total Requests",
+              avgLatency: "Avg Latency",
+            },
+            actions: {
+              viewAll: "Ver Todos ({count})",
+              add: "Adicionar",
+            },
+          },
+        },
+        
         activeWorkers: "Workers Ativos",
         totalGPUs: "Total de GPUs",
         totalRequests: "Total de Requisições",
@@ -3814,6 +3976,87 @@ const translations: Record<Language, Translations> = {
         timeTemplates: {
           week: "Week: {used}h / {max}h",
           session: "Session: {used}h / {max}h",
+        },
+        
+        // NEW: Overview Cards (QuotaOverviewCard + GPUWorkersCard)
+        overviewCards: {
+          quotaCard: {
+            title: "GPU Quota Status",
+            subtitle: "Monitor real-time GPU usage",
+            emptyState: {
+              noAccount: "No Google account connected",
+              connectHint: "Connect an account to monitor quotas",
+              connectButton: "Connect Account",
+            },
+            alertLevels: {
+              normal: "Normal",
+              warning: "Warning",
+              critical: "Critical",
+              emergency: "Emergency",
+            },
+            stale: "Stale",
+            descriptionFull: "Monitor Kaggle and Colab GPU consumption in real-time",
+            kaggle: {
+              errorTitle: "Kaggle: Error Fetching Quotas",
+              errorFallback: "Failed to connect to Kaggle. Try syncing again.",
+              noDataTitle: "Kaggle: Data Unavailable",
+              noDataDesc: "No quota data available. Run a manual sync.",
+              label: "Kaggle",
+              modeBadge: "On-Demand + Idle (10min)",
+              weeklyTemplate: "Weekly: {used}h / {max}h",
+              percentUsed: "% used",
+              canStart: "Can start",
+              quotaExhausted: "Quota exhausted",
+            },
+            colab: {
+              errorTitle: "Colab: Error Fetching Quotas",
+              errorFallback: "Failed to connect to Google Colab. Try syncing again.",
+              noDataTitle: "Colab: Data Unavailable",
+              noDataDesc: "No quota data available. Run a manual sync.",
+              label: "Google Colab",
+              modeBadge: "Fixed Schedule (36h cooldown)",
+              unitsTemplate: "Units: {used} / {max}",
+              percentUsed: "% used",
+              canStart: "Can start",
+              inCooldown: "In cooldown",
+            },
+            actions: {
+              viewDetails: "View Full Details",
+              sync: "Sync",
+              syncing: "Syncing...",
+            },
+          },
+          workersCard: {
+            title: "GPU Workers",
+            loading: "Monitoring GPU workers...",
+            manage: "Manage GPU workers",
+            emptyState: {
+              noWorkers: "No GPU workers registered",
+              addHint: "Add a worker to get started",
+              addButton: "Add Worker",
+            },
+            healthLevels: {
+              excellent: "Excellent",
+              good: "Good",
+              degraded: "Degraded",
+              critical: "Critical",
+            },
+            poolDescriptionSingular: "Pool of {count} GPU worker",
+            poolDescriptionPlural: "Pool of {count} GPU workers",
+            statusLabels: {
+              healthy: "Healthy",
+              unhealthy: "Unhealthy",
+              offline: "Offline",
+            },
+            metrics: {
+              totalRequests: "Total Requests",
+              avgLatency: "Avg Latency",
+            },
+            actions: {
+              viewAll: "View All ({count})",
+              add: "Add",
+            },
+          },
         },
         
         activeWorkers: "Active Workers",
@@ -5384,6 +5627,87 @@ const translations: Record<Language, Translations> = {
           session: "Sesión: {used}h / {max}h",
         },
         
+        // NEW: Overview Cards (QuotaOverviewCard + GPUWorkersCard)
+        overviewCards: {
+          quotaCard: {
+            title: "Estado de Cuotas GPU",
+            subtitle: "Monitorea el uso de GPU en tiempo real",
+            emptyState: {
+              noAccount: "No hay cuenta de Google conectada",
+              connectHint: "Conecta una cuenta para monitorear cuotas",
+              connectButton: "Conectar Cuenta",
+            },
+            alertLevels: {
+              normal: "Normal",
+              warning: "Advertencia",
+              critical: "Crítico",
+              emergency: "Emergencia",
+            },
+            stale: "Desactualizado",
+            descriptionFull: "Monitorea el consumo de GPU de Kaggle y Colab en tiempo real",
+            kaggle: {
+              errorTitle: "Kaggle: Error al Obtener Cuotas",
+              errorFallback: "Error al conectar con Kaggle. Intenta sincronizar nuevamente.",
+              noDataTitle: "Kaggle: Datos No Disponibles",
+              noDataDesc: "No hay datos de cuota disponibles. Ejecuta una sincronización manual.",
+              label: "Kaggle",
+              modeBadge: "On-Demand + Idle (10min)",
+              weeklyTemplate: "Semanal: {used}h / {max}h",
+              percentUsed: "% usado",
+              canStart: "Puede iniciar",
+              quotaExhausted: "Cuota agotada",
+            },
+            colab: {
+              errorTitle: "Colab: Error al Obtener Cuotas",
+              errorFallback: "Error al conectar con Google Colab. Intenta sincronizar nuevamente.",
+              noDataTitle: "Colab: Datos No Disponibles",
+              noDataDesc: "No hay datos de cuota disponibles. Ejecuta una sincronización manual.",
+              label: "Google Colab",
+              modeBadge: "Horario Fijo (36h espera)",
+              unitsTemplate: "Unidades: {used} / {max}",
+              percentUsed: "% usado",
+              canStart: "Puede iniciar",
+              inCooldown: "En espera",
+            },
+            actions: {
+              viewDetails: "Ver Detalles Completos",
+              sync: "Sincronizar",
+              syncing: "Sincronizando...",
+            },
+          },
+          workersCard: {
+            title: "GPU Workers",
+            loading: "Monitoreando workers de GPU...",
+            manage: "Gestiona workers de GPU",
+            emptyState: {
+              noWorkers: "No hay worker GPU registrado",
+              addHint: "Agrega un worker para comenzar",
+              addButton: "Agregar Worker",
+            },
+            healthLevels: {
+              excellent: "Excelente",
+              good: "Bueno",
+              degraded: "Degradado",
+              critical: "Crítico",
+            },
+            poolDescriptionSingular: "Pool de {count} worker GPU",
+            poolDescriptionPlural: "Pool de {count} workers GPU",
+            statusLabels: {
+              healthy: "Saludable",
+              unhealthy: "No Saludable",
+              offline: "Fuera de Línea",
+            },
+            metrics: {
+              totalRequests: "Total de Solicitudes",
+              avgLatency: "Latencia Media",
+            },
+            actions: {
+              viewAll: "Ver Todos ({count})",
+              add: "Agregar",
+            },
+          },
+        },
+        
         activeWorkers: "Workers Activos",
         totalGPUs: "Total de GPUs",
         totalRequests: "Total de Solicitudes",
@@ -6447,3 +6771,20 @@ export function useLanguage() {
   }
   return context;
 }
+
+/**
+ * Helper function for template interpolation with multiple placeholders
+ * Avoids verbose chained .replace() calls
+ * Handles repeated placeholders correctly using global regex
+ * @example formatTemplate("Hello {name}, you have {count} messages", { name: "John", count: 5 })
+ * @returns "Hello John, you have 5 messages"
+ */
+export const formatTemplate = (template: string, values: Record<string, string | number>): string => {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => {
+      const regex = new RegExp(`\\{${key}\\}`, 'g'); // Global regex to replace ALL occurrences
+      return result.replace(regex, String(value));
+    },
+    template
+  );
+};
