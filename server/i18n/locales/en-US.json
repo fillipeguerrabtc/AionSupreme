@@ -73,35 +73,16 @@
   "training": {
     "job_not_found": "Job not found",
     "checkpoint_not_ready": "Checkpoint not yet available - training in progress",
-    "invalid_job_id": "Invalid job ID",
-    "no_checkpoint": "No checkpoint found for this job",
-    "worker_reported_failure": "Worker reported failure",
-    "gradient_received": "Gradient received",
-    "missing_fields": "Missing required fields: jobId, workerId, step, gradients, numExamples",
-    "deleted_successfully": "Training data deleted successfully"
-  },
-  "policy": {
-    "no_active_policy": "No active policy found",
-    "invalid_data": "Invalid lifecycle policy data"
-  },
-  "timezone": {
-    "invalid": "Invalid timezone",
-    "invalid_iana": "Invalid IANA timezone"
-  },
-  "admin": {
-    "auth_required": "Authentication required",
-    "forbidden": "Forbidden: Admin access required.",
-    "forbidden_en": "Forbidden: Admin access required. Contact system administrator.",
-    "seed_success": "AION Complete System seeded successfully",
-    "dry_run_complete": "Dry-run complete (no changes made)",
-    "migration_success": "Agent namespace migration completed successfully",
-    "orphan_detection_failed": "Failed to detect orphans",
-    "orphan_fix_failed": "Failed to auto-fix orphans",
-    "orphan_scan_failed": "Failed to scan platform orphans"
+    "adapter_uploaded": "Adapter uploaded successfully",
+    "job_created": "Training job created",
+    "job_started": "Training started",
+    "adapter_not_found": "Adapter not found",
+    "adapter_loaded": "Adapter loaded successfully",
+    "no_active_adapter": "No active adapter loaded",
+    "adapter_unloaded": "Adapter unloaded successfully",
+    "adapter_deleted": "Adapter deleted successfully"
   },
   "project": {
-    "name_required": "Project name is required",
-    "not_found": "Project not found",
     "forbidden_not_owner": "Forbidden: You don't own this project",
     "auth_required": "Authentication required to create projects"
   },
@@ -154,5 +135,52 @@
     "pipeline_executed": "Pipeline executed successfully",
     "pipeline_running": "Pipeline already running",
     "pipeline_failed": "Pipeline execution failed"
+  },
+  "gpu": {
+    "auth": {
+      "title": "Google Authentication",
+      "login_required": "Google login required",
+      "login_instructions": "Login manually with your Google account",
+      "cookies_saved": "Cookies saved successfully",
+      "cookies_invalid": "Invalid or expired cookies",
+      "session_expired": "Session expired - please login again",
+      "re_auth_required": "Re-authentication required",
+      "account_email": "Account Email",
+      "provider": "Provider",
+      "last_sync": "Last Sync",
+      "status": "Status",
+      "authenticated": "Authenticated",
+      "not_authenticated": "Not Authenticated"
+    },
+    "quota": {
+      "title": "GPU Quotas",
+      "real_data": "REAL provider data",
+      "scraped_at": "Scraped at",
+      "expires_at": "Expires at",
+      "stale_data": "Stale data",
+      "fresh_data": "Fresh data",
+      "sync_now": "Sync Now",
+      "syncing": "Syncing...",
+      "sync_success": "Sync completed successfully",
+      "sync_failed": "Sync failed",
+      "no_data": "No data - run sync first",
+      "kaggle": {
+        "session_remaining": "Session Remaining",
+        "session_max": "Session Max",
+        "weekly_used": "Weekly Used",
+        "weekly_remaining": "Weekly Remaining",
+        "weekly_max": "Weekly Max",
+        "can_start": "Can Start",
+        "should_stop": "Should Stop"
+      },
+      "colab": {
+        "compute_units_used": "Units Used",
+        "compute_units_total": "Units Total",
+        "compute_units_remaining": "Units Remaining",
+        "session_remaining": "Session Remaining",
+        "in_cooldown": "In Cooldown",
+        "cooldown_remaining": "Cooldown Remaining"
+      }
+    }
   }
 }

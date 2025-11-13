@@ -45,7 +45,10 @@ export class CookieSessionService {
    * Uses PBKDF2 for secure key derivation
    */
   private deriveKey(): Buffer {
-    const secret = process.env.SESSION_SECRET || 'aion-default-secret-2025';
+    const secret = process.env.SESSION_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new Error('CRITICAL: SESSION_SECRET environment variable is required and must be at least 32 characters long for secure cookie encryption');
+    }
     return crypto.pbkdf2Sync(secret, 'cookie-encryption-salt', 100000, this.KEY_LENGTH, 'sha256');
   }
   

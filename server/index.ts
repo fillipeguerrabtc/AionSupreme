@@ -180,6 +180,17 @@ app.use((req, res, next) => {
   startNgrokHealthPoller();
   console.log("[INIT] ✅ DEBUG: Ngrok poller started successfully");
 
+  // 🔄 Iniciar background job de sync de quotas (Google Auth + Puppeteer scraping)
+  // Executa a cada 10 minutos para manter quotas de Kaggle/Colab atualizadas
+  logger.info('[Startup] Starting quota sync background job...');
+  try {
+    const { quotaBackgroundJob } = await import("./gpu-orchestration/quota-background-job");
+    quotaBackgroundJob.start();
+    logger.info('[Startup] ✅ Quota sync background job started (every 10 minutes)');
+  } catch (error: any) {
+    logger.error('[Startup] ⚠️ Quota sync background job failed to start:', error.message);
+  }
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

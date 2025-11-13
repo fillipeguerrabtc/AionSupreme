@@ -154,5 +154,52 @@
     "pipeline_executed": "Pipeline executado com sucesso",
     "pipeline_running": "Pipeline já está em execução",
     "pipeline_failed": "Falha na execução do pipeline"
+  },
+  "gpu": {
+    "auth": {
+      "title": "Autenticação Google",
+      "login_required": "Login com Google necessário",
+      "login_instructions": "Faça login manualmente com sua conta Google",
+      "cookies_saved": "Cookies salvos com sucesso",
+      "cookies_invalid": "Cookies inválidos ou expirados",
+      "session_expired": "Sessão expirada - faça login novamente",
+      "re_auth_required": "Re-autenticação necessária",
+      "account_email": "Email da Conta",
+      "provider": "Provedor",
+      "last_sync": "Último Sync",
+      "status": "Status",
+      "authenticated": "Autenticado",
+      "not_authenticated": "Não Autenticado"
+    },
+    "quota": {
+      "title": "Quotas de GPU",
+      "real_data": "Dados REAIS do provedor",
+      "scraped_at": "Obtido em",
+      "expires_at": "Expira em",
+      "stale_data": "Dados desatualizados",
+      "fresh_data": "Dados atualizados",
+      "sync_now": "Sincronizar Agora",
+      "syncing": "Sincronizando...",
+      "sync_success": "Sync concluído com sucesso",
+      "sync_failed": "Falha no sync",
+      "no_data": "Sem dados - execute sync primeiro",
+      "kaggle": {
+        "session_remaining": "Sessão Restante",
+        "session_max": "Sessão Máxima",
+        "weekly_used": "Semanal Usado",
+        "weekly_remaining": "Semanal Restante",
+        "weekly_max": "Semanal Máxima",
+        "can_start": "Pode Iniciar",
+        "should_stop": "Deve Parar"
+      },
+      "colab": {
+        "compute_units_used": "Unidades Usadas",
+        "compute_units_total": "Unidades Totais",
+        "compute_units_remaining": "Unidades Restantes",
+        "session_remaining": "Sessão Restante",
+        "in_cooldown": "Em Cooldown",
+        "cooldown_remaining": "Cooldown Restante"
+      }
+    }
   }
 }

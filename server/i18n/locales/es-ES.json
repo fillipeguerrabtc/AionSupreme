@@ -154,5 +154,52 @@
     "pipeline_executed": "Pipeline ejecutado exitosamente",
     "pipeline_running": "Pipeline ya está en ejecución",
     "pipeline_failed": "Ejecución del pipeline falló"
+  },
+  "gpu": {
+    "auth": {
+      "title": "Autenticación Google",
+      "login_required": "Login con Google requerido",
+      "login_instructions": "Iniciar sesión manualmente con tu cuenta de Google",
+      "cookies_saved": "Cookies guardadas exitosamente",
+      "cookies_invalid": "Cookies inválidas o expiradas",
+      "session_expired": "Sesión expirada - por favor inicia sesión nuevamente",
+      "re_auth_required": "Re-autenticación requerida",
+      "account_email": "Email de la Cuenta",
+      "provider": "Proveedor",
+      "last_sync": "Última Sincronización",
+      "status": "Estado",
+      "authenticated": "Autenticado",
+      "not_authenticated": "No Autenticado"
+    },
+    "quota": {
+      "title": "Cuotas de GPU",
+      "real_data": "Datos REALES del proveedor",
+      "scraped_at": "Obtenido en",
+      "expires_at": "Expira en",
+      "stale_data": "Datos desactualizados",
+      "fresh_data": "Datos actualizados",
+      "sync_now": "Sincronizar Ahora",
+      "syncing": "Sincronizando...",
+      "sync_success": "Sincronización completada exitosamente",
+      "sync_failed": "Sincronización falló",
+      "no_data": "Sin datos - ejecuta sync primero",
+      "kaggle": {
+        "session_remaining": "Sesión Restante",
+        "session_max": "Sesión Máxima",
+        "weekly_used": "Semanal Usado",
+        "weekly_remaining": "Semanal Restante",
+        "weekly_max": "Semanal Máxima",
+        "can_start": "Puede Iniciar",
+        "should_stop": "Debe Parar"
+      },
+      "colab": {
+        "compute_units_used": "Unidades Usadas",
+        "compute_units_total": "Unidades Totales",
+        "compute_units_remaining": "Unidades Restantes",
+        "session_remaining": "Sesión Restante",
+        "in_cooldown": "En Cooldown",
+        "cooldown_remaining": "Cooldown Restante"
+      }
+    }
   }
 }
