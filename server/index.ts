@@ -128,8 +128,11 @@ app.use((req, res, next) => {
   startHeartbeatMonitor();
   
   // Iniciar sistema de polling de health via Ngrok (atualiza lastHealthCheck a cada 60s)
+  console.log("[INIT] 🔍 DEBUG: About to import ngrok-health-poller...");
   const { startNgrokHealthPoller } = await import("./gpu/ngrok-health-poller");
+  console.log("[INIT] ✅ DEBUG: Ngrok poller imported successfully");
   startNgrokHealthPoller();
+  console.log("[INIT] ✅ DEBUG: Ngrok poller started successfully");
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
