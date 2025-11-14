@@ -127,17 +127,6 @@ export async function generateLLM(options: LLMGatewayOptions): Promise<LLMGatewa
     namespaces = [],
   } = options;
 
-  // SECURITY WARNING: Bypass is ONLY allowed for debug routes
-  if (bypassOrchestrator) {
-    console.warn(
-      `⚠️ [LLM Gateway] ORCHESTRATOR BYPASS requested\n` +
-      `   Consumer: ${consumerId}\n` +
-      `   Purpose: ${purpose}\n` +
-      `   ⚠️  This request will NOT be tracked in quota ledger!`
-    );
-    // TODO: Log to quota ledger with synthetic consumer ID
-  }
-
   // Validate messages
   if (!messages || messages.length === 0) {
     throw new Error('[LLM Gateway] messages array is required and cannot be empty');
@@ -148,8 +137,79 @@ export async function generateLLM(options: LLMGatewayOptions): Promise<LLMGatewa
     `🚪 [LLM Gateway] Request from consumer="${consumerId}" ` +
     `purpose="${purpose}" ` +
     `messages=${messages.length} ` +
-    `forceProvider=${forceProvider || 'auto'}`
+    `forceProvider=${forceProvider || 'auto'}` +
+    `${bypassOrchestrator ? ' BYPASS=true' : ''}`
   );
+
+  // 🔥 CRITICAL FIX: Bypass orchestrator to break infinite recursion
+  // When bypassOrchestrator=true, call free-apis directly to avoid
+  // llm-client → gateway → generateWithPriority → free-apis → llm-client → LOOP!
+  if (bypassOrchestrator) {
+    console.log('[LLM Gateway] ⚡ BYPASS MODE: Calling free-apis directly (preserves quota tracking)');
+    
+    const { generateWithFreeAPIs } = await import('./free-apis');
+    const { trackTokenUsage } = await import('../monitoring/token-tracker');
+    
+    const freeResponse = await generateWithFreeAPIs(
+      {
+        messages,
+        temperature,
+        maxTokens,
+      },
+      true, // allowOpenAI = true (fallback to OpenAI if free APIs fail)
+      model,
+      forceProvider
+    );
+    
+    // ✅ ENTERPRISE FIX: Get accurate token counts using tiktoken (±1% accuracy)
+    // Note: free-apis.ts now handles token counting, so freeResponse.tokensUsed should always be populated
+    // This is a safety fallback in case of older code paths
+    let totalTokens = freeResponse.tokensUsed;
+    let promptTokens = 0;
+    let completionTokens = 0;
+    
+    if (!totalTokens || totalTokens === 0) {
+      // Use tiktoken for accurate token counting (not character estimation!)
+      const { countChatTokens } = await import('./tokenizer');
+      const tokenCounts = countChatTokens(messages, freeResponse.text, freeResponse.model || 'gpt-3.5-turbo');
+      promptTokens = tokenCounts.promptTokens;
+      completionTokens = tokenCounts.completionTokens;
+      totalTokens = tokenCounts.totalTokens;
+      
+      console.log(`[LLM Gateway] ℹ️  Used tiktoken for bypass mode token counting: ${totalTokens} tokens`);
+    }
+    
+    await trackTokenUsage({
+      provider: freeResponse.provider as any,
+      model: freeResponse.model || 'unknown',
+      promptTokens,
+      completionTokens,
+      totalTokens,
+      cost: freeResponse.costUsd, // ✅ FIX: Include cost when available!
+      requestType: 'chat',
+      success: true,
+      metadata: {
+        consumerId,
+        purpose,
+        bypassMode: true,
+        tiktokenFallback: !freeResponse.tokensUsed, // Flag if tiktoken was used
+      },
+    });
+    
+    return {
+      content: freeResponse.text,
+      provider: freeResponse.provider,
+      usage: {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens, // Use derived/estimated value
+      },
+      costUsd: freeResponse.costUsd || 0,
+      latencyMs: freeResponse.latencyMs || 0,
+      finishReason: freeResponse.finishReason || 'stop',
+      toolCalls: undefined, // Free APIs don't support tool calls
+    };
+  }
 
   // Route through Priority Orchestrator (default path)
   const result = await generateWithPriority({

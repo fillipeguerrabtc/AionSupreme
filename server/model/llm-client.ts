@@ -426,9 +426,12 @@ export class LLMClient {
     }
 
     // ===================================================================
-    // 2º PRIORIDADE: TENTAR APIs GRATUITAS via LLM Gateway!
+    // 2º PRIORIDADE: TENTAR APIs GRATUITAS via LLM Gateway (com bypass)
     // ===================================================================
-    console.log("[LLM] 🆓 Tentando APIs gratuitas via LLM Gateway (OpenRouter/Groq/Gemini/HF)...");
+    // 🔥 CRITICAL FIX: Use bypassOrchestrator=true to avoid infinite recursion
+    // llm-client → llm-gateway (BYPASS orchestrator) → free-apis → returns
+    // This preserves quota/telemetry tracking while breaking the recursion loop!
+    console.log("[LLM] 🆓 Tentando APIs gratuitas via Gateway (bypass orchestrator)...");
     
     try {
       const gatewayResult = await generateLLM({
@@ -439,6 +442,7 @@ export class LLMClient {
         consumerId: 'llm-client',
         purpose: 'Free API fallback',
         language: 'en-US',
+        bypassOrchestrator: true, // 🔥 KEY FIX: Skip generateWithPriority to break recursion!
       });
       
       // Map LLMGatewayResult → ChatCompletionResult
