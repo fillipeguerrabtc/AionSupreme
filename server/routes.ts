@@ -44,7 +44,7 @@ import { DatasetProcessor } from "./training/datasets/dataset-processor";
 import { DatasetValidator } from "./training/datasets/dataset-validator";
 import { db } from "./db";
 import { eq, and, gte, sql } from "drizzle-orm";
-import { trainingDataCollection, datasets, trainingJobs, uploadedAdapters, behaviorConfigSchema } from "../shared/schema";
+import { trainingDataCollection, datasets, trainingJobs, uploadedAdapters, behaviorConfigSchema, agents } from "../shared/schema";
 import { lifecyclePolicyUpdateSchema } from "./validation/lifecycle-policy-schema";
 import { idParamSchema, jobIdParamSchema, jobIdChunkIndexSchema, docIdAttachmentIndexSchema, jobIdWorkerIdStepSchema, jobIdStepSchema, validateParams, validateQuery, validateBody } from "./validation/route-params"; // ✅ FIX P0-2
 import { z } from "zod"; // ✅ FIX P0-2: Import z for inline schemas
@@ -1028,6 +1028,22 @@ export function registerRoutes(app: Express): Server {
             // 🔥 FIX: Persist assistant message AFTER generation (multi-agent path)
             if (conversationId && typeof conversationId === "string" && fullResponse) {
               try {
+                // 🔥 FIX PHASE-1: Include agentId for quality tracking (fixes 0.0/100)
+                // Use primary agent from multi-agent result, fallback to DB query for default agent
+                let primaryAgentId = agentResult.metadata?.agentIds?.[0];
+                
+                if (!primaryAgentId) {
+                  // Query DB for default AION assistant (100% database-driven, ZERO hardcoded!)
+                  const defaultAgent = await db.query.agents.findFirst({
+                    where: eq(agents.slug, 'assistente-geral'),
+                  });
+                  primaryAgentId = defaultAgent?.id || null;
+                  
+                  if (!primaryAgentId) {
+                    console.warn('[SSE Multi-Agent] No default agent found in DB - message saved without agentId');
+                  }
+                }
+                
                 await storage.createMessage({
                   conversationId: parseInt(conversationId, 10),
                   role: "assistant",
@@ -1036,9 +1052,10 @@ export function registerRoutes(app: Express): Server {
                     source: "multi-agent",
                     provider: "multi-agent",
                     totalCost: agentResult.metadata?.totalCost,
+                    ...(primaryAgentId && { agentId: primaryAgentId }), // Only include if found in DB
                   },
                 });
-                console.log(`[SSE Multi-Agent] 💾 Assistant message persisted to conversation ${conversationId}`);
+                console.log(`[SSE Multi-Agent] 💾 Assistant message persisted to conversation ${conversationId} (agentId: ${primaryAgentId || 'none'})`);
               } catch (persistError: unknown) {
                 console.error(`[SSE Multi-Agent] Failed to persist assistant message:`, getErrorMessage(persistError));
               }
@@ -1153,6 +1170,16 @@ export function registerRoutes(app: Express): Server {
       // 🔥 FIX: Persist assistant message AFTER generation (priority orchestrator path)
       if (conversationId && typeof conversationId === "string" && fullResponse) {
         try {
+          // 🔥 FIX PHASE-1: Include agentId for quality tracking (fixes 0.0/100)
+          // Query DB for default AION assistant (100% database-driven, ZERO hardcoded!)
+          const defaultAgent = await db.query.agents.findFirst({
+            where: eq(agents.slug, 'assistente-geral'),
+          });
+          
+          if (!defaultAgent) {
+            console.warn('[SSE Fallback] No default agent found in DB - message saved without agentId');
+          }
+          
           await storage.createMessage({
             conversationId: parseInt(conversationId, 10),
             role: "assistant",
@@ -1161,9 +1188,10 @@ export function registerRoutes(app: Express): Server {
               source: (result.source === "web-fallback" || result.source === "openai-fallback") ? "free-api" : (result.source || "openai"),
               provider: result.provider,
               model: result.model,
+              ...(defaultAgent && { agentId: defaultAgent.id }), // Only include if found in DB
             },
           });
-          console.log(`[SSE] 💾 Assistant message persisted to conversation ${conversationId}`);
+          console.log(`[SSE] 💾 Assistant message persisted to conversation ${conversationId} (agentId: ${defaultAgent?.id || 'none'})`);
         } catch (persistError: unknown) {
           console.error(`[SSE] Failed to persist assistant message:`, getErrorMessage(persistError));
         }

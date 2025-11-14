@@ -19,6 +19,7 @@ interface OrchestratorResult {
   metadata: {
     source: string;
     agentsUsed: string[];
+    agentIds: string[]; // 🔥 FIX PHASE-1: Agent IDs for tracking (fixes 0.0/100 quality score)
     totalCost: number;
     totalLatency: number;
   };
@@ -58,6 +59,7 @@ export async function orchestrateAgents(
         metadata: {
           source: "multi-agent",
           agentsUsed: [],
+          agentIds: [], // 🔥 FIX PHASE-1: Empty array when no agents selected
           totalCost: 0,
           totalLatency: 0,
         },
@@ -180,6 +182,7 @@ export async function orchestrateAgents(
       metadata: {
         source: "multi-agent",
         agentsUsed: validResults.map((r) => r!.agentName),
+        agentIds: validResults.map((r) => r!.agentId), // 🔥 FIX PHASE-1: Include agent IDs for quality tracking
         totalCost,
         totalLatency,
       },
