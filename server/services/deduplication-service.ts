@@ -76,19 +76,26 @@ export class DeduplicationService {
   }
 
   /**
-   * Check if text is semantically duplicate (>95% similarity)
+   * Check if text is semantically duplicate (>85% similarity for NEAR, >98% for EXACT)
    * ⚡ PERFORMANCE: Top-200 limit para evitar scan massivo
    * 🔥 VERIFICAÇÃO: KB + CURADORIA (100 cada)
+   * 
+   * ARCHITECT-APPROVED THRESHOLDS:
+   * - 0.98 (98%) = EXACT duplicate (strict match)
+   * - 0.85 (85%) = NEAR duplicate (borderline, catches both exact and near)
    * 
    * NOTE: Para produção com KB grande (>10k docs), usar pgvector com índices IVFFlat/HNSW
    */
   async checkSemanticDuplicate(
     text: string,
     tenantId: number = 1,
-    threshold: number = 0.95
+    threshold: number = 0.85
   ): Promise<DeduplicationResult> {
-    // Skip very short texts
-    if (text.length < 100) {
+    // ARCHITECT FIX: Enable semantic check for ALL text lengths
+    // Short paraphrases need semantic detection too
+    // Performance trade-off: more API calls but better dedup quality
+    if (text.length < 10) {
+      // Only skip extremely short (< 10 chars) to avoid noise
       return { isDuplicate: false, method: 'none' };
     }
 
@@ -213,14 +220,33 @@ export class DeduplicationService {
   /**
    * Check if content (file or text) is duplicate
    * Tries hash first (fast), then semantic (slower, more flexible)
+   * 
+   * ARCHITECT-APPROVED: Explicitly passes threshold with multiple override options
+   * Priority: threshold > similarityThresholds.borderline > default 0.85
    */
   async checkDuplicate(options: {
     filePath?: string;
     text?: string;
     tenantId?: number;
     enableSemantic?: boolean;
+    threshold?: number; // Simple threshold override
+    similarityThresholds?: {  // Complex threshold config (for legacy callers)
+      exact?: number;
+      borderline?: number;
+    };
   }): Promise<DeduplicationResult> {
-    const { filePath, text, tenantId = 1, enableSemantic = true } = options;
+    const {
+      filePath,
+      text,
+      tenantId = 1,
+      enableSemantic = true,
+      threshold,
+      similarityThresholds
+    } = options;
+
+    // ARCHITECT-APPROVED: Determine final threshold with proper priority
+    // Priority: explicit threshold > similarityThresholds.borderline > default 0.85
+    const finalThreshold = threshold ?? similarityThresholds?.borderline ?? 0.85;
 
     // Hash check for files
     if (filePath) {
@@ -240,8 +266,10 @@ export class DeduplicationService {
       }
 
       // Semantic check (optional, slower)
-      if (enableSemantic && text.length >= 100) {
-        return await this.checkSemanticDuplicate(text, tenantId);
+      // ARCHITECT-APPROVED: Explicitly pass finalThreshold (0.85 default) to prevent legacy 0.95 drift
+      // ARCHITECT FIX: Changed 100 → 10 to catch short paraphrases
+      if (enableSemantic && text.length >= 10) {
+        return await this.checkSemanticDuplicate(text, tenantId, finalThreshold);
       }
     }
 
@@ -320,7 +348,7 @@ export class DeduplicationService {
       enableSemantic = true, // MVP: enabled by default
       similarityThresholds = {
         exact: 0.98,       // ≥98% = exact duplicate (architect-approved: raised from 0.90 to reduce false positives)
-        borderline: 0.95   // 95-98% = LLM verification needed (architect-approved: raised from 0.80 for precision)
+        borderline: 0.85   // 85-98% = near duplicate/LLM verification (architect-approved: lowered from 0.95 to catch all near duplicates)
       }
     } = options;
 

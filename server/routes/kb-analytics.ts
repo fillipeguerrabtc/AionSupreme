@@ -15,6 +15,7 @@
  */
 
 import { Router, Request, Response } from "express";
+import { requireAdmin } from "../middleware/auth";
 import { storage } from "../storage";
 import { db } from "../db";
 import { tokenUsage, documents } from "@shared/schema";
@@ -201,6 +202,59 @@ export function registerKbAnalyticsRoutes(app: Router) {
       console.error("Error fetching RAG performance:", error);
       res.status(500).json({
         error: "Failed to fetch RAG performance",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * POST /api/admin/kb/scan-duplicates
+   * ARCHITECT-APPROVED FIX 3: Manual one-time KB duplicate scan
+   * 
+   * SECURITY: Requires admin authentication (requireAdmin middleware)
+   * 
+   * FEATURES:
+   * - On-demand scan for semantic duplicates in KB
+   * - Report-only mode (no auto-deletion)
+   * - Returns formatted report + duplicate details
+   * - Manual remediation via DELETE /api/documents/:id
+   * 
+   * USAGE:
+   * curl -X POST http://localhost:5000/api/admin/kb/scan-duplicates -H "Authorization: Bearer <admin-token>"
+   */
+  app.post("/admin/kb/scan-duplicates", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      console.log('[Admin API] [SCAN] Starting manual KB deduplication scan...');
+      
+      const { kbDeduplicationScanner } = await import('../services/kb-deduplication-scanner');
+      const tenantId = 1; // Single-tenant mode
+      const report = await kbDeduplicationScanner.scanKB(tenantId);
+      
+      // Format human-readable report
+      const formattedReport = kbDeduplicationScanner.formatReport(report);
+      
+      console.log('[Admin API] [SCAN] KB scan complete:', formattedReport);
+      
+      res.json({
+        success: true,
+        timestamp: new Date().toISOString(),
+        report: {
+          totalScanned: report.totalScanned,
+          duplicatesFound: report.duplicatesFound,
+          exact: report.exact,
+          near: report.near,
+          duplicatePairs: report.duplicatePairs,
+        },
+        formattedReport,
+        message: report.duplicatesFound > 0 
+          ? `WARNING: Found ${report.duplicatesFound} duplicates requiring manual review. Use DELETE /api/documents/:id to remove duplicates.`
+          : 'No duplicates found - KB is clean!',
+      });
+    } catch (error) {
+      console.error('[Admin API] [SCAN] KB scan error:', error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to scan KB for duplicates",
         message: error instanceof Error ? error.message : String(error),
       });
     }

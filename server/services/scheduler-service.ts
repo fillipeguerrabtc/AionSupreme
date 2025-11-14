@@ -808,7 +808,42 @@ export class SchedulerService {
       errorCount: 0,
     });
 
-    // 🔥 JOB 23: Kaggle Quota Sync - A cada 30min (P1 - Hybrid strategy)
+    // 🔥 JOB 23: KB Deduplication Scanner - Weekly Sunday 02:00 UTC (ARCHITECT-APPROVED FIX)
+    // CRITICAL: Scans KB for semantic duplicates and generates cleanup reports
+    // - Report-only mode (no auto-delete - requires manual review)
+    // - Scans top 500 most recent docs (performance limit)
+    // - Identifies exact (>98%) and near (85-98%) duplicates
+    // - Complements realtime dedup checks in storage.createDocument()
+    this.register({
+      name: 'kb-deduplication-scan',
+      schedule: '0 2 * * 0', // Weekly Sunday 02:00 UTC
+      task: async () => {
+        try {
+          logger.info('[DEDUP] Starting weekly KB deduplication scan...');
+          
+          const { kbDeduplicationScanner } = await import('./kb-deduplication-scanner');
+          const report = await kbDeduplicationScanner.scanKB(1);
+          
+          // Log formatted report
+          logger.info(kbDeduplicationScanner.formatReport(report));
+          
+          // Alert if duplicates found (manual review required)
+          if (report.duplicatesFound > 0) {
+            logger.warn(`[DEDUP] WARNING: DUPLICATES FOUND - ${report.exact} exact (>98%), ${report.near} near (85-98%)`);
+            logger.warn(`[DEDUP] Manual review required via Admin API: POST /admin/kb/scan-duplicates`);
+          } else {
+            logger.info('[DEDUP] No duplicates found - KB is clean!');
+          }
+        } catch (error: any) {
+          logger.error(`[DEDUP] ERROR: KB deduplication scan failed - ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
+    // 🔥 JOB 24: Kaggle Quota Sync - A cada 30min (P1 - Hybrid strategy)
     // Syncs real quota from Kaggle CLI to DB for UI display
     // Scheduled sync (30min) + on-demand cached reads (5min TTL) balances accuracy vs API load
     this.register({

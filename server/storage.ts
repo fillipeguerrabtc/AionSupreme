@@ -625,10 +625,39 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  async createDocument(document: InsertDocument): Promise<Document> {
+  async createDocument(
+    document: InsertDocument,
+    options: { skipDedup?: boolean } = {}
+  ): Promise<Document> {
     // 🔥 PRODUCTION FIX: Use centralized hash preparation (prevents duplicate bypass)
     const { prepareDocumentForInsert } = await import("./utils/deduplication");
     const documentWithHash = prepareDocumentForInsert(document);
+    
+    // 🔥 CRITICAL FIX: Semantic deduplication guard (ARCHITECT-APPROVED)
+    // Prevents direct KB inserts from bypassing dedup checks
+    // Only curation flow had protection - now ALL insert paths are protected
+    // ARCHITECT FIX: No 100-char bypass - catches short paraphrases too
+    if (!options.skipDedup && documentWithHash.content) {
+      console.log(`[Storage] [DEDUP] Checking duplicates for document: "${documentWithHash.title?.substring(0, 50)}..."`);
+      
+      const { deduplicationService } = await import("./services/deduplication-service");
+      const dupCheck = await deduplicationService.checkDuplicate({
+        text: documentWithHash.content,
+        tenantId: documentWithHash.tenantId || 1,
+        enableSemantic: true
+      });
+      
+      if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
+        // STRICT MODE (architect decision): Reject all duplicates
+        const errorMsg = `Duplicate content detected: "${dupCheck.duplicateOf.title}" (ID: ${dupCheck.duplicateOf.id}, similarity: ${((dupCheck.duplicateOf.similarity || 0) * 100).toFixed(1)}%). Use skipDedup=true to bypass this check for migrations.`;
+        console.error(`[Storage] [DEDUP] ERROR: ${errorMsg}`);
+        throw new Error(errorMsg);
+      }
+      
+      console.log(`[Storage] [DEDUP] No duplicates found - inserting document`);
+    } else if (options.skipDedup) {
+      console.log(`[Storage] [DEDUP] WARNING: Semantic dedup SKIPPED (migration mode) for: "${documentWithHash.title?.substring(0, 50)}..."`);
+    }
     
     const [created] = await db.insert(documents).values([documentWithHash] as any).returning();
     return created;
