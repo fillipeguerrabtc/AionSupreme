@@ -12,15 +12,17 @@
  * 
  * **LIMITES OFICIAIS 2025:**
  * Groq (llama-3.3-70b-versatile Free Tier):
- *   - RPM: 30 req/min
- *   - RPD: 1,000 req/dia
- *   - TPM: 12,000 tokens/min
- *   - TPD: 100,000 tokens/dia ← LIMITE CRÍTICO!
+ *   - RPM: 30-50 req/min (varies by account)
+ *   - RPD: 14,400 req/dia (free tier verified 2025)
+ *   - TPM: 6,000-18,000 tokens/min (model-specific, from headers)
+ *   - TPD: Not provided in headers (track via RPD × avg tokens)
+ *   - Source: console.groq.com/docs/rate-limits + headers
  * 
  * Gemini (2.0 Flash Free Tier):
  *   - RPM: 15 req/min
  *   - TPM: 1,000,000 tokens/min
- *   - RPD: 200 req/dia
+ *   - RPD: 1,500 req/dia (updated 2025)
+ *   - Source: ai.google.dev/gemini-api/docs/rate-limits
  * 
  * HuggingFace:
  *   - Free: $0.10/mês créditos
@@ -118,7 +120,7 @@ class ProviderLimitsTracker {
    * 
    * Official Limits (Gemini 2.0 Flash Free 2025):
    * - RPM: 15 req/min
-   * - RPD: 1,500 req/day
+   * - RPD: 1,500 req/day (verified November 2025)
    * - TPM: 1,000,000 tokens/min
    * 
    * Source: https://ai.google.dev/gemini-api/docs/rate-limits
