@@ -671,6 +671,19 @@ interface Translations {
       usageHistory: {
         title: string;
         description: string;
+        noData: string;
+        timeRanges: {
+          oneHour: string;
+          sixHours: string;
+          twentyFourHours: string;
+          sevenDays: string;
+          thirtyDays: string;
+        };
+        thresholds: {
+          warning: string;
+          critical: string;
+          emergency: string;
+        };
       };
       
       // NEW: Timeline Section
@@ -678,6 +691,14 @@ interface Translations {
         title: string;
         description: string;
         emptyMessage: string;
+        noSessions: string;
+        remaining: string;
+        cooldown: string;
+        readyToStart: string;
+        canStart: string;
+        cannotStart: string;
+        shouldStop: string;
+        okToContinue: string;
       };
       
       // NEW: Time Templates
@@ -2753,6 +2774,19 @@ const translations: Record<Language, Translations> = {
         usageHistory: {
           title: "Histórico de Uso",
           description: "Gráfico de consumo de quota ao longo do tempo",
+          noData: "Nenhum dado histórico disponível",
+          timeRanges: {
+            oneHour: "1 Hora",
+            sixHours: "6 Horas",
+            twentyFourHours: "24 Horas",
+            sevenDays: "7 Dias",
+            thirtyDays: "30 Dias",
+          },
+          thresholds: {
+            warning: "Atenção (70%)",
+            critical: "Crítico (85%)",
+            emergency: "Emergência (95%)",
+          },
         },
         
         // NEW: Timeline Section
@@ -2760,6 +2794,14 @@ const translations: Record<Language, Translations> = {
           title: "Timeline de Sessões",
           description: "Visualização das sessões ativas, cooldowns e próximas disponibilidades",
           emptyMessage: "Nenhuma sessão disponível. Conecte uma conta Google para visualizar a timeline.",
+          noSessions: "Nenhuma sessão ativa",
+          remaining: "Restante",
+          cooldown: "Cooldown",
+          readyToStart: "Pronto para iniciar",
+          canStart: "Pode iniciar",
+          cannotStart: "Não pode iniciar",
+          shouldStop: "Deve parar",
+          okToContinue: "OK para continuar",
         },
         
         // NEW: Time Templates
@@ -4855,6 +4897,19 @@ const translations: Record<Language, Translations> = {
         usageHistory: {
           title: "Usage History",
           description: "Quota consumption chart over time",
+          noData: "No historical data available",
+          timeRanges: {
+            oneHour: "1 Hour",
+            sixHours: "6 Hours",
+            twentyFourHours: "24 Hours",
+            sevenDays: "7 Days",
+            thirtyDays: "30 Days",
+          },
+          thresholds: {
+            warning: "Warning (70%)",
+            critical: "Critical (85%)",
+            emergency: "Emergency (95%)",
+          },
         },
         
         // NEW: Timeline Section
@@ -4862,6 +4917,14 @@ const translations: Record<Language, Translations> = {
           title: "Session Timeline",
           description: "Visualization of active sessions, cooldowns and next available slots",
           emptyMessage: "No sessions available. Connect a Google account to view the timeline.",
+          noSessions: "No active sessions",
+          remaining: "Remaining",
+          cooldown: "Cooldown",
+          readyToStart: "Ready to start",
+          canStart: "Can start",
+          cannotStart: "Cannot start",
+          shouldStop: "Should stop",
+          okToContinue: "OK to continue",
         },
         
         // NEW: Time Templates
@@ -6957,6 +7020,19 @@ const translations: Record<Language, Translations> = {
         usageHistory: {
           title: "Historial de Uso",
           description: "Gráfico de consumo de cuota a lo largo del tiempo",
+          noData: "No hay datos históricos disponibles",
+          timeRanges: {
+            oneHour: "1 Hora",
+            sixHours: "6 Horas",
+            twentyFourHours: "24 Horas",
+            sevenDays: "7 Días",
+            thirtyDays: "30 Días",
+          },
+          thresholds: {
+            warning: "Advertencia (70%)",
+            critical: "Crítico (85%)",
+            emergency: "Emergencia (95%)",
+          },
         },
         
         // NEW: Timeline Section
@@ -6964,6 +7040,14 @@ const translations: Record<Language, Translations> = {
           title: "Cronología de Sesiones",
           description: "Visualización de sesiones activas, tiempos de espera y próximas disponibilidades",
           emptyMessage: "No hay sesiones disponibles. Conecta una cuenta de Google para ver la cronología.",
+          noSessions: "No hay sesiones activas",
+          remaining: "Restante",
+          cooldown: "Espera",
+          readyToStart: "Listo para iniciar",
+          canStart: "Puede iniciar",
+          cannotStart: "No puede iniciar",
+          shouldStop: "Debe detener",
+          okToContinue: "OK para continuar",
         },
         
         // NEW: Time Templates
