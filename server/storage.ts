@@ -598,7 +598,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
-    const [created] = await db.insert(messages).values([message] as any).returning();
+    // 🔥 P1.1: Hybrid deduplication strategy (exact-hash at storage layer)
+    // ARCHITECT FIX: (1) Skip hash computation for empty/null content (tool messages)
+    //                (2) Add role scoping (conversation + role + hash)
+    //                (3) Always persist new row (soft warning instead of return old record)
+    
+    let contentHash: string | null = null;
+    let normalizedContentValue: string | null = null;
+    
+    // Only compute hash if content exists and is non-empty
+    if (message.content && message.content.trim().length > 0) {
+      const { generateContentHash, normalizeContent } = await import("./utils/deduplication");
+      contentHash = generateContentHash(message.content);
+      normalizedContentValue = normalizeContent(message.content);
+      
+      // 🔥 P1.1: Check for duplicates with ROLE SCOPING (conversation + role + hash)
+      // Architect guidance: role scoping prevents blocking retries/confirmations
+      const [existingInConversation] = await db.select()
+        .from(messages)
+        .where(
+          and(
+            eq(messages.conversationId, message.conversationId),
+            eq(messages.role, message.role),
+            eq(messages.contentHash, contentHash)
+          )
+        )
+        .limit(1);
+      
+      if (existingInConversation) {
+        // DUPLICATE FOUND: Log soft warning but STILL INSERT (architect requirement)
+        console.warn(
+          `[Storage] [MESSAGE DEDUP] ⚠️ Duplicate detected in conversation ${message.conversationId} ` +
+          `(role: ${message.role}): "${message.content.substring(0, 50)}..." ` +
+          `matches existing ID ${existingInConversation.id}. ` +
+          `Persisting anyway to preserve chronological order.`
+        );
+      }
+    }
+    
+    // ALWAYS INSERT (even if duplicate found - architect requirement)
+    const [created] = await db.insert(messages).values([{
+      ...message,
+      contentHash,
+      normalizedContent: normalizedContentValue
+    }] as any).returning();
+    
     return created;
   }
 

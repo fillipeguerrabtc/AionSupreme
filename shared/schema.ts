@@ -327,6 +327,12 @@ export const messages = pgTable("messages", {
   role: text("role").notNull(), // "user" | "assistant" | "system" | "tool"
   content: text("content").notNull(),
   
+  // 🔥 P1.1: Deduplication fields for exact-hash matching at storage layer
+  // NULLABLE for backward compatibility (existing messages have no hash)
+  // NON-UNIQUE: Same message across different conversations is valid (temporal chat UX)
+  contentHash: varchar("content_hash", { length: 64 }), // SHA256 hash for O(1) duplicate detection
+  normalizedContent: text("normalized_content"), // Normalized text for fuzzy matching
+  
   // Multimodal attachments
   attachments: jsonb("attachments").$type<Array<{
     type: "image" | "video" | "audio" | "document";
@@ -357,6 +363,8 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   conversationIdx: index("messages_conversation_idx").on(table.conversationId),
+  // 🔥 P1.1: Non-unique index for O(1) hash lookup (allows cross-conversation duplicates)
+  contentHashIdx: index("messages_content_hash_idx").on(table.contentHash),
 }));
 
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });

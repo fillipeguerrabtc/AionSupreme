@@ -245,21 +245,27 @@ export class AutoIndexer {
 
   /**
    * Verifica se conteúdo similar já está indexado (evita duplicação)
+   * 🔥 P1.1: Uses ENTERPRISE 3-tier deduplication (exact + fuzzy + semantic)
    */
   private async checkDuplicate(content: string): Promise<boolean> {
     try {
-      // Buscar documentos similares
-      const results = await ragService.search(content.substring(0, 500), {
-        k: 3,
+      // 🔥 P1.1: Use centralized deduplication service with 3-tier logic
+      const { deduplicationService } = await import("../services/deduplication-service");
+      
+      const result = await deduplicationService.checkDuplicate({
+        text: content,
+        tenantId: 1, // Default tenant
+        enableSemantic: true, // Full 3-tier deduplication
       });
 
-      // Se encontrar algo com similaridade > 95%, considerar duplicado
-      if (results.length > 0 && results[0].score && results[0].score > 0.95) {
+      if (result.isDuplicate) {
+        console.log(`[AutoIndexer] ⚠️ Duplicate detected: ${(result.duplicateOf?.similarity || 0) * 100}% similar to "${result.duplicateOf?.title}"`);
         return true;
       }
 
       return false;
     } catch (error) {
+      console.error(`[AutoIndexer] Deduplication check error:`, error);
       // Em caso de erro, não bloqueie a indexação
       return false;
     }
