@@ -1105,6 +1105,53 @@ export type InsertCircuitBreakerState = z.infer<typeof insertCircuitBreakerState
 export type CircuitBreakerState = typeof circuitBreakerState.$inferSelect;
 
 // ============================================================================
+// LLM CIRCUIT BREAKER STATE - Production-grade LLM provider failure protection
+// Persists circuit breaker state for LLM providers (groq, gemini, hf, openrouter)
+// Separate from GPU circuit breakers for clean separation and different configs
+// ============================================================================
+export const llmCircuitBreakerState = pgTable("llm_circuit_breaker_state", {
+  id: serial("id").primaryKey(),
+  
+  // Provider reference (string ID: "groq", "gemini", "hf", "openrouter")
+  providerId: varchar("provider_id", { length: 50 }).notNull().unique(),
+  
+  // Circuit state
+  state: circuitBreakerStateEnum("state").notNull().default("CLOSED"),
+  
+  // Counters
+  failureCount: integer("failure_count").notNull().default(0),
+  successCount: integer("success_count").notNull().default(0),
+  
+  // Timestamps
+  lastFailureTime: timestamp("last_failure_time"),
+  lastSuccessTime: timestamp("last_success_time"),
+  nextRetryTime: timestamp("next_retry_time"),
+  
+  // Configuration (JSON for flexibility)
+  config: jsonb("config").$type<{
+    failureThreshold: number;
+    recoveryTimeout: number;
+    successThreshold: number;
+    timeout: number;
+  }>(),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  providerIdIdx: index("llm_circuit_breaker_state_provider_id_idx").on(table.providerId),
+  stateIdx: index("llm_circuit_breaker_state_state_idx").on(table.state),
+}));
+
+export const insertLlmCircuitBreakerStateSchema = createInsertSchema(llmCircuitBreakerState).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertLlmCircuitBreakerState = z.infer<typeof insertLlmCircuitBreakerStateSchema>;
+export type LlmCircuitBreakerState = typeof llmCircuitBreakerState.$inferSelect;
+
+// ============================================================================
 // GPU ACTIVATION LOCKS - Persistent concurrency guard (replaces in-memory Map)
 // Prevents duplicate GPU activations via PostgreSQL-backed locks
 // ============================================================================

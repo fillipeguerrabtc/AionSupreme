@@ -10,6 +10,7 @@ import { getProviderQuotas, trackTokenUsage } from '../monitoring/token-tracker'
 import { apiQuotaRepository } from '../repositories/api-quota-repository';
 import { log } from '../utils/logger';
 import { withTimeout, TimeoutError } from '../utils/timeout';
+import { llmCircuitBreakerManager } from './llm-circuit-breaker';
 
 // ============================================================================
 // TYPES
@@ -769,6 +770,14 @@ export async function generateWithFreeAPIs(
       throw new Error(`Forced provider ${forceProvider} has exceeded 80% quota (${quota.used}/${quota.dailyLimit})`);
     }
     
+    // 🔥 P0.2: Circuit breaker check for forced provider
+    const forcedBreaker = await llmCircuitBreakerManager.getBreaker(forceProvider);
+    
+    // 🔥 P0.2 FIX: Await canExecute (async state transitions)
+    if (!(await forcedBreaker.canExecute())) {
+      throw new Error(`Forced provider ${forceProvider} circuit breaker OPEN (too many recent failures)`);
+    }
+    
     // Call forced provider directly
     try {
       let response: LLMResponse;
@@ -799,6 +808,9 @@ export async function generateWithFreeAPIs(
       const latency = Date.now() - startTime;
       console.log(`✅ [FREE APIs] Forced provider ${forceProvider} succeeded (${latency}ms)`);
       
+      // 🔥 P0.2 FIX: Await success recording for DB persistence
+      await forcedBreaker.recordSuccess();
+      
       return {
         ...response,
         latencyMs: latency,
@@ -808,6 +820,10 @@ export async function generateWithFreeAPIs(
       
     } catch (error: any) {
       console.error(`❌ [FREE APIs] Forced provider ${forceProvider} failed:`, error.message);
+      
+      // 🔥 P0.2 FIX: Await failure recording for DB persistence
+      await forcedBreaker.recordFailure(error.message);
+      
       throw new Error(`Forced provider ${forceProvider} failed: ${error.message}`);
     }
   }
@@ -864,6 +880,25 @@ export async function generateWithFreeAPIs(
     
     console.log(`   ✅ Trying ${provider.name} - quota OK (${remainingMs}ms remaining of ${ORCHESTRATION_DEADLINE_MS}ms deadline)`);
 
+    // 🔥 P0.2: Circuit breaker check BEFORE calling provider
+    const breaker = await llmCircuitBreakerManager.getBreaker(provider.name);
+    
+    // 🔥 P0.2 FIX: Await canExecute (async state transitions)
+    if (!(await breaker.canExecute())) {
+      log.warn({
+        component: 'free-apis',
+        provider: provider.name,
+        circuitState: breaker.getStats().state,
+      }, 'Circuit OPEN - skipping provider');
+      
+      console.log(`   ⚡ Circuit breaker OPEN for ${provider.name} - skipping`);
+      
+      // Mark as failed and try next provider
+      failedProviders.add(provider.name);
+      errors.push(`${provider.name}: circuit breaker OPEN (too many recent failures)`);
+      continue;
+    }
+
     try {
       log.info({ component: 'free-apis', provider: provider.name }, 'Trying provider');
       
@@ -892,6 +927,9 @@ export async function generateWithFreeAPIs(
 
       const latency = Date.now() - startTime;
       log.info({ component: 'free-apis', provider: provider.name, latency }, 'Provider succeeded');
+      
+      // 🔥 P0.2 FIX: Await success recording for DB persistence
+      await breaker.recordSuccess();
       
       return response;
       
@@ -927,6 +965,9 @@ export async function generateWithFreeAPIs(
       const errorMsg = `${provider.name}: ${errorMessage}`;
       errors.push(errorMsg);
       log.error({ component: 'free-apis', provider: provider.name, error: errorMessage }, 'Provider failed');
+      
+      // 🔥 P0.2 FIX: Await failure recording for DB persistence
+      await breaker.recordFailure(errorMessage);
       
       // Mark this provider as failed and try next one
       failedProviders.add(provider.name);
