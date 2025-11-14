@@ -11,8 +11,271 @@ import { eq, desc } from "drizzle-orm";
 import { quotaManager, GPU_QUOTA_CONSTANTS } from "../gpu-orchestration/intelligent-quota-manager";
 import { log } from "../utils/logger";
 
-export function registerGpuRoutes(app: Router) {
-  log.info({ component: 'gpu-routes' }, 'Registering GPU Pool API routes');
+/**
+ * PUBLIC GPU ROUTES - Accessible to any authenticated user
+ * Includes Google Auth and Quota Status endpoints
+ */
+export function registerPublicGpuRoutes(app: Router) {
+  log.info({ component: 'public-gpu-routes' }, 'Registering public GPU routes (auth, quota)');
+
+  /**
+   * POST /api/gpu/auth-google
+   * Initiate Google OAuth authentication flow
+   */
+  app.post("/auth-google", async (req: Request, res: Response) => {
+    try {
+      const { accountEmail, provider } = req.body as {
+        accountEmail: string;
+        provider: 'kaggle' | 'colab';
+      };
+
+      if (!accountEmail || !provider) {
+        return res.status(400).json({ 
+          error: 'Missing required fields: accountEmail and provider' 
+        });
+      }
+
+      const loginUrl = provider === 'kaggle' 
+        ? 'https://www.kaggle.com/account/login'
+        : 'https://colab.research.google.com/';
+
+      log.info({ component: 'google-auth', accountEmail, provider }, 'Initiating auth flow');
+
+      res.json({
+        success: true,
+        instructions: {
+          step1: `Open ${loginUrl} in browser`,
+          step2: 'Login with Google OAuth',
+          step3: 'Open browser DevTools (F12)',
+          step4: 'Go to Application > Cookies',
+          step5: 'Copy all cookies as JSON',
+          step6: 'Call POST /api/gpu/auth-google/save-cookies with cookies array',
+        },
+        loginUrl,
+        accountEmail,
+        provider,
+      });
+
+    } catch (error: any) {
+      log.error({ component: 'google-auth', error: error.message }, 'Error initiating auth flow');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/gpu/auth-google/save-cookies
+   * Save encrypted cookies from manual Google login
+   */
+  app.post("/auth-google/save-cookies", async (req: Request, res: Response) => {
+    try {
+      const { accountEmail, provider, cookies, userAgent } = req.body as {
+        accountEmail: string;
+        provider: 'kaggle' | 'colab';
+        cookies: Array<{ name: string; value: string; domain: string }>;
+        userAgent?: string;
+      };
+
+      // SECURITY: Log ONLY metadata (never cookie values)
+      log.info({ 
+        component: 'google-auth-debug', 
+        hasAccountEmail: !!accountEmail,
+        accountEmailLength: accountEmail?.length || 0,
+        hasProvider: !!provider,
+        provider: provider,
+        cookiesType: typeof cookies,
+        cookiesIsArray: Array.isArray(cookies),
+        cookiesLength: Array.isArray(cookies) ? cookies.length : 0,
+        hasUserAgent: !!userAgent
+      }, 'Save cookies request received (metadata only)');
+
+      if (!accountEmail || !provider || !cookies || !Array.isArray(cookies)) {
+        log.error({
+          component: 'google-auth-validation-failed',
+          hasAccountEmail: !!accountEmail,
+          hasProvider: !!provider,
+          hasCookies: !!cookies,
+          isArray: Array.isArray(cookies),
+          cookiesLength: Array.isArray(cookies) ? cookies.length : 0
+        }, 'Validation failed - returning 400');
+        
+        return res.status(400).json({ 
+          error: 'Missing required fields: accountEmail, provider, and cookies array',
+          debug: {
+            hasAccountEmail: !!accountEmail,
+            hasProvider: !!provider,
+            hasCookies: !!cookies,
+            cookiesIsArray: Array.isArray(cookies),
+            cookiesLength: Array.isArray(cookies) ? cookies.length : 0,
+          }
+        });
+      }
+
+      log.info({ component: 'google-auth', accountEmail, provider, cookieCount: cookies.length }, 'Saving cookies');
+
+      const { CookieSessionService } = await import('../gpu-orchestration/cookie-session-service');
+      const cookieSessionService = new CookieSessionService();
+
+      await cookieSessionService.saveCookies(accountEmail, accountEmail, cookies);
+
+      res.json({
+        success: true,
+        message: `Cookies saved successfully for ${accountEmail}`,
+        accountEmail,
+        provider,
+        cookieCount: cookies.length,
+      });
+
+    } catch (error: any) {
+      log.error({ component: 'google-auth', error: error.message }, 'Error saving cookies');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/gpu/auth-google/status
+   * Get Google OAuth session status (authentication state)
+   */
+  app.get("/auth-google/status", async (req: Request, res: Response) => {
+    try {
+      log.info({ component: 'google-auth-status' }, 'Fetching auth session status');
+
+      const { db } = await import('../db');
+      const { googleAuthSessions } = await import('../../shared/schema');
+      const { desc } = await import('drizzle-orm');
+
+      const sessions = await db
+        .select()
+        .from(googleAuthSessions)
+        .orderBy(desc(googleAuthSessions.lastValidated));
+
+      const hasKaggle = sessions.some(s => s.providers.includes('kaggle'));
+      const hasColab = sessions.some(s => s.providers.includes('colab'));
+
+      res.json({
+        success: true,
+        sessions: sessions.map(s => ({
+          id: s.id,
+          accountEmail: s.accountEmail,
+          accountName: s.accountName,
+          providers: s.providers,
+          isValid: s.isValid,
+          lastValidated: s.lastValidated,
+          expiresAt: s.expiresAt,
+          createdAt: s.createdAt,
+        })),
+        hasKaggle,
+        hasColab,
+      });
+
+    } catch (error: any) {
+      log.error({ component: 'google-auth-status', error: error.message }, 'Error fetching auth status');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * GET /api/gpu/quota-status
+   * Get REAL quota data from latest scraping results
+   */
+  app.get("/quota-status", async (req: Request, res: Response) => {
+    try {
+      const { accountEmail, provider } = req.query as { accountEmail?: string; provider?: 'kaggle' | 'colab' };
+      
+      log.info({ component: 'quota-status', accountEmail, provider }, 'Fetching latest quota status');
+
+      const { db } = await import('../db');
+      const { quotaScrapingResults } = await import('../../shared/schema');
+      const { desc, eq, and } = await import('drizzle-orm');
+
+      if (provider) {
+        const filters = [eq(quotaScrapingResults.provider, provider)];
+        if (accountEmail) filters.push(eq(quotaScrapingResults.accountEmail, accountEmail));
+        
+        const [latestQuota] = await db
+          .select()
+          .from(quotaScrapingResults)
+          .where(and(...filters))
+          .orderBy(desc(quotaScrapingResults.scrapedAt))
+          .limit(1);
+        
+        return res.json({
+          [provider]: latestQuota || null,
+          ...(provider === 'kaggle' ? { colab: null } : { kaggle: null }),
+        });
+      }
+
+      const kaggleFilters = [eq(quotaScrapingResults.provider, 'kaggle')];
+      if (accountEmail) kaggleFilters.push(eq(quotaScrapingResults.accountEmail, accountEmail));
+      
+      const [latestKaggle] = await db
+        .select()
+        .from(quotaScrapingResults)
+        .where(and(...kaggleFilters))
+        .orderBy(desc(quotaScrapingResults.scrapedAt))
+        .limit(1);
+      
+      const colabFilters = [eq(quotaScrapingResults.provider, 'colab')];
+      if (accountEmail) colabFilters.push(eq(quotaScrapingResults.accountEmail, accountEmail));
+      
+      const [latestColab] = await db
+        .select()
+        .from(quotaScrapingResults)
+        .where(and(...colabFilters))
+        .orderBy(desc(quotaScrapingResults.scrapedAt))
+        .limit(1);
+
+      res.json({
+        kaggle: latestKaggle || null,
+        colab: latestColab || null,
+      });
+
+    } catch (error: any) {
+      log.error({ component: 'quota-status', error: error.message }, 'Error fetching quota status');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  /**
+   * POST /api/gpu/sync-quota-now
+   * Force immediate quota sync for Kaggle and/or Colab
+   */
+  app.post("/sync-quota-now", async (req: Request, res: Response) => {
+    try {
+      const { accountEmail, provider } = req.body as { accountEmail?: string; provider?: 'kaggle' | 'colab' };
+
+      log.info({ component: 'quota-sync', accountEmail, provider }, 'Forcing quota sync');
+
+      const { QuotaSyncService } = await import('../gpu-orchestration/quota-sync-service');
+      const quotaSyncService = new QuotaSyncService();
+
+      const results = await quotaSyncService.syncAll();
+
+      res.json({
+        success: true,
+        message: 'Quota sync completed',
+        results: {
+          total: results.length,
+          successful: results.filter(r => r.success).length,
+          failed: results.filter(r => !r.success).length,
+          details: results,
+        },
+      });
+
+    } catch (error: any) {
+      log.error({ component: 'quota-sync', error: error.message }, 'Error during quota sync');
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  console.log("[GPU Routes] ✅ 5 PUBLIC GPU routes registered (auth-google, quota-status)");
+}
+
+/**
+ * ADMIN GPU ROUTES - Requires admin role
+ * Includes worker management, provisioning, deletion, auto-scaling
+ */
+export function registerAdminGpuRoutes(app: Router) {
+  log.info({ component: 'admin-gpu-routes' }, 'Registering ADMIN GPU Pool routes (workers, provisioning)');
 
   /**
    * GET /api/gpu/credentials/available
@@ -22,7 +285,7 @@ export function registerGpuRoutes(app: Router) {
    * - KAGGLE_USERNAME_1, KAGGLE_KEY_1, KAGGLE_USERNAME_2, KAGGLE_KEY_2...
    * - COLAB_EMAIL_1, COLAB_PASSWORD_1, COLAB_EMAIL_2, COLAB_PASSWORD_2...
    */
-  app.get("/api/gpu/credentials/available", async (req: Request, res: Response) => {
+  app.get("/gpu/credentials/available", async (req: Request, res: Response) => {
     try {
       log.info({ component: 'gpu-credentials' }, 'Scanning Replit Secrets for credentials');
       
@@ -374,7 +637,7 @@ export function registerGpuRoutes(app: Router) {
    * POST /api/gpu/workers/:workerId/heartbeat (NEW)
    * Modern endpoint - accepts workerId as path parameter
    */
-  app.post("/api/gpu/workers/:workerId/heartbeat", async (req: Request, res: Response) => {
+  app.post("/gpu/workers/:workerId/heartbeat", async (req: Request, res: Response) => {
     const workerId = parseInt(req.params.workerId);
     const { sessionRuntimeHours, maxSessionHours, status } = req.body;
     await handleHeartbeat(workerId, sessionRuntimeHours, maxSessionHours, status, res);
@@ -385,7 +648,7 @@ export function registerGpuRoutes(app: Router) {
    * Job polling endpoint - worker requests next training job
    * Returns job if available, or {hasJob: false} if queue empty
    */
-  app.get("/api/gpu/workers/:workerId/next-job", async (req: Request, res: Response) => {
+  app.get("/gpu/workers/:workerId/next-job", async (req: Request, res: Response) => {
     try {
       const workerId = parseInt(req.params.workerId);
       
@@ -450,7 +713,7 @@ export function registerGpuRoutes(app: Router) {
    * POST /api/training/jobs/:id/complete
    * Worker reports job completion
    */
-  app.post("/api/training/jobs/:id/complete", async (req: Request, res: Response) => {
+  app.post("/training/jobs/:id/complete", async (req: Request, res: Response) => {
     try {
       const jobId = parseInt(req.params.id);
       const { success, metrics, error } = req.body;
@@ -486,7 +749,7 @@ export function registerGpuRoutes(app: Router) {
    * Download training dataset as structured JSON (for GPU workers)
    * Returns: { examples: [{input, output}...], metadata: {...} }
    */
-  app.get("/api/datasets/:id/download", async (req: Request, res: Response) => {
+  app.get("/datasets/:id/download", async (req: Request, res: Response) => {
     try {
       const datasetId = parseInt(req.params.id);
       
@@ -587,7 +850,7 @@ export function registerGpuRoutes(app: Router) {
    * PRODUCTION-GRADE UNIFIED GPU OVERVIEW
    * Returns complete GPU status with quota information for dashboard
    */
-  app.get("/api/gpu/overview", async (req: Request, res: Response) => {
+  app.get("/gpu/overview", async (req: Request, res: Response) => {
     try {
       // Fetch all workers from database
       const workers = await db
@@ -1093,7 +1356,7 @@ export function registerGpuRoutes(app: Router) {
    * POST /api/gpu/kaggle/test-credentials-raw
    * RAW Kaggle test - returns EXACT CLI output for debugging
    */
-  app.post("/api/gpu/kaggle/test-credentials-raw", async (req: Request, res: Response) => {
+  app.post("/gpu/kaggle/test-credentials-raw", async (req: Request, res: Response) => {
     try {
       const { username, key } = req.body;
       
@@ -1160,7 +1423,7 @@ export function registerGpuRoutes(app: Router) {
    * ✅ Smart cleanup: Removes NEW invalid accounts, restores EXISTING valid accounts
    * ✅ Status codes: 401 (invalid), 403 (unverified), 429 (rate limit), 500 (error)
    */
-  app.post("/api/gpu/kaggle/test-credentials", async (req: Request, res: Response) => {
+  app.post("/gpu/kaggle/test-credentials", async (req: Request, res: Response) => {
     try {
       const { username, key } = req.body;
 
@@ -1680,252 +1943,18 @@ export function registerGpuRoutes(app: Router) {
   });
 
   // ============================================================================
-  // GOOGLE AUTH + QUOTA SCRAPING ROUTES
-  // 100% Real quota data from Kaggle/Colab - NO calculations!
+  // ADMIN-ONLY GPU ROUTES END
+  // Google Auth + Quota routes moved to registerPublicGpuRoutes()
   // ============================================================================
 
-  /**
-   * POST /api/gpu/auth-google
-   * Initiate Google OAuth flow for Kaggle/Colab
-   * Returns instructions for manual login + cookie saving
-   */
-  app.post("/api/gpu/auth-google", async (req: Request, res: Response) => {
-    try {
-      const { accountEmail, provider } = req.body as { accountEmail: string; provider: 'kaggle' | 'colab' };
-
-      if (!accountEmail || !provider) {
-        return res.status(400).json({ 
-          error: 'Missing required fields: accountEmail and provider' 
-        });
-      }
-
-      if (provider !== 'kaggle' && provider !== 'colab') {
-        return res.status(400).json({ 
-          error: 'Invalid provider. Must be "kaggle" or "colab"' 
-        });
-      }
-
-      log.info({ component: 'google-auth', accountEmail, provider }, 'Initiating Google Auth flow');
-
-      // Return instructions for manual login
-      const loginUrl = provider === 'kaggle' 
-        ? 'https://www.kaggle.com' 
-        : 'https://colab.research.google.com';
-
-      res.json({
-        success: true,
-        instructions: {
-          step1: `Open ${loginUrl} in browser`,
-          step2: 'Login with Google OAuth',
-          step3: 'Open browser DevTools (F12)',
-          step4: 'Go to Application > Cookies',
-          step5: 'Copy all cookies as JSON',
-          step6: 'Call POST /api/gpu/auth-google/save-cookies with cookies array',
-        },
-        loginUrl,
-        accountEmail,
-        provider,
-      });
-
-    } catch (error: any) {
-      log.error({ component: 'google-auth', error: error.message }, 'Error initiating auth flow');
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  /**
-   * POST /api/gpu/auth-google/save-cookies
-   * Save encrypted cookies from manual Google login
-   */
-  app.post("/api/gpu/auth-google/save-cookies", async (req: Request, res: Response) => {
-    try {
-      const { accountEmail, provider, cookies, userAgent } = req.body as {
-        accountEmail: string;
-        provider: 'kaggle' | 'colab';
-        cookies: Array<{ name: string; value: string; domain: string }>;
-        userAgent?: string;
-      };
-
-      if (!accountEmail || !provider || !cookies || !Array.isArray(cookies)) {
-        return res.status(400).json({ 
-          error: 'Missing required fields: accountEmail, provider, and cookies array' 
-        });
-      }
-
-      log.info({ component: 'google-auth', accountEmail, provider, cookieCount: cookies.length }, 'Saving cookies');
-
-      const { CookieSessionService } = await import('../gpu-orchestration/cookie-session-service');
-      const cookieSessionService = new CookieSessionService();
-
-      // saveCookies signature: (email, name, cookies)
-      await cookieSessionService.saveCookies(accountEmail, accountEmail, cookies);
-
-      res.json({
-        success: true,
-        message: `Cookies saved successfully for ${accountEmail}`,
-        accountEmail,
-        provider,
-        cookieCount: cookies.length,
-      });
-
-    } catch (error: any) {
-      log.error({ component: 'google-auth', error: error.message }, 'Error saving cookies');
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  /**
-   * GET /api/gpu/auth-google/status
-   * Get Google OAuth session status (authentication state)
-   * Returns: sessions, hasKaggle, hasColab
-   */
-  app.get("/api/gpu/auth-google/status", async (req: Request, res: Response) => {
-    try {
-      log.info({ component: 'google-auth-status' }, 'Fetching auth session status');
-
-      const { db } = await import('../db');
-      const { googleAuthSessions } = await import('../../shared/schema');
-      const { desc } = await import('drizzle-orm');
-
-      // Get all active Google auth sessions
-      const sessions = await db
-        .select()
-        .from(googleAuthSessions)
-        .orderBy(desc(googleAuthSessions.lastValidated));
-
-      // Check which providers are authenticated
-      const hasKaggle = sessions.some(s => s.providers.includes('kaggle'));
-      const hasColab = sessions.some(s => s.providers.includes('colab'));
-
-      res.json({
-        success: true,
-        sessions: sessions.map(s => ({
-          id: s.id,
-          accountEmail: s.accountEmail,
-          accountName: s.accountName,
-          providers: s.providers,
-          isValid: s.isValid,
-          lastValidated: s.lastValidated,
-          expiresAt: s.expiresAt,
-          createdAt: s.createdAt,
-        })),
-        hasKaggle,
-        hasColab,
-      });
-
-    } catch (error: any) {
-      log.error({ component: 'google-auth-status', error: error.message }, 'Error fetching auth status');
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  /**
-   * GET /api/gpu/quota-status
-   * Get REAL quota data from latest scraping results
-   * Returns actual quota data from Kaggle/Colab dashboards - NO calculations!
-   * 
-   * RESPONSE FORMAT (for useQuotaStatus hook):
-   * {
-   *   kaggle: QuotaScrapingResult | null,
-   *   colab: QuotaScrapingResult | null
-   * }
-   */
-  app.get("/api/gpu/quota-status", async (req: Request, res: Response) => {
-    try {
-      const { accountEmail, provider } = req.query as { accountEmail?: string; provider?: 'kaggle' | 'colab' };
-      
-      log.info({ component: 'quota-status', accountEmail, provider }, 'Fetching latest quota status');
-
-      const { db } = await import('../db');
-      const { quotaScrapingResults } = await import('../../shared/schema');
-      const { desc, eq, and } = await import('drizzle-orm');
-
-      // If provider is specified, return only that provider
-      if (provider) {
-        const filters = [eq(quotaScrapingResults.provider, provider)];
-        if (accountEmail) filters.push(eq(quotaScrapingResults.accountEmail, accountEmail));
-        
-        const [latestQuota] = await db
-          .select()
-          .from(quotaScrapingResults)
-          .where(and(...filters))
-          .orderBy(desc(quotaScrapingResults.scrapedAt))
-          .limit(1);
-        
-        // Return single-provider response
-        return res.json({
-          [provider]: latestQuota || null,
-          ...(provider === 'kaggle' ? { colab: null } : { kaggle: null }),
-        });
-      }
-
-      // Get latest Kaggle quota (with optional accountEmail filter)
-      const kaggleFilters = [eq(quotaScrapingResults.provider, 'kaggle')];
-      if (accountEmail) kaggleFilters.push(eq(quotaScrapingResults.accountEmail, accountEmail));
-      
-      const [latestKaggle] = await db
-        .select()
-        .from(quotaScrapingResults)
-        .where(and(...kaggleFilters))
-        .orderBy(desc(quotaScrapingResults.scrapedAt))
-        .limit(1);
-
-      // Get latest Colab quota (with optional accountEmail filter)
-      const colabFilters = [eq(quotaScrapingResults.provider, 'colab')];
-      if (accountEmail) colabFilters.push(eq(quotaScrapingResults.accountEmail, accountEmail));
-      
-      const [latestColab] = await db
-        .select()
-        .from(quotaScrapingResults)
-        .where(and(...colabFilters))
-        .orderBy(desc(quotaScrapingResults.scrapedAt))
-        .limit(1);
-
-      // Return combined response with all critical metadata
-      res.json({
-        kaggle: latestKaggle || null,
-        colab: latestColab || null,
-      });
-
-    } catch (error: any) {
-      log.error({ component: 'quota-status', error: error.message }, 'Error fetching quota status');
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  /**
-   * POST /api/gpu/sync-quota-now
-   * Force immediate quota sync for Kaggle and/or Colab
-   * Scrapes REAL quota data from provider dashboards
-   */
-  app.post("/api/gpu/sync-quota-now", async (req: Request, res: Response) => {
-    try {
-      const { accountEmail, provider } = req.body as { accountEmail?: string; provider?: 'kaggle' | 'colab' };
-
-      log.info({ component: 'quota-sync', accountEmail, provider }, 'Forcing quota sync');
-
-      const { QuotaSyncService } = await import('../gpu-orchestration/quota-sync-service');
-      const quotaSyncService = new QuotaSyncService();
-
-      // Sync all providers (Kaggle + Colab)
-      const results = await quotaSyncService.syncAll();
-
-      res.json({
-        success: true,
-        message: 'Quota sync completed',
-        results: {
-          total: results.length,
-          successful: results.filter(r => r.success).length,
-          failed: results.filter(r => !r.success).length,
-          details: results,
-        },
-      });
-
-    } catch (error: any) {
-      log.error({ component: 'quota-sync', error: error.message }, 'Error during quota sync');
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  console.log("[GPU Routes] ✅ 33 GPU Pool routes registered successfully (includes 5 Kaggle CLI + 3 Colab + 4 deletion + 4 auto-scaling + 1 update + 3 Google Auth/Quota routes)");
+  console.log("[GPU Routes] ✅ 28 ADMIN GPU routes registered successfully (workers, provisioning, kaggle, colab, auto-scaling)");
 }
+
+// REMOVED: All Google Auth / Quota routes (lines 1917-2163) moved to registerPublicGpuRoutes()
+// The following endpoints are now PUBLIC (mounted on /api/gpu):
+//   - POST /auth-google
+//   - POST /auth-google/save-cookies  
+//   - GET /auth-google/status
+//   - GET /quota-status
+//   - POST /sync-quota-now
+

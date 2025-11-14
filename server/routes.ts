@@ -53,7 +53,7 @@ import { registerAgentRelationshipRoutes } from "./routes/agent-relationships";
 import { registerCurationRoutes } from "./routes/curation";
 import { registerKbPromoteRoutes } from "./routes/kb_promote";
 import { registerNamespaceRoutes } from "./routes/namespaces";
-import { registerGpuRoutes } from "./routes/gpu";
+import { registerPublicGpuRoutes, registerAdminGpuRoutes } from "./routes/gpu";
 import { registerVisionRoutes } from "./routes/vision";
 import { registerKbImagesRoutes } from "./routes/kb-images";
 import { registerQueryMetricsRoutes } from "./routes/query-metrics";
@@ -197,8 +197,8 @@ export function registerRoutes(app: Express): Server {
   // Registrar rotas de gerenciamento de namespaces
   registerNamespaceRoutes(adminSubRouter);
   
-  // Registrar rotas do GPU Pool (workers GPU Plug&Play)
-  registerGpuRoutes(adminSubRouter);
+  // Registrar rotas ADMIN do GPU Pool (workers, provisioning, deletion)
+  registerAdminGpuRoutes(adminSubRouter);
   
   // Registrar rotas do Vision System (compreensão multimodal de imagens)
   registerVisionRoutes(adminSubRouter);
@@ -245,6 +245,14 @@ export function registerRoutes(app: Express): Server {
   const publicKbRouter = express.Router();
   registerCurationRoutes(publicKbRouter); // Same routes, no auth
   app.use("/api/kb", publicKbRouter);
+
+  // ========================================
+  // PUBLIC GPU ROUTES - Authentication & Quota (requireAuth)
+  // ========================================
+  const publicGpuRouter = express.Router();
+  publicGpuRouter.use(requireAuth); // Authenticated users only
+  registerPublicGpuRoutes(publicGpuRouter);
+  app.use("/api/gpu", publicGpuRouter);
 
   // ========================================
   // ENDPOINTS DE ÍCONES CUSTOMIZADOS
