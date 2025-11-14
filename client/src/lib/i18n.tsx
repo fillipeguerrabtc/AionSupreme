@@ -721,6 +721,15 @@ interface Translations {
         };
       };
       
+      // NEW: Quota Alerts
+      quotaAlerts: {
+        dismiss: string; // "Dismiss alert"
+        titleTemplate: string; // "{provider} Quota Alert - {percentage}% Used"
+        syncButton: string; // "Sync Now"
+        emergencyAction: string; // "⚠️ Immediate action required..."
+        criticalWarning: string; // "⚠️ High usage detected..."
+      };
+      
       // NEW: Time Templates
       timeTemplates: {
         week: string; // "Semana: {used}h / {max}h"
@@ -2838,6 +2847,15 @@ const translations: Record<Language, Translations> = {
           labels: {
             placeholder: "-",
           },
+        },
+        
+        // NEW: Quota Alerts
+        quotaAlerts: {
+          dismiss: "Dispensar alerta",
+          titleTemplate: "{provider} Alerta de Quota - {percentage}% Usado",
+          syncButton: "Sincronizar Agora",
+          emergencyAction: "⚠️ Ação imediata necessária - reduza a carga de trabalho ou arrisque esgotamento de quota",
+          criticalWarning: "⚠️ Uso elevado detectado - considere reduzir a carga de trabalho",
         },
         
         // NEW: Time Templates
@@ -4979,6 +4997,15 @@ const translations: Record<Language, Translations> = {
           },
         },
         
+        // NEW: Quota Alerts
+        quotaAlerts: {
+          dismiss: "Dismiss alert",
+          titleTemplate: "{provider} Quota Alert - {percentage}% Used",
+          syncButton: "Sync Now",
+          emergencyAction: "⚠️ Immediate action required - reduce workload or risk quota exhaustion",
+          criticalWarning: "⚠️ High usage detected - consider reducing workload",
+        },
+        
         // NEW: Time Templates
         timeTemplates: {
           week: "Week: {used}h / {max}h",
@@ -7116,6 +7143,15 @@ const translations: Record<Language, Translations> = {
           labels: {
             placeholder: "-",
           },
+        },
+        
+        // NEW: Quota Alerts
+        quotaAlerts: {
+          dismiss: "Descartar alerta",
+          titleTemplate: "{provider} Alerta de Cuota - {percentage}% Usado",
+          syncButton: "Sincronizar Ahora",
+          emergencyAction: "⚠️ Acción inmediata requerida - reduzca la carga de trabajo o arriesgue agotamiento de cuota",
+          criticalWarning: "⚠️ Uso elevado detectado - considere reducir la carga de trabajo",
         },
         
         // NEW: Time Templates

@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, AlertCircle, XCircle, X } from 'lucide-react';
 import { useState } from 'react';
+import type { Translations } from '@/lib/i18n';
 
 interface QuotaAlertBannerProps {
   /** Alert level */
@@ -30,8 +31,8 @@ interface QuotaAlertBannerProps {
   message: string;
   /** Callback for sync action */
   onSync?: () => void;
-  /** i18n function */
-  t: (key: string) => string;
+  /** Typed translations for quota alerts */
+  translations: Translations['admin']['gpuManagement']['quotaAlerts'];
   /** data-testid for testing */
   'data-testid'?: string;
 }
@@ -68,7 +69,7 @@ export function QuotaAlertBanner({
   percentage, 
   message, 
   onSync,
-  t,
+  translations,
   'data-testid': testId 
 }: QuotaAlertBannerProps) {
   const [dismissed, setDismissed] = useState(false);
@@ -77,6 +78,12 @@ export function QuotaAlertBanner({
 
   const config = getAlertConfig(level);
   const Icon = config.icon;
+
+  // Title with provider capitalization
+  const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+  const title = translations.titleTemplate
+    .replace('{provider}', providerName)
+    .replace('{percentage}', percentage.toFixed(0));
 
   return (
     <Alert 
@@ -92,14 +99,14 @@ export function QuotaAlertBanner({
         size="icon"
         className="absolute top-2 right-2 h-6 w-6 hover:bg-transparent"
         onClick={() => setDismissed(true)}
-        aria-label="Dismiss alert"
+        aria-label={translations.dismiss}
         data-testid={`button-dismiss-${level}`}
       >
         <X className="h-4 w-4" />
       </Button>
 
       <AlertTitle className={config.titleClassName}>
-        {provider.charAt(0).toUpperCase() + provider.slice(1)} Quota Alert - {percentage.toFixed(0)}% Used
+        {title}
       </AlertTitle>
       
       <AlertDescription className="mt-2 space-y-3">
@@ -115,19 +122,19 @@ export function QuotaAlertBanner({
               data-testid={`button-sync-${level}`}
               className="hover-elevate"
             >
-              Sync Now
+              {translations.syncButton}
             </Button>
           )}
           
           {level === 'emergency' && (
             <span className="text-sm font-medium">
-              ⚠️ Immediate action required - reduce workload or risk quota exhaustion
+              {translations.emergencyAction}
             </span>
           )}
           
           {level === 'critical' && (
             <span className="text-sm font-medium">
-              ⚠️ High usage detected - consider reducing workload
+              {translations.criticalWarning}
             </span>
           )}
         </div>
