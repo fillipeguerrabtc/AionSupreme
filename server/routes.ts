@@ -1565,7 +1565,7 @@ export function registerRoutes(app: Express): Server {
       const { curationStore } = await import("./curation/store");
       const { DuplicateContentError } = await import("./errors/DuplicateContentError");
       
-      // 🔥 P1.1.2g: Try-catch para capturar DuplicateContentError e persistir rejection metadata
+      // 🔥 P1.1.2g: Try-catch para capturar DuplicateContentError e usar helper centralizado
       let item: any;
       try {
         // Adicionar à fila de curadoria ao invés de publicar direto na KB
@@ -1577,27 +1577,15 @@ export function registerRoutes(app: Express): Server {
           submittedBy: "api",
         });
       } catch (error: any) {
-        // 🔥 P1.1.2d: Persistir rejection data quando duplicata detectada
+        // Use centralized helper instead of duplicating persistence logic
         if (error instanceof DuplicateContentError) {
-          const rejectionData = (error as any).rejectionData;
-          
-          // Criar item rejeitado na fila de curadoria com metadata
-          const [rejectedItem] = await db.insert(curationQueueTable).values({
+          item = await curationStore.persistRejection({
             title: req.file.originalname,
             content: processed.extractedText,
             suggestedNamespaces: ["kb/ingest"],
             tags: ["ingest", "file", mimeType],
-            status: "rejected",
             submittedBy: "api",
-            duplicateOfId: error.duplicateOfId?.toString(),
-            decisionReasonCode: rejectionData?.decisionReasonCode || 'duplicate',
-            decisionReasonDetail: rejectionData?.decisionReasonDetail || error.message,
-            reviewedBy: "SYSTEM_AUTO_DEDUP",
-            reviewedAt: new Date(),
-          }).returning();
-          
-          item = rejectedItem;
-          console.log(`[Routes] ✅ P1.1.2g: Rejection metadata persisted for duplicate (curation ID: ${item.id})`);
+          }, error);
         } else {
           throw error; // Re-throw se não for DuplicateContentError
         }
@@ -2022,15 +2010,33 @@ export function registerRoutes(app: Express): Server {
 
       // Importar curation store
       const { curationStore } = await import("./curation/store");
+      const { DuplicateContentError } = await import("./errors/DuplicateContentError");
       
-      // Adicionar à fila de curadoria ao invés de publicar direto na KB
-      const item = await curationStore.addToCuration({
-        title,
-        content,
-        suggestedNamespaces: ["kb/general"],
-        tags: [source || "manual", "kb-text"],
-        submittedBy: "admin",
-      });
+      // 🔥 P1.1.2g: Try-catch para capturar DuplicateContentError e usar helper centralizado
+      let item: any;
+      try {
+        // Adicionar à fila de curadoria ao invés de publicar direto na KB
+        item = await curationStore.addToCuration({
+          title,
+          content,
+          suggestedNamespaces: ["kb/general"],
+          tags: [source || "manual", "kb-text"],
+          submittedBy: "admin",
+        });
+      } catch (error: any) {
+        // Use centralized helper instead of duplicating persistence logic
+        if (error instanceof DuplicateContentError) {
+          item = await curationStore.persistRejection({
+            title,
+            content,
+            suggestedNamespaces: ["kb/general"],
+            tags: [source || "manual", "kb-text"],
+            submittedBy: "admin",
+          }, error);
+        } else {
+          throw error; // Re-throw se não for DuplicateContentError
+        }
+      }
 
       // ✅ PRODUCTION-READY: Track document submission in PostgreSQL
       const latency = Date.now() - startTime;

@@ -11,6 +11,7 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 - **NUNCA deixar atividades incompletas ou superficiais** - Cada tarefa deve ser 100% enterprise-grade desde o início
 - **SEMPRE revisar lista completa antes de finalizar** - Garantir que nenhuma tarefa ficou superficial ou incompleta
 - **SEMPRE verificar se implementação está completa** - Zero tolerância para "MVP", "placeholder", "TODO", "FIXME"
+- **SEMPRE verificar código existente ANTES de modificar** - Use grep/search_codebase para verificar implementações existentes e evitar duplicação/quebra de código funcional
 
 **REGRA FUNDAMENTAL DE TRABALHO:**
 1. **SEMPRE responda dúvidas do usuário primeiro**

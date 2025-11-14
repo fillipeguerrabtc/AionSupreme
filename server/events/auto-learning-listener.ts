@@ -96,13 +96,32 @@ export class AutoLearningListener {
         console.warn(`   ⚠️ Namespace classification failed, using fallback:`, classifyError.message);
       }
       
-      const item = await curationStore.addToCuration({
-        title: payload.userMessage.substring(0, 100),
-        content: conversationContent,
-        suggestedNamespaces, // 🔥 SEMANTIC namespaces, not source-based!
-        tags: ["chat", "standalone", payload.source, payload.provider || "unknown"],
-        submittedBy: "auto-learning",
-      });
+      // 🔥 P1.1.2g: Handle potential duplicate errors via centralized helper
+      const { DuplicateContentError } = await import("../errors/DuplicateContentError");
+      
+      let item: any;
+      try {
+        item = await curationStore.addToCuration({
+          title: payload.userMessage.substring(0, 100),
+          content: conversationContent,
+          suggestedNamespaces, // 🔥 SEMANTIC namespaces, not source-based!
+          tags: ["chat", "standalone", payload.source, payload.provider || "unknown"],
+          submittedBy: "auto-learning",
+        });
+      } catch (error: any) {
+        // Use centralized helper instead of duplicating persistence logic
+        if (error instanceof DuplicateContentError) {
+          item = await curationStore.persistRejection({
+            title: payload.userMessage.substring(0, 100),
+            content: conversationContent,
+            suggestedNamespaces,
+            tags: ["chat", "standalone", payload.source, payload.provider || "unknown"],
+            submittedBy: "auto-learning",
+          }, error);
+        } else {
+          throw error; // Re-throw other errors
+        }
+      }
       
       console.log(`   ✅ Mensagem standalone enviada para curadoria (ID: ${item.id})`);
       console.log(`   ⚠️ Aguardando aprovação HITL antes de indexar na KB`);

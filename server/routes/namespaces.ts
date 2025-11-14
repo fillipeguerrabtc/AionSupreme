@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db";
-import { namespaces, insertNamespaceSchema, type Namespace, type InsertNamespace } from "@shared/schema";
+import { namespaces, insertNamespaceSchema, type Namespace, type InsertNamespace, curationQueue } from "@shared/schema"; // 🔥 P1.1.2g: Added curationQueue
 import { eq, and, desc, or, like, ilike, sql } from "drizzle-orm";
 import { z } from "zod";
 import { curationStore } from "../curation/store";
@@ -312,14 +312,31 @@ export function registerNamespaceRoutes(app: Router) {
         return res.status(404).json({ error: "Namespace not found" });
       }
 
-      // Add content to curation queue for human approval (HITL workflow)
-      const curationItem = await curationStore.addToCuration({
-        title: title || `Conteúdo do namespace ${namespace.name}`,
-        content,
-        suggestedNamespaces: [namespace.name],
-        tags: ["namespace_ingestion", "general"],
-        submittedBy: `Namespace Management (${namespace.name})`,
-      });
+      // 🔥 P1.1.2g: Add content to curation queue with duplicate handling via centralized helper
+      const { DuplicateContentError } = await import("../errors/DuplicateContentError");
+      let curationItem: any;
+      try {
+        curationItem = await curationStore.addToCuration({
+          title: title || `Conteúdo do namespace ${namespace.name}`,
+          content,
+          suggestedNamespaces: [namespace.name],
+          tags: ["namespace_ingestion", "general"],
+          submittedBy: `Namespace Management (${namespace.name})`,
+        });
+      } catch (error: any) {
+        // Use centralized helper instead of duplicating persistence logic
+        if (error instanceof DuplicateContentError) {
+          curationItem = await curationStore.persistRejection({
+            title: title || `Conteúdo do namespace ${namespace.name}`,
+            content,
+            suggestedNamespaces: [namespace.name],
+            tags: ["namespace_ingestion", "general"],
+            submittedBy: `Namespace Management (${namespace.name})`,
+          }, error);
+        } else {
+          throw error;
+        }
+      }
 
       console.log(`[Namespaces] Added content to curation queue for namespace: ${namespace.name} (curation ID: ${curationItem.id})`);
 

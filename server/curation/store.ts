@@ -10,6 +10,20 @@ import { DuplicateContentError } from "../errors/DuplicateContentError";
 // Type alias for compatibility with existing code
 export type CurationItem = CurationQueue;
 
+/**
+ * 🔥 P1.1.2g: Type-safe payload for rejection persistence
+ * Aligns with curationQueue insertable columns
+ */
+export interface PersistRejectionPayload {
+  title: string;
+  content: string;
+  suggestedNamespaces: string[];
+  tags?: string[];
+  submittedBy?: string;
+  contentHash?: string;  // Auto-generated if missing
+  normalizedContent?: string;  // Auto-generated if missing
+}
+
 // Custom error for auto-analysis timeout
 export class AutoAnalysisTimeoutError extends Error {
   public readonly duration: number;
@@ -103,9 +117,9 @@ export const curationStore = {
     // Import utilities
     const { generateContentHash, normalizeContent } = await import("../utils/deduplication");
     
-    // Compute normalized content and hash (for exact duplicate detection)
-    const normalizedText = normalizeContent(data.content);
-    const contentHash = generateContentHash(data.content);
+    // 🔥 FIX: AWAIT async functions (2025 best practice - these hit vector store!)
+    const normalizedText = await normalizeContent(data.content);
+    const contentHash = await generateContentHash(data.content);
     
     console.log(`[Curation] → Normalized: "${normalizedText.substring(0, 60)}..."`);
     console.log(`[Curation] → Hash: ${contentHash.substring(0, 16)}...`);
@@ -1165,6 +1179,107 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
     console.log(`[Curation] ✅ Published approved item ${id} to KB as document ${newDoc.id}`);
 
     return String(newDoc.id); // 🔥 FIX: Convert to string for API consistency
+  },
+
+  /**
+   * 🔥 P1.1.2g: CENTRALIZED HELPER - Persiste rejection metadata quando duplicata detectada
+   * 
+   * PRODUCTION-READY IMPLEMENTATION (Architect-approved design):
+   * - Type-safe payload with PersistRejectionPayload interface
+   * - Validates error is DuplicateContentError before proceeding
+   * - Sanitizes payload (trim whitespace, default empty arrays)
+   * - Auto-generates hash/normalized if missing
+   * - Guards against double-insert (updates timestamp if already rejected)
+   * 
+   * @param payload - Original submission data (title, content, namespaces, tags)
+   * @param error - DuplicateContentError with rejectionData metadata
+   * @returns Rejected curation item with complete metadata
+   * @throws Error if error is not DuplicateContentError
+   */
+  async persistRejection(
+    payload: PersistRejectionPayload,
+    error: any
+  ): Promise<CurationItem> {
+    // 🛡️ GUARD: Validate error is DuplicateContentError
+    if (!(error instanceof DuplicateContentError)) {
+      throw new Error(`persistRejection requires DuplicateContentError, got: ${error?.constructor?.name || 'unknown'}`);
+    }
+    
+    const { generateContentHash, normalizeContent } = await import("../utils/deduplication");
+    const rejectionData = (error as any).rejectionData;
+    
+    // 🛡️ VALIDATE: Ensure rejectionData exists
+    if (!rejectionData || typeof rejectionData !== 'object') {
+      console.warn(`[CurationStore] ⚠️ Missing rejectionData in DuplicateContentError, using defaults`);
+    }
+    
+    // 🧹 SANITIZE PAYLOAD: Trim whitespace, ensure defaults
+    const sanitizedPayload = {
+      title: payload.title?.trim() || "Untitled",
+      content: payload.content?.trim() || "",
+      suggestedNamespaces: (payload.suggestedNamespaces || []).filter(ns => ns.trim()),
+      tags: (payload.tags || []).filter(t => t.trim()),
+      submittedBy: payload.submittedBy?.trim() || "unknown",
+    };
+    
+    // 🔐 GENERATE HASHES: Use same dedup utilities as elsewhere (AWAIT async functions!)
+    const contentHash = payload.contentHash || await generateContentHash(sanitizedPayload.content);
+    const normalizedContent = payload.normalizedContent || await normalizeContent(sanitizedPayload.content);
+    
+    // 🛡️ GUARD: Check if already rejected with same hash
+    const existing = await db
+      .select()
+      .from(curationQueueTable)
+      .where(
+        and(
+          eq(curationQueueTable.contentHash, contentHash),
+          eq(curationQueueTable.status, "rejected")
+        )
+      )
+      .limit(1);
+    
+    // If already rejected, update timestamp instead of duplicate insert
+    if (existing.length > 0) {
+      // 🛡️ GUARD: Safely append re-attempt info (handle null decisionReasonDetail)
+      const existingDetail = existing[0].decisionReasonDetail || "";
+      const reattemptNote = `Re-attempted: ${new Date().toISOString()}`;
+      const newDetail = existingDetail 
+        ? `${existingDetail} | ${reattemptNote}`
+        : reattemptNote;
+      
+      const [updated] = await db
+        .update(curationQueueTable)
+        .set({
+          reviewedAt: new Date(),
+          updatedAt: new Date(),
+          decisionReasonDetail: newDetail,
+        })
+        .where(eq(curationQueueTable.id, existing[0].id))
+        .returning();
+      
+      console.log(`[CurationStore] 🔄 P1.1.2g: Updated existing rejection (ID: ${updated.id})`);
+      return updated;
+    }
+    
+    // ✅ INSERT NEW REJECTION
+    const [rejectedItem] = await db.insert(curationQueueTable).values({
+      title: sanitizedPayload.title,
+      content: sanitizedPayload.content,
+      suggestedNamespaces: sanitizedPayload.suggestedNamespaces,
+      tags: sanitizedPayload.tags,
+      status: "rejected",
+      submittedBy: sanitizedPayload.submittedBy,
+      contentHash,
+      normalizedContent,
+      duplicateOfId: error.duplicateOfId?.toString(),
+      decisionReasonCode: rejectionData?.decisionReasonCode || 'duplicate',
+      decisionReasonDetail: rejectionData?.decisionReasonDetail || error.message,
+      reviewedBy: "SYSTEM_AUTO_DEDUP",
+      reviewedAt: new Date(),
+    }).returning();
+    
+    console.log(`[CurationStore] ✅ P1.1.2g: Rejection metadata persisted (ID: ${rejectedItem.id}, reason: ${rejectionData?.decisionReasonCode})`);
+    return rejectedItem;
   },
 
   /**
