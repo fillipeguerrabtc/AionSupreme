@@ -5,8 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useLanguage } from "@/lib/i18n";
 
 export default function ApiDebug() {
+  const { t } = useLanguage();
   const [testing, setTesting] = useState(false);
   const [results, setResults] = useState<Record<string, any> | null>(null);
 
@@ -34,9 +36,9 @@ export default function ApiDebug() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Debug de APIs Gratuitas</h2>
+        <h2 className="text-2xl font-bold">{t.admin.apiDebug.title}</h2>
         <p className="text-muted-foreground">
-          Testa conexão e autenticação com cada API
+          {t.admin.apiDebug.subtitle}
         </p>
       </div>
 
@@ -46,7 +48,7 @@ export default function ApiDebug() {
         data-testid="button-test-apis"
       >
         {testing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-        Testar Todas as APIs
+        {t.admin.apiDebug.testAllApis}
       </Button>
 
       {results && (
@@ -64,8 +66,8 @@ export default function ApiDebug() {
                   <Alert>
                     <CheckCircle2 className="w-4 h-4" />
                     <AlertDescription>
-                      ✅ API funcionando!
-                      {result.tokensUsed && ` (${result.tokensUsed} tokens usados)`}
+                      {t.admin.apiDebug.apiWorking}
+                      {result.tokensUsed && ` ${t.admin.apiDebug.tokensUsed.replace('{count}', result.tokensUsed)}`}
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -88,7 +90,7 @@ export default function ApiDebug() {
                     {result.headers && (
                       <details className="text-xs">
                         <summary className="cursor-pointer font-semibold">
-                          Ver Headers
+                          {t.admin.apiDebug.viewHeaders}
                         </summary>
                         <pre className="mt-2 bg-muted p-2 rounded overflow-auto max-h-40">
                           {JSON.stringify(result.headers, null, 2)}
