@@ -1,4 +1,4 @@
-import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, uniqueIndex, unique, pgEnum, smallint, vector, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, serial, timestamp, boolean, jsonb, real, varchar, index, uniqueIndex, unique, pgEnum, smallint, vector, primaryKey, check } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from 'drizzle-orm';
@@ -2447,8 +2447,15 @@ export const curationQueue = pgTable("curation_queue", {
   reviewedAt: timestamp("reviewed_at"),
   statusChangedAt: timestamp("status_changed_at"), // Timestamp when status changed
   expiresAt: timestamp("expires_at"), // Auto-deletion timestamp for rejected items (30 days after rejection)
-  note: text("note"), // Admin notes (reason for rejection, etc.)
+  note: text("note"), // Admin notes (freeform comments - preserved for ad-hoc use per architect)
   publishedId: integer("published_id"), // Document ID after approval - FK to documents table
+  
+  // 🔥 P1.1.2d/e: ENTERPRISE DECISION TRACKING (audit trail for rejection/approval)
+  // ARCHITECT-APPROVED: Dedicated columns for structured decision tracking + compliance
+  decisionReasonCode: varchar("decision_reason_code", { length: 50 }), // "duplicate" | "low_quality" | "policy_violation" | "frequency_reuse" | "other"
+  decisionReasonDetail: text("decision_reason_detail"), // Freeform context (similarity score, duplicate ID, etc)
+  manualReviewRequired: boolean("manual_review_required").notNull().default(false), // True if requires HITL
+  manualReviewReason: text("manual_review_reason"), // Why manual review needed (LLM reasoning, borderline score, etc)
   
   // Auto-quality score from chat ingestion (0-100)
   score: real("score"), // Quality score calculated by chat-ingestion.ts and quality-gates-enterprise.ts
@@ -2498,6 +2505,20 @@ export const curationQueue = pgTable("curation_queue", {
   conversationIdx: index("curation_queue_conversation_idx").on(table.conversationId), // Index for conversation-linked curation items
   // Composite index for admin dashboard queries (status + date ordering)
   statusSubmittedIdx: index("curation_queue_status_submitted_idx").on(table.status, table.submittedAt),
+  // 🔥 P1.1.2e: Partial index for manual review queue filtering (ARCHITECT-APPROVED)
+  manualReviewIdx: index("curation_queue_manual_review_idx").on(table.manualReviewRequired).where(sql`${table.manualReviewRequired} = true`),
+  
+  // 🔥 P1.1.2d/e: INTEGRITY SAFEGUARDS (ARCHITECT-MANDATED before migration)
+  // CHECK #1: Enum validation for decisionReasonCode (NULL allowed, but non-NULL must be valid)
+  decisionReasonCodeCheck: check(
+    "decision_reason_code_valid",
+    sql`${table.decisionReasonCode} IS NULL OR ${table.decisionReasonCode} IN ('duplicate', 'low_quality', 'policy_violation', 'frequency_reuse', 'other')`
+  ),
+  // CHECK #2: manual_review_reason required when manualReviewRequired = true
+  manualReviewReasonCheck: check(
+    "manual_review_reason_required",
+    sql`${table.manualReviewRequired} = false OR ${table.manualReviewReason} IS NOT NULL`
+  ),
 }));
 
 export const insertCurationQueueSchema = createInsertSchema(curationQueue).omit({ 

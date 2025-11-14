@@ -125,10 +125,20 @@ export const curationStore = {
     
     if (data.content) {
       const { deduplicationService } = await import("../services/deduplication-service");
+      
+      // 🔥 P1.1.2a: Pass queryTitle + namespace for frequency-aware reuse gate
+      const primaryNamespace = data.suggestedNamespaces && data.suggestedNamespaces.length > 0 
+        ? data.suggestedNamespaces[0] 
+        : undefined;
+      
       const duplicateCheck = await deduplicationService.checkCurationRealtimeDuplicate(
         data.content,
         contentHash,
-        normalizedText
+        normalizedText,
+        {
+          queryTitle: data.title,      // ✅ Enable frequency gate
+          namespace: primaryNamespace   // ✅ Enable namespace-scoped frequency lookup
+        }
       );
       
       if (duplicateCheck) {

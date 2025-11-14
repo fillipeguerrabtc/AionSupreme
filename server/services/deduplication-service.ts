@@ -339,15 +339,22 @@ export class DeduplicationService {
         exact: number;      // ≥0.98 = exact duplicate
         borderline: number; // 0.95-0.98 = needs LLM verification
       };
+      queryTitle?: string; // 🔥 P1.1.2a: Query title for frequency tracking
+      namespace?: string;  // 🔥 P1.1.2a: Namespace for frequency lookup
     } = {}
   ): Promise<{
     isDuplicate: boolean;
     documentId?: number;
     documentTitle?: string;
     isPending?: boolean;
-    method: 'hash' | 'semantic' | 'llm' | 'none';
+    method: 'hash' | 'semantic' | 'llm' | 'frequency-gate' | 'none';
     similarity?: number;
     embedding?: number[]; // Return for reuse by caller
+    frequencyData?: {     // 🔥 P1.1.2a: Frequency metadata for use gate
+      hitCount: number;
+      effectiveCount: number;
+      reuseApproved: boolean; // True if high frequency bypassed duplicate rejection
+    };
   } | null> {
     const {
       tenantId = 1,
@@ -355,7 +362,9 @@ export class DeduplicationService {
       similarityThresholds = {
         exact: 0.98,       // ≥98% = exact duplicate (architect-approved: raised from 0.90 to reduce false positives)
         borderline: 0.85   // 85-98% = near duplicate/LLM verification (architect-approved: lowered from 0.95 to catch all near duplicates)
-      }
+      },
+      queryTitle,
+      namespace
     } = options;
 
     console.log(`[Dedup] 🧠 Starting tiered detection for hash: ${contentHash.substring(0, 12)}...`);
@@ -495,10 +504,47 @@ export class DeduplicationService {
       };
     }
 
-    // Borderline case (95-98%) - needs LLM verification
+    // Borderline case (85-98%) - needs frequency check + LLM verification
     if (similarity >= similarityThresholds.borderline) {
-      console.log(`[Dedup] ⚠️  BORDERLINE similarity (${(similarity * 100).toFixed(1)}%) - invoking LLM adjudicator...`);
+      console.log(`[Dedup] ⚠️  BORDERLINE similarity (${(similarity * 100).toFixed(1)}%) - checking frequency + LLM...`);
       
+      // 🔥 P1.1.2a: FREQUENCY-AWARE REUSE GATE (P0.5 integration)
+      // High-frequency queries with borderline similarity should be APPROVED (not rejected)
+      // This enables cost-optimization via intelligent content reuse
+      if (queryTitle) {
+        try {
+          const { queryFrequencyService } = await import("./query-frequency-service");
+          const frequencyData = await queryFrequencyService.getFrequency(queryTitle, namespace);
+          
+          if (frequencyData) {
+            const FREQUENCY_THRESHOLD = 10; // effectiveCount ≥ 10 = high demand
+            const REUSE_SIMILARITY_MAX = 0.92; // Only apply gate for 0.85-0.92 range
+            
+            if (frequencyData.effectiveCount >= FREQUENCY_THRESHOLD && similarity < REUSE_SIMILARITY_MAX) {
+              console.log(`[Dedup] 🎯 FREQUENCY GATE BYPASS: High demand (${frequencyData.effectiveCount} hits) + borderline similarity (${(similarity * 100).toFixed(1)}%) = REUSE APPROVED`);
+              
+              return {
+                isDuplicate: false, // NOT a duplicate - reuse approved!
+                method: 'frequency-gate',
+                similarity,
+                embedding: queryEmbedding,
+                frequencyData: {
+                  hitCount: frequencyData.hitCount,
+                  effectiveCount: frequencyData.effectiveCount,
+                  reuseApproved: true
+                }
+              };
+            } else {
+              console.log(`[Dedup] 📊 Frequency check: ${frequencyData.effectiveCount} hits (threshold: ${FREQUENCY_THRESHOLD}) - continuing to LLM adjudication`);
+            }
+          }
+        } catch (error: any) {
+          console.error(`[Dedup] ⚠️ Frequency check failed:`, error.message);
+          // Continue to LLM adjudication on error
+        }
+      }
+      
+      // 🔥 P1.1.2b: LLM ADJUDICATION for borderline cases
       const llmVerdict = await this.llmDuplicateAdjudicator(
         content,
         bestMatch.content,
