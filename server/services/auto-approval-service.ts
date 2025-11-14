@@ -312,11 +312,18 @@ export class AutoApprovalService {
       };
     }
 
-    // DECISION 1: AUTO-APPROVE (score >= threshold)
-    if (score >= config.minApprovalScore) {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INDUSTRY 2025 TIERED DECISION FLOW (MANDATORY ORDER - ARCHITECT APPROVED)
+    // ═══════════════════════════════════════════════════════════════════════════
+    
+    // DECISION 1: GREETING GATE (ALWAYS APPROVE - HIGHEST PRIORITY)
+    // Uses hardened helper with punctuation normalization
+    // Rationale: Common phrases like "oi", "olá", "hi" bypass scoring entirely
+    // Source: OpenAI/Anthropic common phrase optimization
+    if (this.isGreetingOrCasualPhrase(queryText)) {
       return {
         action: "approve",
-        reason: `Auto-approved: Score ${score}/100 >= threshold ${config.minApprovalScore}`,
+        reason: `Auto-approved: Greeting/casual phrase (common phrase optimization) - INDUSTRY 2025`,
         configUsed: {
           enabled: config.enabled,
           minApprovalScore: config.minApprovalScore,
@@ -327,33 +334,33 @@ export class AutoApprovalService {
       };
     }
 
-    // DECISION 2: REUSE GATE - Cost-optimization for high-frequency queries
-    // INDUSTRY 2025 STANDARD: Auto-approve queries with ≥3x frequency + score ≥10
-    // Rationale: Frequent usage indicates utility regardless of curator score
-    // → Reduces external API costs via KB indexing + internal model training
-    // 🔥 Enhanced with semantic KB similarity check (0.88 threshold)
-    if (queryText && score >= 10 && score < config.minApprovalScore) {
+    // DECISION 2: FREQUENCY GATE (INDUSTRY 2025 STANDARD)
+    // Auto-approve: frequency ≥3x + score ≥10
+    // CRITICAL: Check frequency REGARDLESS of score floor (Architect fix)
+    // Rationale: High reuse = utility, cost optimization via KB indexing
+    let frequencyResult: { effectiveCount: number; daysSinceLast: number; embedding?: number[] } | null = null;
+    
+    if (queryText) {
       try {
         const { queryFrequencyService } = await import("./query-frequency-service");
-        const frequency = await queryFrequencyService.getFrequency(queryText, selectedNamespace);
+        frequencyResult = await queryFrequencyService.getFrequency(queryText, selectedNamespace);
         
-        if (frequency && frequency.effectiveCount >= 3) {
-          // 🔥 P0.5: SEMANTIC REUSE GATE - Check embedding similarity to approved KB
-          // If query has similar content already approved → auto-approve
-          // Threshold: 0.88 (high confidence semantic match)
-          if (frequency.embedding && frequency.embedding.length > 0) {
+        // If freq ≥3 + score ≥10 → auto-approve (Industry 2025)
+        if (frequencyResult && frequencyResult.effectiveCount >= 3 && score >= 10) {
+          // 🔥 SEMANTIC REUSE GATE - Check KB similarity for approved content
+          if (frequencyResult.embedding && frequencyResult.embedding.length > 0) {
             try {
               const { kbSimilarityService } = await import("./kb-similarity-service");
               const similarKB = await kbSimilarityService.findApprovedSimilar(
-                frequency.embedding,
+                frequencyResult.embedding,
                 selectedNamespace,
-                0.88 // Architect-recommended threshold
+                0.88 // High confidence threshold
               );
               
               if (similarKB) {
                 return {
                   action: "approve",
-                  reason: `Auto-approved: High-reuse + semantic KB match (score ${score}, frequency ${frequency.effectiveCount}x, KB similarity ${(similarKB.similarity * 100).toFixed(1)}%) - Cost optimization`,
+                  reason: `Auto-approved: Freq ≥3x (${frequencyResult.effectiveCount}x) + Score ≥10 (${score}) + KB semantic match (${(similarKB.similarity * 100).toFixed(1)}%) - INDUSTRY 2025`,
                   configUsed: {
                     enabled: config.enabled,
                     minApprovalScore: config.minApprovalScore,
@@ -362,19 +369,16 @@ export class AutoApprovalService {
                     enabledNamespaces: config.enabledNamespaces,
                   },
                 };
-              } else {
-                console.log(`[AutoApproval] High-reuse query but no similar approved KB (similarity < 88%), sending to HITL review`);
               }
             } catch (kbError: any) {
               console.error(`[AutoApproval] KB similarity check failed:`, kbError.message);
-              // Fall back to frequency-only approval (original behavior)
             }
           }
           
-          // FALLBACK: Original frequency-only approval (no embedding or KB match failed)
+          // FALLBACK: Frequency-only approval (if KB check unavailable)
           return {
             action: "approve",
-            reason: `Auto-approved: High-reuse value (score ${score}, query frequency ${frequency.effectiveCount}x in ${frequency.daysSinceLast}d) - Cost optimization via indexing`,
+            reason: `Auto-approved: Freq ≥3x (${frequencyResult.effectiveCount}x) + Score ≥10 (${score}) - Cost optimization - INDUSTRY 2025`,
             configUsed: {
               enabled: config.enabled,
               minApprovalScore: config.minApprovalScore,
@@ -385,16 +389,67 @@ export class AutoApprovalService {
           };
         }
       } catch (error: any) {
-        console.error(`[AutoApproval] Reuse gate check failed:`, error.message);
-        // Non-critical - continue with normal flow
+        console.error(`[AutoApproval] Frequency lookup failed (non-critical):`, error.message);
+        // CRITICAL FIX: Set null to fallback to review instead of reject
+        frequencyResult = null;
       }
     }
 
-    // DECISION 3: AUTO-REJECT (score < threshold and enabled)
+    // DECISION 3: HIGH SCORE GATE (≥70)
+    if (score >= config.minApprovalScore) {
+      return {
+        action: "approve",
+        reason: `Auto-approved: Score ${score}/100 ≥ threshold ${config.minApprovalScore} - INDUSTRY 2025`,
+        configUsed: {
+          enabled: config.enabled,
+          minApprovalScore: config.minApprovalScore,
+          maxRejectScore: config.maxRejectScore,
+          sensitiveFlags: config.sensitiveFlags,
+          enabledNamespaces: config.enabledNamespaces,
+        },
+      };
+    }
+
+    // DECISION 4: AUTO-REJECT GATE (score <30 + freq <3)
+    // CRITICAL FIXES (Architect feedback):
+    // 1. Only reject if BOTH conditions met (score <30 AND freq <3)
+    // 2. If frequency lookup failed → REVIEW (not reject)
+    // 3. If freq ≥3 → REVIEW (protected from auto-reject)
     if (config.autoRejectEnabled && score < config.maxRejectScore) {
+      // If frequency lookup failed → send to REVIEW (not reject)
+      if (frequencyResult === null) {
+        return {
+          action: "review",
+          reason: `HITL Review: Score ${score}/100 < ${config.maxRejectScore} BUT freq unavailable (transient error protection) - INDUSTRY 2025`,
+          configUsed: {
+            enabled: config.enabled,
+            minApprovalScore: config.minApprovalScore,
+            maxRejectScore: config.maxRejectScore,
+            sensitiveFlags: config.sensitiveFlags,
+            enabledNamespaces: config.enabledNamespaces,
+          },
+        };
+      }
+      
+      // If freq ≥3 → send to REVIEW (protected from auto-reject)
+      if (frequencyResult && frequencyResult.effectiveCount >= 3) {
+        return {
+          action: "review",
+          reason: `HITL Review: Score ${score}/100 < ${config.maxRejectScore} BUT freq ${frequencyResult.effectiveCount}x ≥ 3 (protected from auto-reject) - INDUSTRY 2025`,
+          configUsed: {
+            enabled: config.enabled,
+            minApprovalScore: config.minApprovalScore,
+            maxRejectScore: config.maxRejectScore,
+            sensitiveFlags: config.sensitiveFlags,
+            enabledNamespaces: config.enabledNamespaces,
+          },
+        };
+      }
+      
+      // Only reject if score <30 AND freq <3
       return {
         action: "reject",
-        reason: `Auto-rejected: Score ${score}/100 < threshold ${config.maxRejectScore}`,
+        reason: `Auto-rejected: Score ${score}/100 < ${config.maxRejectScore} + freq ${frequencyResult ? frequencyResult.effectiveCount : 0}x < 3 - INDUSTRY 2025`,
         configUsed: {
           enabled: config.enabled,
           minApprovalScore: config.minApprovalScore,
