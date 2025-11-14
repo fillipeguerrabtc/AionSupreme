@@ -1,7 +1,7 @@
 # AION - Autonomous AI System
 
 ## Overview
-AION is an enterprise-grade autonomous AI system designed for robustness, flexibility, and self-operation, extending beyond current LLM limitations. Its core purpose is to deliver a self-sustaining, continuously evolving AI that learns and improves autonomously, reducing reliance on external APIs over time. Key capabilities include configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agents using POMDP with a ReAct framework, and professional video generation. The system provides a chat interface for end-users and an administrative dashboard with a 7-Trait Personality Equalizer. It incorporates production-ready autonomous meta-learning capabilities, including a Meta-Learner Service, an Adaptive Mixture of Experts (ShiftEx MoE), a Personalized expert selection (PM-MoE Aggregator), and a Self-Improvement Engine for autonomous code analysis and patching. The business vision is to provide a comprehensive, self-managing AI solution that offers significant market potential by automating complex tasks and continuous self-optimization across various enterprise applications.
+AION is an enterprise-grade autonomous AI system designed for robustness, flexibility, and self-operation, extending beyond current LLM limitations. Its core purpose is to deliver a self-sustaining, continuously evolving AI that learns and improves autonomously, reducing reliance on external APIs over time. Key capabilities include configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agents using POMDP with a ReAct framework, professional video generation, and production-ready autonomous meta-learning. The system provides a chat interface for end-users and an administrative dashboard with a 7-Trait Personality Equalizer. The business vision is to provide a comprehensive, self-managing AI solution that offers significant market potential by automating complex tasks and continuous self-optimization across various enterprise applications.
 
 ## User Preferences
 Estilo de comunicação preferido: Linguagem simples e cotidiana.
@@ -72,51 +72,6 @@ export const GPU_QUOTA_CONSTANTS = {
 - Sempre adicionar data-testid para testes E2E
 - Sempre revisar código com architect antes de marcar como completed
 
-## Recent Changes
-
-### 2025-11-14: PHASE1-5 - Full i18n Coverage for GoogleAuthDialog
-**Status:** ✅ COMPLETED (Architect Approved)
-
-**Implemented:**
-- ✅ **GoogleAuthDialog.tsx** (482 lines): 100% i18n refactor with 66 translation keys
-  - Dialog header, tabs (Instructions/Kaggle/Colab)
-  - Prerequisites, security info, warning alerts
-  - Form labels, placeholders, buttons
-  - Toast success/error messages with template interpolation
-  - Rich HTML content via dangerouslySetInnerHTML
-  - ZERO hardcoded Portuguese strings
-  
-- ✅ **i18n Infrastructure** (client/src/lib/i18n.tsx):
-  - Added 198 lines across PT-BR/EN-US/ES-ES dictionaries
-  - TypeScript interface updated with consistent key structure
-  - Path: `t.admin.gpuManagement.googleAuthDialog.{instructions|kaggle|colab}.*`
-  - Template interpolation for dynamic provider/email values
-  - HTML formatting for warnings with `<strong>` tags
-
-**Quality Metrics:**
-- TypeScript LSP: ZERO diagnostics errors
-- Code Coverage: 100% translation keys used (66 total)
-- Hardcoded Strings: ZERO detected in final validation
-- Architect Review: PASSED (production-ready)
-- Security: ZERO issues (sensitive data properly handled)
-
-**Files Modified:**
-- `client/src/lib/i18n.tsx` (+198 lines)
-- `client/src/components/gpu/GoogleAuthDialog.tsx` (66 i18n keys, formatTemplate for toasts)
-
-### 2025-11-13: PHASE1-4 - Full i18n Coverage for GPU Overview Cards
-**Status:** ✅ COMPLETED (Architect Approved)
-
-**Implemented:**
-- ✅ **QuotaOverviewCard.tsx** (368 lines): 100% i18n refactor with 33 translation keys
-- ✅ **GPUWorkersCard.tsx** (267 lines): 100% i18n refactor with 20 translation keys
-- ✅ **i18n Infrastructure**: 246 lines across PT-BR/EN-US/ES-ES dictionaries
-
-**Files Modified:**
-- `client/src/lib/i18n.tsx` (+246 lines)
-- `client/src/components/gpu/QuotaOverviewCard.tsx` (33 i18n keys)
-- `client/src/components/gpu/GPUWorkersCard.tsx` (20 i18n keys)
-
 ## System Architecture
 
 ### Core System Design
@@ -169,4 +124,3 @@ Key decisions include a single-tenant architecture, externalized JSON behavioral
 - **cheerio**: HTML parsing and web scraping.
 - **multer**: File upload handling.
 - **file-type**: MIME type detection.
-```
