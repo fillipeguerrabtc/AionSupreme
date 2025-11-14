@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useTranslation } from "@/lib/i18n";
+import { useLanguage } from "@/lib/i18n";
 import { AlertTriangle, Database, Cpu, Loader2 } from "lucide-react";
 import type {
   CascadeDependencyResponse,
@@ -72,7 +72,7 @@ export function CascadeDeleteDialog({
   onClose,
   onDeleted,
 }: CascadeDeleteDialogProps) {
-  const { t } = useTranslation();
+  const { t } = useLanguage();
   const { toast } = useToast();
 
   // Form state

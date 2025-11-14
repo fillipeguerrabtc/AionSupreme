@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { namespaces, agents, documents, embeddings } from "@shared/schema";
-import { eq, like, inArray } from "drizzle-orm";
+import { eq, like, inArray, sql } from "drizzle-orm";
 import { promises as fs } from "fs";
 import * as path from "path";
 
@@ -45,23 +45,20 @@ async function findChildNamespaces(parentName: string): Promise<string[]> {
 
 /**
  * Find all agents/subagents assigned to a namespace
+ * 🔥 2025 FIX: Use PostgreSQL JSON containment query instead of full-table scan
  * @param namespaceName Namespace name to match against assigned_namespaces
  * @returns Array of agent IDs
  */
 async function findAgentsByNamespace(namespaceName: string): Promise<string[]> {
   try {
-    // Query ALL agents (enabled + disabled) to prevent orphans
+    // 🔥 PERFORMANCE FIX: Server-side JSON containment filter (PostgreSQL @> operator)
+    // No more loading ALL agents into memory!
     const matchingAgents = await db
-      .select()
-      .from(agents);
+      .select({ id: agents.id })
+      .from(agents)
+      .where(sql`${agents.assignedNamespaces} @> ARRAY[${namespaceName}]::text[]`);
 
-    // Filter in-memory (Drizzle doesn't support JSON array contains natively)
-    const filtered = matchingAgents.filter((agent) => {
-      if (!agent.assignedNamespaces) return false;
-      return agent.assignedNamespaces.includes(namespaceName);
-    });
-
-    return filtered.map((a) => a.id);
+    return matchingAgents.map((a) => a.id);
   } catch (error) {
     console.error(`[NamespaceCascade] Error finding agents for namespace "${namespaceName}":`, error);
     throw error;

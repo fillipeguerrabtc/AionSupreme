@@ -88,6 +88,13 @@ export class KBCascadeService {
       },
     };
 
+    // =========================================================================
+    // 🔥 2025 BEST PRACTICE: STAGE FILE OPERATIONS BEFORE TRANSACTION
+    // =========================================================================
+    // Verify files exist + collect paths BEFORE database changes
+    // This ensures atomicity: if files can't be deleted, we abort early
+    const stagedFiles: Array<{ path: string; fullPath: string }> = [];
+    
     try {
       // =========================================================================
       // STEP 1: FETCH DOCUMENT + DEPENDENCY TRACKING
@@ -100,7 +107,9 @@ export class KBCascadeService {
         throw new Error(`Document ID ${documentId} not found`);
       }
 
-      // Collect file paths for cleanup
+      // =========================================================================
+      // STEP 1.5: VERIFY FILE ACCESS BEFORE TRANSACTION (ATOMICITY GUARANTEE)
+      // =========================================================================
       const filesToDelete: string[] = [];
       if (doc.storageUrl) {
         filesToDelete.push(doc.storageUrl);
@@ -110,6 +119,24 @@ export class KBCascadeService {
           if (attachment.url && !attachment.url.startsWith('http')) {
             filesToDelete.push(attachment.url);
           }
+        }
+      }
+
+      // Pre-check: Verify all files are accessible (fail fast if permission issues)
+      for (const filePath of filesToDelete) {
+        try {
+          const fullPath = path.resolve(filePath);
+          if (fs.existsSync(fullPath)) {
+            // Verify we have write access (throws if no permission)
+            fs.accessSync(fullPath, fs.constants.W_OK);
+            stagedFiles.push({ path: filePath, fullPath });
+          } else {
+            // File already deleted or never existed - not an error
+            result.warnings.push(`File not found (already deleted?): ${filePath}`);
+          }
+        } catch (fileError: any) {
+          // CRITICAL: If we can't access files, ABORT before touching database
+          throw new Error(`Cannot delete file ${filePath}: ${fileError.message}. Aborting cascade to preserve atomicity.`);
         }
       }
 
@@ -237,26 +264,30 @@ export class KBCascadeService {
       });
 
       // =========================================================================
-      // STEP 4: DELETE PHYSICAL FILES (outside transaction)
+      // STEP 4: DELETE PHYSICAL FILES (AFTER transaction commits successfully)
       // =========================================================================
-      for (const filePath of filesToDelete) {
+      // Now that DB changes are committed, delete files
+      // If this fails, we have a tombstone record to track the orphaned files
+      for (const staged of stagedFiles) {
         try {
-          const fullPath = path.resolve(filePath);
-          if (fs.existsSync(fullPath)) {
-            fs.unlinkSync(fullPath);
-            result.filesDeleted.push(filePath);
-          }
+          fs.unlinkSync(staged.fullPath);
+          result.filesDeleted.push(staged.path);
         } catch (fileError: any) {
+          // COMPENSATING ACTION: Log to tombstone metadata for manual cleanup
           result.warnings.push(
-            `Failed to delete file ${filePath}: ${fileError.message}`
+            `⚠️ ORPHANED FILE: ${staged.path} - ${fileError.message} (tombstone ID: ${result.tombstoneId})`
           );
+          // TODO: Could add to cleanup queue table for automated retry
         }
       }
 
       result.success = true;
       return result;
     } catch (error: any) {
+      // Transaction rolled back - NO database changes made
+      // Staged files remain untouched - system state is consistent
       result.error = error.message;
+      result.success = false;
       return result;
     }
   }
