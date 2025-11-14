@@ -262,17 +262,6 @@ export default function GPUManagementTab() {
     return <span className="text-sm font-mono">{timeLeft}</span>;
   };
 
-  // Helper for QuotaAlertBanner (legacy component still using t function)
-  const tFuncForAlerts = (key: string): string => {
-    const keys = key.split('.');
-    let result: any = t;
-    for (const k of keys) {
-      result = result?.[k];
-      if (result === undefined) return key;
-    }
-    return typeof result === 'string' ? result : key;
-  };
-
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* ALERT BANNER - Shows when quota > 70% */}
@@ -283,7 +272,7 @@ export default function GPUManagementTab() {
           percentage={quotaQuery.data.kaggleAlert.percentage}
           message={quotaQuery.data.kaggleAlert.message}
           onSync={sync}
-          t={tFuncForAlerts}
+          translations={t.admin.gpuManagement.quotaAlerts}
           data-testid="alert-quota-kaggle"
         />
       )}
@@ -294,7 +283,7 @@ export default function GPUManagementTab() {
           percentage={quotaQuery.data.colabAlert.percentage}
           message={quotaQuery.data.colabAlert.message}
           onSync={sync}
-          t={tFuncForAlerts}
+          translations={t.admin.gpuManagement.quotaAlerts}
           data-testid="alert-quota-colab"
         />
       )}

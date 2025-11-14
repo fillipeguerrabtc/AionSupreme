@@ -2,7 +2,7 @@ import { createContext, useContext, useState, ReactNode } from "react";
 
 export type Language = "pt-BR" | "en-US" | "es-ES";
 
-interface Translations {
+export interface Translations {
   // Common UI strings
   common: {
     error: string;
