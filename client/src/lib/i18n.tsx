@@ -684,6 +684,15 @@ interface Translations {
           critical: string;
           emergency: string;
         };
+        // Provider names for legend
+        providers: {
+          kaggle: string;
+          colab: string;
+        };
+        // Accessibility labels
+        aria: {
+          timeRangeSelector: string;
+        };
       };
       
       // NEW: Timeline Section
@@ -699,6 +708,17 @@ interface Translations {
         cannotStart: string;
         shouldStop: string;
         okToContinue: string;
+        // Status labels for session states
+        status: {
+          idle: string;
+          active: string;
+          cooldown: string;
+          available: string;
+        };
+        // Misc labels
+        labels: {
+          placeholder: string; // "-" placeholder for empty fields
+        };
       };
       
       // NEW: Time Templates
@@ -2787,6 +2807,13 @@ const translations: Record<Language, Translations> = {
             critical: "Crítico (85%)",
             emergency: "Emergência (95%)",
           },
+          providers: {
+            kaggle: "Kaggle",
+            colab: "Colab",
+          },
+          aria: {
+            timeRangeSelector: "Seletor de período de tempo",
+          },
         },
         
         // NEW: Timeline Section
@@ -2802,6 +2829,15 @@ const translations: Record<Language, Translations> = {
           cannotStart: "Não pode iniciar",
           shouldStop: "Deve parar",
           okToContinue: "OK para continuar",
+          status: {
+            idle: "Ocioso",
+            active: "Ativo",
+            cooldown: "Em Espera",
+            available: "Disponível",
+          },
+          labels: {
+            placeholder: "-",
+          },
         },
         
         // NEW: Time Templates
@@ -4910,6 +4946,13 @@ const translations: Record<Language, Translations> = {
             critical: "Critical (85%)",
             emergency: "Emergency (95%)",
           },
+          providers: {
+            kaggle: "Kaggle",
+            colab: "Colab",
+          },
+          aria: {
+            timeRangeSelector: "Time range selector",
+          },
         },
         
         // NEW: Timeline Section
@@ -4925,6 +4968,15 @@ const translations: Record<Language, Translations> = {
           cannotStart: "Cannot start",
           shouldStop: "Should stop",
           okToContinue: "OK to continue",
+          status: {
+            idle: "Idle",
+            active: "Active",
+            cooldown: "Cooldown",
+            available: "Available",
+          },
+          labels: {
+            placeholder: "-",
+          },
         },
         
         // NEW: Time Templates
@@ -7033,6 +7085,13 @@ const translations: Record<Language, Translations> = {
             critical: "Crítico (85%)",
             emergency: "Emergencia (95%)",
           },
+          providers: {
+            kaggle: "Kaggle",
+            colab: "Colab",
+          },
+          aria: {
+            timeRangeSelector: "Selector de rango de tiempo",
+          },
         },
         
         // NEW: Timeline Section
@@ -7048,6 +7107,15 @@ const translations: Record<Language, Translations> = {
           cannotStart: "No puede iniciar",
           shouldStop: "Debe detener",
           okToContinue: "OK para continuar",
+          status: {
+            idle: "Inactivo",
+            active: "Activo",
+            cooldown: "En Espera",
+            available: "Disponible",
+          },
+          labels: {
+            placeholder: "-",
+          },
         },
         
         // NEW: Time Templates
