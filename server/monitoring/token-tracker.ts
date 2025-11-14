@@ -411,9 +411,9 @@ export async function getProviderQuotas(): Promise<ProviderQuota[]> {
   for (const limit of limits) {
     const normalizedProvider = slugMap[limit.provider] || limit.provider;
     
-    // ✅ TODOS os providers usam TOKENS (não requests)
-    const dailyLimit = limit.dailyTokenLimit || 0;
-    const used = limit.tokenCount || 0;
+    // ✅ FIX P0-9: Use dailyRequestLimit (not tokens!) - Free APIs limit by REQUESTS
+    const dailyLimit = limit.dailyRequestLimit || 0;
+    const used = limit.requestCount || 0;
     const remaining = Math.max(0, dailyLimit - used);
     const percentage = dailyLimit > 0 ? (used / dailyLimit) * 100 : 0;
     

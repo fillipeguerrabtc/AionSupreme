@@ -21,6 +21,15 @@ Estilo de comunicação preferido: Linguagem simples e cotidiana.
 5. Fluxo obrigatório: Responder → Completar tarefas atuais → Iniciar novas tarefas
 6. **NUNCA comece tarefas novas antes de terminar as antigas**
 
+**🔍 REGRA CRÍTICA - VERIFICAR CÓDIGO EXISTENTE:**
+**SEMPRE ANTES DE INICIAR UMA IMPLEMENTAÇÃO:**
+1. Use `grep` ou `search_codebase` para verificar o que já existe
+2. Leia arquivos relevantes ANTES de modificar
+3. NUNCA assuma que algo não existe sem verificar
+4. NUNCA reimplemente funcionalidades que já existem
+5. NUNCA duplique código ou lógica existente
+6. Sempre pergunte "isso já existe?" antes de criar algo novo
+
 **🚨 REGRAS CRÍTICAS DE GPU - RISCO DE BAN!**
 
 **KAGGLE - On-Demand + Idle Timeout:**
