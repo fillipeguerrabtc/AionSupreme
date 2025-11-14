@@ -74,36 +74,48 @@ export const GPU_QUOTA_CONSTANTS = {
 
 ## Recent Changes
 
+### 2025-11-14: PHASE1-5 - Full i18n Coverage for GoogleAuthDialog
+**Status:** ✅ COMPLETED (Architect Approved)
+
+**Implemented:**
+- ✅ **GoogleAuthDialog.tsx** (482 lines): 100% i18n refactor with 66 translation keys
+  - Dialog header, tabs (Instructions/Kaggle/Colab)
+  - Prerequisites, security info, warning alerts
+  - Form labels, placeholders, buttons
+  - Toast success/error messages with template interpolation
+  - Rich HTML content via dangerouslySetInnerHTML
+  - ZERO hardcoded Portuguese strings
+  
+- ✅ **i18n Infrastructure** (client/src/lib/i18n.tsx):
+  - Added 198 lines across PT-BR/EN-US/ES-ES dictionaries
+  - TypeScript interface updated with consistent key structure
+  - Path: `t.admin.gpuManagement.googleAuthDialog.{instructions|kaggle|colab}.*`
+  - Template interpolation for dynamic provider/email values
+  - HTML formatting for warnings with `<strong>` tags
+
+**Quality Metrics:**
+- TypeScript LSP: ZERO diagnostics errors
+- Code Coverage: 100% translation keys used (66 total)
+- Hardcoded Strings: ZERO detected in final validation
+- Architect Review: PASSED (production-ready)
+- Security: ZERO issues (sensitive data properly handled)
+
+**Files Modified:**
+- `client/src/lib/i18n.tsx` (+198 lines)
+- `client/src/components/gpu/GoogleAuthDialog.tsx` (66 i18n keys, formatTemplate for toasts)
+
 ### 2025-11-13: PHASE1-4 - Full i18n Coverage for GPU Overview Cards
 **Status:** ✅ COMPLETED (Architect Approved)
 
 **Implemented:**
 - ✅ **QuotaOverviewCard.tsx** (368 lines): 100% i18n refactor with 33 translation keys
-  - Empty states, error states, Kaggle/Colab quota displays, actions
-  - Template interpolation using `formatTemplate()` helper
-  - ZERO hardcoded Portuguese strings
-  
 - ✅ **GPUWorkersCard.tsx** (267 lines): 100% i18n refactor with 20 translation keys
-  - Loading/empty states, health levels, status labels, metrics
-  - Proper singular/plural handling with dedicated keys
-  - ZERO hardcoded Portuguese strings
-  
-- ✅ **i18n Infrastructure** (client/src/lib/i18n.tsx):
-  - Added 246 lines across PT-BR/EN-US/ES-ES dictionaries
-  - TypeScript interface updated with consistent key structure
-  - Production-grade `formatTemplate()` helper with global regex
-  - Path: `t.admin.gpuManagement.overviewCards.{quotaCard|workersCard}.*`
-
-**Quality Metrics:**
-- TypeScript LSP: ZERO diagnostics errors
-- Code Coverage: 100% translation keys used (53 total)
-- Hardcoded Strings: ZERO detected in final validation
-- Architect Review: PASSED (production-ready)
+- ✅ **i18n Infrastructure**: 246 lines across PT-BR/EN-US/ES-ES dictionaries
 
 **Files Modified:**
 - `client/src/lib/i18n.tsx` (+246 lines)
-- `client/src/components/gpu/QuotaOverviewCard.tsx` (33 i18n keys, 3 formatTemplate calls)
-- `client/src/components/gpu/GPUWorkersCard.tsx` (20 i18n keys, 4 formatTemplate calls)
+- `client/src/components/gpu/QuotaOverviewCard.tsx` (33 i18n keys)
+- `client/src/components/gpu/GPUWorkersCard.tsx` (20 i18n keys)
 
 ## System Architecture
 
