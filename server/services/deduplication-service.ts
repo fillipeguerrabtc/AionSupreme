@@ -102,9 +102,18 @@ export class DeduplicationService {
     }
 
     try {
+      // CRITICAL FIX: Truncate text to prevent "maximum context length" error
+      const MAX_EMBEDDING_TOKENS = 1000;
+      const MAX_EMBEDDING_CHARS = MAX_EMBEDDING_TOKENS * 4;
+      const truncatedText = text.length > MAX_EMBEDDING_CHARS ? text.substring(0, MAX_EMBEDDING_CHARS) : text;
+      
+      if (text.length > MAX_EMBEDDING_CHARS) {
+        console.warn(`[Dedup] Text truncated from ${text.length} to ${MAX_EMBEDDING_CHARS} chars for embedding`);
+      }
+      
       // Generate embedding for text
       const [result] = await embedder.generateEmbeddings([
-        { text, index: 0, tokens: Math.ceil(text.length / 4) }
+        { text: truncatedText, index: 0, tokens: Math.ceil(truncatedText.length / 4) }
       ]);
 
       // ⚡ PERFORMANCE FIX: Limitar a 100 embeddings de cada fonte

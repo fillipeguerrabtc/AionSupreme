@@ -79,9 +79,18 @@ export function registerKbImagesRoutes(app: Router) {
 
       console.log(`[KB Images Search] Searching for: "${query}"`);
 
+      // CRITICAL FIX: Truncate query to prevent "maximum context length" error
+      const MAX_QUERY_TOKENS = 1000;
+      const MAX_QUERY_CHARS = MAX_QUERY_TOKENS * 4;
+      const truncatedQuery = query.length > MAX_QUERY_CHARS ? query.substring(0, MAX_QUERY_CHARS) : query;
+      
+      if (query.length > MAX_QUERY_CHARS) {
+        console.warn(`[KB Images] Query truncated from ${query.length} to ${MAX_QUERY_CHARS} chars`);
+      }
+
       // Gerar embedding da query (must be TextChunk format)
       const [queryEmbedding] = await embedder.generateEmbeddings([
-        { text: query, index: 0, tokens: Math.ceil(query.length / 4) }
+        { text: truncatedQuery, index: 0, tokens: Math.ceil(truncatedQuery.length / 4) }
       ]);
 
       // Buscar documentos que sejam imagens com embeddings

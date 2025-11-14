@@ -366,9 +366,20 @@ export class RAGService {
   ): Promise<SearchResult[]> {
     const k = options.k || 10;
     
+    // CRITICAL FIX: Truncate query to prevent "maximum context length" error
+    // OpenAI embeddings API has 8192 token limit, we use conservative 1000 token limit
+    const MAX_QUERY_TOKENS = 1000;
+    const MAX_QUERY_CHARS = MAX_QUERY_TOKENS * 4; // Approx 4 chars per token
+    
+    let truncatedQuery = query;
+    if (query.length > MAX_QUERY_CHARS) {
+      truncatedQuery = query.substring(0, MAX_QUERY_CHARS);
+      console.warn(`[RAG] Query truncated from ${query.length} to ${MAX_QUERY_CHARS} chars (original: ${Math.ceil(query.length / 4)} tokens, limit: ${MAX_QUERY_TOKENS} tokens)`);
+    }
+    
     // Generate query embedding
     const [queryEmbedding] = await embedder.generateEmbeddings(
-      [{ text: query, index: 0, tokens: Math.ceil(query.length / 4) }]
+      [{ text: truncatedQuery, index: 0, tokens: Math.ceil(truncatedQuery.length / 4) }]
     );
     
     // Search vector store with namespace filtering

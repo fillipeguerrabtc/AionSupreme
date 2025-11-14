@@ -40,11 +40,20 @@ async function findKBImage(searchQuery: string): Promise<{ url: string; descript
   try {
     console.log(`[TransformImage] 🔍 Searching KB for: "${searchQuery}"`);
     
+    // CRITICAL FIX: Truncate query to prevent "maximum context length" error
+    const MAX_QUERY_TOKENS = 1000;
+    const MAX_QUERY_CHARS = MAX_QUERY_TOKENS * 4;
+    const truncatedQuery = searchQuery.length > MAX_QUERY_CHARS ? searchQuery.substring(0, MAX_QUERY_CHARS) : searchQuery;
+    
+    if (searchQuery.length > MAX_QUERY_CHARS) {
+      console.warn(`[TransformImage] Query truncated from ${searchQuery.length} to ${MAX_QUERY_CHARS} chars`);
+    }
+    
     // Generate embedding for search query
     const [queryEmbedding] = await embedder.generateEmbeddings([{
-      text: searchQuery,
+      text: truncatedQuery,
       index: 0,
-      tokens: Math.ceil(searchQuery.length / 4)
+      tokens: Math.ceil(truncatedQuery.length / 4)
     }]);
     
     // Query image documents from KB

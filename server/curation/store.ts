@@ -665,7 +665,13 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
   Duplicado de: "${originalDoc.title}" (ID: ${originalDoc.id})`);
           } else {
             // Se não vale absorver (<10% novo), rejeita automaticamente
-            throw new Error(`Conteúdo duplicado detectado (${analysis.stats.newContentPercent}% novo, mínimo 10%). ${analysis.reason}`);
+            const { DuplicateContentError } = await import("../errors/DuplicateContentError");
+            throw new DuplicateContentError({
+              duplicateOfId: originalDoc.id,
+              similarity: 1.0, // Default to 100% similarity (we know it's a duplicate)
+              newContentPercent: analysis.stats.newContentPercent,
+              reason: `${analysis.stats.newContentPercent}% new content (minimum 10% required). ${analysis.reason}`
+            });
           }
         }
       } else {

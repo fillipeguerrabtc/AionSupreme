@@ -603,14 +603,33 @@ export class SchedulerService {
                 await curationStore.approveAndPublish(item.id, 'AUTO-CURATOR', approvalNote);
                 approved++;
               } catch (approveError: any) {
+                // Import custom error type
+                const { DuplicateContentError } = await import("../errors/DuplicateContentError");
+                
                 // FIX #2: Handle duplicate constraint gracefully (race condition protection)
                 const isDuplicateError = approveError.message?.includes('duplicate key') || 
                                         approveError.message?.includes('content_hash_unique') ||
                                         approveError.code === '23505';
                 
+                // CRITICAL FIX: Auto-reject detected duplicates (type-safe check)
+                const isContentDuplicateError = approveError instanceof DuplicateContentError;
+                
                 if (isDuplicateError) {
                   // NO-OP: Don't increment any counter (already in KB, not a review item)
                   logger.info(`ℹ️  Item ${item.id} duplicate detected during approval - skipping (already in KB, no action needed)`);
+                } else if (isContentDuplicateError) {
+                  // CRITICAL: Automatically REJECT 100% duplicates
+                  const dupError = approveError as InstanceType<typeof DuplicateContentError>;
+                  logger.warn(`🚫 Item ${item.id} is ${Math.round(dupError.similarity * 100)}% duplicate (${dupError.newContentPercent}% new) - auto-rejecting`);
+                  
+                  try {
+                    await curationStore.reject(item.id, 'AUTO-CURATOR', `Duplicate content: ${dupError.reason}`);
+                    rejected++;
+                  } catch (rejectError: any) {
+                    // If rejection fails, leave for manual review
+                    logger.error(`❌ Failed to auto-reject duplicate item ${item.id}: ${rejectError.message}`);
+                    reviewed++;
+                  }
                 } else {
                   // Real error - requires manual review
                   logger.error(`❌ Failed to auto-approve item ${item.id}: ${approveError.message}`);
