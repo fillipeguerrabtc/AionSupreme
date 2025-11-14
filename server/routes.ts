@@ -44,7 +44,7 @@ import { DatasetProcessor } from "./training/datasets/dataset-processor";
 import { DatasetValidator } from "./training/datasets/dataset-validator";
 import { db } from "./db";
 import { eq, and, gte, sql } from "drizzle-orm";
-import { trainingDataCollection, datasets, trainingJobs, uploadedAdapters, behaviorConfigSchema, agents } from "../shared/schema";
+import { trainingDataCollection, datasets, trainingJobs, uploadedAdapters, behaviorConfigSchema, agents, curationQueue as curationQueueTable } from "../shared/schema"; // 🔥 P1.1.2g: Added curationQueue for rejection metadata
 import { lifecyclePolicyUpdateSchema } from "./validation/lifecycle-policy-schema";
 import { idParamSchema, jobIdParamSchema, jobIdChunkIndexSchema, docIdAttachmentIndexSchema, jobIdWorkerIdStepSchema, jobIdStepSchema, validateParams, validateQuery, validateBody } from "./validation/route-params"; // ✅ FIX P0-2
 import { z } from "zod"; // ✅ FIX P0-2: Import z for inline schemas
@@ -1563,15 +1563,45 @@ export function registerRoutes(app: Express): Server {
       
       // Importar curation store
       const { curationStore } = await import("./curation/store");
+      const { DuplicateContentError } = await import("./errors/DuplicateContentError");
       
-      // Adicionar à fila de curadoria ao invés de publicar direto na KB
-      const item = await curationStore.addToCuration({
-        title: req.file.originalname,
-        content: processed.extractedText,
-        suggestedNamespaces: ["kb/ingest"],
-        tags: ["ingest", "file", mimeType],
-        submittedBy: "api",
-      });
+      // 🔥 P1.1.2g: Try-catch para capturar DuplicateContentError e persistir rejection metadata
+      let item: any;
+      try {
+        // Adicionar à fila de curadoria ao invés de publicar direto na KB
+        item = await curationStore.addToCuration({
+          title: req.file.originalname,
+          content: processed.extractedText,
+          suggestedNamespaces: ["kb/ingest"],
+          tags: ["ingest", "file", mimeType],
+          submittedBy: "api",
+        });
+      } catch (error: any) {
+        // 🔥 P1.1.2d: Persistir rejection data quando duplicata detectada
+        if (error instanceof DuplicateContentError) {
+          const rejectionData = (error as any).rejectionData;
+          
+          // Criar item rejeitado na fila de curadoria com metadata
+          const [rejectedItem] = await db.insert(curationQueueTable).values({
+            title: req.file.originalname,
+            content: processed.extractedText,
+            suggestedNamespaces: ["kb/ingest"],
+            tags: ["ingest", "file", mimeType],
+            status: "rejected",
+            submittedBy: "api",
+            duplicateOfId: error.duplicateOfId?.toString(),
+            decisionReasonCode: rejectionData?.decisionReasonCode || 'duplicate',
+            decisionReasonDetail: rejectionData?.decisionReasonDetail || error.message,
+            reviewedBy: "SYSTEM_AUTO_DEDUP",
+            reviewedAt: new Date(),
+          }).returning();
+          
+          item = rejectedItem;
+          console.log(`[Routes] ✅ P1.1.2g: Rejection metadata persisted for duplicate (curation ID: ${item.id})`);
+        } else {
+          throw error; // Re-throw se não for DuplicateContentError
+        }
+      }
       
       // Limpar arquivo temporário
       await fs.unlink(req.file.path).catch(() => {});

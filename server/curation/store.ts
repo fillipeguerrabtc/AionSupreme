@@ -154,13 +154,24 @@ export const curationStore = {
           // BUG #13 FIX: INFO não ERROR (duplicate detection é comportamento esperado!)
           console.log(`[Curation] ℹ️  Duplicate detected in ${location}: "${duplicateCheck.documentTitle}" - skipping to avoid duplication`);
           
-          // Throw custom error with rich metadata for API consumers (type-safe class)
-          throw new DuplicateContentError({
+          // 🔥 P1.1.2d: ARCHITECT-APPROVED - Populate rejection reason fields for audit trail
+          const rejectionData = {
+            decisionReasonCode: 'duplicate' as const,
+            decisionReasonDetail: `${duplicateCheck.method} duplicate (${(duplicateCheck.similarity! * 100).toFixed(1)}% similarity) of "${duplicateCheck.documentTitle}" (ID: ${duplicateCheck.documentId || 'pending'})`,
+          };
+          
+          // Throw custom error with rich metadata + rejection data
+          const error = new DuplicateContentError({
             duplicateOfId: duplicateCheck.documentId!,
-            similarity: duplicateCheck.similarity ?? 1.0, // Se não tem similarity, assume 1.0 (duplicado exato)
-            newContentPercent: 0, // Duplicado = 0% conteúdo novo
+            similarity: duplicateCheck.similarity ?? 1.0,
+            newContentPercent: 0,
             reason: errorMsg
           });
+          (error as any).rejectionData = rejectionData; // Attach for caller to persist
+          throw error;
+        } else if (duplicateCheck.frequencyData?.reuseApproved) {
+          // 🔥 P1.1.2a: Frequency gate bypass - log for telemetry
+          console.log(`[Curation] 🎯 FREQUENCY GATE: High-demand content approved despite ${(duplicateCheck.similarity! * 100).toFixed(1)}% similarity (${duplicateCheck.frequencyData.effectiveCount} hits)`);
         } else {
           // Not duplicate - capture embedding for persistence
           generatedEmbedding = duplicateCheck.embedding;
@@ -836,7 +847,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
         reviewedBy,
         reviewedAt: now,
         statusChangedAt: now, // Track when status changed for 5-year retention
-        publishedId: newDoc.id.toString(),
+        publishedId: newDoc.id, // 🔥 FIX: publishedId is INTEGER in schema, not VARCHAR
         note: approvalNote || null, // Optional audit note (e.g., REUSE-GATE reason)
         updatedAt: now,
       })
@@ -845,7 +856,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
 
     console.log(`[Curation] ✅ Approved and published item ${id} to KB as document ${newDoc.id}`);
 
-    return { item: updatedItem, publishedId: newDoc.id.toString() };
+    return { item: updatedItem, publishedId: newDoc.id }; // 🔥 FIX: Return number, not string
   },
 
   /**
@@ -871,7 +882,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
     
     if (item.publishedId) {
       console.log(`[Curation] ℹ️ Item ${id} already published as ${item.publishedId} - skipping`);
-      return item.publishedId;
+      return String(item.publishedId); // 🔥 FIX: publishedId is INTEGER in DB, convert to string for return
     }
 
     // 🔥 VERIFICAÇÃO UNIVERSAL DE DUPLICAÇÃO (same as approveAndPublish)
@@ -931,7 +942,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
             await db
               .update(curationQueueTable)
               .set({
-                publishedId: originalDoc.id.toString(),
+                publishedId: originalDoc.id, // 🔥 FIX: publishedId is INTEGER in schema
                 note: item.note 
                   ? `${item.note}\n\n---\n⚠️ Duplicate content - linked to existing document ${originalDoc.id} (${analysis.stats.newContentPercent}% new content < 10% threshold).`
                   : `⚠️ Duplicate content - linked to existing document ${originalDoc.id} (${analysis.stats.newContentPercent}% new content < 10% threshold).`,
@@ -940,7 +951,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
               .where(eq(curationQueueTable.id, id));
             
             // Retornar ID do documento existente (NÃO criar novo)
-            return originalDoc.id.toString();
+            return String(originalDoc.id); // 🔥 FIX: Convert to string for API consistency
           }
         }
       } else {
@@ -1035,7 +1046,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
           
           // Find the publishedId used when this document was first indexed
           // publishedId should be the stable identifier used by knowledgeIndexer
-          const existingPublishedId = existingDoc.id.toString(); // Use doc.id as canonical publishedId
+          const existingPublishedId = existingDoc.id; // 🔥 FIX: publishedId is INTEGER in schema
           
           // Update publishedId to point to existing document
           await db.update(curationQueueTable).set({
@@ -1043,7 +1054,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
             updatedAt: new Date(),
           }).where(eq(curationQueueTable.id, id));
           
-          return existingPublishedId;
+          return String(existingPublishedId); // 🔥 FIX: Convert to string for API consistency
         } else{
           console.warn(`[Curation] ⚠️ duplicateDocId ${numericId} not found in documents table, creating new document`);
           // Fall through to normal document creation
@@ -1146,14 +1157,14 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
     await db
       .update(curationQueueTable)
       .set({
-        publishedId: newDoc.id.toString(),
+        publishedId: newDoc.id, // 🔥 FIX: publishedId is INTEGER in schema
         updatedAt: new Date(),
       })
       .where(eq(curationQueueTable.id, id));
 
     console.log(`[Curation] ✅ Published approved item ${id} to KB as document ${newDoc.id}`);
 
-    return newDoc.id.toString();
+    return String(newDoc.id); // 🔥 FIX: Convert to string for API consistency
   },
 
   /**
