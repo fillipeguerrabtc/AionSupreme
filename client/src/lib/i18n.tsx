@@ -657,6 +657,8 @@ export interface Translations {
         authenticated: string;
         notAuthenticated: string;
         expiringSoon: string;
+        // ✅ ENTERPRISE FIX: Missing key for QuotaProviderCard
+        loginRequired: string;
       };
       
       // NEW: Quotas Section
@@ -666,6 +668,26 @@ export interface Translations {
         syncing: string;
         emptyMessage: string;
         emptyAction: string;
+        // ✅ ENTERPRISE FIX: Missing keys for QuotaProviderCard
+        noData: string;
+        scrapedAt: string;
+        staleData: string;
+        yes: string;
+        no: string;
+        kaggle: {
+          sessionRemaining: string;
+          sessionMax: string;
+          weeklyUsed: string;
+          weeklyRemaining: string;
+          canStart: string;
+          shouldStop: string;
+        };
+        colab: {
+          computeUnitsUsed: string;
+          computeUnitsRemaining: string;
+          sessionRemaining: string;
+          inCooldown: string;
+        };
       };
       
       // NEW: Usage History Section
