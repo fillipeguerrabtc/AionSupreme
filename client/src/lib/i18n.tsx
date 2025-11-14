@@ -790,6 +790,132 @@ interface Translations {
         error: string;
         errorRemovingWorker: string;
       };
+      
+      // Google Auth Dialog (66 i18n keys - PT/EN/ES complete)
+      googleAuthDialog: {
+        dialog: {
+          trigger: string;
+          title: string;
+          description: string;
+        };
+        tabs: {
+          instructions: string;
+          kaggle: string;
+          colab: string;
+        };
+        instructions: {
+          howItWorks: {
+            title: string;
+            description: string;
+          };
+          prerequisites: {
+            title: string;
+            chrome: string;
+            account: string;
+            devtools: string;
+          };
+          security: {
+            title: string;
+            encryption: string;
+            noPlaintext: string;
+            autoValidation: string;
+            expiration: string;
+          };
+          warning: {
+            title: string;
+            kaggle: string;
+            colab: string;
+            auto: string;
+          };
+          buttons: {
+            kaggle: string;
+            colab: string;
+          };
+        };
+        kaggle: {
+          title: string;
+          step1: string;
+          step2: string;
+          step3: string;
+          step4: string;
+          cookieCommand: {
+            label: string;
+          };
+          email: {
+            label: string;
+            placeholder: string;
+          };
+          cookies: {
+            label: string;
+            placeholder: string;
+            hint: string;
+          };
+          buttons: {
+            back: string;
+            save: string;
+            saving: string;
+          };
+        };
+        colab: {
+          title: string;
+          step1: string;
+          step2: string;
+          step3: string;
+          step4: string;
+          cookieCommand: {
+            label: string;
+          };
+          email: {
+            label: string;
+            placeholder: string;
+          };
+          cookies: {
+            label: string;
+            placeholder: string;
+            hint: string;
+          };
+          buttons: {
+            back: string;
+            save: string;
+            saving: string;
+          };
+        };
+        toasts: {
+          saveSuccess: {
+            title: string;
+            descriptionTemplate: string;
+          };
+          saveError: {
+            title: string;
+          };
+          copied: {
+            title: string;
+            description: string;
+          };
+        };
+        errors: {
+          emailRequired: {
+            title: string;
+            description: string;
+          };
+          cookiesRequired: {
+            title: string;
+            description: string;
+          };
+          cookiesInvalid: {
+            title: string;
+            description: string;
+          };
+          processingError: {
+            title: string;
+            fallback: string;
+          };
+        };
+        providers: {
+          kaggle: string;
+          colab: string;
+        };
+      };
     };
     
     // Add GPU Worker Dialog
@@ -2464,6 +2590,132 @@ const translations: Record<Language, Translations> = {
           minuteUnit: "m",
           secondUnit: "s",
         },
+        
+        // Google Auth Dialog - PT-BR (66 keys)
+        googleAuthDialog: {
+          dialog: {
+            trigger: "Conectar Conta Google",
+            title: "Autenticação Google - Kaggle & Colab",
+            description: "Configure acesso seguro às plataformas de GPU com criptografia AES-256-GCM",
+          },
+          tabs: {
+            instructions: "1. Instruções",
+            kaggle: "2. Kaggle",
+            colab: "3. Colab",
+          },
+          instructions: {
+            howItWorks: {
+              title: "Como funciona",
+              description: "Você fará login manualmente UMA VEZ no Google. Depois, copiaremos os cookies de autenticação e os salvaremos de forma criptografada. O sistema fará scraping automático das quotas a cada 10 minutos, sem precisar de login novamente por ~30 dias.",
+            },
+            prerequisites: {
+              title: "Pré-requisitos",
+              chrome: "Navegador Google Chrome (recomendado para compatibilidade)",
+              account: "Conta Google com acesso ao Kaggle e/ou Google Colab",
+              devtools: "DevTools aberto (F12) para copiar cookies",
+            },
+            security: {
+              title: "Segurança",
+              encryption: "Cookies criptografados com AES-256-GCM usando SESSION_SECRET",
+              noPlaintext: "Nenhum cookie armazenado em texto plano",
+              autoValidation: "Validação automática a cada sync (10min)",
+              expiration: "Expiração após 30 dias (com avisos antecipados)",
+            },
+            warning: {
+              title: "⚠️ IMPORTANTE - Risco de BAN",
+              kaggle: "<strong>Kaggle:</strong> Max 8.4h/sessão, 21h/semana. Violação = BAN PERMANENTE.",
+              colab: "<strong>Colab:</strong> Max 8.4h/sessão, 36h cooldown. Violação = BAN PERMANENTE.",
+              auto: "O sistema respeita automaticamente esses limites via quota scraping.",
+            },
+            buttons: {
+              kaggle: "Conectar Kaggle",
+              colab: "Conectar Colab",
+            },
+          },
+          kaggle: {
+            title: "Passo a passo - Kaggle",
+            step1: "Abra www.kaggle.com em nova aba",
+            step2: "Faça login com sua conta Google",
+            step3: "Abra DevTools (F12) → Console → Cole o comando abaixo",
+            step4: "Copie o resultado e cole no campo \"Cookies\" abaixo",
+            cookieCommand: {
+              label: "Comando para copiar cookies (Cole no Console do DevTools):",
+            },
+            email: {
+              label: "Email da conta Google",
+              placeholder: "seu-email@gmail.com",
+            },
+            cookies: {
+              label: "Cookies (Cole o resultado do Console)",
+              placeholder: "KAGGLE_KEY=value; KAGGLE_USER_ID=123; ...",
+              hint: "Formato esperado: name1=value1; name2=value2; ...",
+            },
+            buttons: {
+              back: "Voltar",
+              save: "Salvar Kaggle",
+              saving: "Salvando...",
+            },
+          },
+          colab: {
+            title: "Passo a passo - Google Colab",
+            step1: "Abra colab.research.google.com em nova aba",
+            step2: "Faça login com sua conta Google",
+            step3: "Abra DevTools (F12) → Console → Cole o comando abaixo",
+            step4: "Copie o resultado e cole no campo \"Cookies\" abaixo",
+            cookieCommand: {
+              label: "Comando para copiar cookies (Cole no Console do DevTools):",
+            },
+            email: {
+              label: "Email da conta Google",
+              placeholder: "seu-email@gmail.com",
+            },
+            cookies: {
+              label: "Cookies (Cole o resultado do Console)",
+              placeholder: "GOOGLE_SESSION=value; GOOGLE_USER=123; ...",
+              hint: "Formato esperado: name1=value1; name2=value2; ...",
+            },
+            buttons: {
+              back: "Voltar",
+              save: "Salvar Colab",
+              saving: "Salvando...",
+            },
+          },
+          toasts: {
+            saveSuccess: {
+              title: "✅ Autenticação salva",
+              descriptionTemplate: "Cookies do {{provider}} salvos com sucesso para {{email}}",
+            },
+            saveError: {
+              title: "❌ Erro ao salvar autenticação",
+            },
+            copied: {
+              title: "✅ Copiado!",
+              description: "Comando copiado para área de transferência",
+            },
+          },
+          errors: {
+            emailRequired: {
+              title: "Email obrigatório",
+              description: "Por favor, informe o email da sua conta Google",
+            },
+            cookiesRequired: {
+              title: "Cookies obrigatórios",
+              description: "Por favor, cole os cookies copiados do navegador",
+            },
+            cookiesInvalid: {
+              title: "Cookies inválidos",
+              description: "Não foi possível extrair cookies válidos do texto colado",
+            },
+            processingError: {
+              title: "Erro ao processar cookies",
+              fallback: "Formato inválido",
+            },
+          },
+          providers: {
+            kaggle: "Kaggle",
+            colab: "Colab",
+          },
+        },
       },
       
       addGpuWorker: {
@@ -4113,6 +4365,132 @@ const translations: Record<Language, Translations> = {
           minuteUnit: "m",
           secondUnit: "s",
         },
+        
+        // Google Auth Dialog - EN-US (66 keys)
+        googleAuthDialog: {
+          dialog: {
+            trigger: "Connect Google Account",
+            title: "Google Authentication - Kaggle & Colab",
+            description: "Configure secure access to GPU platforms with AES-256-GCM encryption",
+          },
+          tabs: {
+            instructions: "1. Instructions",
+            kaggle: "2. Kaggle",
+            colab: "3. Colab",
+          },
+          instructions: {
+            howItWorks: {
+              title: "How it works",
+              description: "You'll log in manually ONCE to Google. Then, we'll copy the authentication cookies and save them encrypted. The system will automatically scrape quotas every 10 minutes, without needing to log in again for ~30 days.",
+            },
+            prerequisites: {
+              title: "Prerequisites",
+              chrome: "Google Chrome browser (recommended for compatibility)",
+              account: "Google account with access to Kaggle and/or Google Colab",
+              devtools: "DevTools open (F12) to copy cookies",
+            },
+            security: {
+              title: "Security",
+              encryption: "Cookies encrypted with AES-256-GCM using SESSION_SECRET",
+              noPlaintext: "No cookies stored in plain text",
+              autoValidation: "Automatic validation on every sync (10min)",
+              expiration: "Expiration after 30 days (with advance warnings)",
+            },
+            warning: {
+              title: "⚠️ IMPORTANT - BAN Risk",
+              kaggle: "<strong>Kaggle:</strong> Max 8.4h/session, 21h/week. Violation = PERMANENT BAN.",
+              colab: "<strong>Colab:</strong> Max 8.4h/session, 36h cooldown. Violation = PERMANENT BAN.",
+              auto: "The system automatically respects these limits via quota scraping.",
+            },
+            buttons: {
+              kaggle: "Connect Kaggle",
+              colab: "Connect Colab",
+            },
+          },
+          kaggle: {
+            title: "Step by step - Kaggle",
+            step1: "Open www.kaggle.com in new tab",
+            step2: "Log in with your Google account",
+            step3: "Open DevTools (F12) → Console → Paste the command below",
+            step4: "Copy the result and paste in the \"Cookies\" field below",
+            cookieCommand: {
+              label: "Command to copy cookies (Paste in DevTools Console):",
+            },
+            email: {
+              label: "Google account email",
+              placeholder: "your-email@gmail.com",
+            },
+            cookies: {
+              label: "Cookies (Paste the Console result)",
+              placeholder: "KAGGLE_KEY=value; KAGGLE_USER_ID=123; ...",
+              hint: "Expected format: name1=value1; name2=value2; ...",
+            },
+            buttons: {
+              back: "Back",
+              save: "Save Kaggle",
+              saving: "Saving...",
+            },
+          },
+          colab: {
+            title: "Step by step - Google Colab",
+            step1: "Open colab.research.google.com in new tab",
+            step2: "Log in with your Google account",
+            step3: "Open DevTools (F12) → Console → Paste the command below",
+            step4: "Copy the result and paste in the \"Cookies\" field below",
+            cookieCommand: {
+              label: "Command to copy cookies (Paste in DevTools Console):",
+            },
+            email: {
+              label: "Google account email",
+              placeholder: "your-email@gmail.com",
+            },
+            cookies: {
+              label: "Cookies (Paste the Console result)",
+              placeholder: "GOOGLE_SESSION=value; GOOGLE_USER=123; ...",
+              hint: "Expected format: name1=value1; name2=value2; ...",
+            },
+            buttons: {
+              back: "Back",
+              save: "Save Colab",
+              saving: "Saving...",
+            },
+          },
+          toasts: {
+            saveSuccess: {
+              title: "✅ Authentication saved",
+              descriptionTemplate: "{{provider}} cookies successfully saved for {{email}}",
+            },
+            saveError: {
+              title: "❌ Error saving authentication",
+            },
+            copied: {
+              title: "✅ Copied!",
+              description: "Command copied to clipboard",
+            },
+          },
+          errors: {
+            emailRequired: {
+              title: "Email required",
+              description: "Please enter your Google account email",
+            },
+            cookiesRequired: {
+              title: "Cookies required",
+              description: "Please paste the cookies copied from the browser",
+            },
+            cookiesInvalid: {
+              title: "Invalid cookies",
+              description: "Could not extract valid cookies from pasted text",
+            },
+            processingError: {
+              title: "Error processing cookies",
+              fallback: "Invalid format",
+            },
+          },
+          providers: {
+            kaggle: "Kaggle",
+            colab: "Colab",
+          },
+        },
       },
       
       addGpuWorker: {
@@ -5761,6 +6139,132 @@ const translations: Record<Language, Translations> = {
           hourUnit: "h",
           minuteUnit: "m",
           secondUnit: "s",
+        },
+        
+        // Google Auth Dialog - ES-ES (66 keys)
+        googleAuthDialog: {
+          dialog: {
+            trigger: "Conectar Cuenta Google",
+            title: "Autenticación Google - Kaggle & Colab",
+            description: "Configure acceso seguro a plataformas de GPU con cifrado AES-256-GCM",
+          },
+          tabs: {
+            instructions: "1. Instrucciones",
+            kaggle: "2. Kaggle",
+            colab: "3. Colab",
+          },
+          instructions: {
+            howItWorks: {
+              title: "Cómo funciona",
+              description: "Iniciarás sesión manualmente UNA VEZ en Google. Luego, copiaremos las cookies de autenticación y las guardaremos cifradas. El sistema hará scraping automático de las cuotas cada 10 minutos, sin necesidad de iniciar sesión nuevamente por ~30 días.",
+            },
+            prerequisites: {
+              title: "Prerrequisitos",
+              chrome: "Navegador Google Chrome (recomendado para compatibilidad)",
+              account: "Cuenta Google con acceso a Kaggle y/o Google Colab",
+              devtools: "DevTools abierto (F12) para copiar cookies",
+            },
+            security: {
+              title: "Seguridad",
+              encryption: "Cookies cifradas con AES-256-GCM usando SESSION_SECRET",
+              noPlaintext: "Ninguna cookie almacenada en texto plano",
+              autoValidation: "Validación automática en cada sync (10min)",
+              expiration: "Expiración después de 30 días (con avisos anticipados)",
+            },
+            warning: {
+              title: "⚠️ IMPORTANTE - Riesgo de BAN",
+              kaggle: "<strong>Kaggle:</strong> Máx 8.4h/sesión, 21h/semana. Violación = BAN PERMANENTE.",
+              colab: "<strong>Colab:</strong> Máx 8.4h/sesión, 36h cooldown. Violación = BAN PERMANENTE.",
+              auto: "El sistema respeta automáticamente estos límites vía scraping de cuotas.",
+            },
+            buttons: {
+              kaggle: "Conectar Kaggle",
+              colab: "Conectar Colab",
+            },
+          },
+          kaggle: {
+            title: "Paso a paso - Kaggle",
+            step1: "Abre www.kaggle.com en nueva pestaña",
+            step2: "Inicia sesión con tu cuenta Google",
+            step3: "Abre DevTools (F12) → Consola → Pega el comando abajo",
+            step4: "Copia el resultado y pega en el campo \"Cookies\" abajo",
+            cookieCommand: {
+              label: "Comando para copiar cookies (Pega en Consola DevTools):",
+            },
+            email: {
+              label: "Email de cuenta Google",
+              placeholder: "tu-email@gmail.com",
+            },
+            cookies: {
+              label: "Cookies (Pega el resultado de la Consola)",
+              placeholder: "KAGGLE_KEY=value; KAGGLE_USER_ID=123; ...",
+              hint: "Formato esperado: name1=value1; name2=value2; ...",
+            },
+            buttons: {
+              back: "Volver",
+              save: "Guardar Kaggle",
+              saving: "Guardando...",
+            },
+          },
+          colab: {
+            title: "Paso a paso - Google Colab",
+            step1: "Abre colab.research.google.com en nueva pestaña",
+            step2: "Inicia sesión con tu cuenta Google",
+            step3: "Abre DevTools (F12) → Consola → Pega el comando abajo",
+            step4: "Copia el resultado y pega en el campo \"Cookies\" abajo",
+            cookieCommand: {
+              label: "Comando para copiar cookies (Pega en Consola DevTools):",
+            },
+            email: {
+              label: "Email de cuenta Google",
+              placeholder: "tu-email@gmail.com",
+            },
+            cookies: {
+              label: "Cookies (Pega el resultado de la Consola)",
+              placeholder: "GOOGLE_SESSION=value; GOOGLE_USER=123; ...",
+              hint: "Formato esperado: name1=value1; name2=value2; ...",
+            },
+            buttons: {
+              back: "Volver",
+              save: "Guardar Colab",
+              saving: "Guardando...",
+            },
+          },
+          toasts: {
+            saveSuccess: {
+              title: "✅ Autenticación guardada",
+              descriptionTemplate: "Cookies de {{provider}} guardadas exitosamente para {{email}}",
+            },
+            saveError: {
+              title: "❌ Error al guardar autenticación",
+            },
+            copied: {
+              title: "✅ Copiado!",
+              description: "Comando copiado al portapapeles",
+            },
+          },
+          errors: {
+            emailRequired: {
+              title: "Email obligatorio",
+              description: "Por favor ingresa el email de tu cuenta Google",
+            },
+            cookiesRequired: {
+              title: "Cookies obligatorias",
+              description: "Por favor pega las cookies copiadas del navegador",
+            },
+            cookiesInvalid: {
+              title: "Cookies inválidas",
+              description: "No se pudieron extraer cookies válidas del texto pegado",
+            },
+            processingError: {
+              title: "Error al procesar cookies",
+              fallback: "Formato inválido",
+            },
+          },
+          providers: {
+            kaggle: "Kaggle",
+            colab: "Colab",
+          },
         },
       },
       

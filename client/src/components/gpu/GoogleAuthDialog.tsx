@@ -25,6 +25,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage, formatTemplate } from '@/lib/i18n';
 import {
   Dialog,
   DialogContent,
@@ -63,6 +64,7 @@ interface CookieData {
 }
 
 export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<'instructions' | 'kaggle' | 'colab'>('instructions');
   const [accountEmail, setAccountEmail] = useState('');
@@ -79,9 +81,15 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
       });
     },
     onSuccess: (data: any) => {
+      const providerName = t.admin.gpuManagement.googleAuthDialog.providers[provider];
+      const description = formatTemplate(
+        t.admin.gpuManagement.googleAuthDialog.toasts.saveSuccess.descriptionTemplate,
+        { provider: providerName, email: accountEmail }
+      );
+      
       toast({
-        title: "✅ Autenticação salva",
-        description: `Cookies do ${provider === 'kaggle' ? 'Kaggle' : 'Colab'} salvos com sucesso para ${accountEmail}`,
+        title: t.admin.gpuManagement.googleAuthDialog.toasts.saveSuccess.title,
+        description,
       });
       
       // Invalidate auth status and quota queries
@@ -96,7 +104,7 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
     },
     onError: (error: Error) => {
       toast({
-        title: "❌ Erro ao salvar autenticação",
+        title: t.admin.gpuManagement.googleAuthDialog.toasts.saveError.title,
         description: error.message,
         variant: "destructive",
       });
@@ -106,8 +114,8 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
   const handleSaveCookies = () => {
     if (!accountEmail.trim()) {
       toast({
-        title: "Email obrigatório",
-        description: "Por favor, informe o email da sua conta Google",
+        title: t.admin.gpuManagement.googleAuthDialog.errors.emailRequired.title,
+        description: t.admin.gpuManagement.googleAuthDialog.errors.emailRequired.description,
         variant: "destructive",
       });
       return;
@@ -115,8 +123,8 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
 
     if (!cookiesRaw.trim()) {
       toast({
-        title: "Cookies obrigatórios",
-        description: "Por favor, cole os cookies copiados do navegador",
+        title: t.admin.gpuManagement.googleAuthDialog.errors.cookiesRequired.title,
+        description: t.admin.gpuManagement.googleAuthDialog.errors.cookiesRequired.description,
         variant: "destructive",
       });
       return;
@@ -142,8 +150,8 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
 
       if (cookies.length === 0) {
         toast({
-          title: "Cookies inválidos",
-          description: "Não foi possível extrair cookies válidos do texto colado",
+          title: t.admin.gpuManagement.googleAuthDialog.errors.cookiesInvalid.title,
+          description: t.admin.gpuManagement.googleAuthDialog.errors.cookiesInvalid.description,
           variant: "destructive",
         });
         return;
@@ -156,8 +164,8 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
       });
     } catch (error) {
       toast({
-        title: "Erro ao processar cookies",
-        description: error instanceof Error ? error.message : "Formato inválido",
+        title: t.admin.gpuManagement.googleAuthDialog.errors.processingError.title,
+        description: error instanceof Error ? error.message : t.admin.gpuManagement.googleAuthDialog.errors.processingError.fallback,
         variant: "destructive",
       });
     }
@@ -166,8 +174,8 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
   const copyToClipboard = async (text: string) => {
     await navigator.clipboard.writeText(text);
     toast({
-      title: "✅ Copiado!",
-      description: "Comando copiado para área de transferência",
+      title: t.admin.gpuManagement.googleAuthDialog.toasts.copied.title,
+      description: t.admin.gpuManagement.googleAuthDialog.toasts.copied.description,
     });
   };
 
@@ -177,7 +185,7 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
         {trigger || (
           <Button variant="default">
             <Shield className="w-4 h-4 mr-2" />
-            Conectar Conta Google
+            {t.admin.gpuManagement.googleAuthDialog.dialog.trigger}
           </Button>
         )}
       </DialogTrigger>
@@ -185,23 +193,23 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5" />
-            Autenticação Google - Kaggle & Colab
+            {t.admin.gpuManagement.googleAuthDialog.dialog.title}
           </DialogTitle>
           <DialogDescription>
-            Configure acesso seguro às plataformas de GPU com criptografia AES-256-GCM
+            {t.admin.gpuManagement.googleAuthDialog.dialog.description}
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={step} onValueChange={(v) => setStep(v as any)} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="instructions" data-testid="tab-instructions">
-              1. Instruções
+              {t.admin.gpuManagement.googleAuthDialog.tabs.instructions}
             </TabsTrigger>
             <TabsTrigger value="kaggle" data-testid="tab-kaggle">
-              2. Kaggle
+              {t.admin.gpuManagement.googleAuthDialog.tabs.kaggle}
             </TabsTrigger>
             <TabsTrigger value="colab" data-testid="tab-colab">
-              3. Colab
+              {t.admin.gpuManagement.googleAuthDialog.tabs.colab}
             </TabsTrigger>
           </TabsList>
 
@@ -209,46 +217,46 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
           <TabsContent value="instructions" className="space-y-4">
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle>Como funciona</AlertTitle>
+              <AlertTitle>{t.admin.gpuManagement.googleAuthDialog.instructions.howItWorks.title}</AlertTitle>
               <AlertDescription>
-                Você fará login manualmente UMA VEZ no Google. Depois, copiaremos os cookies de autenticação
-                e os salvaremos de forma criptografada. O sistema fará scraping automático das quotas a cada
-                10 minutos, sem precisar de login novamente por ~30 dias.
+                {t.admin.gpuManagement.googleAuthDialog.instructions.howItWorks.description}
               </AlertDescription>
             </Alert>
 
             <div className="space-y-3">
               <h4 className="font-semibold flex items-center gap-2">
                 <Chrome className="w-4 h-4" />
-                Pré-requisitos
+                {t.admin.gpuManagement.googleAuthDialog.instructions.prerequisites.title}
               </h4>
               <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-                <li>Navegador Google Chrome (recomendado para compatibilidade)</li>
-                <li>Conta Google com acesso ao Kaggle e/ou Google Colab</li>
-                <li>DevTools aberto (F12) para copiar cookies</li>
+                <li>{t.admin.gpuManagement.googleAuthDialog.instructions.prerequisites.chrome}</li>
+                <li>{t.admin.gpuManagement.googleAuthDialog.instructions.prerequisites.account}</li>
+                <li>{t.admin.gpuManagement.googleAuthDialog.instructions.prerequisites.devtools}</li>
               </ul>
             </div>
 
             <div className="space-y-3">
               <h4 className="font-semibold flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                Segurança
+                {t.admin.gpuManagement.googleAuthDialog.instructions.security.title}
               </h4>
               <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-                <li>Cookies criptografados com AES-256-GCM usando SESSION_SECRET</li>
-                <li>Nenhum cookie armazenado em texto plano</li>
-                <li>Validação automática a cada sync (10min)</li>
-                <li>Expiração após 30 dias (com avisos antecipados)</li>
+                <li>{t.admin.gpuManagement.googleAuthDialog.instructions.security.encryption}</li>
+                <li>{t.admin.gpuManagement.googleAuthDialog.instructions.security.noPlaintext}</li>
+                <li>{t.admin.gpuManagement.googleAuthDialog.instructions.security.autoValidation}</li>
+                <li>{t.admin.gpuManagement.googleAuthDialog.instructions.security.expiration}</li>
               </ul>
             </div>
 
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>⚠️ IMPORTANTE - Risco de BAN</AlertTitle>
+              <AlertTitle>{t.admin.gpuManagement.googleAuthDialog.instructions.warning.title}</AlertTitle>
               <AlertDescription>
-                <strong>Kaggle:</strong> Max 8.4h/sessão, 21h/semana. Violação = BAN PERMANENTE.<br />
-                <strong>Colab:</strong> Max 8.4h/sessão, 36h cooldown. Violação = BAN PERMANENTE.<br />
-                O sistema respeita automaticamente esses limites via quota scraping.
+                <span dangerouslySetInnerHTML={{ __html: t.admin.gpuManagement.googleAuthDialog.instructions.warning.kaggle }} />
+                <br />
+                <span dangerouslySetInnerHTML={{ __html: t.admin.gpuManagement.googleAuthDialog.instructions.warning.colab }} />
+                <br />
+                {t.admin.gpuManagement.googleAuthDialog.instructions.warning.auto}
               </AlertDescription>
             </Alert>
 
@@ -257,13 +265,13 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
                 setStep('kaggle');
                 setProvider('kaggle');
               }} data-testid="button-next-to-kaggle">
-                Conectar Kaggle
+                {t.admin.gpuManagement.googleAuthDialog.instructions.buttons.kaggle}
               </Button>
               <Button variant="outline" onClick={() => {
                 setStep('colab');
                 setProvider('colab');
               }} data-testid="button-next-to-colab">
-                Conectar Colab
+                {t.admin.gpuManagement.googleAuthDialog.instructions.buttons.colab}
               </Button>
             </div>
           </TabsContent>
@@ -272,31 +280,29 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
           <TabsContent value="kaggle" className="space-y-4">
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle>Passo a passo - Kaggle</AlertTitle>
+              <AlertTitle>{t.admin.gpuManagement.googleAuthDialog.kaggle.title}</AlertTitle>
               <AlertDescription className="space-y-2 mt-2">
                 <div className="flex items-start gap-2">
                   <Badge variant="outline" className="shrink-0">1</Badge>
-                  <span>Abra <a href="https://www.kaggle.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                    www.kaggle.com <ExternalLink className="w-3 h-3" />
-                  </a> em nova aba</span>
+                  <span>{t.admin.gpuManagement.googleAuthDialog.kaggle.step1}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Badge variant="outline" className="shrink-0">2</Badge>
-                  <span>Faça login com sua conta Google</span>
+                  <span>{t.admin.gpuManagement.googleAuthDialog.kaggle.step2}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Badge variant="outline" className="shrink-0">3</Badge>
-                  <span>Abra DevTools (F12) → Console → Cole o comando abaixo</span>
+                  <span>{t.admin.gpuManagement.googleAuthDialog.kaggle.step3}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Badge variant="outline" className="shrink-0">4</Badge>
-                  <span>Copie o resultado e cole no campo "Cookies" abaixo</span>
+                  <span>{t.admin.gpuManagement.googleAuthDialog.kaggle.step4}</span>
                 </div>
               </AlertDescription>
             </Alert>
 
             <div className="space-y-2">
-              <Label>Comando para copiar cookies (Cole no Console do DevTools):</Label>
+              <Label>{t.admin.gpuManagement.googleAuthDialog.kaggle.cookieCommand.label}</Label>
               <div className="relative">
                 <Textarea
                   readOnly
@@ -318,11 +324,11 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="kaggle-email">Email da conta Google</Label>
+              <Label htmlFor="kaggle-email">{t.admin.gpuManagement.googleAuthDialog.kaggle.email.label}</Label>
               <Input
                 id="kaggle-email"
                 type="email"
-                placeholder="seu-email@gmail.com"
+                placeholder={t.admin.gpuManagement.googleAuthDialog.kaggle.email.placeholder}
                 value={accountEmail}
                 onChange={(e) => setAccountEmail(e.target.value)}
                 data-testid="input-account-email"
@@ -330,10 +336,10 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="kaggle-cookies">Cookies (Cole o resultado do Console)</Label>
+              <Label htmlFor="kaggle-cookies">{t.admin.gpuManagement.googleAuthDialog.kaggle.cookies.label}</Label>
               <Textarea
                 id="kaggle-cookies"
-                placeholder="KAGGLE_KEY=value; KAGGLE_USER_ID=123; ..."
+                placeholder={t.admin.gpuManagement.googleAuthDialog.kaggle.cookies.placeholder}
                 value={cookiesRaw}
                 onChange={(e) => setCookiesRaw(e.target.value)}
                 rows={6}
@@ -341,13 +347,13 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
                 data-testid="textarea-cookies-raw"
               />
               <p className="text-xs text-muted-foreground">
-                Formato esperado: <code className="text-xs">name1=value1; name2=value2; ...</code>
+                {t.admin.gpuManagement.googleAuthDialog.kaggle.cookies.hint}
               </p>
             </div>
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setStep('instructions')} data-testid="button-back">
-                Voltar
+                {t.admin.gpuManagement.googleAuthDialog.kaggle.buttons.back}
               </Button>
               <Button 
                 onClick={handleSaveCookies} 
@@ -357,12 +363,12 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
                 {saveMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
+                    {t.admin.gpuManagement.googleAuthDialog.kaggle.buttons.saving}
                   </>
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Salvar Kaggle
+                    {t.admin.gpuManagement.googleAuthDialog.kaggle.buttons.save}
                   </>
                 )}
               </Button>
@@ -373,31 +379,29 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
           <TabsContent value="colab" className="space-y-4">
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle>Passo a passo - Google Colab</AlertTitle>
+              <AlertTitle>{t.admin.gpuManagement.googleAuthDialog.colab.title}</AlertTitle>
               <AlertDescription className="space-y-2 mt-2">
                 <div className="flex items-start gap-2">
                   <Badge variant="outline" className="shrink-0">1</Badge>
-                  <span>Abra <a href="https://colab.research.google.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                    colab.research.google.com <ExternalLink className="w-3 h-3" />
-                  </a> em nova aba</span>
+                  <span>{t.admin.gpuManagement.googleAuthDialog.colab.step1}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Badge variant="outline" className="shrink-0">2</Badge>
-                  <span>Faça login com sua conta Google</span>
+                  <span>{t.admin.gpuManagement.googleAuthDialog.colab.step2}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Badge variant="outline" className="shrink-0">3</Badge>
-                  <span>Abra DevTools (F12) → Console → Cole o comando abaixo</span>
+                  <span>{t.admin.gpuManagement.googleAuthDialog.colab.step3}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Badge variant="outline" className="shrink-0">4</Badge>
-                  <span>Copie o resultado e cole no campo "Cookies" abaixo</span>
+                  <span>{t.admin.gpuManagement.googleAuthDialog.colab.step4}</span>
                 </div>
               </AlertDescription>
             </Alert>
 
             <div className="space-y-2">
-              <Label>Comando para copiar cookies (Cole no Console do DevTools):</Label>
+              <Label>{t.admin.gpuManagement.googleAuthDialog.colab.cookieCommand.label}</Label>
               <div className="relative">
                 <Textarea
                   readOnly
@@ -419,11 +423,11 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="colab-email">Email da conta Google</Label>
+              <Label htmlFor="colab-email">{t.admin.gpuManagement.googleAuthDialog.colab.email.label}</Label>
               <Input
                 id="colab-email"
                 type="email"
-                placeholder="seu-email@gmail.com"
+                placeholder={t.admin.gpuManagement.googleAuthDialog.colab.email.placeholder}
                 value={accountEmail}
                 onChange={(e) => setAccountEmail(e.target.value)}
                 data-testid="input-account-email-colab"
@@ -431,10 +435,10 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="colab-cookies">Cookies (Cole o resultado do Console)</Label>
+              <Label htmlFor="colab-cookies">{t.admin.gpuManagement.googleAuthDialog.colab.cookies.label}</Label>
               <Textarea
                 id="colab-cookies"
-                placeholder="GOOGLE_SESSION=value; GOOGLE_USER=123; ..."
+                placeholder={t.admin.gpuManagement.googleAuthDialog.colab.cookies.placeholder}
                 value={cookiesRaw}
                 onChange={(e) => setCookiesRaw(e.target.value)}
                 rows={6}
@@ -442,13 +446,13 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
                 data-testid="textarea-cookies-raw-colab"
               />
               <p className="text-xs text-muted-foreground">
-                Formato esperado: <code className="text-xs">name1=value1; name2=value2; ...</code>
+                {t.admin.gpuManagement.googleAuthDialog.colab.cookies.hint}
               </p>
             </div>
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setStep('instructions')} data-testid="button-back-colab">
-                Voltar
+                {t.admin.gpuManagement.googleAuthDialog.colab.buttons.back}
               </Button>
               <Button 
                 onClick={handleSaveCookies} 
@@ -458,12 +462,12 @@ export function GoogleAuthDialog({ trigger }: GoogleAuthDialogProps) {
                 {saveMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
+                    {t.admin.gpuManagement.googleAuthDialog.colab.buttons.saving}
                   </>
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Salvar Colab
+                    {t.admin.gpuManagement.googleAuthDialog.colab.buttons.save}
                   </>
                 )}
               </Button>
