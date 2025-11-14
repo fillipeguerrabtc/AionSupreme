@@ -20,7 +20,7 @@ export interface StreamingChatState {
 }
 
 export interface UseStreamingChatReturn extends StreamingChatState {
-  sendMessage: (message: string, useMultiAgent?: boolean, language?: string) => void;
+  sendMessage: (message: string, useMultiAgent?: boolean, language?: string, conversationId?: number | null) => void;
   cancel: () => void;
 }
 
@@ -38,6 +38,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
   const lastMessageRef = useRef<string | null>(null);
   const lastUseMultiAgentRef = useRef<boolean>(true);
   const lastLanguageRef = useRef<string | null>(null); // ✅ FIX BUG #2: Persist language for retries
+  const lastConversationIdRef = useRef<number | null>(null); // 🔥 FIX BUG-11: Persist conversationId for retries
   const MAX_RETRIES = 3;
 
   /**
@@ -86,7 +87,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
         // 🔥 CRITICAL FIX: Limpar mensagem parcial antes de retry para evitar duplicação
         setStreamedMessage("");
         
-        startStream(lastMessageRef.current, lastUseMultiAgentRef.current, lastLanguageRef.current);
+        startStream(lastMessageRef.current, lastUseMultiAgentRef.current, lastLanguageRef.current, lastConversationIdRef.current);
       }
     }, backoffMs);
   }, []);
@@ -94,7 +95,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
   /**
    * Inicia stream (ou reinicia)
    */
-  const startStream = useCallback((message: string, useMultiAgent: boolean, language: string | null = null) => {
+  const startStream = useCallback((message: string, useMultiAgent: boolean, language: string | null = null, conversationId: number | null = null) => {
     // Fechar stream anterior se existir
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
@@ -102,6 +103,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
     }
 
     // ✅ FIX BUG #2 (Multi-language): Adicionar language aos query params
+    // 🔥 FIX BUG-11: Adicionar conversationId para manter contexto
     const params = new URLSearchParams({
       message,
       useMultiAgent: useMultiAgent.toString(),
@@ -109,6 +111,10 @@ export function useStreamingChat(): UseStreamingChatReturn {
     
     if (language) {
       params.set('language', language);
+    }
+
+    if (conversationId !== null) {
+      params.set('conversationId', conversationId.toString());
     }
 
     const url = `/api/chat/stream?${params.toString()}`;
@@ -169,8 +175,9 @@ export function useStreamingChat(): UseStreamingChatReturn {
   /**
    * Envia mensagem e inicia stream
    * ✅ FIX BUG #2: Aceita language como parâmetro
+   * 🔥 FIX BUG-11: Aceita conversationId para manter contexto de conversa
    */
-  const sendMessage = useCallback((message: string, useMultiAgent = true, language: string | null = null) => {
+  const sendMessage = useCallback((message: string, useMultiAgent = true, language: string | null = null, conversationId: number | null = null) => {
     // Cancela stream anterior (se existir) + limpa retry
     cancel();
 
@@ -178,6 +185,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
     lastMessageRef.current = message;
     lastUseMultiAgentRef.current = useMultiAgent;
     lastLanguageRef.current = language; // ✅ FIX BUG #2: Salvar language para retry
+    lastConversationIdRef.current = conversationId; // 🔥 FIX BUG-11: Salvar conversationId para retry
 
     // Reset state
     setStreamedMessage("");
@@ -191,7 +199,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
     abortControllerRef.current = new AbortController();
 
     // Iniciar stream
-    startStream(message, useMultiAgent, language);
+    startStream(message, useMultiAgent, language, conversationId);
   }, [cancel, startStream]);
 
   /**

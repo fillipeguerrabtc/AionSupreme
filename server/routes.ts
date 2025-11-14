@@ -933,6 +933,24 @@ export function registerRoutes(app: Express): Server {
         }
       }
       
+      // 🔥 FIX BUG-11: Fetch conversation history if conversationId provided (CRITICAL for context)
+      let conversationHistory: Array<{role: string, content: string}> = [];
+      if (conversationId && typeof conversationId === "string") {
+        try {
+          const dbMessages = await storage.getMessagesByConversation(parseInt(conversationId, 10), 50); // Last 50 messages
+          // Convert DB messages to LLM format (exclude system messages, keep user/assistant only)
+          // 🚨 CRITICAL: DB returns DESC (newest first) - MUST reverse for chronological order!
+          conversationHistory = dbMessages
+            .filter(m => m.role === 'user' || m.role === 'assistant')
+            .reverse() // ← CRITICAL: Ensure chronological order (oldest → newest)
+            .map(m => ({ role: m.role, content: m.content }));
+          console.log(`[SSE] 🔍 Loaded ${conversationHistory.length} messages from conversation ${conversationId} for context (chronological)`);
+        } catch (historyError: unknown) {
+          console.error(`[SSE] Failed to load conversation history:`, getErrorMessage(historyError));
+          // Continue without history if fetch fails (graceful degradation)
+        }
+      }
+      
       // Configurar headers SSE
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -956,8 +974,9 @@ export function registerRoutes(app: Express): Server {
       // Registrar métricas
       metricsCollector.recordRequest();
       
-      // Converter message em formato de mensagens
-      const messages = [{ role: "user", content: message }];
+      // 🔥 FIX BUG-11: Build messages array with conversation history (NOT just current message!)
+      // This ensures LLM has full context for coherent multi-turn conversations
+      const messages = [...conversationHistory, { role: "user", content: message }];
       const useAgent = useMultiAgent === "true";
       
       let fullResponse = "";
@@ -973,8 +992,9 @@ export function registerRoutes(app: Express): Server {
           if (availableAgents.length > 0) {
             console.log({ agents: availableAgents.length }, "[SSE] Using multi-agent system");
             
+            // 🔥 FIX BUG-11: Pass conversation history to multi-agent system for context-aware responses
             const agentResult = await orchestrateAgents(message, {
-              history: [],
+              history: conversationHistory,
               budgetUSD: 1.0,
               tenantId: 1,
               sessionId: "sse-chat-session",

@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Send, User, Sparkles, Paperclip, Mic, MicOff, X, FileText, Image as ImageIcon, Video, LogIn, Zap } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useLanguage, detectMessageLanguage } from "@/lib/i18n";
+import { useLanguage, detectMessageLanguage, Language } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { login } from "@/lib/authUtils";
@@ -464,8 +464,9 @@ export default function ChatPage() {
       // ✅ FIX BUG #1 (Avatar Duplicado): NÃO adicionar placeholder aqui
       // O streaming será renderizado via streamingChat.streamedMessage no useEffect
       // ✅ FIX BUG #2 (Multi-language): Passar language DETECTADO (não stale state) para o backend
-      console.log(`[SSE] Sending with language: ${outgoingLanguage}`); // Debug log
-      streamingChat.sendMessage(userMessage, true, outgoingLanguage);
+      // 🔥 FIX BUG-11: Passar conversationId para manter contexto de conversa
+      console.log(`[SSE] Sending with language: ${outgoingLanguage}, conversationId: ${conversationId}`); // Debug log
+      streamingChat.sendMessage(userMessage, true, outgoingLanguage, conversationId);
       setAttachedFiles([]);
     } else {
       // Use traditional mutation for file uploads or when streaming disabled
