@@ -285,7 +285,7 @@ export class DeduplicationService {
    * 4-Gate Tiered Detection System:
    * - Gate 1: Exact hash lookup (O(1), <1ms)
    * - Gate 2: pgvector ANN search (semantic similarity)
-   * - Gate 3: LLM adjudication for borderline cases (0.80-0.90)
+   * - Gate 3: LLM adjudication for borderline cases (0.95-0.98)
    * - Gate 4: Return embedding for reuse (avoid regeneration)
    * 
    * @param content - Raw text content
@@ -302,8 +302,8 @@ export class DeduplicationService {
       tenantId?: number;
       enableSemantic?: boolean;
       similarityThresholds?: {
-        exact: number;      // ≥0.90 = exact duplicate
-        borderline: number; // 0.80-0.90 = needs LLM verification
+        exact: number;      // ≥0.98 = exact duplicate
+        borderline: number; // 0.95-0.98 = needs LLM verification
       };
     } = {}
   ): Promise<{
@@ -319,8 +319,8 @@ export class DeduplicationService {
       tenantId = 1,
       enableSemantic = true, // MVP: enabled by default
       similarityThresholds = {
-        exact: 0.90,       // ≥90% = auto-reject as duplicate (conservative threshold to minimize false positives)
-        borderline: 0.80   // 80-90% = LLM verification needed (balanced detection with verification)
+        exact: 0.98,       // ≥98% = exact duplicate (architect-approved: raised from 0.90 to reduce false positives)
+        borderline: 0.95   // 95-98% = LLM verification needed (architect-approved: raised from 0.80 for precision)
       }
     } = options;
 
@@ -420,6 +420,7 @@ export class DeduplicationService {
       FROM curation_queue
       WHERE embedding IS NOT NULL
       AND status IN ('pending', 'approved')
+      AND content_hash != ${contentHash}
       ORDER BY embedding <=> ${sql.raw(embeddingLiteral)}::vector
       LIMIT 15
     `);
@@ -437,13 +438,16 @@ export class DeduplicationService {
     const bestMatch = similarItems.rows[0] as any;
     const similarity = 1 - bestMatch.distance; // pgvector <=> gives distance, we want similarity
     
+    // 📊 INSTRUMENTATION: Log metrics for debugging
+    const queryNorm = Math.sqrt(queryEmbedding.reduce((sum, val) => sum + val * val, 0));
+    console.log(`[Dedup] 📊 METRICS: similarity=${(similarity * 100).toFixed(2)}%, queryNorm=${queryNorm.toFixed(4)}, bestMatchHash=${bestMatch.content_hash?.substring(0, 12)}...`);
     console.log(`[Dedup] → Best match: "${bestMatch.title.substring(0, 50)}..." (similarity: ${(similarity * 100).toFixed(1)}%)`);
 
     // =====================================================================
     // TIER 3: THRESHOLD LOGIC + LLM ADJUDICATION
     // =====================================================================
     
-    // Exact semantic duplicate (≥90%) - BUG #13 FIX: INFO não ERROR!
+    // Exact semantic duplicate (≥98%) - BUG #13 FIX: INFO não ERROR!
     if (similarity >= similarityThresholds.exact) {
       console.log(`[Dedup] ℹ️  SEMANTIC duplicate detected (${(similarity * 100).toFixed(1)}% ≥ ${similarityThresholds.exact * 100}%) - skipping to avoid duplication`);
       return {
@@ -457,7 +461,7 @@ export class DeduplicationService {
       };
     }
 
-    // Borderline case (80-90%) - needs LLM verification
+    // Borderline case (95-98%) - needs LLM verification
     if (similarity >= similarityThresholds.borderline) {
       console.log(`[Dedup] ⚠️  BORDERLINE similarity (${(similarity * 100).toFixed(1)}%) - invoking LLM adjudicator...`);
       
