@@ -497,7 +497,7 @@ export default function GPUManagementTab() {
                 quotaData={quotaQuery.data.kaggle}
                 alertLevel={quotaQuery.data.kaggleAlert?.level || 'normal'}
                 isStale={quotaQuery.data.isStale || false}
-                t={tFunc}
+                translations={t.admin.gpuManagement}
                 data-testid="card-quota-kaggle"
               />
             )}
@@ -507,7 +507,7 @@ export default function GPUManagementTab() {
                 quotaData={quotaQuery.data.colab}
                 alertLevel={quotaQuery.data.colabAlert?.level || 'normal'}
                 isStale={quotaQuery.data.isStale || false}
-                t={tFunc}
+                translations={t.admin.gpuManagement}
                 data-testid="card-quota-colab"
               />
             )}

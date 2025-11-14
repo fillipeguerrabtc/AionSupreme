@@ -11,7 +11,7 @@
  * - Stale data warnings
  * - Responsive design
  * - Dark mode support
- * - i18n support
+ * - Type-safe i18n with compile-time coverage
  * - ARIA accessibility
  * - ZERO hardcoded values
  */
@@ -22,6 +22,8 @@ import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CheckCircle2, Clock, TrendingUp } from 'lucide-react';
 import type { QuotaScrapingResult } from '@/../../shared/schema';
 import { formatDistanceToNow } from 'date-fns';
+import type { Translations } from '@/lib/i18n';
+import { requireTranslation } from './gpu-utils';
 
 interface QuotaProviderCardProps {
   /** Provider name (Kaggle / Colab) */
@@ -32,8 +34,8 @@ interface QuotaProviderCardProps {
   alertLevel: 'normal' | 'warning' | 'critical' | 'emergency';
   /** Is data stale? */
   isStale: boolean;
-  /** i18n translations */
-  t: (key: string) => string;
+  /** i18n translations subtree */
+  translations: Translations['admin']['gpuManagement'];
 }
 
 /**
@@ -72,7 +74,7 @@ function getAlertColors(level: QuotaProviderCardProps['alertLevel']) {
   }
 }
 
-export function QuotaProviderCard({ provider, quotaData, alertLevel, isStale, t }: QuotaProviderCardProps) {
+export function QuotaProviderCard({ provider, quotaData, alertLevel, isStale, translations }: QuotaProviderCardProps) {
   const colors = getAlertColors(alertLevel);
   const Icon = colors.icon;
   
@@ -83,16 +85,16 @@ export function QuotaProviderCard({ provider, quotaData, alertLevel, isStale, t 
           <CardTitle className="flex items-center justify-between gap-2">
             <span className="capitalize">{provider}</span>
             <Badge variant="outline" data-testid={`badge-status-${provider}`}>
-              {t('gpu.quota.no_data')}
+              {requireTranslation(translations.quotas.noData, 'quotas.noData')}
             </Badge>
           </CardTitle>
           <CardDescription>
-            {t('gpu.auth.not_authenticated')}
+            {requireTranslation(translations.auth.notAuthenticated, 'auth.notAuthenticated')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-sm text-muted-foreground">
-            {t('gpu.auth.login_required')}
+            {requireTranslation(translations.auth.loginRequired, 'auth.loginRequired')}
           </div>
         </CardContent>
       </Card>
@@ -113,10 +115,10 @@ export function QuotaProviderCard({ provider, quotaData, alertLevel, isStale, t 
       usageLabel = `${data.weeklyUsedHours.toFixed(1)}h / ${data.weeklyMaxHours}h`;
       
       usageDetails = [
-        { label: t('gpu.quota.kaggle.session_remaining'), value: `${data.sessionRemainingHours?.toFixed(1) ?? '?'}h` },
-        { label: t('gpu.quota.kaggle.session_max'), value: `${data.sessionMaxHours ?? '?'}h` },
-        { label: t('gpu.quota.kaggle.weekly_used'), value: `${data.weeklyUsedHours.toFixed(1)}h` },
-        { label: t('gpu.quota.kaggle.weekly_remaining'), value: `${data.weeklyRemainingHours?.toFixed(1) ?? '?'}h` },
+        { label: requireTranslation(translations.quotas.kaggle.sessionRemaining, 'quotas.kaggle.sessionRemaining'), value: `${data.sessionRemainingHours?.toFixed(1) ?? '?'}h` },
+        { label: requireTranslation(translations.quotas.kaggle.sessionMax, 'quotas.kaggle.sessionMax'), value: `${data.sessionMaxHours ?? '?'}h` },
+        { label: requireTranslation(translations.quotas.kaggle.weeklyUsed, 'quotas.kaggle.weeklyUsed'), value: `${data.weeklyUsedHours.toFixed(1)}h` },
+        { label: requireTranslation(translations.quotas.kaggle.weeklyRemaining, 'quotas.kaggle.weeklyRemaining'), value: `${data.weeklyRemainingHours?.toFixed(1) ?? '?'}h` },
       ];
     }
   } else {
@@ -126,10 +128,10 @@ export function QuotaProviderCard({ provider, quotaData, alertLevel, isStale, t 
       usageLabel = `${data.computeUnitsUsed.toFixed(0)} / ${data.computeUnitsTotal} units`;
       
       usageDetails = [
-        { label: t('gpu.quota.colab.compute_units_used'), value: data.computeUnitsUsed.toFixed(0) },
-        { label: t('gpu.quota.colab.compute_units_remaining'), value: `${data.computeUnitsRemaining?.toFixed(0) ?? '?'}` },
-        { label: t('gpu.quota.colab.session_remaining'), value: `${data.sessionRemainingHours?.toFixed(1) ?? '?'}h` },
-        { label: t('gpu.quota.colab.in_cooldown'), value: data.inCooldown ? 'Yes' : 'No' },
+        { label: requireTranslation(translations.quotas.colab.computeUnitsUsed, 'quotas.colab.computeUnitsUsed'), value: data.computeUnitsUsed.toFixed(0) },
+        { label: requireTranslation(translations.quotas.colab.computeUnitsRemaining, 'quotas.colab.computeUnitsRemaining'), value: `${data.computeUnitsRemaining?.toFixed(0) ?? '?'}` },
+        { label: requireTranslation(translations.quotas.colab.sessionRemaining, 'quotas.colab.sessionRemaining'), value: `${data.sessionRemainingHours?.toFixed(1) ?? '?'}h` },
+        { label: requireTranslation(translations.quotas.colab.inCooldown, 'quotas.colab.inCooldown'), value: data.inCooldown ? requireTranslation(translations.quotas.yes, 'quotas.yes') : requireTranslation(translations.quotas.no, 'quotas.no') },
       ];
     }
   }
@@ -150,11 +152,11 @@ export function QuotaProviderCard({ provider, quotaData, alertLevel, isStale, t 
           {isStale && (
             <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
               <Clock className="h-3 w-3" />
-              {t('gpu.quota.stale_data')}
+              {requireTranslation(translations.quotas.staleData, 'quotas.staleData')}
             </span>
           )}
           <span className="text-xs text-muted-foreground" data-testid={`text-scraped-${provider}`}>
-            {t('gpu.quota.scraped_at')}: {formatDistanceToNow(new Date(quotaData.scrapedAt), { addSuffix: true })}
+            {requireTranslation(translations.quotas.scrapedAt, 'quotas.scrapedAt')}: {formatDistanceToNow(new Date(quotaData.scrapedAt), { addSuffix: true })}
           </span>
         </CardDescription>
       </CardHeader>
@@ -162,7 +164,7 @@ export function QuotaProviderCard({ provider, quotaData, alertLevel, isStale, t 
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">{t('gpu.quota.title')}</span>
+            <span className="font-medium">{requireTranslation(translations.quotas.title, 'quotas.title')}</span>
             <span className={colors.text} data-testid={`text-usage-${provider}`}>{usageLabel}</span>
           </div>
           <Progress 
@@ -190,13 +192,13 @@ export function QuotaProviderCard({ provider, quotaData, alertLevel, isStale, t 
             <div className="flex items-center gap-2">
               <div className={`h-2 w-2 rounded-full ${data.canStart ? 'bg-green-500' : 'bg-red-500'}`} />
               <span data-testid={`text-can-start-${provider}`}>
-                {t('gpu.quota.kaggle.can_start')}: {data.canStart ? 'Yes' : 'No'}
+                {requireTranslation(translations.quotas.kaggle.canStart, 'quotas.kaggle.canStart')}: {data.canStart ? requireTranslation(translations.quotas.yes, 'quotas.yes') : requireTranslation(translations.quotas.no, 'quotas.no')}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`h-2 w-2 rounded-full ${data.shouldStop ? 'bg-red-500' : 'bg-green-500'}`} />
               <span data-testid={`text-should-stop-${provider}`}>
-                {t('gpu.quota.kaggle.should_stop')}: {data.shouldStop ? 'Yes' : 'No'}
+                {requireTranslation(translations.quotas.kaggle.shouldStop, 'quotas.kaggle.shouldStop')}: {data.shouldStop ? requireTranslation(translations.quotas.yes, 'quotas.yes') : requireTranslation(translations.quotas.no, 'quotas.no')}
               </span>
             </div>
           </div>

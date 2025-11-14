@@ -2715,6 +2715,8 @@ const translations: Record<Language, Translations> = {
           authenticated: "Autenticado",
           notAuthenticated: "Não Autenticado",
           expiringSoon: "Expirando em Breve",
+          // QuotaProviderCard keys
+          loginRequired: "Login Necessário",
         },
         
         // NEW: Quotas Section
@@ -2724,6 +2726,27 @@ const translations: Record<Language, Translations> = {
           syncing: "Sincronizando...",
           emptyMessage: "Nenhuma quota disponível. Conecte uma conta Google para começar.",
           emptyAction: "Conectar Conta Google",
+          // QuotaProviderCard keys
+          noData: "Sem Dados",
+          staleData: "Dados Desatualizados",
+          scrapedAt: "Atualizado",
+          kaggle: {
+            sessionRemaining: "Sessão Restante",
+            sessionMax: "Máx. Sessão",
+            weeklyUsed: "Usado Semana",
+            weeklyRemaining: "Restante Semana",
+            canStart: "Pode Iniciar",
+            shouldStop: "Deve Parar",
+          },
+          colab: {
+            computeUnitsUsed: "Unidades Usadas",
+            computeUnitsRemaining: "Unidades Restantes",
+            sessionRemaining: "Sessão Restante",
+            inCooldown: "Em Cooldown",
+          },
+          // Boolean labels
+          yes: "Sim",
+          no: "Não",
         },
         
         // NEW: Usage History Section
@@ -4794,6 +4817,8 @@ const translations: Record<Language, Translations> = {
           authenticated: "Authenticated",
           notAuthenticated: "Not Authenticated",
           expiringSoon: "Expiring Soon",
+          // QuotaProviderCard keys
+          loginRequired: "Login Required",
         },
         
         // NEW: Quotas Section
@@ -4803,6 +4828,27 @@ const translations: Record<Language, Translations> = {
           syncing: "Syncing...",
           emptyMessage: "No quota available. Connect a Google account to get started.",
           emptyAction: "Connect Google Account",
+          // QuotaProviderCard keys
+          noData: "No Data",
+          staleData: "Stale Data",
+          scrapedAt: "Updated",
+          kaggle: {
+            sessionRemaining: "Session Remaining",
+            sessionMax: "Max Session",
+            weeklyUsed: "Weekly Used",
+            weeklyRemaining: "Weekly Remaining",
+            canStart: "Can Start",
+            shouldStop: "Should Stop",
+          },
+          colab: {
+            computeUnitsUsed: "Compute Units Used",
+            computeUnitsRemaining: "Compute Units Remaining",
+            sessionRemaining: "Session Remaining",
+            inCooldown: "In Cooldown",
+          },
+          // Boolean labels
+          yes: "Yes",
+          no: "No",
         },
         
         // NEW: Usage History Section
@@ -6873,6 +6919,8 @@ const translations: Record<Language, Translations> = {
           authenticated: "Autenticado",
           notAuthenticated: "No Autenticado",
           expiringSoon: "Expirando Pronto",
+          // QuotaProviderCard keys
+          loginRequired: "Login Requerido",
         },
         
         // NEW: Quotas Section
@@ -6882,6 +6930,27 @@ const translations: Record<Language, Translations> = {
           syncing: "Sincronizando...",
           emptyMessage: "No hay cuota disponible. Conecta una cuenta de Google para comenzar.",
           emptyAction: "Conectar Cuenta Google",
+          // QuotaProviderCard keys
+          noData: "Sin Datos",
+          staleData: "Datos Desactualizados",
+          scrapedAt: "Actualizado",
+          kaggle: {
+            sessionRemaining: "Sesión Restante",
+            sessionMax: "Máx. Sesión",
+            weeklyUsed: "Usado Semanal",
+            weeklyRemaining: "Restante Semanal",
+            canStart: "Puede Iniciar",
+            shouldStop: "Debe Detener",
+          },
+          colab: {
+            computeUnitsUsed: "Unidades Usadas",
+            computeUnitsRemaining: "Unidades Restantes",
+            sessionRemaining: "Sesión Restante",
+            inCooldown: "En Espera",
+          },
+          // Boolean labels
+          yes: "Sí",
+          no: "No",
         },
         
         // NEW: Usage History Section
