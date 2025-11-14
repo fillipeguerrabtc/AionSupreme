@@ -79,10 +79,12 @@ const FREE_APIS: APIProvider[] = [
   },
   {
     name: 'hf',
-    // ✅ dailyLimit now fetched dynamically from provider_limits table
+    // ❌ DISABLED: Endpoint deprecated (410 Gone)
+    // Old: https://api-inference.huggingface.co → 410 Gone
+    // New: https://router.huggingface.co (requires provider selection + billing)
     priority: 3,
-    models: ['mistralai/Mistral-7B-Instruct-v0.2'],  // ✅ FIX: v0.2 is public (v0.3 returns 404)
-    enabled: !!process.env.HUGGINGFACE_API_KEY
+    models: ['mistralai/Mistral-7B-Instruct-v0.2'],
+    enabled: false  // ❌ Endpoint morto - Ver docs/QUOTA_ANALYSIS_2025.md
   },
   {
     name: 'openrouter',
