@@ -652,6 +652,10 @@ interface Translations {
         providers: string;
         valid: string;
         expired: string;
+        // Auth status badges
+        authenticated: string;
+        notAuthenticated: string;
+        expiringSoon: string;
       };
       
       // NEW: Quotas Section
@@ -2707,6 +2711,10 @@ const translations: Record<Language, Translations> = {
           providers: "Provedores:",
           valid: "Válido",
           expired: "Expirado",
+          // Auth status badges
+          authenticated: "Autenticado",
+          notAuthenticated: "Não Autenticado",
+          expiringSoon: "Expirando em Breve",
         },
         
         // NEW: Quotas Section
@@ -4782,6 +4790,10 @@ const translations: Record<Language, Translations> = {
           providers: "Providers:",
           valid: "Valid",
           expired: "Expired",
+          // Auth status badges
+          authenticated: "Authenticated",
+          notAuthenticated: "Not Authenticated",
+          expiringSoon: "Expiring Soon",
         },
         
         // NEW: Quotas Section
@@ -6857,6 +6869,10 @@ const translations: Record<Language, Translations> = {
           providers: "Proveedores:",
           valid: "Válido",
           expired: "Expirado",
+          // Auth status badges
+          authenticated: "Autenticado",
+          notAuthenticated: "No Autenticado",
+          expiringSoon: "Expirando Pronto",
         },
         
         // NEW: Quotas Section

@@ -9,12 +9,14 @@
  * - Icon indicators
  * - Expiration warnings (<7 days)
  * - Dark mode support
- * - i18n support
+ * - Type-safe i18n with compile-time coverage
  * - ARIA accessibility
  */
 
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, AlertCircle, XCircle, Clock } from 'lucide-react';
+import type { Translations } from '@/lib/i18n';
+import { requireTranslation } from './gpu-utils';
 
 interface AuthStatusBadgeProps {
   /** Authentication status */
@@ -23,8 +25,8 @@ interface AuthStatusBadgeProps {
   email?: string;
   /** Days until expiration (optional) */
   daysUntilExpiration?: number;
-  /** i18n function */
-  t: (key: string) => string;
+  /** i18n translations subtree */
+  translations: Translations['admin']['gpuManagement'];
   /** data-testid for testing */
   'data-testid'?: string;
 }
@@ -66,11 +68,25 @@ export function AuthStatusBadge({
   status, 
   email, 
   daysUntilExpiration, 
-  t,
+  translations,
   'data-testid': testId 
 }: AuthStatusBadgeProps) {
   const config = getStatusConfig(status);
   const Icon = config.icon;
+
+  // Map status to translation keys (snake_case → camelCase)
+  const statusKeyMap: Record<AuthStatusBadgeProps['status'], keyof Translations['admin']['gpuManagement']['auth']> = {
+    'authenticated': 'authenticated',
+    'not_authenticated': 'notAuthenticated',
+    'expiring_soon': 'expiringSoon',
+    'expired': 'expired',
+  };
+
+  const translationKey = statusKeyMap[status];
+  const label = requireTranslation(
+    translations.auth[translationKey] as string,
+    `auth.${translationKey}`
+  );
 
   return (
     <Badge 
@@ -80,7 +96,7 @@ export function AuthStatusBadge({
       title={email || undefined}
     >
       <Icon className="h-3.5 w-3.5" />
-      <span>{t(`gpu.auth.${status}`) || config.label}</span>
+      <span>{label}</span>
       {daysUntilExpiration !== undefined && (
         <span className="ml-1 text-xs opacity-90">
           ({daysUntilExpiration}d)

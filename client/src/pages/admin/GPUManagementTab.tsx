@@ -113,6 +113,18 @@ export default function GPUManagementTab() {
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [refreshInterval, setRefreshInterval] = useState<number>(30); // seconds
 
+  // Helper function: Convert Translations object → function for GPU components
+  // GPU components expect t(key) but useLanguage() returns Translations object
+  const tFunc = (key: string): string => {
+    const keys = key.split('.');
+    let result: any = t;
+    for (const k of keys) {
+      result = result?.[k];
+      if (result === undefined) return key; // fallback if path not found
+    }
+    return typeof result === 'string' ? result : key;
+  };
+
   // Fetch system timezone
   const { data: systemTimezone } = useQuery<{ timezone: string }>({
     queryKey: ["/api/admin/settings/timezone"],
@@ -272,7 +284,7 @@ export default function GPUManagementTab() {
           percentage={quotaQuery.data.kaggleAlert.percentage}
           message={quotaQuery.data.kaggleAlert.message}
           onSync={sync}
-          t={t}
+          t={tFunc}
           data-testid="alert-quota-kaggle"
         />
       )}
@@ -283,7 +295,7 @@ export default function GPUManagementTab() {
           percentage={quotaQuery.data.colabAlert.percentage}
           message={quotaQuery.data.colabAlert.message}
           onSync={sync}
-          t={t}
+          t={tFunc}
           data-testid="alert-quota-colab"
         />
       )}
@@ -420,7 +432,7 @@ export default function GPUManagementTab() {
                           : 'not_authenticated'
                       }
                       email={googleAuth.sessions[0]?.accountEmail}
-                      t={t}
+                      translations={t.admin.gpuManagement}
                       data-testid="auth-status-badge"
                     />
                     {googleAuth.sessions && googleAuth.sessions.length > 0 && (
@@ -485,7 +497,7 @@ export default function GPUManagementTab() {
                 quotaData={quotaQuery.data.kaggle}
                 alertLevel={quotaQuery.data.kaggleAlert?.level || 'normal'}
                 isStale={quotaQuery.data.isStale || false}
-                t={t}
+                t={tFunc}
                 data-testid="card-quota-kaggle"
               />
             )}
@@ -495,7 +507,7 @@ export default function GPUManagementTab() {
                 quotaData={quotaQuery.data.colab}
                 alertLevel={quotaQuery.data.colabAlert?.level || 'normal'}
                 isStale={quotaQuery.data.isStale || false}
-                t={t}
+                t={tFunc}
                 data-testid="card-quota-colab"
               />
             )}
@@ -534,7 +546,7 @@ export default function GPUManagementTab() {
               <CardContent>
                 <UsageChart 
                   data={[]} 
-                  t={t}
+                  t={tFunc}
                   data-testid="chart-usage" 
                 />
               </CardContent>
@@ -609,7 +621,7 @@ export default function GPUManagementTab() {
                 return (
                   <SessionTimeline
                     sessions={sessions}
-                    t={t}
+                    t={tFunc}
                     data-testid="timeline-sessions"
                   />
                 );
