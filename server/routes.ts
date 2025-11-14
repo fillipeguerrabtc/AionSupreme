@@ -96,6 +96,15 @@ const upload = multer({
   }
 });
 
+// ✅ Dedicated multer for audio transcription (up to 100MB for Whisper API)
+const audioUpload = multer({
+  dest: "/tmp/uploads/audio/",
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB max (matches Whisper + FFmpeg converter limit)
+    files: 1, // Only 1 audio file per transcription request
+  }
+});
+
 // Dedicated multer config for adapter uploads (larger files - up to 50MB)
 const adapterUpload = multer({
   dest: "/tmp/adapters/",
@@ -1241,12 +1250,15 @@ export function registerRoutes(app: Express): Server {
   });
 
   // POST /api/v1/transcribe (transcrição de áudio Whisper)
-  app.post("/api/v1/transcribe", upload.single("audio"), async (req, res) => {
+  app.post("/api/v1/transcribe", audioUpload.single("audio"), async (req, res) => {
     const startTime = Date.now();
+    const traceId = `trans-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    let convertedAudioPath: string | undefined;
+    
     try {
       if (!req.file) throw new Error(req.t('upload.no_audio_file'));
       
-      // ✅ FIX P0-6: Validate audio file using magic bytes
+      // 1. Validate audio file using magic bytes
       const { validateAudioUpload } = await import("./utils/file-validation");
       const validation = await validateAudioUpload(req.file.path);
       
@@ -1256,16 +1268,68 @@ export function registerRoutes(app: Express): Server {
       
       metricsCollector.recordRequest();
       
-      // Chamar API OpenAI Whisper
-      const transcription = await llmClient.transcribeAudio(req.file.path);
+      // 2. Convert video containers to pure audio before Whisper (if needed)
+      const { convertToWhisperFormat, cleanupTempAudioFile } = await import("./audio/audio-converter");
+      const conversion = await convertToWhisperFormat(
+        req.file.path,
+        validation.requiresConversion,
+        validation.detectedMimeType,
+        traceId
+      );
+      
+      if (!conversion.success) {
+        console.error(`[Transcribe:${traceId}] Conversion failed:`, conversion.telemetry);
+        metricsCollector.recordError();
+        
+        // ✅ Return 400 Bad Request with localized error message
+        return res.status(400).json({ 
+          error: req.t('chat.audioConversionFailed') || conversion.error 
+        });
+      }
+      
+      // Track converted path for cleanup in finally block
+      if (conversion.telemetry.requiresConversion && conversion.outputPath) {
+        convertedAudioPath = conversion.outputPath;
+      }
+      
+      console.log(`[Transcribe:${traceId}] Conversion telemetry:`, conversion.telemetry);
+      
+      // 3. Transcribe using converted audio (or original if no conversion needed)
+      const audioPath = conversion.outputPath || req.file.path;
+      const transcription = await llmClient.transcribeAudio(audioPath);
       
       const latency = Date.now() - startTime;
       metricsCollector.recordLatency(latency);
       
-      res.json({ text: transcription });
+      // 4. Return transcription with telemetry
+      res.json({ 
+        text: transcription,
+        _telemetry: {
+          totalLatencyMs: latency,
+          conversion: conversion.telemetry,
+        }
+      });
+      
     } catch (error: unknown) {
       metricsCollector.recordError();
+      console.error(`[Transcribe:${traceId}] Error:`, error);
       res.status(500).json({ error: getErrorMessage(error) });
+      
+    } finally {
+      // ✅ CRITICAL: ALWAYS cleanup ALL temp files in finally block
+      // This runs AFTER try/catch completes (including Whisper transcription)
+      // Covers ALL exit paths: success, error, validation failure, conversion failure
+      const { cleanupTempAudioFile } = await import("./audio/audio-converter");
+      
+      // Cleanup converted WAV (if conversion happened)
+      if (convertedAudioPath) {
+        await cleanupTempAudioFile(convertedAudioPath);
+      }
+      
+      // Cleanup original multer upload (always)
+      if (req.file?.path) {
+        await cleanupTempAudioFile(req.file.path);
+      }
     }
   });
 

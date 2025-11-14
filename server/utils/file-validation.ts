@@ -61,6 +61,7 @@ export interface FileValidationResult {
   error?: string;
   detectedMimeType?: string;
   size?: number;
+  requiresConversion?: boolean; // ✅ Flag for audio files that need FFmpeg conversion (video containers)
 }
 
 /**
@@ -216,9 +217,11 @@ export async function validateDocumentUpload(filePath: string): Promise<FileVali
  * 
  * NOTE: MediaRecorder outputs are detected as video/webm and video/mp4 by magic bytes
  * even when they contain only audio, so we whitelist those container types.
+ * 
+ * RETURNS: requiresConversion flag for video containers that need FFmpeg conversion
  */
 export async function validateAudioUpload(filePath: string): Promise<FileValidationResult> {
-  return validateUploadedFile(
+  const result = await validateUploadedFile(
     filePath,
     [
       'audio/mpeg',  // MP3 files
@@ -230,6 +233,13 @@ export async function validateAudioUpload(filePath: string): Promise<FileValidat
     ],
     100 * 1024 * 1024 // 100MB max for audio
   );
+  
+  // ✅ Set requiresConversion flag for video containers
+  if (result.valid && result.detectedMimeType) {
+    result.requiresConversion = result.detectedMimeType.startsWith('video/');
+  }
+  
+  return result;
 }
 
 /**

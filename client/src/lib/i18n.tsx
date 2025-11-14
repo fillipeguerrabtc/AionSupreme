@@ -72,6 +72,7 @@ export interface Translations {
     audioTranscribed: string;
     transcriptionError: string;
     transcriptionRetry: string;
+    audioConversionFailed: string;
     microphoneAccessDenied: string;
     allowMicrophoneAccess: string;
     recordAudio: string;
@@ -2201,6 +2202,7 @@ const translations: Record<Language, Translations> = {
       audioTranscribed: "Áudio transcrito com sucesso!",
       transcriptionError: "Erro na transcrição",
       transcriptionRetry: "Falha ao transcrever áudio. Tente novamente.",
+      audioConversionFailed: "Falha ao converter áudio para formato compatível",
       microphoneAccessDenied: "Acesso ao microfone negado",
       allowMicrophoneAccess: "Permita acesso ao microfone para gravar áudio",
       recordAudio: "Gravar áudio",
@@ -4349,6 +4351,7 @@ const translations: Record<Language, Translations> = {
       audioTranscribed: "Audio transcribed successfully!",
       transcriptionError: "Transcription error",
       transcriptionRetry: "Failed to transcribe audio. Please try again.",
+      audioConversionFailed: "Failed to convert audio to compatible format",
       microphoneAccessDenied: "Microphone access denied",
       allowMicrophoneAccess: "Please allow microphone access to record audio",
       recordAudio: "Record audio",
@@ -6497,6 +6500,7 @@ const translations: Record<Language, Translations> = {
       audioTranscribed: "Audio transcrito con éxito!",
       transcriptionError: "Error en la transcripción",
       transcriptionRetry: "Error al transcribir audio. Inténtalo de nuevo.",
+      audioConversionFailed: "Error al convertir audio a formato compatible",
       microphoneAccessDenied: "Acceso al micrófono denegado",
       allowMicrophoneAccess: "Permite acceso al micrófono para grabar audio",
       recordAudio: "Grabar audio",
