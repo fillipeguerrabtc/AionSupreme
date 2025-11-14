@@ -123,14 +123,14 @@ export default function KnowledgeBasePage() {
       setCrawlMode("single");
       setDownloadMedia(false);
       
-      // ✅ Show warning if protocol was auto-added
+      // Show warning if protocol was auto-added
       if (data.warning) {
         toast({ 
-          title: t.common.addedSuccess,
-          description: `${data.warning} - ${data.normalizedUrl}`
+          title: t.admin.knowledgeBase.toasts.urlContentLearned,
+          description: t.admin.knowledgeBase.toasts.urlWarningWithUrl.replace('{{url}}', data.normalizedUrl)
         });
       } else {
-        toast({ title: t.common.addedSuccess });
+        toast({ title: t.admin.knowledgeBase.toasts.urlContentLearned });
       }
     },
   });
@@ -149,10 +149,13 @@ export default function KnowledgeBasePage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
       setShowWebSearch(false);
+      const query = searchQuery; // Preserve for toast
       setSearchQuery("");
       toast({ 
-        title: `${data.documentsIndexed || 0} ${t.common.addedSuccess}`,
-        description: `${t.common.search}: "${searchQuery}"`,
+        title: t.admin.knowledgeBase.toasts.webSearchSuccess,
+        description: t.admin.knowledgeBase.toasts.webSearchWithCountAndQuery
+          .replace('{{count}}', String(data.documentsIndexed || 0))
+          .replace('{{query}}', query),
       });
     },
   });
@@ -197,8 +200,8 @@ export default function KnowledgeBasePage() {
             </Button>
             <AionLogo size="md" showText={false} />
             <div>
-              <h1 className="text-xl font-bold gradient-text">Knowledge Base</h1>
-              <p className="text-xs text-muted-foreground">Gerenciar conhecimentos do AION</p>
+              <h1 className="text-xl font-bold gradient-text">{t.admin.knowledgeBase.title}</h1>
+              <p className="text-xs text-muted-foreground">{t.admin.knowledgeBase.subtitle}</p>
             </div>
           </div>
         </div>
@@ -213,7 +216,7 @@ export default function KnowledgeBasePage() {
             data-testid="button-add-text"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Adicionar Texto
+            {t.admin.knowledgeBase.actions.addText}
           </Button>
 
           <Button
@@ -223,7 +226,7 @@ export default function KnowledgeBasePage() {
             data-testid="button-learn-url"
           >
             <LinkIcon className="w-4 h-4 mr-2" />
-            Aprender de Link
+            {t.admin.knowledgeBase.actions.learnFromUrl}
           </Button>
 
           <Button
@@ -233,7 +236,7 @@ export default function KnowledgeBasePage() {
             data-testid="button-web-search"
           >
             <Globe className="w-4 h-4 mr-2" />
-            Pesquisar Web
+            {t.admin.knowledgeBase.actions.searchWeb}
           </Button>
 
           <Button
@@ -243,7 +246,7 @@ export default function KnowledgeBasePage() {
             data-testid="button-upload-file"
           >
             <Upload className="w-4 h-4 mr-2" />
-            Upload Arquivo(s)
+            {t.admin.knowledgeBase.actions.uploadFiles}
           </Button>
           <input
             id="file-upload"
@@ -306,7 +309,7 @@ export default function KnowledgeBasePage() {
           <Card className="glass-premium border-primary/20 animate-slide-up">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span className="gradient-text">Adicionar Novo Conhecimento</span>
+                <span className="gradient-text">{t.admin.knowledgeBase.forms.addText.title}</span>
                 <Button
                   size="icon"
                   variant="ghost"
@@ -319,7 +322,7 @@ export default function KnowledgeBasePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder="Título do conhecimento..."
+                placeholder={t.admin.knowledgeBase.forms.addText.titlePlaceholder}
                 value={newTextTitle}
                 onChange={(e) => setNewTextTitle(e.target.value)}
                 data-testid="input-new-doc-title"
@@ -328,19 +331,19 @@ export default function KnowledgeBasePage() {
               {/* Namespace Selector - MOVIDO PARA CIMA! */}
               <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
                 <label className="text-sm font-semibold text-primary">
-                  🏷️ Namespaces (Multi-Agentes):
+                  {t.admin.knowledgeBase.forms.addText.namespaces.label}
                 </label>
                 <NamespaceSelector
                   value={newNamespaces}
                   onChange={setNewNamespaces}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Selecione quais agentes terão acesso a este conhecimento
+                  {t.admin.knowledgeBase.forms.addText.namespaces.help}
                 </p>
               </div>
               
               <Textarea
-                placeholder="Escreva o conteúdo aqui..."
+                placeholder={t.admin.knowledgeBase.forms.addText.contentPlaceholder}
                 value={newTextContent}
                 onChange={(e) => setNewTextContent(e.target.value)}
                 className="min-h-[200px]"
@@ -365,7 +368,7 @@ export default function KnowledgeBasePage() {
           <Card className="glass-premium border-accent/20 animate-slide-up">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span className="gradient-text-vibrant">Aprender de um Link</span>
+                <span className="gradient-text-vibrant">{t.admin.knowledgeBase.forms.learnUrl.title}</span>
                 <Button
                   size="icon"
                   variant="ghost"
@@ -376,19 +379,19 @@ export default function KnowledgeBasePage() {
                 </Button>
               </CardTitle>
               <CardDescription>
-                AION vai acessar o link e aprender todo o conteúdo
+                {t.admin.knowledgeBase.forms.learnUrl.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder="https://example.com/artigo"
+                placeholder={t.admin.knowledgeBase.forms.learnUrl.urlPlaceholder}
                 value={urlToLearn}
                 onChange={(e) => setUrlToLearn(e.target.value)}
                 data-testid="input-url-to-learn"
               />
               
               <div className="space-y-3 border border-dashed border-accent/30 p-4 rounded-md">
-                <Label className="text-sm font-semibold">Modo de Aprendizado:</Label>
+                <Label className="text-sm font-semibold">{t.admin.knowledgeBase.forms.learnUrl.learningMode}</Label>
                 <RadioGroup
                   value={crawlMode}
                   onValueChange={(value) => setCrawlMode(value as "single" | "deep")}
@@ -398,13 +401,13 @@ export default function KnowledgeBasePage() {
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="single" id="single" data-testid="radio-single-page" />
                     <Label htmlFor="single" className="cursor-pointer font-normal">
-                      📄 Aprender da Página - Scan completo somente desta página/link
+                      {t.admin.knowledgeBase.forms.learnUrl.singlePage}
                     </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="deep" id="deep" data-testid="radio-deep-crawl" />
                     <Label htmlFor="deep" className="cursor-pointer font-normal">
-                      🌐 Aprender Completo - Scan de todas as páginas e sublinks
+                      {t.admin.knowledgeBase.forms.learnUrl.deepCrawl}
                     </Label>
                   </div>
                 </RadioGroup>
@@ -421,7 +424,7 @@ export default function KnowledgeBasePage() {
                   htmlFor="download-media"
                   className="cursor-pointer font-normal text-sm"
                 >
-                  📷 Baixar também imagens e vídeos (além do texto)
+                  {t.admin.knowledgeBase.forms.learnUrl.downloadMedia}
                 </Label>
               </div>
               
@@ -432,7 +435,7 @@ export default function KnowledgeBasePage() {
                 data-testid="button-start-learn-url"
               >
                 <LinkIcon className="w-4 h-4 mr-2" />
-                {learnFromUrlMutation.isPending ? "Aprendendo..." : "Aprender deste Link"}
+                {learnFromUrlMutation.isPending ? t.admin.knowledgeBase.forms.learnUrl.learning : t.admin.knowledgeBase.forms.learnUrl.learnFromThisUrl}
               </Button>
             </CardContent>
           </Card>
@@ -443,7 +446,7 @@ export default function KnowledgeBasePage() {
           <Card className="glass-premium border-accent/20 animate-slide-up">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span className="gradient-text-vibrant">Pesquisar e Aprender da Web</span>
+                <span className="gradient-text-vibrant">{t.admin.knowledgeBase.forms.webSearch.title}</span>
                 <Button
                   size="icon"
                   variant="ghost"
@@ -454,12 +457,12 @@ export default function KnowledgeBasePage() {
                 </Button>
               </CardTitle>
               <CardDescription>
-                AION vai pesquisar na internet e indexar todo o conteúdo encontrado
+                {t.admin.knowledgeBase.forms.webSearch.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                placeholder="Ex: Machine Learning fundamentals"
+                placeholder={t.admin.knowledgeBase.forms.webSearch.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 data-testid="input-search-query"
@@ -471,7 +474,7 @@ export default function KnowledgeBasePage() {
                 data-testid="button-start-web-search"
               >
                 <Search className="w-4 h-4 mr-2" />
-                {webSearchMutation.isPending ? "Pesquisando..." : "Pesquisar e Aprender"}
+                {webSearchMutation.isPending ? t.admin.knowledgeBase.forms.webSearch.searching : t.admin.knowledgeBase.forms.webSearch.searchAndLearn}
               </Button>
             </CardContent>
           </Card>
@@ -480,19 +483,19 @@ export default function KnowledgeBasePage() {
         {/* Documents List */}
         <Card className="glass-premium border-primary/20">
           <CardHeader>
-            <CardTitle className="gradient-text">Conhecimentos Armazenados ({documents.length})</CardTitle>
+            <CardTitle className="gradient-text">{t.admin.knowledgeBase.documents.title} ({documents.length})</CardTitle>
             <CardDescription>
-              Gerenciar todos os conhecimentos da Knowledge Base
+              {t.admin.knowledgeBase.documents.subtitle}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea ref={scrollAreaRef} className="h-[600px]">
               <div className="space-y-2">
                 {isLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+                  <div className="text-center py-8 text-muted-foreground">{t.admin.knowledgeBase.states.loading}</div>
                 ) : documents.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    Nenhum conhecimento encontrado. Adicione novos conhecimentos acima!
+                    {t.admin.knowledgeBase.states.noDocuments}
                   </div>
                 ) : (
                   documents.map((doc) => (
@@ -505,7 +508,7 @@ export default function KnowledgeBasePage() {
                           <Input
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
-                            placeholder="Título do conhecimento"
+                            placeholder={t.admin.knowledgeBase.documents.editTitlePlaceholder}
                             data-testid={`input-edit-title-${doc.id}`}
                           />
                           
@@ -519,7 +522,7 @@ export default function KnowledgeBasePage() {
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
                             className="min-h-[100px]"
-                            placeholder="Conteúdo do conhecimento"
+                            placeholder={t.admin.knowledgeBase.documents.editContentPlaceholder}
                             data-testid={`textarea-edit-content-${doc.id}`}
                           />
                           
@@ -546,7 +549,7 @@ export default function KnowledgeBasePage() {
                               onClick={() => setEditingDoc(null)}
                               data-testid={`button-cancel-edit-${doc.id}`}
                             >
-                              Cancelar
+                              {t.admin.knowledgeBase.documents.cancel}
                             </Button>
                           </div>
                         </div>
@@ -559,12 +562,17 @@ export default function KnowledgeBasePage() {
                             </p>
                             <div className="flex flex-wrap gap-2 mt-2">
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span>Fonte: {doc.source || "manual"}</span>
+                                <span>{t.admin.knowledgeBase.documents.source} {
+                                  doc.source === 'url' ? t.admin.knowledgeBase.documents.sourceTypes.url :
+                                  doc.source === 'websearch' ? t.admin.knowledgeBase.documents.sourceTypes.websearch :
+                                  doc.source === 'file' ? t.admin.knowledgeBase.documents.sourceTypes.file :
+                                  t.admin.knowledgeBase.documents.sourceTypes.manual
+                                }</span>
                                 <span>•</span>
                                 <Calendar className="w-3 h-3" />
-                                <span>{new Date(doc.createdAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })}</span>
+                                <span>{new Date(doc.createdAt).toLocaleDateString(t.code === "pt" ? "pt-BR" : t.code === "es" ? "es-ES" : "en-US", { dateStyle: "medium" })}</span>
                                 <Clock className="w-3 h-3" />
-                                <span>{new Date(doc.createdAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</span>
+                                <span>{new Date(doc.createdAt).toLocaleTimeString(t.code === "pt" ? "pt-BR" : t.code === "es" ? "es-ES" : "en-US", { hour: '2-digit', minute: '2-digit' })}</span>
                               </div>
                               {(doc.metadata as any)?.namespaces && (doc.metadata as any).namespaces.length > 0 && (
                                 <>

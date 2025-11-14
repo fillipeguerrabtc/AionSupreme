@@ -421,14 +421,15 @@ interface Translations {
       toasts: {
         knowledgeAdded: string;
         urlContentLearned: string;
-        webSearchSuccess: string; // {{count}} novos conhecimentos adicionados!
-        searchLabel: string; // Pesquisa:
+        urlWarningWithUrl: string; // Warning: protocol added - {{url}}
+        webSearchSuccess: string;
+        webSearchWithCountAndQuery: string; // {{count}} items from search "{{query}}"
         documentUpdated: string;
         documentRemoved: string;
         uploadingFiles: string;
-        processingFiles: string; // Processando {{count}} arquivo(s)...
+        processingFiles: string;
         uploadCompleted: string;
-        filesProcessed: string; // {{count}} arquivo(s) processado(s) e indexado(s)
+        filesProcessed: string;
         uploadError: string;
         processingFailed: string;
         error: string;
@@ -441,6 +442,10 @@ interface Translations {
           contentPlaceholder: string;
           saving: string;
           save: string;
+          namespaces: {
+            label: string;
+            help: string;
+          };
         };
         learnUrl: {
           title: string;
@@ -448,6 +453,10 @@ interface Translations {
           urlPlaceholder: string;
           learning: string;
           learnFromThisUrl: string;
+          learningMode: string;
+          singlePage: string;
+          deepCrawl: string;
+          downloadMedia: string;
         };
         webSearch: {
           title: string;
@@ -465,6 +474,14 @@ interface Translations {
         save: string;
         cancel: string;
         confirmDelete: string;
+        editTitlePlaceholder: string;
+        editContentPlaceholder: string;
+        sourceTypes: {
+          manual: string;
+          url: string;
+          websearch: string;
+          file: string;
+        };
       };
       
       // TODO: Consider mirroring under admin.cascade when used across multiple pages
@@ -2278,8 +2295,9 @@ const translations: Record<Language, Translations> = {
         toasts: {
           knowledgeAdded: "Conhecimento adicionado com sucesso!",
           urlContentLearned: "Conteúdo do link aprendido com sucesso!",
-          webSearchSuccess: "{{count}} novos conhecimentos adicionados!",
-          searchLabel: "Pesquisa:",
+          urlWarningWithUrl: "Aviso: protocolo adicionado automaticamente - {{url}}",
+          webSearchSuccess: "Conhecimentos adicionados com sucesso!",
+          webSearchWithCountAndQuery: "{{count}} conhecimentos da pesquisa '{{query}}'",
           documentUpdated: "Documento atualizado!",
           documentRemoved: "Documento removido!",
           uploadingFiles: "Fazendo upload...",
@@ -2298,6 +2316,10 @@ const translations: Record<Language, Translations> = {
             contentPlaceholder: "Escreva o conteúdo aqui...",
             saving: "Salvando...",
             save: "Salvar",
+            namespaces: {
+              label: "Namespaces (Multi-Agentes):",
+              help: "Selecione quais agentes terão acesso a este conhecimento",
+            },
           },
           learnUrl: {
             title: "Aprender de um Link",
@@ -2305,6 +2327,10 @@ const translations: Record<Language, Translations> = {
             urlPlaceholder: "https://example.com/artigo",
             learning: "Aprendendo...",
             learnFromThisUrl: "Aprender deste Link",
+            learningMode: "Modo de Aprendizado:",
+            singlePage: "Aprender da Página - Scan completo somente desta página/link",
+            deepCrawl: "Aprender Completo - Scan de todas as páginas e sublinks",
+            downloadMedia: "Baixar também imagens e vídeos (além do texto)",
           },
           webSearch: {
             title: "Pesquisar e Aprender da Web",
@@ -2318,10 +2344,18 @@ const translations: Record<Language, Translations> = {
         documents: {
           title: "Conhecimentos Armazenados",
           subtitle: "Gerenciar todos os conhecimentos da Knowledge Base",
-          source: "Fonte",
+          source: "Fonte:",
           save: "Salvar",
           cancel: "Cancelar",
           confirmDelete: "Remover este conhecimento?",
+          editTitlePlaceholder: "Título do conhecimento",
+          editContentPlaceholder: "Conteúdo do conhecimento",
+          sourceTypes: {
+            manual: "manual",
+            url: "link",
+            websearch: "busca web",
+            file: "arquivo",
+          },
         },
         
         cascade: {
@@ -3263,7 +3297,6 @@ const translations: Record<Language, Translations> = {
         rejectNote: "Motivo da rejeição",
         rejectNotePlaceholder: "Por que este conteúdo foi rejeitado?",
         submittedBy: "Enviado por",
-        reviewedBy: "Revisado por",
         note: "Nota",
         attachments: "Anexos",
         viewAttachment: "Ver anexo",
@@ -4162,8 +4195,9 @@ const translations: Record<Language, Translations> = {
         toasts: {
           knowledgeAdded: "Knowledge added successfully!",
           urlContentLearned: "URL content learned successfully!",
-          webSearchSuccess: "{{count}} new knowledge added!",
-          searchLabel: "Search:",
+          urlWarningWithUrl: "Warning: protocol added automatically - {{url}}",
+          webSearchSuccess: "Knowledge added successfully!",
+          webSearchWithCountAndQuery: "{{count}} knowledge items from search '{{query}}'",
           documentUpdated: "Document updated!",
           documentRemoved: "Document removed!",
           uploadingFiles: "Uploading files...",
@@ -4182,6 +4216,10 @@ const translations: Record<Language, Translations> = {
             contentPlaceholder: "Write content here...",
             saving: "Saving...",
             save: "Save",
+            namespaces: {
+              label: "Namespaces (Multi-Agents):",
+              help: "Select which agents will have access to this knowledge",
+            },
           },
           learnUrl: {
             title: "Learn from a URL",
@@ -4189,6 +4227,10 @@ const translations: Record<Language, Translations> = {
             urlPlaceholder: "https://example.com/article",
             learning: "Learning...",
             learnFromThisUrl: "Learn from this URL",
+            learningMode: "Learning Mode:",
+            singlePage: "Learn from Page - Complete scan of this page/link only",
+            deepCrawl: "Complete Learning - Scan all pages and sublinks",
+            downloadMedia: "Also download images and videos (besides text)",
           },
           webSearch: {
             title: "Search and Learn from Web",
@@ -4202,10 +4244,18 @@ const translations: Record<Language, Translations> = {
         documents: {
           title: "Stored Knowledge",
           subtitle: "Manage all Knowledge Base knowledge",
-          source: "Source",
+          source: "Source:",
           save: "Save",
           cancel: "Cancel",
           confirmDelete: "Remove this knowledge?",
+          editTitlePlaceholder: "Knowledge title",
+          editContentPlaceholder: "Knowledge content",
+          sourceTypes: {
+            manual: "manual",
+            url: "url",
+            websearch: "web search",
+            file: "file",
+          },
         },
         
         cascade: {
@@ -5147,7 +5197,6 @@ const translations: Record<Language, Translations> = {
         rejectNote: "Rejection reason",
         rejectNotePlaceholder: "Why was this content rejected?",
         submittedBy: "Submitted by",
-        reviewedBy: "Reviewed by",
         note: "Note",
         attachments: "Attachments",
         viewAttachment: "View attachment",
@@ -6046,8 +6095,9 @@ const translations: Record<Language, Translations> = {
         toasts: {
           knowledgeAdded: "¡Conocimiento añadido con éxito!",
           urlContentLearned: "¡Contenido de la URL aprendido con éxito!",
-          webSearchSuccess: "¡{{count}} nuevos conocimientos añadidos!",
-          searchLabel: "Búsqueda:",
+          urlWarningWithUrl: "Aviso: protocolo añadido automáticamente - {{url}}",
+          webSearchSuccess: "¡Conocimientos añadidos con éxito!",
+          webSearchWithCountAndQuery: "{{count}} conocimientos de la búsqueda '{{query}}'",
           documentUpdated: "¡Documento actualizado!",
           documentRemoved: "¡Documento eliminado!",
           uploadingFiles: "Subiendo archivos...",
@@ -6066,6 +6116,10 @@ const translations: Record<Language, Translations> = {
             contentPlaceholder: "Escribe el contenido aquí...",
             saving: "Guardando...",
             save: "Guardar",
+            namespaces: {
+              label: "Namespaces (Multi-Agentes):",
+              help: "Selecciona qué agentes tendrán acceso a este conocimiento",
+            },
           },
           learnUrl: {
             title: "Aprender de una URL",
@@ -6073,6 +6127,10 @@ const translations: Record<Language, Translations> = {
             urlPlaceholder: "https://example.com/articulo",
             learning: "Aprendiendo...",
             learnFromThisUrl: "Aprender de esta URL",
+            learningMode: "Modo de Aprendizaje:",
+            singlePage: "Aprender de Página - Escaneo completo solo de esta página/enlace",
+            deepCrawl: "Aprendizaje Completo - Escaneo de todas las páginas y subenlaces",
+            downloadMedia: "También descargar imágenes y vídeos (además del texto)",
           },
           webSearch: {
             title: "Buscar y Aprender de la Web",
@@ -6086,10 +6144,18 @@ const translations: Record<Language, Translations> = {
         documents: {
           title: "Conocimientos Almacenados",
           subtitle: "Gestiona todo el conocimiento de la Base de Conocimiento",
-          source: "Fuente",
+          source: "Fuente:",
           save: "Guardar",
           cancel: "Cancelar",
           confirmDelete: "¿Eliminar este conocimiento?",
+          editTitlePlaceholder: "Título del conocimiento",
+          editContentPlaceholder: "Contenido del conocimiento",
+          sourceTypes: {
+            manual: "manual",
+            url: "enlace",
+            websearch: "búsqueda web",
+            file: "archivo",
+          },
         },
         
         cascade: {
@@ -7031,7 +7097,6 @@ const translations: Record<Language, Translations> = {
         rejectNote: "Motivo del rechazo",
         rejectNotePlaceholder: "¿Por qué se rechazó este contenido?",
         submittedBy: "Enviado por",
-        reviewedBy: "Revisado por",
         note: "Nota",
         attachments: "Adjuntos",
         viewAttachment: "Ver adjunto",
