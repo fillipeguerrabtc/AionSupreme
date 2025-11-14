@@ -328,10 +328,11 @@ export class AutoApprovalService {
     }
 
     // DECISION 2: REUSE GATE - Cost-optimization for high-frequency queries
-    // If score is in gray zone (40-69) BUT query is frequently asked (≥3x in 7 days)
-    // → Approve to reduce external API costs via indexing
-    // 🔥 P0.5: Enhanced with semantic similarity check against approved KB
-    if (queryText && score >= 40 && score < config.minApprovalScore) {
+    // INDUSTRY 2025 STANDARD: Auto-approve queries with ≥3x frequency + score ≥10
+    // Rationale: Frequent usage indicates utility regardless of curator score
+    // → Reduces external API costs via KB indexing + internal model training
+    // 🔥 Enhanced with semantic KB similarity check (0.88 threshold)
+    if (queryText && score >= 10 && score < config.minApprovalScore) {
       try {
         const { queryFrequencyService } = await import("./query-frequency-service");
         const frequency = await queryFrequencyService.getFrequency(queryText, selectedNamespace);
