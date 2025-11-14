@@ -116,7 +116,7 @@ export default function AutoApprovalPage() {
     onError: (error: any) => {
       toast({
         title: t.admin.autoApproval.configError,
-        description: error.message || "Unknown error",
+        description: error.message || t.admin.autoApproval.errorFallback,
         variant: "destructive",
       });
     },
@@ -134,7 +134,7 @@ export default function AutoApprovalPage() {
     onError: (error: any) => {
       toast({
         title: t.admin.autoApproval.configError,
-        description: error.message || "Failed to preview decision",
+        description: error.message || t.admin.autoApproval.previewErrorFallback,
         variant: "destructive",
       });
     },
@@ -392,7 +392,7 @@ export default function AutoApprovalPage() {
 
           <div className="flex gap-2">
             <Input
-              placeholder="adult, violence, medical..."
+              placeholder={t.admin.autoApproval.placeholders.flags}
               value={newFlag}
               onChange={(e) => setNewFlag(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddFlag()}
@@ -438,7 +438,7 @@ export default function AutoApprovalPage() {
 
           <div className="flex gap-2">
             <Input
-              placeholder="tech, science, general..."
+              placeholder={t.admin.autoApproval.placeholders.namespaces}
               value={newNamespace}
               onChange={(e) => setNewNamespace(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAddNamespace()}
@@ -461,7 +461,7 @@ export default function AutoApprovalPage() {
         <CardHeader>
           <CardTitle>{t.admin.autoApproval.testDecision}</CardTitle>
           <CardDescription>
-            Test how auto-approval logic would handle specific content
+            {t.admin.autoApproval.testDescription}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -483,7 +483,7 @@ export default function AutoApprovalPage() {
               <Label htmlFor="test-flags">{t.admin.autoApproval.testFlags}</Label>
               <Input
                 id="test-flags"
-                placeholder="adult,violence"
+                placeholder={t.admin.autoApproval.placeholders.testFlags}
                 value={testFlags}
                 onChange={(e) => setTestFlags(e.target.value)}
                 data-testid="input-test-flags"
@@ -494,7 +494,7 @@ export default function AutoApprovalPage() {
               <Label htmlFor="test-namespaces">{t.admin.autoApproval.testNamespaces}</Label>
               <Input
                 id="test-namespaces"
-                placeholder="*"
+                placeholder={t.admin.autoApproval.placeholders.testNamespaces}
                 value={testNamespaces}
                 onChange={(e) => setTestNamespaces(e.target.value)}
                 data-testid="input-test-namespaces"

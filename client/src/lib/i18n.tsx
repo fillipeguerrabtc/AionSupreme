@@ -1589,6 +1589,9 @@ interface Translations {
       decisionResult: string;
       configUpdated: string;
       configError: string;
+      errorFallback: string;
+      previewErrorFallback: string;
+      testDescription: string;
       tooltips: {
         enabled: string;
         minApprovalScore: string;
@@ -1597,6 +1600,12 @@ interface Translations {
         enabledNamespaces: string;
         autoRejectEnabled: string;
         requireAllQualityGates: string;
+      };
+      placeholders: {
+        flags: string;
+        namespaces: string;
+        testFlags: string;
+        testNamespaces: string;
       };
     };
     
@@ -3552,6 +3561,9 @@ const translations: Record<Language, Translations> = {
         decisionResult: "Resultado da Decisão",
         configUpdated: "Configuração atualizada com sucesso",
         configError: "Erro ao atualizar configuração",
+        errorFallback: "Erro desconhecido",
+        previewErrorFallback: "Falha ao visualizar decisão",
+        testDescription: "Teste como a lógica de auto-aprovação trataria conteúdo específico",
         tooltips: {
           enabled: "Ativa/desativa aprovação automática globalmente",
           minApprovalScore: "Conteúdo com score >= este valor será aprovado automaticamente",
@@ -3560,6 +3572,12 @@ const translations: Record<Language, Translations> = {
           enabledNamespaces: "Namespaces permitidos para auto-aprovação (* = todos)",
           autoRejectEnabled: "Permite rejeição automática de conteúdo de baixa qualidade",
           requireAllQualityGates: "Se ativado, conteúdo deve passar por todos os 5 quality gates",
+        },
+        placeholders: {
+          flags: "adult, violence, medical...",
+          namespaces: "tech, science, general...",
+          testFlags: "adult,violence",
+          testNamespaces: "*",
         },
       },
       
@@ -5507,6 +5525,9 @@ const translations: Record<Language, Translations> = {
         decisionResult: "Decision Result",
         configUpdated: "Configuration updated successfully",
         configError: "Error updating configuration",
+        errorFallback: "Unknown error",
+        previewErrorFallback: "Failed to preview decision",
+        testDescription: "Test how auto-approval logic would handle specific content",
         tooltips: {
           enabled: "Enable/disable automatic approval globally",
           minApprovalScore: "Content with score >= this value will be approved automatically",
@@ -5515,6 +5536,12 @@ const translations: Record<Language, Translations> = {
           enabledNamespaces: "Namespaces allowed for auto-approval (* = all)",
           autoRejectEnabled: "Allows automatic rejection of low-quality content",
           requireAllQualityGates: "If enabled, content must pass all 5 quality gates",
+        },
+        placeholders: {
+          flags: "adult, violence, medical...",
+          namespaces: "tech, science, general...",
+          testFlags: "adult,violence",
+          testNamespaces: "*",
         },
       },
       
@@ -7462,6 +7489,9 @@ const translations: Record<Language, Translations> = {
         decisionResult: "Resultado de la Decisión",
         configUpdated: "Configuración actualizada con éxito",
         configError: "Error al actualizar configuración",
+        errorFallback: "Error desconocido",
+        previewErrorFallback: "Falló al previsualizar decisión",
+        testDescription: "Prueba cómo la lógica de auto-aprobación manejaría contenido específico",
         tooltips: {
           enabled: "Habilita/deshabilita aprobación automática globalmente",
           minApprovalScore: "El contenido con puntuación >= este valor será aprobado automáticamente",
@@ -7470,6 +7500,12 @@ const translations: Record<Language, Translations> = {
           enabledNamespaces: "Namespaces permitidos para auto-aprobación (* = todos)",
           autoRejectEnabled: "Permite rechazo automático de contenido de baja calidad",
           requireAllQualityGates: "Si está activado, el contenido debe pasar todos los 5 quality gates",
+        },
+        placeholders: {
+          flags: "adult, violence, medical...",
+          namespaces: "tech, science, general...",
+          testFlags: "adult,violence",
+          testNamespaces: "*",
         },
       },
       
