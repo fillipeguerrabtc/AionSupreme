@@ -301,10 +301,50 @@ export class LLMCircuitBreaker {
   /**
    * Registra falha
    * 🔥 P0.2 FIX: Async to await DB persistence (state survives restarts)
+   * 🔥 P0.8 FIX: Differentiate SOFT_THROTTLE vs HARD_FAILURE
+   * 
+   * @param error Mensagem de erro
+   * @param failureType Tipo de falha (default: HARD_FAILURE para compatibilidade)
    */
-  async recordFailure(error?: string): Promise<void> {
+  async recordFailure(
+    error?: string,
+    failureType: 'SOFT_THROTTLE' | 'QUOTA_EXHAUSTED' | 'HARD_FAILURE' = 'HARD_FAILURE'
+  ): Promise<void> {
+    // ✅ P0.8 CRITICAL: SOFT_THROTTLE não conta como failure!
+    // Throttle temporário (429 RPM/TPM) não deve abrir circuit breaker
+    if (failureType === 'SOFT_THROTTLE') {
+      log.info(
+        { 
+          providerId: this.providerId, 
+          providerName: this.providerName,
+          error,
+          component: "LLMCircuitBreaker"
+        },
+        "Soft throttle detected - NOT counting as failure (circuit stays healthy)"
+      );
+      // ✅ FIX: NÃO atualiza lastFailureTime para SOFT_THROTTLE (não é failure real!)
+      // Isso mantém breaker metrics consistentes
+      return;
+    }
+    
+    // ✅ Apenas QUOTA_EXHAUSTED/HARD_FAILURE atualizam lastFailureTime
     this.lastFailureTime = Date.now();
+    
+    // ✅ QUOTA_EXHAUSTED e HARD_FAILURE contam como failure real
     this.failureCount++;
+    
+    log.warn(
+      { 
+        providerId: this.providerId, 
+        providerName: this.providerName,
+        failureType,
+        failureCount: this.failureCount,
+        threshold: this.config.failureThreshold,
+        error,
+        component: "LLMCircuitBreaker"
+      },
+      `${failureType} detected - failure count incremented`
+    );
 
     switch (this.state) {
       case CircuitState.CLOSED:
@@ -324,6 +364,7 @@ export class LLMCircuitBreaker {
           { 
             providerId: this.providerId, 
             providerName: this.providerName,
+            failureType,
             error,
             component: "LLMCircuitBreaker"
           },
