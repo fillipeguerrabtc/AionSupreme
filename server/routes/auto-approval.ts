@@ -111,10 +111,13 @@ router.get("/decision-preview", requireAdmin, async (req, res) => {
     }
 
     // Get decision preview
+    // Note: This is a test endpoint - queryText parameter optional (can pass test string)
     const decision = await autoApprovalService.decide(
       parsedScore,
       parsedFlags,
-      parsedNamespaces
+      parsedNamespaces,
+      undefined,  // qualityGatesPassed
+      "test query"  // queryText for testing greeting/reuse gates
     );
 
     sendSuccess(res, {

@@ -224,7 +224,9 @@ export const curationStore = {
 
     // STEP 1.5: Track query frequency for reuse-aware auto-approval (CRITICAL for reuse gate)
     // This enables cost-optimization by detecting frequently asked questions
-    console.log(`[Curation] 📊 ATTEMPTING query frequency tracking for content: "${data.content.substring(0, 50)}..."`);
+    // 🎯 CRITICAL: Track data.title (not content) to MATCH decide() queryText parameter
+    // This ensures frequency lookups succeed when reuse gate checks frequency
+    console.log(`[Curation] 📊 ATTEMPTING query frequency tracking for title: "${data.title.substring(0, 50)}..."`);
     try {
       console.log(`[Curation] → Importing queryFrequencyService...`);
       const { queryFrequencyService } = await import("../services/query-frequency-service");
@@ -234,7 +236,7 @@ export const curationStore = {
       console.log(`[Curation] → Calling track() with namespace="${primaryNamespace}", conversationId="${data.conversationId}"`);
       
       await queryFrequencyService.track(
-        data.content,
+        data.title,  // ✅ MATCH with decide() queryText for reuse gate!
         primaryNamespace,
         data.conversationId?.toString()
       );
@@ -416,10 +418,14 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
       const namespaces = analysis.suggestedNamespaces || [];
       
       // Get auto-approval decision from service (uses DB config)
+      // 🎯 PHASE 1 FIX: Pass data.title as queryText to enable Greeting Gate + Reuse Gate
+      // (Phase 2: Add dedicated originalQuery field for long-term accuracy)
       const decision = await autoApprovalService.decide(
         analysis.score,
         contentFlags,
-        namespaces
+        namespaces,
+        undefined,  // qualityGatesPassed (not used yet)
+        data.title  // queryText for greeting detection + frequency tracking
       );
       
       console.log(`[Curation] 🤖 Auto-approval decision: ${decision.action.toUpperCase()}`);

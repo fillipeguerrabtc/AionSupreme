@@ -1300,7 +1300,9 @@ export function registerCurationRoutes(app: Router) {
         }
         
         // Extract query text for GREETING_GATE and REUSE_GATE
-        const queryText = item.content?.substring(0, 500) || '';
+        // 🎯 PHASE 1 FIX: Use item.title as queryText (best proxy for original user query)
+        // (Phase 2: Add dedicated originalQuery field for long-term accuracy)
+        const queryText = item.title || item.content?.substring(0, 500) || '';
         
         const decision = await autoApprovalService.decide(
           qualityScore,

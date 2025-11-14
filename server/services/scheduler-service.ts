@@ -575,8 +575,10 @@ export class SchedulerService {
               continue;
             }
             
-            // Extract query text from content (first 500 chars for frequency matching)
-            const queryText = item.content?.substring(0, 500) || '';
+            // Extract query text for greeting/reuse gates
+            // 🎯 PHASE 1 FIX: Use item.title as queryText (best proxy for original user query)
+            // (Phase 2: Add dedicated originalQuery field for long-term accuracy)
+            const queryText = item.title || item.content?.substring(0, 500) || '';
             const primaryNamespace = suggestedNamespaces && suggestedNamespaces.length > 0 ? suggestedNamespaces[0] : undefined;
             
             const decision = await autoApprovalService.decide(
