@@ -813,7 +813,12 @@ This instruction takes ABSOLUTE PRIORITY.
   
   console.log('\n💸 [STEP 3/5] Trying FREE APIs (27,170 req/day)...');
   
+  // 🔥 FIX: State tracking for accurate logging
+  let freeApisAttempted = false;
+  let freeApisSucceeded = false;
+  
   try {
+    freeApisAttempted = true;
     // 🔥 USE CENTRALIZED SYSTEM PROMPT (ensures conversational tone!)
     const { buildSimpleConversation } = await import('./system-prompt');
     
@@ -838,6 +843,7 @@ This instruction takes ABSOLUTE PRIORITY.
     
     if (!refusalCheck.isRefusal) {
       // No refusal - return direct response
+      freeApisSucceeded = true;
       console.log('   ✅ Free API provided direct answer (no refusal)!');
       console.log('='.repeat(80) + '\n');
       
@@ -921,6 +927,11 @@ This instruction takes ABSOLUTE PRIORITY.
     
   } catch (error: any) {
     console.error('   ✗ All Free APIs failed:', error.message);
+    console.error('   🔍 [FREE APIs DEBUG] Full error details:', {
+      errorType: error?.constructor?.name,
+      errorMessage: error?.message,
+      errorStack: error?.stack?.split('\n').slice(0, 3).join('\n   ')
+    });
     console.log('   → Proceeding to Web Search...');
   }
   
@@ -930,7 +941,12 @@ This instruction takes ABSOLUTE PRIORITY.
   
   console.log('\n🔍 [STEP 4/5] Trying WEB SEARCH (before OpenAI)...');
   
+  // 🔥 FIX: State tracking for accurate logging
+  let webSearchAttempted = false;
+  let webSearchSucceeded = false;
+  
   try {
+    webSearchAttempted = true;
     const webFallback = await executeWebFallback(userMessage, true, req.language, req.temperature ?? 0.7, req.topP ?? 0.9); // skipLLM=true for now
     
     await trackWebSearch(
@@ -939,6 +955,7 @@ This instruction takes ABSOLUTE PRIORITY.
       webFallback.searchMetadata
     );
     
+    webSearchSucceeded = true;
     console.log('   ✅ Web search completed successfully!');
     console.log('='.repeat(80) + '\n');
     
@@ -968,6 +985,19 @@ This instruction takes ABSOLUTE PRIORITY.
   // ============================================================================
   
   console.log('\n💰 [STEP 5/5] Using OpenAI (LAST RESORT, PAID)...');
+  
+  // 🔥 CRITICAL LOGGING: Why are we here? What failed before?
+  console.warn('🚨 [OPENAI FALLBACK TRIGGERED] Reached paid OpenAI as last resort!');
+  console.warn('   📊 Previous steps status:');
+  console.warn(`   1. KB: ${kbResult ? `${kbResult.topResults.length} results, confidence ${(kbResult.confidence * 100).toFixed(1)}%` : 'NOT ATTEMPTED'}`);
+  console.warn(`   2. GPU: ${shouldTryGPU ? 'ATTEMPTED' : 'SKIPPED'}`);
+  console.warn(`   3. Free APIs: ${!freeApisAttempted ? 'NOT ATTEMPTED' : freeApisSucceeded ? 'SUCCEEDED (refusal?)' : 'FAILED'}`);
+  console.warn(`   4. Web Search: ${!webSearchAttempted ? 'NOT ATTEMPTED' : webSearchSucceeded ? 'SUCCEEDED (but returned here?)' : 'FAILED'}`);
+  console.warn('   🔍 Check logs above for detailed failure reasons');
+  
+  // Log stack trace to identify WHO is calling this (for debugging bypassed calls)
+  const stack = new Error().stack;
+  console.warn('   📞 Call stack:', stack?.split('\n').slice(0, 5).join('\n   '));
   
   const openaiKey = process.env.OPENAI_API_KEY;
   if (!openaiKey) {
