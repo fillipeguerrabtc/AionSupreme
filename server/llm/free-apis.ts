@@ -12,6 +12,12 @@ import { log } from '../utils/logger';
 import { withTimeout, TimeoutError } from '../utils/timeout';
 import { llmCircuitBreakerManager } from './llm-circuit-breaker';
 import { countChatTokens } from './tokenizer'; // ✅ ENTERPRISE FIX: Accurate token counting
+import { 
+  analyze429Error, 
+  throttleCoordinator,
+  OrchestrationBudget,
+  FailureType 
+} from './retry-coordinator'; // ✅ P0.8 ANTI-PREJUÍZO SYSTEM
 
 // ============================================================================
 // TYPES
@@ -111,18 +117,22 @@ async function callGroq(req: LLMRequest, orchestrationRemainingMs?: number): Pro
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY not set');
 
-  // ✅ CRITICAL: Use fetch to capture response headers (OpenAI SDK doesn't expose them)
+  // ✅ P0.8 ENTERPRISE FIX: Use nullish coalescing (??) to preserve 0ms budget
+  // || would convert 0 → 30000 (WRONG!)
+  // ?? only replaces null/undefined → 30000 (CORRECT!)
+  const budget = new OrchestrationBudget(orchestrationRemainingMs ?? 30000);
+  
+  // ✅ ENTERPRISE: NO hardcoded delays - EVERY retry usa budget-aware wait
   const maxRetries = 3;
-  const retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
   
   let lastError: Error | null = null;
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      // 🔥 P0.1 FIX: Cap timeout to orchestration remaining time (30s hard deadline)
-      const effectiveTimeout = orchestrationRemainingMs 
-        ? Math.max(0, Math.min(orchestrationRemainingMs, 15000))
-        : 15000;
+      // ✅ P0.8 ENTERPRISE FIX: Cap timeout to CURRENT budget remaining (not initial!)
+      // effectiveTimeout deve usar budget.getRemainingMs() (atualizado), não orchestrationRemainingMs (inicial)!
+      const budgetRemainingNow = budget.getRemainingMs();
+      const effectiveTimeout = Math.max(0, Math.min(budgetRemainingNow, 15000));
       
       // Bail out immediately if no time left
       if (effectiveTimeout <= 0) {
@@ -171,6 +181,7 @@ async function callGroq(req: LLMRequest, orchestrationRemainingMs?: number): Pro
         const errorData = await response.json();
         const error = new Error(errorData.error?.message || `Groq API error: ${response.status}`);
         (error as any).status = response.status;
+        (error as any).headers = headers; // ✅ P0.8: Attach headers para retry coordinator
         throw error;
       }
 
@@ -227,23 +238,195 @@ async function callGroq(req: LLMRequest, orchestrationRemainingMs?: number): Pro
     } catch (error: any) {
       lastError = error;
       
-      // 🔥 P0.1 FIX: Treat TimeoutError as retryable (same as 429/503/504)
-      const isTimeout = error instanceof TimeoutError;
-      const isRetryable = isTimeout || error.status === 429 || error.status === 503 || error.status === 504;
-      
-      if (!isRetryable || attempt === maxRetries) {
-        // Log timeout specifically for observability
-        if (isTimeout) {
-          log.error({ component: 'groq', attempt: attempt + 1, timeoutMs: error.timeoutMs }, 'Groq request timed out');
+      // ✅ P0.8: INTELLIGENT RETRY SYSTEM (Anti-Prejuízo)
+      if (error.status === 429) {
+        // ✅ ENTERPRISE: Extract headers (may be empty - analyze429Error handles estimate path)
+        const headers = error.headers || {};
+        
+        // ✅ FIX: ALWAYS call analyze429Error - it has estimator for missing headers!
+        // Guard removed - analyze429Error handles both paths:
+        //   - WITH headers → parse and use reset time
+        //   - WITHOUT headers → use conservative estimate (30s for Groq)
+        const analysis = await analyze429Error('groq', error, headers, budget);
+        
+        log.info({
+          component: 'groq',
+          attempt: attempt + 1,
+          failureType: analysis.type,
+          reason: analysis.reason,
+          waitMs: analysis.waitMs,
+          quotaUsed: analysis.quotaUsed,
+          quotaLimit: analysis.quotaLimit
+        }, 'Groq 429 analyzed by RetryCoordinator');
+        
+        // ✅ FIX CRITICAL: Caso 1 SOFT_THROTTLE → Retry SEM breaker
+        if (analysis.type === FailureType.SOFT_THROTTLE && analysis.waitMs && analysis.resetTime) {
+          const waited = await throttleCoordinator.waitForReset('groq', analysis.resetTime, budget);
+          
+          if (waited && attempt < maxRetries) {
+            // ✅ ENTERPRISE FIX: Re-check budget AFTER wait (prevent exceeding deadline)
+            // waitForReset may consume full budget → need buffer for next request!
+            const budgetAfterWait = budget.getRemainingMs();
+            
+            // ✅ ENTERPRISE FIX #7: Calculate DYNAMIC buffer based on next request timeout
+            // Next request effectiveTimeout = Math.min(budgetAfterWait, 15000)
+            // Need buffer >= nextTimeout + safety margin (1s for processing)
+            const nextRequestTimeout = Math.max(0, Math.min(budgetAfterWait, 15000));
+            const SAFETY_MARGIN = 1000; // 1s for processing overhead
+            const requiredBuffer = nextRequestTimeout + SAFETY_MARGIN;
+            
+            if (budgetAfterWait < requiredBuffer) {
+              log.error({
+                component: 'groq',
+                attempt: attempt + 1,
+                budgetAfterWait,
+                nextRequestTimeout,
+                safetyMargin: SAFETY_MARGIN,
+                requiredBuffer,
+                reason: 'Insufficient budget for next request after throttle wait'
+              }, 'Budget exhausted after wait - cannot retry');
+              
+              const breaker = await llmCircuitBreakerManager.getBreaker('groq');
+              await breaker.recordFailure(error.message, 'HARD_FAILURE');
+              throw new Error(`Orchestration deadline exceeded after throttle wait (need ${requiredBuffer}ms, have ${budgetAfterWait}ms)`);
+            }
+            
+            // ✅ SUCCESS: Aguardou reset E tem budget suficiente para retry
+            log.info({
+              component: 'groq',
+              attempt: attempt + 1,
+              resetTime: new Date(analysis.resetTime).toISOString(),
+              budgetAfterWait,
+              nextRequestTimeout,
+              requiredBuffer,
+              safetyMargin: SAFETY_MARGIN
+            }, 'Soft throttle wait complete - retrying Groq request with dynamic budget buffer');
+            // ✅ FIX: Continue SEM breaker (early exit do catch block)
+            continue; // Next iteration will NOT reuse breaker promise
+          }
+          
+          // ❌ FAILED: Budget esgotado ou maxRetries → HARD_FAILURE
+          const remainingBudget = budget.getRemainingMs();
+          const budgetExceeded = remainingBudget <= 0;
+          
+          log.warn({
+            component: 'groq',
+            waited,
+            attempt,
+            maxRetries,
+            budgetRemaining: remainingBudget,
+            budgetExceeded
+          }, 'Cannot retry Groq - treating soft throttle as hard failure');
+          
+          // ✅ FIX: CRITICAL - Enforce budget ceiling (prevent exceeding 30s)
+          if (budgetExceeded) {
+            log.error({
+              component: 'groq',
+              budgetRemaining: remainingBudget
+            }, 'Orchestration budget exceeded - aborting retry chain');
+            throw new Error(`Orchestration deadline exceeded (budget: ${remainingBudget}ms)`);
+          }
+          
+          // ✅ FIX: Acquire breaker ONLY for failure path
+          const breaker = await llmCircuitBreakerManager.getBreaker('groq');
+          await breaker.recordFailure(error.message, 'HARD_FAILURE');
+          throw error;
         }
+        
+        // ✅ FIX: Caso 2 QUOTA_EXHAUSTED/HARD → Acquire breaker AQUI
+        log.warn({
+          component: 'groq',
+          failureType: analysis.type,
+          reason: analysis.reason
+        }, 'Groq 429 not retryable - recording failure');
+        
+        const breaker = await llmCircuitBreakerManager.getBreaker('groq');
+        const failureType = analysis.type === FailureType.QUOTA_EXHAUSTED 
+          ? 'QUOTA_EXHAUSTED' 
+          : 'HARD_FAILURE';
+        
+        await breaker.recordFailure(error.message, failureType);
         throw error;
       }
       
-      // Wait before retry
-      const delay = retryDelays[attempt];
-      const reason = isTimeout ? 'timeout' : `rate limit (${error.status})`;
-      log.warn({ component: 'groq', attempt: attempt + 1, maxRetries, delay, reason }, 'Groq call failed, retrying');
-      await new Promise(resolve => setTimeout(resolve, delay));
+      // ✅ P0.8 ENTERPRISE: Timeout/Network Errors with Circuit Breaker Integration
+      const isTimeout = error instanceof TimeoutError;
+      const isRetryable = isTimeout || error.status === 503 || error.status === 504;
+      
+      if (!isRetryable || attempt === maxRetries) {
+        // ✅ FIX ENTERPRISE: Log with structured data
+        if (isTimeout) {
+          log.error({ 
+            component: 'groq', 
+            attempt: attempt + 1, 
+            timeoutMs: error.timeoutMs,
+            budgetRemaining: budget.getRemainingMs()
+          }, 'Groq request timed out - recording HARD_FAILURE');
+        } else {
+          log.error({ 
+            component: 'groq', 
+            attempt: attempt + 1, 
+            status: error.status,
+            budgetRemaining: budget.getRemainingMs()
+          }, 'Groq non-retryable error - recording HARD_FAILURE');
+        }
+        
+        // ✅ FIX ENTERPRISE: Record HARD_FAILURE with proper breaker integration
+        const breaker = await llmCircuitBreakerManager.getBreaker('groq');
+        await breaker.recordFailure(error.message, 'HARD_FAILURE');
+        throw error;
+      }
+      
+      // ✅ ENTERPRISE FIX: Budget-aware exponential backoff (NO hardcoded delays!)
+      // Exponential backoff: 1s, 2s, 4s (but clamped by budget)
+      const baseDelay = Math.min(1000 * Math.pow(2, attempt), 4000);
+      const budgetRemaining = budget.getRemainingMs();
+      const requiredMs = baseDelay + 5000; // +5s buffer for next request
+      
+      // ✅ CRITICAL: Check budget BEFORE scheduling retry
+      if (budgetRemaining <= 0) {
+        log.error({
+          component: 'groq',
+          attempt: attempt + 1,
+          budgetRemaining,
+          reason: 'Orchestration deadline exceeded'
+        }, 'Budget exhausted before retry - recording HARD_FAILURE');
+        
+        const breaker = await llmCircuitBreakerManager.getBreaker('groq');
+        await breaker.recordFailure(error.message, 'HARD_FAILURE');
+        throw new Error(`Orchestration deadline exceeded (budget: ${budgetRemaining}ms)`);
+      }
+      
+      if (!budget.canAfford(requiredMs)) {
+        log.error({
+          component: 'groq',
+          attempt: attempt + 1,
+          requiredMs,
+          budgetRemaining,
+          reason: 'Insufficient budget for retry + next request'
+        }, 'Cannot afford retry - recording HARD_FAILURE');
+        
+        const breaker = await llmCircuitBreakerManager.getBreaker('groq');
+        await breaker.recordFailure(error.message, 'HARD_FAILURE');
+        throw new Error(`Insufficient orchestration budget (need ${requiredMs}ms, have ${budgetRemaining}ms)`);
+      }
+      
+      // ✅ ENTERPRISE: Budget-aware retry with exponential backoff
+      const effectiveDelay = Math.min(baseDelay, budgetRemaining - 5000); // Reserve 5s for request
+      const reason = isTimeout ? 'timeout' : `server error (${error.status})`;
+      
+      log.warn({ 
+        component: 'groq', 
+        attempt: attempt + 1, 
+        maxRetries, 
+        baseDelay,
+        effectiveDelay,
+        reason,
+        budgetRemaining,
+        budgetAfterWait: budgetRemaining - effectiveDelay
+      }, 'Groq call failed - retrying with budget-aware backoff');
+      
+      await new Promise(resolve => setTimeout(resolve, effectiveDelay));
     }
   }
   

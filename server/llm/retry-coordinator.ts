@@ -144,8 +144,13 @@ export async function analyze429Error(
     
     if (resetRequests || resetTokens) {
       // ✅ FIX CRITICAL: Headers são Unix timestamps em SECONDS, converter para MS!
-      const resetReqTimestamp = resetRequests ? parseInt(resetRequests) * 1000 : Infinity;
-      const resetTokTimestamp = resetTokens ? parseInt(resetTokens) * 1000 : Infinity;
+      // ✅ FIX: Validate parsed timestamps (prevent NaN)
+      const resetReqParsed = resetRequests ? parseInt(resetRequests) : NaN;
+      const resetTokParsed = resetTokens ? parseInt(resetTokens) : NaN;
+      
+      const resetReqTimestamp = (!isNaN(resetReqParsed) && resetReqParsed > 0) ? resetReqParsed * 1000 : Infinity;
+      const resetTokTimestamp = (!isNaN(resetTokParsed) && resetTokParsed > 0) ? resetTokParsed * 1000 : Infinity;
+      
       resetTime = Math.min(resetReqTimestamp, resetTokTimestamp);
       
       log.debug({
@@ -213,20 +218,26 @@ export async function analyze429Error(
       // Para estimates, ser conservador mas não bloquear totalmente
       if (usingEstimate && waitMs < 60000) {
         // Estimate entre 40-60s → Tentar mesmo assim (SOFT_THROTTLE)
+        const cappedWaitMs = Math.min(waitMs, 40000); // Cap no máximo 40s
+        const cappedResetTime = Date.now() + cappedWaitMs; // ✅ FIX CRITICAL: Clamp resetTime também!
+        
         log.warn({
           provider,
-          waitMs,
+          originalWaitMs: waitMs,
+          cappedWaitMs,
+          originalResetTime: new Date(resetTime).toISOString(),
+          cappedResetTime: new Date(cappedResetTime).toISOString(),
           maxWaitMs,
           component: 'RetryCoordinator'
-        }, 'Estimated wait time high but acceptable - allowing retry');
+        }, 'Estimated wait time high but acceptable - capping and allowing retry');
         
         return {
           type: FailureType.SOFT_THROTTLE,
-          waitMs: Math.min(waitMs, 40000), // Cap no máximo 40s
-          reason: `Throttled (capped wait ${Math.min(waitMs, 40000) / 1000}s)`,
-          resetTime,
-          quotaUsed: quota.requestCount,  // ✅ FIX: requestCount é a quota usada
-          quotaLimit: quota.dailyRequestLimit,  // ✅ FIX: dailyRequestLimit é o limite
+          waitMs: cappedWaitMs,
+          reason: `Throttled (capped wait ${cappedWaitMs / 1000}s)`,
+          resetTime: cappedResetTime, // ✅ FIX: resetTime também capped!
+          quotaUsed: quota.requestCount,
+          quotaLimit: quota.dailyRequestLimit,
         };
       }
       
