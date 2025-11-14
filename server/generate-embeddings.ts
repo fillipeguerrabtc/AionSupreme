@@ -1,6 +1,7 @@
 import { OpenAI } from 'openai';
 import pkg from 'pg';
 const { Client } = pkg;
+import { truncateForEmbedding } from './ai/embedding-sanitizer';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -27,10 +28,13 @@ async function generateEmbeddings() {
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       
+      // ✅ CRITICAL: Truncate to prevent "maximum context length 8192 tokens" error
+      const safeChunk = truncateForEmbedding(chunk, { purpose: 'generate-embeddings.ts script' });
+      
       // Gerar embedding
       const response = await openai.embeddings.create({
         model: 'text-embedding-3-small',
-        input: chunk,
+        input: safeChunk,
       });
       
       const embedding = response.data[0].embedding;
@@ -39,7 +43,7 @@ async function generateEmbeddings() {
       await client.query(`
         INSERT INTO embeddings (document_id, chunk_index, chunk_text, chunk_tokens, embedding, embedding_dim)
         VALUES ($1, $2, $3, $4, $5, $6)
-      `, [doc.id, i, chunk, Math.floor(chunk.length / 4), JSON.stringify(embedding), 1536]);
+      `, [doc.id, i, safeChunk, Math.floor(safeChunk.length / 4), JSON.stringify(embedding), 1536]);
       
       console.log(`  ✓ Embedding criado para chunk ${i}`);
     }
