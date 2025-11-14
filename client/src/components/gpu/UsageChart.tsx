@@ -19,7 +19,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -33,6 +33,7 @@ import {
   AreaChart
 } from 'recharts';
 import { format } from 'date-fns';
+import type { Translations } from '@/lib/i18n';
 
 interface DataPoint {
   timestamp: Date;
@@ -43,21 +44,13 @@ interface DataPoint {
 interface UsageChartProps {
   /** Historical usage data */
   data: DataPoint[];
-  /** i18n function */
-  t: (key: string) => string;
+  /** i18n translations */
+  translations: Translations['gpuManagement'];
   /** data-testid for testing */
   'data-testid'?: string;
 }
 
 type TimeRange = '1h' | '6h' | '24h' | '7d' | '30d';
-
-const TIME_RANGES: { value: TimeRange; label: string; hours: number }[] = [
-  { value: '1h', label: '1 Hour', hours: 1 },
-  { value: '6h', label: '6 Hours', hours: 6 },
-  { value: '24h', label: '24 Hours', hours: 24 },
-  { value: '7d', label: '7 Days', hours: 168 },
-  { value: '30d', label: '30 Days', hours: 720 },
-];
 
 /**
  * Custom tooltip for chart
@@ -84,8 +77,18 @@ function CustomTooltip({ active, payload }: any) {
   );
 }
 
-export function UsageChart({ data, t, 'data-testid': testId }: UsageChartProps) {
+export function UsageChart({ data, translations, 'data-testid': testId }: UsageChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('24h');
+  const t = translations.usageHistory;
+
+  // Define time ranges with i18n labels
+  const TIME_RANGES = useMemo(() => [
+    { value: '1h' as const, label: t.timeRanges.oneHour, hours: 1 },
+    { value: '6h' as const, label: t.timeRanges.sixHours, hours: 6 },
+    { value: '24h' as const, label: t.timeRanges.twentyFourHours, hours: 24 },
+    { value: '7d' as const, label: t.timeRanges.sevenDays, hours: 168 },
+    { value: '30d' as const, label: t.timeRanges.thirtyDays, hours: 720 },
+  ], [t.timeRanges]);
 
   // Filter data based on time range
   const now = Date.now();
@@ -106,15 +109,15 @@ export function UsageChart({ data, t, 'data-testid': testId }: UsageChartProps) 
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Quota Usage Trends
+            {t.title}
           </CardTitle>
           <CardDescription>
-            Historical quota usage over time
+            {t.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            No historical data available
+            {t.noData}
           </div>
         </CardContent>
       </Card>
@@ -128,15 +131,15 @@ export function UsageChart({ data, t, 'data-testid': testId }: UsageChartProps) 
           <div>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Quota Usage Trends
+              {t.title}
             </CardTitle>
             <CardDescription>
-              Historical quota usage over time
+              {t.description}
             </CardDescription>
           </div>
           
           {/* Time Range Selector */}
-          <div className="flex items-center gap-1" role="tablist" aria-label="Time range selector">
+          <div className="flex items-center gap-1" role="tablist" aria-label={t.aria.timeRangeSelector}>
             {TIME_RANGES.map(range => (
               <Button
                 key={range.value}
@@ -191,15 +194,15 @@ export function UsageChart({ data, t, 'data-testid': testId }: UsageChartProps) 
             <Tooltip content={<CustomTooltip />} />
             
             {/* Threshold Lines */}
-            <ReferenceLine y={70} stroke="#eab308" strokeDasharray="3 3" label="Warning (70%)" />
-            <ReferenceLine y={85} stroke="#f97316" strokeDasharray="3 3" label="Critical (85%)" />
-            <ReferenceLine y={95} stroke="#ef4444" strokeDasharray="3 3" label="Emergency (95%)" />
+            <ReferenceLine y={70} stroke="#eab308" strokeDasharray="3 3" label={t.thresholds.warning} />
+            <ReferenceLine y={85} stroke="#f97316" strokeDasharray="3 3" label={t.thresholds.critical} />
+            <ReferenceLine y={95} stroke="#ef4444" strokeDasharray="3 3" label={t.thresholds.emergency} />
             
             {/* Kaggle Usage */}
             <Area
               type="monotone"
               dataKey="kaggleUsage"
-              name="Kaggle"
+              name={t.providers.kaggle}
               stroke="#3b82f6"
               strokeWidth={2}
               fill="url(#kaggleGradient)"
@@ -211,7 +214,7 @@ export function UsageChart({ data, t, 'data-testid': testId }: UsageChartProps) 
             <Area
               type="monotone"
               dataKey="colabUsage"
-              name="Colab"
+              name={t.providers.colab}
               stroke="#8b5cf6"
               strokeWidth={2}
               fill="url(#colabGradient)"
@@ -225,11 +228,11 @@ export function UsageChart({ data, t, 'data-testid': testId }: UsageChartProps) 
         <div className="flex items-center justify-center gap-6 mt-4 text-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-500" />
-            <span>Kaggle</span>
+            <span>{t.providers.kaggle}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-purple-500" />
-            <span>Colab</span>
+            <span>{t.providers.colab}</span>
           </div>
         </div>
       </CardContent>

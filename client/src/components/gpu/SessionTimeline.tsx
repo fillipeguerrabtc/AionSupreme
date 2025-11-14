@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Clock, Play, Pause, AlertTriangle } from 'lucide-react';
 import { CountdownTimer } from '../gpu/CountdownTimer';
+import type { Translations } from '@/lib/i18n';
 
 export interface SessionState {
   provider: 'kaggle' | 'colab';
@@ -30,7 +31,7 @@ export interface SessionState {
 
 export interface SessionTimelineProps {
   sessions: SessionState[];
-  t: (key: string) => string;
+  translations: Translations['gpuManagement'];
 }
 
 function getStatusIcon(status: SessionState['status']) {
@@ -59,22 +60,24 @@ function getStatusColor(status: SessionState['status']) {
   }
 }
 
-export function SessionTimeline({ sessions, t }: SessionTimelineProps) {
+export function SessionTimeline({ sessions, translations }: SessionTimelineProps) {
+  const t = translations.timeline;
+
   if (sessions.length === 0) {
     return (
       <Card className="hover-elevate" data-testid="card-session-timeline">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
-            Session Timeline
+            {t.title}
           </CardTitle>
           <CardDescription>
-            No active sessions
+            {t.noSessions}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-sm text-muted-foreground">
-            {t('gpu.auth.not_authenticated')}
+            {t.emptyMessage}
           </div>
         </CardContent>
       </Card>
@@ -86,10 +89,10 @@ export function SessionTimeline({ sessions, t }: SessionTimelineProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          Session Timeline
+          {t.title}
         </CardTitle>
         <CardDescription>
-          Active sessions and cooldowns
+          {t.description}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -106,7 +109,7 @@ export function SessionTimeline({ sessions, t }: SessionTimelineProps) {
               variant={session.status === 'active' ? 'default' : 'secondary'}
               data-testid={`badge-status-${session.provider}`}
             >
-              {session.status}
+              {t.status[session.status]}
             </Badge>
 
             {/* Timeline Bar */}
@@ -130,22 +133,22 @@ export function SessionTimeline({ sessions, t }: SessionTimelineProps) {
               {session.status === 'active' && session.sessionRemaining ? (
                 <CountdownTimer 
                   targetDate={new Date(Date.now() + session.sessionRemaining * 60 * 60 * 1000)}
-                  label="Remaining"
+                  label={t.remaining}
                   data-testid={`timer-session-${session.provider}`}
                 />
               ) : session.status === 'cooldown' && session.cooldownRemaining ? (
                 <CountdownTimer 
                   targetDate={new Date(Date.now() + session.cooldownRemaining * 60 * 60 * 1000)}
-                  label="Cooldown"
+                  label={t.cooldown}
                   variant="warning"
                   data-testid={`timer-cooldown-${session.provider}`}
                 />
               ) : session.status === 'available' ? (
                 <span className="text-sm text-green-600 dark:text-green-400" data-testid={`text-available-${session.provider}`}>
-                  Ready to start
+                  {t.readyToStart}
                 </span>
               ) : (
-                <span className="text-sm text-muted-foreground">-</span>
+                <span className="text-sm text-muted-foreground">{t.labels.placeholder}</span>
               )}
             </div>
 
@@ -154,7 +157,7 @@ export function SessionTimeline({ sessions, t }: SessionTimelineProps) {
               <div className="flex items-center gap-1">
                 <div 
                   className={`h-2 w-2 rounded-full ${session.canStart ? 'bg-green-500' : 'bg-red-500'}`}
-                  title={session.canStart ? 'Can start' : 'Cannot start'}
+                  title={session.canStart ? t.canStart : t.cannotStart}
                   data-testid={`indicator-can-start-${session.provider}`}
                 />
               </div>
@@ -163,7 +166,7 @@ export function SessionTimeline({ sessions, t }: SessionTimelineProps) {
               <div className="flex items-center gap-1">
                 <div 
                   className={`h-2 w-2 rounded-full ${session.shouldStop ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}
-                  title={session.shouldStop ? 'Should stop' : 'OK to continue'}
+                  title={session.shouldStop ? t.shouldStop : t.okToContinue}
                   data-testid={`indicator-should-stop-${session.provider}`}
                 />
               </div>
