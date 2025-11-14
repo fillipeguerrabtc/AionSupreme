@@ -1629,6 +1629,11 @@ export interface Translations {
       descriptionsGenerated: string;
       imagesProcessed: string;
       errorGeneratingDescriptions: string;
+      // ✅ ENTERPRISE FIX: Missing batch selection keys (3 LSP errors resolved)
+      selectAll: string;
+      selectedCount: string;
+      approveSelected: string;
+      rejectSelected: string;
     };
     
     // Auto-Approval Configuration

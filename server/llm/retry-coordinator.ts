@@ -103,9 +103,12 @@ export async function analyze429Error(
     };
   }
   
-  const requestUsagePercent = (quota.requestCount / quota.dailyRequestLimit) * 100;
-  const tokenUsagePercent = quota.dailyTokenLimit 
-    ? (quota.tokenCount / quota.dailyTokenLimit) * 100 
+  // ✅ CRITICAL FIX: Guard against divide-by-zero (architect review finding)
+  const requestUsagePercent = quota.dailyRequestLimit && quota.dailyRequestLimit > 0
+    ? (quota.requestCount / quota.dailyRequestLimit) * 100
+    : 0;
+  const tokenUsagePercent = quota.dailyTokenLimit && quota.dailyTokenLimit > 0
+    ? (quota.tokenCount / quota.dailyTokenLimit) * 100
     : 0;
   
   const maxUsagePercent = Math.max(requestUsagePercent, tokenUsagePercent);
