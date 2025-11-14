@@ -10,15 +10,14 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { prepareDocumentForInsert } from '../utils/deduplication';
-import type { DocumentInsert } from '../../shared/schema';
+import type { InsertDocument } from '../../shared/schema';
 
 describe('Document Hash Integrity', () => {
   describe('prepareDocumentForInsert()', () => {
     it('should generate SHA256 hash for document content', () => {
-      const doc: DocumentInsert = {
+      const doc: InsertDocument = {
         content: 'Test content',
         title: 'Test',
-        namespace: 'test',
         source: 'manual',
       };
 
@@ -30,17 +29,15 @@ describe('Document Hash Integrity', () => {
     });
 
     it('should generate same hash for identical content', () => {
-      const doc1: DocumentInsert = {
+      const doc1: InsertDocument = {
         content: 'Identical content',
         title: 'Doc 1',
-        namespace: 'test',
         source: 'manual',
       };
 
-      const doc2: DocumentInsert = {
+      const doc2: InsertDocument = {
         content: 'Identical content',
         title: 'Doc 2', // Different title
-        namespace: 'test',
         source: 'manual',
       };
 
@@ -52,17 +49,15 @@ describe('Document Hash Integrity', () => {
     });
 
     it('should generate different hash for different content', () => {
-      const doc1: DocumentInsert = {
+      const doc1: InsertDocument = {
         content: 'Content A',
         title: 'Test',
-        namespace: 'test',
         source: 'manual',
       };
 
-      const doc2: DocumentInsert = {
+      const doc2: InsertDocument = {
         content: 'Content B',
         title: 'Test',
-        namespace: 'test',
         source: 'manual',
       };
 
@@ -73,10 +68,9 @@ describe('Document Hash Integrity', () => {
     });
 
     it('should NOT modify original document object', () => {
-      const doc: DocumentInsert = {
+      const doc: InsertDocument = {
         content: 'Test',
         title: 'Test',
-        namespace: 'test',
         source: 'manual',
       };
 
@@ -88,10 +82,9 @@ describe('Document Hash Integrity', () => {
     });
 
     it('should handle empty content gracefully', () => {
-      const doc: DocumentInsert = {
+      const doc: InsertDocument = {
         content: '',
         title: 'Empty',
-        namespace: 'test',
         source: 'manual',
       };
 
@@ -102,10 +95,9 @@ describe('Document Hash Integrity', () => {
     });
 
     it('should handle special characters in content', () => {
-      const doc: DocumentInsert = {
+      const doc: InsertDocument = {
         content: '🚀 Unicode: é, ñ, 中文, 👍',
         title: 'Special',
-        namespace: 'test',
         source: 'manual',
       };
 
@@ -116,10 +108,9 @@ describe('Document Hash Integrity', () => {
     });
 
     it('should preserve all document fields except adding contentHash', () => {
-      const doc: DocumentInsert = {
+      const doc: InsertDocument = {
         content: 'Test',
         title: 'My Title',
-        namespace: 'test-ns',
         source: 'upload',
         uploadedFile: 'file.pdf',
         uploadedFileMime: 'application/pdf',
@@ -141,10 +132,9 @@ describe('Document Hash Integrity', () => {
 
   describe('Hash Consistency', () => {
     it('should be deterministic (same input = same hash)', () => {
-      const doc: DocumentInsert = {
+      const doc: InsertDocument = {
         content: 'Deterministic test',
         title: 'Test',
-        namespace: 'test',
         source: 'manual',
       };
 
@@ -157,10 +147,9 @@ describe('Document Hash Integrity', () => {
     });
 
     it('should match known SHA256 hash for test vector', () => {
-      const doc: DocumentInsert = {
+      const doc: InsertDocument = {
         content: 'hello world',
         title: 'Test',
-        namespace: 'test',
         source: 'manual',
       };
 
@@ -176,17 +165,15 @@ describe('Document Hash Integrity', () => {
   describe('Production Safety', () => {
     it('should prevent duplicate insertion attempts', () => {
       // Simulate two attempts to insert same content
-      const doc1: DocumentInsert = {
+      const doc1: InsertDocument = {
         content: 'Duplicate content check',
         title: 'First attempt',
-        namespace: 'test',
         source: 'manual',
       };
 
-      const doc2: DocumentInsert = {
+      const doc2: InsertDocument = {
         content: 'Duplicate content check',
         title: 'Second attempt',
-        namespace: 'test',
         source: 'upload', // Different source
       };
 
