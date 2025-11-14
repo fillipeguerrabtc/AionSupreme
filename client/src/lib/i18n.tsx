@@ -152,6 +152,17 @@ interface Translations {
       indexedKnowledge: string;
       healthyGpuWorkers: string;
       completedTrainingJobs: string;
+      today24h: string;
+      history: string;
+      todayUsageUtc: string;
+      totalHistory: string;
+      tokens: string;
+      autoEvolution: string;
+      conversations: string;
+      highQuality: string;
+      datasetsKb: string;
+      jobs: string;
+      autoLearningSystem: string;
     };
     
     // Token Monitoring
@@ -1968,6 +1979,17 @@ const translations: Record<Language, Translations> = {
         indexedKnowledge: "conhecimento indexado",
         healthyGpuWorkers: "GPUs ativas no pool",
         completedTrainingJobs: "jobs federados completados",
+        today24h: "24h (Hoje)",
+        history: "Histórico",
+        todayUsageUtc: "Uso Hoje (UTC reset)",
+        totalHistory: "Histórico Total",
+        tokens: "Tokens",
+        autoEvolution: "Auto-Evolução",
+        conversations: "Conversas",
+        highQuality: "Alta Qualidade",
+        datasetsKb: "Datasets KB",
+        jobs: "Jobs",
+        autoLearningSystem: "Sistema de auto-aprendizado",
       },
       
       tokenMonitoring: {
@@ -3743,6 +3765,17 @@ const translations: Record<Language, Translations> = {
         indexedKnowledge: "indexed knowledge",
         healthyGpuWorkers: "active GPUs in pool",
         completedTrainingJobs: "completed federated jobs",
+        today24h: "24h (Today)",
+        history: "History",
+        todayUsageUtc: "Today's Usage (UTC reset)",
+        totalHistory: "Total History",
+        tokens: "Tokens",
+        autoEvolution: "Auto-Evolution",
+        conversations: "Conversations",
+        highQuality: "High Quality",
+        datasetsKb: "KB Datasets",
+        jobs: "Jobs",
+        autoLearningSystem: "Auto-learning system",
       },
       
       tokenMonitoring: {
@@ -5518,6 +5551,17 @@ const translations: Record<Language, Translations> = {
         indexedKnowledge: "conocimiento indexado",
         healthyGpuWorkers: "GPUs activas en el pool",
         completedTrainingJobs: "jobs federados completados",
+        today24h: "24h (Hoy)",
+        history: "Historial",
+        todayUsageUtc: "Uso Hoy (reinicio UTC)",
+        totalHistory: "Historial Total",
+        tokens: "Tokens",
+        autoEvolution: "Auto-Evolución",
+        conversations: "Conversaciones",
+        highQuality: "Alta Calidad",
+        datasetsKb: "Datasets KB",
+        jobs: "Jobs",
+        autoLearningSystem: "Sistema de auto-aprendizaje",
       },
       
       tokenMonitoring: {

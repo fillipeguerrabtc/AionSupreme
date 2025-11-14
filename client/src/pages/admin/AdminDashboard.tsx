@@ -483,7 +483,7 @@ export default function AdminDashboard() {
                     <AionLogo showText={false} size="md" />
                     <div>
                       <h1 className="font-bold text-xl text-foreground">AION</h1>
-                      <p className="text-xs text-muted-foreground">Painel de Controle</p>
+                      <p className="text-xs text-muted-foreground">{t.admin.subtitle}</p>
                     </div>
                   </button>
                 </div>
@@ -555,11 +555,11 @@ export default function AdminDashboard() {
               </CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">24h (Hoje):</span>
+                  <span className="text-muted-foreground">{t.admin.overview.today24h}:</span>
                   <span className="font-bold text-lg">{tokenSummary ? totalTokensToday.toLocaleString() : '...'}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Histórico:</span>
+                  <span className="text-muted-foreground">{t.admin.overview.history}:</span>
                   <span className="font-bold text-primary">{tokenSummary ? totalTokensAllTime.toLocaleString() : '...'}</span>
                 </div>
               </div>
@@ -653,7 +653,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <CardDescription className="text-xs mt-2">
-                Uso Hoje (UTC reset)
+                {t.admin.overview.todayUsageUtc}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -674,11 +674,11 @@ export default function AdminDashboard() {
               </CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Histórico Total:</span>
+                  <span className="text-muted-foreground">{t.admin.overview.totalHistory}:</span>
                   <span className="font-bold text-lg">{openaiStats ? (openaiStats.allTime?.requests || 0).toLocaleString() : '...'} req</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Tokens:</span>
+                  <span className="text-muted-foreground">{t.admin.overview.tokens}:</span>
                   <span className="font-bold text-primary">{openaiStats ? (openaiStats.allTime?.tokens || 0).toLocaleString() : '...'}</span>
                 </div>
               </div>
@@ -768,28 +768,28 @@ export default function AdminDashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Sparkles className="w-4 h-4" />
-                Auto-Evolução
+                {t.admin.overview.autoEvolution}
               </CardTitle>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Conversas:</span>
+                  <span className="text-muted-foreground">{t.admin.overview.conversations}:</span>
                   <span className="font-bold">{autoEvolutionStats?.overview?.totalConversations || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-green-400">Alta Qualidade:</span>
+                  <span className="text-green-400">{t.admin.overview.highQuality}:</span>
                   <span className="font-bold text-green-400">{autoEvolutionStats?.overview?.highQualityConversations || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Datasets KB:</span>
+                  <span className="text-muted-foreground">{t.admin.overview.datasetsKb}:</span>
                   <span className="font-bold">{autoEvolutionStats?.overview?.kbGeneratedDatasets || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Jobs:</span>
+                  <span className="text-muted-foreground">{t.admin.overview.jobs}:</span>
                   <span className="font-bold">{autoEvolutionStats?.overview?.completedJobs || 0}/{autoEvolutionStats?.overview?.totalJobs || 0}</span>
                 </div>
               </div>
               <CardDescription className="text-xs mt-2">
-                Sistema de auto-aprendizado
+                {t.admin.overview.autoLearningSystem}
               </CardDescription>
             </CardHeader>
           </Card>

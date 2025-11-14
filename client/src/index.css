@@ -11,31 +11,57 @@
     
     --card: 0 0% 100%;                  /* Pure white for cards (contrast) */
     --card-foreground: 0 0% 5%;
+    --card-border: 240 6% 90%;          /* Subtle card border */
     
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 5%;
+    --popover-border: 240 6% 90%;       /* Subtle popover border */
     
     --muted: 240 5% 96%;                /* Very light gray */
     --muted-foreground: 240 4% 46%;     /* Medium gray */
+    --muted-border: 240 6% 88%;         /* Muted border */
     
     --secondary: 240 5% 96%;            /* Light gray */
     --secondary-foreground: 0 0% 5%;
+    --secondary-border: 240 6% 88%;     /* Secondary border */
     
     /* 10% Accent Colors - Tech highlights */
     --primary: 221 83% 53%;             /* Starlink blue */
     --primary-foreground: 0 0% 100%;    /* White */
+    --primary-border: 221 83% 48%;      /* Darker blue border */
     
     --accent: 142 76% 36%;              /* Tesla green */
     --accent-foreground: 0 0% 100%;     /* White */
+    --accent-border: 142 76% 31%;       /* Darker green border */
     
     /* Utility colors */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
+    --destructive-border: 0 84% 55%;    /* Destructive border */
     
     /* Borders - Very subtle */
     --border: 240 6% 90%;               /* Subtle gray border */
     --input: 240 6% 90%;
     --ring: 221 83% 53%;                /* Primary blue for focus */
+    
+    /* Chart colors - Data visualization */
+    --chart-1: 221 83% 53%;             /* Primary blue */
+    --chart-2: 142 76% 36%;             /* Accent green */
+    --chart-3: 280 65% 60%;             /* Purple */
+    --chart-4: 34 95% 50%;              /* Orange */
+    --chart-5: 350 90% 60%;             /* Pink */
+    
+    /* Sidebar colors - Admin navigation */
+    --sidebar: 0 0% 98%;                /* Same as background */
+    --sidebar-foreground: 0 0% 5%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 221 83% 53%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary-border: 221 83% 48%;
+    --sidebar-accent: 240 5% 96%;       /* Same as muted */
+    --sidebar-accent-foreground: 0 0% 5%;
+    --sidebar-accent-border: 240 6% 88%;
     
     /* Border radius - Apple style (subtle curves) */
     --radius: 0.75rem;
@@ -48,29 +74,55 @@
     
     --card: 0 0% 10%;                   /* Dark gray cards */
     --card-foreground: 0 0% 95%;
+    --card-border: 240 4% 20%;          /* Dark card border */
     
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 95%;
+    --popover-border: 240 4% 20%;       /* Dark popover border */
     
     --muted: 240 5% 15%;                /* Dark muted */
     --muted-foreground: 240 4% 60%;     /* Light muted text */
+    --muted-border: 240 4% 22%;         /* Dark muted border */
     
     --secondary: 240 5% 15%;
     --secondary-foreground: 0 0% 95%;
+    --secondary-border: 240 4% 22%;     /* Dark secondary border */
     
     /* Same accent colors work in dark mode */
     --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
+    --primary-border: 221 83% 48%;      /* Darker blue border */
     
     --accent: 142 76% 36%;
     --accent-foreground: 0 0% 100%;
+    --accent-border: 142 76% 31%;       /* Darker green border */
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
+    --destructive-border: 0 84% 55%;    /* Destructive border */
     
     --border: 240 4% 20%;
     --input: 240 4% 20%;
     --ring: 221 83% 53%;
+    
+    /* Chart colors - Same in dark mode */
+    --chart-1: 221 83% 53%;             /* Primary blue */
+    --chart-2: 142 76% 36%;             /* Accent green */
+    --chart-3: 280 65% 60%;             /* Purple */
+    --chart-4: 34 95% 50%;              /* Orange */
+    --chart-5: 350 90% 60%;             /* Pink */
+    
+    /* Sidebar colors - Dark mode admin navigation */
+    --sidebar: 0 0% 7%;                 /* Same as background */
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-border: 240 4% 20%;
+    --sidebar-ring: 221 83% 53%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary-border: 221 83% 48%;
+    --sidebar-accent: 240 5% 15%;       /* Same as muted */
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-accent-border: 240 4% 22%;
   }
 }
 
