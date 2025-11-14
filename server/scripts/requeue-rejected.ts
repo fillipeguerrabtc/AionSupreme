@@ -41,6 +41,7 @@ interface RequeueStats {
 
 /**
  * Main re-queue function
+ * STRATEGY: UPDATE existing rejected → pending (NO cloning, NO duplicates)
  */
 async function requeueRejectedItems(options: RequeueOptions = {}): Promise<RequeueStats> {
   const {
@@ -54,6 +55,7 @@ async function requeueRejectedItems(options: RequeueOptions = {}): Promise<Reque
   console.log(`🔄 RE-QUEUE REJECTED ITEMS - INDUSTRY 2025 TESTING`);
   console.log(`${"═".repeat(80)}\n`);
   console.log(`Mode: ${dryRun ? "DRY RUN (no changes)" : "LIVE (will modify database)"}`);
+  console.log(`Strategy: UPDATE existing (NO cloning, NO duplicates)`);
   console.log(`Batch size: ${batchSize}`);
   console.log(`Rate limit: ${rateLimit} items/sec`);
   console.log(`Namespace filter: ${namespace || "ALL"}\n`);
@@ -94,7 +96,7 @@ async function requeueRejectedItems(options: RequeueOptions = {}): Promise<Reque
     }
 
     // STEP 2: Process in batches with rate limiting
-    console.log(`[2/4] 🔄 Re-queuing items (batches of ${batchSize})...`);
+    console.log(`[2/4] 🔄 Re-queuing items (UPDATE to pending, preserving audit trail)...`);
     
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
     const delayBetweenItems = 1000 / rateLimit; // ms per item
@@ -108,54 +110,44 @@ async function requeueRejectedItems(options: RequeueOptions = {}): Promise<Reque
 
       for (const item of batch) {
         try {
-          // Clone rejected item → new pending record
-          const newId = crypto.randomUUID();
-          
           if (dryRun) {
-            console.log(`      [DRY RUN] Would re-queue: "${item.title.substring(0, 60)}..."`);
+            console.log(`      [DRY RUN] Would re-queue: "${item.title.substring(0, 60)}..." (ID: ${item.id})`);
             stats.requeued++;
           } else {
-            await db.insert(curationQueue).values({
-              // New ID (preserve original for audit)
-              id: newId,
-              
-              // Core content (PRESERVE)
-              title: item.title,
-              content: item.content,
-              suggestedNamespaces: item.suggestedNamespaces,
-              tags: item.tags || [],
-              attachments: item.attachments,
-              
-              // Reset status to pending
-              status: "pending",
-              
-              // Preserve embeddings/hashes (enable dedup without re-computation)
-              contentHash: item.contentHash,
-              normalizedContent: item.normalizedContent,
-              embedding: item.embedding,
-              
-              // RESET decision metadata (allow fresh evaluation)
-              autoAnalysis: null,
-              decisionReasonCode: null,
-              decisionReasonDetail: null,
-              duplicationStatus: null, // Allow re-dedup
-              similarityScore: null,
-              duplicateOfId: null,
-              
-              // Preserve quality score (for frequency gate evaluation)
-              score: item.score,
-              
-              // Audit trail
-              submittedBy: `REQUEUE_SCRIPT`,
-              note: `Re-queued from rejected item ${item.id} for Industry 2025 testing`,
-              
-              // Timestamps
-              submittedAt: new Date(),
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            });
+            // UPDATE existing record (NO cloning!)
+            // Preserves: ID, embeddings, hashes, score
+            // Resets: status, decision metadata
+            // Audit: Appends note with timestamp
             
-            console.log(`      ✅ Re-queued: "${item.title.substring(0, 60)}..." (score: ${item.score || "N/A"})`);
+            const oldNote = item.note || "";
+            const auditNote = `[${new Date().toISOString()}] Re-queued for Industry 2025 re-evaluation (prev: rejected by ${item.reviewedBy || "AUTO"})`;
+            const newNote = oldNote ? `${oldNote}\n${auditNote}` : auditNote;
+            
+            await db.update(curationQueue)
+              .set({
+                // RESET status to pending
+                status: "pending",
+                
+                // RESET decision metadata (allow fresh evaluation)
+                autoAnalysis: null,
+                decisionReasonCode: null,
+                decisionReasonDetail: null,
+                duplicationStatus: null, // Allow re-dedup check
+                similarityScore: null,
+                duplicateOfId: null,
+                reviewedBy: null,
+                reviewedAt: null,
+                statusChangedAt: new Date(),
+                
+                // AUDIT TRAIL (preserve history)
+                note: newNote,
+                
+                // Update timestamp
+                updatedAt: new Date(),
+              })
+              .where(eq(curationQueue.id, item.id));
+            
+            console.log(`      ✅ Re-queued: "${item.title.substring(0, 60)}..." (ID: ${item.id}, score: ${item.score || "N/A"})`);
             stats.requeued++;
           }
           
@@ -184,12 +176,13 @@ async function requeueRejectedItems(options: RequeueOptions = {}): Promise<Reque
     console.log(`Duration: ${((stats.endTime.getTime() - stats.startTime.getTime()) / 1000).toFixed(2)}s\n`);
 
     if (!dryRun) {
-      console.log(`✅ Re-queue complete! Items are now pending auto-approval.`);
+      console.log(`✅ Re-queue complete! Items UPDATED to pending (NO clones, NO duplicates).`);
       console.log(`\n📋 NEXT STEPS:`);
-      console.log(`1. Monitor logs: tail -f workflow logs`);
-      console.log(`2. Check auto-approval decisions: SELECT * FROM curation_queue WHERE status = 'approved' ORDER BY updated_at DESC LIMIT 20;`);
-      console.log(`3. Verify deduplication: Check KB for duplicates`);
-      console.log(`4. Review frequency gate: Check greetings ("oi", "olá") auto-approved`);
+      console.log(`1. Monitor auto-approval worker logs (workflow)`);
+      console.log(`2. Check greetings auto-approved: SELECT id, title, status, auto_analysis->>'recommended' FROM curation_queue WHERE title ~* '(oi|olá|bom dia)' LIMIT 10;`);
+      console.log(`3. Check frequency gate: SELECT id, title, status, score FROM curation_queue WHERE score >= 10 ORDER BY updated_at DESC LIMIT 10;`);
+      console.log(`4. Verify deduplication: tsx server/scripts/verify-kb-dedup.ts`);
+      console.log(`5. Check re-queue audit trail: SELECT id, title, note FROM curation_queue WHERE note LIKE '%Re-queued%' LIMIT 5;`);
     }
 
     return stats;
