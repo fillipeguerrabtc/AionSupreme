@@ -1253,10 +1253,16 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/v1/transcribe", audioUpload.single("audio"), async (req, res) => {
     const startTime = Date.now();
     const traceId = `trans-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-    let convertedAudioPath: string | undefined;
+    
+    // ✅ PRODUCTION-PERFECT: TranscriptionTempFileManager guarantees zero leaks
+    const { TranscriptionTempFileManager } = await import("./audio/temp-file-manager");
+    const tempFileManager = new TranscriptionTempFileManager(traceId);
     
     try {
       if (!req.file) throw new Error(req.t('upload.no_audio_file'));
+      
+      // ✅ Track original upload IMMEDIATELY
+      tempFileManager.track(req.file.path);
       
       // 1. Validate audio file using magic bytes
       const { validateAudioUpload } = await import("./utils/file-validation");
@@ -1269,13 +1275,16 @@ export function registerRoutes(app: Express): Server {
       metricsCollector.recordRequest();
       
       // 2. Convert video containers to pure audio before Whisper (if needed)
-      const { convertToWhisperFormat, cleanupTempAudioFile } = await import("./audio/audio-converter");
+      const { convertToWhisperFormat } = await import("./audio/audio-converter");
       const conversion = await convertToWhisperFormat(
         req.file.path,
         validation.requiresConversion,
         validation.detectedMimeType,
         traceId
       );
+      
+      // ✅ Track ALL converter-generated files (partial outputs, temp files)
+      conversion.cleanupPaths.forEach(path => tempFileManager.track(path));
       
       if (!conversion.success) {
         console.error(`[Transcribe:${traceId}] Conversion failed:`, conversion.telemetry);
@@ -1285,11 +1294,6 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ 
           error: req.t('chat.audioConversionFailed') || conversion.error 
         });
-      }
-      
-      // Track converted path for cleanup in finally block
-      if (conversion.telemetry.requiresConversion && conversion.outputPath) {
-        convertedAudioPath = conversion.outputPath;
       }
       
       console.log(`[Transcribe:${traceId}] Conversion telemetry:`, conversion.telemetry);
@@ -1307,6 +1311,7 @@ export function registerRoutes(app: Express): Server {
         _telemetry: {
           totalLatencyMs: latency,
           conversion: conversion.telemetry,
+          cleanup: tempFileManager.getState(),
         }
       });
       
@@ -1316,20 +1321,8 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: getErrorMessage(error) });
       
     } finally {
-      // ✅ CRITICAL: ALWAYS cleanup ALL temp files in finally block
-      // This runs AFTER try/catch completes (including Whisper transcription)
-      // Covers ALL exit paths: success, error, validation failure, conversion failure
-      const { cleanupTempAudioFile } = await import("./audio/audio-converter");
-      
-      // Cleanup converted WAV (if conversion happened)
-      if (convertedAudioPath) {
-        await cleanupTempAudioFile(convertedAudioPath);
-      }
-      
-      // Cleanup original multer upload (always)
-      if (req.file?.path) {
-        await cleanupTempAudioFile(req.file.path);
-      }
+      // ✅ GUARANTEE: Cleanup ALL temp files in ALL exit paths (success, error, validation failure, conversion failure)
+      await tempFileManager.cleanupAndIgnoreErrors();
     }
   });
 

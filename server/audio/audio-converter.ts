@@ -24,6 +24,7 @@ export interface AudioConversionResult {
   success: boolean;
   outputPath?: string;
   error?: string;
+  cleanupPaths: string[]; // ✅ ALL files to cleanup (partial outputs, temp files)
   telemetry: {
     originalMime: string;
     convertedMime?: string;
@@ -73,6 +74,7 @@ export async function convertToWhisperFormat(
       return {
         success: false,
         error: `File too large: ${(fileSize / 1024 / 1024).toFixed(2)}MB. Maximum: 100MB`,
+        cleanupPaths: [], // No files generated yet
         telemetry: {
           originalMime: detectedMime || "unknown",
           originalSizeBytes: fileSize,
@@ -105,6 +107,7 @@ export async function convertToWhisperFormat(
       return {
         success: true,
         outputPath: inputPath,
+        cleanupPaths: [], // No conversion = no new files generated
         telemetry: {
           originalMime,
           convertedMime: originalMime,
@@ -127,12 +130,11 @@ export async function convertToWhisperFormat(
     const conversionResult = await runFFmpegConversion(inputPath, outputPath, 15000, logContext);
     
     if (!conversionResult.success) {
-      // ✅ CRITICAL: Cleanup partial/failed WAV to prevent temp file leak
-      await cleanupTempAudioFile(outputPath);
-      
+      // ✅ Return cleanup paths INCLUDING partial output (FFmpeg may have created it)
       return {
         success: false,
         error: conversionResult.error,
+        cleanupPaths: [outputPath], // Include partial/failed WAV for cleanup
         telemetry: {
           originalMime,
           originalSizeBytes: fileSize,
@@ -148,13 +150,13 @@ export async function convertToWhisperFormat(
     try {
       outputStats = await fs.stat(outputPath);
     } catch (statError: any) {
-      // ✅ CRITICAL: If output file doesn't exist, cleanup and fail
+      // ✅ Output file doesn't exist after conversion (FFmpeg reported success but no file)
       console.error(`${logContext} Output file not found after conversion:`, statError);
-      await cleanupTempAudioFile(outputPath);
       
       return {
         success: false,
         error: `Conversion output file not found: ${statError.message}`,
+        cleanupPaths: [outputPath], // Include in cleanup anyway (defensive)
         telemetry: {
           originalMime,
           originalSizeBytes: fileSize,
@@ -172,6 +174,7 @@ export async function convertToWhisperFormat(
     return {
       success: true,
       outputPath,
+      cleanupPaths: [outputPath], // ✅ Converted WAV needs cleanup after use
       telemetry: {
         originalMime,
         convertedMime: "audio/wav",
@@ -189,6 +192,7 @@ export async function convertToWhisperFormat(
     return {
       success: false,
       error: `Audio conversion failed: ${error.message}`,
+      cleanupPaths: [], // Exception before file creation
       telemetry: {
         originalMime: "unknown",
         originalSizeBytes: 0,
