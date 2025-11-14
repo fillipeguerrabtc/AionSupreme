@@ -344,7 +344,7 @@ export class DeduplicationService {
     } = {}
   ): Promise<{
     isDuplicate: boolean;
-    documentId?: number;
+    documentId?: number | string; // ARCHITECT FIX: Support both numeric IDs (KB) and UUID strings (curation queue)
     documentTitle?: string;
     isPending?: boolean;
     method: 'hash' | 'semantic' | 'llm' | 'frequency-gate' | 'none';
@@ -415,7 +415,7 @@ export class DeduplicationService {
       console.log(`[Dedup] ❌ EXACT duplicate in queue: "${existingQueue[0].title}"`);
       return {
         isDuplicate: true,
-        documentId: undefined,
+        documentId: existingQueue[0].id, // ARCHITECT FIX: Return queue UUID instead of undefined
         documentTitle: existingQueue[0].title,
         isPending: true,
         method: 'hash',
@@ -495,7 +495,7 @@ export class DeduplicationService {
       console.log(`[Dedup] ℹ️  SEMANTIC duplicate detected (${(similarity * 100).toFixed(1)}% ≥ ${similarityThresholds.exact * 100}%) - skipping to avoid duplication`);
       return {
         isDuplicate: true,
-        documentId: undefined,
+        documentId: bestMatch.id, // ARCHITECT FIX: Return queue UUID instead of undefined
         documentTitle: bestMatch.title,
         isPending: true,
         method: 'semantic',
@@ -555,7 +555,7 @@ export class DeduplicationService {
         console.log(`[Dedup] ❌ LLM confirmed duplicate: ${llmVerdict.reason}`);
         return {
           isDuplicate: true,
-          documentId: undefined,
+          documentId: bestMatch.id, // ARCHITECT FIX: Return queue UUID instead of undefined
           documentTitle: bestMatch.title,
           isPending: true,
           method: 'llm',

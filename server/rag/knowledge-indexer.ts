@@ -128,6 +128,10 @@ export class KnowledgeIndexer {
     const rawText = await this.extractPDFText(filePath);
     const text = this.preserveLatex(rawText);
     
+    // Generate content hash for deduplication
+    const { generateContentHash } = await import("../utils/deduplication");
+    const contentHash = await generateContentHash(text);
+    
     // Create document record
     const document = await storage.createDocument({
       filename: pdfMetadata.filename,
@@ -136,6 +140,7 @@ export class KnowledgeIndexer {
       storageUrl: filePath,
       extractedText: text,
       status: "pending",
+      contentHash, // REQUIRED field for deduplication
       metadata: {
         part: pdfMetadata.part,
         description: pdfMetadata.description,
