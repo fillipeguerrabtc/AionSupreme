@@ -279,7 +279,7 @@ export default function NamespacesPage() {
             });
             toast({ 
               title: t.admin.namespaces.toast.contentQueued, 
-              description: "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base" 
+              description: t.admin.namespaces.toast.contentPendingHITL 
             });
           } catch (error) {
             toast({ 
@@ -325,7 +325,7 @@ export default function NamespacesPage() {
               });
               toast({ 
                 title: t.admin.namespaces.toast.contentQueued, 
-                description: "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base" 
+                description: t.admin.namespaces.toast.contentPendingHITL 
               });
             } catch (error) {
               toast({ 
@@ -372,7 +372,7 @@ export default function NamespacesPage() {
               });
               toast({ 
                 title: t.admin.namespaces.toast.contentQueued, 
-                description: "O conteúdo adicional aguarda aprovação humana antes de ser indexado na Knowledge Base" 
+                description: t.admin.namespaces.toast.additionalContentPendingHITL 
               });
             } catch (error) {
               toast({ 

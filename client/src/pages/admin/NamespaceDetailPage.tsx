@@ -15,11 +15,13 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Save, Sliders, FileCode, Zap, Trash2, Plus, TrendingUp } from "lucide-react";
 import type { Namespace } from "@shared/schema";
+import { useLanguage } from "@/lib/i18n";
 
 export default function NamespaceDetailPage() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   // Fetch namespace data
   const { data: namespace, isLoading } = useQuery<Namespace>({
@@ -88,13 +90,13 @@ export default function NamespaceDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/namespaces"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/namespaces", id] });
       toast({
-        title: "Namespace updated successfully",
+        title: t.admin.namespaceDetail.toasts.success,
         variant: "default",
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Failed to update namespace",
+        title: t.admin.namespaceDetail.toasts.error,
         description: error.message,
         variant: "destructive",
       });
@@ -131,7 +133,7 @@ export default function NamespaceDetailPage() {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+          <p className="mt-4 text-muted-foreground">{t.admin.namespaceDetail.loading}</p>
         </div>
       </div>
     );
@@ -142,13 +144,13 @@ export default function NamespaceDetailPage() {
       <div className="flex items-center justify-center h-screen">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Namespace Not Found</CardTitle>
-            <CardDescription>The namespace you're looking for doesn't exist.</CardDescription>
+            <CardTitle>{t.admin.namespaceDetail.notFound.title}</CardTitle>
+            <CardDescription>{t.admin.namespaceDetail.notFound.description}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => setLocation("/admin/namespaces")} data-testid="button-back">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Namespaces
+              {t.admin.namespaceDetail.buttons.back}
             </Button>
           </CardContent>
         </Card>
@@ -166,29 +168,29 @@ export default function NamespaceDetailPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold">{namespace.name}</h1>
-            <p className="text-muted-foreground">{namespace.description || "No description"}</p>
+            <p className="text-muted-foreground">{namespace.description || t.admin.namespaceDetail.fallbacks.noDescription}</p>
           </div>
         </div>
         <Button onClick={handleSave} disabled={updateMutation.isPending} data-testid="button-save">
           <Save className="mr-2 h-4 w-4" />
-          {updateMutation.isPending ? "Saving..." : "Save Changes"}
+          {updateMutation.isPending ? t.admin.namespaceDetail.buttons.saving : t.admin.namespaceDetail.buttons.save}
         </Button>
       </div>
 
       <Tabs defaultValue="basic" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="basic" data-testid="tab-basic">Basic Info</TabsTrigger>
+          <TabsTrigger value="basic" data-testid="tab-basic">{t.admin.namespaceDetail.tabs.basic}</TabsTrigger>
           <TabsTrigger value="sliders" data-testid="tab-sliders">
             <Sliders className="mr-2 h-4 w-4" />
-            Personality Sliders
+            {t.admin.namespaceDetail.tabs.sliders}
           </TabsTrigger>
           <TabsTrigger value="prompt" data-testid="tab-prompt">
             <FileCode className="mr-2 h-4 w-4" />
-            System Prompt
+            {t.admin.namespaceDetail.tabs.prompt}
           </TabsTrigger>
           <TabsTrigger value="triggers" data-testid="tab-triggers">
             <Zap className="mr-2 h-4 w-4" />
-            Triggers & Priority
+            {t.admin.namespaceDetail.tabs.triggers}
           </TabsTrigger>
         </TabsList>
 
@@ -196,40 +198,40 @@ export default function NamespaceDetailPage() {
         <TabsContent value="basic" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>Configure namespace identity and description</CardDescription>
+              <CardTitle>{t.admin.namespaceDetail.basic.title}</CardTitle>
+              <CardDescription>{t.admin.namespaceDetail.basic.description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">{t.admin.namespaceDetail.basic.labels.name}</Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="financas/investimentos"
+                  placeholder={t.admin.namespaceDetail.basic.placeholders.name}
                   data-testid="input-name"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t.admin.namespaceDetail.basic.labels.description}</Label>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe this namespace..."
+                  placeholder={t.admin.namespaceDetail.basic.placeholders.description}
                   rows={3}
                   data-testid="input-description"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="icon">Icon (Lucide name)</Label>
+                <Label htmlFor="icon">{t.admin.namespaceDetail.basic.labels.icon}</Label>
                 <Input
                   id="icon"
                   value={icon}
                   onChange={(e) => setIcon(e.target.value)}
-                  placeholder="Briefcase"
+                  placeholder={t.admin.namespaceDetail.basic.placeholders.icon}
                   data-testid="input-icon"
                 />
               </div>
@@ -241,20 +243,20 @@ export default function NamespaceDetailPage() {
         <TabsContent value="sliders" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Personality Sliders Override</CardTitle>
+              <CardTitle>{t.admin.namespaceDetail.sliders.title}</CardTitle>
               <CardDescription>
-                Customize AI personality traits specific to this namespace
+                {t.admin.namespaceDetail.sliders.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-between">
-                <Label>Enable Custom Sliders</Label>
+                <Label>{t.admin.namespaceDetail.sliders.enableLabel}</Label>
                 <Button
                   variant={useCustomSliders ? "default" : "outline"}
                   onClick={() => setUseCustomSliders(!useCustomSliders)}
                   data-testid="button-toggle-sliders"
                 >
-                  {useCustomSliders ? "Enabled" : "Disabled"}
+                  {useCustomSliders ? t.admin.namespaceDetail.sliders.states.enabled : t.admin.namespaceDetail.sliders.states.disabled}
                 </Button>
               </div>
 
@@ -285,14 +287,14 @@ export default function NamespaceDetailPage() {
         <TabsContent value="prompt" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>System Prompt Override</CardTitle>
+              <CardTitle>{t.admin.namespaceDetail.prompt.title}</CardTitle>
               <CardDescription>
-                Add namespace-specific instructions to the AI's system prompt
+                {t.admin.namespaceDetail.prompt.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="merge-strategy">Merge Strategy</Label>
+                <Label htmlFor="merge-strategy">{t.admin.namespaceDetail.prompt.labels.mergeStrategy}</Label>
                 <Select
                   value={mergeStrategy}
                   onValueChange={(value: "override" | "merge" | "fallback") => setMergeStrategy(value)}
@@ -301,20 +303,20 @@ export default function NamespaceDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="override">Override (Replace global prompt)</SelectItem>
-                    <SelectItem value="merge">Merge (Combine with global prompt)</SelectItem>
-                    <SelectItem value="fallback">Fallback (Use if no global prompt)</SelectItem>
+                    <SelectItem value="override">{t.admin.namespaceDetail.prompt.selectOptions.override}</SelectItem>
+                    <SelectItem value="merge">{t.admin.namespaceDetail.prompt.selectOptions.merge}</SelectItem>
+                    <SelectItem value="fallback">{t.admin.namespaceDetail.prompt.selectOptions.fallback}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="prompt">Custom System Prompt</Label>
+                <Label htmlFor="prompt">{t.admin.namespaceDetail.prompt.labels.customPrompt}</Label>
                 <Textarea
                   id="prompt"
                   value={systemPromptOverride}
                   onChange={(e) => setSystemPromptOverride(e.target.value)}
-                  placeholder="You are a specialized AI assistant for..."
+                  placeholder={t.admin.namespaceDetail.prompt.placeholders.prompt}
                   rows={8}
                   data-testid="input-prompt"
                 />
@@ -327,9 +329,9 @@ export default function NamespaceDetailPage() {
         <TabsContent value="triggers" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Detection Triggers</CardTitle>
+              <CardTitle>{t.admin.namespaceDetail.triggers.title}</CardTitle>
               <CardDescription>
-                Configure keywords and patterns to automatically activate this namespace
+                {t.admin.namespaceDetail.triggers.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -337,7 +339,7 @@ export default function NamespaceDetailPage() {
                 <Input
                   value={newTrigger}
                   onChange={(e) => setNewTrigger(e.target.value)}
-                  placeholder="Add trigger keyword..."
+                  placeholder={t.admin.namespaceDetail.triggers.placeholders.addTrigger}
                   onKeyPress={(e) => e.key === "Enter" && addTrigger()}
                   data-testid="input-new-trigger"
                 />
@@ -365,7 +367,7 @@ export default function NamespaceDetailPage() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Priority (1=High, 2=Medium, 3=Low)</Label>
+                  <Label>{t.admin.namespaceDetail.triggers.labels.priority}</Label>
                   <Select
                     value={priority.toString()}
                     onValueChange={(value) => setPriority(parseInt(value))}
@@ -374,16 +376,16 @@ export default function NamespaceDetailPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1">1 - High Priority</SelectItem>
-                      <SelectItem value="2">2 - Medium Priority</SelectItem>
-                      <SelectItem value="3">3 - Low Priority</SelectItem>
+                      <SelectItem value="1">{t.admin.namespaceDetail.triggers.priorityOptions.high}</SelectItem>
+                      <SelectItem value="2">{t.admin.namespaceDetail.triggers.priorityOptions.medium}</SelectItem>
+                      <SelectItem value="3">{t.admin.namespaceDetail.triggers.priorityOptions.low}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>Confidence Threshold</Label>
+                    <Label>{t.admin.namespaceDetail.triggers.labels.confidenceThreshold}</Label>
                     <span className="text-sm text-muted-foreground">{Math.round(confidenceThreshold * 100)}%</span>
                   </div>
                   <Slider

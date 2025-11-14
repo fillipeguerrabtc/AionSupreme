@@ -138,8 +138,8 @@ export default function ImagesGalleryPage() {
     },
     onSuccess: () => {
       toast({
-        title: "Descrição atualizada",
-        description: "A descrição da imagem foi atualizada com sucesso",
+        title: t.admin.imagesGallery.toasts.descriptionUpdated,
+        description: t.admin.imagesGallery.toasts.descriptionSuccess,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images/all"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents"] });
@@ -148,7 +148,7 @@ export default function ImagesGalleryPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao atualizar",
+        title: t.admin.imagesGallery.toasts.updateError,
         description: error.message,
         variant: "destructive",
       });
@@ -170,7 +170,7 @@ export default function ImagesGalleryPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Imagens deletadas",
+        title: t.admin.imagesGallery.toasts.imagesDeleted,
         description: `${data.deleted} imagem(ns) deletada(s) com sucesso`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/images/all"] });
@@ -179,7 +179,7 @@ export default function ImagesGalleryPage() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao deletar",
+        title: t.admin.imagesGallery.toasts.deleteError,
         description: error.message,
         variant: "destructive",
       });
@@ -312,7 +312,7 @@ export default function ImagesGalleryPage() {
                   <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full sm:w-auto flex-wrap">
                     <div className="flex-1 sm:max-w-xs">
                       <Input
-                        placeholder="Buscar por nome, descrição, namespace..."
+                        placeholder={t.admin.imagesGallery.placeholders.search}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         data-testid="input-search-images"
@@ -320,10 +320,10 @@ export default function ImagesGalleryPage() {
                     </div>
                     <Select value={sourceFilter} onValueChange={setSourceFilter}>
                       <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-source-filter">
-                        <SelectValue placeholder="Todas as fontes" />
+                        <SelectValue placeholder={t.admin.imagesGallery.placeholders.allSources} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Todas as fontes</SelectItem>
+                        <SelectItem value="all">{t.admin.imagesGallery.placeholders.allSources}</SelectItem>
                         <SelectItem value="crawler">Web Crawler</SelectItem>
                         <SelectItem value="chat">Chat (Legacy)</SelectItem>
                         <SelectItem value="pending">Pending HITL</SelectItem>
@@ -333,10 +333,10 @@ export default function ImagesGalleryPage() {
                     </Select>
                     <Select value={namespaceFilter} onValueChange={setNamespaceFilter}>
                       <SelectTrigger className="w-full sm:w-[180px]" data-testid="select-namespace-filter">
-                        <SelectValue placeholder="Todos os namespaces" />
+                        <SelectValue placeholder={t.admin.imagesGallery.placeholders.allNamespaces} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Todos os namespaces</SelectItem>
+                        <SelectItem value="all">{t.admin.imagesGallery.placeholders.allNamespaces}</SelectItem>
                         {namespacesData?.map(ns => (
                           <SelectItem key={ns.id} value={ns.name}>
                             {ns.name}
@@ -734,7 +734,7 @@ export default function ImagesGalleryPage() {
                 id="edit-description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="Digite a nova descrição da imagem..."
+                placeholder={t.admin.imagesGallery.placeholders.newDescription}
                 rows={4}
                 data-testid="textarea-edit-description"
               />

@@ -1672,6 +1672,106 @@ interface Translations {
       removed: string;
       searchError: string;
       loading: string;
+      noDescription: string;
+    };
+    
+    // Images Gallery Page
+    imagesGallery: {
+      toasts: {
+        descriptionUpdated: string;
+        descriptionSuccess: string;
+        updateError: string;
+        imagesDeleted: string;
+        deleteError: string;
+      };
+      placeholders: {
+        search: string;
+        allSources: string;
+        allNamespaces: string;
+        newDescription: string;
+      };
+    };
+    
+    // Namespace Detail Page
+    namespaceDetail: {
+      toasts: {
+        success: string;
+        error: string;
+      };
+      loading: string;
+      notFound: {
+        title: string;
+        description: string;
+      };
+      buttons: {
+        back: string;
+        save: string;
+        saving: string;
+      };
+      tabs: {
+        basic: string;
+        sliders: string;
+        prompt: string;
+        triggers: string;
+      };
+      basic: {
+        title: string;
+        description: string;
+        labels: {
+          name: string;
+          description: string;
+          icon: string;
+        };
+        placeholders: {
+          name: string;
+          description: string;
+          icon: string;
+        };
+      };
+      sliders: {
+        title: string;
+        description: string;
+        enableLabel: string;
+        states: {
+          enabled: string;
+          disabled: string;
+        };
+      };
+      prompt: {
+        title: string;
+        description: string;
+        labels: {
+          mergeStrategy: string;
+          customPrompt: string;
+        };
+        selectOptions: {
+          override: string;
+          merge: string;
+          fallback: string;
+        };
+        placeholders: {
+          prompt: string;
+        };
+      };
+      triggers: {
+        title: string;
+        description: string;
+        labels: {
+          priority: string;
+          confidenceThreshold: string;
+        };
+        placeholders: {
+          addTrigger: string;
+        };
+        priorityOptions: {
+          high: string;
+          medium: string;
+          low: string;
+        };
+      };
+      fallbacks: {
+        noDescription: string;
+      };
     };
     
     // Vision System Page
@@ -1866,7 +1966,11 @@ interface Translations {
         promptSaved: string;
         triggerAdded: string;
         triggerRemoved: string;
+        contentPendingHITL: string;
+        additionalContentPendingHITL: string;
       };
+      
+      pendingApprovalDesc: string;
     };
     
     // Lifecycle Policies Page
@@ -3651,6 +3755,104 @@ const translations: Record<Language, Translations> = {
         removed: "Imagem removida com sucesso",
         searchError: "Erro na busca",
         loading: "Carregando imagens...",
+        noDescription: "Sem descrição",
+      },
+      
+      imagesGallery: {
+        toasts: {
+          descriptionUpdated: "Descrição atualizada",
+          descriptionSuccess: "A descrição da imagem foi atualizada com sucesso",
+          updateError: "Erro ao atualizar",
+          imagesDeleted: "Imagens deletadas",
+          deleteError: "Erro ao deletar",
+        },
+        placeholders: {
+          search: "Buscar por nome, descrição, namespace...",
+          allSources: "Todas as fontes",
+          allNamespaces: "Todos os namespaces",
+          newDescription: "Digite a nova descrição da imagem...",
+        },
+      },
+      
+      namespaceDetail: {
+        toasts: {
+          success: "Namespace atualizado com sucesso",
+          error: "Falha ao atualizar namespace",
+        },
+        loading: "Carregando...",
+        notFound: {
+          title: "Namespace Não Encontrado",
+          description: "O namespace que você procura não existe.",
+        },
+        buttons: {
+          back: "Voltar para Namespaces",
+          save: "Salvar Alterações",
+          saving: "Salvando...",
+        },
+        tabs: {
+          basic: "Informações Básicas",
+          sliders: "Controles de Personalidade",
+          prompt: "Prompt do Sistema",
+          triggers: "Gatilhos e Prioridade",
+        },
+        basic: {
+          title: "Informações Básicas",
+          description: "Configure identidade e descrição do namespace",
+          labels: {
+            name: "Nome",
+            description: "Descrição",
+            icon: "Ícone (nome Lucide)",
+          },
+          placeholders: {
+            name: "financas/investimentos",
+            description: "Descreva este namespace...",
+            icon: "Briefcase",
+          },
+        },
+        sliders: {
+          title: "Sobrescrever Controles de Personalidade",
+          description: "Personalize traços de personalidade da IA específicos para este namespace",
+          enableLabel: "Ativar Controles Personalizados",
+          states: {
+            enabled: "Ativado",
+            disabled: "Desativado",
+          },
+        },
+        prompt: {
+          title: "Sobrescrever Prompt do Sistema",
+          description: "Adicione instruções específicas do namespace ao prompt do sistema da IA",
+          labels: {
+            mergeStrategy: "Estratégia de Mesclagem",
+            customPrompt: "Prompt Personalizado do Sistema",
+          },
+          selectOptions: {
+            override: "Sobrescrever (Substituir prompt global)",
+            merge: "Mesclar (Combinar com prompt global)",
+            fallback: "Fallback (Usar se não houver prompt global)",
+          },
+          placeholders: {
+            prompt: "Você é um assistente de IA especializado em...",
+          },
+        },
+        triggers: {
+          title: "Gatilhos de Detecção",
+          description: "Configure palavras-chave e padrões para ativar automaticamente este namespace",
+          labels: {
+            priority: "Prioridade (1=Alta, 2=Média, 3=Baixa)",
+            confidenceThreshold: "Limite de Confiança",
+          },
+          placeholders: {
+            addTrigger: "Adicionar palavra-chave gatilho...",
+          },
+          priorityOptions: {
+            high: "1 - Prioridade Alta",
+            medium: "2 - Prioridade Média",
+            low: "3 - Prioridade Baixa",
+          },
+        },
+        fallbacks: {
+          noDescription: "Sem descrição",
+        },
       },
       
       vision: {
@@ -3843,7 +4045,11 @@ const translations: Record<Language, Translations> = {
           promptSaved: "Prompt salvo!",
           triggerAdded: "Trigger adicionado!",
           triggerRemoved: "Trigger removido!",
+          contentPendingHITL: "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base",
+          additionalContentPendingHITL: "O conteúdo adicional aguarda aprovação humana antes de ser indexado na Knowledge Base",
         },
+        
+        pendingApprovalDesc: "O conteúdo aguarda aprovação humana antes de ser indexado na Knowledge Base",
       },
       
       lifecycle: {
@@ -5624,6 +5830,104 @@ const translations: Record<Language, Translations> = {
         removed: "Image removed successfully",
         searchError: "Search error",
         loading: "Loading images...",
+        noDescription: "No description",
+      },
+      
+      imagesGallery: {
+        toasts: {
+          descriptionUpdated: "Description updated",
+          descriptionSuccess: "Image description updated successfully",
+          updateError: "Error updating",
+          imagesDeleted: "Images deleted",
+          deleteError: "Error deleting",
+        },
+        placeholders: {
+          search: "Search by name, description, namespace...",
+          allSources: "All sources",
+          allNamespaces: "All namespaces",
+          newDescription: "Enter new image description...",
+        },
+      },
+      
+      namespaceDetail: {
+        toasts: {
+          success: "Namespace updated successfully",
+          error: "Failed to update namespace",
+        },
+        loading: "Loading...",
+        notFound: {
+          title: "Namespace Not Found",
+          description: "The namespace you're looking for doesn't exist.",
+        },
+        buttons: {
+          back: "Back to Namespaces",
+          save: "Save Changes",
+          saving: "Saving...",
+        },
+        tabs: {
+          basic: "Basic Info",
+          sliders: "Personality Sliders",
+          prompt: "System Prompt",
+          triggers: "Triggers & Priority",
+        },
+        basic: {
+          title: "Basic Information",
+          description: "Configure namespace identity and description",
+          labels: {
+            name: "Name",
+            description: "Description",
+            icon: "Icon (Lucide name)",
+          },
+          placeholders: {
+            name: "finance/investments",
+            description: "Describe this namespace...",
+            icon: "Briefcase",
+          },
+        },
+        sliders: {
+          title: "Personality Sliders Override",
+          description: "Customize AI personality traits specific to this namespace",
+          enableLabel: "Enable Custom Sliders",
+          states: {
+            enabled: "Enabled",
+            disabled: "Disabled",
+          },
+        },
+        prompt: {
+          title: "System Prompt Override",
+          description: "Add namespace-specific instructions to the AI's system prompt",
+          labels: {
+            mergeStrategy: "Merge Strategy",
+            customPrompt: "Custom System Prompt",
+          },
+          selectOptions: {
+            override: "Override (Replace global prompt)",
+            merge: "Merge (Combine with global prompt)",
+            fallback: "Fallback (Use if no global prompt)",
+          },
+          placeholders: {
+            prompt: "You are a specialized AI assistant for...",
+          },
+        },
+        triggers: {
+          title: "Detection Triggers",
+          description: "Configure keywords and patterns to automatically activate this namespace",
+          labels: {
+            priority: "Priority (1=High, 2=Medium, 3=Low)",
+            confidenceThreshold: "Confidence Threshold",
+          },
+          placeholders: {
+            addTrigger: "Add trigger keyword...",
+          },
+          priorityOptions: {
+            high: "1 - High Priority",
+            medium: "2 - Medium Priority",
+            low: "3 - Low Priority",
+          },
+        },
+        fallbacks: {
+          noDescription: "No description",
+        },
       },
       
       vision: {
@@ -5816,7 +6120,11 @@ const translations: Record<Language, Translations> = {
           promptSaved: "Prompt saved!",
           triggerAdded: "Trigger added!",
           triggerRemoved: "Trigger removed!",
+          contentPendingHITL: "Content is pending human approval before being indexed into the Knowledge Base",
+          additionalContentPendingHITL: "Additional content is pending human approval before being indexed into the Knowledge Base",
         },
+        
+        pendingApprovalDesc: "Content awaits human approval before being indexed in the Knowledge Base",
       },
       
       lifecycle: {
@@ -7597,6 +7905,104 @@ const translations: Record<Language, Translations> = {
         removed: "Imagen eliminada con éxito",
         searchError: "Error en la búsqueda",
         loading: "Cargando imágenes...",
+        noDescription: "Sin descripción",
+      },
+      
+      imagesGallery: {
+        toasts: {
+          descriptionUpdated: "Descripción actualizada",
+          descriptionSuccess: "La descripción de la imagen se actualizó con éxito",
+          updateError: "Error al actualizar",
+          imagesDeleted: "Imágenes eliminadas",
+          deleteError: "Error al eliminar",
+        },
+        placeholders: {
+          search: "Buscar por nombre, descripción, namespace...",
+          allSources: "Todas las fuentes",
+          allNamespaces: "Todos los namespaces",
+          newDescription: "Ingrese la nueva descripción de la imagen...",
+        },
+      },
+      
+      namespaceDetail: {
+        toasts: {
+          success: "Namespace actualizado con éxito",
+          error: "Error al actualizar namespace",
+        },
+        loading: "Cargando...",
+        notFound: {
+          title: "Namespace No Encontrado",
+          description: "El namespace que buscas no existe.",
+        },
+        buttons: {
+          back: "Volver a Namespaces",
+          save: "Guardar Cambios",
+          saving: "Guardando...",
+        },
+        tabs: {
+          basic: "Información Básica",
+          sliders: "Controles de Personalidad",
+          prompt: "Prompt del Sistema",
+          triggers: "Disparadores y Prioridad",
+        },
+        basic: {
+          title: "Información Básica",
+          description: "Configure identidad y descripción del namespace",
+          labels: {
+            name: "Nombre",
+            description: "Descripción",
+            icon: "Icono (nombre Lucide)",
+          },
+          placeholders: {
+            name: "finanzas/inversiones",
+            description: "Describe este namespace...",
+            icon: "Briefcase",
+          },
+        },
+        sliders: {
+          title: "Sobrescribir Controles de Personalidad",
+          description: "Personalice rasgos de personalidad de la IA específicos para este namespace",
+          enableLabel: "Activar Controles Personalizados",
+          states: {
+            enabled: "Activado",
+            disabled: "Desactivado",
+          },
+        },
+        prompt: {
+          title: "Sobrescribir Prompt del Sistema",
+          description: "Agregue instrucciones específicas del namespace al prompt del sistema de la IA",
+          labels: {
+            mergeStrategy: "Estrategia de Fusión",
+            customPrompt: "Prompt Personalizado del Sistema",
+          },
+          selectOptions: {
+            override: "Sobrescribir (Reemplazar prompt global)",
+            merge: "Fusionar (Combinar con prompt global)",
+            fallback: "Fallback (Usar si no hay prompt global)",
+          },
+          placeholders: {
+            prompt: "Eres un asistente de IA especializado en...",
+          },
+        },
+        triggers: {
+          title: "Disparadores de Detección",
+          description: "Configure palabras clave y patrones para activar automáticamente este namespace",
+          labels: {
+            priority: "Prioridad (1=Alta, 2=Media, 3=Baja)",
+            confidenceThreshold: "Umbral de Confianza",
+          },
+          placeholders: {
+            addTrigger: "Agregar palabra clave disparadora...",
+          },
+          priorityOptions: {
+            high: "1 - Prioridad Alta",
+            medium: "2 - Prioridad Media",
+            low: "3 - Prioridad Baja",
+          },
+        },
+        fallbacks: {
+          noDescription: "Sin descripción",
+        },
       },
       
       vision: {
@@ -7789,7 +8195,11 @@ const translations: Record<Language, Translations> = {
           promptSaved: "¡Prompt guardado!",
           triggerAdded: "¡Trigger agregado!",
           triggerRemoved: "¡Trigger eliminado!",
+          contentPendingHITL: "El contenido espera aprobación humana antes de ser indexado en la Knowledge Base",
+          additionalContentPendingHITL: "El contenido adicional espera aprobación humana antes de ser indexado en la Knowledge Base",
         },
+        
+        pendingApprovalDesc: "El contenido espera aprobación humana antes de ser indexado en la Base de Conocimiento",
       },
       
       lifecycle: {
