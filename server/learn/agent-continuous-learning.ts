@@ -38,7 +38,7 @@ interface LearningConfig {
 export class AgentContinuousLearning {
   private config: LearningConfig = {
     minExamplesThreshold: 100,
-    qualityThreshold: 70,
+    qualityThreshold: 30, // Lowered from 70 to enable collection even with partial metadata
     collectionInterval: 60 * 60 * 1000, // 1 hora
   };
 

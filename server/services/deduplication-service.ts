@@ -285,7 +285,7 @@ export class DeduplicationService {
    * 4-Gate Tiered Detection System:
    * - Gate 1: Exact hash lookup (O(1), <1ms)
    * - Gate 2: pgvector ANN search (semantic similarity)
-   * - Gate 3: LLM adjudication for borderline cases (0.75-0.85)
+   * - Gate 3: LLM adjudication for borderline cases (0.80-0.90)
    * - Gate 4: Return embedding for reuse (avoid regeneration)
    * 
    * @param content - Raw text content
@@ -302,8 +302,8 @@ export class DeduplicationService {
       tenantId?: number;
       enableSemantic?: boolean;
       similarityThresholds?: {
-        exact: number;      // ≥0.85 = exact duplicate
-        borderline: number; // 0.75-0.85 = needs LLM verification
+        exact: number;      // ≥0.90 = exact duplicate
+        borderline: number; // 0.80-0.90 = needs LLM verification
       };
     } = {}
   ): Promise<{
@@ -319,8 +319,8 @@ export class DeduplicationService {
       tenantId = 1,
       enableSemantic = true, // MVP: enabled by default
       similarityThresholds = {
-        exact: 0.85,       // ≥85% = auto-reject as duplicate (lowered from 0.97 to catch semantic duplicates)
-        borderline: 0.75   // 75-85% = LLM verification needed (lowered from 0.90 to improve detection)
+        exact: 0.90,       // ≥90% = auto-reject as duplicate (conservative threshold to minimize false positives)
+        borderline: 0.80   // 80-90% = LLM verification needed (balanced detection with verification)
       }
     } = options;
 
@@ -443,7 +443,7 @@ export class DeduplicationService {
     // TIER 3: THRESHOLD LOGIC + LLM ADJUDICATION
     // =====================================================================
     
-    // Exact semantic duplicate (≥85%) - BUG #13 FIX: INFO não ERROR!
+    // Exact semantic duplicate (≥90%) - BUG #13 FIX: INFO não ERROR!
     if (similarity >= similarityThresholds.exact) {
       console.log(`[Dedup] ℹ️  SEMANTIC duplicate detected (${(similarity * 100).toFixed(1)}% ≥ ${similarityThresholds.exact * 100}%) - skipping to avoid duplication`);
       return {
@@ -457,7 +457,7 @@ export class DeduplicationService {
       };
     }
 
-    // Borderline case (75-85%) - needs LLM verification
+    // Borderline case (80-90%) - needs LLM verification
     if (similarity >= similarityThresholds.borderline) {
       console.log(`[Dedup] ⚠️  BORDERLINE similarity (${(similarity * 100).toFixed(1)}%) - invoking LLM adjudicator...`);
       

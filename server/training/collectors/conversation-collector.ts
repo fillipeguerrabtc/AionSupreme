@@ -34,6 +34,7 @@ export class ConversationCollector {
    */
   static calculateQualityScore(messages: Message[]): QualityMetrics {
     if (messages.length === 0) {
+      console.log(`[ConvCollector] ⚠️  Empty messages array - returning zero metrics`);
       return {
         score: 0,
         messageCount: 0,
@@ -45,6 +46,8 @@ export class ConversationCollector {
         completionRate: 0,
       };
     }
+    
+    console.log(`[ConvCollector] 🧠 Calculating quality for ${messages.length} messages...`);
 
     // Extract metadata
     let totalTokens = 0;
@@ -94,6 +97,9 @@ export class ConversationCollector {
     const userMessages = messages.filter(m => m.role === 'user').length;
     const completionRate = userMessages > 0 ? (completedExchanges / userMessages) * 100 : 0;
 
+    // Log metadata collection status for debugging
+    console.log(`[ConvCollector] Metadata: tokens=${totalTokens}, latency=${avgLatency}ms, providers=${providers.size}, tools=${toolsUsed.size}, exchanges=${completedExchanges}/${userMessages}`);
+
     // Calculate quality score (0-100)
     let score = 0;
     
@@ -115,8 +121,11 @@ export class ConversationCollector {
     // Completion rate (max 20 points)
     score += (completionRate / 100) * 20;
 
+    const finalScore = Math.min(Math.round(score), 100);
+    console.log(`[ConvCollector] ✅ Final score: ${finalScore}/100 (${messages.length} msgs, ${totalTokens} tokens, ${Math.round(completionRate)}% completion)`);
+    
     return {
-      score: Math.min(Math.round(score), 100),
+      score: finalScore,
       messageCount: messages.length,
       totalTokens,
       avgLatency: Math.round(avgLatency),
@@ -195,16 +204,19 @@ export class ConversationCollector {
 
   /**
    * Determine if a conversation is worth collecting for training
-   * Thresholds:
-   * - Quality score >= 60
-   * - At least 2 message exchanges
-   * - At least 100 tokens total
+   * Thresholds (lowered to enable collection even with partial metadata):
+   * - Quality score >= 30 (lowered from 60 to handle missing metadata gracefully)
+   * - At least 1 message exchange (lowered from 2 to capture single-turn quality)
+   * - At least 50 tokens total (lowered from 100 for shorter but valuable exchanges)
    */
   static shouldCollect(metrics: QualityMetrics): boolean {
+    // Log metrics for debugging (helps trace metadata pipeline issues)
+    console.log(`[ConvCollector] Quality check: score=${metrics.score}, msgs=${metrics.messageCount}, tokens=${metrics.totalTokens}, completion=${metrics.completionRate}%`);
+    
     return (
-      metrics.score >= 60 &&
-      metrics.messageCount >= 4 && // At least 2 exchanges (user+assistant pairs)
-      metrics.totalTokens >= 100
+      metrics.score >= 30 &&
+      metrics.messageCount >= 2 && // At least 1 exchange (user+assistant pair)
+      metrics.totalTokens >= 50
     );
   }
 
