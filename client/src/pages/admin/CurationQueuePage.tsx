@@ -225,8 +225,8 @@ export default function CurationQueuePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", 1] });
       toast({ 
-        title: `${data.approved} itens aprovados com sucesso!`,
-        description: data.failed > 0 ? `${data.failed} itens falharam` : undefined
+        title: t.admin.curation.bulkApproveSuccess.replace('{count}', String(data.approved)),
+        description: data.failed > 0 ? t.admin.curation.bulkApproveFailed.replace('{count}', String(data.failed)) : undefined
       });
       setBulkApproveDialogOpen(false);
       setSelectedIds(new Set());
@@ -252,13 +252,13 @@ export default function CurationQueuePage() {
       
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       toast({
-        title: "Descrições geradas com sucesso!",
-        description: `${data.processedImages} imagens processadas`,
+        title: t.admin.curation.descriptionsGenerated,
+        description: `${data.processedImages} ${t.admin.curation.imagesProcessed}`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao gerar descrições",
+        title: t.admin.curation.errorGeneratingDescriptions,
         description: error.message,
         variant: "destructive",
       });
@@ -277,13 +277,13 @@ export default function CurationQueuePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       const duplicatesFound = (data.stats?.exact || 0) + (data.stats?.near || 0);
       toast({
-        title: "Scan de duplicatas concluído!",
-        description: `${data.stats?.total || 0} itens analisados. ${duplicatesFound} duplicatas detectadas.`,
+        title: t.admin.curation.scanDuplicatesComplete,
+        description: `${data.stats?.total || 0} ${t.admin.curation.itemsAnalyzed}. ${duplicatesFound} ${t.admin.curation.duplicatesDetected}.`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao escanear duplicatas",
+        title: t.admin.curation.scanDuplicatesError,
         description: error.message,
         variant: "destructive",
       });
@@ -302,13 +302,13 @@ export default function CurationQueuePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       const duplicatesFound = (data.stats?.exact || 0) + (data.stats?.near || 0);
       toast({
-        title: "Scan de imagens duplicadas concluído!",
-        description: `${data.stats?.total || 0} imagens analisadas. ${duplicatesFound} duplicatas detectadas.`,
+        title: t.admin.curation.scanImageDuplicatesComplete,
+        description: `${data.stats?.total || 0} ${t.admin.curation.imagesAnalyzed}. ${duplicatesFound} ${t.admin.curation.duplicatesDetected}.`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao escanear imagens duplicadas",
+        title: t.admin.curation.scanImageDuplicatesError,
         description: error.message,
         variant: "destructive",
       });
@@ -326,13 +326,16 @@ export default function CurationQueuePage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       toast({
-        title: "Absorção parcial concluída!",
-        description: `Conteúdo reduzido de ${data.analysis.originalLength} para ${data.analysis.extractedLength} caracteres (${data.analysis.reductionPercent}% de redução). Duplicado de: "${data.duplicateTitle}"`,
+        title: t.admin.curation.absorptionCompleteTitle,
+        description: t.admin.curation.absorptionCompleteDesc
+          .replace('{before}', String(data.analysis.originalLength))
+          .replace('{after}', String(data.analysis.extractedLength))
+          .replace('{reduction}', String(data.analysis.reductionPercent)) + ` ${t.admin.curation.duplicateOf} "${data.duplicateTitle}"`,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao absorver conteúdo",
+        title: t.admin.curation.absorptionError,
         description: error.message,
         variant: "destructive",
       });
@@ -354,8 +357,8 @@ export default function CurationQueuePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/documents", 1] });
       toast({ 
-        title: `${data.approved} itens aprovados com sucesso!`,
-        description: `Todos os itens pendentes foram aprovados e publicados na KB`
+        title: `${data.approved} ${t.admin.curation.itemsApprovedSuccess}`,
+        description: t.admin.curation.allPendingApprovedAndPublished
       });
       setApproveAllDialogOpen(false);
     },
@@ -378,8 +381,8 @@ export default function CurationQueuePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       toast({ 
-        title: `${data.rejected} itens rejeitados com sucesso!`,
-        description: data.failed > 0 ? `${data.failed} itens falharam` : undefined
+        title: `${data.rejected} ${t.admin.curation.itemsRejectedSuccess}`,
+        description: data.failed > 0 ? `${data.failed} ${t.admin.curation.itemsFailed}` : undefined
       });
       setBulkRejectDialogOpen(false);
       setSelectedIds(new Set());
@@ -404,8 +407,8 @@ export default function CurationQueuePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/curation/history"] });
       toast({ 
-        title: `${data.rejected} itens rejeitados com sucesso!`,
-        description: `Todos os itens pendentes foram removidos da fila`
+        title: `${data.rejected} ${t.admin.curation.itemsRejectedSuccess}`,
+        description: t.admin.curation.allPendingRemoved
       });
       setRejectAllDialogOpen(false);
       setBulkRejectNote("");
@@ -528,7 +531,7 @@ export default function CurationQueuePage() {
       {/* Content Type Filter */}
       <div className="space-y-3">
         <div>
-          <Label className="text-sm font-medium mb-2 block">Tipo de Conteúdo</Label>
+          <Label className="text-sm font-medium mb-2 block">{t.admin.curation.contentType}</Label>
           <div className="flex flex-wrap gap-2">
             <Button
               variant={contentFilter === "all" ? "default" : "outline"}
@@ -560,7 +563,7 @@ export default function CurationQueuePage() {
         {/* Duplication Status Filter */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <Label className="text-sm font-medium">Status de Duplicação</Label>
+            <Label className="text-sm font-medium">{t.admin.curation.duplicationStatus}</Label>
             <Button
               variant="outline"
               size="sm"
@@ -569,7 +572,7 @@ export default function CurationQueuePage() {
               data-testid="button-scan-duplicates"
             >
               <Scan className="h-4 w-4 mr-2" />
-              {scanDuplicatesMutation.isPending ? "Escaneando..." : "Escanear Duplicatas"}
+              {scanDuplicatesMutation.isPending ? t.admin.curation.scanning : t.admin.curation.scanDuplicates}
             </Button>
             <Button
               variant="outline"
@@ -580,7 +583,7 @@ export default function CurationQueuePage() {
               className="text-purple-600 hover:text-purple-700"
             >
               <ImageIcon className="h-4 w-4 mr-2" />
-              {scanImageDuplicatesMutation.isPending ? "Escaneando Imagens..." : "Escanear Imagens Duplicadas"}
+              {scanImageDuplicatesMutation.isPending ? t.admin.curation.scanningImages : t.admin.curation.scanImageDuplicates}
             </Button>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -590,7 +593,7 @@ export default function CurationQueuePage() {
               onClick={() => setDuplicationFilter("all")}
               data-testid="filter-dup-all"
             >
-              Todos ({items?.length || 0})
+              {t.admin.curation.all} ({items?.length || 0})
             </Button>
             <Button
               variant={duplicationFilter === "unscanned" ? "default" : "outline"}
@@ -598,7 +601,7 @@ export default function CurationQueuePage() {
               onClick={() => setDuplicationFilter("unscanned")}
               data-testid="filter-dup-unscanned"
             >
-              Não Escaneados ({(items?.filter(i => !i.duplicationStatus) || []).length})
+              {t.admin.curation.unscanned} ({(items?.filter(i => !i.duplicationStatus) || []).length})
             </Button>
             <Button
               variant={duplicationFilter === "unique" ? "default" : "outline"}
@@ -607,7 +610,7 @@ export default function CurationQueuePage() {
               data-testid="filter-dup-unique"
               className="text-green-600 hover:text-green-700"
             >
-              Únicos ({(items?.filter(i => i.duplicationStatus === "unique") || []).length})
+              {t.admin.curation.unique} ({(items?.filter(i => i.duplicationStatus === "unique") || []).length})
             </Button>
             <Button
               variant={duplicationFilter === "near" ? "default" : "outline"}
@@ -616,7 +619,7 @@ export default function CurationQueuePage() {
               data-testid="filter-dup-near"
               className="text-yellow-600 hover:text-yellow-700"
             >
-              Similares ({(items?.filter(i => i.duplicationStatus === "near") || []).length})
+              {t.admin.curation.similar} ({(items?.filter(i => i.duplicationStatus === "near") || []).length})
             </Button>
             <Button
               variant={duplicationFilter === "exact" ? "default" : "outline"}
@@ -625,7 +628,7 @@ export default function CurationQueuePage() {
               data-testid="filter-dup-exact"
               className="text-red-600 hover:text-red-700"
             >
-              Duplicatas Exatas ({(items?.filter(i => i.duplicationStatus === "exact") || []).length})
+              {t.admin.curation.exactDuplicates} ({(items?.filter(i => i.duplicationStatus === "exact") || []).length})
             </Button>
           </div>
         </div>
@@ -663,7 +666,7 @@ export default function CurationQueuePage() {
                       data-testid="checkbox-select-all"
                     />
                     <span className="text-sm font-medium">
-                      {selectedIds.size === 0 ? 'Selecionar todos' : `${selectedIds.size} selecionados`}
+                      {selectedIds.size === 0 ? t.admin.curation.selectAll : `${selectedIds.size} ${t.admin.curation.selectedCount}`}
                     </span>
                   </div>
                 </div>
@@ -676,7 +679,7 @@ export default function CurationQueuePage() {
                     data-testid="button-approve-selected"
                   >
                     <CheckSquare className="h-4 w-4 mr-2" />
-                    Aprovar Selecionadas ({selectedIds.size})
+                    {t.admin.curation.approveSelected} ({selectedIds.size})
                   </Button>
                   <Button
                     variant="secondary"
@@ -684,7 +687,7 @@ export default function CurationQueuePage() {
                     data-testid="button-approve-all"
                   >
                     <Check className="h-4 w-4 mr-2" />
-                    {contentFilter === "all" ? `Aprovar Todas (${filteredItems.length})` : `Aprovar Todas Pendentes (${items?.length || 0})`}
+                    {contentFilter === "all" ? `${t.admin.curation.approveAll} (${filteredItems.length})` : `${t.admin.curation.approveAllPending} (${items?.length || 0})`}
                   </Button>
                   <Button
                     variant="destructive"
@@ -693,7 +696,7 @@ export default function CurationQueuePage() {
                     data-testid="button-reject-selected"
                   >
                     <X className="h-4 w-4 mr-2" />
-                    Rejeitar Selecionadas ({selectedIds.size})
+                    {t.admin.curation.rejectSelected} ({selectedIds.size})
                   </Button>
                   <Button
                     variant="outline"
@@ -702,7 +705,7 @@ export default function CurationQueuePage() {
                     data-testid="button-reject-all"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    {contentFilter === "all" ? `Rejeitar Todas (${filteredItems.length})` : `Rejeitar Todas Pendentes (${items?.length || 0})`}
+                    {contentFilter === "all" ? `${t.admin.curation.rejectAll} (${filteredItems.length})` : `${t.admin.curation.rejectAllPending} (${items?.length || 0})`}
                   </Button>
                 </div>
               </div>
@@ -734,7 +737,7 @@ export default function CurationQueuePage() {
                               title={`Duplicata exata detectada (${item.similarityScore ? Math.round(item.similarityScore * 100) : '100'}% similar)`}
                             >
                               <AlertCircle className="h-3 w-3" />
-                              Duplicata {item.similarityScore ? `${Math.round(item.similarityScore * 100)}%` : "100%"}
+                              {t.admin.curation.duplicate} {item.similarityScore ? `${Math.round(item.similarityScore * 100)}%` : "100%"}
                             </Badge>
                           )}
                           {item.duplicationStatus === "near" && (
@@ -744,23 +747,23 @@ export default function CurationQueuePage() {
                               title={`Conteúdo similar detectado (${item.similarityScore ? Math.round(item.similarityScore * 100) : '~80'}% similar)`}
                             >
                               <AlertTriangle className="h-3 w-3" />
-                              Similar {item.similarityScore ? `${Math.round(item.similarityScore * 100)}%` : "~80%"}
+                              {t.admin.curation.similar} {item.similarityScore ? `${Math.round(item.similarityScore * 100)}%` : "~80%"}
                             </Badge>
                           )}
                           {item.duplicationStatus === "unique" && (
                             <Badge 
                               className="bg-green-600 hover:bg-green-700 text-white font-semibold flex items-center gap-1" 
                               data-testid={`badge-dup-unique-${item.id}`}
-                              title="Conteúdo único - sem duplicatas detectadas"
+                              title={t.admin.curation.uniqueContentDetected}
                             >
                               <CheckCircle className="h-3 w-3" />
-                              Único
+                              {t.admin.curation.unique}
                             </Badge>
                           )}
                         </div>
                         <CardDescription className="space-y-1">
                           <div className="flex items-center gap-2">
-                            Enviado por {item.submittedBy || "Desconhecido"}
+                            {t.admin.curation.submittedBy} {item.submittedBy || t.admin.curation.unknown}
                           </div>
                           <div className="flex items-center gap-1 text-xs">
                             <Calendar className="h-3 w-3" />
@@ -783,7 +786,7 @@ export default function CurationQueuePage() {
                           data-testid={`button-edit-${item.id}`}
                         >
                           <Edit className="h-4 w-4 mr-2" />
-                          Editar
+                          {t.admin.curation.edit}
                         </Button>
                         
                         {/* Absorb Partial button - only for near-duplicates with KB duplicate */}
@@ -794,10 +797,10 @@ export default function CurationQueuePage() {
                             onClick={() => setAbsorptionPreviewItem({ id: item.id, title: item.title })}
                             className="text-orange-600 hover:text-orange-700"
                             data-testid={`button-absorb-${item.id}`}
-                            title="Preview da absorção inteligente - extrair apenas conteúdo novo"
+                            title={t.admin.curation.previewAbsorptionTooltip}
                           >
                             <ArrowDownToLine className="h-4 w-4 mr-2" />
-                            Preview Absorção
+                            {t.admin.curation.previewAbsorption}
                           </Button>
                         )}
                         <Button
@@ -808,7 +811,7 @@ export default function CurationQueuePage() {
                           data-testid={`button-approve-${item.id}`}
                         >
                           <Check className="h-4 w-4 mr-2" />
-                          Aprovar
+                          {t.admin.curation.approve}
                         </Button>
                         <Button
                           variant="outline"
@@ -818,7 +821,7 @@ export default function CurationQueuePage() {
                           data-testid={`button-reject-${item.id}`}
                         >
                           <X className="h-4 w-4 mr-2" />
-                          Rejeitar
+                          {t.admin.curation.reject}
                         </Button>
                       </div>
                     </div>
@@ -837,7 +840,7 @@ export default function CurationQueuePage() {
                         <>
                           <ImageIcon className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm font-medium">
-                            Imagens ({item.attachments.filter(a => a.type === "image").length})
+                            {t.admin.curation.images} ({item.attachments.filter(a => a.type === "image").length})
                           </span>
                         </>
                       )}
@@ -845,7 +848,7 @@ export default function CurationQueuePage() {
                         <>
                           <Video className="h-4 w-4 text-muted-foreground ml-4" />
                           <span className="text-sm font-medium">
-                            Vídeos ({item.attachments.filter(a => a.type === "video").length})
+                            {t.admin.curation.videos} ({item.attachments.filter(a => a.type === "video").length})
                           </span>
                         </>
                       )}
@@ -891,7 +894,7 @@ export default function CurationQueuePage() {
                               variant="secondary" 
                               className="text-xs font-semibold shadow-md"
                             >
-                              {media.type === "video" ? "Vídeo" : "Imagem"}
+                              {media.type === "video" ? t.admin.curation.video : t.admin.curation.image}
                             </Badge>
                           </div>
                           {/* Image Duplication Badge */}
@@ -922,7 +925,7 @@ export default function CurationQueuePage() {
                             <div className="absolute top-1 right-1">
                               <Badge 
                                 className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold shadow-md flex items-center gap-1" 
-                                title="Imagem única"
+                                title={t.admin.curation.uniqueImageTitle}
                               >
                                 <CheckCircle className="h-3 w-3" />
                                 Único
@@ -932,7 +935,7 @@ export default function CurationQueuePage() {
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                             <span className="text-white text-xs flex items-center gap-1">
                               {media.type === "video" ? <Play className="h-4 w-4" /> : <Scan className="h-3 w-3" />}
-                              {media.type === "video" ? "Reproduzir vídeo" : "Ver imagem"}
+                              {media.type === "video" ? t.admin.curation.playVideo : t.admin.curation.viewImage}
                             </span>
                           </div>
                           {media.description && (
@@ -948,7 +951,7 @@ export default function CurationQueuePage() {
 
                 <div className="space-y-2">
                   <div>
-                    <span className="text-sm font-medium">Namespaces:</span>
+                    <span className="text-sm font-medium">{t.admin.curation.namespaces}</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {item.suggestedNamespaces.map((ns) => (
                         <Badge key={ns} variant="secondary" className="font-mono text-xs">
@@ -960,7 +963,7 @@ export default function CurationQueuePage() {
 
                   {item.tags.length > 0 && (
                     <div>
-                      <span className="text-sm font-medium">Tags:</span>
+                      <span className="text-sm font-medium">{t.admin.curation.tags}:</span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {item.tags.map((tag) => (
                           <Badge key={tag} variant="outline" className="text-xs">
@@ -982,16 +985,16 @@ export default function CurationQueuePage() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col" data-testid="dialog-edit-curation">
           <DialogHeader>
-            <DialogTitle>Editar Item de Curadoria</DialogTitle>
+            <DialogTitle>{t.admin.curation.editItem}</DialogTitle>
             <DialogDescription>
-              Ajuste título e tags antes de aprovar
+              {t.admin.curation.adjustTitleTags}
             </DialogDescription>
           </DialogHeader>
 
           {/* Área scrollável com altura máxima */}
           <div className="space-y-4 py-4 overflow-y-auto max-h-[60vh]">
             <div className="space-y-2">
-              <Label htmlFor="edit-title">Título</Label>
+              <Label htmlFor="edit-title">{t.admin.curation.titleLabel}</Label>
               <Input
                 id="edit-title"
                 value={editTitle}
@@ -1002,7 +1005,7 @@ export default function CurationQueuePage() {
 
             {/* Editar Conteúdo */}
             <div className="space-y-2">
-              <Label htmlFor="edit-content">Conteúdo</Label>
+              <Label htmlFor="edit-content">{t.admin.curation.content}</Label>
               <div className="relative">
                 <Textarea
                   id="edit-content"
@@ -1015,11 +1018,11 @@ export default function CurationQueuePage() {
                   variant="secondary" 
                   className="absolute top-2 right-2 text-xs"
                 >
-                  {editContent.length.toLocaleString()} caracteres
+                  {editContent.length.toLocaleString()} {t.admin.curation.characters}
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">
-                Edite o conteúdo extraído se necessário antes de aprovar
+                {t.admin.curation.editContentHelp}
               </p>
             </div>
 
@@ -1027,7 +1030,7 @@ export default function CurationQueuePage() {
             {selectedItem?.attachments && selectedItem.attachments.filter(a => a.type === "image").length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Imagens Anexadas ({selectedItem.attachments.filter(a => a.type === "image").length})</Label>
+                  <Label>{t.admin.curation.imagesAttached} ({selectedItem.attachments.filter(a => a.type === "image").length})</Label>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -1035,7 +1038,7 @@ export default function CurationQueuePage() {
                     disabled={generateDescriptionsMutation.isPending}
                     data-testid="button-generate-descriptions"
                   >
-                    {generateDescriptionsMutation.isPending ? "Gerando..." : "🤖 Gerar Descrições AI"}
+                    {generateDescriptionsMutation.isPending ? t.admin.curation.generating : t.admin.curation.generateDescriptionsAI}
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -1049,8 +1052,8 @@ export default function CurationQueuePage() {
                       />
                       <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1">
                         <p className="truncate">{img.filename}</p>
-                        {img.description && img.description !== "Sem descrição" && (
-                          <p className="text-[10px] text-green-400">✓ Descrição AI</p>
+                        {img.description && img.description !== t.admin.curation.noDescription && (
+                          <p className="text-[10px] text-green-400">{t.admin.curation.aiDescription}</p>
                         )}
                         <p className="text-[10px] opacity-70">{(img.size / 1024).toFixed(1)} KB</p>
                       </div>
@@ -1058,13 +1061,13 @@ export default function CurationQueuePage() {
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Todas as imagens serão indexadas junto com o conteúdo após aprovação
+                  {t.admin.curation.allImagesIndexed}
                 </p>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="edit-tags">Tags (separadas por vírgula)</Label>
+              <Label htmlFor="edit-tags">{t.admin.curation.tagsSeparated}</Label>
               <Input
                 id="edit-tags"
                 value={editTags}
@@ -1075,12 +1078,12 @@ export default function CurationQueuePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-note">Nota (opcional)</Label>
+              <Label htmlFor="edit-note">{t.admin.curation.noteOptional}</Label>
               <Textarea
                 id="edit-note"
                 value={editNote}
                 onChange={(e) => setEditNote(e.target.value)}
-                placeholder="Observações sobre este conteúdo"
+                placeholder={t.admin.curation.observationsPlaceholder}
                 data-testid="input-edit-note"
               />
             </div>
@@ -1102,20 +1105,19 @@ export default function CurationQueuePage() {
       <AlertDialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
         <AlertDialogContent data-testid="dialog-approve-curation">
           <AlertDialogHeader>
-            <AlertDialogTitle>Aprovar e Publicar</AlertDialogTitle>
+            <AlertDialogTitle>{t.admin.curation.approveAndPublish}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja aprovar e publicar este conteúdo na Knowledge Base?
-              Esta ação não pode ser desfeita.
+              {t.admin.curation.confirmApproveDesc}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-approve">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-approve">{t.admin.curation.cancelar}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedItem && approveMutation.mutate(selectedItem.id)}
               disabled={approveMutation.isPending}
               data-testid="button-confirm-approve"
             >
-              {approveMutation.isPending ? "Publicando..." : "Aprovar e Publicar"}
+              {approveMutation.isPending ? t.admin.curation.publishing : t.admin.curation.approveAndPublish}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1125,27 +1127,27 @@ export default function CurationQueuePage() {
       <AlertDialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <AlertDialogContent data-testid="dialog-reject-curation">
           <AlertDialogHeader>
-            <AlertDialogTitle>Rejeitar Item</AlertDialogTitle>
+            <AlertDialogTitle>{t.admin.curation.rejectItem}</AlertDialogTitle>
             <AlertDialogDescription>
-              Por que este conteúdo está sendo rejeitado? (opcional)
+              {t.admin.curation.rejectReasonOptional}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
             value={rejectNote}
             onChange={(e) => setRejectNote(e.target.value)}
-            placeholder="Motivo da rejeição"
+            placeholder={t.admin.curation.rejectMotivo}
             className="my-4"
             data-testid="input-reject-note"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-reject">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-reject">{t.admin.curation.cancelar}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedItem && rejectMutation.mutate({ id: selectedItem.id, note: rejectNote })}
               disabled={rejectMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-confirm-reject"
             >
-              {rejectMutation.isPending ? "Rejeitando..." : "Rejeitar"}
+              {rejectMutation.isPending ? t.admin.curation.rejecting : t.admin.curation.reject}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1155,20 +1157,19 @@ export default function CurationQueuePage() {
       <AlertDialog open={bulkApproveDialogOpen} onOpenChange={setBulkApproveDialogOpen}>
         <AlertDialogContent data-testid="dialog-bulk-approve">
           <AlertDialogHeader>
-            <AlertDialogTitle>Aprovar {selectedIds.size} Itens Selecionados</AlertDialogTitle>
+            <AlertDialogTitle>{t.admin.curation.approve} {selectedIds.size} {t.admin.curation.selectedItems}</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja aprovar e publicar {selectedIds.size} itens na Knowledge Base?
-              Todos serão indexados e disponibilizados para treinamento.
+              {t.admin.curation.confirmBulkApproveDesc.replace('{count}', String(selectedIds.size))}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-bulk-approve">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-bulk-approve">{t.admin.curation.cancelar}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => bulkApproveMutation.mutate(Array.from(selectedIds))}
               disabled={bulkApproveMutation.isPending}
               data-testid="button-confirm-bulk-approve"
             >
-              {bulkApproveMutation.isPending ? "Aprovando..." : `Aprovar ${selectedIds.size} Itens`}
+              {bulkApproveMutation.isPending ? t.admin.curation.publishing : `${t.admin.curation.approve} ${selectedIds.size} Itens`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1178,22 +1179,20 @@ export default function CurationQueuePage() {
       <AlertDialog open={approveAllDialogOpen} onOpenChange={setApproveAllDialogOpen}>
         <AlertDialogContent data-testid="dialog-approve-all">
           <AlertDialogHeader>
-            <AlertDialogTitle>Aprovar Todos os {items?.length} Itens</AlertDialogTitle>
+            <AlertDialogTitle>{t.admin.curation.approveAllTitle.replace('{count}', String(items?.length || 0))}</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>ATENÇÃO:</strong> Esta ação irá aprovar e publicar TODOS os {items?.length} itens pendentes na Knowledge Base.
-              Todos serão indexados imediatamente e disponibilizados para treinamento quando atingir 100 exemplos.
-              Esta ação não pode ser desfeita.
+              {t.admin.curation.approveAllWarning.replace('{count}', String(items?.length || 0))}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-approve-all">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-approve-all">{t.admin.curation.cancelar}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => approveAllMutation.mutate()}
               disabled={approveAllMutation.isPending}
               data-testid="button-confirm-approve-all"
               className="bg-primary"
             >
-              {approveAllMutation.isPending ? "Aprovando..." : `Aprovar Todos (${items?.length})`}
+              {approveAllMutation.isPending ? t.admin.curation.publishing : `${t.admin.curation.approveAll} (${items?.length})`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1203,28 +1202,27 @@ export default function CurationQueuePage() {
       <AlertDialog open={bulkRejectDialogOpen} onOpenChange={setBulkRejectDialogOpen}>
         <AlertDialogContent data-testid="dialog-bulk-reject">
           <AlertDialogHeader>
-            <AlertDialogTitle>Rejeitar {selectedIds.size} Itens Selecionados</AlertDialogTitle>
+            <AlertDialogTitle>{t.admin.curation.reject} {selectedIds.size} Itens Selecionados</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja rejeitar {selectedIds.size} itens?
-              Todos serão removidos da fila de curadoria permanentemente.
+              {t.admin.curation.confirmReject} Todos serão removidos da fila de curadoria permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
             value={bulkRejectNote}
             onChange={(e) => setBulkRejectNote(e.target.value)}
-            placeholder="Motivo da rejeição (opcional)"
+            placeholder={t.admin.curation.rejectNotePlaceholder}
             className="my-4"
             data-testid="input-bulk-reject-note"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-bulk-reject">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-bulk-reject">{t.admin.curation.cancelar}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => bulkRejectMutation.mutate({ ids: Array.from(selectedIds), note: bulkRejectNote })}
               disabled={bulkRejectMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-confirm-bulk-reject"
             >
-              {bulkRejectMutation.isPending ? "Rejeitando..." : `Rejeitar ${selectedIds.size} Itens`}
+              {bulkRejectMutation.isPending ? t.admin.curation.rejecting : `${t.admin.curation.reject} ${selectedIds.size} Itens`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1234,29 +1232,27 @@ export default function CurationQueuePage() {
       <AlertDialog open={rejectAllDialogOpen} onOpenChange={setRejectAllDialogOpen}>
         <AlertDialogContent data-testid="dialog-reject-all">
           <AlertDialogHeader>
-            <AlertDialogTitle>Rejeitar Todos os {items?.length} Itens</AlertDialogTitle>
+            <AlertDialogTitle>{t.admin.curation.rejectAllTitle.replace('{count}', String(items?.length || 0))}</AlertDialogTitle>
             <AlertDialogDescription>
-              <strong>ATENÇÃO:</strong> Esta ação irá rejeitar e remover TODOS os {items?.length} itens pendentes da fila de curadoria.
-              Nenhum conteúdo será publicado na Knowledge Base ou usado para treinamento.
-              Esta ação não pode ser desfeita.
+              {t.admin.curation.rejectAllWarning.replace('{count}', String(items?.length || 0))}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
             value={bulkRejectNote}
             onChange={(e) => setBulkRejectNote(e.target.value)}
-            placeholder="Motivo da rejeição em massa (opcional)"
+            placeholder={t.admin.curation.rejectNotePlaceholder}
             className="my-4"
             data-testid="input-reject-all-note"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-reject-all">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-reject-all">{t.admin.curation.cancelar}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => rejectAllMutation.mutate(bulkRejectNote)}
               disabled={rejectAllMutation.isPending}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-confirm-reject-all"
             >
-              {rejectAllMutation.isPending ? "Rejeitando..." : `Rejeitar Todos (${items?.length || 0})`}
+              {rejectAllMutation.isPending ? t.admin.curation.rejecting : `${t.admin.curation.rejectAll} (${items?.length || 0})`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1273,7 +1269,7 @@ export default function CurationQueuePage() {
           ) : !filteredHistoryItems || filteredHistoryItems.length === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <p className="text-muted-foreground">Nenhum item {contentFilter !== "all" ? `(filtro: ${contentFilter === "pages" ? "páginas" : "imagens"})` : ""} no histórico (retenção: 5 anos)</p>
+                <p className="text-muted-foreground">{t.admin.curation.emptyHistory.replace('{filter}', contentFilter !== "all" ? `(filtro: ${contentFilter === "pages" ? t.admin.curation.filterPages : t.admin.curation.filterImages})` : "")}</p>
               </CardContent>
             </Card>
           ) : (
@@ -1289,7 +1285,7 @@ export default function CurationQueuePage() {
                             variant={item.status === 'approved' ? 'default' : 'destructive'}
                             data-testid={`badge-status-${item.id}`}
                           >
-                            {item.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+                            {item.status === 'approved' ? t.admin.curation.approvedStatus : t.admin.curation.rejectedStatus}
                           </Badge>
                         </div>
                         <CardDescription className="flex flex-col gap-2 min-w-0 max-w-full">
@@ -1305,7 +1301,7 @@ export default function CurationQueuePage() {
                           {item.reviewedBy && item.reviewedAt && (
                             <div className="flex flex-wrap items-center gap-2 text-sm font-medium min-w-0 max-w-full">
                               <Clock className="h-3 w-3 flex-shrink-0" />
-                              <span className="break-words">{item.status === 'approved' ? 'Aprovado' : 'Rejeitado'} por {item.reviewedBy} em {new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })} às {new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</span>
+                              <span className="break-words">{item.status === 'approved' ? t.admin.curation.approvedStatus : t.admin.curation.rejectedStatus} {t.admin.curation.reviewedBy.replace('{reviewer}', item.reviewedBy).replace('{date}', new Date(item.reviewedAt).toLocaleDateString("pt-BR", { dateStyle: "medium" })).replace('{time}', new Date(item.reviewedAt).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' }))}</span>
                             </div>
                           )}
                         </CardDescription>
@@ -1319,7 +1315,7 @@ export default function CurationQueuePage() {
 
                     <div className="space-y-2">
                       <div>
-                        <span className="text-sm font-medium">Namespaces:</span>
+                        <span className="text-sm font-medium">{t.admin.curation.namespaces}</span>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {item.suggestedNamespaces.map((ns) => (
                             <Badge key={ns} variant="secondary" className="font-mono text-xs">
@@ -1331,7 +1327,7 @@ export default function CurationQueuePage() {
 
                       {item.tags.length > 0 && (
                         <div>
-                          <span className="text-sm font-medium">Tags:</span>
+                          <span className="text-sm font-medium">{t.admin.curation.tags}:</span>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {item.tags.map((tag) => (
                               <Badge key={tag} variant="outline" className="text-xs">
