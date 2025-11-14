@@ -56,9 +56,18 @@ export interface PriorityRequest {
   temperature?: number;
   topP?: number;
   maxTokens?: number;
+  model?: string; // Specific model to use (optional, provider chooses default if not specified)
   unrestricted?: boolean;  // UNRESTRICTED mode = bypasses all filters
   forcedSource?: 'web' | 'kb' | 'free-apis';  // Force specific source when user explicitly requests it
-  language?: "pt-BR" | "en-US" | "es-ES";  // 🔥 FIX: Language for response generation
+  forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter' | 'openai';  // Force specific free API provider (still attempts KB/GPU first)
+  language?: "pt-BR" | "en-US" | "es-ES";  // Language for response generation
+  
+  // Metadata for quota tagging and telemetry (formalized - already accepted by generateWithPriority)
+  conversationId?: number | null;
+  messageId?: number | null;
+  namespaces?: string[];
+  consumerId?: string; // Consumer identifier for quota tracking (e.g., 'router', 'chat', 'classifier')
+  purpose?: string; // Human-readable purpose for logs and debugging
 }
 
 export interface PriorityResponse {
@@ -71,6 +80,19 @@ export interface PriorityResponse {
     completionTokens: number;
     totalTokens: number;
   };
+  
+  // Telemetry fields for LLM Gateway (top-level for easy access)
+  costUsd?: number;
+  latencyMs?: number;
+  finishReason?: string;
+  
+  // Tool calls (function calling) - only supported by OpenAI currently
+  toolCalls?: Array<{
+    id: string;
+    name: string;
+    arguments: Record<string, any>;
+  }>;
+  
   attachments?: Array<{  // Multimodal attachments from KB
     type: "image" | "video" | "document";
     url: string;
@@ -464,7 +486,14 @@ This instruction takes ABSOLUTE PRIORITY.
         }
         
         // KB didn't have it - go to Web WITHOUT using APIs
-        const webFallback = await executeWebFallback(userMessage, true, req.language, req.temperature ?? 0.7, req.topP ?? 0.9); // skipLLM=true
+        const webFallback = await executeWebFallback(userMessage, {
+          skipLLM: true,
+          language: req.language,
+          temperature: req.temperature ?? 0.7,
+          topP: req.topP ?? 0.9,
+          model: req.model,
+          forceProvider: req.forceProvider
+        });
         
         await trackWebSearch(
           'web',
@@ -601,7 +630,12 @@ This instruction takes ABSOLUTE PRIORITY.
           maxTokens: req.maxTokens
         });
         
-        const freeResponse = await generateWithFreeAPIs(freeApiRequest);
+        const freeResponse = await generateWithFreeAPIs(
+          freeApiRequest,
+          !req.forceProvider, // allowOpenAI: false when forcing provider (prevents paid fallback)
+          req.model, // NEW: Pass model
+          req.forceProvider // NEW: Pass forceProvider
+        );
         
         console.log('   ✅ Free API response received!');
         console.log('='.repeat(80) + '\n');
@@ -615,7 +649,10 @@ This instruction takes ABSOLUTE PRIORITY.
             promptTokens: 0,
             completionTokens: 0,
             totalTokens: freeResponse.tokensUsed || 0
-          }
+          },
+          costUsd: freeResponse.costUsd || 0,
+          latencyMs: freeResponse.latencyMs || 0,
+          finishReason: freeResponse.finishReason || 'stop'
         };
       } catch (error: any) {
         console.error('   ✗ Free API failed:', error.message);
@@ -738,7 +775,14 @@ This instruction takes ABSOLUTE PRIORITY.
       log.info({ component: 'priority-orchestrator' }, 'Time-sensitive query detected, triggering web search');
       
       try {
-        const webFallback = await executeWebFallback(userMessage, false, req.language, req.temperature ?? 0.7, req.topP ?? 0.9);
+        const webFallback = await executeWebFallback(userMessage, {
+          skipLLM: false,
+          language: req.language,
+          temperature: req.temperature ?? 0.7,
+          topP: req.topP ?? 0.9,
+          model: req.model,
+          forceProvider: req.forceProvider
+        });
         
         await trackWebSearch(
           'web',
@@ -835,7 +879,12 @@ This instruction takes ABSOLUTE PRIORITY.
       maxTokens: req.maxTokens
     });
     
-    const freeResponse = await generateWithFreeAPIs(freeApiRequest);
+    const freeResponse = await generateWithFreeAPIs(
+      freeApiRequest,
+      !req.forceProvider, // allowOpenAI: false when forcing provider (prevents paid fallback)
+      req.model, // NEW: Pass model
+      req.forceProvider // NEW: Pass forceProvider
+    );
     console.log(`   ✓ Free API responded: ${freeResponse.provider}`);
     
     // Check for refusal
@@ -891,7 +940,14 @@ This instruction takes ABSOLUTE PRIORITY.
       });
       
       // Execute automatic web fallback
-      const webFallback = await executeWebFallback(userMessage, false, req.language, req.temperature ?? 0.7, req.topP ?? 0.9);
+      const webFallback = await executeWebFallback(userMessage, {
+        skipLLM: false,
+        language: req.language,
+        temperature: req.temperature ?? 0.7,
+        topP: req.topP ?? 0.9,
+        model: req.model,
+        forceProvider: req.forceProvider
+      });
       
       // Track web fallback usage with validated metadata
       await trackWebSearch(
@@ -947,7 +1003,14 @@ This instruction takes ABSOLUTE PRIORITY.
   
   try {
     webSearchAttempted = true;
-    const webFallback = await executeWebFallback(userMessage, true, req.language, req.temperature ?? 0.7, req.topP ?? 0.9); // skipLLM=true for now
+    const webFallback = await executeWebFallback(userMessage, {
+      skipLLM: true,
+      language: req.language,
+      temperature: req.temperature ?? 0.7,
+      topP: req.topP ?? 0.9,
+      model: req.model,
+      forceProvider: req.forceProvider
+    });
     
     await trackWebSearch(
       'web',
@@ -1083,7 +1146,14 @@ This instruction takes ABSOLUTE PRIORITY.
   if (req.unrestricted) {
     console.log('   🚀 UNRESTRICTED mode = ON → Activating WEB FALLBACK...');
     
-    const webFallback = await executeWebFallback(userMessage, false, req.language, req.temperature ?? 0.7, req.topP ?? 0.9);
+    const webFallback = await executeWebFallback(userMessage, {
+      skipLLM: false,
+      language: req.language,
+      temperature: req.temperature ?? 0.7,
+      topP: req.topP ?? 0.9,
+      model: req.model,
+      forceProvider: req.forceProvider
+    });
     
     // Track web fallback usage with validated metadata
     await trackWebSearch(
@@ -1196,7 +1266,12 @@ async function generateFromContext(
   };
 
   try {
-    const response = await generateWithFreeAPIs(freeApiRequest);
+    const response = await generateWithFreeAPIs(
+      freeApiRequest,
+      !req.forceProvider, // allowOpenAI: false when forcing provider (prevents paid fallback)
+      req.model, // NEW: Pass model
+      req.forceProvider // NEW: Pass forceProvider
+    );
     return response.text;
   } catch (error) {
     // Ultimate fallback to OpenAI if free APIs fail
@@ -1265,11 +1340,24 @@ async function trackWebSearch(
 
 async function executeWebFallback(
   query: string,
-  skipLLM: boolean = false,  // When true, skip API calls and return raw summary
-  language: "pt-BR" | "en-US" | "es-ES" = "pt-BR",  // Language for response generation
-  temperature: number = 0.7,  // LLM temperature for response generation
-  topP: number = 0.9  // LLM top_p for response generation
+  options: {
+    skipLLM?: boolean;  // When true, skip API calls and return raw summary
+    language?: "pt-BR" | "en-US" | "es-ES";  // Language for response generation
+    temperature?: number;  // LLM temperature for response generation
+    topP?: number;  // LLM top_p for response generation
+    model?: string;  // Specific model to use (NEW)
+    forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter' | 'openai';  // Force specific provider (NEW)
+  } = {}
 ): Promise<WebFallbackResult> {
+  // Destructure with defaults (EN-US matches legacy behavior)
+  const {
+    skipLLM = false,
+    language = "en-US",  // FIXED: Match legacy default (was "pt-BR")
+    temperature = 0.7,
+    topP = 0.9,
+    model,
+    forceProvider
+  } = options;
   console.log('   🔍 Searching web for information...');
   
   // Search web
@@ -1420,7 +1508,12 @@ async function executeWebFallback(
   };
   
   try {
-    const response = await generateWithFreeAPIs(unrestrictedPrompt);
+    const response = await generateWithFreeAPIs(
+      unrestrictedPrompt,
+      !forceProvider, // allowOpenAI: false when forcing provider (prevents paid fallback)
+      model, // NEW: Pass model (from options destructure)
+      forceProvider // NEW: Pass forceProvider (from options destructure)
+    );
     
     // Final refusal check
     const finalCheck = detectRefusal(response.text);

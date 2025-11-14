@@ -12,7 +12,8 @@
  * Documentação: docs/FREE_GPU_API_STRATEGY.md
  */
 
-import { freeLLMProviders } from "./free-llm-providers";
+import { generateLLM } from "../llm/llm-gateway";
+import { getProviderStatus } from "../services/provider-status-service";
 import type { ChatMessage, ChatCompletionResult } from "./llm-client";
 
 interface GPUEndpoint {
@@ -186,15 +187,30 @@ export class GPUOrchestrator {
       }
     }
 
-    // 2. Fallback para APIs gratuitas (Groq → Gemini → HF)
-    console.log("[GPU Orchestrator] → Nenhuma GPU online, usando APIs gratuitas");
-    return await freeLLMProviders.chatCompletion(messages);
+    // 2. Fallback para LLM Gateway (centralizado)
+    console.log("[GPU Orchestrator] → Nenhuma GPU online, usando LLM Gateway");
+    const gatewayResult = await generateLLM({
+      messages,
+      consumerId: 'gpu-orchestrator',
+      purpose: 'GPU fallback - no GPUs available',
+      language: 'en-US',
+    });
+    
+    // Map LLMGatewayResult → ChatCompletionResult
+    return {
+      content: gatewayResult.content,
+      usage: gatewayResult.usage,
+      finishReason: gatewayResult.finishReason,
+      latencyMs: gatewayResult.latencyMs,
+      costUsd: gatewayResult.costUsd,
+      toolCalls: gatewayResult.toolCalls,
+    };
   }
 
   /**
    * Status completo do orquestrador
    */
-  getStatus() {
+  async getStatus() {
     const recommended = this.getRecommendedGPU();
     const activeGPU = Array.from(this.endpoints.values()).find(e => e.status === "online");
 
@@ -209,7 +225,7 @@ export class GPUOrchestrator {
         lastSeen: endpoint.lastSeen,
         uptime: endpoint.uptime,
       })),
-      freeAPIs: freeLLMProviders.getStatus(),
+      freeAPIs: await getProviderStatus(),
     };
   }
 

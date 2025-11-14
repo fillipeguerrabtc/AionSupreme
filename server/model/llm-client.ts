@@ -16,7 +16,7 @@
 import OpenAI from "openai";
 import { storage } from "../storage";
 import type { InsertMetric } from "@shared/schema";
-import { freeLLMProviders } from "./free-llm-providers";
+import { generateLLM, generateEmbeddings } from "../llm/llm-gateway";
 import { GPUPool } from "../gpu/pool";
 
 /**
@@ -426,12 +426,30 @@ export class LLMClient {
     }
 
     // ===================================================================
-    // 2º PRIORIDADE: TENTAR APIs GRATUITAS!
+    // 2º PRIORIDADE: TENTAR APIs GRATUITAS via LLM Gateway!
     // ===================================================================
-    console.log("[LLM] 🆓 Tentando APIs gratuitas (OpenRouter/Groq/Gemini/HF)...");
+    console.log("[LLM] 🆓 Tentando APIs gratuitas via LLM Gateway (OpenRouter/Groq/Gemini/HF)...");
     
     try {
-      const freeResult = await freeLLMProviders.chatCompletion(options.messages);
+      const gatewayResult = await generateLLM({
+        messages: options.messages,
+        temperature: options.temperature,
+        maxTokens: options.maxTokens,
+        model: options.model,
+        consumerId: 'llm-client',
+        purpose: 'Free API fallback',
+        language: 'en-US',
+      });
+      
+      // Map LLMGatewayResult → ChatCompletionResult
+      const freeResult: ChatCompletionResult = {
+        content: gatewayResult.content,
+        usage: gatewayResult.usage,
+        finishReason: gatewayResult.finishReason,
+        latencyMs: gatewayResult.latencyMs,
+        costUsd: gatewayResult.costUsd,
+        toolCalls: gatewayResult.toolCalls, // Pass through (undefined if not supported)
+      };
       
       // Save to cache
       this.saveToCache(cacheKey, freeResult);
@@ -638,11 +656,16 @@ export class LLMClient {
     } catch (error) {
       console.error("[LLM] OpenAI embedding error:", error);
       
-      // 🚀 NOVO: Fallback para HuggingFace (grátis)
-      console.log("[LLM] 🔄 Fallback para embeddings via HuggingFace (grátis)...");
+      // 🚀 NOVO: Fallback via LLM Gateway (HuggingFace grátis)
+      console.log("[LLM] 🔄 Fallback para embeddings via LLM Gateway (HuggingFace grátis)...");
       
       try {
-        const embeddings = await freeLLMProviders.generateEmbeddings(texts);
+        const embeddings = await generateEmbeddings({
+          texts,
+          model: 'huggingface', // Force HF (OpenAI already failed above)
+          consumerId: 'llm-client',
+          purpose: 'Embedding generation - HF fallback',
+        });
         const latencyMs = Date.now() - startTime;
         
         await storage.createMetric({

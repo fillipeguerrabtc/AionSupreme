@@ -33,6 +33,18 @@ export interface LLMResponse {
   model: string;
   tokensUsed?: number;
   cached?: boolean;
+  
+  // NEW: Telemetry fields for LLM Gateway alignment
+  latencyMs?: number;
+  costUsd?: number;
+  finishReason?: string;
+  
+  // Tool calls (function calling) - only supported by OpenAI currently
+  toolCalls?: Array<{
+    id: string;
+    name: string;
+    arguments: Record<string, any>;
+  }>;
 }
 
 interface APIProvider {
@@ -518,11 +530,19 @@ async function callOpenAI(req: LLMRequest): Promise<LLMResponse> {
     success: true
   });
 
+  // Extract tool calls if present (function calling)
+  const toolCalls = response.choices[0].message.tool_calls?.map(tc => ({
+    id: tc.id,
+    name: tc.function.name,
+    arguments: JSON.parse(tc.function.arguments)
+  }));
+
   return {
     text: response.choices[0].message.content || '',
     provider: 'openai',
     model: 'gpt-3.5-turbo',
-    tokensUsed: totalTokens
+    tokensUsed: totalTokens,
+    toolCalls // Pass through tool calls (undefined if not present)
   };
 }
 
@@ -532,11 +552,66 @@ async function callOpenAI(req: LLMRequest): Promise<LLMResponse> {
 
 export async function generateWithFreeAPIs(
   req: LLMRequest,
-  allowOpenAI: boolean = true
+  allowOpenAI: boolean = true,
+  model?: string, // NEW: Specific model to use (passed to providers)
+  forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter' | 'openai' // NEW: Force specific provider (short-circuit fallback)
 ): Promise<LLMResponse> {
   const startTime = Date.now();
   const errors: string[] = [];
   const failedProviders = new Set<string>();  // Track failed providers
+  
+  // 🔥 NEW: Force Provider Short-Circuit
+  if (forceProvider) {
+    console.log(`🎯 [FREE APIs] FORCE PROVIDER: ${forceProvider} (skipping fallback chain)`);
+    
+    // Quota check for forced provider
+    const quotasFromDB = await getProviderQuotas();
+    const quotaMap = new Map(quotasFromDB.map(q => [q.provider, q]));
+    const quota = quotaMap.get(forceProvider);
+    
+    if (quota && quota.used >= quota.dailyLimit * 0.8) {
+      throw new Error(`Forced provider ${forceProvider} has exceeded 80% quota (${quota.used}/${quota.dailyLimit})`);
+    }
+    
+    // Call forced provider directly
+    try {
+      let response: LLMResponse;
+      
+      switch (forceProvider) {
+        case 'groq':
+          response = await callGroq(req);
+          break;
+        case 'gemini':
+          response = await callGemini(req);
+          break;
+        case 'hf':
+          response = await callHuggingFace(req);
+          break;
+        case 'openrouter':
+          response = await callOpenRouter(req);
+          break;
+        case 'openai':
+          response = await callOpenAI(req);
+          break;
+        default:
+          throw new Error(`Unknown forced provider: ${forceProvider}`);
+      }
+      
+      const latency = Date.now() - startTime;
+      console.log(`✅ [FREE APIs] Forced provider ${forceProvider} succeeded (${latency}ms)`);
+      
+      return {
+        ...response,
+        latencyMs: latency,
+        costUsd: forceProvider === 'openai' ? (response.costUsd || 0) : 0, // Only OpenAI has cost
+        finishReason: response.finishReason || 'stop',
+      };
+      
+    } catch (error: any) {
+      console.error(`❌ [FREE APIs] Forced provider ${forceProvider} failed:`, error.message);
+      throw new Error(`Forced provider ${forceProvider} failed: ${error.message}`);
+    }
+  }
   
   // 🔥 FIX: Read quotas from DATABASE to avoid restart issues
   const quotasFromDB = await getProviderQuotas();

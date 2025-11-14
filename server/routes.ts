@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { extractTextContent } from "./utils/message-helpers";
 import { llmClient } from "./model/llm-client";
-import { freeLLMProviders } from "./model/free-llm-providers";
+import { getProviderHealth, getProviderStatus } from "./services/provider-status-service";
 import { gpuOrchestrator } from "./model/gpu-orchestrator";
 import { trainingDataCollector } from "./training/data-collector";
 import { ragService } from "./rag/vector-store";
@@ -559,7 +559,7 @@ export function registerRoutes(app: Express): Server {
     
     // Verificação das APIs gratuitas
     try {
-      const apiStatus = freeLLMProviders.getHealthStatus();
+      const apiStatus = await getProviderHealth();
       services.freeAPIs = {
         status: "saudável",
         providers: apiStatus,
@@ -587,7 +587,7 @@ export function registerRoutes(app: Express): Server {
     
     // Verificação do GPU Pool
     try {
-      const gpuStatus = gpuOrchestrator.getStatus();
+      const gpuStatus = await gpuOrchestrator.getStatus();
       const activeWorkers = gpuStatus.endpoints.filter(e => e.status === 'online').length;
       const totalWorkers = gpuStatus.endpoints.length;
       services.gpuPool = {
@@ -1045,7 +1045,7 @@ export function registerRoutes(app: Express): Server {
                   const defaultAgent = await db.query.agents.findFirst({
                     where: eq(agents.slug, 'assistente-geral'),
                   });
-                  primaryAgentId = defaultAgent?.id || null;
+                  primaryAgentId = defaultAgent?.id ?? null;
                   
                   if (!primaryAgentId) {
                     console.warn('[SSE Multi-Agent] No default agent found in DB - message saved without agentId');
@@ -1759,7 +1759,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/llm/status - Status das APIs gratuitas (Groq, Gemini, HF)
   app.get("/api/llm/status", async (req, res) => {
     try {
-      const status = await freeLLMProviders.getStatus();
+      const status = await getProviderStatus();
       
       // Calcular total disponível
       const totalRemaining = status.groq.remaining + status.gemini.remaining + status.hf.remaining;
