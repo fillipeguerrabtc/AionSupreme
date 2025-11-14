@@ -27,6 +27,8 @@ export interface QueryFrequencyResult {
   lastSeenAt: Date;
   daysSinceFirst: number;
   daysSinceLast: number;
+  embedding?: number[]; // 🔥 P0.5: Cached embedding for semantic reuse gate
+  matchedRecordId?: number; // 🔥 P0.5: DB record ID of matched query
 }
 
 export class QueryFrequencyService {
@@ -200,6 +202,9 @@ export class QueryFrequencyService {
         lastSeenAt: new Date(similar.lastSeenAt),
         daysSinceFirst,
         daysSinceLast,
+        // 🔥 P0.5: Return cached embedding for semantic reuse gate (avoids recomputation)
+        embedding: similar.queryEmbedding as number[] || embedding, // Use DB embedding if available, fallback to generated
+        matchedRecordId: similar.id, // Return DB record ID for tracking
       };
     } catch (error: any) {
       console.error(`[QueryFrequency] Get frequency error:`, error.message);

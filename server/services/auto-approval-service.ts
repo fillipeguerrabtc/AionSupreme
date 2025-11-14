@@ -330,12 +330,47 @@ export class AutoApprovalService {
     // DECISION 2: REUSE GATE - Cost-optimization for high-frequency queries
     // If score is in gray zone (40-69) BUT query is frequently asked (≥3x in 7 days)
     // → Approve to reduce external API costs via indexing
+    // 🔥 P0.5: Enhanced with semantic similarity check against approved KB
     if (queryText && score >= 40 && score < config.minApprovalScore) {
       try {
         const { queryFrequencyService } = await import("./query-frequency-service");
         const frequency = await queryFrequencyService.getFrequency(queryText, selectedNamespace);
         
         if (frequency && frequency.effectiveCount >= 3) {
+          // 🔥 P0.5: SEMANTIC REUSE GATE - Check embedding similarity to approved KB
+          // If query has similar content already approved → auto-approve
+          // Threshold: 0.88 (high confidence semantic match)
+          if (frequency.embedding && frequency.embedding.length > 0) {
+            try {
+              const { kbSimilarityService } = await import("./kb-similarity-service");
+              const similarKB = await kbSimilarityService.findApprovedSimilar(
+                frequency.embedding,
+                selectedNamespace,
+                0.88 // Architect-recommended threshold
+              );
+              
+              if (similarKB) {
+                return {
+                  action: "approve",
+                  reason: `Auto-approved: High-reuse + semantic KB match (score ${score}, frequency ${frequency.effectiveCount}x, KB similarity ${(similarKB.similarity * 100).toFixed(1)}%) - Cost optimization`,
+                  configUsed: {
+                    enabled: config.enabled,
+                    minApprovalScore: config.minApprovalScore,
+                    maxRejectScore: config.maxRejectScore,
+                    sensitiveFlags: config.sensitiveFlags,
+                    enabledNamespaces: config.enabledNamespaces,
+                  },
+                };
+              } else {
+                console.log(`[AutoApproval] High-reuse query but no similar approved KB (similarity < 88%), sending to HITL review`);
+              }
+            } catch (kbError: any) {
+              console.error(`[AutoApproval] KB similarity check failed:`, kbError.message);
+              // Fall back to frequency-only approval (original behavior)
+            }
+          }
+          
+          // FALLBACK: Original frequency-only approval (no embedding or KB match failed)
           return {
             action: "approve",
             reason: `Auto-approved: High-reuse value (score ${score}, query frequency ${frequency.effectiveCount}x in ${frequency.daysSinceLast}d) - Cost optimization via indexing`,
