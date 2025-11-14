@@ -112,7 +112,10 @@ export interface IStorage {
   // Documentos
   getDocument(id: number): Promise<Document | undefined>;
   getDocuments(limit?: number): Promise<Document[]>;
-  createDocument(document: InsertDocument): Promise<Document>;
+  createDocument(
+    document: InsertDocument, 
+    options?: { skipDedup?: boolean; bypassReason?: string; bypassedBy?: string }
+  ): Promise<Document>;
   updateDocument(id: number, data: Partial<InsertDocument>): Promise<Document>;
   deleteDocument(id: number): Promise<void>;
   
@@ -627,7 +630,7 @@ export class DatabaseStorage implements IStorage {
 
   async createDocument(
     document: InsertDocument,
-    options: { skipDedup?: boolean } = {}
+    options: { skipDedup?: boolean; bypassReason?: string; bypassedBy?: string } = {}
   ): Promise<Document> {
     // 🔥 PRODUCTION FIX: Use centralized hash preparation (prevents duplicate bypass)
     const { prepareDocumentForInsert } = await import("./utils/deduplication");
@@ -636,7 +639,7 @@ export class DatabaseStorage implements IStorage {
     // 🔥 CRITICAL FIX: Semantic deduplication guard (ARCHITECT-APPROVED)
     // Prevents direct KB inserts from bypassing dedup checks
     // Only curation flow had protection - now ALL insert paths are protected
-    // ARCHITECT FIX: No 100-char bypass - catches short paraphrases too
+    // ARCHITECT FIX: 5-char threshold for enterprise-grade coverage
     if (!options.skipDedup && documentWithHash.content) {
       console.log(`[Storage] [DEDUP] Checking duplicates for document: "${documentWithHash.title?.substring(0, 50)}..."`);
       
@@ -656,7 +659,54 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`[Storage] [DEDUP] No duplicates found - inserting document`);
     } else if (options.skipDedup) {
-      console.log(`[Storage] [DEDUP] WARNING: Semantic dedup SKIPPED (migration mode) for: "${documentWithHash.title?.substring(0, 50)}..."`);
+      // ARCHITECT-APPROVED: Comprehensive audit logging with DB persistence
+      const auditPayload = {
+        timestamp: new Date().toISOString(),
+        action: 'DEDUP_BYPASS',
+        document: {
+          title: documentWithHash.title?.substring(0, 100),
+          contentLength: documentWithHash.content?.length || 0,
+          namespace: documentWithHash.namespace,
+          tenantId: documentWithHash.tenantId || 1
+        },
+        bypass: {
+          reason: options.bypassReason || 'UNSPECIFIED',
+          bypassedBy: options.bypassedBy || 'SYSTEM',
+        }
+      };
+      
+      // Step 1: CRITICAL alert-level console logging (stdout monitoring)
+      console.warn(`[Storage] [DEDUP] [AUDIT] Deduplication BYPASSED: ${JSON.stringify(auditPayload)}`);
+      
+      // Step 2: DURABLE persistence to audit_logs table
+      const crypto = await import('crypto');
+      const dataString = JSON.stringify(auditPayload);
+      const dataHash = crypto.createHash('sha256').update(dataString).digest('hex');
+      
+      await this.createAuditLog({
+        eventType: 'DEDUP_BYPASS',
+        data: auditPayload as any, // Type cast for flexible audit payload
+        dataHash,
+        actor: options.bypassedBy || 'SYSTEM',
+        ipAddress: null,
+        policySnapshot: null
+      });
+      
+      // Step 3: PRODUCTION alerting via centralized AlertService
+      const { alertService } = await import("./services/alert-service");
+      await alertService.sendAlert({
+        severity: 'warning',
+        title: 'KB Deduplication Bypassed',
+        message: `Document "${documentWithHash.title?.substring(0, 100)}" was inserted with skipDedup=true`,
+        context: {
+          ...auditPayload,
+          alertType: 'DEDUP_BYPASS',
+          requiresReview: true
+        }
+      }).catch(error => {
+        // Non-blocking: If alert fails, don't block document creation
+        console.error('[Storage] [DEDUP] [AUDIT] Alert send failed:', error);
+      });
     }
     
     const [created] = await db.insert(documents).values([documentWithHash] as any).returning();
