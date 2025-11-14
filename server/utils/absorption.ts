@@ -14,7 +14,7 @@
  * 
  * Validations:
  * - Minimum 10% new content
- * - Minimum 50 characters of new content
+ * - Minimum 20 characters of new content (reduced from 50 to reduce false rejections)
  * - Maximum 50KB content size
  * - Skip exact duplicates (>98% similar)
  */
@@ -111,7 +111,7 @@ export function extractUniqueContent(
  * 
  * Rules:
  * - At least 10% new content
- * - At least 50 characters of new content
+ * - At least 20 characters of new content (reduced from 50 to reduce false rejections)
  * - Maximum 50KB content size
  */
 export function validateAbsorption(stats: {
@@ -130,11 +130,11 @@ export function validateAbsorption(stats: {
     };
   }
 
-  // Check minimum new content (50 chars)
-  if (stats.extractedLength < 50) {
+  // Check minimum new content (20 chars - reduced from 50 to reduce false rejections)
+  if (stats.extractedLength < 20) {
     return {
       shouldAbsorb: false,
-      reason: `Insufficient new content (${stats.extractedLength} chars, minimum 50 chars required)`,
+      reason: `Insufficient new content (${stats.extractedLength} chars, minimum 20 chars required)`,
     };
   }
 
@@ -142,7 +142,7 @@ export function validateAbsorption(stats: {
   if (stats.newContentPercent < 10) {
     return {
       shouldAbsorb: false,
-      reason: `Requires at least 10% new content (${stats.newContentPercent}% found) and minimum 50 chars (${stats.extractedLength} found)`,
+      reason: `Requires at least 10% new content (${stats.newContentPercent}% found) and minimum 20 chars (${stats.extractedLength} found)`,
     };
   }
 

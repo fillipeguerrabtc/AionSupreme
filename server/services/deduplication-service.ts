@@ -319,8 +319,8 @@ export class DeduplicationService {
       tenantId = 1,
       enableSemantic = true, // MVP: enabled by default
       similarityThresholds = {
-        exact: 0.92,       // ≥92% = auto-reject as duplicate
-        borderline: 0.85   // 85-92% = LLM verification needed
+        exact: 0.97,       // ≥97% = auto-reject as duplicate (raised from 0.92 to reduce false positives)
+        borderline: 0.90   // 90-97% = LLM verification needed (raised from 0.85)
       }
     } = options;
 

@@ -105,6 +105,7 @@ export class AutoApprovalService {
 
   /**
    * Check if auto-approval should apply to this namespace
+   * NOTE: Case-insensitive comparison to avoid normalization mismatches
    */
   isNamespaceEnabled(namespace: string, config: AutoApprovalConfig): boolean {
     // If enabled namespaces is ["*"], allow all
@@ -112,8 +113,13 @@ export class AutoApprovalService {
       return true;
     }
 
-    // Otherwise, check if namespace is in the list
-    return config.enabledNamespaces.includes(namespace);
+    // Normalize to lowercase for case-insensitive comparison
+    // Prevents mismatches like "Tecnologia" vs "tecnologia"
+    const normalizedNamespace = namespace.toLowerCase();
+    const normalizedEnabledNamespaces = config.enabledNamespaces.map(ns => ns.toLowerCase());
+
+    // Check if namespace is in the list (case-insensitive)
+    return normalizedEnabledNamespaces.includes(normalizedNamespace);
   }
 
   /**
