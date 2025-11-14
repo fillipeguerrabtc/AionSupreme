@@ -68,6 +68,11 @@ export function registerPublicGpuRoutes(app: Router) {
    */
   app.post("/auth-google/save-cookies", async (req: Request, res: Response) => {
     try {
+      // 🔥 TEMPORARY DEBUG: Log raw body to diagnose 400 error
+      console.log('🔍 [Cookie Save DEBUG] req.body type:', typeof req.body);
+      console.log('🔍 [Cookie Save DEBUG] req.body keys:', req.body ? Object.keys(req.body) : 'UNDEFINED');
+      console.log('🔍 [Cookie Save DEBUG] req.headers["content-type"]:', req.headers['content-type']);
+      
       const { accountEmail, provider, cookies, userAgent } = req.body as {
         accountEmail: string;
         provider: 'kaggle' | 'colab';

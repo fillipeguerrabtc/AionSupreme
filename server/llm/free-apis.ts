@@ -542,22 +542,38 @@ export async function generateWithFreeAPIs(
   const quotasFromDB = await getProviderQuotas();
   const quotaMap = new Map(quotasFromDB.map(q => [q.provider, q]));
   
+  // 🔥 DEBUG: Log all quota data to diagnose skipping issue
+  console.log('🔍 [FREE APIs DEBUG] Quota map loaded:');
+  for (const [providerName, quota] of Array.from(quotaMap.entries())) {
+    console.log(`   ${providerName}: used=${quota.used}, limit=${quota.dailyLimit}, pct=${quota.percentage.toFixed(1)}%`);
+  }
+  
   // Get all enabled providers sorted by priority
   const sortedProviders = FREE_APIS
     .filter(p => p.enabled)
     .sort((a, b) => a.priority - b.priority);
 
+  console.log(`🔍 [FREE APIs DEBUG] Attempting ${sortedProviders.length} enabled providers:`, sortedProviders.map(p => p.name).join(', '));
+
   // Try each provider ONCE in priority order
   for (const provider of sortedProviders) {
     // Skip if already failed
-    if (failedProviders.has(provider.name)) continue;
+    if (failedProviders.has(provider.name)) {
+      console.log(`   ⏭️  Skipping ${provider.name} - already failed`);
+      continue;
+    }
     
     // 🔥 FIX: Check quota from DATABASE (not in-memory stats)
     const quota = quotaMap.get(provider.name);
+    console.log(`🔍 [FREE APIs DEBUG] Checking ${provider.name} quota:`, quota ? `used=${quota.used}, limit=${quota.dailyLimit}, threshold=${quota.dailyLimit * 0.8}` : 'NOT FOUND IN QUOTA MAP!');
+    
     if (quota && quota.used >= quota.dailyLimit * 0.8) {
       log.warn({ component: 'free-apis', provider: provider.name, used: quota.used, limit: quota.dailyLimit }, 'Provider over 80% quota, skipping');
+      console.log(`   ⛔ Skipping ${provider.name} - over 80% quota (${quota.used}/${quota.dailyLimit})`);
       continue;
     }
+    
+    console.log(`   ✅ Trying ${provider.name} - quota OK or not found`);
 
     try {
       log.info({ component: 'free-apis', provider: provider.name }, 'Trying provider');
