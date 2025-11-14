@@ -262,9 +262,13 @@ export async function generateEmbeddings(options: {
     purpose = 'Embedding generation',
   } = options;
 
+  // ✅ MANDATORY TRUNCATION - prevents "maximum context length 8192 tokens" errors
+  const { truncateBatchForEmbedding } = await import("../ai/embedding-sanitizer");
+  const safeTexts = truncateBatchForEmbedding(texts, { purpose: `llm-gateway: ${purpose}` });
+
   console.log(
     `🔢 [LLM Gateway - Embeddings] Request from consumer="${consumerId}" ` +
-    `purpose="${purpose}" texts=${texts.length}`
+    `purpose="${purpose}" texts=${safeTexts.length}`
   );
 
   // Try OpenAI first (paid, high-quality)
@@ -277,10 +281,10 @@ export async function generateEmbeddings(options: {
       const openai = new OpenAI({ apiKey });
       const response = await openai.embeddings.create({
         model: "text-embedding-3-small",
-        input: texts,
+        input: safeTexts,
       });
 
-      console.log(`✅ [LLM Gateway - Embeddings] OpenAI embeddings generated (${texts.length} texts)`);
+      console.log(`✅ [LLM Gateway - Embeddings] OpenAI embeddings generated (${safeTexts.length} texts)`);
       return response.data.map(item => item.embedding);
     } catch (error: any) {
       console.warn(`⚠️  [LLM Gateway - Embeddings] OpenAI failed:`, error.message);
@@ -302,7 +306,7 @@ export async function generateEmbeddings(options: {
   const hf = new HfInference(apiKey);
   const embeddings: number[][] = [];
 
-  for (const text of texts) {
+  for (const text of safeTexts) {
     const embedding = await hf.featureExtraction({
       model: "sentence-transformers/all-MiniLM-L6-v2",
       inputs: text,
@@ -315,6 +319,6 @@ export async function generateEmbeddings(options: {
     }
   }
 
-  console.log(`✅ [LLM Gateway - Embeddings] HuggingFace embeddings generated (${texts.length} texts)`);
+  console.log(`✅ [LLM Gateway - Embeddings] HuggingFace embeddings generated (${safeTexts.length} texts)`);
   return embeddings;
 }

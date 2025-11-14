@@ -625,10 +625,14 @@ export class LLMClient {
   async generateEmbeddings(texts: string[]): Promise<number[][]> {
     const startTime = Date.now();
     
+    // ✅ MANDATORY TRUNCATION - prevents "maximum context length 8192 tokens" errors
+    const { truncateBatchForEmbedding } = await import("../ai/embedding-sanitizer");
+    const safeTexts = truncateBatchForEmbedding(texts, { purpose: 'llmClient.generateEmbeddings' });
+    
     try {
       const response = await this.openai.embeddings.create({
         model: "text-embedding-3-small",
-        input: texts,
+        input: safeTexts,
       });
 
       const embeddings = response.data.map(item => item.embedding);
@@ -661,7 +665,7 @@ export class LLMClient {
       
       try {
         const embeddings = await generateEmbeddings({
-          texts,
+          texts: safeTexts, // ✅ Use already-truncated texts
           model: 'huggingface', // Force HF (OpenAI already failed above)
           consumerId: 'llm-client',
           purpose: 'Embedding generation - HF fallback',

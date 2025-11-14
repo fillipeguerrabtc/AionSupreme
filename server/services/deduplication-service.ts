@@ -102,14 +102,9 @@ export class DeduplicationService {
     }
 
     try {
-      // CRITICAL FIX: Truncate text to prevent "maximum context length" error
-      const MAX_EMBEDDING_TOKENS = 1000;
-      const MAX_EMBEDDING_CHARS = MAX_EMBEDDING_TOKENS * 4;
-      const truncatedText = text.length > MAX_EMBEDDING_CHARS ? text.substring(0, MAX_EMBEDDING_CHARS) : text;
-      
-      if (text.length > MAX_EMBEDDING_CHARS) {
-        console.warn(`[Dedup] Text truncated from ${text.length} to ${MAX_EMBEDDING_CHARS} chars for embedding`);
-      }
+      // ✅ CRITICAL FIX: Use centralized sanitizer (prevents "maximum context length" error)
+      const { truncateForEmbedding } = await import("../ai/embedding-sanitizer");
+      const truncatedText = truncateForEmbedding(text, { purpose: 'semantic deduplication' });
       
       // Generate embedding for text
       const [result] = await embedder.generateEmbeddings([
@@ -139,7 +134,7 @@ export class DeduplicationService {
       // 🔥 VERIFICAÇÃO 2: Fila de curadoria (top 100 pendentes)
       const similarCuration = await db
         .select({
-          documentId: sql<string>`${curationQueue.id}::text`,
+          documentId: curationQueue.id, // ✅ No cast needed - already varchar (string)
           chunkText: curationQueue.content,
           embedding: curationQueue.embedding,
           documentTitle: curationQueue.title,

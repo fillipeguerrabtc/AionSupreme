@@ -4,6 +4,7 @@
  */
 
 import OpenAI from 'openai';
+import { truncateForEmbedding, truncateBatchForEmbedding } from './embedding-sanitizer';
 
 // ============================================================================
 // CONFIGURATION
@@ -40,6 +41,9 @@ export async function embedText(text: string): Promise<number[]> {
     throw new Error('Cannot embed empty text');
   }
 
+  // ✅ MANDATORY TRUNCATION - prevents "maximum context length 8192 tokens" errors
+  const safeText = truncateForEmbedding(text, { purpose: 'embedText' });
+
   const client = getClient();
   let lastError: Error | null = null;
 
@@ -47,7 +51,7 @@ export async function embedText(text: string): Promise<number[]> {
     try {
       const response = await client.embeddings.create({
         model: EMBEDDING_MODEL,
-        input: text,
+        input: safeText,
         encoding_format: 'float'
       });
 
@@ -81,12 +85,15 @@ export async function embedTextBatch(texts: string[]): Promise<number[][]> {
     return [];
   }
 
+  // ✅ MANDATORY TRUNCATION - prevents "maximum context length 8192 tokens" errors
+  const safeTexts = truncateBatchForEmbedding(texts, { purpose: 'embedTextBatch' });
+
   const client = getClient();
   const BATCH_SIZE = 100;  // OpenAI allows up to 2048, but we'll be conservative
   const results: number[][] = [];
 
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    const batch = texts.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < safeTexts.length; i += BATCH_SIZE) {
+    const batch = safeTexts.slice(i, i + BATCH_SIZE);
 
     try {
       const response = await client.embeddings.create({
