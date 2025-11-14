@@ -9,6 +9,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getProviderQuotas, trackTokenUsage } from '../monitoring/token-tracker';
 import { apiQuotaRepository } from '../repositories/api-quota-repository';
 import { log } from '../utils/logger';
+import { withTimeout, TimeoutError } from '../utils/timeout';
 
 // ============================================================================
 // TYPES
@@ -102,7 +103,7 @@ const FREE_APIS: APIProvider[] = [
  * - Retry logic: 1s/2s/4s exponential backoff for 429/503/504
  */
 
-async function callGroq(req: LLMRequest): Promise<LLMResponse> {
+async function callGroq(req: LLMRequest, orchestrationRemainingMs?: number): Promise<LLMResponse> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY not set');
 
@@ -114,20 +115,45 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: req.messages,
-          max_tokens: req.maxTokens || 1024,
-          temperature: req.temperature ?? 0.7,
-          top_p: req.topP ?? 0.9
-        })
-      });
+      // 🔥 P0.1 FIX: Cap timeout to orchestration remaining time (30s hard deadline)
+      const effectiveTimeout = orchestrationRemainingMs 
+        ? Math.max(0, Math.min(orchestrationRemainingMs, 15000))
+        : 15000;
+      
+      // Bail out immediately if no time left
+      if (effectiveTimeout <= 0) {
+        throw new TimeoutError(
+          'No time remaining for Groq request (orchestration deadline exceeded)',
+          orchestrationRemainingMs || 0,
+          'groq-llm'
+        );
+      }
+      
+      const controller = new AbortController();
+      
+      const response = await withTimeout(
+        fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: req.messages,
+            max_tokens: req.maxTokens || 1024,
+            temperature: req.temperature ?? 0.7,
+            top_p: req.topP ?? 0.9
+          }),
+          signal: controller.signal
+        }),
+        {
+          timeoutMs: effectiveTimeout,
+          operation: `groq-llm-attempt-${attempt + 1}`,
+          abortController: controller,
+          debug: true
+        }
+      );
 
       // ✅ CRITICAL: Extract REAL rate limit headers from Groq
       const headers: Record<string, string> = {};
@@ -182,16 +208,22 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
     } catch (error: any) {
       lastError = error;
       
-      // Check if error is retryable (429, 503, 504)
-      const isRetryable = error.status === 429 || error.status === 503 || error.status === 504;
+      // 🔥 P0.1 FIX: Treat TimeoutError as retryable (same as 429/503/504)
+      const isTimeout = error instanceof TimeoutError;
+      const isRetryable = isTimeout || error.status === 429 || error.status === 503 || error.status === 504;
       
       if (!isRetryable || attempt === maxRetries) {
+        // Log timeout specifically for observability
+        if (isTimeout) {
+          log.error({ component: 'groq', attempt: attempt + 1, timeoutMs: error.timeoutMs }, 'Groq request timed out');
+        }
         throw error;
       }
       
       // Wait before retry
       const delay = retryDelays[attempt];
-      log.warn({ component: 'groq', attempt: attempt + 1, maxRetries, delay }, 'Rate limit hit, retrying');
+      const reason = isTimeout ? 'timeout' : `rate limit (${error.status})`;
+      log.warn({ component: 'groq', attempt: attempt + 1, maxRetries, delay, reason }, 'Groq call failed, retrying');
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -204,102 +236,176 @@ async function callGroq(req: LLMRequest): Promise<LLMResponse> {
 // GEMINI CLIENT
 // ============================================================================
 
-async function callGemini(req: LLMRequest): Promise<LLMResponse> {
+async function callGemini(req: LLMRequest, orchestrationRemainingMs?: number): Promise<LLMResponse> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY not set');
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.0-flash-exp',
-    generationConfig: {
-      temperature: req.temperature ?? 0.7,
-      topP: req.topP ?? 0.9,
-      maxOutputTokens: req.maxTokens || 1024
-    }
-  });
-
-  // Convert messages to Gemini format
-  const systemPrompt = req.messages.find(m => m.role === 'system')?.content || '';
+  // 🔥 P0.1 FIX: Switch to REST API for timeout/retry support (architect approved)
+  const maxRetries = 3;
+  const retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
   
-  // ✅ ROBUST FIX: Gemini systemInstruction is unstable with long prompts
-  // If > 800 chars (safe margin below 1000), move ENTIRE system prompt to first message
-  const MAX_SAFE_SYSTEM_LENGTH = 800;
-  let finalSystemPrompt: string | undefined = undefined;
-  let prependToFirstMessage = '';
+  let lastError: Error | null = null;
   
-  if (systemPrompt.length > MAX_SAFE_SYSTEM_LENGTH) {
-    // Move ENTIRE system prompt to first message for reliability
-    prependToFirstMessage = systemPrompt;
-    log.warn({ 
-      component: 'gemini', 
-      originalLength: systemPrompt.length, 
-      maxSafe: MAX_SAFE_SYSTEM_LENGTH
-    }, 'System prompt exceeds safe limit - moving ENTIRE prompt to first message');
-  } else if (systemPrompt.length > 0) {
-    finalSystemPrompt = systemPrompt;
-  }
-  
-  const conversationHistory = req.messages
-    .filter(m => m.role !== 'system')
-    .map((m, index) => {
-      // Prepend full system prompt to first user message if needed
-      if (index === 0 && m.role === 'user' && prependToFirstMessage) {
-        return {
-          role: 'user',
-          parts: [{ text: `SYSTEM INSTRUCTIONS:\n${prependToFirstMessage}\n\n---\n\nUSER MESSAGE:\n${m.content}` }]
-        };
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // 🔥 P0.1 FIX: Cap timeout to orchestration remaining time
+      const effectiveTimeout = orchestrationRemainingMs 
+        ? Math.max(0, Math.min(orchestrationRemainingMs, 15000))
+        : 15000;
+      
+      if (effectiveTimeout <= 0) {
+        throw new TimeoutError(
+          'No time remaining for Gemini request (orchestration deadline exceeded)',
+          orchestrationRemainingMs || 0,
+          'gemini-llm'
+        );
       }
+      
+      const controller = new AbortController();
+      
+      // 🔥 FIX: Convert messages to Gemini REST format (proper multi-turn serialization)
+      const systemPrompt = req.messages.find(m => m.role === 'system')?.content || '';
+      
+      // Filter out system message and convert roles
+      const nonSystemMessages = req.messages.filter(m => m.role !== 'system');
+      
+      // Guard against empty messages
+      if (nonSystemMessages.length === 0) {
+        throw new Error('No messages to send to Gemini (only system prompt?)');
+      }
+      
+      // Find index of FIRST user message (not index 0, but first user turn)
+      let firstUserIndex = nonSystemMessages.findIndex(m => m.role === 'user');
+      let systemPrefixAdded = false;
+      
+      // Build contents array with proper role alternation
+      const contents = nonSystemMessages.map((m, index) => {
+        // Prepend system prompt to FIRST USER message (regardless of position)
+        const shouldPrependSystem = (index === firstUserIndex && systemPrompt && !systemPrefixAdded);
+        if (shouldPrependSystem) {
+          systemPrefixAdded = true;
+        }
+        
+        const text = shouldPrependSystem
+          ? `SYSTEM INSTRUCTIONS:\n${systemPrompt}\n\n---\n\nUSER MESSAGE:\n${m.content}`
+          : m.content;
+        
+        return {
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text }]
+        };
+      });
+      
+      // 🔥 FIX: Gemini REST expects last message to be "user" role
+      // Strip trailing assistant/model messages (common in multi-turn chats)
+      while (contents.length > 0 && contents[contents.length - 1].role === 'model') {
+        log.warn({ component: 'gemini' }, 'Stripping trailing assistant message (Gemini REST requires last message to be user)');
+        contents.pop();
+      }
+      
+      // After stripping, if no user messages remain, error
+      if (contents.length === 0) {
+        throw new Error('Gemini REST API requires at least one user message (all messages were assistant turns)');
+      }
+      
+      const response = await withTimeout(
+        fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents,
+            generationConfig: {
+              temperature: req.temperature ?? 0.7,
+              topP: req.topP ?? 0.9,
+              maxOutputTokens: req.maxTokens || 1024
+            }
+          }),
+          signal: controller.signal
+        }),
+        {
+          timeoutMs: effectiveTimeout,
+          operation: `gemini-llm-attempt-${attempt + 1}`,
+          abortController: controller,
+          debug: true
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error: any = new Error(`Gemini API error (${response.status}): ${errorText}`);
+        error.status = response.status;
+        throw error;
+      }
+
+      const data = await response.json();
+
+      // 🔥 FIX: Guard against safety-blocked responses (no content.parts)
+      if (!data.candidates || data.candidates.length === 0) {
+        throw new Error('Gemini returned no candidates (possibly safety-blocked or empty response)');
+      }
+      
+      const candidate = data.candidates[0];
+      if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+        const reason = candidate.finishReason || 'UNKNOWN';
+        const safetyRatings = candidate.safetyRatings ? JSON.stringify(candidate.safetyRatings) : 'none';
+        throw new Error(`Gemini blocked response: finishReason=${reason}, safetyRatings=${safetyRatings}`);
+      }
+
+      // ✅ PRODUCTION: Track real usage from Gemini API
+      const promptTokens = data.usageMetadata?.promptTokenCount || 0;
+      const completionTokens = data.usageMetadata?.candidatesTokenCount || 0;
+      const totalTokens = data.usageMetadata?.totalTokenCount || 0;
+      
+      // ✅ CRITICAL: Update Gemini limits
+      try {
+        const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
+        await providerLimitsTracker.updateGeminiLimits();
+      } catch (trackerError: any) {
+        log.warn({ component: 'gemini', error: trackerError.message }, 'Failed to update Gemini limits (non-critical)');
+      }
+      
+      // ✅ PRODUCTION: Track quota in PostgreSQL
+      await apiQuotaRepository.incrementUsage('gemini', 1, totalTokens);
+      
+      // ✅ P2.2: Cost calculated automatically via token-tracker
+      await trackTokenUsage({
+        provider: 'gemini',
+        model: 'gemini-2.0-flash-exp',
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        requestType: 'chat',
+        success: true
+      });
+
       return {
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }]
+        text: candidate.content.parts[0].text,
+        provider: 'gemini',
+        model: 'gemini-2.0-flash-exp',
+        tokensUsed: totalTokens
       };
-    });
-
-  const chat = model.startChat({
-    history: conversationHistory.slice(0, -1),
-    systemInstruction: finalSystemPrompt  // Only send if < 800 chars
-  });
-
-  const lastMessage = conversationHistory[conversationHistory.length - 1];
-  const result = await chat.sendMessage(lastMessage.parts[0].text);
-  const response = result.response;
-
-  // ✅ PRODUCTION: Track real usage from Gemini API
-  const promptTokens = response.usageMetadata?.promptTokenCount || 0;
-  const completionTokens = response.usageMetadata?.candidatesTokenCount || 0;
-  const totalTokens = response.usageMetadata?.totalTokenCount || 0;
-  
-  // ✅ CRITICAL: Update Gemini limits from response metadata (REAL data when available)
-  try {
-    const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
-    // Gemini NÃO fornece quota nos response headers, mas fornece usage metadata
-    // Usamos isso + docs oficiais para tracking
-    await providerLimitsTracker.updateGeminiLimits();
-  } catch (trackerError: any) {
-    log.warn({ component: 'gemini', error: trackerError.message }, 'Failed to update Gemini limits (non-critical)');
+    } catch (error: any) {
+      lastError = error;
+      
+      // 🔥 P0.1 FIX: Treat TimeoutError as retryable
+      const isTimeout = error instanceof TimeoutError;
+      const isRetryable = isTimeout || error.status === 429 || error.status === 503 || error.status === 504;
+      
+      if (!isRetryable || attempt === maxRetries) {
+        if (isTimeout) {
+          log.error({ component: 'gemini', attempt: attempt + 1, timeoutMs: error.timeoutMs }, 'Gemini request timed out');
+        }
+        throw error;
+      }
+      
+      const delay = retryDelays[attempt];
+      const reason = isTimeout ? 'timeout' : `rate limit (${error.status})`;
+      log.warn({ component: 'gemini', attempt: attempt + 1, maxRetries, delay, reason }, 'Gemini call failed, retrying');
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
   
-  // ✅ PRODUCTION: Track quota in PostgreSQL
-  await apiQuotaRepository.incrementUsage('gemini', 1, totalTokens);
-  
-  // ✅ P2.2: Cost calculated automatically via token-tracker (2025 pricing)
-  await trackTokenUsage({
-    provider: 'gemini',
-    model: 'gemini-2.0-flash-exp',
-    promptTokens,
-    completionTokens,
-    totalTokens,
-    // cost: not provided → calculated automatically from GEMINI_PRICING
-    requestType: 'chat',
-    success: true
-  });
-
-  return {
-    text: response.text(),
-    provider: 'gemini',
-    model: 'gemini-2.0-flash-exp',
-    tokensUsed: totalTokens
-  };
+  throw lastError || new Error('Gemini API request failed after retries');
 }
 
 // ============================================================================
@@ -314,7 +420,7 @@ async function callGemini(req: LLMRequest): Promise<LLMResponse> {
  * - Retry logic: 1s/2s/4s exponential backoff for 429/503/504
  */
 
-async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
+async function callHuggingFace(req: LLMRequest, orchestrationRemainingMs?: number): Promise<LLMResponse> {
   const apiKey = process.env.HUGGINGFACE_API_KEY;
   if (!apiKey) throw new Error('HUGGINGFACE_API_KEY not set');
 
@@ -338,25 +444,49 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
+      // 🔥 P0.1 FIX: Cap timeout to orchestration remaining time
+      const effectiveTimeout = orchestrationRemainingMs 
+        ? Math.max(0, Math.min(orchestrationRemainingMs, 15000))
+        : 15000;
+      
+      if (effectiveTimeout <= 0) {
+        throw new TimeoutError(
+          'No time remaining for HuggingFace request (orchestration deadline exceeded)',
+          orchestrationRemainingMs || 0,
+          'huggingface-llm'
+        );
+      }
+      
+      const controller = new AbortController();
+      
       // 🚨 2025 MIGRATION: HuggingFace moved to router.huggingface.co (api-inference deprecated)
       // https://router.huggingface.co/hf-inference is the new official endpoint
-      const response = await fetch(
-        `https://router.huggingface.co/hf-inference/models/${model}`,
+      const response = await withTimeout(
+        fetch(
+          `https://router.huggingface.co/hf-inference/models/${model}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              inputs: prompt,
+              parameters: {
+                max_new_tokens: req.maxTokens || 1024,
+                temperature: req.temperature ?? 0.7,
+                top_p: req.topP ?? 0.9,
+                return_full_text: false
+              }
+            }),
+            signal: controller.signal
+          }
+        ),
         {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            inputs: prompt,
-            parameters: {
-              max_new_tokens: req.maxTokens || 1024,
-              temperature: req.temperature ?? 0.7,
-              top_p: req.topP ?? 0.9,
-              return_full_text: false
-            }
-          })
+          timeoutMs: effectiveTimeout,
+          operation: `huggingface-llm-attempt-${attempt + 1}`,
+          abortController: controller,
+          debug: true
         }
       );
 
@@ -411,17 +541,22 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
     } catch (error: any) {
       lastError = error;
       
-      // Check if error is retryable (429, 503, 504)
-      const isRetryable = error.status === 429 || error.status === 503 || error.status === 504;
+      // 🔥 P0.1 FIX: Treat TimeoutError as retryable (same as 429/503/504)
+      const isTimeout = error instanceof TimeoutError;
+      const isRetryable = isTimeout || error.status === 429 || error.status === 503 || error.status === 504;
       
       if (!isRetryable || attempt === maxRetries) {
-        // Non-retryable error or max retries reached
+        // Log timeout specifically for observability
+        if (isTimeout) {
+          log.error({ component: 'huggingface', attempt: attempt + 1, timeoutMs: error.timeoutMs }, 'HuggingFace request timed out');
+        }
         throw error;
       }
       
       // Wait before retry
       const delay = retryDelays[attempt];
-      log.warn({ component: 'huggingface', status: error.status, attempt: attempt + 1, maxRetries, delay }, 'Rate limit hit, retrying');
+      const reason = isTimeout ? 'timeout' : `rate limit (${error.status})`;
+      log.warn({ component: 'huggingface', status: error.status, attempt: attempt + 1, maxRetries, delay, reason }, 'HuggingFace call failed, retrying');
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -434,32 +569,67 @@ async function callHuggingFace(req: LLMRequest): Promise<LLMResponse> {
 // OPENROUTER CLIENT
 // ============================================================================
 
-async function callOpenRouter(req: LLMRequest): Promise<LLMResponse> {
+async function callOpenRouter(req: LLMRequest, orchestrationRemainingMs?: number): Promise<LLMResponse> {
   const apiKey = process.env.OPEN_ROUTER_API_KEY;
   if (!apiKey) throw new Error('OPEN_ROUTER_API_KEY not set');
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:5000',
-      'X-Title': 'AION Supreme'
-    },
-    body: JSON.stringify({
-      model: 'meta-llama/llama-3.1-8b-instruct:free',
-      messages: req.messages,
-      max_tokens: req.maxTokens || 1024,
-      temperature: req.temperature ?? 0.7,
-      top_p: req.topP ?? 0.9
-    })
-  });
+  // 🔥 P0.1 FIX: Add retry logic + timeout (same pattern as Groq/HF)
+  const maxRetries = 3;
+  const retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
+  
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // 🔥 P0.1 FIX: Cap timeout to orchestration remaining time
+      const effectiveTimeout = orchestrationRemainingMs 
+        ? Math.max(0, Math.min(orchestrationRemainingMs, 15000))
+        : 15000;
+      
+      if (effectiveTimeout <= 0) {
+        throw new TimeoutError(
+          'No time remaining for OpenRouter request (orchestration deadline exceeded)',
+          orchestrationRemainingMs || 0,
+          'openrouter-llm'
+        );
+      }
+      
+      const controller = new AbortController();
+      
+      const response = await withTimeout(
+        fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:5000',
+            'X-Title': 'AION Supreme'
+          },
+          body: JSON.stringify({
+            model: 'meta-llama/llama-3.1-8b-instruct:free',
+            messages: req.messages,
+            max_tokens: req.maxTokens || 1024,
+            temperature: req.temperature ?? 0.7,
+            top_p: req.topP ?? 0.9
+          }),
+          signal: controller.signal
+        }),
+        {
+          timeoutMs: effectiveTimeout,
+          operation: `openrouter-llm-attempt-${attempt + 1}`,
+          abortController: controller,
+          debug: true
+        }
+      );
 
-  if (!response.ok) {
-    throw new Error(`OpenRouter API error: ${response.statusText}`);
-  }
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error: any = new Error(`OpenRouter API error (${response.status}): ${errorText}`);
+        error.status = response.status;
+        throw error;
+      }
 
-  const data = await response.json();
+      const data = await response.json();
 
   // ✅ P2.2: OpenRouter cost calculated automatically via token-tracker
   const promptTokens = data.usage?.prompt_tokens || 0;
@@ -488,12 +658,36 @@ async function callOpenRouter(req: LLMRequest): Promise<LLMResponse> {
     success: true
   });
 
-  return {
-    text: data.choices[0].message.content,
-    provider: 'openrouter',
-    model: 'llama-3.1-8b-instruct',
-    tokensUsed: totalTokens
-  };
+      return {
+        text: data.choices[0].message.content,
+        provider: 'openrouter',
+        model: 'llama-3.1-8b-instruct',
+        tokensUsed: totalTokens
+      };
+    } catch (error: any) {
+      lastError = error;
+      
+      // 🔥 P0.1 FIX: Treat TimeoutError as retryable (same as 429/503/504)
+      const isTimeout = error instanceof TimeoutError;
+      const isRetryable = isTimeout || error.status === 429 || error.status === 503 || error.status === 504;
+      
+      if (!isRetryable || attempt === maxRetries) {
+        // Log timeout specifically for observability
+        if (isTimeout) {
+          log.error({ component: 'openrouter', attempt: attempt + 1, timeoutMs: error.timeoutMs }, 'OpenRouter request timed out');
+        }
+        throw error;
+      }
+      
+      // Wait before retry
+      const delay = retryDelays[attempt];
+      const reason = isTimeout ? 'timeout' : `rate limit (${error.status})`;
+      log.warn({ component: 'openrouter', attempt: attempt + 1, maxRetries, delay, reason }, 'OpenRouter call failed, retrying');
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError || new Error('OpenRouter API request failed after retries');
 }
 
 // ============================================================================
@@ -530,11 +724,11 @@ async function callOpenAI(req: LLMRequest): Promise<LLMResponse> {
     success: true
   });
 
-  // Extract tool calls if present (function calling)
+  // 🔥 P0.1 FIX LSP: Extract tool calls with type guard (function calling)
   const toolCalls = response.choices[0].message.tool_calls?.map(tc => ({
     id: tc.id,
-    name: tc.function.name,
-    arguments: JSON.parse(tc.function.arguments)
+    name: ('function' in tc) ? tc.function.name : '',
+    arguments: ('function' in tc) ? JSON.parse(tc.function.arguments) : {}
   }));
 
   return {
@@ -556,6 +750,8 @@ export async function generateWithFreeAPIs(
   model?: string, // NEW: Specific model to use (passed to providers)
   forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter' | 'openai' // NEW: Force specific provider (short-circuit fallback)
 ): Promise<LLMResponse> {
+  // 🔥 P0.1 FIX: Orchestration deadline (30s total for entire fallback chain)
+  const ORCHESTRATION_DEADLINE_MS = 30000;
   const startTime = Date.now();
   const errors: string[] = [];
   const failedProviders = new Set<string>();  // Track failed providers
@@ -577,18 +773,21 @@ export async function generateWithFreeAPIs(
     try {
       let response: LLMResponse;
       
+      // 🔥 P0.1 FIX: Pass remainingMs even for forced provider
+      const forcedRemainingMs = ORCHESTRATION_DEADLINE_MS - (Date.now() - startTime);
+      
       switch (forceProvider) {
         case 'groq':
-          response = await callGroq(req);
+          response = await callGroq(req, forcedRemainingMs);
           break;
         case 'gemini':
-          response = await callGemini(req);
+          response = await callGemini(req, forcedRemainingMs);
           break;
         case 'hf':
-          response = await callHuggingFace(req);
+          response = await callHuggingFace(req, forcedRemainingMs);
           break;
         case 'openrouter':
-          response = await callOpenRouter(req);
+          response = await callOpenRouter(req, forcedRemainingMs);
           break;
         case 'openai':
           response = await callOpenAI(req);
@@ -638,6 +837,21 @@ export async function generateWithFreeAPIs(
       continue;
     }
     
+    // 🔥 P0.1 FIX: Check orchestration deadline BEFORE starting provider attempt
+    const elapsedMs = Date.now() - startTime;
+    const remainingMs = ORCHESTRATION_DEADLINE_MS - elapsedMs;
+    
+    // If deadline exceeded, throw TimeoutError immediately
+    if (remainingMs <= 0) {
+      log.error({ component: 'free-apis', elapsedMs, deadlineMs: ORCHESTRATION_DEADLINE_MS }, 
+        'Orchestration deadline exceeded before provider attempt');
+      throw new TimeoutError(
+        `LLM orchestration exceeded ${ORCHESTRATION_DEADLINE_MS}ms deadline (elapsed: ${elapsedMs}ms)`,
+        ORCHESTRATION_DEADLINE_MS,
+        'free-apis-orchestration'
+      );
+    }
+    
     // 🔥 FIX: Check quota from DATABASE (not in-memory stats)
     const quota = quotaMap.get(provider.name);
     console.log(`🔍 [FREE APIs DEBUG] Checking ${provider.name} quota:`, quota ? `used=${quota.used}, limit=${quota.dailyLimit}, threshold=${quota.dailyLimit * 0.8}` : 'NOT FOUND IN QUOTA MAP!');
@@ -648,26 +862,29 @@ export async function generateWithFreeAPIs(
       continue;
     }
     
-    console.log(`   ✅ Trying ${provider.name} - quota OK or not found`);
+    console.log(`   ✅ Trying ${provider.name} - quota OK (${remainingMs}ms remaining of ${ORCHESTRATION_DEADLINE_MS}ms deadline)`);
 
     try {
       log.info({ component: 'free-apis', provider: provider.name }, 'Trying provider');
       
       let response: LLMResponse;
       
+      // 🔥 P0.1 FIX: Pass remainingMs to provider to cap timeout
+      const providerRemainingMs = ORCHESTRATION_DEADLINE_MS - (Date.now() - startTime);
+      
       switch (provider.name) {
         case 'groq':
-          response = await callGroq(req);
+          response = await callGroq(req, providerRemainingMs);
           break;
         case 'gemini':
-          response = await callGemini(req);
+          response = await callGemini(req, providerRemainingMs);
           break;
         case 'hf':  // 🔥 FIX: Match the actual provider name in FREE_APIS array
         case 'huggingface':  // Also accept 'huggingface' for compatibility
-          response = await callHuggingFace(req);
+          response = await callHuggingFace(req, providerRemainingMs);
           break;
         case 'openrouter':
-          response = await callOpenRouter(req);
+          response = await callOpenRouter(req, providerRemainingMs);
           break;
         default:
           throw new Error(`Unknown provider: ${provider.name}`);
@@ -715,6 +932,18 @@ export async function generateWithFreeAPIs(
       failedProviders.add(provider.name);
       continue;
     }
+  }
+
+  // 🔥 P0.1 FIX: Check deadline one final time before OpenAI fallback
+  const finalElapsedMs = Date.now() - startTime;
+  if (finalElapsedMs >= ORCHESTRATION_DEADLINE_MS) {
+    log.error({ component: 'free-apis', elapsedMs: finalElapsedMs, deadlineMs: ORCHESTRATION_DEADLINE_MS }, 
+      'Orchestration deadline exceeded after provider loop');
+    throw new TimeoutError(
+      `LLM orchestration exceeded ${ORCHESTRATION_DEADLINE_MS}ms deadline (elapsed: ${finalElapsedMs}ms)`,
+      ORCHESTRATION_DEADLINE_MS,
+      'free-apis-orchestration'
+    );
   }
 
   // All free APIs failed - fallback to OpenAI if allowed
