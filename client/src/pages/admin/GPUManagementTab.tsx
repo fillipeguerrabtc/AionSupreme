@@ -113,18 +113,6 @@ export default function GPUManagementTab() {
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [refreshInterval, setRefreshInterval] = useState<number>(30); // seconds
 
-  // Helper function: Convert Translations object → function for GPU components
-  // GPU components expect t(key) but useLanguage() returns Translations object
-  const tFunc = (key: string): string => {
-    const keys = key.split('.');
-    let result: any = t;
-    for (const k of keys) {
-      result = result?.[k];
-      if (result === undefined) return key; // fallback if path not found
-    }
-    return typeof result === 'string' ? result : key;
-  };
-
   // Fetch system timezone
   const { data: systemTimezone } = useQuery<{ timezone: string }>({
     queryKey: ["/api/admin/settings/timezone"],
@@ -274,6 +262,17 @@ export default function GPUManagementTab() {
     return <span className="text-sm font-mono">{timeLeft}</span>;
   };
 
+  // Helper for QuotaAlertBanner (legacy component still using t function)
+  const tFuncForAlerts = (key: string): string => {
+    const keys = key.split('.');
+    let result: any = t;
+    for (const k of keys) {
+      result = result?.[k];
+      if (result === undefined) return key;
+    }
+    return typeof result === 'string' ? result : key;
+  };
+
   return (
     <div className="space-y-6 max-w-full overflow-x-hidden">
       {/* ALERT BANNER - Shows when quota > 70% */}
@@ -284,7 +283,7 @@ export default function GPUManagementTab() {
           percentage={quotaQuery.data.kaggleAlert.percentage}
           message={quotaQuery.data.kaggleAlert.message}
           onSync={sync}
-          t={tFunc}
+          t={tFuncForAlerts}
           data-testid="alert-quota-kaggle"
         />
       )}
@@ -295,7 +294,7 @@ export default function GPUManagementTab() {
           percentage={quotaQuery.data.colabAlert.percentage}
           message={quotaQuery.data.colabAlert.message}
           onSync={sync}
-          t={tFunc}
+          t={tFuncForAlerts}
           data-testid="alert-quota-colab"
         />
       )}
@@ -546,7 +545,7 @@ export default function GPUManagementTab() {
               <CardContent>
                 <UsageChart 
                   data={[]} 
-                  t={tFunc}
+                  translations={t.admin.gpuManagement}
                   data-testid="chart-usage" 
                 />
               </CardContent>
@@ -621,7 +620,7 @@ export default function GPUManagementTab() {
                 return (
                   <SessionTimeline
                     sessions={sessions}
-                    t={tFunc}
+                    translations={t.admin.gpuManagement}
                     data-testid="timeline-sessions"
                   />
                 );
