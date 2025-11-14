@@ -997,6 +997,7 @@ export function registerRoutes(app: Express): Server {
       const useAgent = useMultiAgent === "true";
       
       let fullResponse = "";
+      let multiAgentFailureReason: string | null = null; // 🔥 P0.4: Track multi-agent failures for SSE error metadata
       
       // 🤖 TENTAR SISTEMA MULTI-AGENTE PRIMEIRO
       if (useAgent) {
@@ -1047,14 +1048,17 @@ export function registerRoutes(app: Express): Server {
               try {
                 // 🔥 FIX PHASE-1: Include agentId for quality tracking (fixes 0.0/100)
                 // Use primary agent from multi-agent result, fallback to DB query for default agent
-                let primaryAgentId = agentResult.metadata?.agentIds?.[0];
+                // 🔥 P0.4: Convert string agentId to number (multi-agent metadata stores strings)
+                let primaryAgentId: number | null | undefined = agentResult.metadata?.agentIds?.[0] 
+                  ? parseInt(agentResult.metadata.agentIds[0], 10) 
+                  : undefined;
                 
                 if (!primaryAgentId) {
                   // Query DB for default AION assistant (100% database-driven, ZERO hardcoded!)
                   const defaultAgent = await db.query.agents.findFirst({
                     where: eq(agents.slug, 'assistente-geral'),
                   });
-                  primaryAgentId = defaultAgent?.id ?? null;
+                  primaryAgentId = (defaultAgent?.id as number | undefined) ?? null;
                   
                   if (!primaryAgentId) {
                     console.warn('[SSE Multi-Agent] No default agent found in DB - message saved without agentId');
@@ -1098,7 +1102,16 @@ export function registerRoutes(app: Express): Server {
             return;
           }
         } catch (multiAgentError: unknown) {
-          console.warn({ error: getErrorMessage(multiAgentError) }, "[SSE] Multi-agent failed, using fallback");
+          // 🔥 P0.4: Store multi-agent failure for error propagation to client
+          multiAgentFailureReason = getErrorMessage(multiAgentError);
+          console.warn({ error: multiAgentFailureReason }, "[SSE] Multi-agent failed, using fallback");
+          
+          // 🔥 P0.4: Send warning event to client about multi-agent failure (fallback will be attempted)
+          sendSSE("warning", {
+            message: "Multi-agent system unavailable, using fallback",
+            reason: multiAgentFailureReason,
+            timestamp: Date.now()
+          });
         }
       }
       
@@ -1162,7 +1175,12 @@ export function registerRoutes(app: Express): Server {
         latency,
         provider: result.provider,
         model: result.model,
-        usage: result.usage
+        usage: result.usage,
+        // 🔥 P0.4: Include multi-agent failure info if fallback was used
+        ...(multiAgentFailureReason && {
+          fallbackUsed: true,
+          multiAgentError: multiAgentFailureReason
+        })
       });
       
       // 🎯 FIX #4: TOKEN TRACKING - Track token usage for SSE streaming

@@ -15,6 +15,7 @@ export interface StreamingChatState {
   isStreaming: boolean;
   streamedMessage: string;
   error: string | null;
+  warning: string | null; // 🔥 P0.4: Non-blocking warnings (e.g., multi-agent fallback)
   metadata: Record<string, any> | null;
   completedSuccessfully: boolean; // 🔥 FIX: Flag para auto-save seguro
 }
@@ -28,6 +29,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamedMessage, setStreamedMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null); // 🔥 P0.4: Warning state
   const [metadata, setMetadata] = useState<Record<string, any> | null>(null);
   const [completedSuccessfully, setCompletedSuccessfully] = useState(false); // 🔥 FIX
   
@@ -135,10 +137,24 @@ export function useStreamingChat(): UseStreamingChatReturn {
       setStreamedMessage(prev => prev + data.content);
     });
 
+    // Handler: warning event (🔥 P0.4: non-blocking warnings)
+    eventSource.addEventListener("warning", (e) => {
+      const data = JSON.parse(e.data);
+      console.warn("[SSE] Server warning", data);
+      setWarning(data.message || "System warning");
+      // Don't close stream, just notify user
+    });
+
     // Handler: done event (stream concluído com sucesso)
     eventSource.addEventListener("done", (e) => {
       const data = JSON.parse(e.data);
       console.log("[SSE] Stream completed successfully", data);
+      
+      // 🔥 P0.4: Log if fallback was used due to multi-agent failure
+      if (data.fallbackUsed) {
+        console.warn("[SSE] Multi-agent failed, fallback used:", data.multiAgentError);
+      }
+      
       setMetadata(data);
       setIsStreaming(false);
       setCompletedSuccessfully(true); // 🔥 FIX: Marca conclusão bem-sucedida para auto-save
@@ -190,6 +206,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
     // Reset state
     setStreamedMessage("");
     setError(null);
+    setWarning(null); // 🔥 P0.4: Reset warning state
     setMetadata(null);
     setIsStreaming(true);
     setCompletedSuccessfully(false); // 🔥 FIX: Reset flag
@@ -215,6 +232,7 @@ export function useStreamingChat(): UseStreamingChatReturn {
     isStreaming,
     streamedMessage,
     error,
+    warning, // 🔥 P0.4: Export warning state
     metadata,
     completedSuccessfully, // 🔥 FIX: Exportar flag
     sendMessage,

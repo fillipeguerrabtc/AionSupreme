@@ -373,6 +373,17 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sendMutation.isPending, streamingChat.streamedMessage]);
 
+  // 🔥 P0.4: Display SSE warning events (e.g., multi-agent fallback, timeout, circuit breaker)
+  useEffect(() => {
+    if (streamingChat.warning) {
+      toast({
+        title: "⚠️ " + (language === "pt-BR" ? "Aviso" : language === "es-ES" ? "Advertencia" : "Warning"),
+        description: streamingChat.warning,
+        variant: "default",
+      });
+    }
+  }, [streamingChat.warning, toast, language]);
+
   // Scroll to top on page load (mobile fix)
   useEffect(() => {
     window.scrollTo(0, 0);
