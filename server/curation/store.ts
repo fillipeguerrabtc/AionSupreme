@@ -605,7 +605,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
     id: string,
     reviewedBy: string,
     approvalNote?: string
-  ): Promise<{ item: CurationItem; publishedId: string }> {
+  ): Promise<{ item: CurationItem; publishedId: number }> {
     const item = await this.getById(id);
     if (!item || item.status !== "pending") {
       throw new Error("Item not found or already processed");

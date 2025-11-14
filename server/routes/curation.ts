@@ -51,9 +51,9 @@ export function registerCurationRoutes(app: Router) {
    * ✅ AUTO-CLASSIFICATION: Namespace suggestion via NamespaceClassifier
    */
   app.post("/curation/add", async (req, res) => {
-    try {
-      let { title, content, suggestedNamespaces, tags, submittedBy } = req.body;
+    let { title, content, suggestedNamespaces, tags, submittedBy } = req.body;
 
+    try {
       if (!title || !content) {
         return res.status(400).json({ 
           error: "Missing required fields: title, content" 
