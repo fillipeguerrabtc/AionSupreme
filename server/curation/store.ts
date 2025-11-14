@@ -5,39 +5,10 @@ import { db } from "../db";
 import { documents, curationQueue as curationQueueTable, CurationQueue, InsertDocument } from "@shared/schema";
 import { sql, eq, and, desc } from "drizzle-orm";
 import { curatorAgentDetector } from "./curator-agent";
+import { DuplicateContentError } from "../errors/DuplicateContentError";
 
 // Type alias for compatibility with existing code
 export type CurationItem = CurationQueue;
-
-// Custom error for duplicate detection with rich metadata
-export class DuplicateContentError extends Error {
-  public readonly isDuplicate: boolean = true;
-  public readonly isPending: boolean;
-  public readonly duplicateOf: {
-    id: string;
-    title: string;
-  };
-
-  constructor(
-    message: string,
-    isPending: boolean,
-    duplicateId: string,
-    duplicateTitle: string
-  ) {
-    super(message);
-    this.name = 'DuplicateContentError';
-    this.isPending = isPending;
-    this.duplicateOf = {
-      id: duplicateId,
-      title: duplicateTitle
-    };
-    
-    // Maintains proper stack trace for where our error was thrown (only available on V8)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, DuplicateContentError);
-    }
-  }
-}
 
 // Custom error for auto-analysis timeout
 export class AutoAnalysisTimeoutError extends Error {
@@ -173,13 +144,13 @@ export const curationStore = {
           // BUG #13 FIX: INFO não ERROR (duplicate detection é comportamento esperado!)
           console.log(`[Curation] ℹ️  Duplicate detected in ${location}: "${duplicateCheck.documentTitle}" - skipping to avoid duplication`);
           
-          // Throw custom error with rich metadata for API consumers
-          throw new DuplicateContentError(
-            errorMsg,
-            duplicateCheck.isPending ?? false,
-            String(duplicateCheck.documentId),
-            duplicateCheck.documentTitle || 'Unknown document'
-          );
+          // Throw custom error with rich metadata for API consumers (type-safe class)
+          throw new DuplicateContentError({
+            duplicateOfId: duplicateCheck.documentId!,
+            similarity: duplicateCheck.similarity ?? 1.0, // Se não tem similarity, assume 1.0 (duplicado exato)
+            newContentPercent: 0, // Duplicado = 0% conteúdo novo
+            reason: errorMsg
+          });
         } else {
           // Not duplicate - capture embedding for persistence
           generatedEmbedding = duplicateCheck.embedding;
@@ -665,7 +636,6 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
   Duplicado de: "${originalDoc.title}" (ID: ${originalDoc.id})`);
           } else {
             // Se não vale absorver (<10% novo), rejeita automaticamente
-            const { DuplicateContentError } = await import("../errors/DuplicateContentError");
             throw new DuplicateContentError({
               duplicateOfId: originalDoc.id,
               similarity: 1.0, // Default to 100% similarity (we know it's a duplicate)
@@ -1037,12 +1007,12 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
     });
     
     // 🔥 DUPLICATE HANDLING: Check if duplicateDocId exists and is valid
-    if (item.duplicateDocId) {
+    if (duplicateDocId) {
       // documents.id is INTEGER, so validate numeric ID before querying
-      const numericId = Number(item.duplicateDocId);
+      const numericId = Number(duplicateDocId);
       
       if (!Number.isInteger(numericId) || numericId <= 0) {
-        console.warn(`[Curation] ⚠️ duplicateDocId "${item.duplicateDocId}" is not a valid integer ID, creating new document instead`);
+        console.warn(`[Curation] ⚠️ duplicateDocId "${duplicateDocId}" is not a valid integer ID, creating new document instead`);
         // Fall through to normal document creation
       } else {
         // Check if duplicate document exists
@@ -1147,7 +1117,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
       // 🔥 COMPLETE CLEANUP: Delete document + vector embeddings + training data
       try {
         // Delete vector embeddings first
-        const { ragService } = await import("./vector-store");
+        const { ragService } = await import("../rag/vector-store");
         await ragService.deleteDocument(newDoc.id);
         
         // Delete document from DB

@@ -37,6 +37,7 @@ import { metaLearningOrchestrator } from '../meta/meta-learning-orchestrator';
 import { onDemandGPUService } from './on-demand-gpu-service';
 import { logger } from './logger-service';
 import { retentionPolicyService } from './retention-policy-service';
+import { DuplicateContentError } from '../errors/DuplicateContentError';
 
 interface ScheduledJob {
   name: string;
@@ -603,16 +604,17 @@ export class SchedulerService {
                 await curationStore.approveAndPublish(item.id, 'AUTO-CURATOR', approvalNote);
                 approved++;
               } catch (approveError: any) {
-                // Import custom error type
-                const { DuplicateContentError } = await import("../errors/DuplicateContentError");
-                
                 // FIX #2: Handle duplicate constraint gracefully (race condition protection)
                 const isDuplicateError = approveError.message?.includes('duplicate key') || 
                                         approveError.message?.includes('content_hash_unique') ||
                                         approveError.code === '23505';
                 
-                // CRITICAL FIX: Auto-reject detected duplicates (type-safe check)
-                const isContentDuplicateError = approveError instanceof DuplicateContentError;
+                // CRITICAL FIX: Auto-reject detected duplicates (type-safe + legacy string matching)
+                // Detects BOTH: DuplicateContentError instances AND plain Errors with duplicate messages
+                const isContentDuplicateError = approveError instanceof DuplicateContentError ||
+                                                approveError.message?.includes('Duplicate content detected') ||
+                                                approveError.message?.includes('already exists in the Knowledge Base') ||
+                                                approveError.message?.includes('already pending approval');
                 
                 if (isDuplicateError) {
                   // NO-OP: Don't increment any counter (already in KB, not a review item)
