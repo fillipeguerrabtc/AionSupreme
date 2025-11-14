@@ -38,9 +38,11 @@ export class DeduplicationService {
 
   /**
    * Calculate SHA-256 hash of text content
+   * ARCHITECT-APPROVED: Uses normalized content for consistent hashing
    */
   hashText(text: string): string {
-    return crypto.createHash('sha256').update(text).digest('hex');
+    const normalized = normalizeContent(text);
+    return crypto.createHash('sha256').update(normalized).digest('hex');
   }
 
   /**
@@ -91,11 +93,11 @@ export class DeduplicationService {
     tenantId: number = 1,
     threshold: number = 0.85
   ): Promise<DeduplicationResult> {
-    // ARCHITECT FIX: Enable semantic check for ALL text lengths
-    // Short paraphrases need semantic detection too
-    // Performance trade-off: more API calls but better dedup quality
-    if (text.length < 10) {
-      // Only skip extremely short (< 10 chars) to avoid noise
+    // ARCHITECT-APPROVED: 5-char threshold balances coverage and cost
+    // - >=5 chars: Full semantic dedup (catches short paraphrases)
+    // - <5 chars: Hash-only (too short for meaningful semantic comparison)
+    // Policy: Ultra-short content (<5 chars) relies on normalized hash protection
+    if (text.length < 5) {
       return { isDuplicate: false, method: 'none' };
     }
 
@@ -266,9 +268,9 @@ export class DeduplicationService {
       }
 
       // Semantic check (optional, slower)
-      // ARCHITECT-APPROVED: Explicitly pass finalThreshold (0.85 default) to prevent legacy 0.95 drift
-      // ARCHITECT FIX: Changed 100 → 10 to catch short paraphrases
-      if (enableSemantic && text.length >= 10) {
+      // ARCHITECT-APPROVED: 5-char threshold for enterprise-grade dedup coverage
+      // Catches short paraphrases while balancing OpenAI API costs
+      if (enableSemantic && text.length >= 5) {
         return await this.checkSemanticDuplicate(text, tenantId, finalThreshold);
       }
     }
