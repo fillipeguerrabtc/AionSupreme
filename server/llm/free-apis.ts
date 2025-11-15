@@ -982,7 +982,7 @@ export async function generateWithFreeAPIs(
   req: LLMRequest,
   allowOpenAI: boolean = true,
   model?: string, // NEW: Specific model to use (passed to providers)
-  forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter' | 'openai' // NEW: Force specific provider (short-circuit fallback)
+  forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter' // ❌ REMOVED 'openai' - not a free API!
 ): Promise<LLMResponse> {
   // 🔥 P0.1 FIX: Orchestration deadline (30s total for entire fallback chain)
   const ORCHESTRATION_DEADLINE_MS = 30000;
@@ -994,10 +994,8 @@ export async function generateWithFreeAPIs(
   if (forceProvider) {
     console.log(`🎯 [FREE APIs] FORCE PROVIDER: ${forceProvider} (skipping fallback chain)`);
     
-    // 🔥 CRITICAL SECURITY: Prevent OpenAI bypass when allowOpenAI=false
-    if (forceProvider === 'openai' && !allowOpenAI) {
-      throw new Error('Cannot force OpenAI provider when allowOpenAI=false (use STEP 5 orchestrator)');
-    }
+    // ✅ ENTERPRISE SECURITY: forceProvider can ONLY be free APIs now
+    // OpenAI is handled EXCLUSIVELY in STEP 5 of priority-orchestrator.ts
     
     // Quota check for forced provider
     const quotasFromDB = await getProviderQuotas();
@@ -1023,6 +1021,8 @@ export async function generateWithFreeAPIs(
       // 🔥 P0.1 FIX: Pass remainingMs even for forced provider
       const forcedRemainingMs = ORCHESTRATION_DEADLINE_MS - (Date.now() - startTime);
       
+      // 🔥 ENTERPRISE FIX: Only FREE providers allowed in this function!
+      // OpenAI is handled EXCLUSIVELY in STEP 5 of priority-orchestrator.ts
       switch (forceProvider) {
         case 'groq':
           response = await callGroq(req, forcedRemainingMs);
@@ -1036,11 +1036,9 @@ export async function generateWithFreeAPIs(
         case 'openrouter':
           response = await callOpenRouter(req, forcedRemainingMs);
           break;
-        case 'openai':
-          response = await callOpenAI(req);
-          break;
+        // ❌ REMOVED: case 'openai' - OpenAI is STEP 5 only (not a free API)
         default:
-          throw new Error(`Unknown forced provider: ${forceProvider}`);
+          throw new Error(`Unknown forced provider: ${forceProvider} (OpenAI must use STEP 5 orchestrator)`);
       }
       
       const latency = Date.now() - startTime;
@@ -1052,7 +1050,7 @@ export async function generateWithFreeAPIs(
       return {
         ...response,
         latencyMs: latency,
-        costUsd: forceProvider === 'openai' ? (response.costUsd || 0) : 0, // Only OpenAI has cost
+        costUsd: 0, // ✅ ENTERPRISE: All providers in this function are FREE (no cost)
         finishReason: response.finishReason || 'stop',
       };
       

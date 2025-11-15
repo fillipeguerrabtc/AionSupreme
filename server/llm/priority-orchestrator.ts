@@ -59,7 +59,7 @@ export interface PriorityRequest {
   model?: string; // Specific model to use (optional, provider chooses default if not specified)
   unrestricted?: boolean;  // UNRESTRICTED mode = bypasses all filters
   forcedSource?: 'web' | 'kb' | 'free-apis';  // Force specific source when user explicitly requests it
-  forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter' | 'openai';  // Force specific free API provider (still attempts KB/GPU first)
+  forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter';  // ✅ ENTERPRISE: Force specific FREE API provider (OpenAI is STEP 5 only)
   language?: "pt-BR" | "en-US" | "es-ES";  // Language for response generation
   
   // Metadata for quota tagging and telemetry (formalized - already accepted by generateWithPriority)
@@ -1348,7 +1348,7 @@ async function executeWebFallback(
     temperature?: number;  // LLM temperature for response generation
     topP?: number;  // LLM top_p for response generation
     model?: string;  // Specific model to use (NEW)
-    forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter' | 'openai';  // Force specific provider (NEW)
+    forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter';  // ✅ ENTERPRISE: Force specific FREE provider (OpenAI is STEP 5 only)
   } = {}
 ): Promise<WebFallbackResult> {
   // Destructure with defaults (EN-US matches legacy behavior)
