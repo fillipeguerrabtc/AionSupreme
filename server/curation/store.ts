@@ -616,6 +616,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
     let contentToSave = item.content;
     let isAbsorption = false;
     let duplicateDocId: number | null = null;
+    let similarityScore: number | undefined; // Declare outside for broader scope
 
     try {
       // Se já tem duplicateOfId marcado, valida e usa direto
@@ -636,12 +637,17 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
         const { deduplicationService } = await import("../services/deduplication-service");
         const dupCheck = await deduplicationService.checkDuplicate({
           text: item.content,
-          enableSemantic: true
+          enableSemantic: true,
+          threshold: 0.88 // 🔥 FIX: Use stricter threshold (matches publishApprovedItem)
         });
 
-        if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
+        // 🔥 FIX: Check duplicateOf regardless of isDuplicate flag
+        // checkDuplicate now returns duplicateOf for similarity >= 0.80 even when isDuplicate=false
+        if (dupCheck.duplicateOf) {
           duplicateDocId = dupCheck.duplicateOf.id;
-          console.log(`[Curation] ⚠️ Duplicata detectada: ${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% similar a "${dupCheck.duplicateOf.title}" (ID: ${duplicateDocId})`);
+          similarityScore = dupCheck.duplicateOf.similarity; // Capture similarity here
+          const status = dupCheck.isDuplicate ? "Duplicata" : "Similar";
+          console.log(`[Curation] ⚠️ ${status} detectado: ${Math.round((similarityScore || 0) * 100)}% similar a "${dupCheck.duplicateOf.title}" (ID: ${duplicateDocId})`);
         }
       }
 
@@ -654,8 +660,10 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
           .limit(1);
 
         if (originalDoc) {
+          // similarityScore already captured from dupCheck above (if available)
+          
           const { analyzeAbsorption } = await import("../utils/absorption");
-          const analysis = analyzeAbsorption(originalDoc.content, item.content);
+          const analysis = analyzeAbsorption(originalDoc.content, item.content, similarityScore);
 
           if (analysis.shouldAbsorb) {
             // ✅ ABSORVER SÓ O NOVO
@@ -901,6 +909,7 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
     let contentToSave = item.content;
     let isAbsorption = false;
     let duplicateDocId: number | null = null;
+    let similarityScore: number | undefined; // Declare outside for broader scope
 
     try {
       if (item.duplicateOfId) {
@@ -919,12 +928,17 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
         const { deduplicationService } = await import("../services/deduplication-service");
         const dupCheck = await deduplicationService.checkDuplicate({
           text: item.content,
-          enableSemantic: true
+          enableSemantic: true,
+          threshold: 0.88 // 🔥 FIX: Use stricter threshold to avoid false positives
         });
 
-        if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
+        // 🔥 FIX: Check duplicateOf regardless of isDuplicate flag
+        // checkDuplicate now returns duplicateOf for similarity >= 0.80 even when isDuplicate=false
+        if (dupCheck.duplicateOf) {
           duplicateDocId = dupCheck.duplicateOf.id;
-          console.log(`[Curation] ⚠️ Duplicata detectada: ${Math.round((dupCheck.duplicateOf.similarity || 0) * 100)}% similar a "${dupCheck.duplicateOf.title}" (ID: ${duplicateDocId})`);
+          similarityScore = dupCheck.duplicateOf.similarity; // Capture similarity here
+          const status = dupCheck.isDuplicate ? "Duplicata" : "Similar";
+          console.log(`[Curation] ⚠️ ${status} detectado: ${Math.round((similarityScore || 0) * 100)}% similar a "${dupCheck.duplicateOf.title}" (ID: ${duplicateDocId})`);
         }
       }
 
@@ -937,8 +951,10 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
           .limit(1);
 
         if (originalDoc) {
+          // similarityScore already captured from dupCheck above (if available)
+          
           const { analyzeAbsorption } = await import("../utils/absorption");
-          const analysis = analyzeAbsorption(originalDoc.content, item.content);
+          const analysis = analyzeAbsorption(originalDoc.content, item.content, similarityScore);
 
           if (analysis.shouldAbsorb) {
             contentToSave = analysis.extractedContent;

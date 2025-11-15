@@ -109,10 +109,13 @@ export function extractUniqueContent(
 /**
  * Validate if absorption should proceed based on content analysis
  * 
- * Rules:
- * - At least 10% new content
- * - At least 20 characters of new content (reduced from 50 to reduce false rejections)
+ * Rules (UPDATED 2025-11-15 - more permissive to avoid rejecting useful content):
+ * - At least 5% new content (reduced from 10% to consolidate similar content)
+ * - At least 15 characters of new content (reduced from 20 to capture minor additions)
  * - Maximum 50KB content size
+ * 
+ * RATIONALE: Similar content (0.78-0.87 similarity) should be consolidated, not rejected.
+ * Even small additions (5-10% new) can add value and should be merged into KB.
  */
 export function validateAbsorption(stats: {
   extractedLength: number;
@@ -130,19 +133,19 @@ export function validateAbsorption(stats: {
     };
   }
 
-  // Check minimum new content (20 chars - reduced from 50 to reduce false rejections)
-  if (stats.extractedLength < 20) {
+  // Check minimum new content (15 chars - reduced from 20 to capture minor additions)
+  if (stats.extractedLength < 15) {
     return {
       shouldAbsorb: false,
-      reason: `Insufficient new content (${stats.extractedLength} chars, minimum 20 chars required)`,
+      reason: `Insufficient new content (${stats.extractedLength} chars, minimum 15 chars required)`,
     };
   }
 
-  // Check minimum percentage of new content (10%)
-  if (stats.newContentPercent < 10) {
+  // Check minimum percentage of new content (5% - reduced from 10% to consolidate similar content)
+  if (stats.newContentPercent < 5) {
     return {
       shouldAbsorb: false,
-      reason: `Requires at least 10% new content (${stats.newContentPercent}% found) and minimum 20 chars (${stats.extractedLength} found)`,
+      reason: `Requires at least 5% new content (${stats.newContentPercent}% found) and minimum 15 chars (${stats.extractedLength} found)`,
     };
   }
 
@@ -157,11 +160,18 @@ export function validateAbsorption(stats: {
  * 
  * @param kbContent - Original KB document content
  * @param curationContent - New curation item content
+ * @param similarity - Optional semantic similarity score (0-1) for forced consolidation
  * @returns Complete analysis with validation
+ * 
+ * 🔥 FORCED CONSOLIDATION RULE (2025-11-15):
+ * If similarity is in range 0.80-0.88 (similar but not exact), FORCE absorption
+ * regardless of newContentPercent. This prevents "similar but not duplicate" 
+ * content from creating separate KB entries (the gap that architect identified).
  */
 export function analyzeAbsorption(
   kbContent: string,
-  curationContent: string
+  curationContent: string,
+  similarity?: number
 ): {
   shouldAbsorb: boolean;
   extractedContent: string;
@@ -176,6 +186,7 @@ export function analyzeAbsorption(
     newContentPercent: number;
   };
   reason: string;
+  forcedConsolidation?: boolean;
 } {
   // Extract unique content
   const { extractedContent, originalContent, stats } = extractUniqueContent(
@@ -183,7 +194,20 @@ export function analyzeAbsorption(
     curationContent
   );
 
-  // Validate if absorption should proceed
+  // 🔥 FORCED CONSOLIDATION for similarity range 0.80-0.88
+  // Prevents gap where similar-but-not-exact content bypasses both dedup and absorption
+  if (similarity && similarity >= 0.80 && similarity < 0.88) {
+    return {
+      shouldAbsorb: true,
+      extractedContent,
+      originalContent,
+      stats,
+      reason: `Forced consolidation: ${(similarity * 100).toFixed(1)}% similarity (0.80-0.88 range) - bypassing ${stats.newContentPercent}% threshold to prevent duplicate KB entries`,
+      forcedConsolidation: true,
+    };
+  }
+
+  // Validate if absorption should proceed (normal rules)
   const validation = validateAbsorption(stats);
 
   return {
@@ -192,5 +216,6 @@ export function analyzeAbsorption(
     originalContent,
     stats,
     reason: validation.reason,
+    forcedConsolidation: false,
   };
 }

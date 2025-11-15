@@ -84,16 +84,17 @@ export class DeduplicationService {
    * 
    * INDUSTRY 2025 THRESHOLDS (OpenAI/AWS/Redis benchmarks):
    * - 0.95 (95%) = EXACT duplicate (strict match, normalized hash level)
-   * - 0.82 (82%) = NEAR duplicate (semantic similarity, catches paraphrases)
-   *   → OpenAI RAG: 0.79+ typical
+   * - 0.88 (88%) = NEAR duplicate (semantic similarity, catches true duplicates)
+   *   → OpenAI RAG: 0.79+ typical (retrieval is more permissive)
    *   → Redis caching: 0.85-0.92 typical
-   *   → Our choice: 0.82 (balanced between RAG retrieval and cache precision)
+   *   → Our choice: 0.88 (stricter to avoid false positives, allow content consolidation)
+   *   → RATIONALE: 0.82 was rejecting similar-but-not-duplicate content (false positives)
    * 
    * NOTE: Para produção com KB grande (>10k docs), usar pgvector com índices IVFFlat/HNSW
    */
   async checkSemanticDuplicate(
     text: string,
-    threshold: number = 0.82
+    threshold: number = 0.88
   ): Promise<DeduplicationResult> {
     // ARCHITECT-APPROVED: 5-char threshold balances coverage and cost
     // - >=5 chars: Full semantic dedup (catches short paraphrases)
@@ -208,6 +209,22 @@ export class DeduplicationService {
       if (maxSimilarity >= threshold && bestMatch) {
         return {
           isDuplicate: true,
+          duplicateOf: {
+            id: typeof bestMatch.documentId === 'string' ? parseInt(bestMatch.documentId) || 0 : bestMatch.documentId,
+            title: bestMatch.documentTitle,
+            hash: '',
+            similarity: maxSimilarity
+          },
+          method: 'semantic'
+        };
+      }
+
+      // 🔥 FORCED CONSOLIDATION FIX (2025-11-15):
+      // Even if NOT a duplicate (similarity < threshold), return bestMatch
+      // if similarity >= 0.80 so absorption logic can decide consolidation
+      if (maxSimilarity >= 0.80 && bestMatch) {
+        return {
+          isDuplicate: false,
           duplicateOf: {
             id: typeof bestMatch.documentId === 'string' ? parseInt(bestMatch.documentId) || 0 : bestMatch.documentId,
             title: bestMatch.documentTitle,
