@@ -690,7 +690,6 @@ export class DatabaseStorage implements IStorage {
       const { deduplicationService } = await import("./services/deduplication-service");
       const dupCheck = await deduplicationService.checkDuplicate({
         text: documentWithHash.content,
-        tenantId: documentWithHash.tenantId || 1,
         enableSemantic: true
       });
       
@@ -1198,7 +1197,6 @@ export class DatabaseStorage implements IStorage {
         const { deduplicationService } = await import("./services/deduplication-service");
         const dupCheck = await deduplicationService.checkDuplicate({
           text: textToCheck,
-          tenantId: data.tenantId || 1, // ✅ ENTERPRISE: Tenant-aware dedup (default 1 for backward compat)
           enableSemantic: true // ✅ ARCHITECT-MANDATED: Catch paraphrased duplicates
         });
         
