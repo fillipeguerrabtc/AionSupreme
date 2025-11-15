@@ -49,7 +49,7 @@ export interface LLMGatewayOptions {
   model?: string;
   
   /** Force specific provider (skip fallback chain) */
-  forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter' | 'openai';
+  forceProvider?: 'groq' | 'gemini' | 'openrouter' | 'openai';
   
   /** Language directive for Priority Orchestrator (default: 'en') */
   language?: 'pt-BR' | 'en-US' | 'es-ES';
@@ -150,15 +150,18 @@ export async function generateLLM(options: LLMGatewayOptions): Promise<LLMGatewa
     const { generateWithFreeAPIs } = await import('./free-apis');
     const { trackTokenUsage } = await import('../monitoring/token-tracker');
     
+    // ✅ FIX: Filter out 'openai' from forceProvider for free-apis (only accepts free providers)
+    const filteredFreeProvider = (forceProvider === 'openai' ? undefined : forceProvider) as 'groq' | 'gemini' | 'openrouter' | undefined;
+    
     const freeResponse = await generateWithFreeAPIs(
       {
-        messages,
+        messages: messages as any, // Type cast to handle 'tool' role in ChatMessage
         temperature,
         maxTokens,
       },
       true, // allowOpenAI = true (fallback to OpenAI if free APIs fail)
       model,
-      forceProvider
+      filteredFreeProvider
     );
     
     // ✅ ENTERPRISE FIX: Get accurate token counts using tiktoken (±1% accuracy)
@@ -189,11 +192,9 @@ export async function generateLLM(options: LLMGatewayOptions): Promise<LLMGatewa
       requestType: 'chat',
       success: true,
       metadata: {
-        consumerId,
-        purpose,
         bypassMode: true,
-        tiktokenFallback: !freeResponse.tokensUsed, // Flag if tiktoken was used
-      },
+        tiktokenFallback: !freeResponse.tokensUsed,
+      } as any,
     });
     
     return {
@@ -212,12 +213,15 @@ export async function generateLLM(options: LLMGatewayOptions): Promise<LLMGatewa
   }
 
   // Route through Priority Orchestrator (default path)
+  // ✅ FIX: Filter out 'openai' from forceProvider (Priority Orchestrator only handles free providers)
+  const filteredProvider = forceProvider === 'openai' ? undefined : forceProvider;
+  
   const result = await generateWithPriority({
     messages,
     temperature,
     maxTokens,
     model,
-    forceProvider, // NEW: Pass through to free-apis.ts
+    forceProvider: filteredProvider, // Only pass free providers ('groq', 'gemini', 'openrouter')
     language,
     conversationId,
     messageId,

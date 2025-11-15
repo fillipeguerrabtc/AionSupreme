@@ -71,31 +71,19 @@ interface APIProvider {
 const FREE_APIS: APIProvider[] = [
   {
     name: 'groq',
-    // ✅ dailyLimit now fetched dynamically from provider_limits table
     priority: 1,        // HIGHEST priority (ultra-fast, no censorship)
-    models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],  // Updated Oct 2025
+    models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
     enabled: !!process.env.GROQ_API_KEY
   },
   {
     name: 'gemini',
-    // ✅ dailyLimit now fetched dynamically from provider_limits table
     priority: 2,
     models: ['gemini-2.0-flash-exp', 'gemini-1.5-flash'],
     enabled: !!process.env.GEMINI_API_KEY
   },
   {
-    name: 'hf',
-    // ❌ DISABLED: Endpoint deprecated (410 Gone)
-    // Old: https://api-inference.huggingface.co → 410 Gone
-    // New: https://router.huggingface.co (requires provider selection + billing)
-    priority: 3,
-    models: ['mistralai/Mistral-7B-Instruct-v0.2'],
-    enabled: false  // ❌ Endpoint morto - Ver docs/QUOTA_ANALYSIS_2025.md
-  },
-  {
     name: 'openrouter',
-    // ✅ dailyLimit now fetched dynamically from provider_limits table
-    priority: 4,
+    priority: 3,
     models: ['meta-llama/llama-3.1-8b-instruct:free', 'mistralai/mistral-7b-instruct:free'],
     enabled: !!process.env.OPEN_ROUTER_API_KEY
   }
@@ -982,7 +970,7 @@ export async function generateWithFreeAPIs(
   req: LLMRequest,
   allowOpenAI: boolean = true,
   model?: string, // NEW: Specific model to use (passed to providers)
-  forceProvider?: 'groq' | 'gemini' | 'hf' | 'openrouter' // ❌ REMOVED 'openai' - not a free API!
+  forceProvider?: 'groq' | 'gemini' | 'openrouter' // ❌ REMOVED 'openai' - not a free API!
 ): Promise<LLMResponse> {
   // 🔥 P0.1 FIX: Orchestration deadline (30s total for entire fallback chain)
   const ORCHESTRATION_DEADLINE_MS = 30000;
@@ -1030,13 +1018,9 @@ export async function generateWithFreeAPIs(
         case 'gemini':
           response = await callGemini(req, forcedRemainingMs);
           break;
-        case 'hf':
-          response = await callHuggingFace(req, forcedRemainingMs);
-          break;
         case 'openrouter':
           response = await callOpenRouter(req, forcedRemainingMs);
           break;
-        // ❌ REMOVED: case 'openai' - OpenAI is STEP 5 only (not a free API)
         default:
           throw new Error(`Unknown forced provider: ${forceProvider} (OpenAI must use STEP 5 orchestrator)`);
       }
@@ -1149,10 +1133,6 @@ export async function generateWithFreeAPIs(
           break;
         case 'gemini':
           response = await callGemini(req, providerRemainingMs);
-          break;
-        case 'hf':  // 🔥 FIX: Match the actual provider name in FREE_APIS array
-        case 'huggingface':  // Also accept 'huggingface' for compatibility
-          response = await callHuggingFace(req, providerRemainingMs);
           break;
         case 'openrouter':
           response = await callOpenRouter(req, providerRemainingMs);

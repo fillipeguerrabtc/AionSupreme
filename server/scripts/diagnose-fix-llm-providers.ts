@@ -161,6 +161,7 @@ async function resetCircuitBreaker(providerId: string): Promise<void> {
       nextRetryTime: null,
       config: {
         failureThreshold: 3,
+        recoveryTimeout: 12000,
         successThreshold: 2,
         timeout: 15000,
       },
