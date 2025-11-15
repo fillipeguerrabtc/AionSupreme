@@ -843,7 +843,7 @@ export class SchedulerService {
           logger.info('[DEDUP] Starting weekly KB deduplication scan...');
           
           const { kbDeduplicationScanner } = await import('./kb-deduplication-scanner');
-          const report = await kbDeduplicationScanner.scanKB(1);
+          const report = await kbDeduplicationScanner.scanKB();
           
           // Log formatted report
           logger.info(kbDeduplicationScanner.formatReport(report));
