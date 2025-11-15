@@ -34,7 +34,6 @@ const providerColors: Record<string, string> = {
   openai: "#10b981",
   groq: "#f97316",
   gemini: "#3b82f6",
-  huggingface: "#eab308",
   openrouter: "#a855f7"
 };
 

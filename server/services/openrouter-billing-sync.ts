@@ -47,15 +47,17 @@ class OpenRouterBillingSyncService {
   private apiKey: string | null = null;
 
   constructor() {
-    // OpenRouter usa variáveis de ambiente específicas
-    this.apiKey = process.env.OPEN_ROUTER_API_KEY || "";
+    // ✅ CRITICAL: Use PROVISIONING key for billing/quotas, NOT the model API key!
+    // OPEN_ROUTER_API_KEY → Para chamar modelos (llama-3.3, etc)
+    // OPEN_ROUTER_PROVISIONING_KEY → Para consultar billing/quotas/usage (esta!)
+    this.apiKey = process.env.OPEN_ROUTER_PROVISIONING_KEY || "";
     
     if (!this.apiKey) {
-      logger.warn("[OpenRouter Billing Sync] ⚠️  OPEN_ROUTER_API_KEY não encontrada - sync desabilitado");
+      logger.warn("[OpenRouter Billing Sync] ⚠️  OPEN_ROUTER_PROVISIONING_KEY não encontrada - sync desabilitado");
       return;
     }
 
-    logger.info("[OpenRouter Billing Sync] ✅ Inicializado com OPEN_ROUTER_API_KEY");
+    logger.info("[OpenRouter Billing Sync] ✅ Inicializado com OPEN_ROUTER_PROVISIONING_KEY");
   }
 
   /**
@@ -172,7 +174,8 @@ class OpenRouterBillingSyncService {
       let syncedCount = 0;
       let skippedCount = 0;
 
-      for (const [dateKey, dayData] of dailyData) {
+      // ✅ Fix LSP: Use Array.from() for Map iteration
+      for (const [dateKey, dayData] of Array.from(dailyData.entries())) {
         const periodKey = `openrouter-${dateKey}`;
 
         // Check if already exists

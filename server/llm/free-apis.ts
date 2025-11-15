@@ -78,13 +78,13 @@ const FREE_APIS: APIProvider[] = [
   {
     name: 'gemini',
     priority: 2,
-    models: ['gemini-2.0-flash-exp', 'gemini-1.5-flash'],
+    models: ['gemini-2.5-flash', 'gemini-2.0-flash'],
     enabled: !!process.env.GEMINI_API_KEY
   },
   {
     name: 'openrouter',
     priority: 3,
-    models: ['meta-llama/llama-3.1-8b-instruct:free', 'mistralai/mistral-7b-instruct:free'],
+    models: ['meta-llama/llama-3.3-8b-instruct:free', 'mistralai/mistral-7b-instruct:free'],
     enabled: !!process.env.OPEN_ROUTER_API_KEY
   }
 ];
@@ -97,7 +97,7 @@ const FREE_APIS: APIProvider[] = [
  * - Rate Limits: ~6,000 TPM (tokens per minute), varies by model
  * - Returns 429 when exceeding rate limits
  * - OpenAI-compatible API
- * - Models: llama-3.3-70b-versatile, llama-3.1-8b-instant, DeepSeek R1
+ * - Models: llama-3.3-70b-versatile, llama-3.3-8b-instant, DeepSeek R1
  * - Retry logic: 1s/2s/4s exponential backoff for 429/503/504
  */
 
@@ -848,7 +848,7 @@ async function callOpenRouter(req: LLMRequest, orchestrationRemainingMs?: number
       // Fallback to tiktoken if API doesn't return usage (±1% accuracy)
       if (!totalTokens || totalTokens === 0) {
         const responseText = data.choices[0].message.content || '';
-        const tokenCounts = countChatTokens(req.messages, responseText, 'meta-llama/llama-3.1-8b-instruct:free');
+        const tokenCounts = countChatTokens(req.messages, responseText, 'meta-llama/llama-3.3-8b-instruct:free');
         promptTokens = tokenCounts.promptTokens;
         completionTokens = tokenCounts.completionTokens;
         totalTokens = tokenCounts.totalTokens;
@@ -873,7 +873,7 @@ async function callOpenRouter(req: LLMRequest, orchestrationRemainingMs?: number
   
   await trackTokenUsage({
     provider: 'openrouter',
-    model: 'meta-llama/llama-3.1-8b-instruct:free', // Use full model name for pricing lookup
+    model: 'meta-llama/llama-3.3-8b-instruct:free', // Use full model name for pricing lookup
     promptTokens,
     completionTokens,
     totalTokens,
@@ -885,7 +885,7 @@ async function callOpenRouter(req: LLMRequest, orchestrationRemainingMs?: number
       return {
         text: data.choices[0].message.content,
         provider: 'openrouter',
-        model: 'llama-3.1-8b-instruct',
+        model: 'llama-3.3-8b-instruct',
         tokensUsed: totalTokens
       };
     } catch (error: any) {

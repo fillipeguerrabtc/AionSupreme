@@ -80,7 +80,7 @@ async function testGemini(): Promise<TestResult> {
 
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const result = await model.generateContent('Say OK');
     const text = result.response.text();
@@ -89,7 +89,7 @@ async function testGemini(): Promise<TestResult> {
       provider: 'gemini',
       success: true,
       latencyMs: Date.now() - start,
-      model: 'gemini-2.0-flash-exp'
+      model: 'gemini-2.5-flash'
     };
   } catch (error: any) {
     return { 
@@ -115,7 +115,7 @@ async function testOpenRouter(): Promise<TestResult> {
         'X-Title': 'AION AI System'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        model: 'meta-llama/llama-3.3-8b-instruct:free',
         messages: [{ role: 'user', content: 'Say OK' }],
         max_tokens: 10,
         temperature: 0.7
@@ -137,7 +137,7 @@ async function testOpenRouter(): Promise<TestResult> {
       provider: 'openrouter',
       success: true,
       latencyMs: Date.now() - start,
-      model: 'meta-llama/llama-3.1-8b-instruct:free'
+      model: 'meta-llama/llama-3.3-8b-instruct:free'
     };
   } catch (error: any) {
     return { 

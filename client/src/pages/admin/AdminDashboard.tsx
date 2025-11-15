@@ -226,7 +226,7 @@ export default function AdminDashboard() {
 
   // Calculate total tokens from all providers
   // 🔍 IMPORTANT: This calculates TODAY's tokens, not all-time tokens
-  // It sums provider.today.tokens from all providers (OpenAI, Groq, Gemini, HuggingFace, etc.)
+  // It sums provider.today.tokens from all providers (OpenAI, Groq, Gemini, OpenRouter)
   // The backend /api/tokens/summary returns today/month breakdown using America/Sao_Paulo timezone
   // "Today" means from 00:00:00 to 23:59:59 in Brazilian timezone
   // PRODUCTION-FIX: Ensure tokenSummary is an array before calling reduce
@@ -642,10 +642,6 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Gemini:</span>
                   <span className="font-bold">{quotas?.find((q: any) => q.provider === 'gemini')?.used || 0} req</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">HuggingFace:</span>
-                  <span className="font-bold">{quotas?.find((q: any) => q.provider === 'huggingface')?.used || 0} req</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">OpenRouter:</span>

@@ -7,7 +7,6 @@
  * - Groq: Headers x-ratelimit-* de CADA resposta
  * - Gemini: Google Cloud Billing API + response tokens
  * - OpenRouter: API /api/v1/key (credits balance)
- * - HuggingFace: Billing page (créditos)
  * - OpenAI: OPENAI_ADMIN_KEY via /v1/organization/costs (JÁ IMPLEMENTADO)
  * 
  * **LIMITES OFICIAIS 2025:**
@@ -23,11 +22,6 @@
  *   - TPM: 1,000,000 tokens/min
  *   - RPD: 1,500 req/dia (updated 2025)
  *   - Source: ai.google.dev/gemini-api/docs/rate-limits
- * 
- * HuggingFace:
- *   - Free: $0.10/mês créditos
- *   - PRO: $2.00/mês créditos
- *   - Billing: compute time × hardware price
  * 
  * OpenRouter:
  *   - Free: 50 req/dia
@@ -188,73 +182,6 @@ class ProviderLimitsTracker {
   }
   
   /**
-   * ✅ HUGGINGFACE: Calculate usage based on community estimates
-   * 
-   * HuggingFace does NOT provide quota check API.
-   * Free tier: "Few hundred requests per hour" (~720 req/day estimate)
-   * 
-   * Source: https://huggingface.co/docs/api-inference/en/rate-limits
-   */
-  async updateHuggingFaceLimits(): Promise<void> {
-    try {
-      // ✅ Community estimate (NOT exact from API)
-      const estimatedLimits = {
-        rpm: null, // Not specified
-        rpd: 720, // ~few hundred per hour estimate
-        tpm: null,
-        tpd: null
-      };
-      
-      // ✅ Get usage from token_usage table (our DB tracking)
-      const usage = await db.execute(sql`
-        SELECT 
-          COUNT(*) FILTER (WHERE timestamp > NOW() - INTERVAL '1 day') as rpd_used
-        FROM token_usage 
-        WHERE provider = 'hf' OR provider = 'huggingface' -- Accept both for compatibility
-      `);
-      
-      const rpdUsed = Number((usage.rows[0] as any)?.rpd_used || 0);
-      
-      // ✅ NOTA: NÃO atualizamos llm_provider_quotas aqui!
-      // apiQuotaRepository.incrementUsage() JÁ incrementa corretamente após cada chamada
-      
-      await db.insert(providerLimits).values({
-        provider: 'hf', // ✅ Backend uses 'hf' (normalized to 'huggingface' in API response)
-        rpm: estimatedLimits.rpm,
-        rpd: estimatedLimits.rpd,
-        tpm: estimatedLimits.tpm,
-        tpd: estimatedLimits.tpd,
-        rpmUsed: null,
-        rpdUsed,
-        tpmUsed: null,
-        tpdUsed: null,
-        rpmRemaining: null,
-        rpdRemaining: estimatedLimits.rpd - rpdUsed,
-        tpmRemaining: null,
-        tpdRemaining: null,
-        rpmResetAt: null,
-        rpdResetAt: null,
-        tpmResetAt: null,
-        tpdResetAt: null,
-        rawHeaders: null,
-        rawResponse: null,
-        source: 'community_estimate_2025'
-      }).onConflictDoUpdate({
-        target: providerLimits.provider,
-        set: {
-          rpdUsed,
-          rpdRemaining: estimatedLimits.rpd - rpdUsed, // ✅ Simple calculation (not SQL)
-          lastUpdated: sql`CURRENT_TIMESTAMP`
-        }
-      });
-      
-      console.log(`[ProviderLimits] ✅ HuggingFace updated: ${rpdUsed}/${estimatedLimits.rpd} req/day (source: community estimate)`);
-    } catch (error: any) {
-      console.error(`[ProviderLimits] HuggingFace update failed:`, error.message);
-    }
-  }
-  
-  /**
    * ✅ OPENROUTER: Fetch credits from API + track usage
    * 
    * OFFICIAL DOCS 2025: https://openrouter.ai/docs/api-reference/limits
@@ -262,11 +189,15 @@ class ProviderLimitsTracker {
    * - Users with $10+ credits: 1,000 requests/day, 20 RPM
    * 
    * GET /api/v1/key returns: { data: { credits: 1.50 } }
+   * 
+   * ✅ CRITICAL: Use PROVISIONING key for billing/quotas, NOT the model API key!
+   * OPEN_ROUTER_API_KEY → Para chamar modelos (llama-3.3, etc)
+   * OPEN_ROUTER_PROVISIONING_KEY → Para consultar billing/quotas/usage (esta!)
    */
   async updateOpenRouterLimits(): Promise<void> {
-    const apiKey = process.env.OPEN_ROUTER_API_KEY;
+    const apiKey = process.env.OPEN_ROUTER_PROVISIONING_KEY;
     if (!apiKey) {
-      console.warn('[ProviderLimits] OpenRouter API key not set');
+      console.warn('[ProviderLimits] OpenRouter Provisioning key not set');
       return;
     }
     

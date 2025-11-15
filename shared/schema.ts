@@ -5,11 +5,11 @@ import { sql } from 'drizzle-orm';
 
 // ============================================================================
 // LLM PROVIDER QUOTAS - Free LLM Provider Quota Tracking (PostgreSQL-backed)
-// Tracks daily quotas for Groq, Gemini, HuggingFace, OpenRouter
+// Tracks daily quotas for Groq, Gemini, OpenRouter
 // ============================================================================
 export const llmProviderQuotas = pgTable("llm_provider_quotas", {
   id: serial("id").primaryKey(),
-  provider: varchar("provider", { length: 50 }).notNull().unique(), // groq, gemini, hf, openrouter
+  provider: varchar("provider", { length: 50 }).notNull().unique(), // groq, gemini, openrouter
   
   // Daily counters (reset at midnight)
   requestCount: integer("request_count").notNull().default(0),
@@ -338,7 +338,7 @@ export const messages = pgTable("messages", {
     tokensUsed?: number;
     model?: string;
     costUsd?: number;
-    provider?: string; // 'openai' | 'anthropic' | 'groq' | 'gemini' | 'huggingface' | 'multi-agent'
+    provider?: string; // 'openai' | 'anthropic' | 'groq' | 'gemini' | 'openrouter' | 'multi-agent'
     source?: string; // 'openai' | 'free-api' | 'multi-agent' | 'web-fallback' | 'openai-fallback'
     totalCost?: number;
   }>(),
@@ -803,7 +803,7 @@ export const tokenUsage = pgTable("token_usage", {
   id: serial("id").primaryKey(),
   
   // API Provider
-  provider: text("provider").notNull(), // "groq" | "gemini" | "huggingface" | "openrouter" | "openai" | "kb" | "web"
+  provider: text("provider").notNull(), // "groq" | "gemini" | "openrouter" | "openai" | "kb" | "web"
   model: text("model").notNull(),
   
   // Usage metrics
@@ -856,7 +856,7 @@ export const tokenLimits = pgTable("token_limits", {
   id: serial("id").primaryKey(),
   
   // Provider
-  provider: text("provider").notNull(), // "groq" | "gemini" | "huggingface" | "openrouter" | "openai" | "all"
+  provider: text("provider").notNull(), // "groq" | "gemini" | "openrouter" | "openai" | "all"
   
   // Limits
   dailyTokenLimit: integer("daily_token_limit"), // null = unlimited
@@ -1097,13 +1097,13 @@ export type CircuitBreakerState = typeof circuitBreakerState.$inferSelect;
 
 // ============================================================================
 // LLM CIRCUIT BREAKER STATE - Production-grade LLM provider failure protection
-// Persists circuit breaker state for LLM providers (groq, gemini, hf, openrouter)
+// Persists circuit breaker state for LLM providers (groq, gemini, openrouter)
 // Separate from GPU circuit breakers for clean separation and different configs
 // ============================================================================
 export const llmCircuitBreakerState = pgTable("llm_circuit_breaker_state", {
   id: serial("id").primaryKey(),
   
-  // Provider reference (string ID: "groq", "gemini", "hf", "openrouter")
+  // Provider reference (string ID: "groq", "gemini", "openrouter")
   providerId: varchar("provider_id", { length: 50 }).notNull().unique(),
   
   // Circuit state
@@ -1220,8 +1220,7 @@ export type GpuSession = typeof gpuSessions.$inferSelect;
 export const visionProviderEnum = pgEnum("vision_provider_enum", [
   "gemini",
   "gpt4v-openrouter",
-  "claude3-openrouter",
-  "huggingface"
+  "claude3-openrouter"
 ]);
 
 export const visionQuotaState = pgTable("vision_quota_state", {

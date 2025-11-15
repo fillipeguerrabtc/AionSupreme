@@ -25,7 +25,6 @@ interface TokenHistoryRecord {
 const providerColors: Record<string, string> = {
   groq: "bg-orange-500/10 text-orange-500 border-orange-500/20",
   gemini: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  huggingface: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
   openrouter: "bg-purple-500/10 text-purple-500 border-purple-500/20",
   openai: "bg-green-500/10 text-green-500 border-green-500/20",
   kb: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20",

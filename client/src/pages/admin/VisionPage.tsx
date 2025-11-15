@@ -163,7 +163,6 @@ export default function VisionPage() {
       gemini: QuotaStatus;
       gpt4vOpenRouter: QuotaStatus;
       claude3OpenRouter: QuotaStatus;
-      huggingface: QuotaStatus;
     };
     timestamp: string;
   }>({
@@ -323,29 +322,6 @@ export default function VisionPage() {
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   {quotaStatus?.data.claude3OpenRouter.percentage.toFixed(1)}% {t.admin.vision.used}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* HuggingFace */}
-            <Card data-testid="card-quota-huggingface">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center justify-between">
-                  HuggingFace
-                  <Badge variant="outline" className="ml-2">FREE</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold" data-testid="quota-hf-used">
-                  {quotaStatus?.data.huggingface.used || 0} / {quotaStatus?.data.huggingface.limit || 0}
-                </div>
-                <Progress
-                  value={quotaStatus?.data.huggingface.percentage || 0}
-                  className="mt-2"
-                  data-testid="progress-hf"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {quotaStatus?.data.huggingface.percentage.toFixed(1)}% {t.admin.vision.used}
                 </p>
               </CardContent>
             </Card>

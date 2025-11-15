@@ -182,13 +182,11 @@ const GEMINI_PRICING = {
   // Flash-Lite - Ultra low cost
   'gemini-2.5-flash-lite': { prompt: 0.00002, completion: 0.00008 }, // $0.02 / $0.08 por 1M tokens
   
-  // Flash - Fast, everyday workflows
+  // Flash - Fast, everyday workflows (STABLE - June 2025)
+  'gemini-2.5-flash': { prompt: 0.0001, completion: 0.0004 }, // $0.10 / $0.40 por 1M tokens - CURRENT
   'gemini-2.0-flash': { prompt: 0.0001, completion: 0.0004 }, // $0.10 / $0.40 por 1M tokens
-  'gemini-2.0-flash-exp': { prompt: 0.0001, completion: 0.0004 }, // Same as 2.0 Flash
-  'gemini-1.5-flash': { prompt: 0.0001, completion: 0.0004 }, // ✅ P2.2: Added for FREE_APIS coverage
-  
-  // Flash (with multimodal - text only for now)
-  'gemini-2.5-flash': { prompt: 0.00035, completion: 0.00105 }, // $0.35 / $1.05 por 1M tokens (text)
+  'gemini-2.0-flash-exp': { prompt: 0.0001, completion: 0.0004 }, // Deprecated experimental
+  'gemini-1.5-flash': { prompt: 0.0001, completion: 0.0004 }, // Legacy
   
   // Pro - Advanced reasoning
   'gemini-1.5-pro': { prompt: 0.00125, completion: 0.005 }, // $1.25 / $5.00 por 1M tokens
@@ -204,8 +202,9 @@ const GEMINI_PRICING = {
  * These are APPROXIMATE - actual costs tracked via Activity API
  */
 const OPENROUTER_PRICING = {
-  // Free models
-  'meta-llama/llama-3.1-8b-instruct:free': { prompt: 0, completion: 0 },
+  // Free models (2025)
+  'meta-llama/llama-3.3-8b-instruct:free': { prompt: 0, completion: 0 }, // CURRENT
+  'meta-llama/llama-3.1-8b-instruct:free': { prompt: 0, completion: 0 }, // Legacy
   'mistralai/mistral-7b-instruct:free': { prompt: 0, completion: 0 },
   
   // Paid models (examples - OpenRouter has 400+ models with different pricing)
@@ -232,7 +231,7 @@ function calculateCost(provider: string, model: string, promptTokens: number, co
   } else if (provider === 'openrouter') {
     pricing = OPENROUTER_PRICING[model as keyof typeof OPENROUTER_PRICING];
   } else {
-    // Free tier providers (groq, huggingface, kb, web)
+    // Free tier providers (groq, kb, web)
     return 0;
   }
 
