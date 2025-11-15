@@ -1,7 +1,6 @@
 /**
  * AION Supreme - Free LLM APIs Rotation System
- * Total Capacity: 27,170 requests/day GRATIS
- * Priority: Groq → Gemini → HuggingFace → OpenRouter → OpenAI (last resort)
+ * Priority: Groq → Gemini → OpenRouter → OpenAI (last resort)
  */
 
 import OpenAI from 'openai';
@@ -167,9 +166,60 @@ async function callGroq(req: LLMRequest, orchestrationRemainingMs?: number): Pro
 
       if (!response.ok) {
         const errorData = await response.json();
-        const error = new Error(errorData.error?.message || `Groq API error: ${response.status}`);
+        const errorMessage = errorData.error?.message || `Groq API error: ${response.status}`;
+        const error = new Error(errorMessage);
         (error as any).status = response.status;
         (error as any).headers = headers; // ✅ P0.8: Attach headers para retry coordinator
+        
+        // ✅ FIX CRITICAL BUG #1: Parse TPD (tokens-per-day) from error message
+        // Groq does NOT send TPD in headers, only in error body!
+        // Example formats:
+        // - "Rate limit reached for model `llama-3.3-70b-versatile` on tokens per day (TPD): Limit 100000, Used 95032"
+        // - "tokens per day: Limit 100,000, Used 95,032, Remaining 5000"
+        // - Multi-line: "tokens per day\nLimit=100,000\nUsed=95,032"
+        if (response.status === 429 && errorMessage) {
+          // ✅ FIX ARCHITECT BUG: Support newlines, colon/equals, commas
+          // Use [\s\S] to match across newlines
+          const limitMatch = errorMessage.match(/tokens\s+per\s+day[\s\S]*?limit\s*[:=]\s*([\d,]+)/i);
+          const usedMatch = errorMessage.match(/tokens\s+per\s+day[\s\S]*?used\s*[:=]\s*([\d,]+)/i);
+          
+          if (limitMatch && usedMatch) {
+            const tpdLimit = parseInt(limitMatch[1].replace(/,/g, ''));
+            const tpdUsed = parseInt(usedMatch[1].replace(/,/g, ''));
+            
+            if (!isNaN(tpdLimit) && !isNaN(tpdUsed)) {
+              (error as any).tpdLimit = tpdLimit;
+              (error as any).tpdUsed = tpdUsed;
+              (error as any).tpdExceeded = true;
+              
+              log.warn({
+                component: 'groq',
+                tpdLimit,
+                tpdUsed,
+                tpdRemaining: Math.max(0, tpdLimit - tpdUsed), // ✅ Clamp to 0 (avoid negative)
+                errorMessage
+              }, 'TPD limit detected in Groq 429 error message');
+            } else {
+              log.error({
+                component: 'groq',
+                limitMatch: limitMatch[0],
+                usedMatch: usedMatch[0],
+                errorMessage
+              }, 'Failed to parse TPD values (NaN detected)');
+            }
+          } else {
+            // ✅ Log when parsing fails so circuit breaker can still fall back safely
+            if (errorMessage.toLowerCase().includes('tokens per day')) {
+              log.warn({
+                component: 'groq',
+                errorMessage,
+                limitMatched: !!limitMatch,
+                usedMatched: !!usedMatch
+              }, 'TPD mentioned in error but regex failed to parse - may need pattern update');
+            }
+          }
+        }
+        
         throw error;
       }
 
@@ -195,12 +245,13 @@ async function callGroq(req: LLMRequest, orchestrationRemainingMs?: number): Pro
         }, 'Used tiktoken for Groq token counting (API returned 0)');
       }
       
-      // ✅ CRITICAL: Update REAL quota from Groq headers (existing service)
+      // ✅ FIX BUG #3: Register token usage + update quotas from headers
+      // This decrements TPD remaining and updates RPM/RPD/TPM
       try {
         const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
-        await providerLimitsTracker.updateGroqLimits(headers);
+        await providerLimitsTracker.registerGroqUsage(totalTokens, headers);
       } catch (trackerError: any) {
-        log.warn({ component: 'groq', error: trackerError.message }, 'Failed to update real quota (non-critical)');
+        log.warn({ component: 'groq', error: trackerError.message }, 'Failed to register Groq usage (non-critical)');
       }
       
       // ✅ PRODUCTION: Track quota in PostgreSQL
@@ -613,165 +664,6 @@ async function callGemini(req: LLMRequest, orchestrationRemainingMs?: number): P
   }
   
   throw lastError || new Error('Gemini API request failed after retries');
-}
-
-// ============================================================================
-// HUGGINGFACE CLIENT
-// ============================================================================
-/**
- * ✅ P2.4: HuggingFace Inference API (2025)
- * - Free Tier: Monthly credits (few hundred requests/hour)
- * - Model Size Limit: 10GB max for free tier
- * - Returns 429 when exceeding rate limits
- * - Billing: Pay-as-you-go based on compute time (after credits exhausted)
- * - Retry logic: 1s/2s/4s exponential backoff for 429/503/504
- */
-
-async function callHuggingFace(req: LLMRequest, orchestrationRemainingMs?: number): Promise<LLMResponse> {
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
-  if (!apiKey) throw new Error('HUGGINGFACE_API_KEY not set');
-
-  // ✅ 2025: Use official Inference API endpoint
-  const model = 'mistralai/Mistral-7B-Instruct-v0.2';
-  
-  // Format prompt for Mistral
-  const prompt = req.messages
-    .map(m => {
-      if (m.role === 'system') return `<s>[INST] ${m.content} [/INST]`;
-      if (m.role === 'user') return `[INST] ${m.content} [/INST]`;
-      return m.content;
-    })
-    .join('\n');
-
-  // ✅ P2.4: Retry logic for rate limits (429) and transient errors (503/504)
-  const maxRetries = 3;
-  const retryDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
-  
-  let lastError: Error | null = null;
-  
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      // 🔥 P0.1 FIX: Cap timeout to orchestration remaining time
-      const effectiveTimeout = orchestrationRemainingMs 
-        ? Math.max(0, Math.min(orchestrationRemainingMs, 15000))
-        : 15000;
-      
-      if (effectiveTimeout <= 0) {
-        throw new TimeoutError(
-          'No time remaining for HuggingFace request (orchestration deadline exceeded)',
-          orchestrationRemainingMs || 0,
-          'huggingface-llm'
-        );
-      }
-      
-      const controller = new AbortController();
-      
-      // 🚨 2025 MIGRATION: HuggingFace moved to router.huggingface.co (api-inference deprecated)
-      // https://router.huggingface.co/hf-inference is the new official endpoint
-      const response = await withTimeout(
-        fetch(
-          `https://router.huggingface.co/hf-inference/models/${model}`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              inputs: prompt,
-              parameters: {
-                max_new_tokens: req.maxTokens || 1024,
-                temperature: req.temperature ?? 0.7,
-                top_p: req.topP ?? 0.9,
-                return_full_text: false
-              }
-            }),
-            signal: controller.signal
-          }
-        ),
-        {
-          timeoutMs: effectiveTimeout,
-          operation: `huggingface-llm-attempt-${attempt + 1}`,
-          abortController: controller,
-          debug: true
-        }
-      );
-
-      // ✅ P2.4: Enhanced error handling with detailed error messages
-      if (!response.ok) {
-        const errorText = await response.text();
-        const error: any = new Error(`HuggingFace API error (${response.status}): ${errorText}`);
-        error.status = response.status;
-        throw error;
-      }
-
-      const data = await response.json();
-
-      // ✅ ENTERPRISE FIX: Accurate token counting with tiktoken (±1% accuracy)
-      const responseText = data[0]?.generated_text || '';
-      const tokenCounts = countChatTokens(req.messages, responseText, 'mistralai/Mistral-7B-Instruct-v0.2');
-      const promptTokens = tokenCounts.promptTokens;
-      const completionTokens = tokenCounts.completionTokens;
-      const totalTokens = tokenCounts.totalTokens;
-      
-      log.info({ 
-        component: 'huggingface', 
-        tokens: totalTokens 
-      }, 'Used tiktoken for HuggingFace token counting (API does not provide usage)');
-      
-      // ✅ CRITICAL: Update HuggingFace limits (estimate + DB tracking)
-      try {
-        const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
-        await providerLimitsTracker.updateHuggingFaceLimits();
-      } catch (trackerError: any) {
-        log.warn({ component: 'huggingface', error: trackerError.message }, 'Failed to update HF limits (non-critical)');
-      }
-      
-      // ✅ PRODUCTION: Track quota in PostgreSQL
-      await apiQuotaRepository.incrementUsage('hf', 1, totalTokens);
-      
-      await trackTokenUsage({
-        provider: 'huggingface',
-        model: 'mistralai/Mistral-7B-Instruct-v0.2',
-        promptTokens,
-        completionTokens,
-        totalTokens,
-        // cost: not provided → huggingface is free tier (monthly credits), returns $0.00
-        requestType: 'chat',
-        success: true
-      });
-
-      return {
-        text: responseText,
-        provider: 'huggingface',
-        model,
-        tokensUsed: totalTokens
-      };
-    } catch (error: any) {
-      lastError = error;
-      
-      // 🔥 P0.1 FIX: Treat TimeoutError as retryable (same as 429/503/504)
-      const isTimeout = error instanceof TimeoutError;
-      const isRetryable = isTimeout || error.status === 429 || error.status === 503 || error.status === 504;
-      
-      if (!isRetryable || attempt === maxRetries) {
-        // Log timeout specifically for observability
-        if (isTimeout) {
-          log.error({ component: 'huggingface', attempt: attempt + 1, timeoutMs: error.timeoutMs }, 'HuggingFace request timed out');
-        }
-        throw error;
-      }
-      
-      // Wait before retry
-      const delay = retryDelays[attempt];
-      const reason = isTimeout ? 'timeout' : `rate limit (${error.status})`;
-      log.warn({ component: 'huggingface', status: error.status, attempt: attempt + 1, maxRetries, delay, reason }, 'HuggingFace call failed, retrying');
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  
-  // This should never be reached, but TypeScript needs it
-  throw lastError || new Error('HuggingFace API request failed after retries');
 }
 
 // ============================================================================

@@ -19,7 +19,6 @@ import { apiQuotaRepository } from "../repositories/api-quota-repository";
 const DEFAULT_PROVIDER_QUOTAS = {
   groq: { dailyLimit: 0, used: 0 },
   gemini: { dailyLimit: 0, used: 0 },
-  hf: { dailyLimit: 0, used: 0 },
   openrouter: { dailyLimit: 0, used: 0 },
 };
 
@@ -32,7 +31,6 @@ export interface ProviderQuotaStatus {
 export interface ProviderStatus {
   groq: ProviderQuotaStatus;
   gemini: ProviderQuotaStatus;
-  hf: ProviderQuotaStatus;
   openrouter: ProviderQuotaStatus;
 }
 
@@ -43,7 +41,6 @@ export interface ProviderHealthStatus {
 export interface ProviderHealth {
   groq: ProviderHealthStatus;
   gemini: ProviderHealthStatus;
-  hf: ProviderHealthStatus;
   openrouter: ProviderHealthStatus;
 }
 
@@ -68,11 +65,6 @@ export async function getProviderStatus(): Promise<ProviderStatus> {
       remaining: (dbStatus.gemini?.dailyLimit ?? 0) - (dbStatus.gemini?.used ?? 0),
       limit: dbStatus.gemini?.dailyLimit ?? 0,
       used: dbStatus.gemini?.used ?? 0,
-    },
-    hf: {
-      remaining: (dbStatus.hf?.dailyLimit ?? 0) - (dbStatus.hf?.used ?? 0),
-      limit: dbStatus.hf?.dailyLimit ?? 0,
-      used: dbStatus.hf?.used ?? 0,
     },
     openrouter: {
       remaining: (dbStatus.openrouter?.dailyLimit ?? 0) - (dbStatus.openrouter?.used ?? 0),
@@ -99,9 +91,6 @@ export async function getProviderHealth(): Promise<ProviderHealth> {
     },
     gemini: {
       status: (dbStatus.gemini?.used ?? Infinity) < (dbStatus.gemini?.dailyLimit ?? 0) ? "healthy" : "exhausted",
-    },
-    hf: {
-      status: (dbStatus.hf?.used ?? Infinity) < (dbStatus.hf?.dailyLimit ?? 0) ? "healthy" : "exhausted",
     },
     openrouter: {
       status: (dbStatus.openrouter?.used ?? Infinity) < (dbStatus.openrouter?.dailyLimit ?? 0) ? "healthy" : "exhausted",

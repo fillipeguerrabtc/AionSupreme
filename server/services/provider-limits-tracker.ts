@@ -31,6 +31,7 @@
 import { db } from "../db";
 import { providerLimits, llmProviderQuotas } from "@shared/schema";
 import { sql, eq } from "drizzle-orm";
+import { log } from "../utils/logger";
 
 // ============================================================================
 // SERVICE CLASS
@@ -105,6 +106,134 @@ class ProviderLimitsTracker {
     });
     
     console.log(`[ProviderLimits] ✅ Groq updated from REAL headers: ${rpdRemaining}/${rpd} requests, ${tpmRemaining}/${tpm} tokens`);
+  }
+  
+  /**
+   * ✅ FIX BUG #3: Register Groq token usage on EVERY successful call
+   * 
+   * This method:
+   * 1. Updates RPM/RPD/TPM from headers (via updateGroqLimits)
+   * 2. Decrements tpdRemaining by tokensUsed
+   * 3. Persists to provider_limits table
+   * 
+   * Called AFTER every successful Groq request to prevent quota exhaustion
+   */
+  async registerGroqUsage(tokensUsed: number, headers: Record<string, string>): Promise<void> {
+    // Step 1: Update RPM/RPD/TPM from headers (if available)
+    if (Object.keys(headers).length > 0) {
+      await this.updateGroqLimits(headers);
+    }
+    
+    // Step 2: Decrement TPD (if we have a limit set)
+    // ✅ FIX RACE CONDITION: Use ATOMIC SQL update to prevent concurrent overwrites
+    try {
+      const existing = await db.select()
+        .from(providerLimits)
+        .where(eq(providerLimits.provider, 'groq'))
+        .limit(1);
+      
+      if (existing.length > 0 && existing[0].tpd !== null && existing[0].tpdRemaining !== null) {
+        // ✅ ATOMIC UPDATE: SQL expressions prevent race conditions
+        // Multiple concurrent requests will correctly decrement without overwriting each other
+        await db.update(providerLimits)
+          .set({
+            tpdUsed: sql`COALESCE(tpd_used, 0) + ${tokensUsed}`,
+            tpdRemaining: sql`GREATEST(0, COALESCE(tpd_remaining, 0) - ${tokensUsed})`,
+            lastUpdated: sql`CURRENT_TIMESTAMP`
+          })
+          .where(eq(providerLimits.provider, 'groq'));
+        
+        // ✅ Read AFTER atomic update to get correct values for logging
+        const updated = await db.select()
+          .from(providerLimits)
+          .where(eq(providerLimits.provider, 'groq'))
+          .limit(1);
+        
+        if (updated.length > 0) {
+          log.info({
+            component: 'provider-limits',
+            provider: 'groq',
+            tokensUsed,
+            tpdUsed: updated[0].tpdUsed,
+            tpdRemaining: updated[0].tpdRemaining,
+            tpdLimit: updated[0].tpd
+          }, 'Groq TPD usage registered (atomic update)');
+        }
+        
+        // ✅ FIX BUG #3: Notify circuit breaker of updated TPD remaining
+        // This ensures canExecute() sees the latest value
+        const { llmCircuitBreakerManager } = await import('../llm/llm-circuit-breaker-manager');
+        const breaker = await llmCircuitBreakerManager.getBreaker('groq');
+        // Circuit breaker will re-check provider_limits on next canExecute()
+      } else {
+        log.debug({
+          component: 'provider-limits',
+          provider: 'groq',
+          tokensUsed
+        }, 'No TPD limit set yet - will be initialized on first 429 error');
+      }
+    } catch (err) {
+      log.error({
+        component: 'provider-limits',
+        provider: 'groq',
+        error: err instanceof Error ? err.message : String(err)
+      }, 'Failed to register Groq TPD usage (non-critical)');
+    }
+  }
+
+  /**
+   * ✅ FIX CRITICAL BUG #1: Update Groq TPD from 429 error message
+   * Groq does NOT send TPD in headers - only in error body!
+   * 
+   * ⚠️ IMPORTANT: Only updates TPD fields - preserves RPM/RPD/TPM from updateGroqLimits
+   */
+  async updateGroqTPD(tpdLimit: number, tpdUsed: number): Promise<void> {
+    // ✅ Clamp to 0 (avoid negative if Groq reports overage)
+    const tpdRemaining = Math.max(0, tpdLimit - tpdUsed);
+    
+    // ✅ FIX: Use UPDATE only (not INSERT) to preserve existing RPM/RPD/TPM data
+    // Check if row exists first
+    const existing = await db.select().from(providerLimits).where(eq(providerLimits.provider, 'groq')).limit(1);
+    
+    if (existing.length > 0) {
+      // Row exists - UPDATE only TPD fields
+      await db.update(providerLimits)
+        .set({
+          tpd: tpdLimit,
+          tpdUsed,
+          tpdRemaining,
+          tpdResetAt: null, // TPD resets daily (no specific reset time provided)
+          rawResponse: { tpdLimit, tpdUsed, source: '429_error_body' },
+          lastUpdated: sql`CURRENT_TIMESTAMP`
+        })
+        .where(eq(providerLimits.provider, 'groq'));
+    } else {
+      // Row doesn't exist - INSERT with TPD only (other fields null)
+      await db.insert(providerLimits).values({
+        provider: 'groq',
+        rpm: null,
+        rpd: null,
+        tpm: null,
+        tpd: tpdLimit,
+        rpmUsed: null,
+        rpdUsed: null,
+        tpmUsed: null,
+        tpdUsed,
+        rpmRemaining: null,
+        rpdRemaining: null,
+        tpmRemaining: null,
+        tpdRemaining,
+        rpmResetAt: null,
+        rpdResetAt: null,
+        tpmResetAt: null,
+        tpdResetAt: null,
+        rawHeaders: null,
+        rawResponse: { tpdLimit, tpdUsed, source: '429_error_body' },
+        source: 'groq_429_error'
+      });
+    }
+    
+    console.log(`[ProviderLimits] ✅ Groq TPD updated from 429 error: ${tpdUsed}/${tpdLimit} tokens (${tpdRemaining} remaining)`);
   }
   
   /**

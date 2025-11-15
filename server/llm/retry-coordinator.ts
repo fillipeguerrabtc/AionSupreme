@@ -92,6 +92,33 @@ export async function analyze429Error(
   headers: Record<string, string>,
   budget: OrchestrationBudget
 ): Promise<ThrottleAnalysis> {
+  // ✅ FIX CRITICAL BUG #1: Check TPD (tokens-per-day) FIRST
+  // Groq sends TPD exceeded in error message body, NOT headers!
+  if (provider === 'groq' && error.tpdExceeded) {
+    log.warn({
+      provider,
+      tpdLimit: error.tpdLimit,
+      tpdUsed: error.tpdUsed,
+      component: 'RetryCoordinator'
+    }, 'TPD (tokens-per-day) quota exhausted - treating as HARD failure');
+    
+    // ✅ Persist TPD to provider_limits for dashboard visibility
+    try {
+      const { providerLimitsTracker } = await import('../services/provider-limits-tracker');
+      await providerLimitsTracker.updateGroqTPD(error.tpdLimit, error.tpdUsed);
+    } catch (trackerError: any) {
+      log.warn({ error: trackerError.message }, 'Failed to persist TPD (non-critical)');
+    }
+    
+    return {
+      type: FailureType.QUOTA_EXHAUSTED,
+      waitMs: null,
+      reason: `TPD (tokens-per-day) exhausted: ${error.tpdUsed}/${error.tpdLimit}`,
+      quotaUsed: error.tpdUsed,
+      quotaLimit: error.tpdLimit,
+    };
+  }
+  
   // 1. Verificar quota no PostgreSQL ANTES de tudo
   const quota = await apiQuotaRepository.getQuota(provider);
   

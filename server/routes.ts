@@ -1846,15 +1846,15 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // GET /api/llm/status - Status das APIs gratuitas (Groq, Gemini, HF)
+  // GET /api/llm/status - Status das APIs gratuitas (Groq, Gemini, OpenRouter)
   app.get("/api/llm/status", async (req, res) => {
     try {
       const status = await getProviderStatus();
       
       // Calcular total disponível
-      const totalRemaining = status.groq.remaining + status.gemini.remaining + status.hf.remaining;
-      const totalLimit = status.groq.limit + status.gemini.limit + status.hf.limit;
-      const totalUsed = status.groq.used + status.gemini.used + status.hf.used;
+      const totalRemaining = status.groq.remaining + status.gemini.remaining + status.openrouter.remaining;
+      const totalLimit = status.groq.limit + status.gemini.limit + status.openrouter.limit;
+      const totalUsed = status.groq.used + status.gemini.used + status.openrouter.used;
       
       res.json({
         providers: status,
@@ -5788,7 +5788,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/tokens/free-apis-history - Get Free APIs usage history
   app.get("/api/tokens/free-apis-history", async (req, res) => {
     try {
-      const provider = req.query.provider as 'groq' | 'gemini' | 'huggingface' | 'openrouter' | undefined;
+      const provider = req.query.provider as 'groq' | 'gemini' | 'openrouter' | undefined;
       const limit = parseInt(req.query.limit as string) || 100;
       
       const history = await tokenTracker.getFreeAPIsHistory(provider, limit);
@@ -5838,18 +5838,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // ✅ POST /api/provider-limits/sync-huggingface - Manually sync HuggingFace usage
-  app.post("/api/provider-limits/sync-huggingface", async (req, res) => {
-    try {
-      const { providerLimitsTracker } = await import("./services/provider-limits-tracker");
-      await providerLimitsTracker.updateHuggingFaceLimits();
-      
-      res.json({ success: true, message: "HuggingFace usage synced" });
-    } catch (error: unknown) {
-      res.status(500).json({ error: getErrorMessage(error) });
-    }
-  });
-
   // ✅ POST /api/provider-limits/sync-all - Sync ALL providers
   app.post("/api/provider-limits/sync-all", async (req, res) => {
     try {
@@ -5857,8 +5845,7 @@ export function registerRoutes(app: Express): Server {
       
       await Promise.allSettled([
         providerLimitsTracker.updateOpenRouterLimits(),
-        providerLimitsTracker.updateGeminiLimits(),
-        providerLimitsTracker.updateHuggingFaceLimits()
+        providerLimitsTracker.updateGeminiLimits()
       ]);
       
       res.json({ success: true, message: "All provider limits synced" });

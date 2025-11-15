@@ -23,7 +23,7 @@
  */
 
 import { db } from "../db";
-import { llmCircuitBreakerState } from "@shared/schema";
+import { llmCircuitBreakerState, providerLimits } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { log } from "../utils/logger";
 
@@ -195,11 +195,49 @@ export class LLMCircuitBreaker {
   }
 
   /**
-   * Verifica se pode executar requisição
+   * ✅ FIX BUG #3: Verifica se pode executar requisição
+   * 
+   * PRE-DISPATCH GUARD for Groq TPD exhaustion
+   * Returns false if:
+   * - Circuit is OPEN and recovery timeout not yet expired
+   * - Groq TPD quota is exhausted (tpdRemaining <= 0)
+   * 
    * 🔥 P0.2 FIX: Async to await state transition persistence
    */
   async canExecute(): Promise<boolean> {
     const now = Date.now();
+
+    // ✅ FIX BUG #3: PRE-DISPATCH TPD GUARD for Groq
+    // Check provider_limits BEFORE allowing request (prevents exceeding TPD cap)
+    if (this.providerId === 'groq') {
+      try {
+        const limits = await db.select()
+          .from(providerLimits)
+          .where(eq(providerLimits.provider, 'groq'))
+          .limit(1);
+        
+        if (limits.length > 0 && limits[0].tpdRemaining !== null && limits[0].tpdRemaining <= 0) {
+          log.warn({
+            providerId: this.providerId,
+            providerName: this.providerName,
+            tpdUsed: limits[0].tpdUsed,
+            tpdLimit: limits[0].tpd,
+            tpdRemaining: limits[0].tpdRemaining,
+            component: "LLMCircuitBreaker"
+          }, "Groq TPD quota exhausted - rejecting request (pre-dispatch guard)");
+          
+          return false;
+        }
+      } catch (err) {
+        log.error({
+          providerId: this.providerId,
+          providerName: this.providerName,
+          error: err instanceof Error ? err.message : String(err),
+          component: "LLMCircuitBreaker"
+        }, "Failed to check Groq TPD quota - allowing request (fail-open)");
+        // Fail-open: if DB check fails, allow request (circuit breaker still functions)
+      }
+    }
 
     switch (this.state) {
       case CircuitState.CLOSED:

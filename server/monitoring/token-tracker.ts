@@ -99,7 +99,7 @@ export interface KBMetadata {
 }
 
 export interface TokenTrackingData {
-  provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter' | 'openai' | 'kb' | 'web';
+  provider: 'groq' | 'gemini' | 'openrouter' | 'openai' | 'kb' | 'web';
   model: string;
   promptTokens: number;
   completionTokens: number;
@@ -215,7 +215,7 @@ const OPENROUTER_PRICING = {
 /**
  * ✅ P2.2: Calculate cost in USD for OpenAI, Gemini, and OpenRouter
  * 
- * **IMPORTANT**: Free tier providers (Groq, HuggingFace) return $0.00
+ * **IMPORTANT**: Free tier providers (Groq, OpenRouter free) return $0.00
  * For providers exceeding free tier, this calculates actual costs.
  * 
  * Returns cost in dollars (e.g., 0.01 = $0.01 = one cent)
@@ -276,7 +276,7 @@ export async function trackTokenUsage(data: TokenTrackingData): Promise<void> {
 // ============================================================================
 
 export async function getUsageSummary(): Promise<UsageSummary[]> {
-  const providers = ['groq', 'gemini', 'huggingface', 'openrouter', 'openai', 'kb', 'web'];
+  const providers = ['groq', 'gemini', 'openrouter', 'openai', 'kb', 'web'];
   
   // 🔥 FIX CRÍTICO v2: Calcular timezone no PostgreSQL CORRETAMENTE
   // PROBLEMA: date_trunc('day', timezone(...)) retorna timestamp WITHOUT time zone
@@ -398,13 +398,11 @@ export async function getProviderQuotas(): Promise<ProviderQuota[]> {
   // ✅ Fetch from llm_provider_quotas table (REAL tracking with incrementUsage())
   const limits = await db.select().from(llmProviderQuotas);
   
-  // ✅ Normalize slugs: 'hf' → 'huggingface' (frontend compatibility)
+  // ✅ Normalize slugs for frontend compatibility
   const slugMap: Record<string, string> = {
-    'hf': 'huggingface',
     'gemini': 'gemini',
     'groq': 'groq',
-    'openrouter': 'openrouter',
-    'huggingface': 'huggingface'
+    'openrouter': 'openrouter'
   };
   
   for (const limit of limits) {
@@ -671,7 +669,6 @@ export interface TokenTrendByProvider {
   totalTokens: number;
   groq?: number;
   gemini?: number;
-  huggingface?: number;
   openrouter?: number;
   openai?: number;
   kb?: number;
@@ -716,7 +713,6 @@ export async function getTokenTrendsWithProviders(
         totalTokens: 0,
         groq: 0,
         gemini: 0,
-        huggingface: 0,
         openrouter: 0,
         openai: 0,
         kb: 0,
@@ -744,7 +740,6 @@ export async function getTokenTrendsWithProviders(
       totalTokens: 0,
       groq: 0,
       gemini: 0,
-      huggingface: 0,
       openrouter: 0,
       openai: 0,
       kb: 0,
@@ -927,7 +922,7 @@ export async function getKBSearchHistory(
 
 export interface FreeAPIHistoryEntry {
   id: number;
-  provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter';
+  provider: 'groq' | 'gemini' | 'openrouter';
   model: string;
   promptTokens: number;
   completionTokens: number;
@@ -937,7 +932,7 @@ export interface FreeAPIHistoryEntry {
 }
 
 export async function getFreeAPIsHistory(
-  provider?: 'groq' | 'gemini' | 'huggingface' | 'openrouter',
+  provider?: 'groq' | 'gemini' | 'openrouter',
   limit: number = 100
 ): Promise<FreeAPIHistoryEntry[]> {
   const query = provider
@@ -957,7 +952,7 @@ export async function getFreeAPIsHistory(
         .from(tokenUsage)
         .where(
           and(
-            sql`${tokenUsage.provider} IN ('groq', 'gemini', 'huggingface', 'openrouter')`,
+            sql`${tokenUsage.provider} IN ('groq', 'gemini', 'openrouter')`,
             eq(tokenUsage.requestType, 'chat')
           )
         )
@@ -968,7 +963,7 @@ export async function getFreeAPIsHistory(
   
   return results.map(r => ({
     id: r.id,
-    provider: r.provider as 'groq' | 'gemini' | 'huggingface' | 'openrouter',
+    provider: r.provider as 'groq' | 'gemini' | 'openrouter',
     model: r.model,
     promptTokens: r.promptTokens,
     completionTokens: r.completionTokens,
