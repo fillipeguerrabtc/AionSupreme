@@ -27,7 +27,7 @@
 
 ## 🎯 Visão Geral do Sistema
 
-AION é um sistema de IA autônomo **enterprise-grade** projetado para **robustez**, **flexibilidade** e **auto-operação**, estendendo-se além das limitações atuais dos LLMs. O sistema opera em **modo single-tenant** otimizado para custo e performance.
+AION é um sistema de IA autônomo **enterprise-grade** projetado para **robustez**, **flexibilidade** e **auto-operação**, estendendo-se além das limitações atuais dos LLMs. O sistema é otimizado para custo e performance.
 
 ### Características Principais
 
@@ -962,7 +962,6 @@ export const users = pgTable("users", {
 ```typescript
 export const namespaces = pgTable("namespaces", {
   id: varchar("id").primaryKey(), // UUID
-  tenantId: integer("tenant_id").notNull().default(1),
   name: varchar("name", { length: 255 }).notNull().unique(),
   slug: varchar("slug", { length: 255 }).notNull().unique(), // auto-gerado
   description: text("description").notNull(),
@@ -981,7 +980,6 @@ export const namespaces = pgTable("namespaces", {
 ```typescript
 export const agents = pgTable("agents", {
   id: varchar("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().default(1),
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 255 }).notNull().unique(),
   description: text("description").notNull(),
@@ -999,7 +997,6 @@ export const agents = pgTable("agents", {
 ```typescript
 export const kbDocuments = pgTable("kb_documents", {
   id: varchar("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().default(1),
   namespaceId: varchar("namespace_id").references(() => namespaces.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 500 }).notNull(),
   content: text("content").notNull(),
@@ -1025,7 +1022,6 @@ export const kbEmbeddings = pgTable("kb_embeddings", {
 ```typescript
 export const curationQueue = pgTable("curation_queue", {
   id: varchar("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().default(1),
   content: text("content").notNull(),
   contentHash: varchar("content_hash", { length: 64 }).notNull(),
   source: varchar("source", { length: 255 }),
@@ -1072,7 +1068,6 @@ export const trainingJobs = pgTable("training_jobs", {
 ```typescript
 export const lifecyclePolicies = pgTable("lifecycle_policies", {
   id: varchar("id").primaryKey(),
-  tenantId: integer("tenant_id").notNull().default(1),
   namespaceId: varchar("namespace_id").references(() => namespaces.id, { onDelete: "cascade" }),
   retentionDays: integer("retention_days"), // Delete docs older than X days
   maxDocuments: integer("max_documents"), // Keep only last N docs
@@ -1132,7 +1127,7 @@ npm run db:studio
 - ✅ Mais rápido para desenvolvimento
 - ✅ Sincroniza automaticamente TypeScript → SQL
 - ✅ Não precisa gerar/gerenciar migrations manualmente
-- ✅ Ideal para single-tenant (não precisa versionar migrations)
+- ✅ Ideal para desenvolvimento iterativo
 
 **Para produção:**
 - Usar `drizzle-kit generate` para criar migrations

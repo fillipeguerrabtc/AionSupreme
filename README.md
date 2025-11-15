@@ -9,7 +9,7 @@
 
 ## 🌟 Visão Geral
 
-**AION** é um **sistema de IA autônomo** de nível empresarial operando em **modo single-tenant** para implantação simplificada e otimização de custos. Apresenta aplicação configurável de políticas, recuperação de conhecimento baseada em RAG, capacidades de agentes autônomos e uma cadeia de prioridade de 5 níveis com balanceamento de carga multi-GPU. O sistema enfatiza **aplicação externalizada de políticas** - o modelo central de IA permanece irrestrito por padrão, com comportamento controlado através de prompts de sistema composáveis e configuração em tempo de execução.
+**AION** é um **sistema de IA autônomo** de nível empresarial para implantação simplificada e otimização de custos. Apresenta aplicação configurável de políticas, recuperação de conhecimento baseada em RAG, capacidades de agentes autônomos e uma cadeia de prioridade de 5 níveis com balanceamento de carga multi-GPU. O sistema enfatiza **aplicação externalizada de políticas** - o modelo central de IA permanece irrestrito por padrão, com comportamento controlado através de prompts de sistema composáveis e configuração em tempo de execução.
 
 ### 🎯 Recursos Principais
 
@@ -208,8 +208,7 @@ POST /api/admin/backup/restore
 
 ## 📊 Schema do Banco de Dados
 
-9 tabelas principais:
-- `tenants` - Configuração do sistema (apenas single-tenant)
+8 tabelas principais:
 - `policies` - Definições de políticas JSON/YAML
 - `conversations` - Histórico de chat
 - `messages` - Mensagens individuais

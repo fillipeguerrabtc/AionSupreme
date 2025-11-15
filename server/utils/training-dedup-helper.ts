@@ -46,7 +46,7 @@ export class TrainingDedupHelper {
    * Check if training pair is duplicate
    * Returns action recommendation based on similarity tier
    */
-  async checkDuplicate(pair: TrainingPair, tenantId: number = 1): Promise<DedupResult> {
+  async checkDuplicate(pair: TrainingPair): Promise<DedupResult> {
     try {
       // 🔥 TIER 1: Exact hash check (fastest)
       const inputHash = generateContentHash(pair.input);
@@ -57,7 +57,6 @@ export class TrainingDedupHelper {
         .from(trainingDataCollection)
         .where(
           and(
-            eq(trainingDataCollection.tenantId, tenantId),
             sql`${trainingDataCollection.metadata}->>'inputHash' = ${inputHash}`,
             sql`${trainingDataCollection.metadata}->>'outputHash' = ${outputHash}`
           )
@@ -76,7 +75,7 @@ export class TrainingDedupHelper {
       }
       
       // 🔥 TIER 2+3: Semantic similarity check
-      const semanticResult = await this.checkSemanticDuplicate(pair, tenantId);
+      const semanticResult = await this.checkSemanticDuplicate(pair);
       
       return semanticResult;
       
@@ -95,7 +94,7 @@ export class TrainingDedupHelper {
   /**
    * Semantic similarity check with 3-tier thresholds
    */
-  private async checkSemanticDuplicate(pair: TrainingPair, tenantId: number): Promise<DedupResult> {
+  private async checkSemanticDuplicate(pair: TrainingPair): Promise<DedupResult> {
     // Skip semantic check for very short content (< 5 chars)
     if (pair.input.length < 5 || pair.output.length < 5) {
       return {
@@ -122,12 +121,10 @@ export class TrainingDedupHelper {
       const recentTraining = await db
         .select({
           id: trainingDataCollection.id,
-          instruction: trainingDataCollection.instruction,
-          output: trainingDataCollection.output,
+          formattedData: trainingDataCollection.formattedData,
           metadata: trainingDataCollection.metadata
         })
         .from(trainingDataCollection)
-        .where(eq(trainingDataCollection.tenantId, tenantId))
         .orderBy(sql`${trainingDataCollection.createdAt} DESC`)
         .limit(200);
       
@@ -136,24 +133,35 @@ export class TrainingDedupHelper {
       
       // Calculate similarity against each existing training pair
       for (const existing of recentTraining) {
-        // Combine input+output embeddings for comparison
-        if (!existing.inputEmbedding || !existing.outputEmbedding) continue;
+        // Skip if no formattedData
+        if (!existing.formattedData || !Array.isArray(existing.formattedData) || existing.formattedData.length === 0) {
+          continue;
+        }
         
-        // Weighted average: 50% input + 50% output similarity
-        const inputSim = cosineSimilarity(
-          queryEmbedding.embedding,
-          existing.inputEmbedding as number[]
-        );
-        const outputSim = cosineSimilarity(
-          queryEmbedding.embedding,
-          existing.outputEmbedding as number[]
-        );
-        
-        const combinedSim = (inputSim + outputSim) / 2;
-        
-        if (combinedSim > maxSimilarity) {
-          maxSimilarity = combinedSim;
-          bestMatchId = existing.id;
+        // Check similarity against each training pair in formattedData array
+        for (const trainingItem of existing.formattedData) {
+          if (!trainingItem.instruction || !trainingItem.output) continue;
+          
+          // Generate embedding for existing item's combined text
+          const existingCombinedText = truncateForEmbedding(
+            `${trainingItem.instruction}\n\n${trainingItem.output}`,
+            { purpose: 'training deduplication' }
+          );
+          
+          const [existingEmbedding] = await embedder.generateEmbeddings([
+            { text: existingCombinedText, index: 0, tokens: Math.ceil(existingCombinedText.length / 4) }
+          ]);
+          
+          // Calculate cosine similarity
+          const similarity = cosineSimilarity(
+            queryEmbedding.embedding,
+            existingEmbedding.embedding
+          );
+          
+          if (similarity > maxSimilarity) {
+            maxSimilarity = similarity;
+            bestMatchId = existing.id;
+          }
         }
       }
       
@@ -215,7 +223,7 @@ export class TrainingDedupHelper {
    * Batch deduplication for dataset generation
    * Removes duplicates from a list of training pairs before export
    */
-  async deduplicateBatch(pairs: TrainingPair[], tenantId: number = 1): Promise<{
+  async deduplicateBatch(pairs: TrainingPair[]): Promise<{
     unique: TrainingPair[];
     duplicates: TrainingPair[];
     stats: {
@@ -237,7 +245,7 @@ export class TrainingDedupHelper {
     };
     
     for (const pair of pairs) {
-      const result = await this.checkDuplicate(pair, tenantId);
+      const result = await this.checkDuplicate(pair);
       
       if (result.action === 'reject') {
         duplicates.push(pair);

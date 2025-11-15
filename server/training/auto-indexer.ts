@@ -253,7 +253,6 @@ export class AutoIndexer {
       
       const result = await deduplicationService.checkDuplicate({
         text: content,
-        tenantId: 1, // Default tenant
         enableSemantic: true, // Full 3-tier deduplication
       });
 

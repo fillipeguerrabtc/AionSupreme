@@ -16,7 +16,6 @@ A auditoria identificou **dívida técnica significativa** e **poluição arquit
 
 | Categoria | Severidade | Ocorrências | Status |
 |-----------|-----------|-------------|--------|
-| **tenantId Schema Pollution** | 🟠 ALTO | 29 tabelas + 25 indexes | ARQUITETURA INCONSISTENTE |
 | **console.log em Produção** | 🟠 ALTO | 1,343 ocorrências | SEM TELEMETRIA |
 | **Type Safety Quebrada** | 🟠 ALTO | 429 any types | TYPESCRIPT COMPROMETIDO |
 | **I18N Hardcoded** | 🟡 MÉDIO | 167+ strings PT-BR | TRILÍNGUE QUEBRADO |
@@ -29,58 +28,7 @@ A auditoria identificou **dívida técnica significativa** e **poluição arquit
 
 ## 🟠 ACHADOS DE ALTA SEVERIDADE (PRIORIDADE P1)
 
-### 1. POLUIÇÃO ARQUITETURAL - tenantId Schema ❌
-
-**Problema**: Sistema declarado **single-tenant** mas schema mantém resíduos multi-tenant.
-
-**Evidências Quantificadas**:
-```bash
-$ grep -B3 "tenantId.*integer.*tenant_id" shared/schema.ts | grep "export const"
-```
-
-**29 tabelas afetadas**:
-- agentBudgets, agentQueryResults, agentRelationships, agents, agentTraces
-- auditLogs, conversations, curationQueue, documents, embeddings
-- generatedFiles, gpuWorkers, knowledgeSources, lifecycleAuditLogs, metrics
-- namespaceRelevanceRecords, namespaces, openai_billing_sync, policies
-- queryMetrics, rebuildJobs, tokenAlerts, tokenLimits, tokenUsage, tools
-- traces, usageRecords, videoAssets, videoJobs
-
-**Evidências de código**:
-```typescript
-// shared/schema.ts - TODAS as 29 tabelas têm:
-tenantId: integer("tenant_id").notNull().default(1), // ❌ Hardcoded para 1
-
-// Exemplos de indexes inúteis:
-tenantIdx: index("policies_tenant_idx").on(table.tenantId),
-tenantIdx: index("conversations_tenant_idx").on(table.tenantId),
-tenantIdx: index("documents_tenant_idx").on(table.tenantId),
-// ... 25 indexes no total desperdiçando espaço
-```
-
-**Impacto**:
-- Schema contradiz arquitetura declarada (single-tenant)
-- 25 indexes desperdiçando espaço em disco e memória
-- Queries retornam campo irrelevante
-- Confusão conceitual para novos desenvolvedores
-- Custo de storage desnecessário
-
-**Ação Corretiva**:
-```sql
--- Criar migration para CADA tabela (29x):
-ALTER TABLE <tabela> DROP COLUMN tenant_id;
-DROP INDEX IF EXISTS <tabela>_tenant_idx;
-
--- Atualizar tipos TypeScript para remover tenantId
-```
-
-**Custo Técnico**: Alto - 29 migrations + atualização de tipos  
-**Risco**: Médio - Migrations de schema sempre têm risco  
-**Benefício**: Arquitetura consistente, menos storage, código limpo
-
----
-
-### 2. LOGGING NÃO ESTRUTURADO - 1,343 console.log ❌
+### 1. LOGGING NÃO ESTRUTURADO - 1,343 console.log ❌
 
 **Problema**: Uso massivo de `console.log` ao invés do logger Pino estruturado.
 

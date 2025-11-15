@@ -1539,7 +1539,6 @@ export function registerRoutes(app: Express): Server {
       const dupCheck = await deduplicationService.checkDuplicate({
         filePath: req.file.path,
         text: processed.extractedText,
-        tenantId: 1,
         enableSemantic: processed.extractedText.length >= 100 // Apenas semântico se texto suficiente
       });
 
@@ -1989,7 +1988,6 @@ export function registerRoutes(app: Express): Server {
       const { deduplicationService } = await import("./services/deduplication-service");
       const dupCheck = await deduplicationService.checkDuplicate({
         text: content,
-        tenantId: 1,
         enableSemantic: true // Habilitar verificação semântica para texto
       });
 

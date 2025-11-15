@@ -636,7 +636,6 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
         const { deduplicationService } = await import("../services/deduplication-service");
         const dupCheck = await deduplicationService.checkDuplicate({
           text: item.content,
-          tenantId: 1,
           enableSemantic: true
         });
 
@@ -921,7 +920,6 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
         const { deduplicationService } = await import("../services/deduplication-service");
         const dupCheck = await deduplicationService.checkDuplicate({
           text: item.content,
-          tenantId: 1,
           enableSemantic: true
         });
 

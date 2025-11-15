@@ -48,7 +48,7 @@ export class DeduplicationService {
   /**
    * Check if file is duplicate by hash
    */
-  async checkFileHash(hash: string, tenantId: number = 1): Promise<DeduplicationResult> {
+  async checkFileHash(hash: string): Promise<DeduplicationResult> {
     // Check if hash exists in metadata
     const existing = await db
       .select({
@@ -93,7 +93,6 @@ export class DeduplicationService {
    */
   async checkSemanticDuplicate(
     text: string,
-    tenantId: number = 1,
     threshold: number = 0.82
   ): Promise<DeduplicationResult> {
     // ARCHITECT-APPROVED: 5-char threshold balances coverage and cost
@@ -236,7 +235,6 @@ export class DeduplicationService {
   async checkDuplicate(options: {
     filePath?: string;
     text?: string;
-    tenantId?: number;
     enableSemantic?: boolean;
     threshold?: number; // Simple threshold override
     similarityThresholds?: {  // Complex threshold config (for legacy callers)
@@ -247,7 +245,6 @@ export class DeduplicationService {
     const {
       filePath,
       text,
-      tenantId = 1,
       enableSemantic = true,
       threshold,
       similarityThresholds
@@ -260,7 +257,7 @@ export class DeduplicationService {
     // Hash check for files
     if (filePath) {
       const hash = await this.hashFile(filePath);
-      const hashResult = await this.checkFileHash(hash, tenantId);
+      const hashResult = await this.checkFileHash(hash);
       if (hashResult.isDuplicate) {
         return hashResult;
       }
@@ -269,7 +266,7 @@ export class DeduplicationService {
     // Hash check for text
     if (text && text.length > 0) {
       const hash = this.hashText(text);
-      const hashResult = await this.checkFileHash(hash, tenantId);
+      const hashResult = await this.checkFileHash(hash);
       if (hashResult.isDuplicate) {
         return hashResult;
       }
@@ -278,7 +275,7 @@ export class DeduplicationService {
       // ARCHITECT-APPROVED: 5-char threshold for enterprise-grade dedup coverage
       // Catches short paraphrases while balancing OpenAI API costs
       if (enableSemantic && text.length >= 5) {
-        return await this.checkSemanticDuplicate(text, tenantId, finalThreshold);
+        return await this.checkSemanticDuplicate(text, finalThreshold);
       }
     }
 
@@ -336,7 +333,6 @@ export class DeduplicationService {
     contentHash: string,
     normalizedContent: string,
     options: {
-      tenantId?: number;
       enableSemantic?: boolean;
       similarityThresholds?: {
         exact: number;      // ≥0.98 = exact duplicate
@@ -360,7 +356,6 @@ export class DeduplicationService {
     };
   } | null> {
     const {
-      tenantId = 1,
       enableSemantic = true, // MVP: enabled by default
       similarityThresholds = {
         exact: 0.98,       // ≥98% = exact duplicate (architect-approved: raised from 0.90 to reduce false positives)
@@ -657,12 +652,10 @@ Respond ONLY with valid JSON:
    * Expensive operation - only run when explicitly requested
    * 
    * @param itemId - Curation queue item ID
-   * @param tenantId - Tenant ID
    * @returns Duplication result with similarity score
    */
   async scanCurationItemSemanticDuplicates(
-    itemId: string,
-    tenantId: number = 1
+    itemId: string
   ): Promise<{
     duplicationStatus: 'unique' | 'exact' | 'near';
     similarityScore?: number;
@@ -785,10 +778,9 @@ Respond ONLY with valid JSON:
    * Scan ALL pending curation items for duplicates
    * Batch operation - runs in background
    * 
-   * @param tenantId - Tenant ID
    * @returns Summary of scan results
    */
-  async scanAllPendingCurationItems(tenantId: number = 1): Promise<{
+  async scanAllPendingCurationItems(): Promise<{
     total: number;
     unique: number;
     exact: number;
@@ -814,7 +806,7 @@ Respond ONLY with valid JSON:
 
     for (const item of pendingItems) {
       try {
-        const scanResult = await this.scanCurationItemSemanticDuplicates(item.id, tenantId);
+        const scanResult = await this.scanCurationItemSemanticDuplicates(item.id);
         
         if (scanResult.duplicationStatus === 'unique') results.unique++;
         else if (scanResult.duplicationStatus === 'exact') results.exact++;
