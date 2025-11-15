@@ -965,19 +965,25 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
             // Isso permite que worker salve publishedId correto (prevent reprocessing)
             console.log(`[Curation] ⚠️ Conteúdo duplicado (${analysis.stats.newContentPercent}% novo < 10%) - usando documento existente ${originalDoc.id}`);
             
-            // Atualizar publishedId para apontar documento existente
+            // 🔥 FINAL STATUS UPDATE: Move from "approved" → "published" + set promotedAt
+            // This duplicate was already in KB, so we link to existing doc and mark as published
+            const now = new Date();
             await db
               .update(curationQueueTable)
               .set({
-                publishedId: originalDoc.id, // 🔥 FIX: publishedId is INTEGER in schema
+                status: "published", // ✅ CRITICAL: Change status to final state (duplicate case)
+                publishedId: originalDoc.id, // FK to existing document
+                promotedAt: now, // ✅ Audit timestamp
+                statusChangedAt: now, // Track status transition
                 note: item.note 
                   ? `${item.note}\n\n---\n⚠️ Duplicate content - linked to existing document ${originalDoc.id} (${analysis.stats.newContentPercent}% new content < 10% threshold).`
                   : `⚠️ Duplicate content - linked to existing document ${originalDoc.id} (${analysis.stats.newContentPercent}% new content < 10% threshold).`,
-                updatedAt: new Date(),
+                updatedAt: now,
               })
               .where(eq(curationQueueTable.id, id));
             
             // Retornar ID do documento existente (NÃO criar novo)
+            console.log(`[Curation] ✅ Item ${id} marked as published (duplicate → document ${originalDoc.id})`);
             return String(originalDoc.id); // 🔥 FIX: Convert to string for API consistency
           }
         }
@@ -1180,16 +1186,21 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
       throw new Error(`Training data save failed (orphan cleaned up): ${trainingError.message}`);
     }
 
-    // Atualizar publishedId (NÃO muda status - já é approved!)
+    // 🔥 FINAL STATUS UPDATE: Move from "approved" → "published" + set promotedAt timestamp
+    // Architect-approved: This prevents queue backlog (items no longer filtered by publishedId IS NULL)
+    const now = new Date();
     await db
       .update(curationQueueTable)
       .set({
-        publishedId: newDoc.id, // 🔥 FIX: publishedId is INTEGER in schema
-        updatedAt: new Date(),
+        status: "published", // ✅ CRITICAL: Change status to final state
+        publishedId: newDoc.id, // FK to documents table
+        promotedAt: now, // ✅ Audit timestamp for auto-promotion
+        statusChangedAt: now, // Track status transition
+        updatedAt: now,
       })
       .where(eq(curationQueueTable.id, id));
 
-    console.log(`[Curation] ✅ Published approved item ${id} to KB as document ${newDoc.id}`);
+    console.log(`[Curation] ✅ Published approved item ${id} to KB as document ${newDoc.id} (status: approved → published)`);
 
     return String(newDoc.id); // 🔥 FIX: Convert to string for API consistency
   },
