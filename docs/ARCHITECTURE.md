@@ -390,20 +390,20 @@ const defaultPolicy = {
 - ❌ Latência adicional (~5-10s)
 - ❌ Custo extra de embedding + LLM call
 
-### 4. **Single-Tenant Architecture**
+### 4. **Namespace-Based Architecture**
 
-**Decisão**: Sistema opera exclusivamente em modo single-tenant.
+**Decisão**: Sistema opera com namespace-based isolation em single deployment.
 
 **Razão**:
 - Simplicidade operacional e de desenvolvimento
-- Custo-eficiência sem overhead de multi-tenant
+- Data segmentation via namespaces (não multi-tenancy)
 - Performance otimizada para deployment dedicado
 - Facilita manutenção e debugging
 
 **Implementação**:
-- Todas as tabelas usam `tenantId DEFAULT 1` para compatibilidade com schema
-- Nenhuma lógica de multi-tenant no código
-- Sistema otimizado para instância única
+- Tables use `namespace` columns for data segmentation (e.g., "web", "tech/ai", "chat/standalone")
+- Namespace-scoped filtering in queries and RAG retrieval
+- Sistema otimizado para instância única com RBAC
 
 ### 5. **RAG com Busca Híbrida**
 

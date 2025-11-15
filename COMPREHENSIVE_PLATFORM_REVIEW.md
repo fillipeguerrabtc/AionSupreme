@@ -416,14 +416,14 @@
   - Auto namespace assignment
   - Confidence scoring
 
-#### 6.2 Cross-tenant Isolation
+#### 6.2 Namespace Isolation
 - **Schema**: Namespace columns in tables
-- **Função**: Data separation
+- **Função**: Data separation via namespace-scoped filtering
 - **Status**: ⏳ PENDING REVIEW
 - **Features**:
-  - Schema-level protection
-  - Query filtering
-  - Access control
+  - Schema-level namespace columns
+  - Query filtering by namespace
+  - Access control via RBAC
 
 #### 6.3 Namespace GC
 - **Service**: `server/services/namespace-garbage-collector.ts`
@@ -658,8 +658,8 @@
 - **Integration**: RAG + Namespaces
 - **Status**: ⏳ PENDING REVIEW
 
-#### 13.3 Multi-tenant Isolation
-- **Schema**: Namespace filtering
+#### 13.3 Namespace-Scoped Isolation
+- **Schema**: Namespace filtering for data segmentation
 - **Status**: ⏳ PENDING REVIEW
 
 #### 13.4 Semantic Search

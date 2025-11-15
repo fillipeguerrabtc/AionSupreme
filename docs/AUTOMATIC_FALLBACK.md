@@ -234,7 +234,6 @@ Cada página web recuperada é armazenada como um documento:
 
 ```typescript
 const doc = await storage.createDocument({
-  tenantId,
   filename: `web-${Date.now()}.txt`,
   mimeType: 'text/plain',
   size: content.length,
@@ -252,7 +251,7 @@ const doc = await storage.createDocument({
 ### Indexação de Embeddings
 
 ```typescript
-await ragService.indexDocument(doc.id, content, tenantId, {
+await ragService.indexDocument(doc.id, content, {
   source: 'auto_fallback',
   url,
   query: searchQuery,
@@ -294,7 +293,6 @@ const result = await llmClient.chatCompletion({
       content: unrestrictedPrompt 
     }
   ],
-  tenantId,
   temperature: policy.temperature,
   topP: policy.topP,
   model: "gpt-4o",
@@ -371,7 +369,6 @@ npm run test:fallback
 curl -X POST http://localhost:5000/api/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "tenant_id": 1,
     "messages": [
       {"role": "user", "content": "Tell me about encryption libraries"}
     ]
@@ -416,7 +413,7 @@ Se OpenAI recusar e sistema estiver em modo UNRESTRICTED:
 - Adicionar mais fontes de busca (Bing, Brave Search)
 - Implementar cache de busca web
 - Usar API ao invés de scraping quando disponível
-- Adicionar rate limiting por IP/tenant
+- Adicionar rate limiting por IP/namespace
 
 ## 🔗 Código Fonte
 

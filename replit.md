@@ -208,7 +208,7 @@ export const GPU_QUOTA_CONSTANTS = {
 
 ## System Architecture
 
-AION operates in a single-tenant, multi-agent architecture with LLM-driven Mixture of Experts (MoE) routing, prioritizing GPU-FIRST inference. It features a 4-level priority chain with automatic fallback, universal multi-language support, and specialized agents with dedicated knowledge bases, tool access, and budget limits. A Human-in-the-Loop (HITL) system requires human approval for knowledge curation.
+AION operates in a multi-agent architecture with LLM-driven Mixture of Experts (MoE) routing, prioritizing GPU-FIRST inference. It features a 4-level priority chain with automatic fallback, universal multi-language support, and specialized agents with dedicated knowledge bases, tool access, and budget limits. A Human-in-the-Loop (HITL) system requires human approval for knowledge curation.
 
 **UI/UX Decisions:**
 - **Frontend Frameworks:** React 18, Vite, Wouter, TanStack Query.
