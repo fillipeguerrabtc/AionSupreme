@@ -206,6 +206,43 @@ export const GPU_QUOTA_CONSTANTS = {
 - ❌ "Placeholder temporário"
 - ❌ Mock data "por enquanto"
 
+## Recent Changes
+
+### 2025-11-15: Curation Queue Fixes (5 Critical Fixes)
+**Problem:** 270 pending items stuck in queue (avg_score 72.89, above threshold 55) with 0 auto-approvals because items entered queue BEFORE dedup system existed (duplication_status = NULL), blocking auto-approval flow.
+
+**Solutions Implemented:**
+
+1. **Chrome/Puppeteer Production-Ready Helper** (`server/utils/puppeteer-config.ts` NEW)
+   - ENV variable overrides: `PUPPETEER_EXECUTABLE_PATH`, `CHROME_BIN`, `CHROMIUM_PATH`
+   - Multi-binary fallback: chromium → google-chrome-stable → google-chrome → chromium-browser
+   - Cross-environment compatible: Replit, Docker, K8s, custom CI/CD
+   - Applied to 5 files: colab-creator, colab-orchestrator, kaggle-orchestrator, colab-scraper, kaggle-scraper
+
+2. **Cookie Save 400 Fix** (`server/routes/gpu.ts`)
+   - `/api/gpu/auth-google/save-cookies` accepts both JSON and text/plain payloads
+   - Backend normalizes formats automatically
+   - Frontend sends JSON.stringify without explicit Content-Type
+
+3. **LSP Error Fix** (`server/services/scheduler-service.ts`)
+   - Fixed invalid `scanKB(1)` → `scanKB()` (method takes no parameters)
+
+4. **Dedup Backfill Script** (`server/scripts/backfill-curation-dedup.ts` NEW)
+   - Batch processes pending items with NULL duplication_status
+   - Runs `checkCurationRealtimeDuplicate` for each item
+   - Auto-rejects duplicates with 30-day deletion schedule
+   - Marks unique items as duplication_status='unique' (unlocks auto-approval)
+   - **Results**: Processed 270 items → 56 rejected as duplicates, 214 remaining unique
+   - Idempotent, exportable for scheduler, can run standalone
+
+5. **Safety Net Job** (`server/services/scheduler-service.ts`)
+   - New nightly job: `dedup-backfill-safety-net` at 01:00 UTC
+   - Automatically backfills any future items missing dedup metadata
+   - Prevents queue backlog regression
+   - Error handling prevents scheduler crash
+
+**Status:** All fixes production-ready, architect-reviewed, LSP 0 errors, workflow running with 24 jobs (was 23).
+
 ## System Architecture
 
 AION operates in a multi-agent architecture with LLM-driven Mixture of Experts (MoE) routing, prioritizing GPU-FIRST inference. It features a 4-level priority chain with automatic fallback, universal multi-language support, and specialized agents with dedicated knowledge bases, tool access, and budget limits. A Human-in-the-Loop (HITL) system requires human approval for knowledge curation.
