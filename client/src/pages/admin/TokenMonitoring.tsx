@@ -849,7 +849,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                     <>
                       <Area type="monotone" dataKey="groq" stackId="1" stroke={COLORS.groq} fill="url(#groq)" name="Groq" />
                       <Area type="monotone" dataKey="gemini" stackId="1" stroke={COLORS.gemini} fill="url(#gemini)" name="Gemini" />
-                      <Area type="monotone" dataKey="huggingface" stackId="1" stroke={COLORS.huggingface} fill={COLORS.huggingface} fillOpacity={0.6} name="HuggingFace" />
                       <Area type="monotone" dataKey="openrouter" stackId="1" stroke={COLORS.openrouter} fill={COLORS.openrouter} fillOpacity={0.6} name="OpenRouter" />
                       <Area type="monotone" dataKey="openai" stackId="1" stroke={COLORS.openai} fill="url(#openai)" name="OpenAI" />
                       <Area type="monotone" dataKey="kb" stackId="1" stroke={COLORS.kb} fill={COLORS.kb} fillOpacity={0.6} name="KB" />
@@ -873,7 +872,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
       {/* FREE APIS TAB */}
       <TabsContent value="free-apis" className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           {/* Groq */}
           {getProviderQuota('groq') && (
             <Card className="glass-premium border-accent/20">
@@ -976,57 +975,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
             </Card>
           )}
 
-          {/* HuggingFace */}
-          {getProviderQuota('huggingface') && (
-            <Card className="glass-premium border-accent/20">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Activity className="w-5 h-5" style={{ color: COLORS.huggingface }} />
-                    HuggingFace
-                  </span>
-                  <Badge variant="outline">{getProviderQuota('huggingface')?.remaining.toLocaleString()} requisições restantes</Badge>
-                </CardTitle>
-                <CardDescription>Open-source models (limite: {getProviderQuota('huggingface')?.dailyLimit.toLocaleString() ?? '—'} requisições/dia)</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-primary flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5" />
-                      Requisições (conta para limite)
-                    </span>
-                    <span className="text-sm font-medium">
-                      {getProviderQuota('huggingface')?.used.toLocaleString()} / {getProviderQuota('huggingface')?.dailyLimit.toLocaleString()}
-                    </span>
-                  </div>
-                  <Progress 
-                    value={getProviderQuota('huggingface')?.percentage ?? 0} 
-                    className="h-2"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
-                    <p className="text-xs font-semibold text-primary mb-1 flex items-center gap-1.5">
-                      <Zap className="w-3 h-3" />
-                      Requisições Hoje
-                    </p>
-                    <p className="text-lg font-bold">{getProviderSummary('huggingface')?.today.requests ?? 0}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Contam para o limite</p>
-                  </div>
-                  <div className="bg-muted/50 p-3 rounded-lg">
-                    <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1.5">
-                      <Hash className="w-3 h-3" />
-                      Tokens Consumidos
-                    </p>
-                    <p className="text-lg font-bold">{(getProviderSummary('huggingface')?.today.tokens ?? 0).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Só monitoramento</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* OpenRouter */}
           {getProviderQuota('openrouter') && (
             <Card className="glass-premium border-accent/20">
@@ -1098,7 +1046,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
                 <Legend />
                 <Line type="monotone" dataKey="groq" stroke={COLORS.groq} name="Groq" />
                 <Line type="monotone" dataKey="gemini" stroke={COLORS.gemini} name="Gemini" />
-                <Line type="monotone" dataKey="huggingface" stroke={COLORS.huggingface} name="HuggingFace" />
                 <Line type="monotone" dataKey="openrouter" stroke={COLORS.openrouter} name="OpenRouter" />
               </LineChart>
             </ResponsiveContainer>
