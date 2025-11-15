@@ -498,8 +498,10 @@ async function callGemini(req: LLMRequest, orchestrationRemainingMs?: number): P
         throw new Error('Gemini REST API requires at least one user message (all messages were assistant turns)');
       }
       
+      // ✅ FIX: Use latest stable model gemini-2.5-flash (best price-performance, well-rounded capabilities)
+      // Using v1beta endpoint with current stable model from Gemini API docs (June 2025)
       const response = await withTimeout(
-        fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+        fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -549,7 +551,7 @@ async function callGemini(req: LLMRequest, orchestrationRemainingMs?: number): P
       // Fallback to tiktoken if API doesn't return usage (±1% accuracy)
       if (!totalTokens || totalTokens === 0) {
         const responseText = candidate.content.parts[0].text;
-        const tokenCounts = countChatTokens(req.messages, responseText, 'gemini-2.0-flash-exp');
+        const tokenCounts = countChatTokens(req.messages, responseText, 'gemini-2.5-flash');
         promptTokens = tokenCounts.promptTokens;
         completionTokens = tokenCounts.completionTokens;
         totalTokens = tokenCounts.totalTokens;
@@ -575,7 +577,7 @@ async function callGemini(req: LLMRequest, orchestrationRemainingMs?: number): P
       // ✅ P2.2: Cost calculated automatically via token-tracker
       await trackTokenUsage({
         provider: 'gemini',
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
         promptTokens,
         completionTokens,
         totalTokens,
@@ -586,7 +588,7 @@ async function callGemini(req: LLMRequest, orchestrationRemainingMs?: number): P
       return {
         text: candidate.content.parts[0].text,
         provider: 'gemini',
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.5-flash',
         tokensUsed: totalTokens
       };
     } catch (error: any) {
