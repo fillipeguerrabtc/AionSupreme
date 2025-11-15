@@ -26,6 +26,7 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { type Cookie } from './cookie-session-service';
+import { getPuppeteerConfig } from '../utils/puppeteer-config';
 
 // Apply stealth plugin for anti-bot detection
 puppeteer.use(StealthPlugin());
@@ -58,8 +59,7 @@ export class ColabScraperService {
    * 7. Close browser & return data
    */
   async scrapeQuota(cookies: Cookie[]): Promise<ColabQuotaData> {
-    const browser = await puppeteer.launch({
-      headless: true,
+    const baseConfig = await getPuppeteerConfig({
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -70,6 +70,8 @@ export class ColabScraperService {
         '--disable-gpu',
       ],
     });
+    
+    const browser = await puppeteer.launch(baseConfig);
     
     try {
       const page = await browser.newPage();

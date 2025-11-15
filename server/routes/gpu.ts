@@ -65,15 +65,29 @@ export function registerPublicGpuRoutes(app: Router) {
   /**
    * POST /api/gpu/auth-google/save-cookies
    * Save encrypted cookies from manual Google login
+   * 
+   * FIX: Accepts both application/json and text/plain content-types
+   * (frontend may send text/plain when using fetch without explicit headers)
    */
   app.post("/auth-google/save-cookies", async (req: Request, res: Response) => {
     try {
-      // 🔥 TEMPORARY DEBUG: Log raw body to diagnose 400 error
-      console.log('🔍 [Cookie Save DEBUG] req.body type:', typeof req.body);
-      console.log('🔍 [Cookie Save DEBUG] req.body keys:', req.body ? Object.keys(req.body) : 'UNDEFINED');
-      console.log('🔍 [Cookie Save DEBUG] req.headers["content-type"]:', req.headers['content-type']);
+      let parsedBody = req.body;
       
-      const { accountEmail, provider, cookies, userAgent } = req.body as {
+      // Handle text/plain content-type (parse as JSON)
+      if (req.headers['content-type']?.includes('text/plain') && typeof req.body === 'string') {
+        try {
+          parsedBody = JSON.parse(req.body);
+          log.info({ component: 'cookie-save' }, 'Parsed text/plain as JSON');
+        } catch (parseError) {
+          log.error({ component: 'cookie-save', error: parseError }, 'Failed to parse text/plain as JSON');
+          return res.status(400).json({ 
+            error: 'Invalid JSON format in request body',
+            hint: 'Ensure cookies are sent as valid JSON'
+          });
+        }
+      }
+      
+      const { accountEmail, provider, cookies, userAgent } = parsedBody as {
         accountEmail: string;
         provider: 'kaggle' | 'colab';
         cookies: Array<{ name: string; value: string; domain: string }>;

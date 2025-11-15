@@ -38,6 +38,7 @@ import { getQuotaEnforcementService } from '../services/quota-enforcement-servic
 import { GPU_QUOTA_CONSTANTS } from './intelligent-quota-manager'; // ✅ Centralized constants
 import { QUOTA_LIMITS } from '../config/quota-limits';
 import { alertService } from '../services/alert-service';
+import { getPuppeteerConfig } from '../utils/puppeteer-config';
 
 // ✅ P2.8: Add stealth plugin for maximum anti-detection
 puppeteer.use(StealthPlugin());
@@ -271,22 +272,23 @@ export class ColabOrchestrator {
       
       try {
         // ============================================================================
-        // STEP 1: LAUNCH BROWSER WITH ANTI-DETECTION
+        // STEP 1: LAUNCH BROWSER WITH ANTI-DETECTION (uses system Chromium)
         // ============================================================================
         
-        const browser = await puppeteer.launch({
-        headless: config.headless ?? true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          // ✅ P2.8: Additional anti-detection flags
-          '--disable-blink-features=AutomationControlled',
-          '--window-size=1920,1080',
-        ],
-        userDataDir: `${this.CHROME_USER_DATA_DIR}-${config.workerId}`,
-      });
+        const baseConfig = await getPuppeteerConfig({
+          headless: config.headless ?? true,
+          userDataDir: `${this.CHROME_USER_DATA_DIR}-${config.workerId}`,
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-blink-features=AutomationControlled',
+            '--window-size=1920,1080',
+          ],
+        });
+        
+        const browser = await puppeteer.launch(baseConfig);
       
       const page = await browser.newPage();
       

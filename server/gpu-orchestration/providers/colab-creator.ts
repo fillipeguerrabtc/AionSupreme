@@ -27,6 +27,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { nanoid } from 'nanoid';
 import { existsSync } from 'fs';
+import { getPuppeteerConfig } from '../../utils/puppeteer-config';
 
 // Enable stealth plugin to avoid bot detection
 puppeteer.use(StealthPlugin());
@@ -79,20 +80,19 @@ export class ColabNotebookCreator {
       console.warn('[Colab Creator] Failed to create session directory:', error.message);
     }
 
-    // Launch with production-grade settings
-    // Note: puppeteer-extra uses headless: true (modern mode is default in recent versions)
-    this.browser = await puppeteer.launch({
-      headless: true,  // Modern headless mode with stealth plugin
+    // Launch with production-grade settings (uses system Chromium)
+    const baseConfig = await getPuppeteerConfig({
+      userDataDir: this.userDataDir,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',  // Overcome limited resource problems
-        '--disable-blink-features=AutomationControlled',  // Hide automation
-        '--disable-gpu',  // Reduce overhead in headless
+        '--disable-dev-shm-usage',
+        '--disable-blink-features=AutomationControlled',
+        '--disable-gpu',
       ],
-      userDataDir: this.userDataDir,  // Persiste cookies/sessão
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,  // Allow custom Chrome path
     });
+    
+    this.browser = await puppeteer.launch(baseConfig);
 
     console.log('[Colab Creator] ✅ Browser launched with stealth mode');
     return this.browser;

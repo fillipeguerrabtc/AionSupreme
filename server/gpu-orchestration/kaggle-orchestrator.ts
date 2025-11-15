@@ -27,6 +27,7 @@ import { gpuWorkers, gpuSessions } from '../../shared/schema';
 import { eq, and, inArray, lt, gt } from 'drizzle-orm';
 import { getQuotaEnforcementService } from '../services/quota-enforcement-service';
 import { nanoid } from 'nanoid';
+import { getPuppeteerConfig } from '../utils/puppeteer-config';
 
 puppeteer.use(StealthPlugin());
 
@@ -220,18 +221,20 @@ export class KaggleOrchestrator {
       console.log(`[Kaggle] ✅ DB session created (ID: ${dbSessionId}, status: starting)`);
       
       // ============================================================================
-      // 3. Launch Puppeteer browser
+      // 3. Launch Puppeteer browser (uses system Chromium)
       // ============================================================================
       
-      const browser = await puppeteer.launch({
+      const baseConfig = await getPuppeteerConfig({
         headless: config.headless ?? true,
+        userDataDir: `${this.CHROME_USER_DATA_DIR}-${config.workerId}`,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
         ],
-        userDataDir: `${this.CHROME_USER_DATA_DIR}-${config.workerId}`,
       });
+      
+      const browser = await puppeteer.launch(baseConfig);
       
       const page = await browser.newPage();
       await page.setViewport({ width: 1920, height: 1080 });
