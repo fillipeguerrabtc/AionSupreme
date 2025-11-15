@@ -11,7 +11,7 @@ const logger = {
   error: (...args: any[]) => console.error('[Backfill Dedup]', ...args),
 };
 
-async function backfillCurationDedup() {
+export async function backfillCurationDedup() {
   logger.info('🔄 Starting deduplication backfill for legacy curation items...');
   
   // Get all pending items with NULL duplication_status (legacy items)
@@ -112,12 +112,15 @@ async function backfillCurationDedup() {
   return { processed: pendingItems.length, unique, duplicates, errors };
 }
 
-backfillCurationDedup()
-  .then((result) => {
-    logger.info('✅ Script completed successfully');
-    process.exit(0);
-  })
-  .catch((error) => {
-    logger.error('❌ Script failed:', error);
-    process.exit(1);
-  });
+// Auto-execute only when run directly (not imported by scheduler)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  backfillCurationDedup()
+    .then((result) => {
+      logger.info('✅ Script completed successfully');
+      process.exit(0);
+    })
+    .catch((error) => {
+      logger.error('❌ Script failed:', error);
+      process.exit(1);
+    });
+}

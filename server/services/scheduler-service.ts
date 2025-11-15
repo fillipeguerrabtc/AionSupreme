@@ -658,6 +658,35 @@ export class SchedulerService {
       errorCount: 0,
     });
 
+    // 🔥 JOB 16b: Dedup Backfill Safety Net - Nightly at 01:00 UTC (Prevent stuck queue)
+    // CRITICAL: Backfills deduplication metadata for any pending items missing it
+    // - Prevents queue backlog from items bypassing dedup checks
+    // - Runs deduplicationService.checkCurationRealtimeDuplicate on NULL duplication_status items
+    // - Auto-rejects duplicates, marks unique items for auto-approval
+    this.register({
+      name: 'dedup-backfill-safety-net',
+      schedule: '0 1 * * *', // Nightly at 01:00 UTC
+      task: async () => {
+        try {
+          logger.info('🛡️ Starting dedup backfill safety net...');
+          
+          const { backfillCurationDedup } = await import('../scripts/backfill-curation-dedup');
+          const result = await backfillCurationDedup();
+          
+          if (result.processed > 0) {
+            logger.info(`✅ Dedup Safety Net: Processed ${result.processed} items (unique: ${result.unique}, duplicates: ${result.duplicates}, errors: ${result.errors})`);
+          } else {
+            logger.info('✅ Dedup Safety Net: No items to backfill - queue health OK');
+          }
+        } catch (error: any) {
+          logger.error(`❌ Dedup safety net error: ${error.message}`);
+        }
+      },
+      enabled: true,
+      runCount: 0,
+      errorCount: 0,
+    });
+
     // 🔥 JOB 17: Query Frequency Decay - Nightly at 03:00 UTC (Cost-optimization maintenance)
     // CRITICAL: Applies exponential decay to query frequencies for accurate reuse tracking
     // - Applies decay factor (0.95^days) to all query counts
