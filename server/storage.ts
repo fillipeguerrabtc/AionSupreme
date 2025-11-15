@@ -695,13 +695,24 @@ export class DatabaseStorage implements IStorage {
       });
       
       if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
-        // STRICT MODE (architect decision): Reject all duplicates
-        const errorMsg = `Duplicate content detected: "${dupCheck.duplicateOf.title}" (ID: ${dupCheck.duplicateOf.id}, similarity: ${((dupCheck.duplicateOf.similarity || 0) * 100).toFixed(1)}%). Use skipDedup=true to bypass this check for migrations.`;
-        console.error(`[Storage] [DEDUP] ERROR: ${errorMsg}`);
-        throw new Error(errorMsg);
+        // ✅ ARCHITECT FIX: Return existing document instead of throwing error
+        // This prevents duplicate inserts while maintaining idempotency
+        const existingId = dupCheck.duplicateOf.id;
+        console.warn(`[Storage] [DEDUP] ♻️ Duplicate detected (${((dupCheck.duplicateOf.similarity || 0) * 100).toFixed(1)}% similar) - returning existing document ID: ${existingId}`);
+        
+        // Fetch and return existing document
+        const [existingDoc] = await db.select().from(documents).where(eq(documents.id, existingId));
+        
+        if (!existingDoc) {
+          // Rare race condition - document was deleted between dedup check and fetch
+          console.warn(`[Storage] [DEDUP] ⚠️ Existing document ${existingId} not found - inserting new document`);
+        } else {
+          // SUCCESS: Return existing document (prevents duplicate insert)
+          return existingDoc;
+        }
       }
       
-      console.log(`[Storage] [DEDUP] No duplicates found - inserting document`);
+      console.log(`[Storage] [DEDUP] ✅ No duplicates found - inserting new document`);
     } else if (options.skipDedup) {
       // ARCHITECT-APPROVED: Comprehensive audit logging with DB persistence
       const auditPayload = {
@@ -1132,6 +1143,91 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrainingDataCollection(data: InsertTrainingDataCollection): Promise<TrainingDataCollection> {
+    // ✅ ARCHITECT FIX: Deterministic hash-based deduplication for training data
+    // Prevents duplicate training examples from polluting datasets
+    
+    // GUARD 1: conversation_id deduplication (exact match + composite check)
+    if (data.conversationId) {
+      const conditions = data.datasetId 
+        ? and(
+            eq(trainingDataCollection.conversationId, data.conversationId),
+            eq(trainingDataCollection.datasetId, data.datasetId)
+          )
+        : eq(trainingDataCollection.conversationId, data.conversationId);
+      
+      const [existing] = await db
+        .select()
+        .from(trainingDataCollection)
+        .where(conditions)
+        .limit(1);
+      
+      if (existing) {
+        console.warn(`[Storage] [DEDUP] ♻️ Training data for conversation ${data.conversationId} already exists (ID: ${existing.id}) - returning existing`);
+        return existing;
+      }
+    }
+    
+    // GUARD 2: Hash-based deduplication for ALL entries (including null conversation_id)
+    // ARCHITECT FIX: Use deterministic hash instead of semantic similarity
+    if (data.formattedData) {
+      try {
+        const { generateContentHash, normalizeContent } = await import("./utils/deduplication");
+        
+        // Safe parsing with fallback
+        let formattedJson: any;
+        try {
+          formattedJson = typeof data.formattedData === 'string' 
+            ? JSON.parse(data.formattedData)
+            : data.formattedData;
+        } catch {
+          // If JSON.parse fails, use raw string
+          formattedJson = { raw: String(data.formattedData) };
+        }
+        
+        // Extract input/output pair for deterministic hashing
+        // Support multiple formats: JSONL (messages), input/output pairs, raw content
+        const inputText = formattedJson?.messages?.[0]?.content || 
+                         formattedJson?.input || 
+                         JSON.stringify(formattedJson);
+        
+        const outputText = formattedJson?.messages?.[1]?.content || 
+                          formattedJson?.output || 
+                          '';
+        
+        // Create deterministic hash from normalized input+output
+        const normalizedInput = normalizeContent(inputText);
+        const normalizedOutput = normalizeContent(outputText);
+        const contentHash = generateContentHash(normalizedInput + '|||' + normalizedOutput);
+        
+        // Check if this exact hash exists
+        const [existing] = await db
+          .select()
+          .from(trainingDataCollection)
+          .where(sql`${trainingDataCollection.metadata}->>'contentHash' = ${contentHash}`)
+          .limit(1);
+        
+        if (existing) {
+          console.warn(`[Storage] [DEDUP] ♻️ Training data with identical hash already exists (ID: ${existing.id}) - returning existing`);
+          return existing;
+        }
+        
+        // Add hash to metadata for future dedup checks
+        const enhancedMetadata = {
+          ...(typeof data.metadata === 'object' ? data.metadata : {}),
+          contentHash,
+          dedupMethod: 'hash',
+          dedupTimestamp: new Date().toISOString()
+        };
+        
+        data = { ...data, metadata: enhancedMetadata };
+        
+      } catch (error: any) {
+        // Non-critical: Log and continue with insert (dedup failed but insert should succeed)
+        console.warn(`[Storage] [DEDUP] Hash generation failed: ${error.message} - continuing with insert (no dedup protection)`);
+      }
+    }
+    
+    console.log(`[Storage] [DEDUP] ✅ No duplicate training data found - inserting`);
     const [created] = await db.insert(trainingDataCollection).values([data] as any).returning();
     return created;
   }

@@ -84,18 +84,16 @@ export class AutoIndexer {
       
       const qualityScore = this.calculateAutoQualityScore(userMessage, assistantResponse);
       
-      // Importar curationQueue table
-      const { curationQueue } = await import("../../shared/schema");
+      // ✅ ARCHITECT FIX: Use addToCuration() instead of direct insert (includes semantic dedup)
+      const { curationStore } = await import("../curation/store");
       
-      // Adicionar à fila de curadoria (tenantId defaults to 1 in schema)
-      const [curationItem] = await db.insert(curationQueue).values({
+      const curationItem = await curationStore.addToCuration({
         title,
         content: assistantResponse,
         suggestedNamespaces,
         tags: [`auto-${source}`, `quality-${qualityScore}`, provider || 'unknown'],
-        status: "pending",
         submittedBy: "auto-indexer",
-      } as any).returning();
+      });
 
       console.log(`[AutoIndexer] ✅ Enviado para curadoria: ${curationItem.id} - "${title}" (quality: ${qualityScore})`);
       console.log(`[AutoIndexer] ⚠️ Aguardando aprovação humana antes de indexar na KB`);
@@ -130,17 +128,16 @@ export class AutoIndexer {
       // PHASE 2: Use semantic namespace classification for web content
       const suggestedNamespaces = await this.determineNamespaceSemantic(query, content);
       
-      const { curationQueue } = await import("../../shared/schema");
+      // ✅ ARCHITECT FIX: Use addToCuration() instead of direct insert (includes semantic dedup)
+      const { curationStore } = await import("../curation/store");
 
-      // Send to curation queue for human review (tenantId defaults to 1 in schema)
-      const [curationItem] = await db.insert(curationQueue).values({
+      const curationItem = await curationStore.addToCuration({
         title,
         content,
         suggestedNamespaces,
         tags: [`auto-web`, `quality-${qualityScore}`, url],
-        status: "pending",
         submittedBy: "auto-indexer-web",
-      } as any).returning();
+      });
 
       console.log(`[AutoIndexer] ✅ Web content sent to curation: ${curationItem.id} - "${title}"`);
       console.log(`[AutoIndexer] ⚠️ Aguardando aprovação humana (URL: ${url})`);
