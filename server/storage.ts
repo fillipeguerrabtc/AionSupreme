@@ -2,7 +2,6 @@ import { db } from "./db";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
 import {
   users, type User, type UpsertUser,
-  tenants, type Tenant, type InsertTenant,
   policies, type Policy, type InsertPolicy,
   projects, type Project, type InsertProject,
   projectFiles, type ProjectFile, type InsertProjectFile,
@@ -720,8 +719,7 @@ export class DatabaseStorage implements IStorage {
         document: {
           title: documentWithHash.title?.substring(0, 100),
           contentLength: documentWithHash.content?.length || 0,
-          namespace: documentWithHash.namespace,
-          tenantId: documentWithHash.tenantId || 1
+          namespace: documentWithHash.namespace
         },
         bypass: {
           reason: options.bypassReason || 'UNSPECIFIED',

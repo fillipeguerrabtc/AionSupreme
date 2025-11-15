@@ -55,7 +55,6 @@ export const agentRelationshipsStorage = {
   }) {
     const relationship = {
       // id is serial (auto-increment), no need to provide
-      tenantId: 1,
       parentAgentId: data.parentAgentId,
       childAgentId: data.childAgentId,
       delegationMode: data.delegationMode || "dynamic",

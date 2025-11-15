@@ -278,7 +278,7 @@ setInterval(() => {
 
 /**
  * Rate limiting middleware
- * SINGLE-TENANT: Rate limits by IP only (no tenant separation)
+ * Rate limits by IP
  */
 export function rateLimitMiddleware(
   req: Request,

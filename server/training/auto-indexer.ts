@@ -180,7 +180,7 @@ export class AutoIndexer {
 
       const { curationQueue } = await import("../../shared/schema");
 
-      // Send each conversation pair to curation queue (tenantId defaults to 1 in schema)
+      // Send each conversation pair to curation queue
       let queued = 0;
       for (const example of examples) {
         const content = `Pergunta: ${example.instruction}\n\nResposta: ${example.output}`;

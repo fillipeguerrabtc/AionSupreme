@@ -722,7 +722,6 @@ export function registerRoutes(app: Express): Server {
               agentResult = await orchestrateAgents(lastUserMessage, {
                 history: historyWithoutLastTurn, // Apenas turnos anteriores, consulta atual adicionada separadamente
                 budgetUSD: 1.0,
-                tenantId: 1,
                 sessionId: "chat-session",
                 language: detectedLanguage, // 🔥 FIX: Pass language to Multi-Agent for multi-language support
                 conversationId, // 🔧 Task #30.1: Pass for ReAct tool persistence
@@ -1014,7 +1013,6 @@ export function registerRoutes(app: Express): Server {
             const agentResult = await orchestrateAgents(message, {
               history: conversationHistory,
               budgetUSD: 1.0,
-              tenantId: 1,
               sessionId: "sse-chat-session",
             });
             
@@ -1746,7 +1744,7 @@ export function registerRoutes(app: Express): Server {
   // GET /api/admin/settings/timezone - Obter timezone do sistema
   app.get("/api/admin/settings/timezone", requireAdmin, requirePermission("settings:timezone:read"), async (req, res) => {
     try {
-      // Sempre retornar timezone padrão (single-tenant)
+      // Return default timezone
       res.json({ timezone: "America/Sao_Paulo" });
     } catch (error: unknown) {
       res.status(500).json({ error: getErrorMessage(error) });
@@ -1769,7 +1767,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: req.t('timezone.invalid_iana') });
       }
       
-      // Timezone setting is no longer persisted (single-tenant)
+      // Timezone setting is no longer persisted
       res.json({ timezone, success: true });
     } catch (error: unknown) {
       res.status(500).json({ error: getErrorMessage(error) });

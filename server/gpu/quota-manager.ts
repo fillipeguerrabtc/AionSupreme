@@ -47,12 +47,9 @@ export class QuotaManager {
       .select()
       .from(gpuWorkers);
     
-    // Get all workers (single-tenant system)
-    const tenantWorkers = workers;
-
     const quotas: WorkerQuota[] = [];
 
-    for (const worker of tenantWorkers) {
+    for (const worker of workers) {
       const capabilities = worker.capabilities as any || {};
       const metadata = capabilities.metadata || {};
       
@@ -212,10 +209,7 @@ export class QuotaManager {
       .select()
       .from(gpuWorkers);
 
-    // Get all workers (single-tenant system)
-    const tenantWorkers = workers;
-
-    for (const worker of tenantWorkers) {
+    for (const worker of workers) {
       const capabilities = (worker.capabilities as any) || {};
       const metadata = capabilities.metadata || {};
       
@@ -237,7 +231,7 @@ export class QuotaManager {
         .where(eq(gpuWorkers.id, worker.id));
     }
 
-    console.log(`[QuotaManager] 🔄 Weekly quotas reset for ${tenantWorkers.length} workers`);
+    console.log(`[QuotaManager] 🔄 Weekly quotas reset for ${workers.length} workers`);
   }
 
   /**

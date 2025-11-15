@@ -826,7 +826,6 @@ ${analysis.concerns.map((c: string) => `- ${c}`).join('\n')}
         console.warn(`[Curation] ⚠️ No quality tag for item ${item.id}, using default 75`);
       }
       
-      // tenantId defaults to 1 in schema
       await db.insert(trainingDataCollection).values({
         conversationId: null, // Curated content doesn't have conversationId
         autoQualityScore: qualityScore,

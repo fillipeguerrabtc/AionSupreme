@@ -130,23 +130,6 @@ export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
 // ============================================================================
-// TENANTS - Tenant configuration (single-tenant mode by default, schema preserved for future scalability)
-// ============================================================================
-export const tenants = pgTable("tenants", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  apiKey: text("api_key").notNull().unique(),
-  jurisdiction: text("jurisdiction").notNull().default("US"), // ISO country code
-  timezone: text("timezone").notNull().default("America/Sao_Paulo"), // IANA timezone for datetime formatting
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const insertTenantSchema = createInsertSchema(tenants).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertTenant = z.infer<typeof insertTenantSchema>;
-export type Tenant = typeof tenants.$inferSelect;
-
-// ============================================================================
 // POLICIES - YAML/JSON DSL for moral/ethical/legal enforcement
 // As per PDFs: Externalized configuration with separation property ∂Pr[violation]/∂θ=0
 // ============================================================================
@@ -291,7 +274,7 @@ export const conversations = pgTable("conversations", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   
-  // Namespace for multi-tenant isolation (CRITICAL for Meta-Learning filtering)
+  // Namespace for isolation (CRITICAL for Meta-Learning filtering)
   namespace: text("namespace"), // null = global, otherwise scoped to namespace
   
   // Lifecycle management fields
@@ -646,7 +629,7 @@ export const knowledgeSources = pgTable("knowledge_sources", {
     qualityThreshold?: number;
   }>(),
   
-  // Namespace for multi-tenant isolation (CRITICAL for Meta-Learning filtering)
+  // Namespace for isolation (CRITICAL for Meta-Learning filtering)
   namespace: text("namespace"), // null = global, otherwise scoped to namespace
   
   // Status
@@ -867,7 +850,7 @@ export type InsertTokenUsage = z.infer<typeof insertTokenUsageSchema>;
 export type TokenUsage = typeof tokenUsage.$inferSelect;
 
 // ============================================================================
-// TOKEN_LIMITS - Configurable limits per provider (single-tenant mode)
+// TOKEN_LIMITS - Configurable limits per provider
 // ============================================================================
 export const tokenLimits = pgTable("token_limits", {
   id: serial("id").primaryKey(),

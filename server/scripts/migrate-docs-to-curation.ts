@@ -6,26 +6,18 @@
  */
 
 import { db } from "../db";
-import { documents, curationQueue, tenants } from "../../shared/schema";
-import { eq, and } from "drizzle-orm";
+import { documents, curationQueue } from "../../shared/schema";
+import { eq } from "drizzle-orm";
 
 async function migrateDocumentsToCuration() {
   console.log("\n🔄 [Migration] Starting migration of existing documents to curation queue...\n");
 
   try {
-    // SINGLE-TENANT: Process all documents (tenantId = 1)
-    const TENANT_ID = 1;
-
     // Get all documents that were auto-indexed (not from curation)
     const allDocs = await db
       .select()
       .from(documents)
-      .where(
-        and(
-          eq(documents.tenantId, TENANT_ID),
-          eq(documents.status, "indexed")
-        )
-      );
+      .where(eq(documents.status, "indexed"));
 
     console.log(`📊 Found ${allDocs.length} documents in KB`);
 
@@ -49,7 +41,7 @@ async function migrateDocumentsToCuration() {
       const metadata = doc.metadata as any;
       const suggestedNamespaces = metadata?.namespace ? [metadata.namespace] : ["geral"];
       
-      // Add to curation queue for human review (tenantId defaults to 1 in schema)
+      // Add to curation queue for human review
       await db.insert(curationQueue).values({
         title: doc.title,
         content: doc.content,
@@ -91,7 +83,6 @@ async function migrateDocumentsToCuration() {
     const { trainingDataCollection } = await import("../../shared/schema");
     const deletedTrainingData = await db
       .delete(trainingDataCollection)
-      .where(eq(trainingDataCollection.tenantId, TENANT_ID))
       .returning();
 
     console.log(`\n✅ Migration complete!`);

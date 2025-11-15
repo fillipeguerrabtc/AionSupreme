@@ -52,7 +52,7 @@ interface SearchResult {
  * - Replace with FAISS Python service (HNSW/IVF index) for O(log N) search
  * - Use faiss-node binding OR Python microservice with GPU acceleration
  * - Implement async batch indexing + persistent storage (Redis/Postgres pgvector)
- * - Add sharding for multi-tenant scale (100k+ embeddings per tenant)
+ * - Add sharding for large-scale deployment (100k+ embeddings)
  * - Add proper locking/mutex for concurrent operations (p-queue or async-mutex)
  * 
  * ✅ CURRENT USE CASE: MVP/Development with HITL curated content (small KB)

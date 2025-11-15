@@ -33,22 +33,16 @@ export class NamespaceClassifier {
    * 
    * @param title - Título do conteúdo
    * @param content - Conteúdo completo
-   * @param tenantId - ID do tenant
    * @returns Classificação com sugestões e validações
    */
   async classifyContent(
     title: string,
-    content: string,
-    tenantId?: number
+    content: string
   ): Promise<NamespaceClassificationResult> {
-    // CRITICAL: Respect tenant isolation - no hardcoded defaults
-    if (!tenantId) {
-      console.warn('[Namespace Classifier] ⚠️ No tenantId provided - using null (global)');
-    }
-    console.log(`[Namespace Classifier] Analyzing content: "${title}" (tenant: ${tenantId || 'global'})`);
+    console.log(`[Namespace Classifier] Analyzing content: "${title}"`);
 
-    // 1. Buscar todos namespaces existentes (respecting tenant isolation)
-    const existingNamespaces = await this.getExistingNamespaces(tenantId);
+    // 1. Buscar todos namespaces existentes
+    const existingNamespaces = await this.getExistingNamespaces();
     
     // 2. Usar LLM para análise semântica profunda
     const llmAnalysis = await this.analyzeSemantically(title, content, existingNamespaces);
@@ -93,25 +87,17 @@ export class NamespaceClassifier {
   }
 
   /**
-   * Buscar todos namespaces existentes (with tenant isolation)
+   * Buscar todos namespaces existentes
    * NOTE: Namespaces são FLAT (ex: "educacao.matematica" é uma string, não hierarquia)
-   * CRITICAL: Filters by tenantId when provided to prevent cross-tenant leakage
-   * Uses JSON path extraction to match tenantId even when metadata has extra fields
    */
-  private async getExistingNamespaces(tenantId?: number) {
-    const query = db
+  private async getExistingNamespaces() {
+    const results = await db
       .select({
         id: namespaces.id,
         name: namespaces.name,
         description: namespaces.description,
       })
       .from(namespaces);
-
-    // Apply tenant filter using JSON path extraction (prevents cross-tenant leakage)
-    // Matches rows where metadata->>'tenantId' equals tenantId (even if metadata has extra keys)
-    const results = tenantId 
-      ? await query.where(sql`(${namespaces.metadata}->>'tenantId')::int = ${tenantId}`)
-      : await query; // Global namespaces (no tenant filter)
 
     return results.map(ns => {
       // Detectar subnamespace pela presença de "." no nome

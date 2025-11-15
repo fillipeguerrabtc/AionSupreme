@@ -149,7 +149,7 @@ app.use((req, res, next) => {
   
   // Carregar sistema multi-agente do banco de dados
   const { loadAgentsFromDatabase } = await import("./agent/loader");
-  await loadAgentsFromDatabase(); // Modo single-tenant
+  await loadAgentsFromDatabase();
 
   const { vectorStore } = await import("./rag/vector-store");
   await vectorStore.load();

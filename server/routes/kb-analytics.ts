@@ -227,8 +227,7 @@ export function registerKbAnalyticsRoutes(app: Router) {
       console.log('[Admin API] [SCAN] Starting manual KB deduplication scan...');
       
       const { kbDeduplicationScanner } = await import('../services/kb-deduplication-scanner');
-      const tenantId = 1; // Single-tenant mode
-      const report = await kbDeduplicationScanner.scanKB(tenantId);
+      const report = await kbDeduplicationScanner.scanKB();
       
       // Format human-readable report
       const formattedReport = kbDeduplicationScanner.formatReport(report);

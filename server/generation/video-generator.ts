@@ -76,7 +76,7 @@ export class VideoGenerator {
 
     console.log(`[VideoGen] Creating video job: "${prompt.slice(0, 60)}..."`);
 
-    // Create job in database (tenantId defaults to 1 in schema)
+    // Create job in database
     const job = await storage.createVideoJob({
       conversationId: conversationId || null,
       prompt,

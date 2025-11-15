@@ -173,7 +173,7 @@ export class PersistentVectorStore {
 
     console.log(`[PersistentVectorStore] Loaded ${candidates.length} candidates in ${Date.now() - startTime}ms (pgvector IVFFlat)`);
 
-    // Step 3: Apply namespace filtering (CRITICAL for multi-tenant isolation)
+    // Step 3: Apply namespace filtering (CRITICAL for namespace isolation)
     let filteredCandidates = candidates;
     if (filter?.namespaces && filter.namespaces.length > 0) {
       filteredCandidates = candidates.filter(c => {

@@ -87,8 +87,7 @@ export class AutoLearningListener {
       try {
         const classification = await namespaceClassifier.classifyContent(
           payload.userMessage.substring(0, 100),
-          conversationContent,
-          1 // tenantId
+          conversationContent
         );
         suggestedNamespaces = [classification.suggestedNamespace];
         console.log(`   🧠 Namespace classified semantically: ${classification.suggestedNamespace} (confidence: ${classification.confidence}%)`);

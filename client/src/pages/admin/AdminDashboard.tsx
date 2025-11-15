@@ -248,7 +248,7 @@ export default function AdminDashboard() {
   const updatePolicy = useMutation({
     mutationFn: async (updates: any) => {
       // Merge policy with updates, but exclude timestamp fields (backend manages these)
-      const { createdAt, updatedAt, id, tenantId: _tenantId, ...policyFields } = policy || {};
+      const { createdAt, updatedAt, id, ...policyFields } = policy || {};
       const payload = { ...policyFields, ...updates };
       
       const res = await apiRequest(`/api/admin/policies`, {

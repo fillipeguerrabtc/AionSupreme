@@ -368,7 +368,6 @@ async function logAgentTrace(trace: {
     const { agentTraces } = await import("@shared/schema");
     
     await db.insert(agentTraces).values({
-      tenantId: 1,
       sessionId: trace.sessionId,
       traceId: trace.traceId,
       parentAgentId: trace.parentAgentId,

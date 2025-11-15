@@ -46,7 +46,7 @@ export class KBDeduplicationScanner {
    * - pgvector approximate search
    * - Background job queue
    */
-  async scanKB(tenantId: number = 1): Promise<KBDuplicationScanReport> {
+  async scanKB(): Promise<KBDuplicationScanReport> {
     console.log('[KB Dedup] Starting KB-wide duplicate scan...');
     const startTime = Date.now();
 
@@ -68,7 +68,6 @@ export class KBDeduplicationScanner {
       .innerJoin(embeddings, eq(embeddings.documentId, documents.id))
       .where(
         and(
-          eq(documents.tenantId, tenantId),
           eq(documents.status, 'indexed'),
           sql`${embeddings.embedding} IS NOT NULL`
         )

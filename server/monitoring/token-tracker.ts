@@ -255,7 +255,7 @@ function calculateCost(provider: string, model: string, promptTokens: number, co
 export async function trackTokenUsage(data: TokenTrackingData): Promise<void> {
   const cost = data.cost ?? calculateCost(data.provider, data.model, data.promptTokens, data.completionTokens);
   
-  // Insert usage record (tenantId defaults to 1 in schema)
+  // Insert usage record
   await db.insert(tokenUsage).values({
     provider: data.provider,
     model: data.model,
@@ -499,7 +499,7 @@ async function checkLimitsAndAlert(provider: string): Promise<void> {
   }
 }
 
-async function createAlert(data: Omit<InsertTokenAlert, 'tenantId' | 'acknowledged' | 'acknowledgedAt'>): Promise<void> {
+async function createAlert(data: Omit<InsertTokenAlert, 'acknowledged' | 'acknowledgedAt'>): Promise<void> {
   // Check if similar alert exists in last hour
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
   
@@ -554,7 +554,7 @@ export async function setTokenLimit(
       })
       .where(eq(tokenLimits.id, existing[0].id));
   } else {
-    // Create new (tenantId defaults to 1 in schema)
+    // Create new
     await db.insert(tokenLimits).values({
       provider,
       ...limits

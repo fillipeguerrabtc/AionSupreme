@@ -63,7 +63,7 @@ export const agentRegistry = new AgentRegistry();
 
 // Compatibility export for router.ts and other callers
 export async function loadAgents(): Promise<Agent[]> {
-  // Returns all agents from registry (tenantless)
+  // Returns all agents from registry
   return agentRegistry.getAllAgents();
 }
 

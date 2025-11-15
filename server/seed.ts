@@ -6,7 +6,6 @@ import { eq, and } from "drizzle-orm";
 /**
  * Seed database with initial data
  * Creates default configuration policy + tools + agent-tools mapping
- * SINGLE-TENANT: No tenant creation needed, tenantId defaults to 1
  */
 export async function seedDatabase() {
   try {

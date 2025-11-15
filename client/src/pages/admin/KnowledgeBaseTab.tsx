@@ -64,7 +64,7 @@ export default function KnowledgeBaseTab() {
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [showBulkDeleteImages, setShowBulkDeleteImages] = useState(false);
 
-  // Fetch system timezone for dynamic date formatting (single-tenant system)
+  // Fetch system timezone for dynamic date formatting
   const { data: systemTimezone } = useQuery<{ timezone: string }>({
     queryKey: ["/api/admin/settings/timezone"],
     queryFn: async () => {
@@ -159,7 +159,7 @@ export default function KnowledgeBaseTab() {
       setSearchQuery("");
       toast({ 
         title: t.admin.knowledgeBase.toasts.webSearchSuccess.replace('{{count}}', String(data.documentsIndexed || 0)),
-        description: t.admin.knowledgeBase.toasts.searchLabel + ` "${searchQuery}"`,
+        description: `Query: "${searchQuery}"`,
       });
     },
   });

@@ -5,7 +5,6 @@
  * - Every API request logged
  * - Cryptographic hash of data (SHA-256)
  * - Immutable append-only logs
- * - Tenant isolation
  */
 
 import { type Request, type Response, type NextFunction } from "express";
@@ -14,7 +13,6 @@ import { enforcementPipeline } from "../policy/enforcement-pipeline";
 
 interface AuditEntry {
   timestamp: Date;
-  tenantId: number;
   method: string;
   path: string;
   ip: string;
@@ -50,7 +48,6 @@ export function auditMiddleware(
 
     const auditEntry: AuditEntry = {
       timestamp: new Date(),
-      tenantId: 1,
       method: req.method,
       path: req.path,
       ip: req.ip || req.socket.remoteAddress || "unknown",

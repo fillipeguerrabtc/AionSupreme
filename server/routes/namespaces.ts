@@ -390,8 +390,7 @@ export function registerNamespaceRoutes(app: Router) {
       }
 
       // Classificar via LLM
-      // FIX: Ordem correta dos parâmetros: (title, content, tenantId)
-      const result = await namespaceClassifier.classifyContent(title ?? "", content, 1); // tenantId 1
+      const result = await namespaceClassifier.classifyContent(title ?? "", content);
 
       console.log(`[Namespaces] Classified content → suggested: "${result.suggestedNamespace}" (${result.confidence}% confidence)`);
 
@@ -514,7 +513,6 @@ export function registerNamespaceRoutes(app: Router) {
         namespaces: [namespaceName],
         tools: ["web_search", "calculator", "code_interpreter"],
         policyId: null,
-        tenantId: 1,
       });
 
       console.log(`[Namespaces] ✅ Created namespace "${namespaceName}" + agent "${agentName}" (ID: ${newAgent.id})`);

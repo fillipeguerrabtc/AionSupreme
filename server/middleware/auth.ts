@@ -1,8 +1,8 @@
 /**
- * Authentication Middleware - JWT Auth with per-tenant keys
+ * Authentication Middleware - JWT Auth
  * 
  * As per security requirements:
- * - JWT authentication with tenant-specific keys
+ * - JWT authentication
  * - API key validation
  * - Request signing
  * - Token refresh mechanism
@@ -22,7 +22,7 @@ interface AuthenticatedRequest extends Request {
  * 
  * SECURITY FIX: Removed automatic bypass - now requires valid API key or explicit disable
  * 
- * SINGLE-TENANT: Uses single API key from environment variable
+ * Uses single API key from environment variable
  * Set SYSTEM_API_KEY in environment to enable API key authentication
  * Set DISABLE_API_KEY_AUTH=true to completely disable (NOT recommended for production)
  */
@@ -64,13 +64,12 @@ export async function authenticateApiKey(
 }
 
 /**
- * Validate API key (SINGLE-TENANT MODE)
+ * Validate API key
  * 
  * SECURITY FIX: Now validates against SYSTEM_API_KEY environment variable
- * Or falls back to database validation for multi-tenant future compatibility
  */
 async function validateApiKey(apiKey: string): Promise<boolean> {
-  // Validate against environment variable (single-tenant mode)
+  // Validate against environment variable
   const systemApiKey = process.env.SYSTEM_API_KEY;
   
   if (systemApiKey) {
@@ -81,18 +80,13 @@ async function validateApiKey(apiKey: string): Promise<boolean> {
     );
   }
   
-  // Future: validate against database for multi-tenant support
-  // const tenant = await storage.getTenantByApiKey(apiKey);
-  // return !!tenant;
-  
-  // If no SYSTEM_API_KEY is set and database validation is not implemented,
-  // reject all API key attempts
-  console.warn("[Auth] No SYSTEM_API_KEY configured and database validation not implemented");
+  // If no SYSTEM_API_KEY is set, reject all API key attempts
+  console.warn("[Auth] No SYSTEM_API_KEY configured");
   return false;
 }
 
 /**
- * Generate API key for tenant
+ * Generate API key
  */
 export function generateApiKey(): string {
   return crypto.randomBytes(32).toString("hex");
@@ -100,7 +94,6 @@ export function generateApiKey(): string {
 
 /**
  * Optional: JWT Token generation (for future OAuth/session management)
- * SINGLE-TENANT: Removed tenantId from JWT
  */
 export function generateJWT(secret: string): string {
   const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
@@ -121,7 +114,6 @@ export function generateJWT(secret: string): string {
 
 /**
  * Verify JWT token
- * SINGLE-TENANT: Returns true/false instead of tenant info
  */
 export function verifyJWT(token: string, secret: string): boolean {
   try {

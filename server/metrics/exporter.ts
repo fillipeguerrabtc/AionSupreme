@@ -4,7 +4,6 @@
  * As per PDFs: Export metrics in Prometheus format for monitoring
  * - Standard metric types (Counter, Gauge, Histogram)
  * - Custom application metrics
- * - Per-tenant metrics
  */
 
 import { type Request, type Response } from "express";

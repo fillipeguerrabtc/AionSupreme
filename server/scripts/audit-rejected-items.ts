@@ -64,7 +64,6 @@ async function auditRejectedItems(): Promise<void> {
       try {
         const dupCheck = await deduplicationService.checkDuplicate({
           text: item.content,
-          tenantId: 1,
           enableSemantic: true
         });
 

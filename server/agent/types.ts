@@ -1,6 +1,5 @@
 // server/agent/types.ts
 export interface AgentRunContext {
-  tenantId: number;
   sessionId: string;
   budgetUSD: number;
   language?: string; // 🔥 FIX: Support multi-language responses (e.g., "pt-BR", "en-US", "es-ES")

@@ -1,9 +1,9 @@
 import type { AgentObservation } from "../react-engine";
 import { ragService } from "../../rag/vector-store";
 
-export async function kbSearch(input: { query: string; k?: number; tenantId: number }): Promise<AgentObservation> {
+export async function kbSearch(input: { query: string; k?: number }): Promise<AgentObservation> {
   try {
-    const results = await ragService.search(input.query, input.tenantId, { k: input.k || 5 });
+    const results = await ragService.search(input.query, null, { k: input.k || 5 });
     
     if (results.length === 0) {
       return {

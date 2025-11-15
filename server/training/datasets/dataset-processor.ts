@@ -81,7 +81,7 @@ export class DatasetProcessor {
         console.warn("Failed to delete temp file:", e);
       }
 
-      // 6. Create dataset record (tenantId defaults to 1 in schema)
+      // 6. Create dataset record
       const dataset: InsertDataset = {
         userId: userId || null,
         name,

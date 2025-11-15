@@ -57,7 +57,6 @@ class UsageTracker {
   ): Promise<void> {
     try {
       await storage.createUsageRecord({
-        tenantId: 1,
         entityType: "agent",
         entityId: agentId,
         entityName: agentName,
@@ -89,7 +88,6 @@ class UsageTracker {
         : namespaceName.split("/")[0];
       
       await storage.createUsageRecord({
-        tenantId: 1,
         entityType: "namespace",
         entityId: namespaceId,
         entityName: namespaceName,
@@ -118,7 +116,6 @@ class UsageTracker {
       const avgRelevanceScore = relevanceScores.reduce((sum, score) => sum + score, 0) / relevanceScores.length;
       
       await storage.createNamespaceRelevanceRecord({
-        tenantId: 1,
         namespace,
         avgRelevanceScore,
         resultCount: relevanceScores.length,

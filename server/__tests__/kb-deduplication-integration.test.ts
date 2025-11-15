@@ -35,7 +35,6 @@ describe('KB Deduplication - Integration Tests', () => {
       
       const result = await service.checkDuplicate({
         text: 'Test content',
-        tenantId: 1,
         enableSemantic: false, // Hash-only
       });
       
@@ -55,7 +54,6 @@ describe('KB Deduplication - Integration Tests', () => {
       
       await service.checkDuplicate({
         text: 'Hello', // 5 chars - should trigger semantic check
-        tenantId: 1,
         enableSemantic: true,
       });
       
@@ -69,7 +67,6 @@ describe('KB Deduplication - Integration Tests', () => {
       
       await service.checkDuplicate({
         text: 'Hi', // 2 chars - below threshold
-        tenantId: 1,
         enableSemantic: true,
       });
       
@@ -112,7 +109,6 @@ describe('KB Deduplication - Integration Tests', () => {
     it('should handle exactly 5-char content (threshold boundary)', async () => {
       const result = await service.checkDuplicate({
         text: 'Hello', // Exactly 5 chars
-        tenantId: 1,
         enableSemantic: true,
       });
       
@@ -123,7 +119,6 @@ describe('KB Deduplication - Integration Tests', () => {
     it('should handle 4-char content (below threshold)', async () => {
       const result = await service.checkDuplicate({
         text: 'Test', // Exactly 4 chars
-        tenantId: 1,
         enableSemantic: true,
       });
       

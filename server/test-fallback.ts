@@ -83,7 +83,6 @@ async function testFallbackSystem() {
   
   const mockPolicy: Policy = {
     id: 1,
-    tenantId: 1,
     policyName: "DEFAULT_UNRESTRICTED",
     rules: {
       hate_speech: false,

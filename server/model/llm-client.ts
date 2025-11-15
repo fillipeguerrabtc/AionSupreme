@@ -147,7 +147,7 @@ export class LLMClient {
     }
     this.openai = new OpenAI({ apiKey });
     
-    // Rate limiter global único (sistema é single-tenant)
+    // Rate limiter global único
     // Padrão: 60 requisições por minuto = 1 requisição por segundo
     this.rateLimiter = new RateLimiter(60, 1);
   }
@@ -195,7 +195,7 @@ export class LLMClient {
   }
 
   /**
-   * Get global rate limiter (system is single-tenant)
+   * Get global rate limiter
    */
   private getRateLimiter(): RateLimiter {
     return this.rateLimiter;

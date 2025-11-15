@@ -55,7 +55,6 @@ class QueryMonitor {
   ): Promise<void> {
     try {
       await storage.createQueryMetric({
-        tenantId: 1,
         queryType,
         provider,
         latencyMs,
@@ -299,7 +298,6 @@ class QueryMonitor {
       }
 
       await storage.createAgentQueryResult({
-        tenantId: 1,
         agentId: params.agentId,
         agentName: params.agentName,
         query: params.query,
@@ -383,7 +381,6 @@ class QueryMonitor {
       metadataWithError.errorType = params.errorType;
       
       await storage.createAgentQueryResult({
-        tenantId: 1,
         agentId: params.agentId,
         agentName: params.agentName,
         query: params.query,

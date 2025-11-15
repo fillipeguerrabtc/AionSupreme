@@ -54,8 +54,7 @@ export async function curatorAgent(
  * TODO: Implementar com LLM real
  */
 export async function suggestNamespaces(
-  text: string,
-  tenantId: number
+  text: string
 ): Promise<string[]> {
   // Placeholder: análise simples por keywords
   const keywords: Record<string, string[]> = {

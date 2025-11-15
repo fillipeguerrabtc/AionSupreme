@@ -12,7 +12,6 @@ export function registerKbPromoteRoutes(app: Router) {
    */
   app.post("/kb/promote", async (req, res) => {
     try {
-      // SINGLE-TENANT: System operates with tenantId = 1
       const { text, suggestedNamespaces, title, submittedBy } = req.body;
 
       if (!text || !suggestedNamespaces || suggestedNamespaces.length === 0) {
@@ -21,7 +20,7 @@ export function registerKbPromoteRoutes(app: Router) {
         });
       }
 
-      // Criar item na fila de curadoria (tenantId defaults to 1 in curationStore)
+      // Criar item na fila de curadoria
       const item = await curationStore.addToCuration({
         title: title || "Conteúdo promovido",
         content: text,
