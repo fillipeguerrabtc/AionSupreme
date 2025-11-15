@@ -1143,8 +1143,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTrainingDataCollection(data: InsertTrainingDataCollection): Promise<TrainingDataCollection> {
-    // ✅ ARCHITECT FIX: Deterministic hash-based deduplication for training data
-    // Prevents duplicate training examples from polluting datasets
+    // 🔥 ENTERPRISE FIX: Triple-layer deduplication for training data
+    // GUARD 1: conversation_id (exact), GUARD 2: hash (exact), GUARD 3: semantic (similar)
     
     // GUARD 1: conversation_id deduplication (exact match + composite check)
     if (data.conversationId) {
@@ -1162,13 +1162,68 @@ export class DatabaseStorage implements IStorage {
         .limit(1);
       
       if (existing) {
-        console.warn(`[Storage] [DEDUP] ♻️ Training data for conversation ${data.conversationId} already exists (ID: ${existing.id}) - returning existing`);
+        console.warn(`[Storage] [DEDUP] ♻️ [GUARD 1] Training data for conversation ${data.conversationId} already exists (ID: ${existing.id}) - returning existing`);
         return existing;
       }
     }
     
+    // 🔥 GUARD 3: SEMANTIC deduplication (catches paraphrased duplicates)
+    // ARCHITECT-MANDATED: MUST run before hash/metadata to prevent similar content
+    if (data.formattedData) {
+      console.log(`[Storage] [DEDUP] [GUARD 3] Running semantic deduplication check...`);
+      
+      // Extract text from formattedData (support multiple formats)
+      let textToCheck = '';
+      try {
+        const formattedJson = typeof data.formattedData === 'string' 
+          ? JSON.parse(data.formattedData)
+          : data.formattedData;
+        
+        // Support JSONL (messages), input/output pairs, raw content
+        const inputText = formattedJson?.messages?.[0]?.content || 
+                         formattedJson?.input || 
+                         JSON.stringify(formattedJson);
+        
+        const outputText = formattedJson?.messages?.[1]?.content || 
+                          formattedJson?.output || 
+                          '';
+        
+        textToCheck = `${inputText}\n${outputText}`.trim();
+      } catch {
+        // Fallback: use raw formattedData as string
+        textToCheck = String(data.formattedData);
+      }
+      
+      if (textToCheck.length > 5) { // Minimum viable content
+        const { deduplicationService } = await import("./services/deduplication-service");
+        const dupCheck = await deduplicationService.checkDuplicate({
+          text: textToCheck,
+          tenantId: 1, // ✅ ENTERPRISE: Training data uses default tenant (no multi-tenancy)
+          enableSemantic: true // ✅ ARCHITECT-MANDATED: Catch paraphrased duplicates
+        });
+        
+        if (dupCheck.isDuplicate && dupCheck.duplicateOf) {
+          const similarity = (dupCheck.duplicateOf.similarity || 0) * 100;
+          console.warn(`[Storage] [DEDUP] ♻️ [GUARD 3] Semantic duplicate detected (${similarity.toFixed(1)}% similar to training data ID: ${dupCheck.duplicateOf.id}) - returning existing`);
+          
+          // Return existing training data record
+          const [existing] = await db
+            .select()
+            .from(trainingDataCollection)
+            .where(eq(trainingDataCollection.id, dupCheck.duplicateOf.id));
+          
+          if (existing) {
+            return existing;
+          }
+          // If not found in training_data_collection, it's a duplicate from documents table
+          // In this case, we still proceed (different entity type)
+          console.warn(`[Storage] [DEDUP] [GUARD 3] Duplicate is from documents table (not training data) - allowing insert`);
+        }
+      }
+    }
+    
     // GUARD 2: Hash-based deduplication for ALL entries (including null conversation_id)
-    // ARCHITECT FIX: Use deterministic hash instead of semantic similarity
+    // ARCHITECT NOTE: Hash catches EXACT duplicates, semantic (GUARD 3) catches paraphrases
     if (data.formattedData) {
       try {
         const { generateContentHash, normalizeContent } = await import("./utils/deduplication");
@@ -1207,7 +1262,7 @@ export class DatabaseStorage implements IStorage {
           .limit(1);
         
         if (existing) {
-          console.warn(`[Storage] [DEDUP] ♻️ Training data with identical hash already exists (ID: ${existing.id}) - returning existing`);
+          console.warn(`[Storage] [DEDUP] ♻️ [GUARD 2] Training data with identical hash already exists (ID: ${existing.id}) - returning existing`);
           return existing;
         }
         

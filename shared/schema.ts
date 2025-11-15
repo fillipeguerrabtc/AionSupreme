@@ -1961,6 +1961,10 @@ export type DatasetDocument = typeof datasetDocuments.$inferSelect;
 export const trainingDataCollection = pgTable("training_data_collection", {
   id: serial("id").primaryKey(),
   
+  // 🔥 ENTERPRISE: Multi-tenant isolation (ARCHITECT-MANDATED for semantic dedup)
+  // Default(1) = backfill strategy for existing records (prevents NOT NULL violation)
+  tenantId: integer("tenant_id").notNull().default(1),
+  
   // Source conversation (nullable for standalone training examples)
   conversationId: integer("conversation_id").references(() => conversations.id),
   
