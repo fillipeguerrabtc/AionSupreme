@@ -994,6 +994,11 @@ export async function generateWithFreeAPIs(
   if (forceProvider) {
     console.log(`🎯 [FREE APIs] FORCE PROVIDER: ${forceProvider} (skipping fallback chain)`);
     
+    // 🔥 CRITICAL SECURITY: Prevent OpenAI bypass when allowOpenAI=false
+    if (forceProvider === 'openai' && !allowOpenAI) {
+      throw new Error('Cannot force OpenAI provider when allowOpenAI=false (use STEP 5 orchestrator)');
+    }
+    
     // Quota check for forced provider
     const quotasFromDB = await getProviderQuotas();
     const quotaMap = new Map(quotasFromDB.map(q => [q.provider, q]));

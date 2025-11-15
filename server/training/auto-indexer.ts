@@ -189,14 +189,16 @@ export class AutoIndexer {
         // PHASE 2: Use semantic namespace classification for conversations
         const suggestedNamespaces = await this.determineNamespaceSemantic(example.instruction, example.output);
 
-        await db.insert(curationQueue).values({
+        // ✅ ARCHITECT FIX: Use addToCuration() instead of direct insert (includes semantic dedup)
+        const { curationStore } = await import("../curation/store");
+        
+        await curationStore.addToCuration({
           title,
           content,
           suggestedNamespaces,
           tags: [`auto-conversation`, `quality-${metrics.score}`],
-          status: "pending",
           submittedBy: "auto-indexer-conversation",
-        } as any);
+        });
 
         queued++;
       }

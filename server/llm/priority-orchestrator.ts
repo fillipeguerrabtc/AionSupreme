@@ -879,9 +879,11 @@ This instruction takes ABSOLUTE PRIORITY.
       maxTokens: req.maxTokens
     });
     
+    // 🔥 CRITICAL FIX: NEVER allow OpenAI in STEP 3 (Free APIs)!
+    // OpenAI is STEP 5 (last resort). If Free APIs fail, continue to STEP 4 (Web Search).
     const freeResponse = await generateWithFreeAPIs(
       freeApiRequest,
-      !req.forceProvider, // allowOpenAI: false when forcing provider (prevents paid fallback)
+      false, // ✅ allowOpenAI: ALWAYS false in STEP 3 (use STEP 5 for OpenAI)
       req.model, // NEW: Pass model
       req.forceProvider // NEW: Pass forceProvider
     );
