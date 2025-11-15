@@ -3,6 +3,49 @@
 ## Overview
 AION is an enterprise-grade autonomous AI system designed for robustness, flexibility, and self-operation, extending beyond current LLM limitations. Its core purpose is to deliver a self-sustaining, continuously evolving AI that learns and improves autonomously, reducing reliance on external APIs over time. Key capabilities include configurable policy enforcement, RAG-based knowledge retrieval, advanced autonomous agents using POMDP with a ReAct framework, professional video generation, and production-ready autonomous meta-learning. The business vision is to provide a comprehensive, self-managing AI solution that offers significant market potential by automating complex tasks and continuous self-optimization across various enterprise applications.
 
+## Recent Changes (2025-11-15)
+
+### Curation System Consolidation Fixes
+**Problem:** System rejecting useful content and not consolidating similar items (user report: "Curadoria não consolida similares e rejeitou muita coisa útil").
+
+**Root Cause:** Gap in 0.80-0.87 similarity range where items bypassed both deduplication (threshold 0.82) and absorption (<10% new content), creating duplicate KB entries.
+
+**Solutions Implemented:**
+
+1. **Auto-Approval Thresholds Adjusted (SQL):**
+   - minApprovalScore: 70 → 55 (approve medium-quality content)
+   - maxRejectScore: 30 → 40 (fewer rejections)
+   - sensitiveFlags: removed 'tech' and 'finance' (kept: adult, violence, medical, legal, pii, hate-speech)
+
+2. **Semantic Deduplication Threshold: 0.82 → 0.88**
+   - File: `server/services/deduplication-service.ts`
+   - Stricter threshold to avoid false positives
+   - Only flags extremely similar content (>88%) as hard duplicates
+   - NEW: Returns duplicateOf metadata even when isDuplicate=false (for similarity >= 0.80)
+
+3. **Forced Consolidation for 0.80-0.88 Similarity Range:**
+   - File: `server/curation/store.ts` (2 locations: approveAndPublish, publishApprovedItem)
+   - Removed `&& dupCheck.isDuplicate` check → processes duplicateOf regardless of flag
+   - Captures similarityScore and passes to analyzeAbsorption()
+   
+   - File: `server/utils/absorption.ts`
+   - Forces shouldAbsorb=true for 0.80-0.88 range, bypassing newContentPercent threshold
+   - Returns forcedConsolidation=true flag for audit
+
+4. **Absorption Thresholds Relaxed:**
+   - newContentPercent: 10% → 5% (consolidate content with small additions)
+   - extractedLength: 20 → 15 chars minimum
+
+**Complete Flow (85% Similarity Example):**
+1. Item arrives → checkDuplicate(threshold=0.88)
+2. Returns: `{ isDuplicate: false, duplicateOf: { id: 123, similarity: 0.85 } }`
+3. store.ts: `if (dupCheck.duplicateOf)` captures duplicateDocId=123, similarityScore=0.85
+4. analyzeAbsorption(kb, curation, 0.85) → forced consolidation triggered (0.80-0.88 range)
+5. Result: shouldAbsorb=true, forcedConsolidation=true
+6. Content MERGED into existing document (no duplicate KB entry created)
+
+**Architect Review:** PASSED (3 iterations to close gap correctly)
+
 ## User Preferences
 ### ⚠️ ENFORCEMENT CHARTER - REGRAS OBRIGATÓRIAS (LEIA PRIMEIRO!)
 ## 🎯 PRINCÍPIO FUNDAMENTAL: QUALIDADE > VELOCIDADE > ECONOMIA
