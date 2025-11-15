@@ -815,7 +815,7 @@ async function callOpenRouter(req: LLMRequest, orchestrationRemainingMs?: number
             'X-Title': 'AION Supreme'
           },
           body: JSON.stringify({
-            model: 'meta-llama/llama-3.1-8b-instruct:free',
+            model: 'meta-llama/llama-3.3-8b-instruct:free',
             messages: req.messages,
             max_tokens: req.maxTokens || 1024,
             temperature: req.temperature ?? 0.7,
