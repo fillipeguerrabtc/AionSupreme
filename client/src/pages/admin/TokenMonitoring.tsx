@@ -152,7 +152,7 @@ interface KBSearchHistoryEntry {
 
 interface FreeAPIHistoryEntry {
   id: number;
-  provider: 'groq' | 'gemini' | 'huggingface' | 'openrouter';
+  provider: 'groq' | 'gemini' | 'openrouter';
   model: string;
   promptTokens: number;
   completionTokens: number;
@@ -165,7 +165,6 @@ interface FreeAPIHistoryEntry {
 const COLORS = {
   groq: '#f55036',
   gemini: '#4285f4',
-  huggingface: '#ffb000',
   openrouter: '#8b5cf6',
   openai: '#10a37f',
   web: '#06b6d4',
@@ -339,7 +338,7 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
 
 
     const headers = showBreakdown 
-      ? ['Date', 'Total Tokens', 'Groq', 'Gemini', 'HuggingFace', 'OpenRouter', 'OpenAI', 'KB', 'Web']
+      ? ['Date', 'Total Tokens', 'Groq', 'Gemini', 'OpenRouter', 'OpenAI', 'KB', 'Web']
       : ['Date', 'Tokens', 'Requests', 'Cost'];
     
     const rows = trends.daily.map((d: any) => {
@@ -349,7 +348,6 @@ export default function TokenMonitoring({ initialTab = 'overview' }: TokenMonito
           d.totalTokens || 0,
           d.groq || 0,
           d.gemini || 0,
-          d.huggingface || 0,
           d.openrouter || 0,
           d.openai || 0,
           d.kb || 0,
