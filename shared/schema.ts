@@ -2427,7 +2427,8 @@ export const curationQueue = pgTable("curation_queue", {
   submittedBy: varchar("submitted_by", { length: 255 }),
   submittedAt: timestamp("submitted_at").notNull().defaultNow(),
   reviewedBy: varchar("reviewed_by", { length: 255 }),
-  reviewedAt: timestamp("reviewed_at"),
+  reviewedAt: timestamp("reviewed_at"), // Human review timestamp (manual approval)
+  promotedAt: timestamp("promoted_at"), // Auto-promotion timestamp (when published to KB)
   statusChangedAt: timestamp("status_changed_at"), // Timestamp when status changed
   expiresAt: timestamp("expires_at"), // Auto-deletion timestamp for rejected items (30 days after rejection)
   note: text("note"), // Admin notes (freeform comments - preserved for ad-hoc use per architect)
